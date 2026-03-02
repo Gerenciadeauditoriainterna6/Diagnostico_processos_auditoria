@@ -1,0 +1,15 @@
+[theme]
+# Esta é a cor do seu botão "primary" (Salvar) e outros destaques
+primaryColor = "#004a99" 
+
+# Cor de fundo principal
+backgroundColor = "#ffffff"
+
+# Cor de fundo dos elementos (sidebar, inputs, etc.)
+secondaryBackgroundColor = "#f0f2f6"
+
+# Cor do texto
+textColor = "#262730"
+
+# Fonte (opcional: sans, serif ou monospace)
+font = "sans serif"
