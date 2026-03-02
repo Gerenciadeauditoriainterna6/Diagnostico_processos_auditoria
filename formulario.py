@@ -57,18 +57,23 @@ if 'deve_limpar' in st.session_state and st.session_state['deve_limpar']:
      #   contagem = resultado.scalar() or 0
     #return f"{prefixo}.{contagem + 1}"
 def obter_proximo_codigo(area_selecionada):
-    prefixo = MAPPING_AREAS.get(area_selecionada, "0")
+    # 1. Busca o prefixo no mapa
+    prefixo = MAPPING_AREAS.get(area_selecionada)
     
-    # DEBUG: Vamos ver o que está acontecendo
-    st.write(f"DEBUG: Buscando contagem para a área: '{area_selecionada}' (Prefixo: {prefixo})")
-    
+    if prefixo is None:
+        st.error(f"Erro: Área '{area_selecionada}' não encontrada no MAPPING_AREAS.")
+        return "0.0"
+
+    # 2. Query de contagem filtrando exatamente pela área selecionada
     query = text("SELECT COUNT(*) FROM processos WHERE area = :area")
     
     with engine.connect() as conn:
         resultado = conn.execute(query, {"area": area_selecionada})
         contagem = resultado.scalar() or 0
-        
-    st.write(f"DEBUG: Resultado da contagem no banco: {contagem}")
+    
+    # DEBUG: Comente essas linhas quando tudo estiver funcionando
+    st.sidebar.info(f"DEBUG: Área: {area_selecionada} | Prefixo: {prefixo} | Processos encontrados: {contagem}")
+    
     return f"{prefixo}.{contagem + 1}"
 
 def get_estilo_risco(score):
