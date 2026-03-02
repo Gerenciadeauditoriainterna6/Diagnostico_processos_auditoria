@@ -3,11 +3,10 @@ import os
 from sqlalchemy import create_engine, text
 
 # --- CONFIGURAÇÃO E CONEXÃO ---
-# A URL deve estar configurada no seu arquivo .streamlit/secrets.toml
 db_url = st.secrets["connections"]["url"]
 engine = create_engine(db_url)
 
-# --- LOCALIZAÇÃO DE ATIVOS (LOGOS) ---
+# --- LOCALIZAÇÃO DE ATIVOS ---
 caminho_script = os.path.dirname(os.path.abspath(__file__))
 logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
 logo_auditoria = os.path.join(caminho_script, "assets", "logo_auditoria.png")
@@ -25,56 +24,40 @@ MAPA_RISCO = {
     ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
 }
 
-# --- LÓGICA DE LIMPEZA ---
+# --- LÓGICA DE LIMPEZA APÓS SALVAR ---
 if 'deve_limpar' in st.session_state and st.session_state['deve_limpar']:
-
-    # 1. Reseta os campos de texto
     campos_para_limpar = ["input_processo", "input_objetivo", "input_executor", 
                           "input_descricao", "input_etapa_ini", "input_etapa_fim", 
-                          "input_produto", "codigo_processo"]
-    
+                          "input_produto", "codigo_processo", "area"]
     for campo in campos_para_limpar:
-        if campo in st.session_state:
-            st.session_state[campo] = ""
-
-    # 2. Reseta a Selectbox da área
-    st.session_state["area"] = None
-
-    # 3. Reseta os riscos
+        st.session_state[campo] = None if campo == "area" else ""
     st.session_state['riscos'] = []
-
-    # Finaliza a flag
     st.session_state['deve_limpar'] = False
-
     st.rerun()
 
 # --- FUNÇÕES ---
-#def obter_proximo_codigo(area_selecionada):
- #   prefixo = MAPPING_AREAS.get(area_selecionada, "0")
-  #  query = text("SELECT COUNT(*) FROM processos WHERE area = :area")
-   # with engine.connect() as conn:
-    #    resultado = conn.execute(query, {"area": area_selecionada})
-     #   contagem = resultado.scalar() or 0
-    #return f"{prefixo}.{contagem + 1}"
+
 def obter_proximo_codigo(area_selecionada):
     prefixo = MAPPING_AREAS.get(area_selecionada)
-    
-    # query de contagem
     query = text("SELECT COUNT(*) FROM processos WHERE area = :area")
-    
     with engine.connect() as conn:
-        # AQUI O SEGREDO: O :area que você manda deve ser EXATAMENTE 
-        # o que está na coluna 'area' do seu banco de dados (o texto ou o número)
-        resultado = conn.execute(query, {"area": area_selecionada})
-        contagem = resultado.scalar() or 0
-    
-    # DEBUG TOTAL - Olhe a barra lateral do seu app!
-    st.sidebar.subheader("🔍 Debug do Sistema")
-    st.sidebar.write(f"Área selecionada: {area_selecionada}")
-    st.sidebar.write(f"O banco de dados encontrou {contagem} processos para '{area_selecionada}'")
-    st.sidebar.write(f"Código sugerido: {prefixo}.{contagem + 1}")
-    
+        contagem = conn.execute(query, {"area": area_selecionada}).scalar() or 0
     return f"{prefixo}.{contagem + 1}"
+
+def processar_codigo_inteligente():
+    area = st.session_state.get("area")
+    nome = st.session_state.get("input_processo")
+    if not area or not nome:
+        st.session_state['codigo_processo'] = ""
+        return
+    query = text("SELECT codigo_processo FROM processos WHERE area = :area AND nome_processo = :nome")
+    with engine.connect() as conn:
+        resultado = conn.execute(query, {"area": area, "nome": nome}).fetchone()
+    if resultado:
+        st.session_state['codigo_processo'] = resultado[0]
+        st.toast(f"Processo já existe! Carregado: {resultado[0]}", icon="✅")
+    else:
+        st.session_state['codigo_processo'] = obter_proximo_codigo(area)
 
 def get_estilo_risco(score):
     if score >= 12: return "#FF4B4B", "🔴" 
@@ -82,140 +65,60 @@ def get_estilo_risco(score):
     elif score >= 4: return "#FFD700", "🟡"   
     elif score >= 0: return "#00CC96", "🟢" 
 
+def validar_formulario():
+    # 1. Campos Fixos
+    campos_fixos = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo"]
+    for c in campos_fixos:
+        if not st.session_state.get(c):
+            st.error(f"Por favor, preencha o campo: {c.replace('input_', '').replace('_', ' ').capitalize()}")
+            return False
+    # 2. Riscos
+    if not st.session_state['riscos']:
+        st.error("Adicione pelo menos um risco.")
+        return False
+    for i in range(len(st.session_state['riscos'])):
+        for campo in ["nome", "fator", "melhoria", "apetite", "motivo"]:
+            if not st.session_state.get(f"{campo}_{i}"):
+                st.error(f"Preencha todos os campos do Risco {i+1}.")
+                return False
+    return True
+
 def salvar_no_banco():
     try: 
         with engine.begin() as conn:
             area_val = st.session_state.get("area")
             nome_val = st.session_state.get("input_processo")
-
-           # Tenta encontrar o processo existente
-            query_busca = text("SELECT id FROM processos WHERE area = :area AND nome_processo = :nome")
-            resultado_query = conn.execute(query_busca, {"area": area_val, "nome": nome_val})
             
-            # Aqui está a correção: usamos o .fetchone()
-            processo_existente = resultado_query.fetchone()
-
+            # Upsert de Processo
+            query_busca = text("SELECT id FROM processos WHERE area = :area AND nome_processo = :nome")
+            processo_existente = conn.execute(query_busca, {"area": area_val, "nome": nome_val}).fetchone()
+            
             if processo_existente:
-                # Se encontrou, processo_existente[0] é o ID
                 processo_id = processo_existente[0]
-                st.info(f"Processo já existe no banco (ID: {processo_id}). Adicionando riscos ao processo atual...")
             else:
-                # Se não encontrou, criamos um novo processo
-                sql_processo = text("""
-                    INSERT INTO processos (area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto)
-                    VALUES (:area, :cod, :nome, :obj, :exec, :desc, :e_ini, :e_fim, :prod)
-                    RETURNING id
-                """)
-                resultado_insert = conn.execute(sql_processo, {
-                    "area": area_val,
-                    "cod": st.session_state.get("codigo_processo"),
-                    "nome": nome_val,
-                    "obj": st.session_state.get("input_objetivo"),
-                    "exec": st.session_state.get("input_executor"),
-                    "desc": st.session_state.get("input_descricao"),
-                    "e_ini": st.session_state.get("input_etapa_ini"),
-                    "e_fim": st.session_state.get("input_etapa_fim"),
-                    "prod": st.session_state.get("input_produto")
-                })
-                processo_id = resultado_insert.scalar()
+                sql_p = text("INSERT INTO processos (area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) VALUES (:a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id")
+                processo_id = conn.execute(sql_p, {"a": area_val, "c": st.session_state['codigo_processo'], "n": nome_val, "o": st.session_state['input_objetivo'], "ex": st.session_state['input_executor'], "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], "ef": st.session_state['input_etapa_fim'], "p": st.session_state['input_produto']}).scalar()
 
             # Salva Riscos
-            sql_risco = text("""
-                INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, apetite_risco, motivo_risco)
-                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo)
-            """)
+            sql_risco = text("INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, apetite_risco, motivo_risco, score_risco) VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)")
             for i in range(len(st.session_state['riscos'])):
-                conn.execute(sql_risco, {
-                    "pid": processo_id,
-                    "nome": st.session_state.get(f"nome_{i}"),
-                    "fator": st.session_state.get(f"fator_{i}"),
-                    "melhoria": st.session_state.get(f"melhoria_{i}"),
-                    "imp": st.session_state.get(f"imp_{i}"),
-                    "prob": st.session_state.get(f"prob_{i}"),
-                    "apetite": st.session_state.get(f"apetite_{i}"),
-                    "motivo": st.session_state.get(f"motivo_{i}")
-                })
+                imp, prob = st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")
+                score = MAPA_RISCO.get((imp, prob), 0)
+                conn.execute(sql_risco, {"pid": processo_id, "nome": st.session_state.get(f"nome_{i}"), "fator": st.session_state.get(f"fator_{i}"), "melhoria": st.session_state.get(f"melhoria_{i}"), "imp": imp, "prob": prob, "apetite": st.session_state.get(f"apetite_{i}"), "motivo": st.session_state.get(f"motivo_{i}"), "score": score})
         return True
     except Exception as e:
-        st.error(f"Erro ao salvar no banco: {e}")
+        st.error(f"Erro: {e}")
         return False
 
-def verificar_nome_processo():
-    nome_digitado = st.session_state.get("input_processo")
-    area_selecionada = st.session_state.get("area")
-
-    if nome_digitado and area_selecionada:
-        # Busca o código no banco
-        query = text("SELECT codigo_processo FROM processos WHERE area = :area AND nome_processo = :nome")
-        with engine.connect() as conn:
-            resultado = conn.execute(query, {"area": area_selecionada, "nome": nome_digitado}).fetchone()
-            
-            if resultado:
-                # Se encontrou, atualiza o código existente
-                st.session_state['codigo_processo'] = resultado[0]
-                st.toast(f"Processo '{nome_digitado}' encontrado! Código carregado: {resultado[0]}", icon="🔍")
-            else:
-                # Se não encontrou, mantém a sugestão do próximo código
-                sugestao = obter_proximo_codigo(area_selecionada)
-                st.session_state['codigo_processo'] = sugestao
-
-def processar_codigo_inteligente():
-    area = st.session_state.get("area")
-    nome = st.session_state.get("input_processo")
-
-    # Se não temos área ou nome, não fazemos nada (campo fica vazio)
-    if not area or not nome:
-        st.session_state['codigo_processo'] = ""
-        return
-
-    # Tenta buscar no banco
-    query = text("SELECT codigo_processo FROM processos WHERE area = :area AND nome_processo = :nome")
-    with engine.connect() as conn:
-        resultado = conn.execute(query, {"area": area, "nome": nome}).fetchone()
-
-    if resultado:
-        # Se existe, puxa o código que já está gravado
-        st.session_state['codigo_processo'] = resultado[0]
-        st.toast(f"Processo já existe! Código carregado: {resultado[0]}", icon="✅")
-    else:
-        # Se é novo, gera o próximo código
-        st.session_state['codigo_processo'] = obter_proximo_codigo(area)
-
-# --- UI ---
 # --- UI ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
-if os.path.exists(logo_fusve): st.sidebar.image(logo_fusve, width=200)
-if os.path.exists(logo_auditoria):
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2: st.image(logo_auditoria, width=300)
+st.title("Diagnóstico de Processos")
 
-st.title("Diagnóstico de Processos - Auditoria Interna FUSVE")
-
-if 'riscos' not in st.session_state: st.session_state['riscos'] = []
-if 'errors' not in st.session_state: st.session_state['errors'] = {}
-
-# 1. Dados do Processo ---------------------------------------
 st.subheader("1. Dados do Processo")
-
-# Selectbox da Área: Ao mudar, limpa o código (pois o contexto mudou)
-area = st.selectbox(
-    "Selecione a Área:", 
-    list(MAPPING_AREAS.keys()), 
-    key="area",
-    on_change=lambda: st.session_state.update({'codigo_processo': ''}) 
-)
-
-# Input Nome: Ao mudar, roda a validação inteligente
-nome = st.text_input(
-    "Nome do Processo:", 
-    key="input_processo", 
-    on_change=processar_codigo_inteligente
-)
-
-# Código: Apenas exibição (O valor é preenchido pelo session_state via on_change)
+st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
+st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente)
 st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
-
 st.text_area("Objetivo:", key="input_objetivo")
 st.text_area("Quem Executa?", key="input_executor")
 st.text_area("Descrição:", key="input_descricao")
@@ -225,43 +128,28 @@ st.text_area("Produto:", key="input_produto")
 
 st.divider()
 
-# 2. Riscos Associados ---------------------------------------
-
 st.subheader("2. Riscos Associados")
-if st.button("➕ Adicionar Novo Risco"):
-    st.session_state['riscos'].append({})
-    st.rerun()
-
 for i, _ in enumerate(st.session_state['riscos']):
     st.markdown(f"**Risco {i+1}**")
     st.text_input(f"Nome do Risco:", key=f"nome_{i}")
     st.text_area(f"Fator de Risco:", key=f"fator_{i}")
     st.text_area(f"Melhoria:", key=f"melhoria_{i}")
     st.text_area(f"Apetite ao risco:", key=f"apetite_{i}")
-    
     col_i, col_p = st.columns(2)
-    with col_i: impacto = st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}")
-    with col_p: prob = st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}")
-    
-    risco_calc = MAPA_RISCO.get((impacto, prob), 0)
-    cor, emoji = get_estilo_risco(risco_calc)
-    
-    st.markdown(f"""
-        <div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center;">
-            <h3 style="color: white; margin: 0;">{emoji} Score: {risco_calc}</h3>
-        </div>
-    """, unsafe_allow_html=True)
+    with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}")
+    with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}")
     st.text_area(f"Motivo:", key=f"motivo_{i}")
     st.markdown("---")
 
-# --- BOTÃO SALVAR ---
-if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
-    campos_fixos = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto"]
-    
-    if all(st.session_state.get(c) for c in campos_fixos):
-        if salvar_no_banco():
-            st.success("Dados salvos com sucesso no SQL!")
-            st.session_state['deve_limpar'] = True
-            st.rerun()
-    else:
-        st.error("Por favor, preencha todos os campos obrigatórios.")
+col_add, col_save = st.columns(2)
+with col_add:
+    if st.button("➕ Adicionar Novo Risco", use_container_width=True):
+        st.session_state['riscos'].append({})
+        st.rerun()
+with col_save:
+    if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
+        if validar_formulario():
+            if salvar_no_banco():
+                st.success("Dados salvos!")
+                st.session_state['deve_limpar'] = True
+                st.rerun()
