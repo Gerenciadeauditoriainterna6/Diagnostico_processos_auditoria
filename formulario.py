@@ -27,13 +27,20 @@ MAPA_RISCO = {
 
 # --- LÓGICA DE LIMPEZA ---
 if 'deve_limpar' in st.session_state and st.session_state['deve_limpar']:
+    # 1. Reseta os campos de texto
     campos_para_limpar = ["input_processo", "input_objetivo", "input_executor", 
                           "input_descricao", "input_etapa_ini", "input_etapa_fim", 
                           "input_produto", "codigo_processo"]
     for campo in campos_para_limpar:
-        if campo in st.session_state: del st.session_state[campo]
+        if campo in st.session_state:
+            st.session_state[campo] = ""
+    # 2. Reseta a Selectbox da área
+    st.session_state["area"] = None
+    # 3. Reseta os riscos
     st.session_state['riscos'] = []
+    # Finaliza a flag
     st.session_state['deve_limpar'] = False
+    
     st.rerun()
 
 # --- FUNÇÕES ---
@@ -113,7 +120,7 @@ st.subheader("1. Dados do Processo")
 area = st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area")
 if area:
     sugestao_id = obter_proximo_codigo(area)
-    st.text_input("Código do Processo:", value=sugestao_id, key="codigo_processo")
+    st.text_input("Código do Processo:", value=sugestao_id, key="codigo_processo", disabled=True)
 
 st.text_input("Nome do Processo:", key="input_processo")
 st.text_area("Objetivo:", key="input_objetivo")
