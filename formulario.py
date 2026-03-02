@@ -49,12 +49,26 @@ if 'deve_limpar' in st.session_state and st.session_state['deve_limpar']:
     st.rerun()
 
 # --- FUNÇÕES ---
+#def obter_proximo_codigo(area_selecionada):
+ #   prefixo = MAPPING_AREAS.get(area_selecionada, "0")
+  #  query = text("SELECT COUNT(*) FROM processos WHERE area = :area")
+   # with engine.connect() as conn:
+    #    resultado = conn.execute(query, {"area": area_selecionada})
+     #   contagem = resultado.scalar() or 0
+    #return f"{prefixo}.{contagem + 1}"
 def obter_proximo_codigo(area_selecionada):
     prefixo = MAPPING_AREAS.get(area_selecionada, "0")
+    
+    # DEBUG: Vamos ver o que está acontecendo
+    st.write(f"DEBUG: Buscando contagem para a área: '{area_selecionada}' (Prefixo: {prefixo})")
+    
     query = text("SELECT COUNT(*) FROM processos WHERE area = :area")
+    
     with engine.connect() as conn:
         resultado = conn.execute(query, {"area": area_selecionada})
         contagem = resultado.scalar() or 0
+        
+    st.write(f"DEBUG: Resultado da contagem no banco: {contagem}")
     return f"{prefixo}.{contagem + 1}"
 
 def get_estilo_risco(score):
