@@ -102,39 +102,38 @@ if opcao == "Cadastro de Processos":
 elif opcao == "Geração de Relatórios":
     st.title("Relatórios - FUSVE")
     
-    # 1. Atualizar lista
     if st.button("Atualizar Lista de Processos"):
         st.session_state['df_pendentes'] = buscar_processos_pendentes()
     
-    # 2. Seleção
     if not st.session_state['df_pendentes'].empty:
         df = st.session_state['df_pendentes']
         st.dataframe(df)
         
-        # Seleciona pelo Código (assumindo que sua query retorna 'codigo_processo')
-        codigo_selecionado = st.selectbox("Selecione o Código do Processo:", df['codigo_processo'].tolist())
+        # O on_change limpa o 'pdf_pronto' toda vez que o usuário escolhe um processo novo
+        codigo_selecionado = st.selectbox(
+            "Selecione o Código do Processo:", 
+            df['codigo_processo'].tolist(),
+            on_change=lambda: st.session_state.pop('pdf_pronto', None)
+        )
 
-        # 3. Botão para preparar o PDF
         if st.button("Gerar e Marcar como Pronto"):
-            # Marca no banco
             marcar_relatorio_gerado(codigo_selecionado)
-            
-            # Gera o PDF
             pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
             
             if pdf_bytes:
                 st.session_state['pdf_pronto'] = bytes(pdf_bytes)
-                st.success(f"Relatório do processo {codigo_selecionado} pronto para download!")
+                st.success(f"Processo {codigo_selecionado} concluído! Clique em baixar.")
+                st.rerun() 
             else:
                 st.error("Erro ao gerar PDF.")
         
-        # 4. Botão de Download (só aparece se o PDF estiver pronto na memória)
+        # Download button preenchido corretamente
         if 'pdf_pronto' in st.session_state:
             st.download_button(
-                label="📥 Baixar Relatório",
+                label="📥 Baixar Relatório em PDF",
                 data=st.session_state['pdf_pronto'],
                 file_name=f"relatorio_processo_{codigo_selecionado}.pdf",
                 mime="application/pdf"
             )
     else:
-        st.info("Nenhum processo na lista. Clique em 'Atualizar'.")
+        st.info("Nenhum processo pendente para gerar relatório.")

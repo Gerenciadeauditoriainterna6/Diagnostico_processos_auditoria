@@ -109,13 +109,13 @@ def salvar_no_banco():
         return False
 
 def buscar_processos_pendentes():
-    # O DISTINCT evita que um processo apareça várias vezes 
-    # caso ele tenha múltiplos riscos pendentes.
+    # O "IS NULL" garante que os processos antigos entrem na lista.
+    # O "!= 'Sim'" garante que só apareça o que não foi finalizado.
     query = text("""
         SELECT DISTINCT p.id, p.codigo_processo, p.area, p.nome_processo 
         FROM processos p
         JOIN riscos r ON p.id = r.processo_id
-        WHERE r.relatorio_gerado = 'Não'
+        WHERE r.relatorio_gerado != 'Sim' OR r.relatorio_gerado IS NULL
     """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
