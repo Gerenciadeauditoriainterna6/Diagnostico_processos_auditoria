@@ -109,8 +109,16 @@ def salvar_no_banco():
         return False
 
 def buscar_processos_pendentes():
-    query = "SELECT id, area, nome_processo FROM processos" 
-    return pd.read_sql(query, engine)
+    # O DISTINCT evita que um processo apareça várias vezes 
+    # caso ele tenha múltiplos riscos pendentes.
+    query = text("""
+        SELECT DISTINCT p.id, p.codigo_processo, p.area, p.nome_processo 
+        FROM processos p
+        JOIN riscos r ON p.id = r.processo_id
+        WHERE r.relatorio_gerado = 'Não'
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
 
 def buscar_dados_do_processo(codigo_processo):
     # Alteramos a query para filtrar por codigo_processo
