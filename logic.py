@@ -1,13 +1,11 @@
 import os
 import pandas as pd
-from datetime import datetime
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from sqlalchemy import text
 from database import engine
 
-# --- CONFIGURAÇÕES E MAPEAMENTOS ---
-# DICA: Tente usar caminhos relativos ao invés de C:\Users\... para evitar erros no servidor
+# --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
 CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
@@ -50,33 +48,6 @@ class PDF(FPDF):
         self.set_x(170)
         self.set_font("helvetica", "I", 8)
         self.cell(0, 10, f"Página {self.page_no()}", align="C")
-
-# --- FUNÇÕES AUXILIARES ---
-def wrap_text_lines(pdf_obj, text, width):
-    paragraphs = str(text).splitlines() or ['']
-    out_lines = []
-    for para in paragraphs:
-        words = para.split()
-        if not words:
-            out_lines.append('')
-            continue
-        cur = ''
-        for w in words:
-            test = (cur + ' ' + w).strip()
-            if pdf_obj.get_string_width(test) <= width:
-                cur = test
-            else:
-                if cur: out_lines.append(cur)
-                part = ''
-                for ch in w:
-                    if pdf_obj.get_string_width(part + ch) <= width:
-                        part += ch
-                    else:
-                        if part: out_lines.append(part)
-                        part = ch
-                cur = part
-        if cur: out_lines.append(cur)
-    return out_lines
 
 # --- LÓGICA DE BANCO DE DADOS ---
 def obter_proximo_codigo(area_selecionada):
@@ -137,8 +108,12 @@ def salvar_no_banco():
         st.error(f"Erro ao salvar: {e}")
         return False
 
+def buscar_processos_pendentes():
+    query = "SELECT id, area, nome_processo FROM processos" 
+    return pd.read_sql(query, engine)
+
 def buscar_dados_do_processo(id_proc):
-    query = f"""
+    query = text("""
         SELECT 
             p.area AS "AREA", p.nome_processo AS "PROCESSO", p.objetivo AS "OBJETIVO",
             p.descricao AS "DESCRIÇÃO DO PROCESSO", p.executor AS "QUEM EXECUTA?",
@@ -149,9 +124,10 @@ def buscar_dados_do_processo(id_proc):
             r.score_risco AS "RISCO BRUTO"
         FROM processos p
         JOIN riscos r ON p.id = r.processo_id
-        WHERE p.id = {id_proc}
-    """
-    return pd.read_sql(query, engine)
+        WHERE p.id = :id_proc
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"id_proc": id_proc})
 
 def gerar_pdf_em_memoria(id_proc):
     df_processo = buscar_dados_do_processo(id_proc)
@@ -192,16 +168,18 @@ def gerar_pdf_em_memoria(id_proc):
     pdf.set_font('helvetica', "B", 8)
     headers = ["Descrição do Risco", "Fator de Risco", "O que Melhorar?", "Imp.", "Prob.", "Risco Bruto"]
     widths = [50, 40, 40, 20, 20, 20]
+    
+    # Loop corrigido (apenas um loop)
     for h, w in zip(headers, widths):
         is_last = (h == "Risco Bruto")
-        pdf.cell(w, 10, h, border=1, fill=True, align="C", new_x=XPos.LMARGIN if is_last else XPos.RIGHT, new_y=YPos.NEXT if is_last else None)
-    
+        pdf.cell(
+            w, 10, h, border=1, fill=True, align="C", 
+            new_x=XPos.LMARGIN if is_last else XPos.RIGHT, 
+            new_y=YPos.NEXT if is_last else YPos.TOP
+        )
+
     pdf.set_font('helvetica', "", 8)
     for _, linha in df_processo.iterrows():
-        x_start = pdf.get_x()
-        y_start = pdf.get_y()
-        # Simplificação: use multi_cell para as colunas de texto para evitar erro de alinhamento
-        # (Se o seu layout anterior era mais complexo, você pode manter seu loop original aqui)
         pdf.cell(50, 10, str(linha['RISCO']), border=1)
         pdf.cell(40, 10, str(linha['FATOR DE RISCO']), border=1)
         pdf.cell(40, 10, str(linha['O QUE PODERIA MELHORAR?']), border=1)
@@ -221,18 +199,12 @@ def gerar_pdf_em_memoria(id_proc):
     
     return pdf.output(dest='S')
 
-def buscar_processos_pendentes():
-    # Ajuste o SELECT conforme sua necessidade para buscar processos pendentes
-    query = "SELECT id, area, nome_processo FROM processos" 
-    return pd.read_sql(query, engine)
-
 def get_estilo_risco(score):
-    """Retorna cor e emoji baseado no score do risco."""
     if score >= 12:
-        return "#d9534f", "🔴"  # Muito Alto (Vermelho)
+        return "#d9534f", "🔴" 
     elif score >= 8:
-        return "#f0ad4e", "🟠"  # Alto (Laranja)
+        return "#f0ad4e", "🟠" 
     elif score >= 4:
-        return "#f7d794", "🟡"  # Médio (Amarelo)
+        return "#f7d794", "🟡" 
     else:
-        return "#5cb85c", "🟢"  # Baixo (Verde)
+        return "#5cb85c", "🟢"
