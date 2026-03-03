@@ -1,6 +1,8 @@
 import streamlit as st
 import os
 import pandas as pd
+from sqlalchemy import text
+from database import engine
 from logic import (
     MAPPING_AREAS, MAPA_RISCO, processar_codigo_inteligente, 
     get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes
@@ -34,6 +36,12 @@ def validar_formulario():
         st.error("Adicione pelo menos um risco.")
         return False
     return True
+
+def marcar_relatorio_gerado(codigo_processo):
+    """Atualiza o status para 'Sim' após a geração."""
+    query = text("UPDATE processos SET relatorio_gerado = 'Sim' WHERE codigo_processo = :codigo")
+    with engine.begin() as conn:
+        conn.execute(query, {"codigo": codigo_processo})
 
 # --- 5. CONFIGURAÇÃO DE ATIVOS ---
 caminho_script = os.path.dirname(os.path.abspath(__file__))
@@ -87,23 +95,40 @@ if opcao == "Cadastro de Processos":
 
 elif opcao == "Geração de Relatórios":
     st.title("Relatórios - FUSVE")
+    
+    # 1. Atualizar lista
     if st.button("Atualizar Lista de Processos"):
         st.session_state['df_pendentes'] = buscar_processos_pendentes()
     
+    # 2. Seleção
     if not st.session_state['df_pendentes'].empty:
-        st.dataframe(st.session_state['df_pendentes'])
-        id_selecionado = st.selectbox("Selecione o ID do Processo:", st.session_state['df_pendentes']['id'].tolist())
+        df = st.session_state['df_pendentes']
+        st.dataframe(df)
+        
+        # Seleciona pelo Código (assumindo que sua query retorna 'codigo_processo')
+        codigo_selecionado = st.selectbox("Selecione o Código do Processo:", df['codigo_processo'].tolist())
 
-        pdf_output = gerar_pdf_em_memoria(id_selecionado)
-
-        if pdf_output:
+        # 3. Botão para preparar o PDF
+        if st.button("Gerar e Marcar como Pronto"):
+            # Marca no banco
+            marcar_relatorio_gerado(codigo_selecionado)
+            
+            # Gera o PDF
+            pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
+            
+            if pdf_bytes:
+                st.session_state['pdf_pronto'] = bytes(pdf_bytes)
+                st.success(f"Relatório do processo {codigo_selecionado} pronto para download!")
+            else:
+                st.error("Erro ao gerar PDF.")
+        
+        # 4. Botão de Download (só aparece se o PDF estiver pronto na memória)
+        if 'pdf_pronto' in st.session_state:
             st.download_button(
-                label="Baixar Relatório em PDF",
-                data=bytes(pdf_output),
-                file_name=f"relatorio_processo_{id_selecionado}.pdf",
+                label="📥 Baixar Relatório",
+                data=st.session_state['pdf_pronto'],
+                file_name=f"relatorio_processo_{codigo_selecionado}.pdf",
                 mime="application/pdf"
             )
-        else:
-                st.error("Erro ao gerar PDF.")
     else:
-        st.info("Nenhum processo para gerar relatório.")
+        st.info("Nenhum processo na lista. Clique em 'Atualizar'.")

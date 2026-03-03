@@ -112,7 +112,8 @@ def buscar_processos_pendentes():
     query = "SELECT id, area, nome_processo FROM processos" 
     return pd.read_sql(query, engine)
 
-def buscar_dados_do_processo(id_proc):
+def buscar_dados_do_processo(codigo_processo):
+    # Alteramos a query para filtrar por codigo_processo
     query = text("""
         SELECT 
             p.area AS "AREA", p.nome_processo AS "PROCESSO", p.objetivo AS "OBJETIVO",
@@ -124,10 +125,15 @@ def buscar_dados_do_processo(id_proc):
             r.score_risco AS "RISCO BRUTO"
         FROM processos p
         JOIN riscos r ON p.id = r.processo_id
-        WHERE p.id = :id_proc
+        WHERE p.codigo_processo = :codigo
     """)
     with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"id_proc": id_proc})
+        return pd.read_sql(query, conn, params={"codigo": codigo_processo})
+
+def buscar_processos_pendentes():
+    # Retorna o código, que será mais amigável
+    query = "SELECT codigo_processo, area, nome_processo FROM processos" 
+    return pd.read_sql(query, engine)
 
 def gerar_pdf_em_memoria(id_proc):
     df_processo = buscar_dados_do_processo(id_proc)
