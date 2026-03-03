@@ -1,21 +1,28 @@
 import streamlit as st
 import os
-# Importamos apenas o que precisamos da lógica
 from logic import (
     MAPPING_AREAS, MAPA_RISCO, processar_codigo_inteligente, 
     get_estilo_risco, salvar_no_banco
 )
 
-# --- INICIALIZAÇÃO DE ESTADO ---
+# --- 1. CONFIGURAÇÃO INICIAL (DEVE SER A PRIMEIRA CHAMADA) ---
+st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
+
+# --- 2. INICIALIZAÇÃO DE ESTADO ---
 if 'riscos' not in st.session_state: st.session_state['riscos'] = []
 if 'deve_limpar' not in st.session_state: st.session_state['deve_limpar'] = False
 
-# --- CONFIGURAÇÃO DE ATIVOS ---
-caminho_script = os.path.dirname(os.path.abspath(__file__))
-logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
-logo_auditoria = os.path.join(caminho_script, "assets", "logo_auditoria.png")
+# --- 3. LIMPEZA PÓS-SALVO ---
+# Roda antes da UI para garantir que os campos sejam resetados antes de desenhar
+if st.session_state['deve_limpar']:
+    campos_to_reset = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo", "area"]
+    for campo in campos_to_reset:
+        st.session_state[campo] = None if campo == "area" else ""
+    st.session_state['riscos'] = []
+    st.session_state['deve_limpar'] = False
+    st.rerun()
 
-# --- FUNÇÃO DE VALIDAÇÃO (UI) ---
+# --- 4. FUNÇÕES DE SUPORTE ---
 def validar_formulario():
     campos = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo"]
     for c in campos:
@@ -32,30 +39,20 @@ def validar_formulario():
                 return False
     return True
 
-# --- UI PRINCIPAL ---
-st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
+# --- 5. CONFIGURAÇÃO DE ATIVOS ---
+caminho_script = os.path.dirname(os.path.abspath(__file__))
+logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
+logo_auditoria = os.path.join(caminho_script, "assets", "logo_auditoria.png")
 
-# Limpeza Pós-Salvo
-if st.session_state['deve_limpar']:
-    for campo in ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo", "area"]:
-        st.session_state[campo] = None if campo == "area" else ""
-    st.session_state['riscos'] = []
-    st.session_state['deve_limpar'] = False
-    st.rerun()
+# --- 6. SIDEBAR (NAVEGAÇÃO) ---
+with st.sidebar:
+    if os.path.exists(logo_fusve): st.image(logo_fusve, width=200)
+    opcao = st.radio("Menu", ["Cadastro de Processos", "Geração de Relatórios"])
 
-# Layout de Logos
-if os.path.exists(logo_fusve): st.sidebar.image(logo_fusve, width=200)
-if os.path.exists(logo_auditoria):
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2: st.image(logo_auditoria, width=300)
-
-st.title("Diagnóstico de Processos - FUSVE")
-
-# Criando as abas
-tab1, tab2 = st.tabs(["Cadastro de processos", "Geração de relatórios"])
-
-
-with tab1:
+# --- 7. LÓGICA DE NAVEGAÇÃO PRINCIPAL ---
+if opcao == "Cadastro de Processos":
+    st.title("Diagnóstico de Processos - FUSVE")
+    
     # Seção 1: Dados do Processo
     st.subheader("1. Dados do Processo")
     st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
@@ -105,13 +102,15 @@ with tab1:
                     st.session_state['deve_limpar'] = True
                     st.rerun()
 
-with tab2:
+elif opcao == "Geração de Relatórios":
+    st.title("Relatórios e Consultas - FUSVE")
+    if os.path.exists(logo_auditoria):
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2: st.image(logo_auditoria, width=300)
+        
     st.subheader("Gerador de Relatórios")
     st.write("Aqui você poderá consultar os processos e gerar o PDF.")
     
-    # Exemplo de lógica de consulta para a nova aba
     if st.button("Consultar Processos Pendentes"):
-        # Chamaremos uma função que você criará no logic.py
-        # processos = buscar_pendentes()
-        # st.dataframe(processos)
+        # Aqui entra a chamada da função que criaremos no logic.py
         st.info("Funcionalidade em desenvolvimento.")
