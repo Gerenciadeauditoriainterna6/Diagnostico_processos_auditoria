@@ -225,3 +225,14 @@ def buscar_processos_pendentes():
     # Ajuste o SELECT conforme sua necessidade para buscar processos pendentes
     query = "SELECT id, area, nome_processo FROM processos" 
     return pd.read_sql(query, engine)
+
+def get_estilo_risco(score):
+    """Retorna cor e emoji baseado no score do risco."""
+    if score >= 12:
+        return "#d9534f", "🔴"  # Muito Alto (Vermelho)
+    elif score >= 8:
+        return "#f0ad4e", "🟠"  # Alto (Laranja)
+    elif score >= 4:
+        return "#f7d794", "🟡"  # Médio (Amarelo)
+    else:
+        return "#5cb85c", "🟢"  # Baixo (Verde)
