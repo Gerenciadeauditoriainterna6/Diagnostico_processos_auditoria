@@ -94,16 +94,16 @@ elif opcao == "Geração de Relatórios":
         st.dataframe(st.session_state['df_pendentes'])
         id_selecionado = st.selectbox("Selecione o ID do Processo:", st.session_state['df_pendentes']['id'].tolist())
 
-        if st.button("Gerar PDF"):
-            pdf_bytes = gerar_pdf_em_memoria(id_selecionado)
-            if pdf_bytes:
-                st.download_button(
-                    label="📥 Baixar PDF do Processo",
-                    data=pdf_bytes,
-                    file_name=f"Relatorio_{id_selecionado}.pdf",
-                    mime="application/pdf"
-                )
-            else:
+        pdf_output = gerar_pdf_em_memoria(id_selecionado)
+
+        if pdf_output:
+            st.download_button(
+                label="Baixar Relatório em PDF",
+                data=bytes(pdf_output),
+                file_name=f"relatorio_processo_{id_selecionado}.pdf",
+                mime="application/pdf"
+            )
+        else:
                 st.error("Erro ao gerar PDF.")
     else:
         st.info("Nenhum processo para gerar relatório.")
