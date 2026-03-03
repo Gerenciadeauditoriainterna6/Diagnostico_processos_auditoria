@@ -35,6 +35,9 @@ def validar_formulario():
 # --- UI PRINCIPAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
+# Criando as abas
+tab1, tab2 = st.tabs(["Cadastro de processos", "Geração de relatórios"])
+
 # Limpeza Pós-Salvo
 if st.session_state['deve_limpar']:
     for campo in ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo", "area"]:
@@ -51,51 +54,64 @@ if os.path.exists(logo_auditoria):
 
 st.title("Diagnóstico de Processos - FUSVE")
 
-# Seção 1: Dados do Processo
-st.subheader("1. Dados do Processo")
-st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
-st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente)
-st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
-st.text_area("Objetivo:", key="input_objetivo")
-st.text_area("Quem Executa?", key="input_executor")
-st.text_area("Descrição:", key="input_descricao")
-st.text_area("Etapa Inicial:", key="input_etapa_ini")
-st.text_area("Etapa Final:", key="input_etapa_fim")
-st.text_area("Produto:", key="input_produto")
 
-st.divider()
+with tab1:
+    # Seção 1: Dados do Processo
+    st.subheader("1. Dados do Processo")
+    st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
+    st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente)
+    st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
+    st.text_area("Objetivo:", key="input_objetivo")
+    st.text_area("Quem Executa?", key="input_executor")
+    st.text_area("Descrição:", key="input_descricao")
+    st.text_area("Etapa Inicial:", key="input_etapa_ini")
+    st.text_area("Etapa Final:", key="input_etapa_fim")
+    st.text_area("Produto:", key="input_produto")
 
-# Seção 2: Riscos
-st.subheader("2. Riscos Associados")
-for i, _ in enumerate(st.session_state['riscos']):
-    st.markdown(f"**Risco {i+1}**")
-    st.text_input(f"Nome do Risco:", key=f"nome_{i}")
-    st.text_area(f"Fator de Risco:", key=f"fator_{i}")
-    st.text_area(f"Melhoria:", key=f"melhoria_{i}")
-    st.text_area(f"Apetite ao risco:", key=f"apetite_{i}")
-    
-    col_i, col_p = st.columns(2)
-    with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}")
-    with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}")
-    
-    imp_v = st.session_state.get(f"imp_{i}", "Baixo")
-    prob_v = st.session_state.get(f"prob_{i}", "Baixo")
-    score_v = MAPA_RISCO.get((imp_v, prob_v), 0)
-    cor, emoji = get_estilo_risco(score_v)
-    st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Score Atual: {score_v}</div>', unsafe_allow_html=True)
-    
-    st.text_area(f"Motivo:", key=f"motivo_{i}")
-    st.markdown("---")
+    st.divider()
 
-col_add, col_save = st.columns(2)
-with col_add:
-    if st.button("➕ Adicionar Novo Risco", use_container_width=True):
-        st.session_state['riscos'].append({})
-        st.rerun()
-with col_save:
-    if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
-        if validar_formulario():
-            if salvar_no_banco():
-                st.success("Dados salvos com sucesso!")
-                st.session_state['deve_limpar'] = True
-                st.rerun()
+    # Seção 2: Riscos
+    st.subheader("2. Riscos Associados")
+    for i, _ in enumerate(st.session_state['riscos']):
+        st.markdown(f"**Risco {i+1}**")
+        st.text_input(f"Nome do Risco:", key=f"nome_{i}")
+        st.text_area(f"Fator de Risco:", key=f"fator_{i}")
+        st.text_area(f"Melhoria:", key=f"melhoria_{i}")
+        st.text_area(f"Apetite ao risco:", key=f"apetite_{i}")
+        
+        col_i, col_p = st.columns(2)
+        with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}")
+        with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}")
+        
+        imp_v = st.session_state.get(f"imp_{i}", "Baixo")
+        prob_v = st.session_state.get(f"prob_{i}", "Baixo")
+        score_v = MAPA_RISCO.get((imp_v, prob_v), 0)
+        cor, emoji = get_estilo_risco(score_v)
+        st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Score Atual: {score_v}</div>', unsafe_allow_html=True)
+        
+        st.text_area(f"Motivo:", key=f"motivo_{i}")
+        st.markdown("---")
+
+    col_add, col_save = st.columns(2)
+    with col_add:
+        if st.button("➕ Adicionar Novo Risco", use_container_width=True):
+            st.session_state['riscos'].append({})
+            st.rerun()
+    with col_save:
+        if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
+            if validar_formulario():
+                if salvar_no_banco():
+                    st.success("Dados salvos com sucesso!")
+                    st.session_state['deve_limpar'] = True
+                    st.rerun()
+
+with tab2:
+    st.subheader("Gerador de Relatórios")
+    st.write("Aqui você poderá consultar os processos e gerar o PDF.")
+    
+    # Exemplo de lógica de consulta para a nova aba
+    if st.button("Consultar Processos Pendentes"):
+        # Chamaremos uma função que você criará no logic.py
+        # processos = buscar_pendentes()
+        # st.dataframe(processos)
+        st.info("Funcionalidade em desenvolvimento.")
