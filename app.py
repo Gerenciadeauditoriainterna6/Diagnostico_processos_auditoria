@@ -35,9 +35,6 @@ def validar_formulario():
 # --- UI PRINCIPAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
-# Criando as abas
-tab1, tab2 = st.tabs(["Cadastro de processos", "Geração de relatórios"])
-
 # Limpeza Pós-Salvo
 if st.session_state['deve_limpar']:
     for campo in ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo", "area"]:
@@ -53,6 +50,9 @@ if os.path.exists(logo_auditoria):
     with c2: st.image(logo_auditoria, width=300)
 
 st.title("Diagnóstico de Processos - FUSVE")
+
+# Criando as abas
+tab1, tab2 = st.tabs(["Cadastro de processos", "Geração de relatórios"])
 
 
 with tab1:
