@@ -27,30 +27,35 @@ MAPA_RISCO = {
 # --- CLASSE DO PDF ---
 class PDF(FPDF):
     def header(self):
-        # --- Configuração de Precisão ---
-        y_centro = 20        # A altura vertical onde o centro das logos deve ficar
-        altura_fixa = 15     # Altura padrão (ajuste conforme necessário)
-        y_topo = y_centro - (altura_fixa / 2) # Calcula o início do topo para centralizar
-        
+        y_posicao = 10
+        altura_fixa = 15  # <--- Isso trava a altura das duas para ficarem alinhadas
+
         # Logo FUSVE (Esquerda)
         if os.path.exists(CAMINHO_LOGO):
-            # Definimos apenas a altura (h). A largura ajusta proporcionalmente.
-            self.image(CAMINHO_LOGO, 10, y_topo, h=altura_fixa)
-            
+            self.image(CAMINHO_LOGO, 10, y_posicao, h=altura_fixa)
+        else:
+            print(f"AVISO: Logo FUSVE não encontrada em {CAMINHO_LOGO}")
+
         # Logo Auditoria (Direita)
+        # O FPDF posiciona a imagem pelo canto superior esquerdo.
+        # Ajuste o valor '170' para mover a logo para a esquerda ou direita.
         if os.path.exists(CAMINHO_LOGO2):
-            # Para descobrir a largura, o FPDF precisa de uma medida, 
-            # mas como não sabemos a proporção, vamos deixar o FPDF calcular 
-            # a largura mantendo o aspecto, baseando-se na altura fixa (h).
-            
-            # Cálculo de X para encostar na margem direita (considerando 10mm de margem)
-            # Como não temos a largura exata da imagem antes de carregar, 
-            # podemos usar um valor estimado ou fixo para o X se necessário.
-            # Aqui usaremos uma estratégia de "alinhamento à direita" comum:
-            # 210 (largura A4) - 30 (largura estimada) - 10 (margem) = 170
-            pos_x_logo2 = 170 
-            
-            self.image(CAMINHO_LOGO2, pos_x_logo2, y_topo, h=altura_fixa)
+            self.image(CAMINHO_LOGO2, 170, y_posicao, h=altura_fixa)
+        else:
+            print(f"AVISO: Logo Auditoria não encontrada em {CAMINHO_LOGO2}")
+
+        # Textos Centralizados
+        self.set_y(12)
+        self.set_font("helvetica", "B", 14)
+        self.cell(0, 10, "RELATÓRIO DE VALIDAÇÃO DO PROCESSO", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        self.set_font('helvetica', "", 10)
+        self.cell(0, 5, "Diagnóstico de Auditoria Interna - FUSVE", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        # Linha e espaçamento - Ajustado para não colidir com o título
+        self.set_y(45)
+        self.line(10, self.get_y(), 200, self.get_y())
+        self.ln(10)
 
     def footer(self):
         self.set_y(-15)
