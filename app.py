@@ -63,7 +63,8 @@ if opcao == "Cadastro de Processos":
     st.title("Diagnóstico de Processos - FUSVE")
     st.subheader("1. Dados do Processo")
     st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
-    st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente)
+    st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
+                  help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
     st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
     st.text_area("Objetivo:", key="input_objetivo")
     st.text_area("Quem Executa?", key="input_executor")
