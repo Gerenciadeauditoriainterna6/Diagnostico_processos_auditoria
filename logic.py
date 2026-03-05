@@ -246,7 +246,7 @@ def gerar_pdf_em_memoria(id_proc):
     pdf.add_page()
     primeira_linha = df_processo.iloc[0]
 
-    # Cabeçalho e Detalhes (Mantive o que você já tinha)
+    # --- Cabeçalho e Detalhes ---
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("helvetica", "B", 10)
     pdf.cell(0, 8, f"ID DO PROCESSO: {id_proc}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, fill=True)
@@ -271,42 +271,12 @@ def gerar_pdf_em_memoria(id_proc):
     
     pdf.ln(5)
 
-    # 1. Configurar a Data
-    data_hoje = datetime.now()
-    meses = ["janeiro", "feveiro", "março", "abril", "maio", "junho", 
-             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
-    data_formatada = f"Vassouras, {data_hoje.day} de {meses[data_hoje.month - 1]} de {data_hoje.year}."
-    
-    # 2. Definir a ancoragem e escrever a data
-    posicao_ancora = 240
-    
-    if pdf.get_y() < posicao_ancora:
-        pdf.set_y(posicao_ancora - 10) # 10mm acima da linha de assinatura
-    else:
-        # Se a tabela já passou de 240, coloca um pouco abaixo dela
-        pdf.set_y(pdf.get_y() + 5)
-        
-    pdf.set_font("helvetica", "", 10)
-    pdf.cell(0, 10, data_formatada, align="L")
-    
-    # 3. Desenha as assinaturas logo abaixo
-    y_assinatura = pdf.get_y() + 10 
-    pdf.line(20, y_assinatura, 90, y_assinatura)
-    pdf.line(110, y_assinatura, 180, y_assinatura)
-    
-    pdf.set_y(y_assinatura + 2)
-    pdf.set_font("helvetica", "B", 8)
-    pdf.cell(90, 5, "Gerência", align="C")
-    pdf.cell(90, 5, "Superintendência", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
     # --- Tabela ---
     headers = ["RISCO", "FATOR DE RISCO", "O QUE PODERIA MELHORAR?", "IMPACTO", "PROBABILIDADE", "RISCO BRUTO"]
-    widths = [50, 40, 40, 15, 15, 20] # A soma deve ser menor que ~190 para margens A4
+    widths = [50, 40, 40, 15, 15, 20]
 
-    # Desenha o cabeçalho inicial
     draw_table_header(pdf, headers, widths)
 
-    # Loop único pelos dados usando a função auxiliar
     for _, linha in df_processo.iterrows():
         data = [
             linha['RISCO'],
@@ -318,24 +288,24 @@ def gerar_pdf_em_memoria(id_proc):
         ]
         draw_table_row(pdf, data, widths, headers)
     
-    # --- Assinaturas ---
-    # --- Seção de Assinaturas ---
-    # Definimos a posição Y onde queremos as assinaturas (ex: 240mm de altura)
-    # A4 tem 297mm, então 240mm deixa um bom espaço para o footer/margem
+    # --- Seção de Assinaturas (Ao final da página) ---
     posicao_ancora = 240
     
-    # Verifica se a tabela terminou antes do ponto de ancoragem
+    # Se a tabela não chegou no final, pula para a âncora
     if pdf.get_y() < posicao_ancora:
         pdf.set_y(posicao_ancora)
-    else:
-        # Se a tabela terminou depois de 240mm, verifica se cabe ou pula página
-        if pdf.get_y() > 270: 
-            pdf.add_page()
-            # Se pular página, podemos resetar o Y ou deixar no topo
-            # pdf.set_y(posicao_ancora) 
-
-    # Desenha as assinaturas
-    y_assinatura = pdf.get_y()
+    
+    # 1. Desenha a Data
+    data_hoje = datetime.now()
+    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    data_formatada = f"Vassouras, {data_hoje.day} de {meses[data_hoje.month - 1]} de {data_hoje.year}."
+    
+    pdf.set_font("helvetica", "", 10)
+    pdf.cell(0, 10, data_formatada, align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    # 2. Desenha as assinaturas
+    y_assinatura = pdf.get_y() + 10
     pdf.line(20, y_assinatura, 90, y_assinatura)
     pdf.line(110, y_assinatura, 180, y_assinatura)
     
@@ -344,7 +314,8 @@ def gerar_pdf_em_memoria(id_proc):
     pdf.cell(90, 5, "Gerência", align="C")
     pdf.cell(90, 5, "Superintendência", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
-    # (Opcional) Adicione o cargo abaixo se desejar
+    # --- IMPORTANTE: O Retorno ---
+    return pdf.output(dest='S')
 
 def get_estilo_risco(score):
     if score >= 12:
