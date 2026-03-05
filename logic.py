@@ -138,6 +138,41 @@ def buscar_dados_do_processo(codigo_processo):
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"codigo": codigo_processo})
 
+def draw_table_header(pdf, headers, widths):
+    pdf.set_fill_color(200, 220, 255)
+    pdf.set_font('helvetica', "B", 8)
+    for h, w in zip(headers, widths):
+        pdf.cell(w, 10, h, border=1, fill=True, align="C", new_x=XPos.RIGHT, new_y=YPos.TOP)
+        pdf.ln()
+
+def draw_table_row(pdf, data, widths, headers):
+    pdf.set_font('helvetica', "", 8)
+    line_height = 5
+
+    # Calcula a altura necessária para o maior texto da linha
+    max_h = line_height
+    for i, item in enumerate(data):
+        h = pdf.get_multi_cell_height(widths[i], line_height, str(item))
+        if h> max_h:
+            max_h = h
+    
+    # Verifica se precisa de nova página
+    if pdf.get_y() + max_h > pdf.page_break_trigger:
+        pdf.add_page()
+        draw_table_header(pdf, headers, widths)
+
+    # Desenhar as células
+    x_start = pdf.get_x()
+    y_start = pdf.get_y()
+
+    for i, item in enumerate(data):
+        pdf.multi_cell(widths[i], max_h, str(item), border=1, align="C", new_x=XPos.RIGHT, new_y=YPos.TOP)
+        # Ajustar X para a próxima coluna
+        pdf.set_xy(x_start + sum(widths[:i+1]), y_start)
+
+    # Voltar para o início da linha e descer
+    pdf.set_xy(x_start, y_start + max_h)
+
 def gerar_pdf_em_memoria(id_proc):
     df_processo = buscar_dados_do_processo(id_proc)
     if df_processo.empty: return None
@@ -146,13 +181,12 @@ def gerar_pdf_em_memoria(id_proc):
     pdf.add_page()
     primeira_linha = df_processo.iloc[0]
 
-    # Cabeçalho
+    # Cabeçalho e Detalhes (Mantive o que você já tinha)
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("helvetica", "B", 10)
     pdf.cell(0, 8, f"ID DO PROCESSO: {id_proc}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, fill=True)
     pdf.cell(0, 8, f"ÁREA: {primeira_linha['AREA']}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
-    # Detalhes
     pdf.set_font("helvetica", "B", 10)
     pdf.cell(30, 8, "PROCESSO:", border=False)
     pdf.set_font("helvetica", "", 10)
@@ -172,31 +206,26 @@ def gerar_pdf_em_memoria(id_proc):
     
     pdf.ln(5)
 
-    # Tabela Riscos
-    pdf.set_fill_color(200, 220, 255)
-    pdf.set_font('helvetica', "B", 8)
-    headers = ["Descrição do Risco", "Fator de Risco", "O que Melhorar?", "Imp.", "Prob.", "Risco Bruto"]
-    widths = [50, 40, 40, 20, 20, 20]
-    
-    # Loop corrigido (apenas um loop)
-    for h, w in zip(headers, widths):
-        is_last = (h == "Risco Bruto")
-        pdf.cell(
-            w, 10, h, border=1, fill=True, align="C", 
-            new_x=XPos.LMARGIN if is_last else XPos.RIGHT, 
-            new_y=YPos.NEXT if is_last else YPos.TOP
-        )
+    # --- Tabela ---
+    headers = ["RISCO", "FATOR DE RISCO", "O QUE PODERIA MELHORAR?", "IMPACTO", "PROBABILIDADE", "RISCO BRUTO"]
+    widths = [50, 40, 40, 15, 15, 20] # A soma deve ser menor que ~190 para margens A4
 
-    pdf.set_font('helvetica', "", 8)
+    # Desenha o cabeçalho inicial
+    draw_table_header(pdf, headers, widths)
+
+    # Loop único pelos dados usando a função auxiliar
     for _, linha in df_processo.iterrows():
-        pdf.cell(50, 10, str(linha['RISCO']), border=1)
-        pdf.cell(40, 10, str(linha['FATOR DE RISCO']), border=1)
-        pdf.cell(40, 10, str(linha['O QUE PODERIA MELHORAR?']), border=1)
-        pdf.cell(20, 10, str(linha['IMPACTO']), border=1, align="C")
-        pdf.cell(20, 10, str(linha['PROBABILIDADE']), border=1, align="C")
-        pdf.cell(20, 10, str(int(linha['RISCO BRUTO'])), border=1, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-    # Assinaturas
+        data = [
+            linha['RISCO'],
+            linha['FATOR DE RISCO'],
+            linha['O QUE PODERIA MELHORAR?'],
+            linha['IMPACTO'],
+            linha['PROBABILIDADE'],
+            int(linha['RISCO BRUTO'])
+        ]
+        draw_table_row(pdf, data, widths, headers)
+    
+    # --- Assinaturas ---
     pdf.ln(20)
     y_assinatura = pdf.get_y() + 10
     pdf.line(20, y_assinatura, 90, y_assinatura)
