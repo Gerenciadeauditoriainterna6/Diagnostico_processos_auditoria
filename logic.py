@@ -27,16 +27,19 @@ MAPA_RISCO = {
 # --- CLASSE DO PDF ---
 class PDF(FPDF):
     def header(self):
-        tamanho_logo = 25
+        # Defina aqui o tamanho desejado para ambas
+        largura_logo = 25
+        altura_logo = 30 # Ajuste este valor para controlar a altura
+        y_posicao = 20   # Ambas começam na mesma linha Y
         
         # Logo FUSVE (Esquerda)
         if os.path.exists(CAMINHO_LOGO):
-            self.image(CAMINHO_LOGO, 10, 10, tamanho_logo)
+            # Adicionamos 'w' e 'h' para garantir tamanho uniforme
+            self.image(CAMINHO_LOGO, 10, y_posicao, w=largura_logo, h=altura_logo)
             
         # Logo Auditoria (Direita)
-        # Cálculo: Largura da página (210) - tamanho da logo (25) - margem direita (10) = 175
         if os.path.exists(CAMINHO_LOGO2):
-            self.image(CAMINHO_LOGO2, 175, 10, tamanho_logo)
+            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo, h=altura_logo)
         
         # Textos Centralizados
         # O set_x(32) foi removido para permitir a centralização correta
