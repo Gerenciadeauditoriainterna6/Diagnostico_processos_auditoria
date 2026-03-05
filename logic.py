@@ -146,33 +146,44 @@ def draw_table_header(pdf, headers, widths):
         pdf.ln()
 
 def draw_table_row(pdf, data, widths, headers):
-    # Definimos uma altura fixa para a linha (ajuste conforme necessário)
-    line_height = 8 
+    # Definindo parâmetros de layout
+    line_h = 5
+    padding = 2
     
-    # 1. Capturamos a posição X e Y inicial da linha
+    # Prepara os textos e calcula o tamanho real necessário
+    # texts contém os dados da linha que você quer exibir
+    # widths contém as larguras de cada coluna
+    wrapped = []
+    for i, item in enumerate(data):
+        # Usamos sua lógica de wrap que você comprovou funcionar
+        wrapped.append(wrap_text_lines(pdf, str(item), widths[i] - 2*padding))
+    
+    # Determina a altura da linha com base no conteúdo mais longo
+    max_lines = max(len(col) for col in wrapped)
+    altura_linha = max_lines * line_h
+    
+    # Verifica quebra de página
+    if pdf.get_y() + altura_linha > (pdf.h - pdf.b_margin):
+        pdf.add_page()
+        draw_table_header(pdf, headers, widths) # Certifique-se de que essa função existe
+    
     x_start = pdf.get_x()
     y_start = pdf.get_y()
     
-    # Verifica se precisa de página nova (para não cortar a tabela)
-    if y_start + line_height > 275:
-        pdf.add_page()
-        # Se virar a página, redesenha o cabeçalho
-        draw_table_header(pdf, headers, widths)
-        y_start = pdf.get_y()
-        x_start = pdf.get_x()
-
-    # 2. Desenhamos cada célula da linha
-    for i, item in enumerate(data):
-        # Movemos o cursor para a posição exata da coluna
-        pdf.set_xy(x_start + sum(widths[:i]), y_start)
+    # Desenha cada célula
+    for i, (w, lines_list) in enumerate(zip(widths, wrapped)):
+        x = x_start + sum(widths[:i])
+        pdf.set_xy(x, y_start)
+        pdf.rect(x, y_start, w, altura_linha)
         
-        # Desenha a célula
-        # O border=1 desenha a caixa ao redor
-        # ln=False garante que o multi_cell não tente quebrar a linha automaticamente
-        pdf.multi_cell(widths[i], line_height, str(item), border=1, align="C")
-    
-    # 3. Pula o cursor para a próxima linha completa após terminar todas as colunas
-    pdf.set_y(y_start + line_height)
+        # Escreve as linhas de texto dentro da célula
+        for j in range(max_lines):
+            text_line = lines_list[j] if j < len(lines_list) else ''
+            pdf.set_xy(x + padding, y_start + j*line_h + (padding/2))
+            pdf.cell(w - 2*padding, line_h, text_line, border=0)
+            
+    # Move o cursor para baixo após desenhar a linha completa
+    pdf.set_xy(x_start, y_start + altura_linha)
 
 def gerar_pdf_em_memoria(id_proc):
     df_processo = buscar_dados_do_processo(id_proc)
