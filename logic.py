@@ -140,7 +140,7 @@ def buscar_dados_do_processo(codigo_processo):
 
 def draw_table_header(pdf, headers, widths):
     pdf.set_fill_color(200, 220, 255) # Cor de fundo azul claro
-    pdf.set_font('helvetica', "B", 8)
+    pdf.set_font('helvetica', "B", 6)
     
     line_h = 5
     padding = 1
