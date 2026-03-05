@@ -27,28 +27,30 @@ MAPA_RISCO = {
 # --- CLASSE DO PDF ---
 class PDF(FPDF):
     def header(self):
-        # --- Configurações de Posição ---
-        # Ajuste o 'w' para o tamanho que você deseja
-        # Ajuste o 'y' (ex: 10) até que o centro das logos fique alinhado visualmente
-        
-        # Logo 1 (Fusve)
-        w1 = 30 
-        y1 = 10 
-        
-        # Logo 2 (Auditoria)
-        w2 = 35
-        y2 = 10 # Altere este valor para subir ou descer a logo da direita
+        # --- Configuração de Precisão ---
+        y_centro = 20        # A altura vertical onde o centro das logos deve ficar
+        altura_fixa = 15     # Altura padrão (ajuste conforme necessário)
+        y_topo = y_centro - (altura_fixa / 2) # Calcula o início do topo para centralizar
         
         # Logo FUSVE (Esquerda)
         if os.path.exists(CAMINHO_LOGO):
-            self.image(CAMINHO_LOGO, 10, y1, w=w1)
+            # Definimos apenas a altura (h). A largura ajusta proporcionalmente.
+            self.image(CAMINHO_LOGO, 10, y_topo, h=altura_fixa)
             
         # Logo Auditoria (Direita)
         if os.path.exists(CAMINHO_LOGO2):
-            # Cálculo de X: 210 (total) - 10 (margem) - w2 (largura da logo)
-            # Isso garante que a logo encoste na margem direita perfeitamente
-            pos_x_logo2 = 210 - 10 - w2
-            self.image(CAMINHO_LOGO2, pos_x_logo2, y2, w=w2)
+            # Para descobrir a largura, o FPDF precisa de uma medida, 
+            # mas como não sabemos a proporção, vamos deixar o FPDF calcular 
+            # a largura mantendo o aspecto, baseando-se na altura fixa (h).
+            
+            # Cálculo de X para encostar na margem direita (considerando 10mm de margem)
+            # Como não temos a largura exata da imagem antes de carregar, 
+            # podemos usar um valor estimado ou fixo para o X se necessário.
+            # Aqui usaremos uma estratégia de "alinhamento à direita" comum:
+            # 210 (largura A4) - 30 (largura estimada) - 10 (margem) = 170
+            pos_x_logo2 = 170 
+            
+            self.image(CAMINHO_LOGO2, pos_x_logo2, y_topo, h=altura_fixa)
 
     def footer(self):
         self.set_y(-15)
