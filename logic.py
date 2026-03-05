@@ -28,7 +28,7 @@ MAPA_RISCO = {
 class PDF(FPDF):
     def header(self):
         # Defina aqui o tamanho desejado para ambas
-        largura_logo = 25
+        largura_logo = 20
         altura_logo = 20 # Ajuste este valor para controlar a altura
         y_posicao = 10   # Ambas começam na mesma linha Y
         
@@ -39,7 +39,7 @@ class PDF(FPDF):
             
         # Logo Auditoria (Direita)
         if os.path.exists(CAMINHO_LOGO2):
-            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo, h=altura_logo)
+            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo + 10, h=altura_logo + 10)
         
         # Textos Centralizados
         # O set_x(32) foi removido para permitir a centralização correta
