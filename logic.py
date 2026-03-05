@@ -4,6 +4,7 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from sqlalchemy import text
 from database import engine
+from datetime import datetime
 
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -269,6 +270,34 @@ def gerar_pdf_em_memoria(id_proc):
     pdf.multi_cell(0, 6, str(primeira_linha['DESCRIÇÃO DO PROCESSO']))
     
     pdf.ln(5)
+
+    # 1. Configurar a Data
+    data_hoje = datetime.now()
+    meses = ["janeiro", "feveiro", "março", "abril", "maio", "junho", 
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    data_formatada = f"Vassouras, {data_hoje.day} de {meses[data_hoje.month - 1]} de {data_hoje.year}."
+    
+    # 2. Definir a ancoragem e escrever a data
+    posicao_ancora = 240
+    
+    if pdf.get_y() < posicao_ancora:
+        pdf.set_y(posicao_ancora - 10) # 10mm acima da linha de assinatura
+    else:
+        # Se a tabela já passou de 240, coloca um pouco abaixo dela
+        pdf.set_y(pdf.get_y() + 5)
+        
+    pdf.set_font("helvetica", "", 10)
+    pdf.cell(0, 10, data_formatada, align="L")
+    
+    # 3. Desenha as assinaturas logo abaixo
+    y_assinatura = pdf.get_y() + 10 
+    pdf.line(20, y_assinatura, 90, y_assinatura)
+    pdf.line(110, y_assinatura, 180, y_assinatura)
+    
+    pdf.set_y(y_assinatura + 2)
+    pdf.set_font("helvetica", "B", 8)
+    pdf.cell(90, 5, "Gerência", align="C")
+    pdf.cell(90, 5, "Superintendência", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # --- Tabela ---
     headers = ["RISCO", "FATOR DE RISCO", "O QUE PODERIA MELHORAR?", "IMPACTO", "PROBABILIDADE", "RISCO BRUTO"]
