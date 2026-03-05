@@ -66,13 +66,14 @@ if opcao == "Cadastro de Processos":
     st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
                   help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
     st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
-    st.text_area("Objetivo:", key="input_objetivo")
-    st.text_area("Quem Executa?", key="input_executor")
-    st.text_area("Descrição:", key="input_descricao")
-    st.text_area("Etapa Inicial:", key="input_etapa_ini")
-    st.text_area("Etapa Final:", key="input_etapa_fim")
-    st.text_area("Produto:", key="input_produto")
-
+    st.text_area("O que é o processo?:", key="input_descricao")
+    st.text_area("Funcionário(s) Que Executa(m)", key="input_executor")
+    st.text_area("Onde Começa o Proceso?:", key="input_etapa_ini")
+    st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto")
+    st.text_area("Depois de Acabado, para onde envia?":, key="input_etapa_fim")
+    st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
+    
+    
     st.subheader("2. Riscos Associados")
     for i, _ in enumerate(st.session_state['riscos']):
         st.markdown(f"**Risco {i+1}**")
