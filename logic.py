@@ -28,18 +28,26 @@ MAPA_RISCO = {
 class PDF(FPDF):
     def header(self):
         tamanho_logo = 25
-        if os.path.exists(CAMINHO_LOGO):
-            self.image(CAMINHO_LOGO, 15, 10, tamanho_logo)
-        if os.path.exists(CAMINHO_LOGO2):
-            self.image(CAMINHO_LOGO2, 15, 20, tamanho_logo)
         
+        # Logo FUSVE (Esquerda)
+        if os.path.exists(CAMINHO_LOGO):
+            self.image(CAMINHO_LOGO, 10, 10, tamanho_logo)
+            
+        # Logo Auditoria (Direita)
+        # Cálculo: Largura da página (210) - tamanho da logo (25) - margem direita (10) = 175
+        if os.path.exists(CAMINHO_LOGO2):
+            self.image(CAMINHO_LOGO2, 175, 10, tamanho_logo)
+        
+        # Textos Centralizados
+        # O set_x(32) foi removido para permitir a centralização correta
         self.set_y(12)
-        self.set_x(32)
         self.set_font("helvetica", "B", 14)
         self.cell(0, 10, "RELATÓRIO DE VALIDAÇÃO DO PROCESSO", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        self.set_x(32)
+        
         self.set_font('helvetica', "", 10)
         self.cell(0, 5, "Diagnóstico de Auditoria Interna - FUSVE", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        # Linha e espaçamento
         self.set_y(45)
         self.line(10, self.get_y(), 200, self.get_y())
         self.ln(10)
