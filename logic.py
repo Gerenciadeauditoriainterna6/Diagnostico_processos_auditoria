@@ -139,24 +139,40 @@ def buscar_dados_do_processo(codigo_processo):
         return pd.read_sql(query, conn, params={"codigo": codigo_processo})
 
 def draw_table_header(pdf, headers, widths):
-    # 1. Garante que começamos na margem esquerda, ignorando onde o cursor estava
-    pdf.set_x(pdf.l_margin)
-    
-    # 2. Guarda a posição Y inicial do cabeçalho
-    y_header_start = pdf.get_y()
-    
-    pdf.set_fill_color(200, 220, 255)
+    pdf.set_fill_color(200, 220, 255) # Cor de fundo azul claro
     pdf.set_font('helvetica', "B", 8)
     
-    # 3. Desenha os headers
-    for i, header in enumerate(headers):
-        # Usamos cell normal, mas controlamos a posição manualmente
-        # se necessário, ou usamos as coordenadas atuais
-        pdf.cell(widths[i], 10, header, border=1, fill=True, align="C")
+    line_h = 5
+    padding = 1
     
-    # 4. Força o cursor para a linha logo abaixo do cabeçalho
-    # Isso garante que a primeira linha da tabela comece exatamente abaixo
-    pdf.set_xy(pdf.l_margin, y_header_start + 10)
+    # 1. Pré-processa os cabeçalhos (quebra as linhas se necessário)
+    wrapped_headers = [wrap_text_lines(pdf, h, w - 2*padding) for h, w in zip(headers, widths)]
+    
+    # 2. Calcula a altura necessária para o cabeçalho (baseado na linha mais longa)
+    max_lines = max(len(col) for col in wrapped_headers)
+    header_height = max_lines * line_h + 2 # + 2 de respiro
+    
+    x_start = pdf.get_x()
+    y_start = pdf.get_y()
+    
+    # 3. Desenha cada célula do cabeçalho
+    for i, (lines, w) in enumerate(zip(wrapped_headers, widths)):
+        x_col = x_start + sum(widths[:i])
+        
+        # Desenha o fundo e a borda
+        pdf.rect(x_col, y_start, w, header_height, style='F') # 'F' preenche
+        pdf.rect(x_col, y_start, w, header_height)            # Desenha borda
+        
+        # Centraliza o texto verticalmente dentro do cabeçalho
+        # Se max_lines for maior que a qtd de linhas desta célula, centralizamos visualmente
+        offset_y = (header_height - (len(lines) * line_h)) / 2
+        
+        for j, line in enumerate(lines):
+            pdf.set_xy(x_col + padding, y_start + offset_y + (j * line_h))
+            pdf.cell(w - 2*padding, line_h, line, align="C")
+            
+    # 4. Posiciona o cursor para começar a tabela exatamente abaixo do cabeçalho
+    pdf.set_xy(x_start, y_start + header_height)
 
 # --- 1. A FUNÇÃO DE AJUDA ---
 def wrap_text_lines(pdf_obj, text, width):
