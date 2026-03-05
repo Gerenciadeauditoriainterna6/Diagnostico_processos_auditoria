@@ -39,7 +39,7 @@ class PDF(FPDF):
         if os.path.exists(CAMINHO_LOGO2):
             # X=170mm joga a imagem mais para a esquerda (longe da borda direita)
             # h=15mm limita o tamanho para não estourar a margem
-            self.image(CAMINHO_LOGO2, 100, y_posicao, h=altura_fixa)
+            self.image(CAMINHO_LOGO2, 30, y_posicao, h=altura_fixa)
 
         # Textos Centralizados
         self.set_y(12)
