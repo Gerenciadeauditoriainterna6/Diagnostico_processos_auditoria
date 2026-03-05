@@ -7,6 +7,11 @@ from logic import (
     MAPPING_AREAS, MAPA_RISCO, processar_codigo_inteligente, 
     get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes
 )
+import fpdf
+import streamlit as st
+
+st.write(f"DEBUG: Localização do FPDF: {fpdf.__file__}")
+st.write(f"DEBUG: Versão do FPDF: {fpdf.__version__}")
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
