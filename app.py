@@ -70,7 +70,7 @@ if opcao == "Cadastro de Processos":
     st.text_area("Funcionário(s) Que Executa(m)", key="input_executor")
     st.text_area("Onde Começa o Proceso?:", key="input_etapa_ini")
     st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto")
-    st.text_area("Depois de Acabado, para onde envia?":, key="input_etapa_fim")
+    st.text_area("Depois de Acabado, para onde envia?", key="input_etapa_fim")
     st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
     
     
