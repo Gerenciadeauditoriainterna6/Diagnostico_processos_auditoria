@@ -139,11 +139,24 @@ def buscar_dados_do_processo(codigo_processo):
         return pd.read_sql(query, conn, params={"codigo": codigo_processo})
 
 def draw_table_header(pdf, headers, widths):
+    # 1. Garante que começamos na margem esquerda, ignorando onde o cursor estava
+    pdf.set_x(pdf.l_margin)
+    
+    # 2. Guarda a posição Y inicial do cabeçalho
+    y_header_start = pdf.get_y()
+    
     pdf.set_fill_color(200, 220, 255)
     pdf.set_font('helvetica', "B", 8)
-    for h, w in zip(headers, widths):
-        pdf.cell(w, 10, h, border=1, fill=True, align="C", new_x=XPos.RIGHT, new_y=YPos.TOP)
-        pdf.ln()
+    
+    # 3. Desenha os headers
+    for i, header in enumerate(headers):
+        # Usamos cell normal, mas controlamos a posição manualmente
+        # se necessário, ou usamos as coordenadas atuais
+        pdf.cell(widths[i], 10, header, border=1, fill=True, align="C")
+    
+    # 4. Força o cursor para a linha logo abaixo do cabeçalho
+    # Isso garante que a primeira linha da tabela comece exatamente abaixo
+    pdf.set_xy(pdf.l_margin, y_header_start + 10)
 
 # --- 1. A FUNÇÃO DE AJUDA ---
 def wrap_text_lines(pdf_obj, text, width):
