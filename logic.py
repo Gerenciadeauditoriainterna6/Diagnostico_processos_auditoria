@@ -27,32 +27,28 @@ MAPA_RISCO = {
 # --- CLASSE DO PDF ---
 class PDF(FPDF):
     def header(self):
-        y_posicao = 10
+        # --- Configurações de Posição ---
+        # Ajuste o 'w' para o tamanho que você deseja
+        # Ajuste o 'y' (ex: 10) até que o centro das logos fique alinhado visualmente
+        
+        # Logo 1 (Fusve)
+        w1 = 30 
+        y1 = 10 
+        
+        # Logo 2 (Auditoria)
+        w2 = 35
+        y2 = 10 # Altere este valor para subir ou descer a logo da direita
         
         # Logo FUSVE (Esquerda)
-        # Definindo largura de 30mm. A altura será proporcional automaticamente.
         if os.path.exists(CAMINHO_LOGO):
-            self.image(CAMINHO_LOGO, 10, y_posicao, w=30)
+            self.image(CAMINHO_LOGO, 10, y1, w=w1)
             
         # Logo Auditoria (Direita)
-        # Definindo largura de 35mm para ficar maior.
-        # Regra de Ouro: Posição X = (Largura total 210 - Margem 10 - Largura Logo 35) = 165
         if os.path.exists(CAMINHO_LOGO2):
-            self.image(CAMINHO_LOGO2, 165, y_posicao, w=35)
-            
-        # Textos Centralizados
-        # O set_x(32) foi removido para permitir a centralização correta
-        self.set_y(12)
-        self.set_font("helvetica", "B", 14)
-        self.cell(0, 10, "RELATÓRIO DE VALIDAÇÃO DO PROCESSO", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        
-        self.set_font('helvetica', "", 10)
-        self.cell(0, 5, "Diagnóstico de Auditoria Interna - FUSVE", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        
-        # Linha e espaçamento
-        self.set_y(45)
-        self.line(10, self.get_y(), 200, self.get_y())
-        self.ln(10)
+            # Cálculo de X: 210 (total) - 10 (margem) - w2 (largura da logo)
+            # Isso garante que a logo encoste na margem direita perfeitamente
+            pos_x_logo2 = 210 - 10 - w2
+            self.image(CAMINHO_LOGO2, pos_x_logo2, y2, w=w2)
 
     def footer(self):
         self.set_y(-15)
