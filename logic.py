@@ -28,21 +28,18 @@ MAPA_RISCO = {
 class PDF(FPDF):
     def header(self):
         y_posicao = 10
-        altura_fixa = 15  # <--- Isso trava a altura das duas para ficarem alinhadas
+        altura_fixa = 15  # Altura travada para garantir alinhamento visual
 
         # Logo FUSVE (Esquerda)
         if os.path.exists(CAMINHO_LOGO):
+            # Usando apenas altura, a largura será proporcional e menor
             self.image(CAMINHO_LOGO, 10, y_posicao, h=altura_fixa)
-        else:
-            print(f"AVISO: Logo FUSVE não encontrada em {CAMINHO_LOGO}")
-
+            
         # Logo Auditoria (Direita)
-        # O FPDF posiciona a imagem pelo canto superior esquerdo.
-        # Ajuste o valor '170' para mover a logo para a esquerda ou direita.
         if os.path.exists(CAMINHO_LOGO2):
+            # X=170mm joga a imagem mais para a esquerda (longe da borda direita)
+            # h=15mm limita o tamanho para não estourar a margem
             self.image(CAMINHO_LOGO2, 170, y_posicao, h=altura_fixa)
-        else:
-            print(f"AVISO: Logo Auditoria não encontrada em {CAMINHO_LOGO2}")
 
         # Textos Centralizados
         self.set_y(12)
@@ -52,7 +49,7 @@ class PDF(FPDF):
         self.set_font('helvetica', "", 10)
         self.cell(0, 5, "Diagnóstico de Auditoria Interna - FUSVE", border=False, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
-        # Linha e espaçamento - Ajustado para não colidir com o título
+        # Linha e espaçamento
         self.set_y(45)
         self.line(10, self.get_y(), 200, self.get_y())
         self.ln(10)
