@@ -148,29 +148,36 @@ def draw_table_header(pdf, headers, widths):
 def draw_table_row(pdf, data, widths, headers):
     pdf.set_font('helvetica', "", 8)
     line_height = 5
-
-    # Calcula a altura necessária para o maior texto da linha
+    
+    # --- CALCULO MANUAL DA ALTURA ---
+    # Se o método nativo falha, calculamos quantos caracteres cabem na largura
     max_h = line_height
     for i, item in enumerate(data):
-        h = pdf.get_multi_cell_height(widths[i], line_height, str(item))
-        if h> max_h:
+        # Estimativa: caracteres por linha = largura / (tamanho da fonte * 0.5)
+        # É uma aproximação simples que funciona bem para tabelas
+        text = str(item)
+        width_char = 2 # tamanho aproximado de um caractere
+        chars_per_line = widths[i] / width_char
+        num_lines = (len(text) / chars_per_line) + 1
+        h = int(num_lines) * line_height
+        
+        if h > max_h:
             max_h = h
-    
-    # Verifica se precisa de nova página
-    if pdf.get_y() + max_h > pdf.page_break_trigger:
+    # ---------------------------------
+
+    # Verifica página (usamos 275 como margem segura)
+    if pdf.get_y() + max_h > 275:
         pdf.add_page()
         draw_table_header(pdf, headers, widths)
 
-    # Desenhar as células
+    # Desenha as células
     x_start = pdf.get_x()
     y_start = pdf.get_y()
-
+    
     for i, item in enumerate(data):
-        pdf.multi_cell(widths[i], max_h, str(item), border=1, align="C", new_x=XPos.RIGHT, new_y=YPos.TOP)
-        # Ajustar X para a próxima coluna
+        pdf.multi_cell(widths[i], max_h, str(item), border=1, align="C")
         pdf.set_xy(x_start + sum(widths[:i+1]), y_start)
 
-    # Voltar para o início da linha e descer
     pdf.set_xy(x_start, y_start + max_h)
 
 def gerar_pdf_em_memoria(id_proc):
