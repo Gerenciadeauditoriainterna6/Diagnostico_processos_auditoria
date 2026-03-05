@@ -145,42 +145,67 @@ def draw_table_header(pdf, headers, widths):
         pdf.cell(w, 10, h, border=1, fill=True, align="C", new_x=XPos.RIGHT, new_y=YPos.TOP)
         pdf.ln()
 
+# --- 1. A FUNÇÃO DE AJUDA ---
+def wrap_text_lines(pdf_obj, text, width):
+    """Calcula a quebra de texto por largura."""
+    paragraphs = str(text).splitlines() or ['']
+    out_lines = []
+    for para in paragraphs:
+        words = para.split()
+        if not words:
+            out_lines.append('')
+            continue
+        cur = ''
+        for w in words:
+            test = (cur + ' ' + w).strip()
+            if pdf_obj.get_string_width(test) <= width:
+                cur = test
+            else:
+                if cur:
+                    out_lines.append(cur)
+                part = ''
+                for ch in w:
+                    if pdf_obj.get_string_width(part + ch) <= width:
+                        part += ch
+                    else:
+                        if part:
+                            out_lines.append(part)
+                        part = ch
+                cur = part
+        if cur:
+            out_lines.append(cur)
+    return out_lines
+
+# --- 2. A FUNÇÃO QUE DESENHA A LINHA ---
 def draw_table_row(pdf, data, widths, headers):
-    # 1. Parâmetros da linha
     line_h = 5
     padding = 2
     
-    # 2. Calcula quantas linhas cada célula vai ocupar
+    # Agora ela encontra a função wrap_text_lines acima!
     wrapped = []
     for i, item in enumerate(data):
         wrapped.append(wrap_text_lines(pdf, str(item), widths[i] - 2*padding))
     
-    # Altura baseada na célula que tiver mais texto
     max_lines = max(len(col) for col in wrapped)
     altura_linha = max_lines * line_h
     
-    # 3. Verificação de Página (Se não cabe, cria nova e redesenha o cabeçalho)
+    # Verifica quebra de página
     if pdf.get_y() + altura_linha > (pdf.h - pdf.b_margin):
         pdf.add_page()
-        # Chama a função que redesenha o cabeçalho no topo da nova página
-        draw_table_header() 
+        # Certifique-se de que sua função draw_table_header está definida neste mesmo arquivo ou importada
+        draw_table_header(pdf, headers, widths) 
     
     x_start = pdf.get_x()
     y_start = pdf.get_y()
     
-    # 4. Desenha as células (forçando o cursor de volta ao início da linha)
     for i, (w, lines_list) in enumerate(zip(widths, wrapped)):
         x_col = x_start + sum(widths[:i])
-        
-        # Desenha a caixa (borda)
         pdf.rect(x_col, y_start, w, altura_linha)
         
-        # Escreve o texto linha a linha dentro da caixa
         for j, line in enumerate(lines_list):
             pdf.set_xy(x_col + padding, y_start + (j * line_h) + padding/2)
             pdf.cell(w - 2*padding, line_h, line, border=0, align="L")
             
-    # 5. IMPORTANTE: Avança o cursor para a próxima linha completa
     pdf.set_xy(x_start, y_start + altura_linha)
 
 def gerar_pdf_em_memoria(id_proc):
