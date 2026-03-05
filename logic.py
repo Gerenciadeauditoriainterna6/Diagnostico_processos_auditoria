@@ -39,7 +39,7 @@ class PDF(FPDF):
             
         # Logo Auditoria (Direita)
         if os.path.exists(CAMINHO_LOGO2):
-            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo + 10, h=altura_logo + 10)
+            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo + 20, h=altura_logo + 20)
         
         # Textos Centralizados
         # O set_x(32) foi removido para permitir a centralização correta
