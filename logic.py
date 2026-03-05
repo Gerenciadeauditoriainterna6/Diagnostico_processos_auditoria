@@ -290,16 +290,32 @@ def gerar_pdf_em_memoria(id_proc):
         draw_table_row(pdf, data, widths, headers)
     
     # --- Assinaturas ---
-    pdf.ln(20)
-    y_assinatura = pdf.get_y() + 10
+    # --- Seção de Assinaturas ---
+    # Definimos a posição Y onde queremos as assinaturas (ex: 240mm de altura)
+    # A4 tem 297mm, então 240mm deixa um bom espaço para o footer/margem
+    posicao_ancora = 240
+    
+    # Verifica se a tabela terminou antes do ponto de ancoragem
+    if pdf.get_y() < posicao_ancora:
+        pdf.set_y(posicao_ancora)
+    else:
+        # Se a tabela terminou depois de 240mm, verifica se cabe ou pula página
+        if pdf.get_y() > 270: 
+            pdf.add_page()
+            # Se pular página, podemos resetar o Y ou deixar no topo
+            # pdf.set_y(posicao_ancora) 
+
+    # Desenha as assinaturas
+    y_assinatura = pdf.get_y()
     pdf.line(20, y_assinatura, 90, y_assinatura)
     pdf.line(110, y_assinatura, 180, y_assinatura)
+    
     pdf.set_y(y_assinatura + 2)
     pdf.set_font("helvetica", "B", 8)
     pdf.cell(90, 5, "Gerência", align="C")
     pdf.cell(90, 5, "Superintendência", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
-    return pdf.output(dest='S')
+    # (Opcional) Adicione o cargo abaixo se desejar
 
 def get_estilo_risco(score):
     if score >= 12:
