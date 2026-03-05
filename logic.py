@@ -29,8 +29,8 @@ class PDF(FPDF):
     def header(self):
         # Defina aqui o tamanho desejado para ambas
         largura_logo = 25
-        altura_logo = 30 # Ajuste este valor para controlar a altura
-        y_posicao = 20   # Ambas começam na mesma linha Y
+        altura_logo = 20 # Ajuste este valor para controlar a altura
+        y_posicao = 10   # Ambas começam na mesma linha Y
         
         # Logo FUSVE (Esquerda)
         if os.path.exists(CAMINHO_LOGO):
