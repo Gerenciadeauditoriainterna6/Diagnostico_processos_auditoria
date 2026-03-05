@@ -40,11 +40,11 @@ class PDF(FPDF):
             # Se você quer a logo à direita, force o X para um valor alto,
             # mas vamos garantir que ele não corte:
             
-            largura_logo_auditoria = 30 # Defina o tamanho que você deseja para ela
-            posicao_x_direita = 210 - 10 - largura_logo_auditoria
+            largura_logo_auditoria = 40 # Defina o tamanho que você deseja para ela
+            posicao_x_direita = 210 - 50 - largura_logo_auditoria
             
             self.image(CAMINHO_LOGO2, posicao_x_direita, y_posicao, w=largura_logo_auditoria, h=altura_fixa)
-            
+
         # Textos Centralizados
         self.set_y(12)
         self.set_font("helvetica", "B", 14)
