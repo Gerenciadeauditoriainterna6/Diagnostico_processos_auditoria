@@ -35,11 +35,11 @@ class PDF(FPDF):
         # Logo FUSVE (Esquerda)
         if os.path.exists(CAMINHO_LOGO):
             # Adicionamos 'w' e 'h' para garantir tamanho uniforme
-            self.image(CAMINHO_LOGO, 10, y_posicao, w=largura_logo, h=altura_logo)
+            self.image(CAMINHO_LOGO, 10, y_posicao, w=largura_logo + 5, h=altura_logo)
             
         # Logo Auditoria (Direita)
         if os.path.exists(CAMINHO_LOGO2):
-            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo + 20, h=altura_logo + 20)
+            self.image(CAMINHO_LOGO2, 175, y_posicao, w=largura_logo + 5, h=altura_logo + 15)
         
         # Textos Centralizados
         # O set_x(32) foi removido para permitir a centralização correta
