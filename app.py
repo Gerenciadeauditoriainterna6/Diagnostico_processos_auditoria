@@ -61,16 +61,12 @@ with st.sidebar:
 # --- 7. LÓGICA PRINCIPAL ---
 if opcao == "Cadastro de Processos":
     st.title("Diagnóstico de Processos - FUSVE")
-    st.markdown(
-    """
-    <div style='font-family: helvetica; color: #000000; font-size: 14px;'>
-        <p><strong>PASSO 1:</strong>PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
-        
-        <p style='margin-top: 15px;'><strong>PASSO 2:</strong>ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
+    st.markdown("""
+    <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
+        <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
+        <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
     </div>
-    """, 
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
     st.subheader("1. Dados do Processo")
     st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
     st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
