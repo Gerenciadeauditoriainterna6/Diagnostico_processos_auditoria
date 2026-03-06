@@ -62,6 +62,11 @@ with st.sidebar:
 if opcao == "Cadastro de Processos":
     st.title("Diagnóstico de Processos - FUSVE")
     st.subheader("1. Dados do Processo")
+    st.markdown("""
+        <h3 style='font-family: helvetica; color: #ffffff; font-size: 6px;'>
+        PASSO 1: PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM. PASSO 2: ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.
+        </h3>
+        """, unsafe_allow_html=True)
     st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
     st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
                   help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
