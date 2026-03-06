@@ -102,6 +102,7 @@ def salvar_no_banco():
     try: 
         with engine.begin() as conn:
             id_area_val = st.session_state.get("id_area_selecionado") 
+            nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo")
             
             # 1. Verifica se existe
@@ -113,24 +114,31 @@ def salvar_no_banco():
                 # ATUALIZA os dados do processo caso o usuário tenha editado algo
                 sql_update = text("""
                     UPDATE processos 
-                    SET objetivo=:o, executor=:ex, descricao=:d, etapa_ini=:ei, etapa_fim=:ef, produto=:p
+                    SET objetivo=:o, executor=:ex, descricao=:d, etapa_ini=:ei, etapa_fim=:ef, produto=:p, area=:a
                     WHERE id = :pid
                 """)
                 conn.execute(sql_update, {
                     "o": st.session_state['input_objetivo'], "ex": st.session_state['input_executor'], 
                     "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], 
                     "ef": st.session_state['input_etapa_fim'], "p": st.session_state['input_produto'],
+                    "a": nome_area_val,
                     "pid": processo_id
                 })
             else:
                 # INSERE processo novo
                 sql_p = text("""INSERT INTO processos (id_area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) 
-                                VALUES (:id_a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id""")
+                                VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id""")
                 processo_id = conn.execute(sql_p, {
-                    "id_a": id_area_val, "c": st.session_state['codigo_processo'], "n": nome_val, 
-                    "o": st.session_state['input_objetivo'], "ex": st.session_state['input_executor'], 
-                    "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], 
-                    "ef": st.session_state['input_etapa_fim'], "p": st.session_state['input_produto']
+                    "id_a": id_area_val,
+                    "a": nome_area_val,
+                    "c": st.session_state['codigo_processo'],
+                    "n": nome_val, 
+                    "o": st.session_state['input_objetivo'],
+                    "ex": st.session_state['input_executor'], 
+                    "d": st.session_state['input_descricao'],
+                    "ei": st.session_state['input_etapa_ini'], 
+                    "ef": st.session_state['input_etapa_fim'],
+                    "p": st.session_state['input_produto']
                 }).scalar()
 
             # 2. LIMPA riscos antigos antes de inserir os novos (Evita duplicados)
