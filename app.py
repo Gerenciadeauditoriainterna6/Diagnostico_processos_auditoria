@@ -3,10 +3,22 @@ import os
 import pandas as pd
 from sqlalchemy import text
 from database import engine
-from logic import (
-    MAPPING_AREAS, MAPA_RISCO, processar_codigo_inteligente, 
-    get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes
+from logic import (MAPA_RISCO, processar_codigo_inteligente, 
+    get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco
 )
+
+# Carregar as áreas logo no início da página ou na barra lateral ---
+areas_dict = carregar_areas_banco()
+
+# --- O Callback atualizado ---
+def atualizar_id_area():
+    nome_selecionado = st.session_state['area_selectbox']
+    st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
+    
+    # Limpa o código e o input do processo para evitar dados cruzados
+    st.session_state['codigo_processo'] = ""
+    st.session_state['input_processo'] = "" 
+    # Opcional: Se quiser limpar tudo ao trocar de área, adicione aqui
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
@@ -68,7 +80,15 @@ if opcao == "Diagnóstico de Processos":
     </div>
 """, unsafe_allow_html=True)
     st.subheader("1. Dados do Processo")
-    st.selectbox("Selecione a Área:", list(MAPPING_AREAS.keys()), key="area", on_change=lambda: st.session_state.update({'codigo_processo': ''}))
+    st.selectbox(
+    "Selecione a Área:", 
+    list(areas_dict.keys()), 
+    key="area_selectbox", 
+    on_change=atualizar_id_area
+)
+    # Garante que o ID esteja inicializado
+    if 'id_area_selecionado' not in st.session_state:
+        st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
     st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
                   help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
     st.text_input("Código do Processo:", key="codigo_processo", disabled=True)

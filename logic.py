@@ -11,11 +11,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
 CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
-MAPPING_AREAS = {
-    "Gerência de Gente e gestão - GGG": 1,
-    "Gerência de Finanças": 2,
-    "Gerência de TI": 3,
-}
+#MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
+
+def carregar_areas_banco():
+    """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
+    query = text("SELECT id_area, nome_area FROM informacoes_area")
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+
+    # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
+    # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
+    return dict(zip(df['nome_area'], df['id_area']))
 
 MAPA_RISCO = {
     ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
@@ -65,48 +71,72 @@ class PDF(FPDF):
         self.cell(0, 10, f"Página {self.page_no()}", align="C")
 
 # --- LÓGICA DE BANCO DE DADOS ---
-def obter_proximo_codigo(area_selecionada):
-    prefixo = MAPPING_AREAS.get(area_selecionada)
-    query = text("SELECT COUNT(*) FROM processos WHERE area = :area")
+def obter_proximo_codigo(id_area):
+    query = text("SELECT COUNT(*) FROM processos WHERE id_area = :id")
     with engine.connect() as conn:
-        contagem = conn.execute(query, {"area": area_selecionada}).scalar() or 0
-    return f"{prefixo}.{contagem + 1}"
+        contagem = conn.execute(query, {"id": id_area}).scalar() or 0
+    return f"{id_area}.{contagem + 1}"
 
 def processar_codigo_inteligente():
     import streamlit as st
-    area = st.session_state.get("area")
+    # Certifique-se de que aqui você usa o ID, não o nome
+    id_area = st.session_state.get("id_area_selecionado") 
     nome = st.session_state.get("input_processo")
-    if not area or not nome:
+    
+    if not id_area or not nome:
         st.session_state['codigo_processo'] = ""
         return
-    query = text("SELECT codigo_processo FROM processos WHERE area = :area AND nome_processo = :nome")
+        
+    query = text("SELECT codigo_processo FROM processos WHERE id_area = :id_area AND nome_processo = :nome")
     with engine.connect() as conn:
-        resultado = conn.execute(query, {"area": area, "nome": nome}).fetchone()
+        # AQUI estava o erro: o parâmetro deve ser :id_area
+        resultado = conn.execute(query, {"id_area": id_area, "nome": nome}).fetchone()
+        
     if resultado:
         st.session_state['codigo_processo'] = resultado[0]
     else:
-        st.session_state['codigo_processo'] = obter_proximo_codigo(area)
+        st.session_state['codigo_processo'] = obter_proximo_codigo(id_area)
 
 def salvar_no_banco():
     import streamlit as st
     try: 
         with engine.begin() as conn:
-            area_val = st.session_state.get("area")
+            id_area_val = st.session_state.get("id_area_selecionado") 
             nome_val = st.session_state.get("input_processo")
-            query_busca = text("SELECT id FROM processos WHERE area = :area AND nome_processo = :nome")
-            processo_existente = conn.execute(query_busca, {"area": area_val, "nome": nome_val}).fetchone()
+            
+            # 1. Verifica se existe
+            query_busca = text("SELECT id FROM processos WHERE id_area = :id_a AND nome_processo = :nome")
+            processo_existente = conn.execute(query_busca, {"id_a": id_area_val, "nome": nome_val}).fetchone()
             
             if processo_existente:
                 processo_id = processo_existente[0]
+                # ATUALIZA os dados do processo caso o usuário tenha editado algo
+                sql_update = text("""
+                    UPDATE processos 
+                    SET objetivo=:o, executor=:ex, descricao=:d, etapa_ini=:ei, etapa_fim=:ef, produto=:p
+                    WHERE id = :pid
+                """)
+                conn.execute(sql_update, {
+                    "o": st.session_state['input_objetivo'], "ex": st.session_state['input_executor'], 
+                    "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], 
+                    "ef": st.session_state['input_etapa_fim'], "p": st.session_state['input_produto'],
+                    "pid": processo_id
+                })
             else:
-                sql_p = text("""INSERT INTO processos (area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) 
-                                VALUES (:a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id""")
+                # INSERE processo novo
+                sql_p = text("""INSERT INTO processos (id_area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) 
+                                VALUES (:id_a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id""")
                 processo_id = conn.execute(sql_p, {
-                    "a": area_val, "c": st.session_state['codigo_processo'], "n": nome_val, "o": st.session_state['input_objetivo'], 
-                    "ex": st.session_state['input_executor'], "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], 
+                    "id_a": id_area_val, "c": st.session_state['codigo_processo'], "n": nome_val, 
+                    "o": st.session_state['input_objetivo'], "ex": st.session_state['input_executor'], 
+                    "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], 
                     "ef": st.session_state['input_etapa_fim'], "p": st.session_state['input_produto']
                 }).scalar()
 
+            # 2. LIMPA riscos antigos antes de inserir os novos (Evita duplicados)
+            conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
+
+            # 3. Insere a lista atual
             sql_risco = text("""INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, apetite_risco, motivo_risco, score_risco) 
                                 VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)""")
             for i in range(len(st.session_state['riscos'])):
@@ -119,35 +149,42 @@ def salvar_no_banco():
                 })
         return True
     except Exception as e:
-        import streamlit as st
         st.error(f"Erro ao salvar: {e}")
         return False
 
 def buscar_processos_pendentes():
-    # O "IS NULL" garante que os processos antigos entrem na lista.
-    # O "!= 'Sim'" garante que só apareça o que não foi finalizado.
+    # Adicionamos um JOIN com informacoes_area para exibir o nome da área, não o número
     query = text("""
-        SELECT DISTINCT p.id, p.codigo_processo, p.area, p.nome_processo 
+        SELECT DISTINCT p.id, p.codigo_processo, i.nome_area, p.nome_processo 
         FROM processos p
         JOIN riscos r ON p.id = r.processo_id
+        JOIN informacoes_area i ON p.id_area = i.id_area
         WHERE r.relatorio_gerado != 'Sim' OR r.relatorio_gerado IS NULL
     """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
 def buscar_dados_do_processo(codigo_processo):
-    # Alteramos a query para filtrar por codigo_processo
+    # Usamos o JOIN para buscar o nome da área baseado no ID
     query = text("""
         SELECT 
-            p.area AS "AREA", p.nome_processo AS "PROCESSO", p.objetivo AS "OBJETIVO",
-            p.descricao AS "DESCRIÇÃO DO PROCESSO", p.executor AS "QUEM EXECUTA?",
-            p.produto AS "PRODUTO DO PROCESSO", p.etapa_ini AS "ETAPA INICIAL",
-            p.etapa_fim AS "ETAPA FINAL", r.nome_risco AS "RISCO",
-            r.fator_risco AS "FATOR DE RISCO", r.melhoria AS "O QUE PODERIA MELHORAR?",
-            r.impacto AS "IMPACTO", r.probabilidade AS "PROBABILIDADE",
+            i.nome_area AS "AREA", 
+            p.nome_processo AS "PROCESSO", 
+            p.objetivo AS "OBJETIVO",
+            p.descricao AS "DESCRIÇÃO DO PROCESSO", 
+            p.executor AS "QUEM EXECUTA?",
+            p.produto AS "PRODUTO DO PROCESSO", 
+            p.etapa_ini AS "ETAPA INICIAL",
+            p.etapa_fim AS "ETAPA FINAL", 
+            r.nome_risco AS "RISCO",
+            r.fator_risco AS "FATOR DE RISCO", 
+            r.melhoria AS "O QUE PODERIA MELHORAR?",
+            r.impacto AS "IMPACTO", 
+            r.probabilidade AS "PROBABILIDADE",
             r.score_risco AS "RISCO BRUTO"
         FROM processos p
         JOIN riscos r ON p.id = r.processo_id
+        JOIN informacoes_area i ON p.id_area = i.id_area
         WHERE p.codigo_processo = :codigo
     """)
     with engine.connect() as conn:
