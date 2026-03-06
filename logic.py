@@ -126,7 +126,7 @@ def salvar_no_banco():
                 })
             else:
                 # INSERE processo novo
-                sql_p = text("""INSERT INTO processos (id_area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) 
+                sql_p = text("""INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) 
                                 VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id""")
                 processo_id = conn.execute(sql_p, {
                     "id_a": id_area_val,
