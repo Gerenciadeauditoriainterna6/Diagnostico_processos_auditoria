@@ -63,7 +63,7 @@ if opcao == "Cadastro de Processos":
     st.title("Diagnóstico de Processos - FUSVE")
     st.subheader("1. Dados do Processo")
     st.markdown("""
-        <h3 style='font-family: helvetica; color: #ffffff; font-size: 6px;'>
+        <h3 style='font-family: helvetica; color: #000000; font-size: 9px;'>
         PASSO 1: PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM. PASSO 2: ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.
         </h3>
         """, unsafe_allow_html=True)
