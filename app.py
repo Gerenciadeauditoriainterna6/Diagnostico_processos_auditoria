@@ -98,12 +98,12 @@ if opcao == "Diagnóstico de Processos":
     st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
     st.text_area("Depois de Acabado, para onde envia?", key="input_etapa_fim", help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
     st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
+    st.write("")
     st.markdown("""
     <div style='font-family: helvetica; color: #ff0000; font-size: 16px; line-height: 1;'>
         <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
         </div>
 """, unsafe_allow_html=True)
-    st.write("")
     st.subheader("2. Riscos Associados")
     for i, _ in enumerate(st.session_state['riscos']):
         st.markdown(f"**Risco {i+1}**")
