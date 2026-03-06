@@ -333,10 +333,10 @@ def gerar_pdf_em_memoria(id_proc):
 
 def get_estilo_risco(score):
     if score >= 12:
-        return "#d9534f", "🔴" 
+        return "#ff0000", "🔴" 
     elif score >= 8:
         return "#f0ad4e", "🟠" 
     elif score >= 4:
-        return "#f7d794", "🟡" 
+        return "#f7ed94", "🟡" 
     else:
         return "#5cb85c", "🟢"
