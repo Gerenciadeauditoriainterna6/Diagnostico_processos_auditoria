@@ -100,7 +100,7 @@ if opcao == "Diagnóstico de Processos":
     st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
     st.write("")
     st.markdown("""
-    <div style='font-family: helvetica; color: #ff0000; font-size: 16px; line-height: 1;'>
+    <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
         <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
         </div>
 """, unsafe_allow_html=True)
