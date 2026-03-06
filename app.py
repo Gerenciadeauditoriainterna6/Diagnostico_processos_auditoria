@@ -64,9 +64,9 @@ if opcao == "Cadastro de Processos":
     st.markdown(
     """
     <div style='font-family: helvetica; color: #000000; font-size: 14px;'>
-        <p><strong>PASSO 1:</strong> 1º PASSO - PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
+        <p><strong>PASSO 1:</strong>PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
         
-        <p style='margin-top: 15px;'><strong>PASSO 2:</strong>2º PASSO - ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
+        <p style='margin-top: 15px;'><strong>PASSO 2:</strong>ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
     </div>
     """, 
     unsafe_allow_html=True
