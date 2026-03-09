@@ -13,6 +13,51 @@ CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 #MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
 
+def buscar_processo_por_codigo(codigo):
+    """Busca todos os detalhes de um processo e o nome do gestor da área."""
+    query = text("""
+            SELECT p.*, i.nome_area, i.responsavel_area
+            FROM processos p
+            JOIN informacoes_area i ON p.id_area = i.id_area
+            WHERE p.codigo_processo = :c
+    """)
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params={"c": codigo})
+        return df.iloc[0] if not df.empty else None
+
+def salvar_etapa_no_banco(dados_etapa):
+    """Salva os dados de uma etapa no banco de dados."""
+    try:
+        query = text("""
+            INSERT INTO etapas_processo (
+                    processo_id, codigo_etapa, descricao_etapa, como_e_feito, objetivo_etapa,
+                    realizado_corretamente, link_diagrama_etapa, politica_interna, analise_critica,
+                    sugestao_melhoria, necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
+                    criticidade_etapa, manual_processo_link
+                ) VALUES (
+                    :p_id, :cod, :desc, :como, :obj, :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
+                )
+        """)
+        with engine.connect() as conn:
+            conn.execute(query, dados_etapa)
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar etapa: {e}")
+        return False
+
+def listar_etapas_do_processo(processo_id):
+    """Retorna todas as etapas de um processo específico."""
+    query = text("SELECT * FROM etapas_processo WHERE processo_id = :id ORDER BY codigo_etapa")
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"id": processo_id})
+
+def obter_proximo_codigo_etapa(processo_id, codigo_processo):
+    """Gera o código 1.2.1 baseado no número de etapas existentes."""
+    query = text("SELECT COUNT(*) FROM etapas_processo WHERE processo_id = :id")
+    with engine.connect() as conn:
+        contagem = conn.execute(query, {"id": processo_id}).scalar() or 0
+    return f"{codigo_processo}.{contagem + 1}"
+  
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
     query = text("SELECT id_area, nome_area FROM informacoes_area")
