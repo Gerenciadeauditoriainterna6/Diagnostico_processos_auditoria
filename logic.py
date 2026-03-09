@@ -150,55 +150,62 @@ def salvar_no_banco():
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo")
             
-            # 1. Verifica se existe
             query_busca = text("SELECT id FROM processos WHERE id_area = :id_a AND nome_processo = :nome")
             processo_existente = conn.execute(query_busca, {"id_a": id_area_val, "nome": nome_val}).fetchone()
             
+            # Dados padrão para novos campos (evita erro na consulta detalhada)
+            dados_base = {
+                "o": st.session_state['input_objetivo'], 
+                "ex": st.session_state['input_executor'], 
+                "d": st.session_state['input_descricao'], 
+                "ei": st.session_state['input_etapa_ini'], 
+                "ef": st.session_state['input_etapa_fim'], 
+                "p": st.session_state['input_produto'],
+                "a": nome_area_val,
+                "st": "Ativo",        # Valor default
+                "crit": "A definir", # Valor default
+                "cat": "Geral"       # Valor default
+            }
+
             if processo_existente:
                 processo_id = processo_existente[0]
-                # ATUALIZA os dados do processo caso o usuário tenha editado algo
                 sql_update = text("""
                     UPDATE processos 
                     SET objetivo=:o, executor=:ex, descricao=:d, etapa_ini=:ei, etapa_fim=:ef, produto=:p, area=:a
                     WHERE id = :pid
                 """)
-                conn.execute(sql_update, {
-                    "o": st.session_state['input_objetivo'], "ex": st.session_state['input_executor'], 
-                    "d": st.session_state['input_descricao'], "ei": st.session_state['input_etapa_ini'], 
-                    "ef": st.session_state['input_etapa_fim'], "p": st.session_state['input_produto'],
-                    "a": nome_area_val,
-                    "pid": processo_id
-                })
+                dados_base["pid"] = processo_id
+                conn.execute(sql_update, dados_base)
             else:
-                # INSERE processo novo
-                sql_p = text("""INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto) 
-                                VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p) RETURNING id""")
-                processo_id = conn.execute(sql_p, {
-                    "id_a": id_area_val,
-                    "a": nome_area_val,
-                    "c": st.session_state['codigo_processo'],
-                    "n": nome_val, 
-                    "o": st.session_state['input_objetivo'],
-                    "ex": st.session_state['input_executor'], 
-                    "d": st.session_state['input_descricao'],
-                    "ei": st.session_state['input_etapa_ini'], 
-                    "ef": st.session_state['input_etapa_fim'],
-                    "p": st.session_state['input_produto']
-                }).scalar()
+                sql_p = text("""
+                    INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto, status, criticidade, categoria) 
+                    VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) RETURNING id
+                """)
+                params_insert = {**dados_base, "id_a": id_area_val, "c": st.session_state['codigo_processo'], "n": nome_val}
+                processo_id = conn.execute(sql_p, params_insert).scalar()
 
-            # 2. LIMPA riscos antigos antes de inserir os novos (Evita duplicados)
+            # Riscos... (mantenha o código de riscos como está)
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
-
-            # 3. Insere a lista atual
+            
+            # 3. Insere a lista atual de riscos
             sql_risco = text("""INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, apetite_risco, motivo_risco, score_risco) 
                                 VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)""")
+            
             for i in range(len(st.session_state['riscos'])):
-                imp, prob = st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")
+                imp = st.session_state.get(f"imp_{i}")
+                prob = st.session_state.get(f"prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
+                
                 conn.execute(sql_risco, {
-                    "pid": processo_id, "nome": st.session_state.get(f"nome_{i}"), "fator": st.session_state.get(f"fator_{i}"), 
-                    "melhoria": st.session_state.get(f"melhoria_{i}"), "imp": imp, "prob": prob, 
-                    "apetite": st.session_state.get(f"apetite_{i}"), "motivo": st.session_state.get(f"motivo_{i}"), "score": score
+                    "pid": processo_id, 
+                    "nome": st.session_state.get(f"nome_{i}"), 
+                    "fator": st.session_state.get(f"fator_{i}"), 
+                    "melhoria": st.session_state.get(f"melhoria_{i}"), 
+                    "imp": imp, 
+                    "prob": prob, 
+                    "apetite": st.session_state.get(f"apetite_{i}"), 
+                    "motivo": st.session_state.get(f"motivo_{i}"), 
+                    "score": score
                 })
         return True
     except Exception as e:

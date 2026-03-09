@@ -4,11 +4,15 @@ import pandas as pd
 from sqlalchemy import text
 from database import engine
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
-    get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco
+get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
+buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo
 )
 
 # Carregar as áreas logo no início da página ou na barra lateral ---
 areas_dict = carregar_areas_banco()
+if 'id_area_selecionado' not in st.session_state and areas_dict:
+    primeiro_nome = list(areas_dict.keys())[0]
+    st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
 
 # --- O Callback atualizado ---
 def atualizar_id_area():
@@ -19,6 +23,113 @@ def atualizar_id_area():
     st.session_state['codigo_processo'] = ""
     st.session_state['input_processo'] = "" 
     # Opcional: Se quiser limpar tudo ao trocar de área, adicione aqui
+
+def tela_consulta_detalhada():
+    st.title("🔍 Consulta Detalhada de Processos")
+    st.info("Utilize esta tela para detalhar as etapas de um processo já cadastrado no Diagnóstico.")
+
+    # 1. Mecanismo de busca
+    codigo_busca = st.text_input("Digite o Código do Processo (ex: 1.1)", placeholder="1.1")
+
+    if codigo_busca:
+        processo = buscar_processo_por_codigo(codigo_busca)
+
+        if processo is not None:
+            # --- Cabeçalho com informações do processo (Pai) ---
+            st.subheader(f"Processo: {processo['nome_processo']}")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                # O status agora é dinâmico (caso exista no banco, senão mostra Ativo)
+                status_atual = processo.get('status', 'Ativo')
+                st.metric("Status", status_atual)
+                st.write(f"**Gestor:** {processo['responsavel_area']}")
+            with col2:
+                criticidade_atual = processo.get('criticidade', 'A definir')
+                st.metric("Criticidade", criticidade_atual)
+                st.write(f"**Área:** {processo['nome_area']}")
+            with col3:
+                st.write(f"**Categoria:** {processo.get('categoria', 'Não definida')}")
+                if processo.get('url_diagrama'):
+                    st.link_button("🌐 Abrir Diagrama Macro", processo['url_diagrama'])
+            
+            with st.expander("📄 Ver Objetivo e Descrição Geral"):
+                st.write(f"**Objetivo:** {processo['objetivo']}")
+                st.write(f"**Descrição:** {processo['descricao']}")
+
+            st.divider()
+
+            # --- SEÇÃO DE ETAPAS (FILHOS) ---
+            tab_lista, tab_cadastro = st.tabs(["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa"])
+
+            with tab_lista:
+                etapas = listar_etapas_do_processo(processo['id'])
+                if not etapas.empty:
+                    for _, etapa in etapas.iterrows():
+                        with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
+                            c_etapa_1, c_etapa_2 = st.columns(2)
+                            with c_etapa_1:
+                                st.write(f"**Como é feito:** {etapa['como_e_feito']}")
+                                st.write(f"**Objetivo da Etapa:** {etapa['objetivo_etapa']}")
+                            with c_etapa_2:
+                                st.write(f"**Análise Crítica:** {etapa['analise_critica']}")
+                                st.write(f"**Sugestão de Melhoria:** {etapa['sugestao_melhoria']}")
+                            
+                            st.divider()
+                            # Botões para links do OneDrive
+                            b1, b2 = st.columns(2)
+                            if etapa['link_diagrama_etapa']:
+                                b1.link_button("🖼️ Desenho da Etapa", etapa['link_diagrama_etapa'])
+                            if etapa['manual_processo_link']:
+                                b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
+                else:
+                    st.info("Nenhuma etapa cadastrada para este processo.")
+
+            with tab_cadastro:
+                st.write("### Cadastro de Nova Etapa")
+                prox_cod = obter_proximo_codigo_etapa(processo['id'], processo['codigo_processo'])
+                
+                with st.form("form_nova_etapa", clear_on_submit=True):
+                    c1, c2 = st.columns([1, 3])
+                    c1.text_input("Código", value=prox_cod, disabled=True)
+                    desc_etapa = c2.text_input("Título da Etapa (O que é feito?)")
+                    
+                    como = st.text_area("Como é feito o passo a passo?")
+                    obj_etapa = st.text_area("Qual o objetivo desta etapa específica?")
+                    
+                    col_f1, col_f2, col_f3 = st.columns(3)
+                    correto = col_f1.selectbox("Realizado corretamente?", ["Sim", "Não", "Parcial"])
+                    crit_etapa = col_f2.selectbox("Criticidade", ["Baixa", "Média", "Alta", "Crítica"])
+                    executa = col_f3.text_input("Quem Executa?", value=processo['executor']) # Sugere o executor do processo pai
+
+                    link_bpmn = st.text_input("Link do Diagrama da Etapa (OneDrive)")
+                    link_manual = st.text_input("Link do Manual/POP da Etapa (OneDrive)")
+                    
+                    politica = st.text_area("Política Interna / Normativo Relacionado")
+                    analise = st.text_area("Análise Crítica (Visão da Auditoria)")
+                    melhoria = st.text_area("Sugestão de Melhoria")
+                    
+                    # Campos extras solicitados
+                    col_f4, col_f5 = st.columns(2)
+                    necessidade = col_f4.text_input("Necessidade para Implantação")
+                    ganho = col_f5.text_input("Qual o ganho previsto?")
+                    obrigacoes = st.text_input("Obrigações Regulatórias (Link ou Descrição)")
+
+                    if st.form_submit_button("Salvar Detalhamento da Etapa", type="primary"):
+                        if not desc_etapa or not como:
+                            st.error("Por favor, preencha a descrição e o 'como é feito'.")
+                        else:
+                            dados = {
+                                "p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa,
+                                "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn,
+                                "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade,
+                                "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual
+                            }
+                            if salvar_etapa_no_banco(dados):
+                                st.success(f"Etapa {prox_cod} salva com sucesso!")
+                                st.rerun()
+        else:
+            st.warning("Código não encontrado. Certifique-se de que o processo foi salvo na tela de Diagnóstico primeiro.")
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
@@ -47,6 +158,9 @@ def validar_formulario():
     if not st.session_state['riscos']:
         st.error("Adicione pelo menos um risco.")
         return False
+    if not st.session_state.get("nome_0"):
+        st.error("O Risco 1 precisa de uma descrição/nome")
+        return False
     return True
 
 def marcar_relatorio_gerado(codigo_processo):
@@ -68,7 +182,7 @@ logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
 # --- 6. SIDEBAR ---
 with st.sidebar:
     if os.path.exists(logo_fusve): st.image(logo_fusve, width=200)
-    opcao = st.radio("Menu", ["Diagnóstico de Processos", "Geração de Relatórios"])
+    opcao = st.radio("Menu", ["Diagnóstico de Processos", "Consulta Detalhada", "Geração de Relatórios"])
 
 # --- 7. LÓGICA PRINCIPAL ---
 if opcao == "Diagnóstico de Processos":
@@ -130,6 +244,9 @@ if opcao == "Diagnóstico de Processos":
             st.success("Dados salvos!")
             st.session_state['deve_limpar'] = True
             st.rerun()
+
+elif opcao == "Consulta Detalhada":
+    tela_consulta_detalhada()
 
 elif opcao == "Geração de Relatórios":
     st.title("Relatórios - FUSVE")
