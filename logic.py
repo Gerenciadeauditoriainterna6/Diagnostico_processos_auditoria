@@ -16,14 +16,14 @@ CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
     query = text("""
-            SELECT p.*, i.nome_area, i.responsavel_area
+            SELECT p.*, i.nome_area, i.gestor AS responsavel_area
             FROM processos p
             JOIN informacoes_area i ON p.id_area = i.id_area
             WHERE p.codigo_processo = :c
     """)
     with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={"c": codigo})
-        return df.iloc[0] if not df.empty else None
+        result = conn.execute(query, {"c": str(codigo)}).mappings().first()
+        return dict(result) if result else None
 
 def salvar_etapa_no_banco(dados_etapa):
     """Salva os dados de uma etapa no banco de dados."""
@@ -186,7 +186,7 @@ def salvar_no_banco():
 
             # Riscos... (mantenha o código de riscos como está)
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
-            
+
             # 3. Insere a lista atual de riscos
             sql_risco = text("""INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, apetite_risco, motivo_risco, score_risco) 
                                 VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)""")
