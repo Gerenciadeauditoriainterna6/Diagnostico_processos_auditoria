@@ -68,14 +68,28 @@ def tela_consulta_detalhada():
                 if not etapas.empty:
                     for _, etapa in etapas.iterrows():
                         with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
+
+                            # Grupo 1: Execução
+                            st.subheader("Detalhes da Execução")
                             c_etapa_1, c_etapa_2 = st.columns(2)
                             with c_etapa_1:
                                 st.write(f"**Como é feito:** {etapa['como_e_feito']}")
                                 st.write(f"**Objetivo da Etapa:** {etapa['objetivo_etapa']}")
+                                st.write(f"**Criticidade: ** {etapa['criticidade_etapa']}")
                             with c_etapa_2:
-                                st.write(f"**Análise Crítica:** {etapa['analise_critica']}")
+                                st.write(f"**Realizado corretamente?:** {etapa['realizado_corretamente']}")
+                                st.write(f"**Política Interna: ** {etapa['politica_interna']}")
+  
+                            # Grupo 2: Análise e Melhorias
+                            c_etapa_3, c_etapa_4 = st.columns(2)
+                            with c_etapa_3:
+                                st.write(f"**Analise Crítica** {etapa['analise_critica']}")
                                 st.write(f"**Sugestão de Melhoria:** {etapa['sugestao_melhoria']}")
-                            
+                            with c_etapa_4:
+                                st.write(f"**Necessidade para Implantação:** {etapa['necessidade_implantacao']}")
+                                st.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
+                                st.write(f"**Obrigações Regulatórias:** {etapa['obrigacoes_regulatorias']}")
+
                             st.divider()
                             # Botões para links do OneDrive
                             b1, b2 = st.columns(2)
@@ -84,6 +98,7 @@ def tela_consulta_detalhada():
                             if etapa['manual_processo_link']:
                                 b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
                             st.divider()
+                            
                         st.subheader("⚠️ Riscos desta Etapa")
                         
                         # --- SEÇÃO DE RISCOS (NOVA) ---
