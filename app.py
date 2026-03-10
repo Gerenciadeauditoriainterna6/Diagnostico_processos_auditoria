@@ -156,6 +156,10 @@ def tela_consulta_detalhada():
                                             if salvar_risco_etapa(dados_r):
                                                # Feedback visual que sobrevive ao rerun
                                                 st.toast("Risco da etapa salvo com sucesso!", icon="✅")
+                                                # Logo após a linha st.toast(...)
+                                                st.write("DEBUG - Keys no Session State:")
+                                                st.write([k for k in st.session_state.keys() if f"{etapa['id']}" in k])
+                                                # st.stop()  # Descomente isto se quiser que o app pare aqui para você inspecionar
                                                 limpar_campos_por_prefixo(f"form_{etapa['id']}")
                                                 st.rerun()
                                             else:
