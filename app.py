@@ -119,62 +119,58 @@ def tela_consulta_detalhada():
                             
                             # --- ABA ADICIONAR RISCO ---
                             with tab_c_risco:
-                                col1, col2 = st.columns(2)
-                                categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
-                                origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
-                                
-                                fator = st.text_area("Fator de Risco", key=f"fat_{etapa['id']}")
-                                cons = st.text_area("Consequência", key=f"cons_{etapa['id']}")
-                                
-                                c3, c4 = st.columns(2)
-                                financeiro = c3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
-                                ativo = c4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
-                                
-                                imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
-                                prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
-                                
-                                mag = MAPA_RISCO.get((imp, prob), 0)
-                                cor, emoji = get_estilo_risco(mag)
-                                st.markdown(f'''<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin-bottom: 10px;">{emoji} Magnitude: {mag}</div>''', unsafe_allow_html=True)
-                                
-                                apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
-                                tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
-                                info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
-                                doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
-                                
-                                if st.button("💾 Salvar Risco", key=f"btn_salvar_{etapa['id']}", type="primary"):
-                                    if not fator or not cons:
-                                        st.warning("Preencha fator e consequência.")
-                                    else:
-                                        with st.spinner("Salvando risco da etapa na base de dados..."):
-                                        # IMPORTANTE: As chaves aqui devem coincidir com o SQL na função salvar_risco_etapa
-                                            dados_r = {
-                                                "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
-                                                "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
-                                                "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
-                                            }
-                                            if salvar_risco_etapa(dados_r):
-                                               # Feedback visual que sobrevive ao rerun
-                                                st.toast("Risco da etapa salvo com sucesso!", icon="✅")
-                                                # Logo após a linha st.toast(...)
-                                                st.write("DEBUG - Keys no Session State:")
-                                                st.write([k for k in st.session_state.keys() if f"{etapa['id']}" in k])
-                                                # st.stop()  # Descomente isto se quiser que o app pare aqui para você inspecionar
-                                                limpar_campos_por_prefixo(f"form_{etapa['id']}")
-                                                st.rerun()
-                                            else:
-                                                st.error("Erro ao salvar no banco de dados. Tente novamente!")
-                                                
-                                                # Limpeza das chaves
-                                                st.session_state[f"fat_{etapa['id']}"] = ""
-                                                st.session_state[f"cons_{etapa['id']}"] = ""
-                                                st.session_state[f"info_{etapa['id']}"] = ""
-                                                st.session_state[f"apet_{etapa['id']}"] = ""
-                                                st.session_state[f"trat_{etapa['id']}"] = ""
-                                                st.session_state[f"doc_{etapa['id']}"] = ""
-                                                
-                                                # Recarrega a página para atualizar a tabela de riscos
-                                                st.rerun()
+                                with st.form(key=f"form_risco_{etapa['id']}", clear_on_submit=True):
+                                    col1, col2 = st.columns(2)
+                                    categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
+                                    origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
+                                    
+                                    fator = st.text_area("Fator de Risco", key=f"fat_{etapa['id']}")
+                                    cons = st.text_area("Consequência", key=f"cons_{etapa['id']}")
+                                    
+                                    c3, c4 = st.columns(2)
+                                    financeiro = c3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
+                                    ativo = c4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
+                                    
+                                    imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
+                                    prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
+                                    
+                                    mag = MAPA_RISCO.get((imp, prob), 0)
+                                    cor, emoji = get_estilo_risco(mag)
+                                    st.markdown(f'''<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin-bottom: 10px;">{emoji} Magnitude: {mag}</div>''', unsafe_allow_html=True)
+                                    
+                                    apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
+                                    tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
+                                    info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
+                                    doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
+                                    
+                                    if st.button("💾 Salvar Risco", key=f"btn_salvar_{etapa['id']}", type="primary"):
+                                        if not fator or not cons:
+                                            st.warning("Preencha fator e consequência.")
+                                        else:
+                                            with st.spinner("Salvando risco da etapa na base de dados..."):
+                                            # IMPORTANTE: As chaves aqui devem coincidir com o SQL na função salvar_risco_etapa
+                                                dados_r = {
+                                                    "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
+                                                    "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
+                                                    "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
+                                                }
+                                                if salvar_risco_etapa(dados_r):
+                                                # Feedback visual que sobrevive ao rerun
+                                                    st.toast("Risco da etapa salvo com sucesso!", icon="✅")
+                                                    st.rerun()
+                                                else:
+                                                    st.error("Erro ao salvar no banco de dados. Tente novamente!")
+                                                    
+                                                    # Limpeza das chaves
+                                                    st.session_state[f"fat_{etapa['id']}"] = ""
+                                                    st.session_state[f"cons_{etapa['id']}"] = ""
+                                                    st.session_state[f"info_{etapa['id']}"] = ""
+                                                    st.session_state[f"apet_{etapa['id']}"] = ""
+                                                    st.session_state[f"trat_{etapa['id']}"] = ""
+                                                    st.session_state[f"doc_{etapa['id']}"] = ""
+                                                    
+                                                    # Recarrega a página para atualizar a tabela de riscos
+                                                    st.rerun()
                 else:
                     st.info("Nenhuma etapa cadastrada.")
 
