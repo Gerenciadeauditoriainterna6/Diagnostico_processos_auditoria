@@ -68,6 +68,22 @@ def carregar_areas_banco():
     # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
     return dict(zip(df['nome_area'], df['id_area']))
 
+def salvar_risco_etapa(dados):
+    query = text("""
+        INSERT INTO riscos_etapa 
+        (etapa_id, categoria, fator_risco, consequencia, info_adicional, financeiro, 
+         ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
+        VALUES (:e_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, :imp, :prob, :mag, :apet, :trat)
+    """)
+    with engine.begin() as conn:
+        conn.execute(query, dados)
+        return True
+
+def listar_riscos_etapa(etapa_id):
+    query = text("SELECT * FROM riscos_etapa WHERE etapa_id = :e_id")
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"e_id": etapa_id})
+
 MAPA_RISCO = {
     ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
     ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,

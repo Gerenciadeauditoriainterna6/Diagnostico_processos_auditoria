@@ -5,7 +5,8 @@ from sqlalchemy import text
 from database import engine
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
-buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo
+buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
+listar_riscos_etapa
 )
 
 # Carregar as áreas logo no início da página ou na barra lateral ---
@@ -82,6 +83,57 @@ def tela_consulta_detalhada():
                                 b1.link_button("🖼️ Desenho da Etapa", etapa['link_diagrama_etapa'])
                             if etapa['manual_processo_link']:
                                 b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
+                            st.divider()
+                        st.subheader("⚠️ Riscos desta Etapa")
+                        
+                        # --- SEÇÃO DE RISCOS (NOVA) ---
+                        tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"])
+                        
+                        with tab_v_risco:
+                            riscos_df = listar_riscos_etapa(etapa['id'])
+                            if not riscos_df.empty:
+                                st.dataframe(riscos_df)
+                            else:
+                                st.info("Nenhum risco mapeado para esta etapa.")
+                        
+                        with tab_c_risco:
+                            with st.form(f"form_risco_{etapa['id']}"):
+                                col1, col2 = st.columns(2)
+                                categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude", "Risco de Compliance"], key=f"cat_{etapa['id']}")
+                                origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
+                                
+                                fator = st.text_area("Fator de Risco (Causa)", key=f"fat_{etapa['id']}")
+                                cons = st.text_area("Consequência/Efeitos", key=f"cons_{etapa['id']}")
+                                
+                                col3, col4 = st.columns(2)
+                                financeiro = col3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
+                                ativo = col4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
+                                
+                                imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
+                                prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
+                                
+                                # Reutilizando seu MAPA_RISCO existente
+                                mag = MAPA_RISCO.get((imp, prob), 0)
+                                st.write(f"**Magnitude do Risco (Calculada):** {mag}")
+                                
+                                apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
+                                tratamento = st.text_area("Como tratar o risco?", key=f"trat_{etapa['id']}")
+                                
+                                if st.form_submit_button("Salvar Risco"):
+                                    if not fator or not cons:
+                                        st.warning("Por favor, preencha o fator de risco e a consequência.")
+                                    else:
+                                        try:
+                                            dados_r = {
+                                                "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
+                                                "info": "", "fin": financeiro, "ativo": ativo, "ori": origem,
+                                                "doc": "", "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
+                                            }
+                                            if salvar_risco_etapa(dados_r):
+                                                st.success("Risco salvo com sucesso!")
+                                                st.rerun()
+                                        except Exception as e:
+                                            st.error(f"Erro ao salvar no banco: {e}")
                 else:
                     st.info("Nenhuma etapa cadastrada para este processo.")
 
