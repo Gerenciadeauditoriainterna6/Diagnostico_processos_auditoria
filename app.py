@@ -141,14 +141,14 @@ def tela_consulta_detalhada():
                                     else:
                                         with st.spinner("Salvando risco da etapa na base de dados..."):
                                         # IMPORTANTE: As chaves aqui devem coincidir com o SQL na função salvar_risco_etapa
-                                        dados_r = {
-                                            "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
-                                            "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
-                                            "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
-                                        }
-                                        if salvar_risco_etapa(dados_r):
-                                            st.success("Risco salvo!")
-                                            st.rerun()
+                                            dados_r = {
+                                                "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
+                                                "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
+                                                "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
+                                            }
+                                            if salvar_risco_etapa(dados_r):
+                                                st.success("Risco salvo!")
+                                                st.rerun()
 
                 else:
                     st.info("Nenhuma etapa cadastrada.")
