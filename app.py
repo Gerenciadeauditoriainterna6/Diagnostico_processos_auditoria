@@ -143,12 +143,11 @@ def tela_consulta_detalhada():
                                     info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
                                     doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
                                     
-                                    if st.button("💾 Salvar Risco", key=f"btn_salvar_{etapa['id']}", type="primary"):
+                                    if st.form_submit_button("💾 Salvar Risco", type="primary"):
                                         if not fator or not cons:
                                             st.warning("Preencha fator e consequência.")
                                         else:
                                             with st.spinner("Salvando risco da etapa na base de dados..."):
-                                            # IMPORTANTE: As chaves aqui devem coincidir com o SQL na função salvar_risco_etapa
                                                 dados_r = {
                                                     "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
                                                     "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
@@ -160,16 +159,6 @@ def tela_consulta_detalhada():
                                                     st.rerun()
                                                 else:
                                                     st.error("Erro ao salvar no banco de dados. Tente novamente!")
-                                                    
-                                                    # Limpeza das chaves
-                                                    st.session_state[f"fat_{etapa['id']}"] = ""
-                                                    st.session_state[f"cons_{etapa['id']}"] = ""
-                                                    st.session_state[f"info_{etapa['id']}"] = ""
-                                                    st.session_state[f"apet_{etapa['id']}"] = ""
-                                                    st.session_state[f"trat_{etapa['id']}"] = ""
-                                                    st.session_state[f"doc_{etapa['id']}"] = ""
-                                                    
-                                                    # Recarrega a página para atualizar a tabela de riscos
                                                     st.rerun()
                 else:
                     st.info("Nenhuma etapa cadastrada.")
