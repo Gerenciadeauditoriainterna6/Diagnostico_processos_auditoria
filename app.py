@@ -9,6 +9,11 @@ buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, l
 listar_riscos_etapa
 )
 
+def limpar_campos_por_prefixo(prefixo):
+    for key in st.session_state.keys():
+        if key.startswith(prefixo):
+            st.session_state[key] = ""
+
 # Carregar as áreas logo no início da página ou na barra lateral
 areas_dict = carregar_areas_banco()
 if 'id_area_selecionado' not in st.session_state and areas_dict:
@@ -107,6 +112,8 @@ def tela_consulta_detalhada():
                                             st.info(f"Magnitude: {risco['magnitude']}")
                                             st.write(f"**Apetite:** {risco['apetite']}")
                                             st.write(f"**Tratamento:** {risco['tratamento']}")
+                                            st.write(f"**Informações adicionais:** {risco['info_adicional']}")
+                                            st.write(f"**Documentação legal:** {risco['doc_legal']}")
                                 else:
                                     st.info("Nenhum risco mapeado para esta etapa.")
                             
@@ -147,9 +154,23 @@ def tela_consulta_detalhada():
                                                 "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
                                             }
                                             if salvar_risco_etapa(dados_r):
-                                                st.success("Risco salvo!")
+                                               # Feedback visual que sobrevive ao rerun
+                                                st.toast("Risco da etapa salvo com sucesso!", icon="✅")
+                                                limpar_campos_por_prefixo(f"form_{etapa['id']}")
                                                 st.rerun()
-
+                                            else:
+                                                st.error("Erro ao salvar no banco de dados. Tente novamente!")
+                                                
+                                                # Limpeza das chaves
+                                                st.session_state[f"fat_{etapa['id']}"] = ""
+                                                st.session_state[f"cons_{etapa['id']}"] = ""
+                                                st.session_state[f"info_{etapa['id']}"] = ""
+                                                st.session_state[f"apet_{etapa['id']}"] = ""
+                                                st.session_state[f"trat_{etapa['id']}"] = ""
+                                                st.session_state[f"doc_{etapa['id']}"] = ""
+                                                
+                                                # Recarrega a página para atualizar a tabela de riscos
+                                                st.rerun()
                 else:
                     st.info("Nenhuma etapa cadastrada.")
 
