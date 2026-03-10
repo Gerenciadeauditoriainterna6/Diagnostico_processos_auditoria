@@ -87,6 +87,12 @@ def listar_riscos_etapa(etapa_id):
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"e_id": etapa_id})
 
+def buscar_todos_processos():
+    query = text("""
+            SELECT id, codigo_processo nome_processo, responsavel_area FROM processos""")
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
+
 MAPA_RISCO = {
     ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
     ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,

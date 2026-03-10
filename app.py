@@ -6,7 +6,7 @@ from database import engine
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
-listar_riscos_etapa
+listar_riscos_etapa, buscar_todos_processos
 )
 
 def limpar_campos_por_prefixo(prefixo):
@@ -28,16 +28,31 @@ def atualizar_id_area():
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
-    st.info("Utilize esta tela para detalhar as etapas de um processo já cadastrado no Diagnóstico.")
+    st.info("Selecione um processo abaixo para detalhar as etapas.")
 
-    codigo_busca = st.text_input("Digite o Código do Processo (ex: 1.1)", placeholder="1.1")
+    # 1. Usamos o session_state para carregar a lista apenas uma vez
+    if "lista_processos" not in st.session_state:
+        st.session_state["lista_processos"] = buscar_todos_processos()
+    
+    df_processos = st.session_state["lista_processos"]
 
-    if codigo_busca:
-        processo = buscar_processo_por_codigo(codigo_busca)
+    if not df_processos.empty:
+        # Exibe a tabela para referência do usuário
+        with st.expander("Ver lista de processos"):
+            st.dataframe(df_processos, use_container_width=True)
 
-        if processo is not None:
-            st.subheader(f"Processo: {processo['nome_processo']}")
+        # Cria uma lista formatada para o selectbox
+        # Exibe: "Código - Nome"
+        opcoes = [f"{row['codigo_processo']} - {row['nome_processo']}" for _, row in df_processos.iterrows()]
+        
+        # Selectbox para escolha
+        selecao = st.selectbox("Escolha o processo:", options=[""] + opcoes)
 
+        # 2. Lógica de busca baseada na seleção
+        if selecao:
+            # Extrai apenas o código (antes do " - ")
+            codigo_busca = selecao.split(" - ")[0]
+            processo = buscar_processo_por_codigo(codigo_busca)
             col1, col2, col3 = st.columns(3)
             with col1:
                 status_atual = processo.get('status', 'Ativo')
