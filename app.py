@@ -132,16 +132,19 @@ def tela_consulta_detalhada():
                                 
                                 apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
                                 tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
+                                info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
+                                doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
                                 
                                 if st.button("💾 Salvar Risco", key=f"btn_salvar_{etapa['id']}", type="primary"):
                                     if not fator or not cons:
                                         st.warning("Preencha fator e consequência.")
                                     else:
+                                        with st.spinner("Salvando risco da etapa na base de dados..."):
                                         # IMPORTANTE: As chaves aqui devem coincidir com o SQL na função salvar_risco_etapa
                                         dados_r = {
                                             "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
-                                            "info": "", "fin": financeiro, "ativo": ativo, "ori": origem,
-                                            "doc": "", "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
+                                            "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
+                                            "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
                                         }
                                         if salvar_risco_etapa(dados_r):
                                             st.success("Risco salvo!")
@@ -173,10 +176,11 @@ def tela_consulta_detalhada():
                     ganho = col_f5.text_input("Ganho")
                     obrigacoes = st.text_input("Obrigações Reg.")
                     if st.form_submit_button("Salvar Detalhamento"):
-                        dados = {"p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn, "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade, "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual}
-                        if salvar_etapa_no_banco(dados):
-                            st.success("Etapa salva!")
-                            st.rerun()
+                        with st.spinner("Salvando etapa na base de dados..."):
+                            dados = {"p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn, "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade, "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual}
+                            if salvar_etapa_no_banco(dados):
+                                st.success("Etapa salva!")
+                                st.rerun()
         else:
             st.warning("Código não encontrado.")
 
