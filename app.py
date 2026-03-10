@@ -9,39 +9,32 @@ buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, l
 listar_riscos_etapa
 )
 
-# Carregar as áreas logo no início da página ou na barra lateral ---
+# Carregar as áreas logo no início da página ou na barra lateral
 areas_dict = carregar_areas_banco()
 if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
 
-# --- O Callback atualizado ---
 def atualizar_id_area():
     nome_selecionado = st.session_state['area_selectbox']
     st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
-    
-    # Limpa o código e o input do processo para evitar dados cruzados
     st.session_state['codigo_processo'] = ""
     st.session_state['input_processo'] = "" 
-    # Opcional: Se quiser limpar tudo ao trocar de área, adicione aqui
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
     st.info("Utilize esta tela para detalhar as etapas de um processo já cadastrado no Diagnóstico.")
 
-    # 1. Mecanismo de busca
     codigo_busca = st.text_input("Digite o Código do Processo (ex: 1.1)", placeholder="1.1")
 
     if codigo_busca:
         processo = buscar_processo_por_codigo(codigo_busca)
 
         if processo is not None:
-            # --- Cabeçalho com informações do processo (Pai) ---
             st.subheader(f"Processo: {processo['nome_processo']}")
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                # O status agora é dinâmico (caso exista no banco, senão mostra Ativo)
                 status_atual = processo.get('status', 'Ativo')
                 st.metric("Status", status_atual)
                 st.write(f"**Gestor:** {processo['responsavel_area']}")
@@ -68,150 +61,124 @@ def tela_consulta_detalhada():
                 if not etapas.empty:
                     for _, etapa in etapas.iterrows():
                         with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
-
-                            # Grupo 1: Execução
+                            # Execução
                             st.subheader("Detalhes da Execução")
-                            c_etapa_1, c_etapa_2 = st.columns(2)
-                            with c_etapa_1:
-                                st.write(f"**Como é feito:** {etapa['como_e_feito']}")
-                                st.write(f"**Objetivo da Etapa:** {etapa['objetivo_etapa']}")
-                                st.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
-                            with c_etapa_2:
-                                st.write(f"**Realizado corretamente?:** {etapa['realizado_corretamente']}")
-                                st.write(f"**Política Interna:** {etapa['politica_interna']}")
-  
-                            # Grupo 2: Análise e Melhorias
-                            c_etapa_3, c_etapa_4 = st.columns(2)
-                            with c_etapa_3:
-                                st.write(f"**Analise Crítica** {etapa['analise_critica']}")
-                                st.write(f"**Sugestão de Melhoria:** {etapa['sugestao_melhoria']}")
-                                st.write(f"**Obrigações Regulatórias:** {etapa['obrigacoes_regulatorias']}")
-                            with c_etapa_4:
-                                st.write(f"**Necessidade para Implantação:** {etapa['necessidade_implantacao']}")
-                                st.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
-                                
+                            c1, c2 = st.columns(2)
+                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
+                            c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
+                            c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
+                            c2.write(f"**Realizado corretamente:** {etapa['realizado_corretamente']}")
+                            c2.write(f"**Política Interna:** {etapa['politica_interna']}")
+                            
+                            # Auditoria e Melhorias
+                            c3, c4 = st.columns(2)
+                            c3.write(f"**Análise Crítica:** {etapa['analise_critica']}")
+                            c3.write(f"**Sugestão:** {etapa['sugestao_melhoria']}")
+                            c4.write(f"**Necessidade Implantação:** {etapa['necessidade_implantacao']}")
+                            c4.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
+                            
                             st.divider()
-                            # Botões para links do OneDrive
+                            # Botões
                             b1, b2 = st.columns(2)
-                            if etapa['link_diagrama_etapa']:
-                                b1.link_button("🖼️ Desenho da Etapa", etapa['link_diagrama_etapa'])
-                            if etapa['manual_processo_link']:
-                                b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
+                            if etapa['link_diagrama_etapa']: b1.link_button("🖼️ Desenho da Etapa", etapa['link_diagrama_etapa'])
+                            if etapa['manual_processo_link']: b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
+                            
                             st.divider()
-
-                        st.subheader("⚠️ Riscos desta Etapa")
-                        
-                        # --- SEÇÃO DE RISCOS (NOVA) ---
-                        tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"])
-                        
-                        with tab_v_risco:
-                            riscos_df = listar_riscos_etapa(etapa['id'])
-                            if not riscos_df.empty:
-                                st.dataframe(riscos_df)
-                            else:
-                                st.info("Nenhum risco mapeado para esta etapa.")
-                        
-                        with tab_c_risco:
-                            # 1. Inputs fora do form para permitir reatividade
-                            col1, col2 = st.columns(2)
-                            categoria = col1.selectbox("Categoria do Risco", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"categoria_risco_{etapa['id']}")
-                            origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
-
-                            fator = st.text_area("Fator de Risco (Causa)", key=f"fat_{etapa['id']}")
-                            cons = st.text_area("Consequência/Efeitos", key=f"cons_{etapa['id']}")
-    
-                            col3, col4 = st.columns(2)
-                            financeiro = col3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
-                            ativo = col4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
+                            st.subheader("⚠️ Riscos desta Etapa")
                             
-                            # Selectboxes de impacto/probabilidade (Estes disparam o rerun automático ao mudar)
-                            imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
-                            prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
+                            # --- VISUALIZAÇÃO DE RISCOS (ATUALIZADA) ---
+                            tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"])
                             
-                            # 2. Cálculo em tempo real (fora do form, atualiza instantaneamente)
-                            mag = MAPA_RISCO.get((imp, prob), 0)
-                            cor, emoji = get_estilo_risco(mag)
-
-                             # Exibe a cor e magnitude atualizada na hora
-                            st.markdown(f'''
-                                <div style="background-color: {cor}; padding: 10px; border-radius: 5px; 
-                                            text-align: center; color: white; margin-bottom: 15px;">
-                                    {emoji} <strong>Magnitude do Risco (Calculada): {mag}</strong>
-                                </div>
-                            ''', unsafe_allow_html=True)
-
-                            apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
-                            tratamento = st.text_area("Como tratar o risco?", key=f"trat_{etapa['id']}")
-    
-                            # 3. Botão de salvamento
-                            if st.button("💾 Salvar Risco", key=f"btn_salvar_{etapa['id']}", type="primary"):
-                                if not fator or not cons:
-                                    st.warning("Por favor, preencha o fator de risco e a consequência.")
+                            with tab_v_risco:
+                                riscos_df = listar_riscos_etapa(etapa['id'])
+                                if not riscos_df.empty:
+                                    for _, risco in riscos_df.iterrows():
+                                        # Expander para cada risco
+                                        with st.expander(f"⚠️ {risco['categoria']} - {str(risco['fator_risco'])[:40]}..."):
+                                            col_a, col_b = st.columns(2)
+                                            col_a.write(f"**Origem:** {risco['origem']}")
+                                            col_b.write(f"**Financeiro:** {'Sim' if risco['financeiro'] else 'Não'}")
+                                            st.write(f"**Fator:** {risco['fator_risco']}")
+                                            st.write(f"**Consequência:** {risco['consequencia']}")
+                                            
+                                            col_c, col_d = st.columns(2)
+                                            col_c.metric("Impacto", risco['impacto'])
+                                            col_d.metric("Probabilidade", risco['probabilidade'])
+                                            st.info(f"Magnitude: {risco['magnitude']}")
+                                            st.write(f"**Apetite:** {risco['apetite']}")
+                                            st.write(f"**Tratamento:** {risco['tratamento']}")
                                 else:
-                                    try:
+                                    st.info("Nenhum risco mapeado para esta etapa.")
+                            
+                            # --- ABA ADICIONAR RISCO ---
+                            with tab_c_risco:
+                                col1, col2 = st.columns(2)
+                                categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
+                                origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
+                                
+                                fator = st.text_area("Fator de Risco", key=f"fat_{etapa['id']}")
+                                cons = st.text_area("Consequência", key=f"cons_{etapa['id']}")
+                                
+                                c3, c4 = st.columns(2)
+                                financeiro = c3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
+                                ativo = c4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
+                                
+                                imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
+                                prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
+                                
+                                mag = MAPA_RISCO.get((imp, prob), 0)
+                                cor, emoji = get_estilo_risco(mag)
+                                st.markdown(f'''<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin-bottom: 10px;">{emoji} Magnitude: {mag}</div>''', unsafe_allow_html=True)
+                                
+                                apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
+                                tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
+                                
+                                if st.button("💾 Salvar Risco", key=f"btn_salvar_{etapa['id']}", type="primary"):
+                                    if not fator or not cons:
+                                        st.warning("Preencha fator e consequência.")
+                                    else:
+                                        # IMPORTANTE: As chaves aqui devem coincidir com o SQL na função salvar_risco_etapa
                                         dados_r = {
                                             "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
                                             "info": "", "fin": financeiro, "ativo": ativo, "ori": origem,
                                             "doc": "", "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
                                         }
                                         if salvar_risco_etapa(dados_r):
-                                            st.success("Risco salvo com sucesso!")
-                                            # Limpa os campos após salvar
-                                            # (Como não estamos mais em um form, o ideal seria resetar o session_state se necessário)
+                                            st.success("Risco salvo!")
                                             st.rerun()
-                                    except Exception as e:
-                                        st.error(f"Erro ao salvar no banco: {e}")
-                                                    
+
                 else:
-                    st.info("Nenhuma etapa cadastrada para este processo.")
+                    st.info("Nenhuma etapa cadastrada.")
 
             with tab_cadastro:
                 st.write("### Cadastro de Nova Etapa")
                 prox_cod = obter_proximo_codigo_etapa(processo['id'], processo['codigo_processo'])
-                
                 with st.form("form_nova_etapa", clear_on_submit=True):
                     c1, c2 = st.columns([1, 3])
                     c1.text_input("Código", value=prox_cod, disabled=True)
-                    desc_etapa = c2.text_input("Título da Etapa (O que é feito?)")
-                    
-                    como = st.text_area("Como é feito o passo a passo?")
-                    obj_etapa = st.text_area("Qual o objetivo desta etapa específica?")
-                    
+                    desc_etapa = c2.text_input("Título da Etapa")
+                    como = st.text_area("Como é feito?")
+                    obj_etapa = st.text_area("Objetivo?")
                     col_f1, col_f2, col_f3 = st.columns(3)
                     correto = col_f1.selectbox("Realizado corretamente?", ["Sim", "Não", "Parcial"])
                     crit_etapa = col_f2.selectbox("Criticidade", ["Baixa", "Média", "Alta", "Crítica"])
-                    executa = col_f3.text_input("Quem Executa?", value=processo['executor']) # Sugere o executor do processo pai
-
-                    link_bpmn = st.text_input("Link do Diagrama da Etapa (OneDrive)")
-                    link_manual = st.text_input("Link do Manual/POP da Etapa (OneDrive)")
-                    
-                    politica = st.text_area("Política Interna / Normativo Relacionado")
-                    analise = st.text_area("Análise Crítica (Visão da Auditoria)")
+                    executa = col_f3.text_input("Executor", value=processo['executor'])
+                    link_bpmn = st.text_input("Link Diagrama")
+                    link_manual = st.text_input("Link Manual")
+                    politica = st.text_area("Política Interna")
+                    analise = st.text_area("Análise Crítica")
                     melhoria = st.text_area("Sugestão de Melhoria")
-                    
-                    # Campos extras solicitados
                     col_f4, col_f5 = st.columns(2)
-                    necessidade = col_f4.text_input("Necessidade para Implantação")
-                    ganho = col_f5.text_input("Qual o ganho previsto?")
-                    obrigacoes = st.text_input("Obrigações Regulatórias (Link ou Descrição)")
-
-                    if st.form_submit_button("Salvar Detalhamento da Etapa", type="primary"):
-                        if not desc_etapa or not como:
-                            st.error("Por favor, preencha a descrição e o 'como é feito'.")
-                        else:
-                            dados = {
-                                "p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa,
-                                "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn,
-                                "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade,
-                                "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual
-                            }
-                            if salvar_etapa_no_banco(dados):
-                                st.write("DEBUG: Dados capturador:")
-                                st.write(dados)
-                                st.success(f"Etapa {prox_cod} salva com sucesso!")
-                                st.rerun()
+                    necessidade = col_f4.text_input("Necessidade")
+                    ganho = col_f5.text_input("Ganho")
+                    obrigacoes = st.text_input("Obrigações Reg.")
+                    if st.form_submit_button("Salvar Detalhamento"):
+                        dados = {"p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn, "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade, "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual}
+                        if salvar_etapa_no_banco(dados):
+                            st.success("Etapa salva!")
+                            st.rerun()
         else:
-            st.warning("Código não encontrado. Certifique-se de que o processo foi salvo na tela de Diagnóstico primeiro.")
+            st.warning("Código não encontrado.")
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
