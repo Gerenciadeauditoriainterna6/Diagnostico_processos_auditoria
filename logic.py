@@ -76,7 +76,7 @@ def salvar_risco_etapa(dados):
         INSERT INTO riscos_etapa 
         (etapa_id, categoria, fator_risco, consequencia, info_adicional, financeiro, 
          ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
-        VALUES (:e_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, :imp, :prob, :mag, :apet, :trat)
+        VALUES (:etapa_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, :imp, :prob, :mag, :apet, :trat)
     """)
     with engine.begin() as conn:
         conn.execute(query, dados)
