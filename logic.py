@@ -89,7 +89,7 @@ def listar_riscos_etapa(etapa_id):
 
 def buscar_todos_processos():
     query = text("""
-            SELECT id, codigo_processo nome_processo, responsavel_area FROM processos""")
+            SELECT id, codigo_processo, nome_processo, responsavel_area FROM processos""")
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
