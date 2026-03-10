@@ -178,6 +178,8 @@ def tela_consulta_detalhada():
                                 "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual
                             }
                             if salvar_etapa_no_banco(dados):
+                                st.write("DEBUG: Dados capturador:")
+                                st.write(dados)
                                 st.success(f"Etapa {prox_cod} salva com sucesso!")
                                 st.rerun()
         else:
