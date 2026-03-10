@@ -38,8 +38,11 @@ def salvar_etapa_no_banco(dados_etapa):
                     :p_id, :cod, :desc, :como, :obj, :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
                 )
         """)
-        with engine.connect() as conn:
+        
+        # MUDANÇA: Use 'engine.begin()' em vez de 'engine.connect()'
+        with engine.begin() as conn:
             conn.execute(query, dados_etapa)
+            
         return True
     except Exception as e:
         print(f"Erro ao salvar etapa: {e}")
