@@ -95,7 +95,7 @@ def buscar_todos_processos():
                 p.nome_processo,
                 i.gestor
             FROM processos p
-            JOIN informacoes_area i ON p.area = i.area""")
+            JOIN informacoes_area i ON p.area = i.nome_area""")
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
