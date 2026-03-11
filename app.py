@@ -199,7 +199,7 @@ def tela_consulta_detalhada():
                                     # O título agora mostra o Risco de Origem e o Nome do Controle
                                     titulo = f"🛡️ Controle: {ctrl['nome_controle']} (Risco: {ctrl['risco_pai']})"
 
-                                    if not controles_df.empty():
+                                    if not controles_df.empty:
                                     
                                         with st.expander(titulo):
                                             col1, col2 = st.columns(2)
