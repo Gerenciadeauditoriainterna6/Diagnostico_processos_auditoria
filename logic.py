@@ -471,11 +471,12 @@ def get_estilo_risco(score):
 
 def salvar_controle_no_banco(dados):
     """
-    Insere um novo controle vinculado a um risco específico na tabela 'controles'.
+    Insere um novo controle no banco de dados vinculado a um risco.
     """
     query = text("""
         INSERT INTO controles (
             risco_id, 
+            nome_controle, 
             forma_execucao, 
             natureza, 
             status, 
@@ -510,3 +511,23 @@ def salvar_controle_no_banco(dados):
     except Exception as e:
         print(f"Erro ao salvar controle: {e}")
         return False
+
+def listar_controles_da_etapa(etapa_id):
+    """
+    Busca todos os controles que pertencem aos riscos de uma etapa específica.
+    Faz um JOIN entre as tabelas 'controles' e 'riscos'.
+    """
+    query = text("""
+        SELECT 
+            c.*, 
+            r.fator_risco as fator_origem
+        FROM controles c
+        JOIN riscos r ON c.risco_id = r.id
+        WHERE r.etapa_id = :etapa_id
+    """)
+    
+    try:
+        return pd.read_sql(query, engine, params={"etapa_id": etapa_id})
+    except Exception as e:
+        print(f"Erro ao listar controles: {e}")
+        return pd.DataFrame()
