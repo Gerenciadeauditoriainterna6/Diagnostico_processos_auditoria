@@ -198,25 +198,29 @@ def tela_consulta_detalhada():
                             for _, ctrl in controles_df.iterrows():
                                 # O título agora mostra o Risco de Origem e o Nome do Controle
                                 titulo = f"🛡️ Controle: {ctrl['nome_controle']} (Risco: {ctrl['risco_pai']})"
-                                
-                                with st.expander(titulo):
-                                    col1, col2 = st.columns(2)
-                                    
-                                    with col1:
-                                        st.write(f"**Avaliação do Risco:** {ctrl['risco_avaliacao']}")
-                                        st.write(f"**Causa/Motivo:** {ctrl['causa_motivo']}")
-                                        st.write(f"**Como é executado:** {ctrl['como_executado']}")
-                                        st.write(f"**Objetivo:** {ctrl['objetivo_controle']}")
-                                        st.write(f"**Periodicidade:** {ctrl['periodicidade_execucao']}")
-                                        st.write(f"**Data Atualização:** {ctrl['data_atualizacao']}")
 
-                                    with col2:
-                                        st.write(f"**Evidência:** {ctrl['evidencia_realizacao']}")
-                                        st.write(f"**Forma:** {ctrl['forma_execucao']}")
-                                        st.write(f"**Natureza:** {ctrl['natureza']}")
-                                        st.write(f"**Status:** {ctrl['status_controle']}")
-                                        st.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
-                                        st.write(f"**Responsáveis:** {ctrl['responsaveis_tratamento']}")
+                                if not controles_df.empty():
+                                
+                                    with st.expander(titulo):
+                                        col1, col2 = st.columns(2)
+                                        
+                                        with col1:
+                                            st.write(f"**Avaliação do Risco:** {ctrl['risco_avaliacao']}")
+                                            st.write(f"**Causa/Motivo:** {ctrl['causa_motivo']}")
+                                            st.write(f"**Como é executado:** {ctrl['como_executado']}")
+                                            st.write(f"**Objetivo:** {ctrl['objetivo_controle']}")
+                                            st.write(f"**Periodicidade:** {ctrl['periodicidade_execucao']}")
+                                            st.write(f"**Data Atualização:** {ctrl['data_atualizacao']}")
+
+                                        with col2:
+                                            st.write(f"**Evidência:** {ctrl['evidencia_realizacao']}")
+                                            st.write(f"**Forma:** {ctrl['forma_execucao']}")
+                                            st.write(f"**Natureza:** {ctrl['natureza']}")
+                                            st.write(f"**Status:** {ctrl['status_controle']}")
+                                            st.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
+                                            st.write(f"**Responsáveis:** {ctrl['responsaveis_tratamento']}")
+                                else:
+                                    st.info("Nenhum controle cadastrado para esta etapa.")
 
                             with tab_c_controle:
                                 # Precisamos carregar os riscos para saber o que mitigar
