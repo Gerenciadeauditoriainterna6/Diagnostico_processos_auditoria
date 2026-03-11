@@ -3,7 +3,6 @@ import os
 import pandas as pd
 from sqlalchemy import text
 from database import engine
-from datetime import time
 import time as time_module
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
@@ -14,22 +13,27 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
-def limpar_campos_por_prefixo(prefixo):
-    for key in st.session_state.keys():
-        if key.startswith(prefixo):
-            st.session_state[key] = ""
+def login_screen():
+    """Gerencia a tela de login e a sessão de usuário."""
+    if "autenticado" not in st.session_state:
+        st.session_state["autenticado"] = False
 
-# Carregar as áreas logo no início da página ou na barra lateral
-areas_dict = carregar_areas_banco()
-if 'id_area_selecionado' not in st.session_state and areas_dict:
-    primeiro_nome = list(areas_dict.keys())[0]
-    st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
-
-def atualizar_id_area():
-    nome_selecionado = st.session_state['area_selectbox']
-    st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
-    st.session_state['codigo_processo'] = ""
-    st.session_state['input_processo'] = "" 
+    if not st.session_state["autenticado"]:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.title("🔐 Acesso GRC FUSVE")
+            usuario = st.text_input("Usuário")
+            senha = st.text_input("Senha", type="password")
+            
+            if st.button("Entrar", use_container_width=True, type="primary"):
+                if validar_login_no_banco(usuario, senha):
+                    st.session_state["autenticado"] = True
+                    st.success("Login realizado com sucesso!")
+                    time_module.sleep(1)
+                else:
+                    st.error("Usuário ou senha incorretos.")
+        return False
+    return True
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
@@ -44,7 +48,7 @@ def tela_consulta_detalhada():
     if not df_processos.empty:
         # Exibe a tabela para referência do usuário
         with st.expander("Ver lista de processos"):
-            st.dataframe(df_processos, width="stretch")
+            st.dataframe(df_processos, use_container_width=True)
 
         # Cria uma lista formatada para o selectbox
         # Exibe: "Código - Nome"
@@ -180,7 +184,7 @@ def tela_consulta_detalhada():
                                                     st.rerun()
                                                 else:
                                                     st.error("Erro ao salvar no banco de dados. Tente novamente!")
-                                                    time.sleep(2)
+                                                    time_module.sleep(2)
 
                             st.divider()
 
@@ -276,8 +280,6 @@ def tela_consulta_detalhada():
                                                     st.rerun()
                                                 else:
                                                     st.error("Erro ao salvar controle.")
-                                else:
-                                    st.warning("⚠️ Você precisa cadastrar ao menos um RISCO antes de criar um controle.")
 
 
                     else:      
@@ -316,34 +318,28 @@ def tela_consulta_detalhada():
         else:
             st.warning("Código não encontrado.")
 
-def login_screen():
-    """Gerencia a tela de login e a sessão de usuário."""
-    if "autenticado" not in st.session_state:
-        st.session_state["autenticado"] = False
+def limpar_campos_por_prefixo(prefixo):
+    for key in st.session_state.keys():
+        if key.startswith(prefixo):
+            st.session_state[key] = ""
 
-    if not st.session_state["autenticado"]:
-        # Centralizando a tela de login
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.title("🔐 Acesso GRC FUSVE")
-            usuario = st.text_input("Usuário")
-            senha = st.text_input("Senha", type="password")
-            
-            if st.button("Entrar", use_container_width=True, type="primary"):
-                if validar_login_no_banco(usuario, senha):
-                    st.session_state["autenticado"] = True
-                    st.success("Login realizado com sucesso!")
-                    time_module.sleep(1) # Pequena pausa para o usuário ver o sucesso
-                    st.rerun()
-                else:
-                    st.error("Usuário ou senha incorretos.")
-        return False
-    return True
+# --- INICIALIZAÇÃO DE ESTADO ---
+areas_dict = carregar_areas_banco()
 
-# --- 2. INICIALIZAÇÃO DE ESTADO ---
+def atualizar_id_area():
+    nome_selecionado = st.session_state['area_selectbox']
+    st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
+    st.session_state['codigo_processo'] = ""
+    st.session_state['input_processo'] = "" 
+
 if 'riscos' not in st.session_state: st.session_state['riscos'] = []
 if 'deve_limpar' not in st.session_state: st.session_state['deve_limpar'] = False
 if 'df_pendentes' not in st.session_state: st.session_state['df_pendentes'] = pd.DataFrame()
+
+if 'id_area_selecionado' not in st.session_state and areas_dict:
+    primeiro_nome = list(areas_dict.keys())[0]
+    st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
+
 
 # --- 3. LIMPEZA PÓS-SALVO ---
 if st.session_state['deve_limpar']:
@@ -381,127 +377,126 @@ def marcar_relatorio_gerado(codigo_processo):
     with engine.begin() as conn:
         conn.execute(query, {"codigo": codigo_processo})
 
-# --- 5. CONFIGURAÇÃO DE ATIVOS ---
-caminho_script = os.path.dirname(os.path.abspath(__file__))
-logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
+
+# --- 5. Execução do app ---
 
 if login_screen():
 
+    # --- SIDEBAR ---
     with st.sidebar:
+        caminho_script = os.path.dirname(os.path.abspath(__file__))
+        logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
+        
+        if os.path.exists(logo_fusve):
+            st.image(logo_fusve, width=200)
+
+        opcao = st.radio("Menu", ["Diagnóstico de Processos", "Consulta Detalhada", "Geração de Relatórios"])
+
+        st.divider()
         # Adiciona um botão de Sair no topo ou fim do sidebar
         if st.button("Logout"):
             st.session_state['autenticado'] = False
             st.rerun()
 
-            st.divider()
+    # --- 7. LÓGICA PRINCIPAL ---
+    if opcao == "Diagnóstico de Processos":
+        st.title("Diagnóstico de Processos - FUSVE")
+        st.markdown("""
+        <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
+            <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
+            <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
+        </div>
+    """, unsafe_allow_html=True)
+        st.subheader("1. Dados do Processo")
+        st.selectbox(
+        "Selecione a Área:", 
+        list(areas_dict.keys()), 
+        key="area_selectbox", 
+        on_change=atualizar_id_area
+    )
+        # Garante que o ID esteja inicializado
+        if 'id_area_selecionado' not in st.session_state:
+            st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
+        st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
+                    help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
+        st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
+        st.text_area("O que é o processo?:", key="input_descricao")
+        st.text_area("Funcionário(s) Que Executa(m)", key="input_executor", help="Funcionário(s) que executa(m) - Alçadas (Gestão ou operação?)")
+        st.text_area("Onde Começa o Proceso?:", key="input_etapa_ini", help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
+        st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
+        st.text_area("Depois de Acabado, para onde envia?", key="input_etapa_fim", help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
+        st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
+        st.write("")
+        st.markdown("""
+        <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
+            <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
+            </div>
+    """, unsafe_allow_html=True)
+        st.subheader("2. Riscos Associados")
+        for i, _ in enumerate(st.session_state['riscos']):
+            st.markdown(f"**Risco {i+1}**")
+            st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
+            st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
+            st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
+            st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
+            col_i, col_p = st.columns(2)
+            with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
+            with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer? Mediante isso, podemos criar os níveis que iremos classificar a probabilidade do risco acontecer.")
+            
+            score_v = MAPA_RISCO.get((st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")), 0)
+            cor, emoji = get_estilo_risco(score_v)
+            st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
+            st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
+            st.markdown("---")
 
-            # --- 6. SIDEBAR ---
-            with st.sidebar:
-                if os.path.exists(logo_fusve): st.image(logo_fusve, width=200)
-                opcao = st.radio("Menu", ["Diagnóstico de Processos", "Consulta Detalhada", "Geração de Relatórios"])
+        col_add, col_save = st.columns(2)
+        if col_add.button("➕ Adicionar Risco"):
+            st.session_state['riscos'].append({})
+            st.rerun()
+        if col_save.button("💾 Salvar Todos os Dados", type="primary"):
+            if validar_formulario() and salvar_no_banco():
+                st.success("Dados salvos!")
+                st.session_state['deve_limpar'] = True
+                st.rerun()
 
+    elif opcao == "Consulta Detalhada":
+        tela_consulta_detalhada()
 
-
-
-            # --- 7. LÓGICA PRINCIPAL ---
-            if opcao == "Diagnóstico de Processos":
-                st.title("Diagnóstico de Processos - FUSVE")
-                st.markdown("""
-                <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
-                    <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
-                    <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
-                </div>
-            """, unsafe_allow_html=True)
-                st.subheader("1. Dados do Processo")
-                st.selectbox(
-                "Selecione a Área:", 
-                list(areas_dict.keys()), 
-                key="area_selectbox", 
-                on_change=atualizar_id_area
+    elif opcao == "Geração de Relatórios":
+        st.title("Relatórios - FUSVE")
+        
+        if st.button("Atualizar Lista de Processos"):
+            st.session_state['df_pendentes'] = buscar_processos_pendentes()
+        
+        if not st.session_state['df_pendentes'].empty:
+            df = st.session_state['df_pendentes']
+            st.dataframe(df)
+            
+            # O on_change limpa o 'pdf_pronto' toda vez que o usuário escolhe um processo novo
+            codigo_selecionado = st.selectbox(
+                "Selecione o Código do Processo:", 
+                df['codigo_processo'].tolist(),
+                on_change=lambda: st.session_state.pop('pdf_pronto', None)
             )
-                # Garante que o ID esteja inicializado
-                if 'id_area_selecionado' not in st.session_state:
-                    st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
-                st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
-                            help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
-                st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
-                st.text_area("O que é o processo?:", key="input_descricao")
-                st.text_area("Funcionário(s) Que Executa(m)", key="input_executor", help="Funcionário(s) que executa(m) - Alçadas (Gestão ou operação?)")
-                st.text_area("Onde Começa o Proceso?:", key="input_etapa_ini", help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
-                st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
-                st.text_area("Depois de Acabado, para onde envia?", key="input_etapa_fim", help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
-                st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
-                st.write("")
-                st.markdown("""
-                <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
-                    <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
-                    </div>
-            """, unsafe_allow_html=True)
-                st.subheader("2. Riscos Associados")
-                for i, _ in enumerate(st.session_state['riscos']):
-                    st.markdown(f"**Risco {i+1}**")
-                    st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
-                    st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
-                    st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
-                    st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
-                    col_i, col_p = st.columns(2)
-                    with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
-                    with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer? Mediante isso, podemos criar os níveis que iremos classificar a probabilidade do risco acontecer.")
-                    
-                    score_v = MAPA_RISCO.get((st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")), 0)
-                    cor, emoji = get_estilo_risco(score_v)
-                    st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
-                    st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
-                    st.markdown("---")
 
-                col_add, col_save = st.columns(2)
-                if col_add.button("➕ Adicionar Risco"):
-                    st.session_state['riscos'].append({})
-                    st.rerun()
-                if col_save.button("💾 Salvar Todos os Dados", type="primary"):
-                    if validar_formulario() and salvar_no_banco():
-                        st.success("Dados salvos!")
-                        st.session_state['deve_limpar'] = True
-                        st.rerun()
-
-            elif opcao == "Consulta Detalhada":
-                tela_consulta_detalhada()
-
-            elif opcao == "Geração de Relatórios":
-                st.title("Relatórios - FUSVE")
+            if st.button("Gerar e Marcar como Pronto"):
+                marcar_relatorio_gerado(codigo_selecionado)
+                pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
                 
-                if st.button("Atualizar Lista de Processos"):
-                    st.session_state['df_pendentes'] = buscar_processos_pendentes()
-                
-                if not st.session_state['df_pendentes'].empty:
-                    df = st.session_state['df_pendentes']
-                    st.dataframe(df)
-                    
-                    # O on_change limpa o 'pdf_pronto' toda vez que o usuário escolhe um processo novo
-                    codigo_selecionado = st.selectbox(
-                        "Selecione o Código do Processo:", 
-                        df['codigo_processo'].tolist(),
-                        on_change=lambda: st.session_state.pop('pdf_pronto', None)
-                    )
-
-                    if st.button("Gerar e Marcar como Pronto"):
-                        marcar_relatorio_gerado(codigo_selecionado)
-                        pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
-                        
-                        if pdf_bytes:
-                            st.session_state['pdf_pronto'] = bytes(pdf_bytes)
-                            st.success(f"Processo {codigo_selecionado} concluído! Clique em baixar.")
-                            st.rerun() 
-                        else:
-                            st.error("Erro ao gerar PDF.")
-                    
-                    # Download button preenchido corretamente
-                    if 'pdf_pronto' in st.session_state:
-                        st.download_button(
-                            label="📥 Baixar Relatório em PDF",
-                            data=st.session_state['pdf_pronto'],
-                            file_name=f"relatorio_processo_{codigo_selecionado}.pdf",
-                            mime="application/pdf"
-                        )
+                if pdf_bytes:
+                    st.session_state['pdf_pronto'] = bytes(pdf_bytes)
+                    st.success(f"Processo {codigo_selecionado} concluído! Clique em baixar.")
+                    st.rerun() 
                 else:
-                    st.info("Nenhum processo pendente para gerar relatório.")
+                    st.error("Erro ao gerar PDF.")
+            
+            # Download button preenchido corretamente
+            if 'pdf_pronto' in st.session_state:
+                st.download_button(
+                    label="📥 Baixar Relatório em PDF",
+                    data=st.session_state['pdf_pronto'],
+                    file_name=f"relatorio_processo_{codigo_selecionado}.pdf",
+                    mime="application/pdf"
+                )
+        else:
+            st.info("Nenhum processo pendente para gerar relatório.")
