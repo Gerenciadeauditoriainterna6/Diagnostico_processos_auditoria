@@ -21,7 +21,7 @@ def login_screen():
     if not st.session_state["autenticado"]:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.title("🔐 Acesso GRC FUSVE")
+            st.title("🔐 Formulário de Auditoria Interna - FUSVE")
             usuario = st.text_input("Usuário")
             senha = st.text_input("Senha", type="password")
             
@@ -29,7 +29,8 @@ def login_screen():
                 if validar_login_no_banco(usuario, senha):
                     st.session_state["autenticado"] = True
                     st.success("Login realizado com sucesso!")
-                    time_module.sleep(1)
+                    time_module.sleep(1)  # Pequena pausa para o usuário ver a mensagem
+                    st.rerun()  # Rerun para atualizar a interface após o login
                 else:
                     st.error("Usuário ou senha incorretos.")
         return False
