@@ -193,22 +193,30 @@ def tela_consulta_detalhada():
                             tab_v_controle, tab_c_controle = st.tabs(["📊 Visualizar Controles", "➕ Adicionar Controle"])
 
                             with tab_v_controle:
-                                # Supondo que você tenha uma função listar_controles_etapa ou similar no logic.py
-                                # Se ainda não tiver, podemos filtrar os riscos e buscar os controles vinculados
-                                controles_df = listar_controles_da_etapa(etapa['id']) # Função recomendada para o logic.py
+                                controles_df = listar_controles_da_etapa(etapa['id'])
+
+                            for _, ctrl in controles_df.iterrows():
+                                # O título agora mostra o Risco de Origem e o Nome do Controle
+                                titulo = f"🛡️ Controle: {ctrl['nome_controle']} (Risco: {ctrl['risco_pai']})"
                                 
-                                if not controles_df.empty:
-                                    for _, ctrl in controles_df.iterrows():
-                                        with st.expander(f"🛡️ {ctrl['nome_controle']}"):
-                                            c1, c2 = st.columns(2)
-                                            c1.write(f"**Forma:** {ctrl['forma_execucao']}")
-                                            c1.write(f"**Natureza:** {ctrl['natureza']}")
-                                            c2.write(f"**Status:** {ctrl['status_controle']}")
-                                            c2.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
-                                            st.write(f"**Responsável:** {ctrl['responsaveis_tratamento']}")
-                                            st.info(f"**Avaliação:** {ctrl['risco_avaliacao']}")
-                                else:
-                                    st.info("Nenhum controle cadastrado para os riscos desta etapa.")
+                                with st.expander(titulo):
+                                    col1, col2 = st.columns(2)
+                                    
+                                    with col1:
+                                        st.write(f"**Avaliação do Risco:** {ctrl['risco_avaliacao']}")
+                                        st.write(f"**Causa/Motivo:** {ctrl['causa_motivo']}")
+                                        st.write(f"**Como é executado:** {ctrl['como_executado']}")
+                                        st.write(f"**Objetivo:** {ctrl['objetivo_controle']}")
+                                        st.write(f"**Periodicidade:** {ctrl['periodicidade_execucao']}")
+                                        st.write(f"**Data Atualização:** {ctrl['data_atualizacao']}")
+
+                                    with col2:
+                                        st.write(f"**Evidência:** {ctrl['evidencia_realizacao']}")
+                                        st.write(f"**Forma:** {ctrl['forma_execucao']}")
+                                        st.write(f"**Natureza:** {ctrl['natureza']}")
+                                        st.write(f"**Status:** {ctrl['status_controle']}")
+                                        st.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
+                                        st.write(f"**Responsáveis:** {ctrl['responsaveis_tratamento']}")
 
                             with tab_c_controle:
                                 # Precisamos carregar os riscos para saber o que mitigar

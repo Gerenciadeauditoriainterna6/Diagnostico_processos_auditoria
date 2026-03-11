@@ -471,27 +471,19 @@ def get_estilo_risco(score):
 
 def salvar_controle_no_banco(dados):
     """
-    Insere um novo controle na tabela 'controles_etapa' com nomes de colunas corrigidos.
+    Insere um novo controle completo na tabela 'controles_etapa'.
     """
     query = text("""
         INSERT INTO controles_etapa (
-            risco_id, 
-            risco_avaliacao, 
-            nome_controle, 
-            forma_execucao, 
-            natureza, 
-            status_controle, 
-            frequencia_evidencia, 
-            responsaveis_tratamento
+            risco_id, risco_avaliacao, nome_controle, como_executado, 
+            objetivo_controle, periodicidade_execucao, evidencia_realizacao, 
+            forma_execucao, natureza, status_controle, data_atualizacao, 
+            frequencia_evidencia, responsaveis_tratamento, causa_motivo
         ) VALUES (
-            :risco_id, 
-            :aval, 
-            :nome, 
-            :forma, 
-            :natureza, 
-            :status, 
-            :freq, 
-            :resp
+            :risco_id, :aval, :nome, :como, 
+            :obj, :periodo, :evid, 
+            :forma, :natureza, :status, :data_atu, 
+            :freq, :resp, :causa
         )
     """)
     
@@ -501,24 +493,32 @@ def salvar_controle_no_banco(dados):
                 "risco_id": int(dados['risco_id']),
                 "aval": dados['avaliacao'],
                 "nome": dados['nome'],
+                "como": dados['como_executado'],
+                "obj": dados['objetivo'],
+                "periodo": dados['periodicidade'],
+                "evid": dados['evidência'],
                 "forma": dados['forma'],
                 "natureza": dados['natureza'],
                 "status": dados['status'],
+                "data_atu": dados['data_atualizacao'],
                 "freq": dados['frequencia'],
-                "resp": dados['responsavel']
+                "resp": dados['responsavel'],
+                "causa": dados['causa_motivo'] # Vem do fator_risco da etapa
             })
         return True
     except Exception as e:
-        print(f"❌ Erro ao salvar na tabela controles_etapa: {e}")
+        print(f"❌ Erro ao salvar controle completo: {e}")
         return False
 
 def listar_controles_da_etapa(etapa_id):
     """
-    Busca todos os controles da tabela 'controles_etapa' vinculados a uma etapa.
+    Lista controles trazendo o nome do risco original para o Expander.
     """
     query = text("""
         SELECT 
-            c.* FROM controles_etapa c
+            c.*, 
+            r.fator_risco as risco_pai
+        FROM controles_etapa c
         JOIN riscos_etapa r ON c.risco_id = r.id
         WHERE r.etapa_id = :etapa_id
     """)
