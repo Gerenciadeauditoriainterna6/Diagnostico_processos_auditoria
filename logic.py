@@ -524,3 +524,27 @@ def listar_controles_da_etapa(etapa_id):
     except Exception as e:
         print(f"Erro ao listar controles_etapa: {e}")
         return pd.DataFrame()
+
+
+def validar_login_no_banco(usuario_digitado, senha_digitada):
+    """Verifica se as credenciais existem e estão corretas."""
+    query = text("""
+        SELECT login, senha 
+        FROM usuarios 
+        WHERE login = :u AND senha = :s AND ativo = True
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query, {"u": usuario_digitado, "s": senha_digitada}).fetchone()
+            
+            # Se encontrou um registro, retorna True
+            if result:
+                return True
+            return False
+    except Exception as e:
+        print(f"Erro ao validar login: {e}")
+        return False
+
+
+# Adicionar o criterios do risco e do controle conforme a planilha.
