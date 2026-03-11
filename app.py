@@ -206,7 +206,7 @@ def tela_consulta_detalhada():
                                             c2.write(f"**Status:** {ctrl['status_controle']}")
                                             c2.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
                                             st.write(f"**Responsável:** {ctrl['responsaveis_tratamento']}")
-                                            st.info(f"**Avaliação:** {ctrl['avaliacao_risco']}")
+                                            st.info(f"**Avaliação:** {ctrl['risco_avaliacao']}")
                                 else:
                                     st.info("Nenhum controle cadastrado para os riscos desta etapa.")
 
