@@ -471,7 +471,7 @@ def get_estilo_risco(score):
 
 def salvar_controle_no_banco(dados):
     """
-    Insere um novo controle no banco de dados vinculado a um risco.
+    Insere um novo controle com tratamento de erro detalhado.
     """
     query = text("""
         INSERT INTO controles (
@@ -496,20 +496,24 @@ def salvar_controle_no_banco(dados):
     """)
     
     try:
+        # Certificando que o risco_id é um inteiro puro
+        risco_id_int = int(dados['risco_id'])
+        
         with engine.begin() as conn:
             conn.execute(query, {
-                "risco_id": dados['risco_id'],
-                "nome": dados['nome'],
-                "forma": dados['forma'],
-                "natureza": dados['natureza'],
-                "status": dados['status'],
-                "freq": dados['frequencia'],
-                "resp": dados['responsavel'],
-                "aval": dados['avaliacao']
+                "risco_id": risco_id_int,
+                "nome": str(dados['nome']),
+                "forma": str(dados['forma']),
+                "natureza": str(dados['natureza']),
+                "status": str(dados['status']),
+                "freq": str(dados['frequencia']),
+                "resp": str(dados['responsavel']),
+                "aval": str(dados['avaliacao'])
             })
         return True
     except Exception as e:
-        print(f"Erro ao salvar controle: {e}")
+        # Isso vai imprimir o erro real do Banco de Dados no seu terminal
+        print(f"❌ ERRO NO BANCO DE DADOS: {str(e)}")
         return False
 
 def listar_controles_da_etapa(etapa_id):
