@@ -485,33 +485,30 @@ def salvar_controle_no_banco(dados):
     """)
     
     try:
+        # Importante: converter para os tipos corretos antes de enviar
         with engine.begin() as conn:
             conn.execute(query, {
                 "risco_id": int(dados.get('risco_id')),
-                "aval": dados.get('avaliacao'),
-                "nome": dados.get('nome'),
-                "como": dados.get('como_executado'),
-                "obj": dados.get('objetivo'),
-                "periodo": dados.get('periodicidade'),
-                "evid": dados.get('evidencia'), # Removi o acento para evitar erros de encoding
-                "forma": dados.get('forma'),
-                "natureza": dados.get('natureza'),
-                "status": dados.get('status'),
+                "aval": str(dados.get('avaliacao', '')),
+                "nome": str(dados.get('nome', '')),
+                "como": str(dados.get('como_executado', '')),
+                "obj": str(dados.get('objetivo', '')),
+                "periodo": str(dados.get('periodicidade', '')),
+                "evid": str(dados.get('evidencia', '')), 
+                "forma": str(dados.get('forma', '')),
+                "natureza": str(dados.get('natureza', '')),
+                "status": str(dados.get('status', '')),
                 "data_atu": dados.get('data_atualizacao'),
-                "freq": dados.get('frequencia'),
-                "resp": dados.get('responsavel'),
-                "causa": dados.get('causa_motivo')
+                "freq": str(dados.get('frequencia', '')),
+                "resp": str(dados.get('responsavel', '')),
+                "causa": str(dados.get('causa_motivo', ''))
             })
         return True
     except Exception as e:
-        # Isso imprimirá no terminal exatamente qual coluna ou valor deu erro
         print(f"❌ Erro detalhado no banco: {e}") 
         return False
 
 def listar_controles_da_etapa(etapa_id):
-    """
-    Lista controles trazendo o nome do risco original para o Expander.
-    """
     query = text("""
         SELECT 
             c.*, 
@@ -521,7 +518,9 @@ def listar_controles_da_etapa(etapa_id):
         WHERE r.etapa_id = :etapa_id
     """)
     try:
-        return pd.read_sql(query, engine, params={"etapa_id": etapa_id})
+        # CORREÇÃO: No SQLAlchemy 2.0+, o pandas precisa da conexão aberta para read_sql
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn, params={"etapa_id": etapa_id})
     except Exception as e:
         print(f"Erro ao listar controles_etapa: {e}")
         return pd.DataFrame()
