@@ -476,7 +476,6 @@ def salvar_controle_no_banco(dados):
     query = text("""
         INSERT INTO controles (
             risco_id, 
-            nome_controle, 
             forma_execucao, 
             natureza, 
             status, 

@@ -108,9 +108,10 @@ def tela_consulta_detalhada():
                             if etapa['manual_processo_link']: b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
                             
                             st.divider()
-                            st.subheader("⚠️ Riscos desta Etapa")
-                            
+
                             # --- VISUALIZAÇÃO DE RISCOS (ATUALIZADA) ---
+                            st.subheader("⚠️ Riscos desta Etapa")
+                        
                             tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"])
                             
                             with tab_v_risco:
@@ -179,55 +180,95 @@ def tela_consulta_detalhada():
                                                 else:
                                                     st.error("Erro ao salvar no banco de dados. Tente novamente!")
                                                     time.sleep(2)
+
                             st.divider()
-                            st.subheader("🎮 Controles da etapa")
-                            with st.expander("Cadastrar Novo Controle"):
-                                # Buscamos os riscos da etapa para o usuário escolher qual controlar
-                                df_riscos = listar_riscos_etapa(etapa['id'])
 
-                                if not df_riscos.empty:
-                                    opcoes_riscos = {f"{row['categoria']} - {row['fator_risco'][:50]}...": row['id'] for _, row in df_riscos.iterrows()}
-                                    selecao_risco = st.selectbox("Selecione o Risco para mitigar: ", options=list(opcoes_riscos.keys()), key=f"sel_risco_{etapa['id']}")
+                            # --- VISUALIZAÇÃO DE CONTROLES ---
+                            st.divider()
+                            st.subheader("🎮 Controles da Etapa")
 
-                                    # recuperamos o ID e o fator de risco original
+                            # --- VISUALIZAÇÃO E CADASTRO DE CONTROLES ---
+                            from logic import listar_controles_da_etapa
+                            
+                            tab_v_controle, tab_c_controle = st.tabs(["📊 Visualizar Controles", "➕ Adicionar Controle"])
+
+                            with tab_v_controle:
+                                # Supondo que você tenha uma função listar_controles_etapa ou similar no logic.py
+                                # Se ainda não tiver, podemos filtrar os riscos e buscar os controles vinculados
+                                controles_df = listar_controles_da_etapa(etapa['id']) # Função recomendada para o logic.py
+                                
+                                if not controles_df.empty:
+                                    for _, ctrl in controles_df.iterrows():
+                                        with st.expander(f"🛡️ {ctrl['nome_controle']}"):
+                                            c1, c2 = st.columns(2)
+                                            c1.write(f"**Forma:** {ctrl['forma_execucao']}")
+                                            c1.write(f"**Natureza:** {ctrl['natureza']}")
+                                            c2.write(f"**Status:** {ctrl['status']}")
+                                            c2.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
+                                            st.write(f"**Responsável:** {ctrl['usuario_responsavel']}")
+                                            st.info(f"**Avaliação:** {ctrl['avaliacao_risco']}")
+                                else:
+                                    st.info("Nenhum controle cadastrado para os riscos desta etapa.")
+
+                            with tab_c_controle:
+                                # Precisamos carregar os riscos para saber o que mitigar
+                                df_riscos_atuais = listar_riscos_etapa(etapa['id'])
+
+                                if not df_riscos_atuais.empty:
+                                    # Prepara as opções para o selectbox
+                                    opcoes_riscos = {f"{row['categoria']} - {row['fator_risco'][:50]}...": row['id'] for _, row in df_riscos_atuais.iterrows()}
+                                    
+                                    selecao_risco = st.selectbox(
+                                        "Selecione o Risco para mitigar:", 
+                                        options=list(opcoes_riscos.keys()), 
+                                        key=f"sel_risco_ctrl_{etapa['id']}"
+                                    )
+
                                     risco_selecionado_id = opcoes_riscos[selecao_risco]
-                                    fator_original = df_riscos[df_riscos['id'] == risco_selecionado_id]['fator_risco'].values[0]
+                                    # Pega o fator de risco original para exibir como "Causa" (desabilitado)
+                                    fator_orig = df_riscos_atuais[df_riscos_atuais['id'] == risco_selecionado_id]['fator_risco'].values[0]
 
-                                    with st.form(f"form_controle_{etapa['id']}"):
+                                    with st.form(key=f"form_ctrl_novo_{etapa['id']}", clear_on_submit=True):
                                         col1, col2 = st.columns(2)
-                                        causa = col1.text_area("Causa ou Motivo (Fator de Risco)", value=fator_original, disabled=True, key=f"causa_{etapa['id']}")
-                                        avaliacao = col2.text_area("Risco e Avaliação do Controle", key=f"aval_{etapa['id']}")
+                                        # Exibimos a causa apenas para referência do usuário
+                                        col1.text_area("Causa (Fator de Risco Original)", value=fator_orig, disabled=True)
+                                        aval = col2.text_area("Risco e Avaliação do Controle", key=f"aval_ctrl_{etapa['id']}")
 
-                                        nome_c = st.text_input("Nome da Ação de Controle", key=f"nome_c_{etapa['id']}")
+                                        nome_c = st.text_input("Nome da Ação de Controle", key=f"nome_ctrl_{etapa['id']}")
 
                                         c3, c4, c5 = st.columns(3)
-                                        forma = c3.selectbox("Forma de Execução", ["Manual", "Automático"], key=f"forma_{etapa['id']}")
-                                        natureza = c4.selectbox("Natureza", ["Preventiva", "Detectiva", "Corretiva"], key=f"nat_{etapa['id']}")
-                                        status = c5.selectbox("Status", ["Ativo", "Inativo"],key=f"stat_{etapa['id']}")
+                                        forma = c3.selectbox("Forma de Execução", ["Manual", "Automático"], key=f"forma_ctrl_{etapa['id']}")
+                                        nat = c4.selectbox("Natureza", ["Preventiva", "Detectiva", "Corretiva"], key=f"nat_ctrl_{etapa['id']}")
+                                        stat = c5.selectbox("Status", ["Ativo", "Inativo"], key=f"stat_ctrl_{etapa['id']}")
 
-                                        freq_evidencia = st.selectbox("Frequência de Execução da Evidência", ["Diário", "Semanal", "Quinzenal", "Mensal",
-                                        "Bimestral", "Trimestral", "Semestral", "Anual", "Por evento"], key=f"freq_{etapa['id']}")
-                                        usuario_responsavel_controle = st.text_input("Usuário Responsável pelo Controle", key=f"user_resp_{etapa['id']}")
+                                        freq = st.selectbox("Frequência de Execução", ["Diário", "Semanal", "Mensal", "Trimestral", "Anual", "Por Evento"], key=f"freq_ctrl_{etapa['id']}")
+                                        resp = st.text_input("Usuário Responsável", key=f"resp_ctrl_{etapa['id']}")
 
-                                        if st.form_submit_button("Salvar Controle"):
-                                            dados_controle = {
-                                                "risco_id": risco_selecionado_id,
-                                                "nome": nome_c,
-                                                "forma": forma,
-                                                "natureza": natureza,
-                                                "status": status,
-                                                "frequencia_evidencia": freq_evidencia,
-                                                "responsavel": usuario_responsavel_controle,
-                                                "avaliacao": avaliacao
-                                            }
-                                            if salvar_controle_no_banco(dados_controle):
-                                                # Chama a função salvar_controle_no_banco(dados)
-                                                st.success("Controle vinculado com sucesso!")
-                                                st.rerun()
+                                        if st.form_submit_button("💾 Salvar Controle", type="primary"):
+                                            if not nome_c or not resp:
+                                                st.warning("Preencha o nome do controle e o responsável.")
                                             else:
-                                                st.error("Erro ao salvar controle")
-                                else:      
-                                    st.warning("É necessário cadsatrar um risco para essa etapa antes de cadastrar um controle.")
+                                                dados_c = {
+                                                    "risco_id": int(risco_selecionado_id),
+                                                    "nome": nome_c,
+                                                    "forma": forma,
+                                                    "natureza": nat,
+                                                    "status": stat,
+                                                    "frequencia": freq,
+                                                    "responsavel": resp,
+                                                    "avaliacao": aval
+                                                }
+                                                if salvar_controle_no_banco(dados_c):
+                                                    st.toast("Controle salvo com sucesso!", icon="✅")
+                                                    st.rerun()
+                                                else:
+                                                    st.error("Erro ao salvar controle.")
+                                else:
+                                    st.warning("⚠️ Você precisa cadastrar ao menos um RISCO antes de criar um controle.")
+
+
+                    else:      
+                        st.warning("É necessário cadastrar um risco para essa etapa antes de cadastrar um controle.")
                 else:
                     st.info("Nenhuma etapa cadastrada.")
 
