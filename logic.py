@@ -471,67 +471,59 @@ def get_estilo_risco(score):
 
 def salvar_controle_no_banco(dados):
     """
-    Insere um novo controle com tratamento de erro detalhado.
+    Insere um novo controle na tabela 'controles_etapa' com nomes de colunas corrigidos.
     """
     query = text("""
-        INSERT INTO controles (
+        INSERT INTO controles_etapa (
             risco_id, 
+            risco_avaliacao, 
             nome_controle, 
             forma_execucao, 
             natureza, 
-            status, 
+            status_controle, 
             frequencia_evidencia, 
-            usuario_responsavel, 
-            avaliacao_risco
+            responsaveis_tratamento
         ) VALUES (
             :risco_id, 
+            :aval, 
             :nome, 
             :forma, 
             :natureza, 
             :status, 
             :freq, 
-            :resp, 
-            :aval
+            :resp
         )
     """)
     
     try:
-        # Certificando que o risco_id é um inteiro puro
-        risco_id_int = int(dados['risco_id'])
-        
         with engine.begin() as conn:
             conn.execute(query, {
-                "risco_id": risco_id_int,
-                "nome": str(dados['nome']),
-                "forma": str(dados['forma']),
-                "natureza": str(dados['natureza']),
-                "status": str(dados['status']),
-                "freq": str(dados['frequencia']),
-                "resp": str(dados['responsavel']),
-                "aval": str(dados['avaliacao'])
+                "risco_id": int(dados['risco_id']),
+                "aval": dados['avaliacao'],
+                "nome": dados['nome'],
+                "forma": dados['forma'],
+                "natureza": dados['natureza'],
+                "status": dados['status'],
+                "freq": dados['frequencia'],
+                "resp": dados['responsavel']
             })
         return True
     except Exception as e:
-        # Isso vai imprimir o erro real do Banco de Dados no seu terminal
-        print(f"❌ ERRO NO BANCO DE DADOS: {str(e)}")
+        print(f"❌ Erro ao salvar na tabela controles_etapa: {e}")
         return False
 
 def listar_controles_da_etapa(etapa_id):
     """
-    Busca todos os controles que pertencem aos riscos de uma etapa específica.
-    Faz um JOIN entre as tabelas 'controles' e 'riscos'.
+    Busca todos os controles da tabela 'controles_etapa' vinculados a uma etapa.
     """
     query = text("""
         SELECT 
-            c.*, 
-            r.fator_risco as fator_origem
-        FROM controles c
-        JOIN riscos r ON c.risco_id = r.id
+            c.* FROM controles_etapa c
+        JOIN riscos_etapa r ON c.risco_id = r.id
         WHERE r.etapa_id = :etapa_id
     """)
-    
     try:
         return pd.read_sql(query, engine, params={"etapa_id": etapa_id})
     except Exception as e:
-        print(f"Erro ao listar controles: {e}")
+        print(f"Erro ao listar controles_etapa: {e}")
         return pd.DataFrame()

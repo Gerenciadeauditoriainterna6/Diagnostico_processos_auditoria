@@ -203,9 +203,9 @@ def tela_consulta_detalhada():
                                             c1, c2 = st.columns(2)
                                             c1.write(f"**Forma:** {ctrl['forma_execucao']}")
                                             c1.write(f"**Natureza:** {ctrl['natureza']}")
-                                            c2.write(f"**Status:** {ctrl['status']}")
+                                            c2.write(f"**Status:** {ctrl['status_controle']}")
                                             c2.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
-                                            st.write(f"**Responsável:** {ctrl['usuario_responsavel']}")
+                                            st.write(f"**Responsável:** {ctrl['responsaveis_tratamento']}")
                                             st.info(f"**Avaliação:** {ctrl['avaliacao_risco']}")
                                 else:
                                     st.info("Nenhum controle cadastrado para os riscos desta etapa.")
