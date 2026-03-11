@@ -468,3 +468,46 @@ def get_estilo_risco(score):
         return "#f7ed94", "🟡" 
     else:
         return "#5cb85c", "🟢"
+
+def salvar_controle_no_banco(dados):
+    """
+    Insere um novo controle vinculado a um risco específico na tabela 'controles'.
+    """
+    query = text("""
+        INSERT INTO controles (
+            risco_id, 
+            nome_controle, 
+            forma_execucao, 
+            natureza, 
+            status, 
+            frequencia_evidencia, 
+            usuario_responsavel, 
+            avaliacao_risco
+        ) VALUES (
+            :risco_id, 
+            :nome, 
+            :forma, 
+            :natureza, 
+            :status, 
+            :freq, 
+            :resp, 
+            :aval
+        )
+    """)
+    
+    try:
+        with engine.begin() as conn:
+            conn.execute(query, {
+                "risco_id": dados['risco_id'],
+                "nome": dados['nome'],
+                "forma": dados['forma'],
+                "natureza": dados['natureza'],
+                "status": dados['status'],
+                "freq": dados['frequencia'],
+                "resp": dados['responsavel'],
+                "aval": dados['avaliacao']
+            })
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar controle: {e}")
+        return False

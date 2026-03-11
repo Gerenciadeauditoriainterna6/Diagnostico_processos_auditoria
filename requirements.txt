@@ -3,3 +3,4 @@ sqlalchemy
 psycopg2-binary
 pandas
 fpdf2==2.8.6
+datetime

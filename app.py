@@ -3,11 +3,15 @@ import os
 import pandas as pd
 from sqlalchemy import text
 from database import engine
+from datetime import time
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
-listar_riscos_etapa, buscar_todos_processos
+listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco
 )
+
+# --- 1. CONFIGURAÇÃO INICIAL ---
+st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
 def limpar_campos_por_prefixo(prefixo):
     for key in st.session_state.keys():
@@ -174,7 +178,56 @@ def tela_consulta_detalhada():
                                                     st.rerun()
                                                 else:
                                                     st.error("Erro ao salvar no banco de dados. Tente novamente!")
-                                                    st.rerun()
+                                                    time.sleep(2)
+                        st.divider()
+                        st.subheader("🎮 Controles da etapa")
+                        with st.expander("Cadastrar Novo Controle"):
+                            # Buscamos os riscos da etapa para o usuário escolher qual controlar
+                            df_riscos = listar_riscos_etapa(etapa['id'])
+
+                            if not df_riscos.empty:
+                                opcoes_riscos = {f"{row['categoria']} - {row['fator_risco'][:50]}...": row['id'] for _, row in df_riscos.iterrows()}
+                                selecao_risco = st.selectbox("Selecione o Risco para mitigar: ", options=list(opcoes_riscos.keys()), key=f"sel_risco_{etapa['id']}")
+
+                                # recuperamos o ID e o fator de risco original
+                                risco_selecionado_id = opcoes_riscos[selecao_risco]
+                                fator_original = df_riscos[df_riscos['id'] == risco_selecionado_id]['fator_risco'].values[0]
+
+                                with st.form(f"form_controle_{etapa['id']}"):
+                                    col1, col2 = st.columns(2)
+                                    causa = col1.text_area("Causa ou Motivo (Fator de Risco)", value=fator_original, disabled=True, key=f"causa_{etapa['id']}")
+                                    avaliacao = col2.text_area("Risco e Avaliação do Controle", key=f"aval_{etapa['id']}")
+
+                                    nome_c = st.text_input("Nome da Ação de Controle", key=f"nome_c_{etapa['id']}")
+
+                                    c3, c4, c5 = st.columns(3)
+                                    forma = c3.selectbox("Forma de Execução", ["Manual", "Automático"], key=f"forma_{etapa['id']}")
+                                    natureza = c4.selectbox("Natureza", ["Preventiva", "Detectiva", "Corretiva"], key=f"nat_{etapa['id']}")
+                                    status = c5.selectbox("Status", ["Ativo", "Inativo"],key=f"stat_{etapa['id']}")
+
+                                    freq_evidencia = st.selectbox("Frequência de Execução da Evidência", ["Diário", "Semanal", "Quinzenal", "Mensal",
+                                    "Bimestral", "Trimestral", "Semestral", "Anual", "Por evento"], key=f"freq_{etapa['id']}")
+                                    usuario_responsavel_controle = st.text_input("Usuário Responsável pelo Controle", key=f"user_resp_{etapa['id']}")
+
+                                    if st.form_submit_button("Salvar Controle"):
+                                        dados_controle = {
+                                            "risco_id": risco_selecionado_id,
+                                            "nome": nome_c,
+                                            "forma": forma,
+                                            "natureza": natureza,
+                                            "status": status,
+                                            "frequencia_evidencia": freq_evidencia,
+                                            "responsavel": usuario_responsavel_controle,
+                                            "avaliacao": avaliacao
+                                        }
+                                        if salvar_controle_no_banco(dados_controle):
+                                            # Chama a função salvar_controle_no_banco(dados)
+                                            st.success("Controle vinculado com sucesso!")
+                                            st.rerun()
+                                        else:
+                                            st.error("Erro ao salvar controle")
+                            else:      
+                                st.warning("É necessário cadsatrar um risco para essa etapa antes de cadastrar um controle.")
                 else:
                     st.info("Nenhuma etapa cadastrada.")
 
@@ -208,9 +261,6 @@ def tela_consulta_detalhada():
                                 st.rerun()
         else:
             st.warning("Código não encontrado.")
-
-# --- 1. CONFIGURAÇÃO INICIAL ---
-st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
 # --- 2. INICIALIZAÇÃO DE ESTADO ---
 if 'riscos' not in st.session_state: st.session_state['riscos'] = []
