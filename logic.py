@@ -470,9 +470,6 @@ def get_estilo_risco(score):
         return "#5cb85c", "🟢"
 
 def salvar_controle_no_banco(dados):
-    """
-    Insere um novo controle completo na tabela 'controles_etapa'.
-    """
     query = text("""
         INSERT INTO controles_etapa (
             risco_id, risco_avaliacao, nome_controle, como_executado, 
@@ -490,24 +487,25 @@ def salvar_controle_no_banco(dados):
     try:
         with engine.begin() as conn:
             conn.execute(query, {
-                "risco_id": int(dados['risco_id']),
-                "aval": dados['avaliacao'],
-                "nome": dados['nome'],
-                "como": dados['como_executado'],
-                "obj": dados['objetivo'],
-                "periodo": dados['periodicidade'],
-                "evid": dados['evidência'],
-                "forma": dados['forma'],
-                "natureza": dados['natureza'],
-                "status": dados['status'],
-                "data_atu": dados['data_atualizacao'],
-                "freq": dados['frequencia'],
-                "resp": dados['responsavel'],
-                "causa": dados['causa_motivo'] # Vem do fator_risco da etapa
+                "risco_id": int(dados.get('risco_id')),
+                "aval": dados.get('avaliacao'),
+                "nome": dados.get('nome'),
+                "como": dados.get('como_executado'),
+                "obj": dados.get('objetivo'),
+                "periodo": dados.get('periodicidade'),
+                "evid": dados.get('evidencia'), # Removi o acento para evitar erros de encoding
+                "forma": dados.get('forma'),
+                "natureza": dados.get('natureza'),
+                "status": dados.get('status'),
+                "data_atu": dados.get('data_atualizacao'),
+                "freq": dados.get('frequencia'),
+                "resp": dados.get('responsavel'),
+                "causa": dados.get('causa_motivo')
             })
         return True
     except Exception as e:
-        print(f"❌ Erro ao salvar controle completo: {e}")
+        # Isso imprimirá no terminal exatamente qual coluna ou valor deu erro
+        print(f"❌ Erro detalhado no banco: {e}") 
         return False
 
 def listar_controles_da_etapa(etapa_id):
