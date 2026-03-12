@@ -38,7 +38,7 @@ def login_screen():
         st.markdown(f"""
             <style>
             .stApp {{
-                background: linear-gradient(rgba(0,0,0,1), rgba(0,0,0,1)), 
+                background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)), 
                             url("data:image/png;base64,{bin_fundo}");
                 background-size: cover;
             }}
