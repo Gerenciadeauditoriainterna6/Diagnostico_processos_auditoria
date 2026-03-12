@@ -42,7 +42,7 @@ def login_screen():
             <style>
             /* 1. Fundo da tela de login */
             [data-testid="stAppViewContainer"] {{
-                background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
+                background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
                             url("data:image/png;base64,{bin_fundo}");
                 background-size: cover !important;
                 background-position: center !important;
@@ -89,6 +89,24 @@ def login_screen():
                 height: auto;
                 background: transparent !important;
                 filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
+            }}
+
+            div[data-testid="stTextInput"] {{
+                margin-bottom: -15px !important;
+            }}
+
+            button[kind="primary"] {{
+                background-color: #153e5a !important;
+                border: none !important;
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+            }}
+
+            /* 3. COR DA MENSAGEM DE SUCESSO */
+            /* Muda o fundo e a cor do texto da caixa de sucesso */
+            div[data-testid="stNotification"] > div {{
+            background-color: rgba(64, 96, 100, 0.9) !important;
+            color: white !important;
+            border: 1px solid #6d8285 !important;
             }}
             </style>
         """, unsafe_allow_html=True)
