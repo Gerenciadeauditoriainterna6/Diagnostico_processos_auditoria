@@ -12,42 +12,37 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 )
 import base64
 
-def get_base64_with_prefix(image_path):
-    """Lê a imagem local e retorna a string pronta para HTML/CSS."""
-    if not os.path.exists(image_path):
-        return ""
-    ext = os.path.splitext(image_path)[1].replace(".", "").lower()
-    if ext == "jpg": ext = "jpeg"
-    with open(image_path, "rb") as img_file:
-        encoded = base64.b64encode(img_file.read()).decode()
-    return f"data:image/{ext};base64,{encoded}"
+def get_base64_image(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    return ""
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
 def login_screen():
-    """Gerencia a tela de login e a sessão de usuário."""
     if "autenticado" not in st.session_state:
         st.session_state["autenticado"] = False
 
     if not st.session_state["autenticado"]:
-    # Caminhos das imagens (ajuste conforme seu repositório)
+        # 1. Definição dos caminhos
         caminho_fundo = "assets/imagem_fundo.png"
         caminho_logo_canto = "assets/logo_auditoria.png"
         
-        # Converte para Base64
+        # 2. Conversão (IMPORTANTE: Criar as duas variáveis)
+        bin_fundo = get_base64_image(caminho_fundo)
         bin_logo = get_base64_image(caminho_logo_canto)
 
+        # 3. CSS e HTML
         st.markdown(f"""
             <style>
-            /* Imagem de Fundo */
             .stApp {{
                 background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
-                            url("data:image/jpg;base64,{bin_fundo}");
+                            url("data:image/png;base64,{bin_fundo}");
                 background-size: cover;
             }}
 
-            /* Imagem Posicionada (Ex: Selo no canto superior direito) */
             .imagem-posicionada {{
                 position: absolute;
                 top: 20px;
@@ -56,32 +51,33 @@ def login_screen():
                 z-index: 1000;
             }}
 
-            /* Ajuste do Card de Login para não ficar "colado" no topo */
+            /* Seletor corrigido para o card de login */
             [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
                 background: rgba(255, 255, 255, 0.9);
                 padding: 30px;
                 border-radius: 15px;
-                margin-top: 50px; /* Posiciona o card mais para baixo */
+                box-shadow: 0px 10px 20px rgba(0,0,0,0.2);
             }}
             </style>
             
             <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
-            
         """, unsafe_allow_html=True)
-
 
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.title("🔐 Formulário de Auditoria Interna - FUSVE")
+            # DIV Marcadora para o CSS aplicar o estilo de card
+            st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
+            
+            st.title("🔐 Auditoria Interna - FUSVE")
             usuario = st.text_input("Usuário")
             senha = st.text_input("Senha", type="password")
             
             if st.button("Entrar", use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
                     st.session_state["autenticado"] = True
-                    st.success("Login realizado com sucesso!")
-                    time_module.sleep(1)  # Pequena pausa para o usuário ver a mensagem
-                    st.rerun()  # Rerun para atualizar a interface após o login
+                    st.success("Acesso autorizado!")
+                    # Removi o sleep para evitar o erro do clique duplo que discutimos antes
+                    st.rerun() 
                 else:
                     st.error("Usuário ou senha incorretos.")
         return False
