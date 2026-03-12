@@ -42,7 +42,7 @@ def login_screen():
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important; /* Elimina barra de rolagem */
-            height: 100vh;
+            height: 50vh;
             width: 100vw;
         }}
 
