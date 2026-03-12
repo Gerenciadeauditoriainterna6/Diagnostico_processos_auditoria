@@ -65,7 +65,7 @@ def login_screen():
             
             display: flex !important;
             flex-direction: column !important;
-            width: 100% !important;
+            width: 50% !important;
             opacity: 1 !important;
             }}
 
@@ -111,8 +111,8 @@ def login_screen():
                 """, unsafe_allow_html=True)
 
                 # Campos de entrada (Streamlit renderiza isso dentro do container branco)
-                usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário", key="user_login")
-                senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
+                usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
+                senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
                 
                 st.write("") # Espaço interno antes do botão
                 
