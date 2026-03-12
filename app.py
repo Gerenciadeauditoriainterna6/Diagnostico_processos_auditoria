@@ -36,44 +36,48 @@ def login_screen():
 
         # 3. CSS e HTML
         st.markdown(f"""
-            <style>
-            /* 1. ELIMINAR MARGENS LATERAIS (O ponto principal) */
-            /* O Streamlit limita a largura aqui. Forçamos para 100% da tela. */
-            .main .block-container {{
-                max-width: 100vw !important;
-                padding-left: 0rem !important;
-                padding-right: 0rem !important;
-                padding-top: 0rem !important;
-                padding-bottom: 0rem !important;
-            }}
+        <style>
+        /* 1. ESTICA O CONTEÚDO PARA AS LATERAIS */
+        /* Removemos o limite de largura de todas as div principais */
+        [data-testid="stAppViewBlockContainer"], 
+        .main .block-container, 
+        [data-testid="stAppViewContainer"] {{
+            max-width: 100vw !important;
+            padding-left: 0px !important;
+            padding-right: 0px !important;
+            padding-top: 0px !important;
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+        }}
 
-            /* 2. ELIMINAR RODAPÉ (FOOTER) */
-            footer {{
-                display: none !important;
-                visibility: hidden;
-            }}
+        /* 2. FORÇA O FUNDO A IGNORAR QUALQUER MARGEM */
+        .stApp {{
+            background: url("data:image/png;base64,{bin_fundo}");
+            background-size: cover !important; /* Ou 100% 100% se quiser esticar */
+            background-position: center center !important;
+            background-attachment: fixed !important;
+            background-repeat: no-repeat !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+        }}
 
-            /* 3. FUNDO EM TELA CHEIA SEM BORDAS */
-            .stApp {{
-                background: url("data:image/png;base64,{bin_fundo}");
-                background-size: 100% 100% !important; /* Estica para ignorar qualquer borda */
-                background-position: center !important;
-                background-repeat: no-repeat !important;
-                background-attachment: fixed !important;
-            }}
+        /* 3. LIMPA O RODAPÉ */
+        footer {{visibility: hidden !important;}}
+        header {{background: transparent !important;}} /* Deixa o header "invisível" sobre o fundo */
 
-            /* Mantendo sua logo posicionada no canto */
-            .imagem-posicionada {{
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                width: 120px;
-                z-index: 1000;
-            }}
-            </style>
-            
-            <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
-        """, unsafe_allow_html=True)
+        /* 4. SEU CARD DE LOGIN (Ajustado para não sumir com o padding zero) */
+        /* Como zeramos tudo, precisamos garantir que o card não encoste no topo */
+        [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            margin-top: 15vh; /* Empurra o login para baixo */
+        }}
+        </style>
+    """, unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
