@@ -12,11 +12,23 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 )
 import base64
 
-def get_base64_image(image_path):
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    return ""
+def get_base64(bin_file):
+    """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+# --- CARREGAMENTO DAS IMAGENS ---
+# Certifique-se de que os arquivos 'fundo.jpg' e 'logo.png' 
+# estejam na mesma pasta do seu script Python.
+
+try:
+    bin_fundo = get_base64("fundo.jpg")  # Substitua pelo nome do seu arquivo de fundo
+    bin_logo = get_base64("logo.png")    # Substitua pelo nome da sua logo
+except FileNotFoundError:
+    st.error("Erro: Arquivos de imagem não encontrados. Verifique os nomes 'fundo.jpg' e 'logo.png'.")
+    bin_fundo = ""
+    bin_logo = ""
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
@@ -118,9 +130,12 @@ def login_screen(bin_fundo, bin_logo):
         else:
             st.error("Usuário ou senha incorretos.")
 
-# --- CHAMADA NO ARQUIVO PRINCIPAL ---
-# st.set_page_config(layout="wide")
-# login_screen(bin_fundo, bin_logo)
+# 1. Primeiro de tudo, a configuração da página (DEVE ser a primeira linha do Streamlit)
+st.set_page_config(layout="wide", page_title="Sistema de Auditoria", page_icon="🔐")
+
+
+# 2. Chame a função para exibir a tela de login
+login_screen(bin_fundo, bin_logo)
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
