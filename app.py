@@ -67,7 +67,7 @@ def login_screen():
             flex-direction: column !important;
             width: 85% !important;
             margin-left: auto !important;
-            maring-right: auto !iportant;
+            margin-right: auto !iportant;
             opacity: 1 !important;
             }}
 
@@ -102,28 +102,21 @@ def login_screen():
                 
                 # Injetamos a logo e os textos centralizados
                 st.markdown(f"""
-                    <div class="logo-container">
-                        <img src="data:image/png;base64,{bin_logo}">
-                    </div>
-                    <div style="
-                        display: flex; 
-                        flex-direction: column; 
-                        align-items: center; 
-                        justify-content: center; 
-                        width: 100%; 
-                        text-align: center;
-                    ">
-                        <h1 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 12px; width: 100%;'>
-                            SISTEMA
-                        </h1>
-                        <h2 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 14px; width: 100%; font-weight: bold;'>
-                            GERÊNCIA DE AUDITORIA INTERNA
-                        </h2>
-                        <p style='color: #ffcccc; margin: 0px; font-family: sans-serif; font-size: 9px; width: 100%;'>
-                            Acesso Restrito!
-                        </p>
-                    </div>
-                """, unsafe_allow_html=True)
+                <div class="logo-container">
+                    <img src="data:image/png;base64,{bin_logo}">
+                </div>
+                <div style="text-align: center; width: 100%; line-height: 1.2;">
+                    <span style="color: #ffffff; font-family: sans-serif; font-size: 12px; display: block;">
+                        SISTEMA
+                    </span>
+                    <span style="color: #ffffff; font-family: sans-serif; font-size: 14px; font-weight: bold; display: block;">
+                        GERÊNCIA DE AUDITORIA INTERNA
+                    </span>
+                    <span style="color: #822a2d; font-family: sans-serif; font-size: 9px; font-weight: bold; display: block;">
+                        Acesso Restrito!
+                    </span>
+                </div>
+            """, unsafe_allow_html=True)
 
                 # Campos de entrada (Streamlit renderiza isso dentro do container branco)
                 usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
