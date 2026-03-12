@@ -36,36 +36,45 @@ def login_screen():
 
         # 3. CSS e HTML
         st.markdown(f"""
+                    
         <style>
-        /* 1. ATAQUE DIRETO AO CONTAINER DE CONTEÚDO */
-        /* Isso remove as bordas brancas laterais e o espaço vazio no topo */
-        .main .block-container {{
-            max-width: 100% !important;
-            padding: 0rem !important;
-            margin: 0rem !important;
+        /* 1. ATACAR A ESTRUTURA RAIZ (Onde o Streamlit cria a barra de rolagem) */
+        [data-testid="stAppViewContainer"] {{
+            overflow: hidden !important; /* Mata a barra de rolagem de vez */
         }}
 
-        /* 2. CONFIGURAÇÃO DO FUNDO NA CAMADA CERTA */
-        /* Usamos a classe .stApp para o fundo cobrir tudo */
+        /* 2. ZERAR A "CEBOLA" (Remover as margens que causam a borda branca) */
+        /* Atacamos o container de visualização e o bloco de conteúdo simultaneamente */
+        [data-testid="stMainViewContainer"], 
+        [data-testid="stAppViewBlockContainer"],
+        .main .block-container {{
+            padding: 0px !important;
+            margin: 0px !important;
+            max-width: 100vw !important;
+        }}
+
+        /* 3. O FUNDO (Configuração imersiva) */
         .stApp {{
-            background-image: url("data:image/png;base64,{bin_fundo}");
+            background: url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
             background-repeat: no-repeat !important;
             background-attachment: fixed !important;
+            width: 100vw !important;
+            height: 100vh !important;
         }}
 
-        /* 3. REMOVER O RODAPÉ (FOOTER) PARA ELIMINAR ROLAGEM */
-        footer {{
-            display: none !important;
-        }}
-        
-        /* 4. MANTER O HEADER (OPCIONAL: DEIXAR TRANSPARENTE) */
-        header {{
-            background-color: rgba(0,0,0,0) !important;
+        /* 4. SEU CARD DE LOGIN (Preservando seu layout) */
+        /* Como zeramos tudo, o card vai colar no topo. Ajustamos com margin-top. */
+        [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
+            background: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            margin-top: 15vh; /* Ajuste aqui para subir ou descer o card */
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
         }}
 
-        /* 5. LOGO DA AUDITORIA NO CANTO */
+        /* 5. LOGO NO CANTO */
         .imagem-posicionada {{
             position: absolute;
             top: 20px;
@@ -74,15 +83,8 @@ def login_screen():
             z-index: 1000;
         }}
 
-        /* 6. AJUSTE DO SEU CARD DE LOGIN */
-        /* Como zeramos os paddings da página, precisamos dar um 'respiro' no card */
-        [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
-            background: rgba(255, 255, 255, 0.9);
-            padding: 40px;
-            border-radius: 15px;
-            margin-top: 10vh; /* Empurra o login para o centro da tela */
-            box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
-        }}
+        /* ELIMINAR O FOOTER DE VEZ */
+        footer {{ display: none !important; }}
         </style>
         
         <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
