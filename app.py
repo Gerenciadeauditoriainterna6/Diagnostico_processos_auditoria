@@ -42,7 +42,7 @@ def login_screen():
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important; /* Elimina barra de rolagem */
-            height: 50vh;
+            height: 100vh;
             width: 100vw;
         }}
 
@@ -73,10 +73,10 @@ def login_screen():
         /* Usamos 'vh' para centralizar verticalmente e 'px' para largura fixa */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
             background: rgba(255, 255, 255, 0.95);
-            padding: 35px;
+            padding: 25px;
             border-radius: 15px;
-            width: 800px; /* Tamanho horizontal ideal para formulários */
-            margin: 15vh auto 0 auto; /* Centraliza horizontalmente e dá topo */
+            width: 500px; /* Tamanho horizontal ideal para formulários */
+            margin: 18vh auto 0 auto; /* Centraliza horizontalmente e dá topo */
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.2);
         }}
