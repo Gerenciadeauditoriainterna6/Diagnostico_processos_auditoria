@@ -63,7 +63,7 @@ def login_screen():
     }}
 
     [data-testid="stVerticalBlockBorder"] {{
-    background-color: rgba(255, 255, 255, 0.95) !important;
+    background-color: rgba(255, 255, 255, 0) !important;
     border: none !important;
     box-shadow: 0px 10px 30px rgba(0,0,0,0.3) !important;
     border-radius: 20px !important;
