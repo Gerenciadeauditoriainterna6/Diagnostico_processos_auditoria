@@ -70,7 +70,7 @@ def login_screen():
             height: 100px;
             background: white;
             border-radius: 100%;
-            padding: 5px;
+            padding: 10px;
             box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
             }}
             </style>
