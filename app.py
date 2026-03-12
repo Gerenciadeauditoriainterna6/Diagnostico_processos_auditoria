@@ -67,7 +67,7 @@ def login_screen():
             /* FORÇA TOTAL: Caso o de cima falhe, este seletor atinge a classe que você viu no inspecionar */
             .stVerticalBlockBorder, .st-emotion-cache-139wymi, .st-emotion-cache-1r6slb0 {{
             background: linear-gradient(135deg, #6d8285 0%, #406064 100%) !important;
-            padding: 50px 30px 80px 30px !important;
+            padding: 50px 15px 50px 15px !important;
             opacity: 1 !important;
             }}
 
