@@ -27,6 +27,7 @@ def get_base64(bin_file):
 # Carregamento das imagens para o CSS
 bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
 bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
+bin_logo_fusve = get_base64(os.path.join("assets", "logo_fusve.png"))
 
 import streamlit as st
 import time as time_module
@@ -115,6 +116,24 @@ def login_screen():
             color: white !important;
             border: 1px solid #6d8285 !important;
             }}
+
+            /* --- Novo estilo para a logo da FUSVE (fora do card) --- */
+            .fusve-container {{
+                text-align: center; /* Centraliza horizontalmente */
+                margin-top: 40px;   /* Espaço entre o final do card e a logo */
+                margin-bottom: 20px; /* Espaço para o final da página não colar */
+                width: 100%;        /* Garante que o container ocupe a largura da coluna */
+                display: flex;
+                justify-content: center; /* Alinhamento robusto para flex */
+            }}
+
+            .fusve-container img {{
+                width: 150px;       /* Ajuste o tamanho da logo da FUSVE aqui */
+                height: auto;       /* Mantém a proporção */
+                opacity: 0.8;       /* Deixa levemente transparente para não brigar com o card */
+                filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1)); /* Sombra suave */
+                background: transparent !important; /* Força fundo transparente */
+            }}
             </style>
         """, unsafe_allow_html=True)
 
@@ -150,6 +169,11 @@ def login_screen():
                         st.rerun()
                     else:
                         st.error("Usuário ou senha incorretos.")
+                st.markdown(f'''
+                        <div class="fusve-container">
+                            <img src="data:image/png;base64,{bin_logo_fusve}">
+                        </div>
+                    ''')
                         
         return False
     return True
