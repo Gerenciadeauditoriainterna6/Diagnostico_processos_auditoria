@@ -101,30 +101,16 @@ def login_screen():
             with st.container(border=True):
                 
                 # Injetamos a logo e os textos centralizados
-                st.markdown(f"""
+                st.markdown(f'''
                 <div class="logo-container">
                     <img src="data:image/png;base64,{bin_logo}">
                 </div>
                 <div style="text-align: center; width: 100%; line-height: 1.2;">
-                    <span style="color: #ffffff; font-family: sans-serif; font-size: 12px; display: block;">
-                        SISTEMA
-                    </span>
-                    <span style="color: #ffffff; font-family: sans-serif; font-size: 14px; font-weight: bold; display: block;">
-                        GERÊNCIA DE AUDITORIA INTERNA
-                    </span>
-                    
-                    <span style="
-                        color: #822a2d; 
-                        font-family: sans-serif; 
-                        font-size: 10px;  
-                        display: block; 
-                        margin-top: 20px; 
-                        margin-bottom: 0px;
-                    ">
-                        Acesso Restrito!
-                    </span>
+                    <span style="color: white; font-family: sans-serif; font-size: 12px; display: block;">SISTEMA</span>
+                    <span style="color: white; font-family: sans-serif; font-size: 14px; font-weight: bold; display: block;">GERÊNCIA DE AUDITORIA INTERNA</span>
+                    <span style="color: #822a2d; font-family: sans-serif; font-size: 10px; font-weight: bold; display: block; margin-top: 20px; margin-bottom: 0px;">Acesso Restrito!</span>
                 </div>
-            """, unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
 
                 # Campos de entrada (Streamlit renderiza isso dentro do container branco)
                 usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
