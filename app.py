@@ -65,7 +65,7 @@ def login_screen():
             
             display: flex !important;
             flex-direction: column !important;
-            width: 85% !important;
+            width: 100% !important;
             margin-left: auto !important;
             maring-right: auto !iportant;
             opacity: 1 !important;
