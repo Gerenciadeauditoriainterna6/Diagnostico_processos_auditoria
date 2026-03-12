@@ -21,33 +21,20 @@ def get_base64_image(image_path):
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
-def login_screen():
-    if "autenticado" not in st.session_state:
-        st.session_state["autenticado"] = False
-
-    if not st.session_state["autenticado"]:
-        # 1. Definição dos caminhos
-        caminho_fundo = "assets/imagem_fundo.png"
-        caminho_logo_canto = "assets/logo_auditoria_recortada_circulo.png"
-        
-        # 2. Conversão (IMPORTANTE: Criar as duas variáveis)
-        bin_fundo = get_base64_image(caminho_fundo)
-        bin_logo = get_base64_image(caminho_logo_canto)
-
-        # 3. CSS e HTML
-        st.markdown(f"""
-
+def login_screen(bin_fundo, bin_logo):
+    # 1. CSS e HTML para Configuração de Layout e Estilo
+    st.markdown(f"""
         <style>
-        /* 1. RESET TOTAL E REMOÇÃO DE ROLAGEM */
+        /* RESET TOTAL: Mata bordas e barras de rolagem na raiz */
         html, body, [data-testid="stAppViewContainer"] {{
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important; /* Trava a tela para não rolar */
+            overflow: hidden !important; 
             height: 100vh;
             width: 100vw;
         }}
 
-        /* 2. LIMPEZA DAS BORDAS LATERAIS */
+        /* LIBERAÇÃO DE ESPAÇO: Força o conteúdo a ignorar margens do Streamlit */
         [data-testid="stMainViewContainer"], 
         [data-testid="stAppViewBlockContainer"], 
         .main .block-container {{
@@ -56,72 +43,84 @@ def login_screen():
             margin: 0px !important;
         }}
 
-        /* 3. IMAGEM DE FUNDO */
+        /* BACKGROUND: Imagem fixa em tela cheia */
         .stApp {{
             background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
+            background-repeat: no-repeat !important;
             position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }}
 
-        /* 4. O CARD DE LOGIN (Ajustado para não achatar o conteúdo) */
-        /* Remova as colunas (st.columns) do seu código python para usar este card direto */
+        /* CARD DE LOGIN: Tamanho fixo ideal e centralizado */
+        /* O seletor abaixo identifica o bloco que contém o marcador 'login-card' */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
             background: rgba(255, 255, 255, 0.95);
-            padding: 60px 40px 40px 40px; /* Mais espaço no topo para a logo flutuante */
+            padding: 60px 35px 35px 35px; /* Espaço extra no topo para a logo */
             border-radius: 15px;
-            width: 380px;                /* Largura fixa ideal */
-            margin: 20vh auto 0 auto;    /* Centraliza na tela */
-            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
-            position: relative;          /* Necessário para a logo flutuar sobre ele */
+            width: 380px;                /* Largura fixa para evitar achatamento */
+            margin: 20vh auto 0 auto;    /* Centraliza horizontalmente e dá 20% de topo */
+            box-shadow: 0px 15px 35px rgba(0,0,0,0.4);
+            position: relative;          /* Base para o posicionamento da logo */
         }}
 
-        /* 5. LOGO FLUTUANTE NO TOPO DO CARD */
-        .logo-card {{
+        /* LOGO FLUTUANTE: Metade para fora do card, em formato circular */
+        .logo-flutuante {{
             position: absolute;
-            top: -50px;                 /* Joga a metade da logo para fora do card */
-            left: 50%;                  /* Posiciona no meio horizontal */
-            transform: translateX(-50%); /* Ajuste fino de centralização */
+            top: -50px;                 /* Sobe 50px para fora do card */
+            left: 50%;
+            transform: translateX(-50%);
             width: 100px;
             height: 100px;
-            background: white;          /* Fundo branco atrás da logo */
+            background: white;
             padding: 10px;
-            border-radius: 50%;         /* Deixa a logo em um círculo */
+            border-radius: 50%;         /* Formato de círculo */
             box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
             z-index: 1001;
         }}
 
-        /* 6. REMOVER O CARD BRANCO VAZIO */
-        /* Isso garante que a div marcadora não ocupe espaço visual */
-        div.login-card {{
-            display: none;
-        }}
-
-        /* OCULTAR ELEMENTOS NATIVOS */
-        header, footer {{ display: none !important; }}
+        /* ESCONDER ELEMENTOS INDESEJADOS */
+        div.login-card {{ display: none; }} /* Esconde o marcador de texto */
+        header {{ visibility: hidden; }}    /* Esconde barra superior */
+        footer {{ display: none !important; }} /* Remove rodapé e evita rolagem */
+        [data-testid="stHeader"] {{ background: transparent !important; }}
         </style>
-""", unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            # DIV Marcadora para o CSS aplicar o estilo de card
-            st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
-            
-            st.title("🔐 Auditoria Interna - FUSVE")
-            usuario = st.text_input("Usuário")
-            senha = st.text_input("Senha", type="password")
-            
-            if st.button("Entrar", use_container_width=True, type="primary"):
-                if validar_login_no_banco(usuario, senha):
-                    st.session_state["autenticado"] = True
-                    st.success("Acesso autorizado!")
-                    # Removi o sleep para evitar o erro do clique duplo que discutimos antes
-                    st.rerun() 
-                else:
-                    st.error("Usuário ou senha incorretos.")
-        return False
-    return True
+    """, unsafe_allow_html=True)
+
+    # 2. Estrutura de Elementos (Sem st.columns para evitar conflitos de largura)
+    
+    # Marcador invisível que o CSS usa para aplicar o estilo do card
+    st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
+    
+    # Renderiza a Logo Flutuante
+    st.markdown(f'<img src="data:image/png;base64,{bin_logo}" class="logo-flutuante">', unsafe_allow_html=True)
+
+    # Título e Subtítulo centralizados
+    st.markdown("<h2 style='text-align: center; margin-bottom: 0; color: #1f1f1f;'>Auditoria Interna</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666; margin-bottom: 20px;'>FUSVE</p>", unsafe_allow_html=True)
+
+    # Campos de Entrada (Eles aparecerão dentro do card automaticamente)
+    usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
+    senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+
+    # Espaçamento e Botão
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+    if st.button("Acessar Sistema", use_container_width=True):
+        if usuario == "admin" and senha == "123": # Exemplo de validação
+            st.success("Acesso concedido!")
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("Usuário ou senha incorretos.")
+
+# --- CHAMADA NO ARQUIVO PRINCIPAL ---
+# st.set_page_config(layout="wide")
+# login_screen(bin_fundo, bin_logo)
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
