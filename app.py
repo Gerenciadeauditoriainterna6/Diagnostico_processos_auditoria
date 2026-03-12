@@ -72,7 +72,7 @@ def login_screen(bin_fundo, bin_logo):
 
         /* CARD DE LOGIN: Tamanho fixo ideal e centralizado */
         /* O seletor abaixo identifica o bloco que contém o marcador 'login-card' */
-        [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
+        [data-testid="stVerticalBlock"] > :has(div.login-card) {{
             background: rgba(255, 255, 255, 0.95);
             padding: 60px 35px 35px 35px; /* Espaço extra no topo para a logo */
             border-radius: 15px;
