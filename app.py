@@ -50,9 +50,9 @@ def login_screen():
             
             /* Estilização do Card de Login */
             /* O Streamlit envolve colunas em blocos específicos, miramos no container da coluna 2 */
-            [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] {{
+            div[data-testid="stVerticalBlock"]:has(div.login-card) {{
                 background: rgba(255, 255, 255, 0.95);
-                padding: 50px 30px 30px 30px;
+                padding: 60px 30px 30px 30px;
                 border-radius: 15px;
                 box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
                 margin-top: 10vh;
@@ -78,28 +78,35 @@ def login_screen():
             </style>
         """, unsafe_allow_html=True)
 
-        # HTML da Logo
-        st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{bin_logo}"></div>', unsafe_allow_html=True)
-
         col1, col2, col3 = st.columns([0.5, 2, 0.5]) # Ajustado para o card não ficar largo demais
         with col2:
-            st.markdown("<h2 style='text-align: center; color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #666; margin-bottom: 25px;'>FUSVE</p>", unsafe_allow_html=True)
+
+            with st.container():
+
+                # Esta div vazia avisa ao CSS para aplicar o estilo de card aqui
+                st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
+                
+                # HTML da Logo (agora dentro do container para o card subir com ela)
+                st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{bin_logo}"></div>', unsafe_allow_html=True)
+
+                st.markdown("<h2 style='text-align: center; color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>", unsafe_allow_html=True)
+                st.markdown("<p style='text-align: center; color: #666; margin-bottom: 25px;'>FUSVE</p>", unsafe_allow_html=True)
             
-            usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
-            senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+                usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
+                senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
             
-            st.write("") # Espaçamento
-            if st.button("Entrar", use_container_width=True, type="primary"):
-                if validar_login_no_banco(usuario, senha):
-                    st.session_state["autenticado"] = True
-                    st.success("Login realizado com sucesso!")
-                    time_module.sleep(1)
-                    st.rerun()
-                else:
-                    st.error("Usuário ou senha incorretos.")
+                st.write("") # Espaçamento
+                if st.button("Entrar", use_container_width=True, type="primary"):
+                    if validar_login_no_banco(usuario, senha):
+                        st.session_state["autenticado"] = True
+                        st.success("Login realizado com sucesso!")
+                        time_module.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Usuário ou senha incorretos.")
         return False
     return True
+
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
     st.info("Selecione um processo abaixo para detalhar as etapas.")
