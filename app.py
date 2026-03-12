@@ -52,9 +52,9 @@ def login_screen():
             header {{ visibility: hidden; }}
             
             /* 3. O Card de Login (O Retângulo Branco) */
-            .st-emotion-cache-1r6slb0 {{
-            background-color: #ffffff !important; /* Branco puro e sólido */
-            background-image: none !important; /* Remove qualquer imagem de fundo padrão */
+            div[data-testid="stVerticalBlockBorder"] {{
+            background-color: white !important; /* Força o branco */
+            background-image: none !important;
             border: none !important;
             box-shadow: 0px 15px 35px rgba(0,0,0,0.3) !important;
             border-radius: 20px !important;
@@ -62,7 +62,7 @@ def login_screen():
             display: flex !important;
             flex-direction: column !important;
             width: 100% !important;
-            opacity: 1 !important; /* Garante opacidade total */
+            opacity: 1 !important;
             }}
 
             /* Ajuste para centralização vertical do card na tela */
