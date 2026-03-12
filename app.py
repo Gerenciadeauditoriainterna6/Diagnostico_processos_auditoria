@@ -53,7 +53,7 @@ def login_screen():
             
             /* 3. O Card de Login (O Retângulo Branco) */
             div[data-testid="stVerticalBlockBorder"] {{
-            background: linear-gradient(135deg, #6d8285 0%, #406064 100%) !important;
+            background: linear-gradient(90deg, #6d8285 0%, #406064 100%) !important;
             border: none !important;
             box-shadow: 0px 15px 35px rgba(0,0,0,0.3) !important;
             border-radius: 20px !important;
