@@ -57,7 +57,7 @@ def login_screen():
 
         /* 3. IMAGEM DE FUNDO ABSOLUTA */
         .stApp {{
-            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
+            background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
@@ -75,7 +75,7 @@ def login_screen():
             background: rgba(255, 255, 255, 0.95);
             padding: 35px;
             border-radius: 15px;
-            width: 400px; /* Tamanho horizontal ideal para formulários */
+            width: 800px; /* Tamanho horizontal ideal para formulários */
             margin: 15vh auto 0 auto; /* Centraliza horizontalmente e dá topo */
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.2);
