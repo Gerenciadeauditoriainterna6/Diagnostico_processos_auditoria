@@ -51,23 +51,21 @@ def login_screen():
             /* 2. Esconde o cabeçalho padrão */
             header {{ visibility: hidden; }}
             
-            /* 3. O Card de Login (O Retângulo Branco) */
-            div[data-testid="stVerticalBlockBorder"] {{
-            background: linear-gradient(90deg, #6d8285 0%, #406064 100%) !important;
+            div[data-testid="stVerticalBlockBorder"], 
+            .stVerticalBlockBorder, 
+            .st-emotion-cache-139wymi, 
+            .st-emotion-cache-1r6slb0 {{
+            background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
             border: none !important;
-            box-shadow: 0px 15px 35px rgba(0,0,0,0.3) !important;
+            box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
             border-radius: 20px !important;
-            padding: 50px 30px 80px 30px !important;
+            
+            /* Aqui garantimos o tamanho maior na parte de baixo (80px) */
+            padding: 25px 25px 50px 25px !important; 
+            
             display: flex !important;
             flex-direction: column !important;
             width: 100% !important;
-            opacity: 1 !important;
-            }}
-
-            /* FORÇA TOTAL: Caso o de cima falhe, este seletor atinge a classe que você viu no inspecionar */
-            .stVerticalBlockBorder, .st-emotion-cache-139wymi, .st-emotion-cache-1r6slb0 {{
-            background: linear-gradient(135deg, #6d8285 0%, #406064 100%) !important;
-            padding: 10px 25px 30px 25px !important;
             opacity: 1 !important;
             }}
 
