@@ -65,7 +65,7 @@ def login_screen():
             
             display: flex !important;
             flex-direction: column !important;
-            width: 100% !important;
+            width: 85% !important;
             margin-left: auto !important;
             maring-right: auto !iportant;
             opacity: 1 !important;
@@ -105,14 +105,21 @@ def login_screen():
                     <div class="logo-container">
                         <img src="data:image/png;base64,{bin_logo}">
                     </div>
-                    <div style="text-align: center; width: 100%;">
-                        <h1 style='color: #ffffff; margin: 0px auto; text-align: center; font-family: sans-serif; font-size: 12px; width: 100%;'>
+                    <div style="
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        justify-content: center; 
+                        width: 100%; 
+                        text-align: center;
+                    ">
+                        <h1 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 12px; width: 100%;'>
                             SISTEMA
                         </h1>
-                        <h2 style='color: #ffffff; margin: 0px auto; text-align: center; font-family: sans-serif; font-size: 14px; width: 100%;'>
+                        <h2 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 14px; width: 100%; font-weight: bold;'>
                             GERÊNCIA DE AUDITORIA INTERNA
                         </h2>
-                        <p style='color: #ffcccc; margin: 0px auto; text-align: center; font-family: sans-serif; font-size: 9px; width: 100%;'>
+                        <p style='color: #ffcccc; margin: 0px; font-family: sans-serif; font-size: 9px; width: 100%;'>
                             Acesso Restrito!
                         </p>
                     </div>
