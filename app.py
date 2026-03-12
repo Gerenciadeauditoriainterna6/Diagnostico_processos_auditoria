@@ -67,7 +67,7 @@ def login_screen():
             flex-direction: column !important;
             width: 85% !important;
             margin-left: auto !important;
-            margin-right: auto !iportant;
+            margin-right: auto !important;
             opacity: 1 !important;
             }}
 
@@ -116,8 +116,7 @@ def login_screen():
                     <span style="
                         color: #822a2d; 
                         font-family: sans-serif; 
-                        font-size: 10px; 
-                        font-weight: bold; 
+                        font-size: 10px;  
                         display: block; 
                         margin-top: 20px; 
                         margin-bottom: -25px;
