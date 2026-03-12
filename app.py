@@ -37,63 +37,71 @@ def login_screen():
         # 3. CSS e HTML
         st.markdown(f"""
         <style>
-        /* 1. Remove as bordas laterais e ajusta o preenchimento superior */
-        [data-testid="stAppViewBlockContainer"] {{
-            padding-top: 2rem !important; /* Espaço para não colar no header */
-            padding-bottom: 0rem !important;
-            padding-left: 0rem !important;
-            padding-right: 0rem !important;
-            max-width: 100% !important; /* Estica o conteúdo até as bordas */
+        /* 1. O PULO DO GATO: Remove margens de todos os containers possíveis */
+        [data-testid="stAppViewContainer"], 
+        [data-testid="stHeader"], 
+        [data-testid="stMainViewContainer"], 
+        .main .block-container {{
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100vw !important; /* Força largura total da janela */
         }}
 
-        /* 2. Mantém o Header e remove apenas o Rodapé (Footer) */
+        /* 2. Mantém o Header visível, mas garante que ele não crie bordas */
         header {{
             visibility: visible;
-            background-color: rgba(255, 255, 255, 0.05) !important; /* Deixa o header semi-transparente */
-        }}
-        
-        footer {{
-            visibility: hidden;
+            width: 100%;
         }}
 
-        /* 3. Configuração do Fundo Imersivo */
+        /* 3. Ajuste do Fundo: Usamos fixed e 100vw para garantir cobertura total */
         .stApp {{
             background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover;
             background-position: center;
+            background-repeat: no-repeat;
             background-attachment: fixed;
-            width: 100vw;
-            height: 100vh;
+            width: 100vw !important;
+            height: 100vh !important;
         }}
 
-        /* 4. Posicionamento da Imagem no Canto */
+        /* 4. Reposicionando o conteúdo de Login */
+        /* Como tiramos os paddings, precisamos empurrar o card para o centro manualmente */
+        .login-container {{
+            padding-top: 10vh;
+            display: flex;
+            justify-content: center;
+        }}
+
         .imagem-posicionada {{
             position: absolute;
-            top: 60px; /* Aumentei para não bater no Header */
-            right: 20px;
-            width: 120px;
+            top: 60px;
+            right: 30px;
+            width: 130px;
             z-index: 1000;
         }}
 
-        /* 5. Estilo do Card de Login */
+        /* 5. Card de Login */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
-            background: rgba(255, 255, 255, 0.95); /* Levemente mais opaco para leitura */
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0px 15px 35px rgba(0,0,0,0.3);
-            margin-top: 5vh; /* Empurra o card um pouco para baixo */
-        }}
-
-        /* Centralizar textos dentro do card */
-        .login-card-text {{
-            text-align: center;
-            color: #1f1f1f;
+            box-shadow: 0px 15px 35px rgba(0,0,0,0.4);
+            margin: 0 auto; /* Centraliza horizontalmente */
+            max-width: 450px; /* Define uma largura máxima elegante para o card */
         }}
         </style>
         
         <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
     """, unsafe_allow_html=True)
+
+# Agora, dentro do seu login_screen, adicione a div marcadora antes das colunas
+st.markdown('<div class="login-container">', unsafe_allow_html=True)
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
+    # ... seus inputs e botões aqui ...
+st.markdown('</div>', unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
