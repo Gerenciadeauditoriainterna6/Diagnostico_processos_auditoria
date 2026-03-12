@@ -49,23 +49,26 @@ def login_screen():
     header {{ visibility: hidden; }}
     
     /* 3. O Retângulo Branco (Camada de Fundo) */
-    .retangulo-fundo {{
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 400px;
-        height: 520px; /* Ajuste conforme necessário */
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
-        box-shadow: 0px 20px 40px rgba(0,0,0,0.4);
-        z-index: 0; /* Camada base */
+    div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
+    display: flex;
+    justify-content: center;
+    margin-top: 5vh;
+    }}
+
+    [data-testid="stVerticalBlockBorder"] {{
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border: none !important;
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.3) !important;
+    border-radius: 20px !important;
+    padding: 40px 30px !important;
+    min-width: 380px; /* Garante que o card não esmague no zoom */
     }}
 
     /* 4. Container da Logo */
     .logo-container {{
         text-align: center;
-        margin-bottom: 20px;
+        margin-top: -65px;
+        margin-bottom: 10px;
     }}
 
     .logo-container img {{
@@ -86,22 +89,21 @@ def login_screen():
 
         # ----- LAYOUT DO LOGIN -----
 
-        st.markdown('<div class="retangulo-fundo"></div>', unsafe_allow_html=True)
-
         col1, col2, col3 = st.columns([1, 2, 1]) # Ajustado para o card não ficar largo demais
         with col2:
 
-            with st.container(border=False):
+            with st.container(border=True):
             
+                # Logo e Cabeçalho
                 st.markdown(f"""
-                        <div class="logo-container">
-                            <img src="data:image/png;base64,{bin_logo}">
-                        </div>
-                        <div style="text-align: center; margin-top: 20px;">
-                            <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
-                            <p style='color: #666; margin-bottom: 25px;'>FUSVE</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                    <div class="logo-container">
+                        <img src="data:image/png;base64,{bin_logo}" style="width: 120px; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">
+                    </div>
+                    <div style="text-align: center;">
+                        <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
+                        <p style='color: #666; margin-bottom: 25px;'>FUSVE</p>
+                    </div>
+                """, unsafe_allow_html=True)
             
             usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário")
             senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha")
