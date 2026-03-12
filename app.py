@@ -28,6 +28,9 @@ def get_base64(bin_file):
 bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
 bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
 
+import streamlit as st
+import time as time_module
+
 def login_screen():
     """Gerencia a tela de login e a sessão de usuário."""
     if "autenticado" not in st.session_state:
@@ -36,99 +39,86 @@ def login_screen():
     if not st.session_state["autenticado"]:
         # --- BLOCO CSS PARA DESIGN DO LOGIN ---
         st.markdown(f"""
-    <style>
-    /* 1. Fundo da tela de login */
-    [data-testid="stAppViewContainer"] {{
-        background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
-                    url("data:image/png;base64,{bin_fundo}");
-        background-size: cover !important;
-        background-position: center !important;
-    }}
-    
-    /* 2. Esconde o cabeçalho padrão */
-    header {{ visibility: hidden; }}
-    
-    /* Mira especificamente no quadro com borda do Streamlit */
-    div[data-testid="stVerticalBlockBorder"] {{
-    background-color: #ffffff !important; /* Branco sólido */
-    border: none !important;
-    box-shadow: 0px 15px 35px rgba(0,0,0,0.2) !important;
-    border-radius: 20px !important;
-    
-    /* O segredo para não empurrar os campos: */
-    padding: 60px 30px 30px 30px !important; 
-    display: block !important;
-    height: auto !important; /* Faz o retângulo seguir o conteúdo */
-    width: 100% !important;
-    }}
+            <style>
+            /* 1. Fundo da tela de login */
+            [data-testid="stAppViewContainer"] {{
+                background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
+                            url("data:image/png;base64,{bin_fundo}");
+                background-size: cover !important;
+                background-position: center !important;
+            }}
+            
+            /* 2. Esconde o cabeçalho padrão */
+            header {{ visibility: hidden; }}
+            
+            /* 3. O Card de Login (O Retângulo Branco) */
+            div[data-testid="stVerticalBlockBorder"] {{
+                background-color: #ffffff !important;
+                border: none !important;
+                box-shadow: 0px 15px 35px rgba(0,0,0,0.3) !important;
+                border-radius: 20px !important;
+                padding: 50px 30px 40px 30px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                width: 100% !important;
+            }}
 
-    [data-testid="stVerticalBlockBorder"] {{
-    background-color: rgba(255, 255, 255, 0) !important;
-    border: none !important;
-    box-shadow: 0px 10px 30px rgba(0,0,0,0.3) !important;
-    border-radius: 20px !important;
-    padding: 40px 30px !important;
-    min-width: 380px; /* Garante que o card não esmague no zoom */
-    }}
+            /* Ajuste para centralização vertical do card na tela */
+            div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
+                margin-top: 5vh;
+            }}
 
-    /* 4. Container da Logo */
-    .logo-container {{
-        text-align: center;
-        margin-top: -65px;
-        margin-bottom: 10px;
-        position: relative;
-        z-index: 10;
-    }}
-
-    .logo-container img {{
-        width: 120px;
-        height: auto;
-        background: transparent !important;
-        filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2)); /* Sombra suave só na logo */
-    }}
-
-    /* 5. Garante que os inputs do Streamlit fiquem ACIMA do retângulo */
-    [data-testid="stVerticalBlock"] {{
-        z-index: 1;
-        position: relative;
-    }}
-    </style>
-""", unsafe_allow_html=True)
-
+            /* 4. Estilo da Logo e Títulos */
+            .logo-container {{
+                text-align: center;
+                margin-top: -85px; /* Faz a logo flutuar na borda superior */
+                margin-bottom: 15px;
+                position: relative;
+                z-index: 10;
+            }}
+            .logo-container img {{
+                width: 110px;
+                height: auto;
+                background: transparent !important;
+                filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
+            }}
+            </style>
+        """, unsafe_allow_html=True)
 
         # ----- LAYOUT DO LOGIN -----
-
-        col1, col2, col3 = st.columns([1, 2, 1]) # Ajustado para o card não ficar largo demais
+        col1, col2, col3 = st.columns([0.5, 2, 0.5]) 
+        
         with col2:
-
+            # O container com border=True agora é o nosso retângulo branco sólido
             with st.container(border=True):
-            
-                # 1. Logo e Títulos
+                
+                # Injetamos a logo e os textos centralizados
                 st.markdown(f"""
                     <div class="logo-container">
-                        <img src="data:image/png;base64,{bin_logo}" style="width: 110px; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">
+                        <img src="data:image/png;base64,{bin_logo}">
                     </div>
                     <div style="text-align: center;">
-                        <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
-                        <p style='color: #666; margin-bottom: 20px;'>FUSVE</p>
+                        <h2 style='color: #1f1f1f; margin-bottom: 0; font-family: sans-serif;'>Auditoria Interna</h2>
+                        <p style='color: #666; margin-bottom: 25px; font-family: sans-serif;'>FUSVE</p>
                     </div>
                 """, unsafe_allow_html=True)
-            
-            usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário")
-            senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha")
 
-            st.markdown("<br>", unsafe_allow_html=True)
-        
-            st.write("") # Espaçamento
-            if st.button("Entrar", use_container_width=True, type="primary"):
-                if validar_login_no_banco(usuario, senha):
-                    st.session_state["autenticado"] = True
-                    st.success("Login realizado com sucesso!")
-                    time_module.sleep(1)
-                    st.rerun()
-                else:
-                    st.error("Usuário ou senha incorretos.")
-            
+                # Campos de entrada (Streamlit renderiza isso dentro do container branco)
+                usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário", key="user_login")
+                senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
+                
+                st.write("") # Espaço interno antes do botão
+                
+                # O botão encerra o conteúdo do card
+                if st.button("Entrar", use_container_width=True, type="primary"):
+                    if validar_login_no_banco(usuario, senha):
+                        st.session_state["autenticado"] = True
+                        st.success("Login realizado com sucesso!")
+                        time_module.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Usuário ou senha incorretos.")
+                        
         return False
     return True
 
