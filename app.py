@@ -36,52 +36,69 @@ def login_screen():
     if not st.session_state["autenticado"]:
         # --- BLOCO CSS PARA DESIGN DO LOGIN ---
         st.markdown(f"""
-            <style>
-            /* Fundo da tela de login */
-            [data-testid="stAppViewContainer"] {{
-                background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
-                            url("data:image/png;base64,{bin_fundo}");
-                background-size: cover !important;
-                background-position: center !important;
-            }}
-            
-            /* Esconde o cabeçalho padrão do Streamlit no login */
-            header {{ visibility: hidden; }}
-            
-            [data-testid="stVerticalBlockBorder"] {{
-            background-color: rgba(255, 255, 255, 0.95) !important;
-            border: none !important;
-            box-shadow: 0px 10px 25px rgba(0,0,0,0.3) !important;
-            padding: 40px !important;
-            border-radius: 15px !important;
-        }}
+    <style>
+    /* 1. Fundo da tela de login */
+    [data-testid="stAppViewContainer"] {{
+        background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),
+                    url("data:image/png;base64,{bin_fundo}");
+        background-size: cover !important;
+        background-position: center !important;
+    }}
+    
+    /* 2. Esconde o cabeçalho padrão */
+    header {{ visibility: hidden; }}
+    
+    /* 3. O Retângulo Branco (Camada de Fundo) */
+    .retangulo-fundo {{
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 400px;
+        height: 520px; /* Ajuste conforme necessário */
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0px 20px 40px rgba(0,0,0,0.4);
+        z-index: 0; /* Camada base */
+    }}
 
-            /* No seu style, deixe a logo assim: */
-            .logo-container {{
-                position: absolute;
-                top: -60px; /* Ajuste aqui para subir ou descer a logo */
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 100;
-            }}
+    /* 4. Container da Logo */
+    .logo-container {{
+        text-align: center;
+        margin-bottom: 20px;
+    }}
 
-            .logo-container img {{
-                width: 120px; /* Tamanho da sua logo */
-                height: auto; /* Mantém a proporção original sem deformar */
-                background: transparent !important; /* Garante que não tenha fundo */
-                box-shadow: none !important; /* Remove a sombra se não quiser o efeito flutuante */
-            }}
-            </style>
-        """, unsafe_allow_html=True)
+    .logo-container img {{
+        width: 120px;
+        height: auto;
+        background: transparent !important;
+        filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2)); /* Sombra suave só na logo */
+    }}
+
+    /* 5. Garante que os inputs do Streamlit fiquem ACIMA do retângulo */
+    [data-testid="stVerticalBlock"] {{
+        z-index: 1;
+        position: relative;
+    }}
+    </style>
+""", unsafe_allow_html=True)
 
 
         # ----- LAYOUT DO LOGIN -----
 
-        col1, col2, col3 = st.columns([0.5, 2, 0.5]) # Ajustado para o card não ficar largo demais
+        st.markdown('<div class="retangulo-fundo"></div>', unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns([1, 2, 1]) # Ajustado para o card não ficar largo demais
         with col2:
 
             with st.container(border=True):
-                st.markdown('<div class="login-vazia"></div>', unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align: center; margin-top: 5vh;">
+                    <img src="data:image/png;base64,{bin_logo}" class="logo-login">
+                    <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
+                    <p style='color: #666; margin-bottom: 30px;'>FUSVE</p>
+                </div>
+            """, unsafe_allow_html=True)
             
             st.markdown(f"""
                     <div class="logo-container">
