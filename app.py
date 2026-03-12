@@ -91,7 +91,7 @@ def login_screen():
         col1, col2, col3 = st.columns([1, 2, 1]) # Ajustado para o card não ficar largo demais
         with col2:
 
-            with st.container(border=True):
+            with st.container(border=False):
             
                 st.markdown(f"""
                         <div class="logo-container">
