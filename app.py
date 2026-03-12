@@ -119,7 +119,7 @@ def login_screen():
                         font-size: 10px;  
                         display: block; 
                         margin-top: 20px; 
-                        margin-bottom: -25px;
+                        margin-bottom: 0px;
                     ">
                         Acesso Restrito!
                     </span>
