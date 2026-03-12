@@ -107,30 +107,31 @@ def login_screen(bin_fundo, bin_logo):
     """, unsafe_allow_html=True)
 
     # 2. Estrutura de Elementos (Sem st.columns para evitar conflitos de largura)
+    with st.container():
     
-    # Marcador invisível que o CSS usa para aplicar o estilo do card
-    st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
+        # Marcador invisível que o CSS usa para aplicar o estilo do card
+        st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
     
-    # Renderiza a Logo Flutuante
-    st.markdown(f'<img src="data:image/png;base64,{bin_logo}" class="logo-flutuante">', unsafe_allow_html=True)
+        # Renderiza a Logo Flutuante
+        st.markdown(f'<img src="data:image/png;base64,{bin_logo}" class="logo-flutuante">', unsafe_allow_html=True)
 
-    # Título e Subtítulo centralizados
-    st.markdown("<h2 style='text-align: center; margin-bottom: 0; color: #1f1f1f;'>Auditoria Interna</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #666; margin-bottom: 20px;'>FUSVE</p>", unsafe_allow_html=True)
+        # Título e Subtítulo centralizados
+        st.markdown("<h2 style='text-align: center; margin-bottom: 0; color: #1f1f1f;'>Auditoria Interna</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #666; margin-bottom: 20px;'>FUSVE</p>", unsafe_allow_html=True)
 
-    # Campos de Entrada (Eles aparecerão dentro do card automaticamente)
-    usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
-    senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+        # Campos de Entrada (Eles aparecerão dentro do card automaticamente)
+        usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
+        senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
 
-    # Espaçamento e Botão
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-    if st.button("Acessar Sistema", use_container_width=True):
-        if usuario == "admin" and senha == "123": # Exemplo de validação
-            st.success("Acesso concedido!")
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("Usuário ou senha incorretos.")
+        # Espaçamento e Botão
+        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+        if st.button("Acessar Sistema", use_container_width=True):
+            if usuario == "admin" and senha == "123": # Exemplo de validação
+                st.success("Acesso concedido!")
+                st.session_state.logged_in = True
+                st.rerun()
+            else:
+                st.error("Usuário ou senha incorretos.")
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
