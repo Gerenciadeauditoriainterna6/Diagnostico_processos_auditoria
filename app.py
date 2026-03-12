@@ -92,23 +92,16 @@ def login_screen():
         with col2:
 
             with st.container(border=True):
-                st.markdown(f"""
-                <div style="text-align: center; margin-top: 5vh;">
-                    <img src="data:image/png;base64,{bin_logo}" class="logo-login">
-                    <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
-                    <p style='color: #666; margin-bottom: 30px;'>FUSVE</p>
-                </div>
-            """, unsafe_allow_html=True)
             
-            st.markdown(f"""
-                    <div class="logo-container">
-                        <img src="data:image/png;base64,{bin_logo}">
-                    </div>
-                    <div style="text-align: center; margin-top: 20px;">
-                        <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
-                        <p style='color: #666; margin-bottom: 25px;'>FUSVE</p>
-                    </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"""
+                        <div class="logo-container">
+                            <img src="data:image/png;base64,{bin_logo}">
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
+                            <p style='color: #666; margin-bottom: 25px;'>FUSVE</p>
+                        </div>
+                    """, unsafe_allow_html=True)
             
             usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário")
             senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha")
