@@ -479,7 +479,7 @@ def marcar_relatorio_gerado(codigo_processo):
 
 # --- 5. Execução do app ---
 
-if login_screen():
+if login_screen(bin_fundo, bin_logo):
 
     # --- SIDEBAR ---
     with st.sidebar:
