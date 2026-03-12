@@ -57,7 +57,7 @@ def login_screen():
             border: none !important;
             box-shadow: 0px 15px 35px rgba(0,0,0,0.3) !important;
             border-radius: 20px !important;
-            padding: 50px 15px 120px 15px !important;
+            padding: 50px 30px 80px 30px !important;
             display: flex !important;
             flex-direction: column !important;
             width: 100% !important;
@@ -67,6 +67,7 @@ def login_screen():
             /* FORÇA TOTAL: Caso o de cima falhe, este seletor atinge a classe que você viu no inspecionar */
             .stVerticalBlockBorder, .st-emotion-cache-139wymi, .st-emotion-cache-1r6slb0 {{
             background: linear-gradient(135deg, #6d8285 0%, #406064 100%) !important;
+            padding: 50px 30px 80px 30px !important;
             opacity: 1 !important;
             }}
 
