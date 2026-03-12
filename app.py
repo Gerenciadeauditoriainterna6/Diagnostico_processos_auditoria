@@ -52,12 +52,17 @@ def login_screen():
             /* O Streamlit envolve colunas em blocos específicos, miramos no container da coluna 2 */
             .login-card {{
                 background: rgba(255, 255, 255, 0.95);
-                padding: 60px 30px 30px 30px;
+                padding: 60px 30px 40px 30px;
                 border-radius: 15px;
                 box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
                 margin-top: 10vh;
                 position: relative;
                 width: 100%;
+            }}
+
+            div[data-testid="stVerticalBlock"]:has(> div.login-card){{
+                background: transparent !important;
+
             }}
 
             /* Logo flutuante */
