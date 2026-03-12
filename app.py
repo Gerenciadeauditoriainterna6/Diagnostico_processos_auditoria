@@ -23,8 +23,8 @@ def get_base64(bin_file):
 # estejam na mesma pasta do seu script Python.
 
 try:
-    bin_fundo = get_base64("fundo.jpg")  # Substitua pelo nome do seu arquivo de fundo
-    bin_logo = get_base64("logo.png")    # Substitua pelo nome da sua logo
+    bin_fundo = get_base64(r"\assets\imagem_fundo.png")  # Substitua pelo nome do seu arquivo de fundo
+    bin_logo = get_base64(r"\assets\logo_auditoria_recortada_circulo.png")    # Substitua pelo nome da sua logo
 except FileNotFoundError:
     st.error("Erro: Arquivos de imagem não encontrados. Verifique os nomes 'fundo.jpg' e 'logo.png'.")
     bin_fundo = ""
