@@ -65,7 +65,9 @@ def login_screen():
             
             display: flex !important;
             flex-direction: column !important;
-            width: 80% !important;
+            width: 85% !important;
+            margin-left: auto !important;
+            maring-right: auto !iportant;
             opacity: 1 !important;
             }}
 
@@ -104,9 +106,9 @@ def login_screen():
                         <img src="data:image/png;base64,{bin_logo}">
                     </div>
                     <div style="text-align: center;">
-                        <h1 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 12px'>SISTEMA</h1>
-                        <h2 style='color: #1f1f1f; margin: 0px; font-family: sans-serif; font-size: 14px'>GERÊNCIA DE AUDITORIA INTERNA</h2>
-                        <p style='color: #613032; margin: 0px; font-family: sans-serif; font-size: 9px'>Acesso Restrito!</p>
+                        <h1 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 14px; font-weight: bold'>SISTEMA</h1>
+                        <h2 style='color: #1f1f1f; margin: 0px; font-family: sans-serif; font-size: 18px; font-weight: bold'>GERÊNCIA DE AUDITORIA INTERNA</h2>
+                        <p style='color: #613032; margin: 0px; font-family: sans-serif; font-size: 11px'>Acesso Restrito!</p>
                     </div>
                 """, unsafe_allow_html=True)
 
