@@ -91,14 +91,21 @@ def login_screen():
                 filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
             }}
 
-            div[data-testid="stTextInput"] {{
-                margin-bottom: -15px !important;
+           /* 1. Faz APENAS o campo de senha subir em direção ao usuário */
+            div[data-testid="stTextInput"]:nth-of-type(2) {{
+            margin-top: -25px !important;
+            margin-bottom: 0px !important;
+            }}
+
+            /* 2. Mantém o botão na distância original ou empurra um pouco para baixo */
+            div.stButton {{
+            margin-top: 20px !important; /* Ajuste esse valor para a distância que deseja */
             }}
 
             button[kind="primary"] {{
-                background-color: #153e5a !important;
-                border: none !important;
-                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+            background-color: #153e5a !important;
+            border: none !important;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
             }}
 
             /* 3. COR DA MENSAGEM DE SUCESSO */
