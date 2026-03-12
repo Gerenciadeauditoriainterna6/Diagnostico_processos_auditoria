@@ -61,7 +61,7 @@ def login_screen():
             border-radius: 20px !important;
             
             /* Aqui garantimos o tamanho maior na parte de baixo (80px) */
-            padding: 5px 50px 50px 50px !important; 
+            padding: 15px 50px 30px 50px !important; 
             
             display: flex !important;
             flex-direction: column !important;
@@ -115,8 +115,6 @@ def login_screen():
                 # Campos de entrada (Streamlit renderiza isso dentro do container branco)
                 usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
                 senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
-                
-                st.write("") # Espaço interno antes do botão
                 
                 # O botão encerra o conteúdo do card
                 if st.button("Entrar", use_container_width=True, type="primary"):
