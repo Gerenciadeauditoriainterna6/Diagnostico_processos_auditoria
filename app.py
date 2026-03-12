@@ -48,32 +48,30 @@ def login_screen():
             /* Esconde o cabeçalho padrão do Streamlit no login */
             header {{ visibility: hidden; }}
             
-            /* Estilização do Card de Login */
-            /* O Streamlit envolve colunas em blocos específicos, miramos no container da coluna 2 */
-            div[data-testid="stVerticalBlock"]:has(> div > div > .login-vazia) {{
-            background: rgba(255, 255, 255, 0.95) !important;
-            padding: 50px 30px 30px 30px !important;
-            border-radius: 15px !important;
+            [data-testid="stVerticalBlockBorder"] {{
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            border: none !important;
             box-shadow: 0px 10px 25px rgba(0,0,0,0.3) !important;
-            margin-top: 10vh !important;
-            }}
+            padding: 40px !important;
+            border-radius: 15px !important;
+        }}
 
-
-            /* Logo flutuante */
+            /* Mantemos a logo flutuante como estava */
             .logo-container {{
-                position: absolute;
-                top: -50px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 100;
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
             }}
+            
             .logo-container img {{
-                width: 100px;
-                height: 100px;
-                background: white;
-                border-radius: 50%;
-                padding: 5px;
-                box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            padding: 5px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
             }}
             </style>
         """, unsafe_allow_html=True)
