@@ -4,96 +4,37 @@ import pandas as pd
 from sqlalchemy import text
 from database import engine
 import time as time_module
-
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco
 )
-import base64
 
-# --- 1. CONFIGURAÇÃO INICIAL (DEVE SER A PRIMEIRA LINHA) ---
-st.set_page_config(page_title="Diagnóstico FUSVE", layout="wide")
+# --- 1. CONFIGURAÇÃO INICIAL ---
+st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
-# --- 2. FUNÇÕES DE SUPORTE ---
-def get_base64(bin_file):
-    """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
-    try:
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except Exception:
-        return ""
+def login_screen():
+    """Gerencia a tela de login e a sessão de usuário."""
+    if "autenticado" not in st.session_state:
+        st.session_state["autenticado"] = False
 
-# Carregamento das imagens
-bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
-bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
-
-# --- 3. TELA DE LOGIN ---
-def login_screen(bin_fundo, bin_logo):
-    st.markdown(f"""
-        <style>
-        /* Reset e Background */
-        html, body, [data-testid="stAppViewContainer"] {{
-            margin: 0 !important; padding: 0 !important;
-            overflow: hidden !important; height: 100vh; width: 100vw;
-        }}
-        [data-testid="stMainViewContainer"], [data-testid="stAppViewBlockContainer"], .main .block-container {{
-            max-width: 100vw !important; padding: 0px !important; margin: 0px !important;
-        }}
-        .stApp {{
-            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
-                        url("data:image/png;base64,{bin_fundo}");
-            background-size: cover !important;
-            background-position: center !important;
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        }}
-
-        /* Seletor do Card Corrigido */
-        [data-testid="stVerticalBlock"]:has(div.login-card) {{
-            background: rgba(255, 255, 255, 0.95);
-            padding: 60px 35px 35px 35px;
-            border-radius: 15px;
-            width: 380px;
-            margin: 15vh auto 0 auto;
-            box-shadow: 0px 15px 35px rgba(0,0,0,0.4);
-            position: relative;
-        }}
-
-        .logo-flutuante {{
-            position: absolute; top: -50px; left: 50%;
-            transform: translateX(-50%); width: 100px; height: 100px;
-            background: white; padding: 10px; border-radius: 50%;
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.2); z-index: 1001;
-        }}
-
-        div.login-card {{ display: none; height: 0px; position: absolute; }}
-        header {{ visibility: hidden; }}
-        footer {{ display: none !important; }}
-        </style>
-    """, unsafe_allow_html=True)
-
-    with st.container():
-        st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
-        st.markdown(f'<img src="data:image/png;base64,{bin_logo}" class="logo-flutuante">', unsafe_allow_html=True)
-
-        st.markdown("<h2 style='text-align: center; margin-bottom: 0; color: #1f1f1f;'>Auditoria Interna</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #666; margin-bottom: 20px;'>FUSVE</p>", unsafe_allow_html=True)
-
-        usuario_digitado = st.text_input("Usuário", placeholder="Digite seu usuário", key="login_user")
-        senha_digitada = st.text_input("Senha", type="password", placeholder="Digite sua senha", key="login_pass")
-
-        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-        if st.button("Acessar Sistema", use_container_width=True):
-            if usuario_digitado and senha_digitada:
-                if validar_login_no_banco(usuario_digitado, senha_digitada):
-                    st.session_state.logged_in = True
-                    st.session_state.usuario = usuario_digitado
-                    st.rerun()
+    if not st.session_state["autenticado"]:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.title("🔐 Formulário de Auditoria Interna - FUSVE")
+            usuario = st.text_input("Usuário")
+            senha = st.text_input("Senha", type="password")
+            
+            if st.button("Entrar", use_container_width=True, type="primary"):
+                if validar_login_no_banco(usuario, senha):
+                    st.session_state["autenticado"] = True
+                    st.success("Login realizado com sucesso!")
+                    time_module.sleep(1)  # Pequena pausa para o usuário ver a mensagem
+                    st.rerun()  # Rerun para atualizar a interface após o login
                 else:
-                    st.error("Usuário/Senha incorretos ou conta inativa.")
-            else:
-                st.warning("Preencha todos os campos.")
+                    st.error("Usuário ou senha incorretos.")
+        return False
+    return True
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
@@ -440,7 +381,7 @@ def marcar_relatorio_gerado(codigo_processo):
 
 # --- 5. Execução do app ---
 
-if login_screen(bin_fundo, bin_logo):
+if login_screen():
 
     # --- SIDEBAR ---
     with st.sidebar:
