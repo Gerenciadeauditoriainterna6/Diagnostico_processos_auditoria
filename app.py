@@ -36,17 +36,18 @@ def login_screen():
 
         # 3. CSS e HTML
         st.markdown(f"""
+
         <style>
-        /* 1. RESET TOTAL DA PÁGINA (Ignora comandos de força do Streamlit) */
+        /* 1. RESET TOTAL E REMOÇÃO DE ROLAGEM */
         html, body, [data-testid="stAppViewContainer"] {{
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important; /* Elimina barra de rolagem */
+            overflow: hidden !important; /* Trava a tela para não rolar */
             height: 100vh;
             width: 100vw;
         }}
 
-        /* 2. ELIMINAR AS BORDAS LATERAIS DO CONTAINER DE CONTEÚDO */
+        /* 2. LIMPEZA DAS BORDAS LATERAIS */
         [data-testid="stMainViewContainer"], 
         [data-testid="stAppViewBlockContainer"], 
         .main .block-container {{
@@ -55,49 +56,53 @@ def login_screen():
             margin: 0px !important;
         }}
 
-        /* 3. IMAGEM DE FUNDO ABSOLUTA */
+        /* 3. IMAGEM DE FUNDO */
         .stApp {{
-            background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
-            background-repeat: no-repeat !important;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
         }}
 
-        /* 4. CARD DE LOGIN COM TAMANHO IDEAL (Nem grande, nem pequeno) */
-        /* Usamos 'vh' para centralizar verticalmente e 'px' para largura fixa */
+        /* 4. O CARD DE LOGIN (Ajustado para não achatar o conteúdo) */
+        /* Remova as colunas (st.columns) do seu código python para usar este card direto */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
             background: rgba(255, 255, 255, 0.95);
-            padding: 25px;
+            padding: 60px 40px 40px 40px; /* Mais espaço no topo para a logo flutuante */
             border-radius: 15px;
-            width: 500px; /* Tamanho horizontal ideal para formulários */
-            margin: 18vh auto 0 auto; /* Centraliza horizontalmente e dá topo */
+            width: 380px;                /* Largura fixa ideal */
+            margin: 20vh auto 0 auto;    /* Centraliza na tela */
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;          /* Necessário para a logo flutuar sobre ele */
         }}
 
-        /* 5. LOGO DA AUDITORIA NO CANTO */
-        .imagem-posicionada {{
+        /* 5. LOGO FLUTUANTE NO TOPO DO CARD */
+        .logo-card {{
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 110px;
-            z-index: 1000;
+            top: -50px;                 /* Joga a metade da logo para fora do card */
+            left: 50%;                  /* Posiciona no meio horizontal */
+            transform: translateX(-50%); /* Ajuste fino de centralização */
+            width: 100px;
+            height: 100px;
+            background: white;          /* Fundo branco atrás da logo */
+            padding: 10px;
+            border-radius: 50%;         /* Deixa a logo em um círculo */
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }}
+
+        /* 6. REMOVER O CARD BRANCO VAZIO */
+        /* Isso garante que a div marcadora não ocupe espaço visual */
+        div.login-card {{
+            display: none;
         }}
 
         /* OCULTAR ELEMENTOS NATIVOS */
-        header {{ visibility: hidden; }}
-        footer {{ display: none !important; }}
-        #MainMenu {{ visibility: hidden; }}
+        header, footer {{ display: none !important; }}
         </style>
+""", unsafe_allow_html=True)
         
-        <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
-    """, unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             # DIV Marcadora para o CSS aplicar o estilo de card
