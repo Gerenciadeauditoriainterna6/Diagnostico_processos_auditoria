@@ -92,14 +92,14 @@ def login_screen():
             }}
 
            /* 1. Faz APENAS o campo de senha subir em direção ao usuário */
-            div[data-testid="stTextInput"]:nth-of-type(2) {{
+            div[data-testid="stTextInput"]:has(#text_input_2){{
             margin-top: -25px !important;
             margin-bottom: 0px !important;
             }}
 
             /* 2. Mantém o botão na distância original ou empurra um pouco para baixo */
             div.stButton {{
-            margin-top: 20px !important; /* Ajuste esse valor para a distância que deseja */
+            margin-top: 15px !important; /* Ajuste esse valor para a distância que deseja */
             }}
 
             button[kind="primary"] {{
