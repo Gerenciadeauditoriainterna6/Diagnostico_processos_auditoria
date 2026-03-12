@@ -37,46 +37,55 @@ def login_screen():
         # 3. CSS e HTML
         st.markdown(f"""
         <style>
-        /* 1. ESTICA O CONTEÚDO PARA AS LATERAIS */
-        /* Removemos o limite de largura de todas as div principais */
-        [data-testid="stAppViewBlockContainer"], 
-        .main .block-container, 
-        [data-testid="stAppViewContainer"] {{
-            max-width: 100vw !important;
-            padding-left: 0px !important;
-            padding-right: 0px !important;
-            padding-top: 0px !important;
-            margin-left: 0px !important;
-            margin-right: 0px !important;
+        /* 1. ATAQUE DIRETO AO CONTAINER DE CONTEÚDO */
+        /* Isso remove as bordas brancas laterais e o espaço vazio no topo */
+        .main .block-container {{
+            max-width: 100% !important;
+            padding: 0rem !important;
+            margin: 0rem !important;
         }}
 
-        /* 2. FORÇA O FUNDO A IGNORAR QUALQUER MARGEM */
+        /* 2. CONFIGURAÇÃO DO FUNDO NA CAMADA CERTA */
+        /* Usamos a classe .stApp para o fundo cobrir tudo */
         .stApp {{
-            background: url("data:image/png;base64,{bin_fundo}");
-            background-size: contain !important; /* Ou 100% 100% se quiser esticar */
-            background-position: center center !important;
-            background-attachment: fixed !important;
+            background-image: url("data:image/png;base64,{bin_fundo}");
+            background-size: cover !important;
+            background-position: center !important;
             background-repeat: no-repeat !important;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw !important;
-            height: 100vh !important;
+            background-attachment: fixed !important;
         }}
 
-        /* 3. LIMPA O RODAPÉ */
-        footer {{visibility: hidden !important;}}
-        header {{background: transparent !important;}} /* Deixa o header "invisível" sobre o fundo */
+        /* 3. REMOVER O RODAPÉ (FOOTER) PARA ELIMINAR ROLAGEM */
+        footer {{
+            display: none !important;
+        }}
+        
+        /* 4. MANTER O HEADER (OPCIONAL: DEIXAR TRANSPARENTE) */
+        header {{
+            background-color: rgba(0,0,0,0) !important;
+        }}
 
-        /* 4. SEU CARD DE LOGIN (Ajustado para não sumir com o padding zero) */
-        /* Como zeramos tudo, precisamos garantir que o card não encoste no topo */
+        /* 5. LOGO DA AUDITORIA NO CANTO */
+        .imagem-posicionada {{
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            z-index: 1000;
+        }}
+
+        /* 6. AJUSTE DO SEU CARD DE LOGIN */
+        /* Como zeramos os paddings da página, precisamos dar um 'respiro' no card */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
             background: rgba(255, 255, 255, 0.9);
             padding: 40px;
             border-radius: 15px;
-            margin-top: 15vh; /* Empurra o login para baixo */
+            margin-top: 10vh; /* Empurra o login para o centro da tela */
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
         }}
         </style>
+        
+        <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
     """, unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1, 2, 1])
