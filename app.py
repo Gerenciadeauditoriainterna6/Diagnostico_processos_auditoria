@@ -13,7 +13,7 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
-st.set_page_config(page_title="Diagnóstico FUSVE", layout="wide")
+st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
