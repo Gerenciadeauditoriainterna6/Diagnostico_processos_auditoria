@@ -105,10 +105,16 @@ def login_screen():
                     <div class="logo-container">
                         <img src="data:image/png;base64,{bin_logo}">
                     </div>
-                    <div style="text-align: center;">
-                        <h1 style='color: #ffffff; margin: 0px; font-family: sans-serif; font-size: 14px; font-weight: bold'>SISTEMA</h1>
-                        <h2 style='color: #1f1f1f; margin: 0px; font-family: sans-serif; font-size: 18px; font-weight: bold'>GERÊNCIA DE AUDITORIA INTERNA</h2>
-                        <p style='color: #613032; margin: 0px; font-family: sans-serif; font-size: 11px'>Acesso Restrito!</p>
+                    <div style="text-align: center; width: 100%;">
+                        <h1 style='color: #ffffff; margin: 0px auto; text-align: center; font-family: sans-serif; font-size: 12px; width: 100%;'>
+                            SISTEMA
+                        </h1>
+                        <h2 style='color: #ffffff; margin: 0px auto; text-align: center; font-family: sans-serif; font-size: 14px; width: 100%;'>
+                            GERÊNCIA DE AUDITORIA INTERNA
+                        </h2>
+                        <p style='color: #ffcccc; margin: 0px auto; text-align: center; font-family: sans-serif; font-size: 9px; width: 100%;'>
+                            Acesso Restrito!
+                        </p>
                     </div>
                 """, unsafe_allow_html=True)
 
