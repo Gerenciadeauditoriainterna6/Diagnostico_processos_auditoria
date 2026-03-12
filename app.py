@@ -37,45 +37,40 @@ def login_screen():
         # 3. CSS e HTML
         st.markdown(f"""
         <style>
-        /* 1. Remove as margens internas e espaços vazios no topo */
+        /* 1. Remove as bordas laterais e ajusta o preenchimento superior */
         [data-testid="stAppViewBlockContainer"] {{
-            padding-top: 0rem !important;
+            padding-top: 2rem !important; /* Espaço para não colar no header */
             padding-bottom: 0rem !important;
             padding-left: 0rem !important;
             padding-right: 0rem !important;
+            max-width: 100% !important; /* Estica o conteúdo até as bordas */
         }}
 
-        /* 2. Remove o cabeçalho (Header) e o rodapé corretamente */
+        /* 2. Mantém o Header e remove apenas o Rodapé (Footer) */
         header {{
-            visibility: hidden; /* Corrigido de visibulity */
-            height: 0px;
+            visibility: visible;
+            background-color: rgba(255, 255, 255, 0.05) !important; /* Deixa o header semi-transparente */
         }}
         
         footer {{
             visibility: hidden;
         }}
 
-        /* 3. Ajuste do fundo */
+        /* 3. Configuração do Fundo Imersivo */
         .stApp {{
-            background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)), 
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             width: 100vw;
-            height: 100vh; /* Adicionado ponto e vírgula */
+            height: 100vh;
         }}
 
-        /* 4. Centralização e Elementos Posicionados */
-        .main {{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }}
-
+        /* 4. Posicionamento da Imagem no Canto */
         .imagem-posicionada {{
             position: absolute;
-            top: 20px;
+            top: 60px; /* Aumentei para não bater no Header */
             right: 20px;
             width: 120px;
             z-index: 1000;
@@ -83,10 +78,17 @@ def login_screen():
 
         /* 5. Estilo do Card de Login */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
-            background: rgba(255, 255, 255, 0.9);
-            padding: 30px;
+            background: rgba(255, 255, 255, 0.95); /* Levemente mais opaco para leitura */
+            padding: 40px;
             border-radius: 15px;
-            box-shadow: 0px 10px 20px rgba(0,0,0,0.2);
+            box-shadow: 0px 15px 35px rgba(0,0,0,0.3);
+            margin-top: 5vh; /* Empurra o card um pouco para baixo */
+        }}
+
+        /* Centralizar textos dentro do card */
+        .login-card-text {{
+            text-align: center;
+            color: #1f1f1f;
         }}
         </style>
         
