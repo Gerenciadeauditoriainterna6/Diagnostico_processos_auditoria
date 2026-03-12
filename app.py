@@ -49,10 +49,15 @@ def login_screen():
     header {{ visibility: hidden; }}
     
     /* 3. O Retângulo Branco (Camada de Fundo) */
-    div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
-    display: flex;
-    justify-content: center;
-    margin-top: 5vh;
+    div[data-testid="stVerticalBlockBorder"] {{
+    background-color: rgba(255, 255, 255, 0.98) !important; /* Fundo sólido */
+    border: none !important;
+    box-shadow: 0px 15px 35px rgba(0,0,0,0.4) !important;
+    border-radius: 20px !important;
+    padding: 50px 30px 40px 30px !important; /* Aumentei o padding inferior */
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 450px !important; /* Garante que o retângulo seja longo o suficiente */
     }}
 
     [data-testid="stVerticalBlockBorder"] {{
@@ -69,6 +74,8 @@ def login_screen():
         text-align: center;
         margin-top: -65px;
         margin-bottom: 10px;
+        position: relative;
+        z-index: 10;
     }}
 
     .logo-container img {{
@@ -94,14 +101,14 @@ def login_screen():
 
             with st.container(border=True):
             
-                # Logo e Cabeçalho
+                # 1. Logo e Títulos
                 st.markdown(f"""
                     <div class="logo-container">
-                        <img src="data:image/png;base64,{bin_logo}" style="width: 120px; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">
+                        <img src="data:image/png;base64,{bin_logo}" style="width: 110px; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));">
                     </div>
                     <div style="text-align: center;">
                         <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
-                        <p style='color: #666; margin-bottom: 25px;'>FUSVE</p>
+                        <p style='color: #666; margin-bottom: 20px;'>FUSVE</p>
                     </div>
                 """, unsafe_allow_html=True)
             
