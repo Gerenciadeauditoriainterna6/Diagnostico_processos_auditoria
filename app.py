@@ -53,7 +53,7 @@ def login_screen():
         /* 2. FORÇA O FUNDO A IGNORAR QUALQUER MARGEM */
         .stApp {{
             background: url("data:image/png;base64,{bin_fundo}");
-            background-size:100% 100% !important; /* Ou 100% 100% se quiser esticar */
+            background-size: contain !important; /* Ou 100% 100% se quiser esticar */
             background-position: center center !important;
             background-attachment: fixed !important;
             background-repeat: no-repeat !important;
