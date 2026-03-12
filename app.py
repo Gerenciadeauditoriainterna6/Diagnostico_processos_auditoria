@@ -40,7 +40,7 @@ def login_screen():
             .stApp {{
                 background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)), 
                             url("data:image/png;base64,{bin_fundo}");
-                background-size: contain;
+                background-size: 100% 100%;
             }}
 
             .imagem-posicionada {{
