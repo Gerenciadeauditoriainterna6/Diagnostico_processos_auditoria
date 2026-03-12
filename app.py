@@ -65,6 +65,12 @@ def login_screen():
             opacity: 1 !important;
             }}
 
+            /* FORÇA TOTAL: Caso o de cima falhe, este seletor atinge a classe que você viu no inspecionar */
+            .stVerticalBlockBorder, .st-emotion-cache-139wymi, .st-emotion-cache-1r6slb0 {{
+            background-color: #FFFFFF !important;
+            opacity: 1 !important;
+            }}
+
             /* Ajuste para centralização vertical do card na tela */
             div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
                 margin-top: 5vh;
