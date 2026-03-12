@@ -13,7 +13,7 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 import base64
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
-st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
+st.set_page_config(page_title="Diagnóstico FUSVE", layout="wide")
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
@@ -77,9 +77,10 @@ def login_screen(bin_fundo, bin_logo):
             padding: 60px 35px 35px 35px; /* Espaço extra no topo para a logo */
             border-radius: 15px;
             width: 380px;                /* Largura fixa para evitar achatamento */
-            margin: 20vh auto 0 auto;    /* Centraliza horizontalmente e dá 20% de topo */
+            margin: 15vh auto 0 auto;    /* Centraliza horizontalmente e dá 20% de topo */
             box-shadow: 0px 15px 35px rgba(0,0,0,0.4);
             position: relative;          /* Base para o posicionamento da logo */
+            display: block !important;
         }}
 
         /* LOGO FLUTUANTE: Metade para fora do card, em formato circular */
