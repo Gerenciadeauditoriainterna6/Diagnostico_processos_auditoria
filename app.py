@@ -37,28 +37,32 @@ def login_screen():
         # 3. CSS e HTML
         st.markdown(f"""
             <style>
-            /* 1. FORÇAR A LARGURA TOTAL DO CONTAINER DO STREAMLIT */
-            /* Isso elimina as colunas brancas laterais */
-            [data-testid="stAppViewBlockContainer"] {{
-                max-width: 100% !important;
+            /* 1. ELIMINAR MARGENS LATERAIS (O ponto principal) */
+            /* O Streamlit limita a largura aqui. Forçamos para 100% da tela. */
+            .main .block-container {{
+                max-width: 100vw !important;
                 padding-left: 0rem !important;
                 padding-right: 0rem !important;
                 padding-top: 0rem !important;
+                padding-bottom: 0rem !important;
             }}
 
-            /* 2. ESTICAR A IMAGEM DE FUNDO (MESMO QUE DISTORÇA) */
+            /* 2. ELIMINAR RODAPÉ (FOOTER) */
+            footer {{
+                display: none !important;
+                visibility: hidden;
+            }}
+
+            /* 3. FUNDO EM TELA CHEIA SEM BORDAS */
             .stApp {{
-                background-image: url("data:image/png;base64,{bin_fundo}");
-                
-                /* O segredo está aqui: 100% de largura e 100% de altura */
-                background-size: 100% 100% !important;
-                
+                background: url("data:image/png;base64,{bin_fundo}");
+                background-size: 100% 100% !important; /* Estica para ignorar qualquer borda */
                 background-position: center !important;
                 background-repeat: no-repeat !important;
                 background-attachment: fixed !important;
             }}
 
-            /* Mantendo sua logo posicionada */
+            /* Mantendo sua logo posicionada no canto */
             .imagem-posicionada {{
                 position: absolute;
                 top: 20px;
