@@ -112,7 +112,7 @@ def login_screen():
                     <span style="color: #ffffff; font-family: sans-serif; font-size: 14px; font-weight: bold; display: block;">
                         GERÊNCIA DE AUDITORIA INTERNA
                     </span>
-                    <span style="color: #822a2d; font-family: sans-serif; margint-top; 5px font-size: 9px; font-weight: bold; display: block;">
+                    <span style="color: #822a2d; font-family: sans-serif; margint-bottom; 0px font-size: 9px; font-weight: bold; display: block;">
                         Acesso Restrito!
                     </span>
                 </div>
