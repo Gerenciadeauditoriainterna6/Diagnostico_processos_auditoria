@@ -36,32 +36,62 @@ def login_screen():
 
         # 3. CSS e HTML
         st.markdown(f"""
-            <style>
-            .stApp {{
-                background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)), 
-                            url("data:image/png;base64,{bin_fundo}");
-                background-size: 100% 100%;
-            }}
+        <style>
+        /* 1. Remove as margens internas e espaços vazios no topo */
+        [data-testid="stAppViewBlockContainer"] {{
+            padding-top: 0rem !important;
+            padding-bottom: 0rem !important;
+            padding-left: 0rem !important;
+            padding-right: 0rem !important;
+        }}
 
-            .imagem-posicionada {{
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                width: 120px;
-                z-index: 1000;
-            }}
+        /* 2. Remove o cabeçalho (Header) e o rodapé corretamente */
+        header {{
+            visibility: hidden; /* Corrigido de visibulity */
+            height: 0px;
+        }}
+        
+        footer {{
+            visibility: hidden;
+        }}
 
-            /* Seletor corrigido para o card de login */
-            [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
-                background: rgba(255, 255, 255, 0.9);
-                padding: 30px;
-                border-radius: 15px;
-                box-shadow: 0px 10px 20px rgba(0,0,0,0.2);
-            }}
-            </style>
-            
-            <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
-        """, unsafe_allow_html=True)
+        /* 3. Ajuste do fundo */
+        .stApp {{
+            background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)), 
+                        url("data:image/png;base64,{bin_fundo}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            width: 100vw;
+            height: 100vh; /* Adicionado ponto e vírgula */
+        }}
+
+        /* 4. Centralização e Elementos Posicionados */
+        .main {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }}
+
+        .imagem-posicionada {{
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 120px;
+            z-index: 1000;
+        }}
+
+        /* 5. Estilo do Card de Login */
+        [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.2);
+        }}
+        </style>
+        
+        <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
+    """, unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
