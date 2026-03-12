@@ -50,8 +50,8 @@ def login_screen():
             
             /* Estilização do Card de Login */
             /* O Streamlit envolve colunas em blocos específicos, miramos no container da coluna 2 */
-            div[data-testid="stVerticalBlock"]:has(> div.login-card) {{
-                background: rgba(255, 255, 255, 0.95);
+            div[data-testid="stVerticalBlock"] {{
+                background: white;
                 padding: 60px 30px 30px 30px;
                 border-radius: 15px;
                 box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
