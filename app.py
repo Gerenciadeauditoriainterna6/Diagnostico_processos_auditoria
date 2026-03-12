@@ -95,13 +95,13 @@ def login_screen():
         <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
     """, unsafe_allow_html=True)
 
-# Agora, dentro do seu login_screen, adicione a div marcadora antes das colunas
-st.markdown('<div class="login-container">', unsafe_allow_html=True)
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
-    # ... seus inputs e botões aqui ...
-st.markdown('</div>', unsafe_allow_html=True)
+        # Agora, dentro do seu login_screen, adicione a div marcadora antes das colunas
+        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
+            # ... seus inputs e botões aqui ...
+        st.markdown('</div>', unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
