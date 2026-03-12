@@ -50,20 +50,14 @@ def login_screen():
             
             /* Estilização do Card de Login */
             /* O Streamlit envolve colunas em blocos específicos, miramos no container da coluna 2 */
-            .login-card {{
-                background: rgba(255, 255, 255, 0.95);
-                padding: 60px 30px 100px 30px;
-                border-radius: 15px;
-                box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
-                margin-top: 10vh;
-                position: relative;
-                width: 100%;
+            div[data-testid="stVerticalBlock"]:has(> div > div > .login-vazia) {{
+            background: rgba(255, 255, 255, 0.95) !important;
+            padding: 50px 30px 30px 30px !important;
+            border-radius: 15px !important;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.3) !important;
+            margin-top: 10vh !important;
             }}
 
-            div[data-testid="stVerticalBlock"]:has(> div.login-card){{
-                background: transparent !important;
-
-            }}
 
             /* Logo flutuante */
             .logo-container {{
@@ -90,18 +84,16 @@ def login_screen():
         col1, col2, col3 = st.columns([0.5, 2, 0.5]) # Ajustado para o card não ficar largo demais
         with col2:
 
+            with st.container():
+                st.markdown('<div class="login-vazia"></div>', unsafe_allow_html=True)
+            
             st.markdown(f"""
-                <div class="login-card">
                     <div class="logo-container">
                         <img src="data:image/png;base64,{bin_logo}">
                     </div>
                     <h2 style='text-align: center; color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
                     <p style='text-align: center; color: #666; margin-bottom: 25px;'>FUSVE</p>
-            """, unsafe_allow_html=True)
-            
-            # Os campos do Streamlit entram LOGO ABAIXO da abertura do card
-            # Para eles "subirem" para dentro do card, usaremos um truque de margem negativa
-            st.markdown('<div style="margin-top: -240px; padding: 0 30px 30px 30px;">', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
             
             usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário")
             senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha")
@@ -115,9 +107,7 @@ def login_screen():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha incorretos.")
-            # FECHAMOS O CARD COM A DIV ABAIXO
-
-            st.markdown('</div>', unsafe_allow_html=True)
+            
         return False
     return True
 
