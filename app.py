@@ -82,19 +82,23 @@ def login_screen():
         col1, col2, col3 = st.columns([0.5, 2, 0.5]) # Ajustado para o card não ficar largo demais
         with col2:
 
-            with st.container():
+            with st.container(border=True):
                 st.markdown('<div class="login-vazia"></div>', unsafe_allow_html=True)
             
             st.markdown(f"""
                     <div class="logo-container">
                         <img src="data:image/png;base64,{bin_logo}">
                     </div>
-                    <h2 style='text-align: center; color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
-                    <p style='text-align: center; color: #666; margin-bottom: 25px;'>FUSVE</p>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <h2 style='color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
+                        <p style='color: #666; margin-bottom: 25px;'>FUSVE</p>
+                    </div>
                 """, unsafe_allow_html=True)
             
             usuario = st.text_input("Usuário", placeholder="👤 Digite seu usuário")
             senha = st.text_input("Senha", type="password", placeholder="🔑 Digite sua senha")
+
+            st.markdown("<br>", unsafe_allow_html=True)
         
             st.write("") # Espaçamento
             if st.button("Entrar", use_container_width=True, type="primary"):
