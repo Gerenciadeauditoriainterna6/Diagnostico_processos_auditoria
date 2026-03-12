@@ -99,7 +99,15 @@ def login_screen(bin_fundo, bin_logo):
         }}
 
         /* ESCONDER ELEMENTOS INDESEJADOS */
-        div.login-card {{ display: none; }} /* Esconde o marcador de texto */
+        /* 6. ESCONDER O MARCADOR TOTALMENTE */
+        /* 6. ESCONDER O MARCADOR TOTALMENTE */
+        div.login-card {{
+            display: none;       /* Remove do fluxo de visualização */
+            height: 0px;         /* Garante que não tenha altura */
+            margin: 0px;         /* Remove margens que podem empurrar o título */
+            padding: 0px;        /* Remove preenchimentos */
+            position: absolute;  /* Tira do fluxo para não ocupar espaço entre a logo e o título */
+        }}
         header {{ visibility: hidden; }}    /* Esconde barra superior */
         footer {{ display: none !important; }} /* Remove rodapé e evita rolagem */
         [data-testid="stHeader"] {{ background: transparent !important; }}
@@ -120,18 +128,25 @@ def login_screen(bin_fundo, bin_logo):
         st.markdown("<p style='text-align: center; color: #666; margin-bottom: 20px;'>FUSVE</p>", unsafe_allow_html=True)
 
         # Campos de Entrada (Eles aparecerão dentro do card automaticamente)
-        usuario = st.text_input("Usuário", placeholder="Digite seu usuário")
-        senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+        usuario_digitado = st.text_input("Usuário", placeholder="Digite seu usuário")
+        senha_digitada = st.text_input("Senha", type="password", placeholder="Digite sua senha")
 
         # Espaçamento e Botão
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
         if st.button("Acessar Sistema", use_container_width=True):
-            if usuario == "admin" and senha == "123": # Exemplo de validação
-                st.success("Acesso concedido!")
-                st.session_state.logged_in = True
-                st.rerun()
+            if usuario_digitado and senha_digitada:
+                # CHAMADA DA SUA FUNÇÃO DE BANCO
+                sucesso = validar_login_no_banco(usuario_digitado, senha_digitada)
+                
+                if sucesso:
+                    st.success("Login realizado com sucesso!")
+                    st.session_state.logged_in = True
+                    st.session_state.usuario = usuario_digitado # Opcional: salva o nome do user logado
+                    st.rerun()
+                else:
+                    st.error("Usuário/Senha incorretos ou conta inativa.")
             else:
-                st.error("Usuário ou senha incorretos.")
+                st.warning("Preencha todos os campos para continuar.")
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
