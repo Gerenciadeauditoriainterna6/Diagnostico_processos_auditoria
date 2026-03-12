@@ -120,7 +120,7 @@ def login_screen():
             /* --- Novo estilo para a logo da FUSVE (fora do card) --- */
             .fusve-container {{
                 text-align: center; /* Centraliza horizontalmente */
-                margin-top: 40px;   /* Espaço entre o final do card e a logo */
+                margin-top: 20px;   /* Espaço entre o final do card e a logo */
                 margin-bottom: 20px; /* Espaço para o final da página não colar */
                 width: 100%;        /* Garante que o container ocupe a largura da coluna */
                 display: flex;
@@ -128,7 +128,7 @@ def login_screen():
             }}
 
             .fusve-container img {{
-                width: 150px;       /* Ajuste o tamanho da logo da FUSVE aqui */
+                width: 110px;       /* Ajuste o tamanho da logo da FUSVE aqui */
                 height: auto;       /* Mantém a proporção */
                 opacity: 0.8;       /* Deixa levemente transparente para não brigar com o card */
                 filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1)); /* Sombra suave */
