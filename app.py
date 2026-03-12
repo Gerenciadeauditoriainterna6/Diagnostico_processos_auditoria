@@ -97,7 +97,6 @@ def login_screen():
                     </div>
                     <h2 style='text-align: center; color: #1f1f1f; margin-bottom: 0;'>Auditoria Interna</h2>
                     <p style='text-align: center; color: #666; margin-bottom: 25px;'>FUSVE</p>
-                </div>
             """, unsafe_allow_html=True)
             
             # Os campos do Streamlit entram LOGO ABAIXO da abertura do card
@@ -116,6 +115,9 @@ def login_screen():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha incorretos.")
+            # FECHAMOS O CARD COM A DIV ABAIXO
+
+            st.markdown('</div>', unsafe_allow_html=True)
         return False
     return True
 
