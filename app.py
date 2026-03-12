@@ -12,9 +12,15 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 )
 import base64
 
-def get_base64_image(image_path):
+def get_base64_with_prefix(image_path):
+    """Lê a imagem local e retorna a string pronta para HTML/CSS."""
+    if not os.path.exists(image_path):
+        return ""
+    ext = os.path.splitext(image_path)[1].replace(".", "").lower()
+    if ext == "jpg": ext = "jpeg"
     with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
+        encoded = base64.b64encode(img_file.read()).decode()
+    return f"data:image/{ext};base64,{encoded}"
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
@@ -25,12 +31,11 @@ def login_screen():
         st.session_state["autenticado"] = False
 
     if not st.session_state["autenticado"]:
-# Caminhos das imagens (ajuste conforme seu repositório)
-        caminho_fundo = "assets/logo_fusve.png"
+    # Caminhos das imagens (ajuste conforme seu repositório)
+        caminho_fundo = "assets/imagem_fundo.png"
         caminho_logo_canto = "assets/logo_auditoria.png"
         
         # Converte para Base64
-        bin_fundo = get_base64_image(caminho_fundo)
         bin_logo = get_base64_image(caminho_logo_canto)
 
         st.markdown(f"""
