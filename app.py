@@ -48,16 +48,18 @@ def login_screen():
     /* 2. Esconde o cabeçalho padrão */
     header {{ visibility: hidden; }}
     
-    /* 3. O Retângulo Branco (Camada de Fundo) */
+    /* Mira especificamente no quadro com borda do Streamlit */
     div[data-testid="stVerticalBlockBorder"] {{
-    background-color: rgba(255, 255, 255, 0.98) !important; /* Fundo sólido */
+    background-color: #ffffff !important; /* Branco sólido */
     border: none !important;
-    box-shadow: 0px 15px 35px rgba(0,0,0,0.4) !important;
+    box-shadow: 0px 15px 35px rgba(0,0,0,0.2) !important;
     border-radius: 20px !important;
-    padding: 50px 30px 40px 30px !important; /* Aumentei o padding inferior */
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 450px !important; /* Garante que o retângulo seja longo o suficiente */
+    
+    /* O segredo para não empurrar os campos: */
+    padding: 60px 30px 30px 30px !important; 
+    display: block !important;
+    height: auto !important; /* Faz o retângulo seguir o conteúdo */
+    width: 100% !important;
     }}
 
     [data-testid="stVerticalBlockBorder"] {{
