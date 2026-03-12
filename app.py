@@ -169,11 +169,11 @@ def login_screen():
                         st.rerun()
                     else:
                         st.error("Usuário ou senha incorretos.")
-                st.markdown(f'''
-                        <div class="fusve-container">
-                            <img src="data:image/png;base64,{bin_logo_fusve}">
-                        </div>
-                    ''')
+            st.markdown(f'''
+                    <div class="fusve-container">
+                        <img src="data:image/png;base64,{bin_logo_fusve}">
+                    </div>
+                ''')
                         
         return False
     return True
