@@ -61,7 +61,7 @@ def login_screen():
             border-radius: 20px !important;
             
             /* Aqui garantimos o tamanho maior na parte de baixo (80px) */
-            padding: 25px 10px 50px 10px !important; 
+            padding: 25px 50px 50px 50px !important; 
             
             display: flex !important;
             flex-direction: column !important;
