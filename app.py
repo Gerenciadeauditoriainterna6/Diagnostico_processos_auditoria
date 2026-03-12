@@ -131,9 +131,6 @@ def login_screen(bin_fundo, bin_logo):
         else:
             st.error("Usuário ou senha incorretos.")
 
-# 2. Chame a função para exibir a tela de login
-login_screen(bin_fundo, bin_logo)
-
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
     st.info("Selecione um processo abaixo para detalhar as etapas.")
