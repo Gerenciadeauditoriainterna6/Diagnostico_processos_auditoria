@@ -56,22 +56,20 @@ def login_screen():
             border-radius: 15px !important;
         }}
 
-            /* Mantemos a logo flutuante como estava */
+            /* No seu style, deixe a logo assim: */
             .logo-container {{
-            position: absolute;
-            top: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
+                position: absolute;
+                top: -60px; /* Ajuste aqui para subir ou descer a logo */
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 100;
             }}
-            
+
             .logo-container img {{
-            width: 100px;
-            height: 100px;
-            background: white;
-            border-radius: 100%;
-            padding: 0px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+                width: 120px; /* Tamanho da sua logo */
+                height: auto; /* Mantém a proporção original sem deformar */
+                background: transparent !important; /* Garante que não tenha fundo */
+                box-shadow: none !important; /* Remove a sombra se não quiser o efeito flutuante */
             }}
             </style>
         """, unsafe_allow_html=True)
