@@ -106,9 +106,9 @@ def login_screen():
                     <img src="data:image/png;base64,{bin_logo}">
                 </div>
                 <div style="text-align: center; width: 100%; line-height: 1.2;">
-                    <span style="color: white; font-family: sans-serif; font-size: 12px; display: block;">SISTEMA</span>
-                    <span style="color: white; font-family: sans-serif; font-size: 14px; font-weight: bold; display: block;">GERÊNCIA DE AUDITORIA INTERNA</span>
-                    <span style="color: #822a2d; font-family: sans-serif; font-size: 10px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: -25px;">Acesso Restrito!</span>
+                    <span style="color: white; font-family: sans-serif; font-size: 14px; display: block;">SISTEMA</span>
+                    <span style="color: white; font-family: sans-serif; font-size: 18px; font-weight: bold; display: block;">GERÊNCIA DE AUDITORIA INTERNA</span>
+                    <span style="color: #822a2d; font-family: sans-serif; font-size: 10px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: -20px;">Acesso Restrito!</span>
                 </div>
             ''', unsafe_allow_html=True)
 
