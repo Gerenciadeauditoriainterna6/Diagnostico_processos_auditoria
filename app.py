@@ -28,7 +28,7 @@ def login_screen():
     if not st.session_state["autenticado"]:
         # 1. Definição dos caminhos
         caminho_fundo = "assets/imagem_fundo.png"
-        caminho_logo_canto = "assets/logo_auditoria.png"
+        caminho_logo_canto = "assets/logo_auditoria_recortada_circulo.png"
         
         # 2. Conversão (IMPORTANTE: Criar as duas variáveis)
         bin_fundo = get_base64_image(caminho_fundo)
@@ -38,7 +38,7 @@ def login_screen():
         st.markdown(f"""
             <style>
             .stApp {{
-                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                background: linear-gradient(rgba(0,0,0,1), rgba(0,0,0,1)), 
                             url("data:image/png;base64,{bin_fundo}");
                 background-size: cover;
             }}
