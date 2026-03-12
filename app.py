@@ -4,11 +4,17 @@ import pandas as pd
 from sqlalchemy import text
 from database import engine
 import time as time_module
+
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco
 )
+import base64
+
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
@@ -19,6 +25,46 @@ def login_screen():
         st.session_state["autenticado"] = False
 
     if not st.session_state["autenticado"]:
+# Caminhos das imagens (ajuste conforme seu repositório)
+        caminho_fundo = "assets/logo_fusve.png"
+        caminho_logo_canto = "assets/logo_auditoria.png"
+        
+        # Converte para Base64
+        bin_fundo = get_base64_image(caminho_fundo)
+        bin_logo = get_base64_image(caminho_logo_canto)
+
+        st.markdown(f"""
+            <style>
+            /* Imagem de Fundo */
+            .stApp {{
+                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                            url("data:image/jpg;base64,{bin_fundo}");
+                background-size: cover;
+            }}
+
+            /* Imagem Posicionada (Ex: Selo no canto superior direito) */
+            .imagem-posicionada {{
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                width: 120px;
+                z-index: 1000;
+            }}
+
+            /* Ajuste do Card de Login para não ficar "colado" no topo */
+            [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
+                background: rgba(255, 255, 255, 0.9);
+                padding: 30px;
+                border-radius: 15px;
+                margin-top: 50px; /* Posiciona o card mais para baixo */
+            }}
+            </style>
+            
+            <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
+            
+        """, unsafe_allow_html=True)
+
+
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.title("🔐 Formulário de Auditoria Interna - FUSVE")
