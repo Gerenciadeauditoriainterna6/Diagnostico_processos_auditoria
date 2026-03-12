@@ -57,7 +57,7 @@ def login_screen():
             border: none !important;
             box-shadow: 0px 15px 35px rgba(0,0,0,0.3) !important;
             border-radius: 20px !important;
-            padding: 50px 30px 80px 30px !important;
+            padding: 50px 15px 120px 15px !important;
             display: flex !important;
             flex-direction: column !important;
             width: 100% !important;
