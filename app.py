@@ -12,141 +12,88 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 )
 import base64
 
-# --- 1. CONFIGURAÇÃO INICIAL ---
+# --- 1. CONFIGURAÇÃO INICIAL (DEVE SER A PRIMEIRA LINHA) ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="wide")
 
+# --- 2. FUNÇÕES DE SUPORTE ---
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    try:
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception:
+        return ""
 
-# --- CARREGAMENTO DAS IMAGENS ---
-# Certifique-se de que os arquivos 'fundo.jpg' e 'logo.png' 
-# estejam na mesma pasta do seu script Python.
+# Carregamento das imagens
+bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
+bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
 
-try:
-    bin_fundo = get_base64(r"assets/imagem_fundo.png")  # Substitua pelo nome do seu arquivo de fundo
-    bin_logo = get_base64(r"assets/logo_auditoria_recortada_circulo.png")    # Substitua pelo nome da sua logo
-except FileNotFoundError:
-    st.error("Erro: Arquivos de imagem não encontrados. Verifique os nomes 'fundo.jpg' e 'logo.png'.")
-    bin_fundo = ""
-    bin_logo = ""
-
-
+# --- 3. TELA DE LOGIN ---
 def login_screen(bin_fundo, bin_logo):
-    # 1. CSS e HTML para Configuração de Layout e Estilo
     st.markdown(f"""
         <style>
-        /* RESET TOTAL: Mata bordas e barras de rolagem na raiz */
+        /* Reset e Background */
         html, body, [data-testid="stAppViewContainer"] {{
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important; 
-            height: 100vh;
-            width: 100vw;
+            margin: 0 !important; padding: 0 !important;
+            overflow: hidden !important; height: 100vh; width: 100vw;
         }}
-
-        /* LIBERAÇÃO DE ESPAÇO: Força o conteúdo a ignorar margens do Streamlit */
-        [data-testid="stMainViewContainer"], 
-        [data-testid="stAppViewBlockContainer"], 
-        .main .block-container {{
-            max-width: 100vw !important;
-            padding: 0px !important;
-            margin: 0px !important;
+        [data-testid="stMainViewContainer"], [data-testid="stAppViewBlockContainer"], .main .block-container {{
+            max-width: 100vw !important; padding: 0px !important; margin: 0px !important;
         }}
-
-        /* BACKGROUND: Imagem fixa em tela cheia */
         .stApp {{
             background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
-            background-repeat: no-repeat !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
         }}
 
-        /* CARD DE LOGIN: Tamanho fixo ideal e centralizado */
-        /* O seletor abaixo identifica o bloco que contém o marcador 'login-card' */
-        [data-testid="stVerticalBlock"] > :has(div.login-card) {{
+        /* Seletor do Card Corrigido */
+        [data-testid="stVerticalBlock"]:has(div.login-card) {{
             background: rgba(255, 255, 255, 0.95);
-            padding: 60px 35px 35px 35px; /* Espaço extra no topo para a logo */
+            padding: 60px 35px 35px 35px;
             border-radius: 15px;
-            width: 380px;                /* Largura fixa para evitar achatamento */
-            margin: 15vh auto 0 auto;    /* Centraliza horizontalmente e dá 20% de topo */
+            width: 380px;
+            margin: 15vh auto 0 auto;
             box-shadow: 0px 15px 35px rgba(0,0,0,0.4);
-            position: relative;          /* Base para o posicionamento da logo */
-            display: block !important;
+            position: relative;
         }}
 
-        /* LOGO FLUTUANTE: Metade para fora do card, em formato circular */
         .logo-flutuante {{
-            position: absolute;
-            top: -50px;                 /* Sobe 50px para fora do card */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 100px;
-            background: white;
-            padding: 10px;
-            border-radius: 50%;         /* Formato de círculo */
-            box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
-            z-index: 1001;
+            position: absolute; top: -50px; left: 50%;
+            transform: translateX(-50%); width: 100px; height: 100px;
+            background: white; padding: 10px; border-radius: 50%;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.2); z-index: 1001;
         }}
 
-        /* ESCONDER ELEMENTOS INDESEJADOS */
-        /* 6. ESCONDER O MARCADOR TOTALMENTE */
-        /* 6. ESCONDER O MARCADOR TOTALMENTE */
-        div.login-card {{
-            display: none;       /* Remove do fluxo de visualização */
-            height: 0px;         /* Garante que não tenha altura */
-            margin: 0px;         /* Remove margens que podem empurrar o título */
-            padding: 0px;        /* Remove preenchimentos */
-            position: absolute;  /* Tira do fluxo para não ocupar espaço entre a logo e o título */
-        }}
-        header {{ visibility: hidden; }}    /* Esconde barra superior */
-        footer {{ display: none !important; }} /* Remove rodapé e evita rolagem */
-        [data-testid="stHeader"] {{ background: transparent !important; }}
+        div.login-card {{ display: none; height: 0px; position: absolute; }}
+        header {{ visibility: hidden; }}
+        footer {{ display: none !important; }}
         </style>
     """, unsafe_allow_html=True)
 
-    # 2. Estrutura de Elementos (Sem st.columns para evitar conflitos de largura)
     with st.container():
-    
-        # Marcador invisível que o CSS usa para aplicar o estilo do card
         st.markdown('<div class="login-card"></div>', unsafe_allow_html=True)
-    
-        # Renderiza a Logo Flutuante
         st.markdown(f'<img src="data:image/png;base64,{bin_logo}" class="logo-flutuante">', unsafe_allow_html=True)
 
-        # Título e Subtítulo centralizados
         st.markdown("<h2 style='text-align: center; margin-bottom: 0; color: #1f1f1f;'>Auditoria Interna</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #666; margin-bottom: 20px;'>FUSVE</p>", unsafe_allow_html=True)
 
-        # Campos de Entrada (Eles aparecerão dentro do card automaticamente)
-        usuario_digitado = st.text_input("Usuário", placeholder="Digite seu usuário")
-        senha_digitada = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+        usuario_digitado = st.text_input("Usuário", placeholder="Digite seu usuário", key="login_user")
+        senha_digitada = st.text_input("Senha", type="password", placeholder="Digite sua senha", key="login_pass")
 
-        # Espaçamento e Botão
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
         if st.button("Acessar Sistema", use_container_width=True):
             if usuario_digitado and senha_digitada:
-                # CHAMADA DA SUA FUNÇÃO DE BANCO
-                sucesso = validar_login_no_banco(usuario_digitado, senha_digitada)
-                
-                if sucesso:
-                    st.success("Login realizado com sucesso!")
+                if validar_login_no_banco(usuario_digitado, senha_digitada):
                     st.session_state.logged_in = True
-                    st.session_state.usuario = usuario_digitado # Opcional: salva o nome do user logado
+                    st.session_state.usuario = usuario_digitado
                     st.rerun()
                 else:
                     st.error("Usuário/Senha incorretos ou conta inativa.")
             else:
-                st.warning("Preencha todos os campos para continuar.")
+                st.warning("Preencha todos os campos.")
 
 def tela_consulta_detalhada():
     st.title("🔍 Consulta Detalhada de Processos")
