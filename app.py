@@ -36,60 +36,68 @@ def login_screen():
 
         # 3. CSS e HTML
         st.markdown(f"""
-                    
         <style>
-        /* 1. ATACAR A ESTRUTURA RAIZ (Onde o Streamlit cria a barra de rolagem) */
-        [data-testid="stAppViewContainer"] {{
-            overflow: hidden !important; /* Mata a barra de rolagem de vez */
+        /* 1. RESET TOTAL DA PÁGINA (Ignora comandos de força do Streamlit) */
+        html, body, [data-testid="stAppViewContainer"] {{
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important; /* Elimina barra de rolagem */
+            height: 100vh;
+            width: 100vw;
         }}
 
-        /* 2. ZERAR A "CEBOLA" (Remover as margens que causam a borda branca) */
-        /* Atacamos o container de visualização e o bloco de conteúdo simultaneamente */
+        /* 2. ELIMINAR AS BORDAS LATERAIS DO CONTAINER DE CONTEÚDO */
         [data-testid="stMainViewContainer"], 
-        [data-testid="stAppViewBlockContainer"],
+        [data-testid="stAppViewBlockContainer"], 
         .main .block-container {{
+            max-width: 100vw !important;
             padding: 0px !important;
             margin: 0px !important;
-            max-width: 100vw !important;
         }}
 
-        /* 3. O FUNDO (Configuração imersiva) */
+        /* 3. IMAGEM DE FUNDO ABSOLUTA */
         .stApp {{
-            background: url("data:image/png;base64,{bin_fundo}");
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)),
+                        url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
             background-repeat: no-repeat !important;
-            background-attachment: fixed !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }}
 
-        /* 4. SEU CARD DE LOGIN (Preservando seu layout) */
-        /* Como zeramos tudo, o card vai colar no topo. Ajustamos com margin-top. */
+        /* 4. CARD DE LOGIN COM TAMANHO IDEAL (Nem grande, nem pequeno) */
+        /* Usamos 'vh' para centralizar verticalmente e 'px' para largura fixa */
         [data-testid="stVerticalBlock"] > div:has(div.login-card) {{
-            background: rgba(255, 255, 255, 0.9);
-            padding: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 35px;
             border-radius: 15px;
-            margin-top: 15vh; /* Ajuste aqui para subir ou descer o card */
+            width: 400px; /* Tamanho horizontal ideal para formulários */
+            margin: 15vh auto 0 auto; /* Centraliza horizontalmente e dá topo */
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
         }}
 
-        /* 5. LOGO NO CANTO */
+        /* 5. LOGO DA AUDITORIA NO CANTO */
         .imagem-posicionada {{
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 120px;
+            width: 110px;
             z-index: 1000;
         }}
 
-        /* ELIMINAR O FOOTER DE VEZ */
+        /* OCULTAR ELEMENTOS NATIVOS */
+        header {{ visibility: hidden; }}
         footer {{ display: none !important; }}
+        #MainMenu {{ visibility: hidden; }}
         </style>
         
         <img src="data:image/png;base64,{bin_logo}" class="imagem-posicionada">
     """, unsafe_allow_html=True)
-
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             # DIV Marcadora para o CSS aplicar o estilo de card
