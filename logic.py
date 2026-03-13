@@ -15,21 +15,14 @@ CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
-    # .strip() remove espaços acidentais que podem vir do split(" - ")
-    codigo_limpo = str(codigo).strip()
-    
     query = text("""
-            SELECT 
-                p.*, 
-                i.nome_area, 
-                i.gestor AS responsavel_area
+            SELECT p.*, i.nome_area, i.gestor AS responsavel_area
             FROM processos p
-            -- Voltando para o JOIN por nome da área, que é mais garantido se os IDs não estiverem mapeados
-            LEFT JOIN informacoes_area i ON p.area = i.nome_area
+            JOIN informacoes_area i ON p.id_area = i.id_area
             WHERE p.codigo_processo = :c
     """)
     with engine.connect() as conn:
-        result = conn.execute(query, {"c": codigo_limpo}).mappings().first()
+        result = conn.execute(query, {"c": str(codigo)}).mappings().first()
         return dict(result) if result else None
 
 def salvar_etapa_no_banco(dados_etapa):
@@ -97,10 +90,10 @@ def listar_riscos_etapa(etapa_id):
 def buscar_todos_processos():
     query = text("""
             SELECT 
-                p.area AS "Área",
-                p.codigo_processo AS "Código do Processo",
-                p.nome_processo AS "Processo",
-                i.gestor AS "Gestor"
+                p.area,
+                p.codigo_processo,
+                p.nome_processo,
+                i.gestor
             FROM processos p
             JOIN informacoes_area i ON p.area = i.nome_area
             ORDER BY
@@ -219,7 +212,7 @@ def salvar_no_banco():
                 conn.execute(sql_update, dados_base)
             else:
                 sql_p = text("""
-                    INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto, status, categoria) 
+                    INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto, status, criticidade, categoria) 
                     VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) RETURNING id
                 """)
                 params_insert = {**dados_base, "id_a": id_area_val, "c": st.session_state['codigo_processo'], "n": nome_val}
