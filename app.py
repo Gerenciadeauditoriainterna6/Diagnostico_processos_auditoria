@@ -233,7 +233,7 @@ def tela_consulta_detalhada():
                     st.info("Sem diagrama macro")
             
             # --- NOVO EXPANDER ---
-            with st.expander("Gestão e Aprovação do Processo"):
+            with st.expander("Diagrama e aprovação da criticidade"):
                 col_g1, col_g2 = st.columns(2)
 
                 with col_g1:
@@ -253,6 +253,7 @@ def tela_consulta_detalhada():
                         if st.button("Reverter para 'Em Aprovação'", use_container_width=True):
                             atualizar_status_processo(processo['id'], "Em Aprovação", 'aprovacao')
                             st.rerun()
+
             with st.expander("📄 Ver Objetivo e Descrição Geral"):
                 st.write(f"**Objetivo:** {processo['objetivo']}")
                 st.write(f"**Descrição:** {processo['descricao']}")
@@ -565,7 +566,7 @@ if login_screen():
         if os.path.exists(logo_fusve):
             st.image(logo_fusve, width=200)
 
-        opcao = st.radio("Menu", ["Diagnóstico de Processos", "Consulta Detalhada", "Geração de Relatórios"])
+        opcao = st.radio("Menu", ["Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"])
 
         st.divider()
         # Adiciona um botão de Sair no topo ou fim do sidebar
@@ -574,7 +575,7 @@ if login_screen():
             st.rerun()
 
     # --- 7. LÓGICA PRINCIPAL ---
-    if opcao == "Diagnóstico de Processos":
+    if opcao == "Diagnóstico dos Processos":
         st.title("Diagnóstico de Processos - FUSVE")
         st.markdown("""
         <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
@@ -634,7 +635,7 @@ if login_screen():
                 st.session_state['deve_limpar'] = True
                 st.rerun()
 
-    elif opcao == "Consulta Detalhada":
+    elif opcao == "Detalhamento dos Processos":
         tela_consulta_detalhada()
 
     elif opcao == "Geração de Relatórios":
