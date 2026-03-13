@@ -34,8 +34,12 @@ import time as time_module
 
 def login_screen():
     """Gerencia a tela de login e a sessão de usuário."""
+    
     if "autenticado" not in st.session_state:
         st.session_state["autenticado"] = False
+
+    if st.session_state['autenticado']:
+        return True
 
     if not st.session_state["autenticado"]:
         # --- BLOCO CSS PARA DESIGN DO LOGIN ---
