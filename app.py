@@ -198,6 +198,7 @@ def tela_consulta_detalhada():
                              "codigo_processo": 'Nº Processo',
                              "nome_processo": "Processo",
                              "gestor": "Gestor Responsável",
+                             "aprovacao": "Criticidade"
 
                          },
                          column_order=("area", "codigo_processo", "nome_processo", "gestor", "aprovacao")
