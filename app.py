@@ -199,7 +199,7 @@ def tela_consulta_detalhada():
                              "nome_processo": "Processo",
                              "gestor": "Gestor Responsável",
 
-                         }
+                         },
                          column_order=("area", "codigo_processo", "nome_processo", "gestor", "aprovacao")
                          )
 
