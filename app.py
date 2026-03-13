@@ -206,14 +206,13 @@ def tela_consulta_detalhada():
             # Extrai apenas o código (antes do " - ")
             codigo_busca = selecao.split(" - ")[0]
             processo = buscar_processo_por_codigo(codigo_busca)
-            with col1:
-                st.metric("Status", processo.get('status', 'Ativo'))
-                # Exibição visual da Aprovação
-                aprov = processo.get('aprovacao', 'Em Aprovação')
-                cor_aprov = "orange" if aprov == "Em Aprovação" else "green"
-                st.metric("Criticidade", aprov)
-                st.write(f"**Gestor:** {processo['responsavel_area']}")
-                st.write(f"**Área:** {processo['nome_area']}")
+            st.metric("Status", processo.get('status', 'Ativo'))
+            # Exibição visual da Aprovação
+            aprov = processo.get('aprovacao', 'Em Aprovação')
+            cor_aprov = "orange" if aprov == "Em Aprovação" else "green"
+            st.metric("Criticidade", aprov)
+            st.write(f"**Gestor:** {processo['responsavel_area']}")
+            st.write(f"**Área:** {processo['nome_area']}")
 
             # --- Botões de ação rápida ---
             c_diag1, c_diag2 = st.columns([1, 2])
