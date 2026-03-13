@@ -549,5 +549,13 @@ def validar_login_no_banco(usuario_digitado, senha_digitada):
         print(f"Erro ao validar login: {e}")
         return False
 
+def atualizar_status_processo(id_processo, novo_status, coluna):
+    """Atualiza link_diagrama ou aprovacao na tabela processos"""
+    query = text(f"UPDATE processos SET {coluna} = :valor WHERE id = :id")
+    with engine.connect() as conn:
+        conn.execute(query, {"valor": novo_status, "id": id_processo})
+        conn.commit()
+
+
 
 # Adicionar o criterios do risco e do controle conforme a planilha.

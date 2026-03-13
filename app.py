@@ -8,7 +8,7 @@ import base64
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
-listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco
+listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo
 )
 
 
@@ -206,20 +206,49 @@ def tela_consulta_detalhada():
             # Extrai apenas o código (antes do " - ")
             codigo_busca = selecao.split(" - ")[0]
             processo = buscar_processo_por_codigo(codigo_busca)
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
-                status_atual = processo.get('status', 'Ativo')
-                st.metric("Status", status_atual)
-                st.write(f"**Gestor:** {processo['responsavel_area']}")
+                st.metric("Status", processo.get('status', 'Ativo'))
             with col2:
-                criticidade_atual = processo.get('criticidade', 'A definir')
-                st.metric("Criticidade", criticidade_atual)
-                st.write(f"**Área:** {processo['nome_area']}")
+                st.metric("Criticidade", processo.get('criticidade', 'A definir'))
             with col3:
-                st.write(f"**Categoria:** {processo.get('categoria', 'Não definida')}")
+                # Exibição visual da Aprovação
+                aprov = processo.get('aprovacao', 'Em Aprovação')
+                cor_aprov = "orange" if aprov == "Em Aprovação" else "green"
+                st.metric("Aprovação", aprov)
+            with col4:
+                st.write(f"**Gestor:** {processo['responsavel_area']}")
+                st.write(f"**Área:** {processo['nome_area']}")
+
+            # --- Botões de ação rápida ---
+            c_diag1, c_diag2 = st.columns([1, 2])
+            with c_diag1:
                 if processo.get('url_diagrama'):
-                    st.link_button("🌐 Abrir Diagrama Macro", processo['url_diagrama'])
+                    st.link_button('Abrir Diagrama Macro', processo['url_diagrama'], use_container_width=True)
+                else:
+                    st.info("Sem diagrama macro")
             
+            # --- NOVO EXPANDER ---
+            with st.expander("Gestão e Aprovação do Processo"):
+                col_g1, col_g2 = st.columns(2)
+
+                with col_g1:
+                    st.write("**🔗 Link do Diagrama**")
+                    novo_link = st.text_input("Inserir/Editar Link do Diagrama", value=processo.get('url_diagrama', ''), key=f"edit_link_{processo['id']}")
+                    if st.button('Salvar Novo Link', key=f"btn_link_{processo['id']}"):
+                        atualizar_status_processo(processo['id'], novo_link, "url_diagrama")
+                        st.rerun()
+                with col_g2:
+                    st.write("**✅ Status de Aprovação**")
+                    status_atual = processo.get('aprovacao', 'Em Aprovação')
+                    if status_atual == "Em Aprovação":
+                        if st.button("Aprovar Processo Agora", type="primary", use_container_width=True):
+                            atualizar_status_processo(processo['id'], 'Aprovado', 'aprovacao')
+                            st.rerun()
+                    else:
+                        if st.button("Reverter para 'Em Aprovação'", use_container_width=True):
+                            atualizar_status_processo(processo['id'], "Em Aprovação", 'aprovacao')
+                            st.rerun()
             with st.expander("📄 Ver Objetivo e Descrição Geral"):
                 st.write(f"**Objetivo:** {processo['objetivo']}")
                 st.write(f"**Descrição:** {processo['descricao']}")
