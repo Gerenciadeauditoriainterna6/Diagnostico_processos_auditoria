@@ -446,13 +446,11 @@ def tela_consulta_detalhada():
                                                     st.toast("Controle salvo com sucesso!", icon="✅")
                                                     st.rerun()
                                                 else:
-                                                    st.error("Erro ao salvar controle.")
-
-
-                    else:      
-                        st.warning("É necessário cadastrar um risco para essa etapa antes de cadastrar um controle.")
+                                                    st.error("Erro ao salvar controle.")    
+                        
                 else:
                     st.info("Nenhuma etapa cadastrada.")
+                    st.warning("É necessário cadastrar um risco para essa etapa antes de cadastrar um controle.")
 
             with tab_cadastro:
                 st.write("### Cadastro de Nova Etapa")
