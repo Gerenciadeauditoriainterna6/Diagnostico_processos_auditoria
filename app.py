@@ -206,7 +206,6 @@ def tela_consulta_detalhada():
             # Extrai apenas o código (antes do " - ")
             codigo_busca = selecao.split(" - ")[0]
             processo = buscar_processo_por_codigo(codigo_busca)
-            col1 = st.columns(1)
             with col1:
                 st.metric("Status", processo.get('status', 'Ativo'))
                 # Exibição visual da Aprovação
