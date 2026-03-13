@@ -97,8 +97,7 @@ def buscar_todos_processos():
             FROM processos p
             JOIN informacoes_area i ON p.area = i.nome_area
             ORDER BY
-                LENGTH(p.codigo_processo),
-                p.codigo_processo     
+                string_to_array(p.codigo_processo, '.')::int[]    
                 """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
