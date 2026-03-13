@@ -196,7 +196,7 @@ def tela_consulta_detalhada():
 
         # Cria uma lista formatada para o selectbox
         # Exibe: "Código - Nome"
-        opcoes = [f"{row['codigo_processo']} - {row['Processo']}" for _, row in df_processos.iterrows()]
+        opcoes = [f"{row['Processo']} - {row['Processo']}" for _, row in df_processos.iterrows()]
         
         # Selectbox para escolha
         selecao = st.selectbox("Escolha o processo:", options=[""] + opcoes)
@@ -455,7 +455,7 @@ def tela_consulta_detalhada():
 
             with tab_cadastro:
                 st.write("### Cadastro de Nova Etapa")
-                prox_cod = obter_proximo_codigo_etapa(processo['id'], processo['codigo_processo'])
+                prox_cod = obter_proximo_codigo_etapa(processo['id'], processo['Processo'])
                 with st.form("form_nova_etapa", clear_on_submit=True):
                     c1, c2 = st.columns([1, 3])
                     c1.text_input("Código", value=prox_cod, disabled=True)
@@ -495,7 +495,7 @@ areas_dict = carregar_areas_banco()
 def atualizar_id_area():
     nome_selecionado = st.session_state['area_selectbox']
     st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
-    st.session_state['codigo_processo'] = ""
+    st.session_state['Processo'] = ""
     st.session_state['input_processo'] = "" 
 
 if 'riscos' not in st.session_state: st.session_state['riscos'] = []
@@ -509,7 +509,7 @@ if 'id_area_selecionado' not in st.session_state and areas_dict:
 
 # --- 3. LIMPEZA PÓS-SALVO ---
 if st.session_state['deve_limpar']:
-    campos_to_reset = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo", "area"]
+    campos_to_reset = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "Processo", "area"]
     for campo in campos_to_reset:
         st.session_state[campo] = None if campo == "area" else ""
     st.session_state['riscos'] = []
@@ -518,7 +518,7 @@ if st.session_state['deve_limpar']:
 
 # --- 4. FUNÇÕES DE SUPORTE ---
 def validar_formulario():
-    campos = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo"]
+    campos = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "Processo"]
     for c in campos:
         if not st.session_state.get(c):
             st.error(f"O campo '{c.replace('input_', '').replace('_', ' ').capitalize()}' é obrigatório.")
@@ -531,17 +531,17 @@ def validar_formulario():
         return False
     return True
 
-def marcar_relatorio_gerado(codigo_processo):
+def marcar_relatorio_gerado(Processo):
     """Atualiza o status para 'Sim' na tabela de riscos, filtrando pelo código na tabela pai."""
     query = text("""
         UPDATE riscos 
         SET relatorio_gerado = 'Sim' 
         WHERE processo_id IN (
-            SELECT id FROM processos WHERE codigo_processo = :codigo
+            SELECT id FROM processos WHERE Processo = :codigo
         )
     """)
     with engine.begin() as conn:
-        conn.execute(query, {"codigo": codigo_processo})
+        conn.execute(query, {"codigo": Processo})
 
 
 # --- 5. Execução do app ---
@@ -585,7 +585,7 @@ if login_screen():
             st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
         st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
                     help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
-        st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
+        st.text_input("Código do Processo:", key="Processo", disabled=True)
         st.text_area("O que é o processo?:", key="input_descricao")
         st.text_area("Funcionário(s) Que Executa(m)", key="input_executor", help="Funcionário(s) que executa(m) - Alçadas (Gestão ou operação?)")
         st.text_area("Onde Começa o Proceso?:", key="input_etapa_ini", help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
@@ -641,7 +641,7 @@ if login_screen():
             # O on_change limpa o 'pdf_pronto' toda vez que o usuário escolhe um processo novo
             codigo_selecionado = st.selectbox(
                 "Selecione o Código do Processo:", 
-                df['codigo_processo'].tolist(),
+                df['Processo'].tolist(),
                 on_change=lambda: st.session_state.pop('pdf_pronto', None)
             )
 
