@@ -196,7 +196,7 @@ def tela_consulta_detalhada():
 
         # Cria uma lista formatada para o selectbox
         # Exibe: "Código - Nome"
-        opcoes = [f"{row['codigo_processo']} - {row['nome_processo']}" for _, row in df_processos.iterrows()]
+        opcoes = [f"{row['codigo_processo']} - {row['Processo']}" for _, row in df_processos.iterrows()]
         
         # Selectbox para escolha
         selecao = st.selectbox("Escolha o processo:", options=[""] + opcoes)
