@@ -15,14 +15,21 @@ CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
+    # .strip() remove espaços acidentais que podem vir do split(" - ")
+    codigo_limpo = str(codigo).strip()
+    
     query = text("""
-            SELECT p.*, i.nome_area, i.gestor AS responsavel_area
+            SELECT 
+                p.*, 
+                i.nome_area, 
+                i.gestor AS responsavel_area
             FROM processos p
-            JOIN informacoes_area i ON p.id_area = i.id_area
+            -- Voltando para o JOIN por nome da área, que é mais garantido se os IDs não estiverem mapeados
+            LEFT JOIN informacoes_area i ON p.area = i.nome_area
             WHERE p.codigo_processo = :c
     """)
     with engine.connect() as conn:
-        result = conn.execute(query, {"c": str(codigo)}).mappings().first()
+        result = conn.execute(query, {"c": codigo_limpo}).mappings().first()
         return dict(result) if result else None
 
 def salvar_etapa_no_banco(dados_etapa):
