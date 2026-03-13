@@ -75,7 +75,7 @@ def salvar_risco_etapa(dados):
     query = text("""
         INSERT INTO riscos_etapa 
         (etapa_id, categoria, fator_risco, consequencia, info_adicional, financeiro, 
-         ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
+        ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
         VALUES (:etapa_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, :imp, :prob, :mag, :apet, :trat)
     """)
     with engine.begin() as conn:
@@ -95,7 +95,11 @@ def buscar_todos_processos():
                 p.nome_processo,
                 i.gestor
             FROM processos p
-            JOIN informacoes_area i ON p.area = i.nome_area""")
+            JOIN informacoes_area i ON p.area = i.nome_area
+            ORDER BY
+                LENGTH(p.codigo_processo),
+                p.codigo_processo     
+                """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
