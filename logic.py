@@ -90,10 +90,10 @@ def listar_riscos_etapa(etapa_id):
 def buscar_todos_processos():
     query = text("""
             SELECT 
-                p.area,
-                p.codigo_processo,
-                p.nome_processo,
-                i.gestor
+                p.area AS "Área",
+                p.codigo_processo AS "Código do Processo",
+                p.nome_processo AS "Processo",
+                i.gestor AS "Gestor"
             FROM processos p
             JOIN informacoes_area i ON p.area = i.nome_area
             ORDER BY

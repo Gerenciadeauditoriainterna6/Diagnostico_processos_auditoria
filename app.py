@@ -209,14 +209,11 @@ def tela_consulta_detalhada():
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Status", processo.get('status', 'Ativo'))
-            with col2:
                 st.metric("Criticidade", processo.get('criticidade', 'A definir'))
-            with col3:
                 # Exibição visual da Aprovação
                 aprov = processo.get('aprovacao', 'Em Aprovação')
                 cor_aprov = "orange" if aprov == "Em Aprovação" else "green"
                 st.metric("Aprovação", aprov)
-            with col4:
                 st.write(f"**Gestor:** {processo['responsavel_area']}")
                 st.write(f"**Área:** {processo['nome_area']}")
 
@@ -228,7 +225,11 @@ def tela_consulta_detalhada():
                 else:
                     st.info("Sem diagrama macro")
             
-            # --- NOVO EXPANDER ---
+            # --- EXPANDER ---
+            with st.expander("📄 Ver Objetivo e Descrição Geral"):
+                st.write(f"**Objetivo:** {processo['objetivo']}")
+                st.write(f"**Descrição:** {processo['descricao']}")
+                
             with st.expander("Gestão e Aprovação do Processo"):
                 col_g1, col_g2 = st.columns(2)
 
@@ -249,9 +250,6 @@ def tela_consulta_detalhada():
                         if st.button("Reverter para 'Em Aprovação'", use_container_width=True):
                             atualizar_status_processo(processo['id'], "Em Aprovação", 'aprovacao')
                             st.rerun()
-            with st.expander("📄 Ver Objetivo e Descrição Geral"):
-                st.write(f"**Objetivo:** {processo['objetivo']}")
-                st.write(f"**Descrição:** {processo['descricao']}")
 
             st.divider()
 
