@@ -94,6 +94,7 @@ def buscar_todos_processos():
                 p.codigo_processo,
                 p.nome_processo,
                 i.gestor
+                p.aprovacao
             FROM processos p
             JOIN informacoes_area i ON p.area = i.nome_area
             ORDER BY
