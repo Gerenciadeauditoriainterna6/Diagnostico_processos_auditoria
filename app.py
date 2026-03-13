@@ -5,6 +5,9 @@ from sqlalchemy import text
 from database import engine
 import time as time_module
 import base64
+import extra_streamlit_components as stx
+from datetime import timedelta
+from datetime import datetime
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
@@ -14,6 +17,11 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
+
+def get_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_manager()
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
@@ -561,8 +569,19 @@ def marcar_relatorio_gerado(codigo_processo):
 
 def main():
 
-    if not login_screen():
-        st.stop()
+    # Tenta ler o cookie de login
+    auth_cookie = cookie_manager.get(cookie="auditoria_token")
+
+    if auth_cookie:
+        st.session_state['autenticado'] = True
+    
+    if not st.session_state.get('autenticado'):
+
+        if login_screen():
+            cookie_manager.set("auditoria_token", "token_seguro_usuario_123", expires_at=datetime.now() + timedelta(days=1))
+            st.rerun()
+        else:
+            st.stop()
 
     # --- SIDEBAR ---
     with st.sidebar:
@@ -577,6 +596,7 @@ def main():
         st.divider()
         # Adiciona um botão de Sair no topo ou fim do sidebar
         if st.button("Logout"):
+            cookie_manager.delete("auditoria_token")
             st.session_state['autenticado'] = False
             st.rerun()
 
