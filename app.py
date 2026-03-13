@@ -556,7 +556,10 @@ def marcar_relatorio_gerado(codigo_processo):
 
 # --- 5. Execução do app ---
 
-if login_screen():
+def main():
+
+    if not login_screen():
+        st.stop()
 
     # --- SIDEBAR ---
     with st.sidebar:
@@ -574,7 +577,7 @@ if login_screen():
             st.session_state['autenticado'] = False
             st.rerun()
 
-    # --- 7. LÓGICA PRINCIPAL ---
+    # --- LÓGICA PRINCIPAL ---
     if opcao == "Diagnóstico dos Processos":
         st.title("Diagnóstico de Processos - FUSVE")
         st.markdown("""
@@ -676,3 +679,8 @@ if login_screen():
                 )
         else:
             st.info("Nenhum processo pendente para gerar relatório.")
+
+# --- DISPARADOR FINAL ---
+
+if __name__ == "__main__":
+    main()
