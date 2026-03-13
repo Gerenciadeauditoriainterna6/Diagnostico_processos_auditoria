@@ -212,7 +212,7 @@ def salvar_no_banco():
                 conn.execute(sql_update, dados_base)
             else:
                 sql_p = text("""
-                    INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto, status, criticidade, categoria) 
+                    INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) RETURNING id
                 """)
                 params_insert = {**dados_base, "id_a": id_area_val, "c": st.session_state['codigo_processo'], "n": nome_val}
