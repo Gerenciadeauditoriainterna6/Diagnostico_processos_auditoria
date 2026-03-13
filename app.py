@@ -192,7 +192,16 @@ def tela_consulta_detalhada():
     if not df_processos.empty:
         # Exibe a tabela para referência do usuário
         with st.expander("Ver lista de processos"):
-            st.dataframe(df_processos, use_container_width=True)
+            st.dataframe(df_processos, use_container_width=True,
+                         column_config={
+                             "area": "Área",
+                             "codigo_processo": 'Nº Processo',
+                             "nome_processo": "Processo",
+                             "gestor": "Gestor Responsável",
+
+                         }
+                         column_order=("area", "codigo_processo", "nome_processo", "gestor", "aprovacao")
+                         )
 
         # Cria uma lista formatada para o selectbox
         # Exibe: "Código - Nome"
