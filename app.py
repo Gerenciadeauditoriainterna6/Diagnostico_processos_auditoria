@@ -5,76 +5,20 @@ from sqlalchemy import text
 from database import engine
 import time as time_module
 import base64
-import extra_streamlit_components as stx
 from datetime import timedelta, datetime
-from streamlit.web.server.websocket_headers import _get_websocket_headers
+from streamlit_local_storage import LocalStorage
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo
 )
 
-cookie_manager = stx.CookieManager()
+local_storage = LocalStorage()
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
-# --- INICIALIZAÇÃO DO COOKIE MANAGER ---
-@st.cache_resource
-def get_manager():
-    return stx.CookieManager(key="gerenciador_cookies_unico")
-
-cookie_manager = get_manager()
-
 # --- 2. FUNÇÕES DE SESSÃO E IP (SUPABASE) ---
-
-def get_identificador_cliente():
-    """
-    Captura o IP do auditor. No Streamlit Cloud, o IP real 
-    vem no header 'X-Forwarded-For'.
-    """
-    try:
-        headers = _get_websocket_headers()
-        # Tenta pegar o IP real através do proxy do Streamlit
-        ip = headers.get("X-Forwarded-For", "127.0.0.1").split(',')[0]
-        return ip
-    except Exception:
-        return "127.0.0.1"
-
-def registrar_sessao_no_banco(usuario_nome):
-    identificador = get_identificador_cliente()
-    with engine.begin() as conn:
-        # Limpa sessões antigas
-        conn.execute(
-            text("DELETE FROM sessoes_ativas WHERE usuario_id = :u OR identificador_sessao = :i"),
-            {"u": usuario_nome, "i": identificador}
-        )
-        # Insere a nova
-        conn.execute(
-            text("INSERT INTO sessoes_ativas (usuario_id, identificador_sessao, ultima_atividade) VALUES (:u, :i, :t)"),
-            {"u": usuario_nome, "i": identificador, "t": datetime.now()}
-        )
-
-def verificar_sessao_ativa():
-    identificador = get_identificador_cliente()
-    limite = datetime.now() - timedelta(hours=2)
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(
-                text("SELECT usuario_id FROM sessoes_ativas WHERE identificador_sessao = :i AND ultima_atividade > :l"),
-                {"i": identificador, "l": limite}
-            ).fetchone()
-            return result[0] if result else None
-    except Exception:
-        return None
-
-def deletar_sessao_banco():
-    identificador = get_identificador_cliente()
-    with engine.begin() as conn:
-        conn.execute(
-            text("DELETE FROM sessoes_ativas WHERE identificador_sessao = :i"),
-            {"i": identificador}
-        )
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
@@ -86,12 +30,10 @@ def get_base64(bin_file):
         return ""
 
 def login_screen():
-
     try:
         bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
         bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
         bin_logo_fusve = get_base64(os.path.join("assets", "logo_fusve.png"))
-        pass
     except Exception as e:
         st.error(f"erro ao carregar imagens: {e}")
         return False
@@ -99,46 +41,29 @@ def login_screen():
     # --- BLOCO CSS PARA DESIGN DO LOGIN ---
     st.markdown(f"""
         <style>
-        /* 1. Fundo da tela de login */
         [data-testid="stAppViewContainer"] {{
             background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
                         url("data:image/png;base64,{bin_fundo}");
             background-size: cover !important;
             background-position: center !important;
         }}
-        
-        /* 2. Esconde o cabeçalho padrão */
         header {{ visibility: hidden; }}
-        
-        div[data-testid="stVerticalBlockBorder"], 
-        .stVerticalBlockBorder, 
-        .st-emotion-cache-139wymi, 
-        .st-emotion-cache-1r6slb0 {{
-        background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
-        border: none !important;
-        box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
-        border-radius: 20px !important;
-        
-        /* Aqui garantimos o tamanho maior na parte de baixo (80px) */
-        padding: 15px 50px 30px 50px !important; 
-        
-        display: flex !important;
-        flex-direction: column !important;
-        width: 85% !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        opacity: 1 !important;
+        div[data-testid="stVerticalBlockBorder"] {{
+            background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
+            border: none !important;
+            box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
+            border-radius: 20px !important;
+            padding: 15px 50px 30px 50px !important; 
+            display: flex !important;
+            flex-direction: column !important;
+            width: 85% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            opacity: 1 !important;
         }}
-
-        /* Ajuste para centralização vertical do card na tela */
-        div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
-            margin-top: 2vh;
-        }}
-
-        /* 4. Estilo da Logo e Títulos */
         .logo-container {{
             text-align: center;
-            margin-top: -85px; /* Faz a logo flutuar na borda superior */
+            margin-top: -85px;
             margin-bottom: 15px;
             position: relative;
             z-index: 10;
@@ -149,48 +74,37 @@ def login_screen():
             background: transparent !important;
             filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
         }}
-
-        /* 1. Faz APENAS o campo de senha subir em direção ao usuário */
         div[data-testid="stTextInput"]:has(#text_input_2){{
-        margin-top: -25px !important;
-        margin-bottom: 0px !important;
+            margin-top: -25px !important;
+            margin-bottom: 0px !important;
         }}
-
-        /* 2. Mantém o botão na distância original ou empurra um pouco para baixo */
         div.stButton {{
-        margin-top: 15px !important; /* Ajuste esse valor para a distância que deseja */
+            margin-top: 15px !important;
         }}
-
         button[kind="primary"] {{
-        background-color: #153e5a !important;
-        border: none !important;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+            background-color: #153e5a !important;
+            border: none !important;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
         }}
-
-        /* 3. COR DA MENSAGEM DE SUCESSO */
-        /* Muda o fundo e a cor do texto da caixa de sucesso */
         div[data-testid="stNotification"] > div {{
-        background-color: rgba(64, 96, 100, 0.9) !important;
-        color: white !important;
-        border: 1px solid #6d8285 !important;
+            background-color: rgba(64, 96, 100, 0.9) !important;
+            color: white !important;
+            border: 1px solid #6d8285 !important;
         }}
-
-        /* --- Novo estilo para a logo da FUSVE (fora do card) --- */
         .fusve-container {{
-            text-align: center; /* Centraliza horizontalmente */
-            margin-top: 20px;   /* Espaço entre o final do card e a logo */
-            margin-bottom: 20px; /* Espaço para o final da página não colar */
-            width: 100%;        /* Garante que o container ocupe a largura da coluna */
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            width: 100%;
             display: flex;
-            justify-content: center; /* Alinhamento robusto para flex */
+            justify-content: center;
         }}
-
         .fusve-container img {{
-            width: 110px;       /* Ajuste o tamanho da logo da FUSVE aqui */
-            height: auto;       /* Mantém a proporção */
-            opacity: 0.8;       /* Deixa levemente transparente para não brigar com o card */
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1)); /* Sombra suave */
-            background: transparent !important; /* Força fundo transparente */
+            width: 110px;
+            height: auto;
+            opacity: 0.8;
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1));
+            background: transparent !important;
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -199,10 +113,7 @@ def login_screen():
     col1, col2, col3 = st.columns([0.5, 2, 0.5]) 
     
     with col2:
-        # O container com border=True agora é o nosso retângulo branco sólido
         with st.container(border=True):
-            
-            # Injetamos a logo e os textos centralizados
             st.markdown(f'''
             <div class="logo-container">
                 <img src="data:image/png;base64,{bin_logo}">
@@ -212,30 +123,25 @@ def login_screen():
                 <span style="color: white; font-family: sans-serif; font-size: 16px; font-weight: bold; display: block;">GERÊNCIA DE AUDITORIA INTERNA</span>
                 <span style="color: #822a2d; font-family: sans-serif; font-size: 10px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: -20px;">Acesso Restrito!</span>
             </div>
-        ''', unsafe_allow_html=True)
+            ''', unsafe_allow_html=True)
 
-            # Campos de entrada
             usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
             senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
             
-            # O botão encerra o conteúdo do card
             if st.button("Entrar", use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
 
                     with st.spinner("Autenticando..."):
-                        cookie_manager.set(
-                            "usuario_audit",
-                            usuario,
-                            expires_at=datetime.now() + timedelta(days=1),
-                            key="gravacao_cookie_final"
-                        )
-                    
-                        time_module.sleep(1.5)
+                        # --- SUBSTITUIÇÃO DO COOKIE MANAGER PELO LOCAL STORAGE ---
+                        local_storage.setItem("usuario_audit", usuario)
+                        
+                        # Pequena pausa para garantir que o navegador processe a gravação
+                        time_module.sleep(1.0)
                     
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
                     st.success("Login realizado com sucesso!")
-                    time_module.sleep(1)
+                    time_module.sleep(0.5)
                     st.rerun()
                 else:
                     st.error("Usuário ou senha incorretos.")
@@ -625,56 +531,57 @@ def marcar_relatorio_gerado(codigo_processo):
 # --- 5. Execução do app ---
 
 def main():
-    # 1. Pequeno delay para o JS carregar (Essencial para o stx)
-    time_module.sleep(0.5) 
+    # 1. Tenta ler o usuário salvo no navegador (Local Storage)
+    # Diferente do cookie, aqui a leitura é imediata
+    usuario_cache = local_storage.getItem("usuario_audit")
     
-    # 2. Tenta ler o cookie
-    cookie_auth = cookie_manager.get("usuario_audit")
-    
-    # --- PAINEL DE DEBUG ---
-    # Se o F5 está falhando, precisamos ver se 'cookie_auth' vem preenchido aqui
+    # --- PAINEL DE DEBUG (Opcional: Pode remover quando tudo estiver ok) ---
     with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
-        st.write(f"Conteúdo do Cookie 'usuario_audit': {cookie_auth}")
-        st.write("Todos os cookies disponíveis:", cookie_manager.get_all())
+        st.write(f"Usuário no LocalStorage: {usuario_cache}")
 
-    # 3. Lógica de Reautenticação (F5)
+    # 2. Lógica de Reautenticação Automática (F5)
     if not st.session_state.get('autenticado'):
-        if cookie_auth:
+        # Verificamos se o cache existe e não é uma string vazia/nula do JS
+        if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
             st.session_state['autenticado'] = True
-            st.session_state['usuario_logado'] = cookie_auth
+            st.session_state['usuario_logado'] = usuario_cache
             st.rerun()
 
-    # 4. Bloqueio de Acesso
+    # 3. Bloqueio de Acesso
     if not st.session_state.get('autenticado'):
         login_screen()
-        st.stop()
+        st.stop()  # Interrompe a execução aqui se não estiver logado
 
-    # --- O RESTO DO SEU APP ---
-    if not st.session_state.get('autenticado'):
-        login_screen()
-        st.stop()
+    # --- SE CHEGOU AQUI, O USUÁRIO ESTÁ AUTENTICADO ---
 
     # --- SIDEBAR ---
     with st.sidebar:
         caminho_script = os.path.dirname(os.path.abspath(__file__))
-        logo_fusve = os.path.join(caminho_script, "assets", "logo_fusve.png")
+        logo_fusve_path = os.path.join(caminho_script, "assets", "logo_fusve.png")
         
-        if os.path.exists(logo_fusve):
-            st.image(logo_fusve, width=200)
+        if os.path.exists(logo_fusve_path):
+            st.image(logo_fusve_path, width=200)
 
-        opcao = st.radio("Menu", ["Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"])
+        # Exibe o nome do usuário logado para confirmação
+        st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
+        
+        opcao = st.radio(
+            "Menu", 
+            ["Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"]
+        )
 
         st.divider()
-        # Adiciona um botão de Sair no topo ou fim do sidebar
-        if st.button("Logout"):
-            # 1. Deleta do banco de dados para o F5 não logar sozinho depois
-            deletar_sessao_banco()
+        
+        # --- BOTÃO DE LOGOUT CONSERTADO ---
+        if st.button("Sair (Logout)", use_container_width=True):
+            # 1. Remove a informação do navegador (LocalStorage)
+            # Sem isso, o F5 logaria o usuário de volta imediatamente
+            local_storage.removeItem("usuario_audit")
             
-            # 2. Limpa o estado do navegador
-            st.session_state["autenticado"] = False
-            st.session_state["usuario_logado"] = None
+            # 2. Limpa todas as variáveis temporárias da sessão atual
+            st.session_state.clear()
             
-            # 3. Força o recarregamento para cair no if do login_screen
+            # 3. Força o recarregamento para voltar à tela de login
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
