@@ -187,8 +187,8 @@ def login_screen():
     return False
 
 def tela_consulta_detalhada():
-    if "etapa_em_edicao" not in st.session_state:
-        st.session_state["etapa_em_edicao"] = None
+    if "etapa_para_editar" not in st.session_state:
+        st.session_state["etapa_para_editar"] = None
     st.title("🔍 Consulta Detalhada de Processos")
     st.info("Selecione um processo abaixo para detalhar as etapas.")
 
@@ -270,14 +270,13 @@ def tela_consulta_detalhada():
             st.divider()
 
             # --- SEÇÃO DE ETAPAS (FILHOS) ---
-            tab_lista, tab_cadastro = st.tabs(["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa"])
+            tab_lista, tab_cadastro, tab_edicao = st.tabs(["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa", "📝 Editar Etapa"])
 
             with tab_lista:
                 etapas = listar_etapas_do_processo(processo['id'])
                 if not etapas.empty:
                     for _, etapa in etapas.iterrows():
                         with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
-                            # Execução
                             st.subheader("Detalhes da Execução")
                             c1, c2 = st.columns(2)
 
@@ -288,17 +287,14 @@ def tela_consulta_detalhada():
                             c1.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
                             c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
                             c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
-                            
-                            c2.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
-                            c2.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
-                            c2.write(f"**Política Interna:** {etapa['politica_interna']}")
-                            
-                            # Auditoria e Melhorias
+                            c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
+                            c1.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
+                            c1.write(f"**Política Interna:** {etapa['politica_interna']}")
                             c3, c4 = st.columns(2)
                             c3.write(f"**Análise Crítica:** {etapa['analise_critica']}")
                             c3.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
-                            c4.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
-                            c4.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
+                            c3.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
+                            c3.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
                             
                             st.divider()
                             # Botões
@@ -310,7 +306,7 @@ def tela_consulta_detalhada():
                                 st.session_state["etapa_em_edicao"] = etapa.to_dict()
                                 st.rerun()
                                                         
-                            st.divider()
+                            st.divider()                    
 
                             # --- VISUALIZAÇÃO DE RISCOS (ATUALIZADA) ---
                             st.subheader("⚠️ Riscos desta Etapa")
@@ -484,99 +480,100 @@ def tela_consulta_detalhada():
                     st.warning("É necessário cadastrar um risco para essa etapa antes de cadastrar um controle.")
 
             with tab_cadastro:
-                # 1. Verificamos se há algo para editar no session_state
-                edicao = st.session_state.get("etapa_em_edicao")
-                is_edit = edicao is not None
-
-                if is_edit:
-                    st.subheader(f"📝 Editando Etapa {edicao['codigo_etapa']}")
-                    if st.button("🚫 Cancelar Edição", use_container_width=True):
-                        st.session_state["etapa_em_edicao"] = None
-                        st.rerun()
-                else:
-                    st.write("### ➕ Cadastro de Nova Etapa")
-
-                # 2. Define o código: se for edição, mantém o da etapa. Se for novo, gera o próximo.
-                prox_cod = edicao['codigo_etapa'] if is_edit else obter_proximo_codigo_etapa(processo['id'], processo['codigo_processo'])
-
+                st.write("### Cadastro de Nova Etapa")
+                prox_cod = obter_proximo_codigo_etapa(processo['id'], processo['codigo_processo'])
                 with st.form("form_nova_etapa", clear_on_submit=True):
                     c1, c2 = st.columns([1, 3])
                     c1.text_input("Código", value=prox_cod, disabled=True)
+                    desc_etapa = c2.text_input("Etapa", help="Nome da etapa")
+                    oque = st.text_area("O que você faz?")
+                    como = st.text_area("Como você faz?")
+                    obj_etapa = st.text_area("Qual o objetivo??")
+                    status = st.selectbox("Status da etapa:", ["Ativa", "Inativa"])
                     
-                    # Preenchemos o 'value' com os dados da edição caso existam
-                    desc_etapa = c2.text_input("Etapa", value=edicao['descricao_etapa'] if is_edit else "", help="Nome da etapa")
-                    oque = st.text_area("O que você faz?", value=edicao.get('oque_faz', '') if is_edit else "", help="DESCRIÇÃO DA ETAPA...")
-                    como = st.text_area("Como você faz?", value=edicao['como_e_feito'] if is_edit else "", help="COMO VOCÊ FAZ?...")
-                    obj_etapa = st.text_area("Qual o objetivo??", value=edicao['objetivo_etapa'] if is_edit else "", help="Qual o OBJETIVO da Etapa?")
-
-                    # --- Lógica para Selectboxes (Status) ---
-                    lista_status = ["Ativa", "Inativa"]
-                    idx_status = lista_status.index(edicao['status_etapa']) if is_edit and edicao['status_etapa'] in lista_status else 0
-                    status = st.selectbox("Status da etapa:", lista_status, index=idx_status)
-
                     col_f1, col_f2, col_f3 = st.columns(3)
+                    correto = col_f1.selectbox("Teste de eficácia?", ["Sim", "Não", "Parcial"])
+                    executa = col_f3.text_input("Executor", value=processo['executor'])
+                    link_bpmn = st.text_input("Link Diagrama")
+                    link_manual = st.text_input("Link Manual")
                     
-                    # --- Lógica para Selectboxes (Eficácia) ---
-                    lista_eficacia = ["Sim", "Não", "Parcial"]
-                    idx_eficacia = lista_eficacia.index(edicao['realizado_corretamente']) if is_edit and edicao['realizado_corretamente'] in lista_eficacia else 0
-                    correto = col_f1.selectbox("Teste de eficácia?", lista_eficacia, index=idx_eficacia)
-                    
-                    executa = col_f3.text_input("Executor", value=edicao['executor'] if is_edit else processo['executor'])
-                    
-                    link_bpmn = st.text_input("Link Diagrama", value=edicao['link_diagrama_etapa'] if is_edit else "")
-                    link_manual = st.text_input("Link Manual", value=edicao['manual_processo_link'] if is_edit else "")
-                    
-                    politica = st.text_area("Política Interna", value=edicao['politica_interna'] if is_edit else "")
-                    analise = st.text_area("Análise Crítica", value=edicao['analise_critica'] if is_edit else "")
-                    melhoria = st.text_area("Sugestão de Melhoria", value=edicao['sugestao_melhoria'] if is_edit else "")
+                    politica = st.text_area("Política Interna")
+                    analise = st.text_area("Análise Crítica")
+                    melhoria = st.text_area("Sugestão de Melhoria")
                     
                     col_f4, col_f5 = st.columns(2)
-                    necessidade = col_f4.text_input("Necessidade para implantação", value=edicao['necessidade_implantacao'] if is_edit else "")
-                    ganho = col_f5.text_input("Ganho previsto", value=edicao['ganho_previsto'] if is_edit else "")
-                    
-                    obrigacoes = st.text_input("Obrigações Regulatórias", value=edicao.get('obrigações_regulatorias', '') if is_edit else "")
-                    
-                    # --- Lógica para Selectboxes (Criticidade/Aprovação) ---
-                    lista_crit = ["Aprovado", "Em Aprovação"]
-                    idx_crit = lista_crit.index(edicao['criticidade_etapa']) if is_edit and edicao['criticidade_etapa'] in lista_crit else 1
-                    crit_etapa = col_f2.selectbox("Criticidade", lista_crit, index=idx_crit)
+                    necessidade = col_f4.text_input("Necessidade para implantação")
+                    ganho = col_f5.text_input("Ganho previsto")
+                    obrigacoes = st.text_input("Obrigações Regulatórias")
+                    crit_etapa = col_f2.selectbox("Criticidade", ["Aprovado", "Em Aprovação"])
 
-                    # 3. Botão de submissão muda o texto conforme o contexto
-                    texto_botao = "💾 Atualizar Detalhamento" if is_edit else "💾 Salvar Detalhamento"
-                    
-                    if st.form_submit_button(texto_botao, type="primary"):
-                        with st.spinner("Processando..."):
-                            dados = {
-                                "p_id": int(processo['id']), 
-                                "cod": prox_cod, 
-                                "desc": desc_etapa,
-                                "oque": oque,
-                                "status": status,
-                                "como": como, 
-                                "obj": obj_etapa, 
-                                "real": correto, 
-                                "link_d": link_bpmn, 
-                                "pol": politica, 
-                                "ana": analise, 
-                                "sug": melhoria, 
-                                "nec": necessidade, 
-                                "gan": ganho, 
-                                "obri": obrigacoes, 
-                                "crit": crit_etapa, 
-                                "man": link_manual
+                    if st.form_submit_button("Salvar Detalhamento", type="primary"):
+                        dados = {
+                            "p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "oque": oque,
+                            "status": status, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn,
+                            "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade, "gan": ganho,
+                            "obri": obrigacoes, "crit": crit_etapa, "man": link_manual
+                        }
+                        if salvar_etapa_no_banco(dados):
+                            st.success("Etapa salva!")
+                            st.rerun()
+            with tab_edicao:
+                etapa_edit = st.session_state.get("etapa_em_edicao")
+    
+                if not etapa_edit:
+                    st.info("Selecione uma etapa na aba 'Etapas Existentes' para editar.")
+                else:
+                    st.write(f"### Editando Etapa: {etapa_edit['codigo_etapa']}")
+                    if st.button("🚫 Cancelar Edição"):
+                        st.session_state["etapa_em_edicao"] = None
+                        st.rerun()
+
+                    with st.form("form_edicao_etapa"):
+                        c1, c2 = st.columns([1, 3])
+                        c1.text_input("Código", value=etapa_edit['codigo_etapa'], disabled=True)
+                        desc_edit = c2.text_input("Etapa", value=etapa_edit['descricao_etapa'])
+                        oque_edit = st.text_area("O que você faz?", value=etapa_edit.get('oque_faz', ''))
+                        como_edit = st.text_area("Como você faz?", value=etapa_edit['como_e_feito'])
+                        obj_edit = st.text_area("Qual o objetivo??", value=etapa_edit['objetivo_etapa'])
+                        
+                        st_list = ["Ativa", "Inativa"]
+                        status_edit = st.selectbox("Status da etapa:", st_list, index=st_list.index(etapa_edit['status_etapa']) if etapa_edit['status_etapa'] in st_list else 0)
+                        
+                        col_e1, col_e2, col_e3 = st.columns(3)
+                        ef_list = ["Sim", "Não", "Parcial"]
+                        correto_edit = col_e1.selectbox("Teste de eficácia?", ef_list, index=ef_list.index(etapa_edit['realizado_corretamente']) if etapa_edit['realizado_corretamente'] in ef_list else 0)
+                        
+                        exec_edit = col_e3.text_input("Executor", value=etapa_edit.get('executor', processo['executor']))
+                        link_d_edit = st.text_input("Link Diagrama", value=etapa_edit['link_diagrama_etapa'])
+                        link_m_edit = st.text_input("Link Manual", value=etapa_edit['manual_processo_link'])
+                        
+                        pol_edit = st.text_area("Política Interna", value=etapa_edit['politica_interna'])
+                        ana_edit = st.text_area("Análise Crítica", value=etapa_edit['analise_critica'])
+                        sug_edit = st.text_area("Sugestão de Melhoria", value=etapa_edit['sugestao_melhoria'])
+                        
+                        col_e4, col_e5 = st.columns(2)
+                        nec_edit = col_e4.text_input("Necessidade para implantação", value=etapa_edit['necessidade_implantacao'])
+                        gan_edit = col_e5.text_input("Ganho previsto", value=etapa_edit['ganho_previsto'])
+                        
+                        obri_edit = st.text_input("Obrigações Regulatórias", value=etapa_edit.get('obrigações_regulatorias', ''))
+                        
+                        crit_list = ["Aprovado", "Em Aprovação"]
+                        crit_edit = col_e2.selectbox("Criticidade", crit_list, index=crit_list.index(etapa_edit['criticidade_etapa']) if etapa_edit['criticidade_etapa'] in crit_list else 0)
+
+                        if st.form_submit_button("Atualizar Detalhamento", type="primary"):
+                            dados_update = {
+                                "etapa_id": etapa_edit['id'],
+                                "desc": desc_edit, "oque": oque_edit, "status": status_edit,
+                                "como": como_edit, "obj": obj_edit, "real": correto_edit,
+                                "link_d": link_d_edit, "pol": pol_edit, "ana": ana_edit,
+                                "sug": sug_edit, "nec": nec_edit, "gan": gan_edit,
+                                "obri": obri_edit, "crit": crit_edit, "man": link_m_edit
                             }
+                            if atualizar_etapa_no_banco(dados_update):
+                                st.success("Etapa atualizada!")
+                                st.session_state["etapa_em_edicao"] = None
+                                st.rerun()
 
-                            if is_edit:
-                                dados["etapa_id"] = edicao['id'] # Passamos o ID original para o UPDATE
-                                # Chame aqui sua função de atualizar (ex: atualizar_etapa_no_banco)
-                                if atualizar_etapa_no_banco(dados):
-                                    st.toast("Etapa atualizada com sucesso!", icon="✅")
-                                    st.session_state["etapa_em_edicao"] = None
-                                    st.rerun()
-                            else:
-                                if salvar_etapa_no_banco(dados):
-                                    st.success("Etapa salva!")
-                                    st.rerun()
         else:
             st.warning("Código não encontrado.")
 
