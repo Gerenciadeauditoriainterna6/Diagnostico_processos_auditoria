@@ -391,6 +391,9 @@ def tela_consulta_detalhada():
                             with tab_v_controle:
                                 controles_df = listar_controles_da_etapa(etapa['id'])
 
+                                if listar_controles_da_etapa.empty():
+                                    st.warning("Nenhum Controle cadastrado ainda!")
+
                                 for _, ctrl in controles_df.iterrows():
                                     # O título agora mostra o Risco de Origem e o Nome do Controle
                                     titulo = f"🛡️ Controle: {ctrl['nome_controle']} (Risco: {ctrl['risco_pai']})"
