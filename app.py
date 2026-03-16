@@ -277,10 +277,17 @@ def tela_consulta_detalhada():
                             # Execução
                             st.subheader("Detalhes da Execução")
                             c1, c2 = st.columns(2)
+
+                            c1.metric(
+                                label="Status da Etapa", 
+                                value=etapa.get('status_etapa', 'Ativa')
+                            )
+                            c1.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
                             c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
                             c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
-                            c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
-                            c2.write(f"**Realizado corretamente:** {etapa['realizado_corretamente']}")
+                            
+                            c2.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
+                            c2.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
                             c2.write(f"**Política Interna:** {etapa['politica_interna']}")
                             
                             # Auditoria e Melhorias
@@ -606,10 +613,10 @@ def main():
     # --- SIDEBAR ---
     with st.sidebar:
         caminho_script = os.path.dirname(os.path.abspath(__file__))
-        logo_fusve_path = os.path.join(caminho_script, "assets", "logo_fusve.png")
+        logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria_recortada_circulo.png")
         
-        if os.path.exists(logo_fusve_path):
-            st.image(logo_fusve_path, width=200)
+        if os.path.exists(logo_auditoria_path):
+            st.image(logo_auditoria_path, width=200)
 
         # Exibe o nome do usuário logado para confirmação
         st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
