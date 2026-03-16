@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import pandas as pd
 from sqlalchemy import text
-from database import engine, supabase
+from database import engine
 import time as time_module
 import base64
 import extra_streamlit_components as stx
@@ -22,55 +22,52 @@ st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 # --- 2. FUNÇÕES DE SESSÃO E IP (SUPABASE) ---
 
 def get_identificador_cliente():
-    """Captura o IP do auditor para reconhecê-lo após o F5 no Streamlit Cloud."""
-    headers = _get_websocket_headers()
-    # No Streamlit Cloud, o IP real vem no header X-Forwarded-For
-    ip = headers.get("X-Forwarded-For", "127.0.0.1").split(',')[0]
-    return ip
+    """
+    Captura o IP do auditor. No Streamlit Cloud, o IP real 
+    vem no header 'X-Forwarded-For'.
+    """
+    try:
+        headers = _get_websocket_headers()
+        # Tenta pegar o IP real através do proxy do Streamlit
+        ip = headers.get("X-Forwarded-For", "127.0.0.1").split(',')[0]
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 def registrar_sessao_no_banco(usuario_nome):
-    """Registra ou atualiza a sessão ativa no Supabase."""
     identificador = get_identificador_cliente()
-    try:
-        # Limpa sessões antigas deste IP/Usuário
-        supabase.table("sessoes_ativas").delete().or_(
-            f"usuario_id.eq.{usuario_nome},identificador_sessao.eq.{identificador}"
-        ).execute()
-        
-        # Insere a nova sessão
-        dados = {
-            "usuario_id": usuario_nome,
-            "identificador_sessao": identificador,
-            "ultima_atividade": datetime.now().isoformat()
-        }
-        supabase.table("sessoes_ativas").insert(dados).execute()
-    except Exception as e:
-        st.error(f"Erro ao registrar sessão: {e}")
+    with engine.begin() as conn:
+        # Limpa sessões antigas
+        conn.execute(
+            text("DELETE FROM sessoes_ativas WHERE usuario_id = :u OR identificador_sessao = :i"),
+            {"u": usuario_nome, "i": identificador}
+        )
+        # Insere a nova
+        conn.execute(
+            text("INSERT INTO sessoes_ativas (usuario_id, identificador_sessao, ultima_atividade) VALUES (:u, :i, :t)"),
+            {"u": usuario_nome, "i": identificador, "t": datetime.now()}
+        )
 
 def verificar_sessao_ativa():
-    """Consulta o Supabase para ver se este IP tem login recente."""
     identificador = get_identificador_cliente()
-    limite_tempo = (datetime.now() - timedelta(hours=2)).isoformat()
+    limite = datetime.now() - timedelta(hours=2)
     try:
-        resposta = supabase.table("sessoes_ativas")\
-            .select("usuario_id")\
-            .eq("identificador_sessao", identificador)\
-            .gt("ultima_atividade", limite_tempo)\
-            .execute()
-        
-        if resposta.data:
-            return resposta.data[0]["usuario_id"]
-        return None
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT usuario_id FROM sessoes_ativas WHERE identificador_sessao = :i AND ultima_atividade > :l"),
+                {"i": identificador, "l": limite}
+            ).fetchone()
+            return result[0] if result else None
     except Exception:
         return None
 
 def deletar_sessao_banco():
-    """Remove a sessão do banco ao fazer Logout."""
     identificador = get_identificador_cliente()
-    try:
-        supabase.table("sessoes_ativas").delete().eq("identificador_sessao", identificador).execute()
-    except Exception:
-        pass
+    with engine.begin() as conn:
+        conn.execute(
+            text("DELETE FROM sessoes_ativas WHERE identificador_sessao = :i"),
+            {"i": identificador}
+        )
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
