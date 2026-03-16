@@ -392,7 +392,7 @@ def tela_consulta_detalhada():
                             with tab_v_controle:
                                 controles_df = listar_controles_da_etapa(etapa['id'])
 
-                                if not controles_df.empty():
+                                if not controles_df.empty:
 
                                     for _, ctrl in controles_df.iterrows():
                                         # O título agora mostra o Risco de Origem e o Nome do Controle
