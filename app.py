@@ -270,7 +270,15 @@ def tela_consulta_detalhada():
             st.divider()
 
             # --- SEÇÃO DE ETAPAS (FILHOS) ---
-            tab_lista, tab_cadastro, tab_edicao = st.tabs(["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa", "📝 Editar Etapa"])
+            etapa_edit = st.session_state.get("etapa_em_edicao")
+
+            titulos_tabs = ["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa"]
+            if etapa_edit:
+                titulos_tabs.append("📝 Editar Etapa")
+
+            tabs = st.tabs(titulos_tabs)
+            tab_lista = tabs[0]
+            tab_cadastro = tabs[1]
 
             with tab_lista:
                 etapas = listar_etapas_do_processo(processo['id'])
@@ -517,14 +525,14 @@ def tela_consulta_detalhada():
                         if salvar_etapa_no_banco(dados):
                             st.success("Etapa salva!")
                             st.rerun()
-            with tab_edicao:
-                etapa_edit = st.session_state.get("etapa_em_edicao")
-    
-                if not etapa_edit:
-                    st.info("Selecione uma etapa na aba 'Etapas Existentes' para editar.")
-                else:
+            # --- ABA 3: EDIÇÃO (CONDICIONAL) ---
+            if etapa_edit:
+                tab_edicao = tabs[2] # Pega a terceira aba da lista
+                with tab_edicao:
                     st.write(f"### Editando Etapa: {etapa_edit['codigo_etapa']}")
-                    if st.button("🚫 Cancelar Edição"):
+                    
+                    # Botão para fechar a aba de edição caso o usuário desista
+                    if st.button("🚫 Cancelar e Fechar Edição"):
                         st.session_state["etapa_em_edicao"] = None
                         st.rerun()
 
