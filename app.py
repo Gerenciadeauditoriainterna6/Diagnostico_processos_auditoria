@@ -590,15 +590,19 @@ def main():
 
         st.divider()
         
-        # --- BOTÃO DE LOGOUT CONSERTADO ---
-        if st.button("Logout", use_container_width=True):
-            # Tente deleteItem se o removeItem falhar, ou use a atribuição vazia
+        if st.sidebar.button("Sair (Logout)", use_container_width=True):
+            # 1. Remove a informação do navegador
             try:
                 local_storage.deleteItem("usuario_audit")
             except:
-                local_storage.setItem("usuario_audit", "null") # Força a limpeza se o delete falhar
+                local_storage.setItem("usuario_audit", "null")
             
-            st.session_state.clear()
+            # 2. Em vez de .clear(), limpamos apenas o que interessa
+            # Isso evita o KeyError nos widgets (selectbox, etc)
+            st.session_state["autenticado"] = False
+            st.session_state["usuario_logado"] = None
+            
+            # 3. Força o recarregamento
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
