@@ -79,21 +79,6 @@ def get_base64(bin_file):
         return ""
 
 def login_screen():
-    # ... seu código de input de usuário e senha ...
-    usuario = st.text_input("Usuário")
-    senha = st.text_input("Senha", type="password")
-
-    if st.button("Entrar"):
-        if validar_login_no_banco(usuario, senha):
-            # --- O PONTO CRÍTICO É AQUI ---
-            registrar_sessao_no_banco(usuario) 
-            
-            st.session_state["autenticado"] = True
-            st.session_state["usuario_logado"] = usuario
-            st.success("Login realizado!")
-            st.rerun()
-        else:
-            st.error("Usuário ou senha incorretos.")
 
     try:
         bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
@@ -222,14 +207,19 @@ def login_screen():
             </div>
         ''', unsafe_allow_html=True)
 
-            # Campos de entrada (Streamlit renderiza isso dentro do container branco)
+            # Campos de entrada
             usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
             senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
             
             # O botão encerra o conteúdo do card
             if st.button("Entrar", use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
+                    
+                    # --- ALTERAÇÃO AQUI: Registra a sessão antes de mudar o estado ---
+                    registrar_sessao_no_banco(usuario)
+                    
                     st.session_state["autenticado"] = True
+                    st.session_state["usuario_logado"] = usuario
                     st.success("Login realizado com sucesso!")
                     time_module.sleep(1)
                     st.rerun()
