@@ -279,7 +279,7 @@ def tela_consulta_detalhada():
                             c1, c2 = st.columns(2)
 
                             c1.metric(
-                                label="Status da Etapa", 
+                                label="**Status da Etapa**", 
                                 value=etapa.get('status_etapa', 'Ativa')
                             )
                             c1.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
@@ -293,8 +293,8 @@ def tela_consulta_detalhada():
                             # Auditoria e Melhorias
                             c3, c4 = st.columns(2)
                             c3.write(f"**Análise Crítica:** {etapa['analise_critica']}")
-                            c3.write(f"**Sugestão:** {etapa['sugestao_melhoria']}")
-                            c4.write(f"**Necessidade Implantação:** {etapa['necessidade_implantacao']}")
+                            c3.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
+                            c4.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
                             c4.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
                             
                             st.divider()
