@@ -22,7 +22,7 @@ st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 # --- INICIALIZAÇÃO DO COOKIE MANAGER ---
 @st.cache_resource
 def get_manager():
-    return stx.CookieManager()
+    return stx.CookieManager(key="gerenciador_cookies_unico")
 
 cookie_manager = get_manager()
 
@@ -621,23 +621,26 @@ def main():
     # 1. Pequeno delay para o JS carregar (Essencial para o stx)
     time_module.sleep(0.5) 
     
-    # 2. Captura todos os cookies para debug
-    all_cookies = cookie_manager.get_all()
-    
-    # --- PAINEL DE DEBUG (SÓ APARECE PARA VOCÊ) ---
-    with st.expander("🔍 Debug de Sessão", expanded=False):
-        st.write("Cookies capturados:", all_cookies)
-        st.write("Session State:", st.session_state.to_dict())
-
-    # 3. Lógica de Persistência
+    # 2. Tenta ler o cookie
     cookie_auth = cookie_manager.get("usuario_audit")
+    
+    # --- PAINEL DE DEBUG ---
+    # Se o F5 está falhando, precisamos ver se 'cookie_auth' vem preenchido aqui
+    with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
+        st.write(f"Conteúdo do Cookie 'usuario_audit': {cookie_auth}")
+        st.write("Todos os cookies disponíveis:", cookie_manager.get_all())
 
+    # 3. Lógica de Reautenticação (F5)
     if not st.session_state.get('autenticado'):
         if cookie_auth:
-            # Se achou o cookie, restaura a sessão
             st.session_state['autenticado'] = True
             st.session_state['usuario_logado'] = cookie_auth
             st.rerun()
+
+    # 4. Bloqueio de Acesso
+    if not st.session_state.get('autenticado'):
+        login_screen()
+        st.stop()
 
     # --- O RESTO DO SEU APP ---
     if not st.session_state.get('autenticado'):
