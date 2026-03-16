@@ -47,6 +47,26 @@ def salvar_etapa_no_banco(dados_etapa):
     except Exception as e:
         print(f"Erro ao salvar etapa: {e}")
         return False
+    
+def atualizar_etapa_no_banco(dados):
+    query = text("""
+        UPDATE etapas_processo SET
+            descricao_etapa = :desc,
+            oque_faz = :oque,
+            como_e_feito = :como,
+            objetivo_etapa = :obj,
+            status_etapa = :status,
+            -- ... adicione todas as outras colunas ...
+        WHERE id = :etapa_id
+    """)
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, dados)
+            conn.commit()
+        return True
+    except Exception as e:
+        print(f"Erro ao atualizar: {e}")
+        return False
 
 def listar_etapas_do_processo(processo_id):
     """Retorna todas as etapas de um processo específico."""
