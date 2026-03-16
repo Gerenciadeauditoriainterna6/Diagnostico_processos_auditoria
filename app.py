@@ -563,26 +563,19 @@ def marcar_relatorio_gerado(codigo_processo):
 # --- 5. Execução do app ---
 
 def main():
+    # 1. Recupera o status da URL (Sincronização imediata no F5)
+    # Se 'auth' estiver na URL, o Streamlit lê instantaneamente
+    token_na_url = st.query_params.get("auth")
 
-    if "inicializado" not in st.session_state:
-        cookie_manager.get(cookie="auditoria_token")
-        time_module.sleep(1)
-        st.session_state['inicializado'] = True
-        st.rerun()
-
-    auth_cookie = cookie_manager.get(cookie="auditoria_token")
-
-    # VERIFICAÇÃO DE DEBUG
-    st.write(f"Valor do Cookie Detectado: {auth_cookie}")
-
-    if auth_cookie == "token_seguro_usuario_123":
+    if token_na_url == "token_seguro_123":
         st.session_state['autenticado'] = True
-    
+
+    # 2. Barreira de Segurança
     if not st.session_state.get('autenticado'):
-        if login_screen():
-            cookie_manager.set(cookie="auditoria_token", val="token_seguro_usuario_123", expires_at=datetime.now() + timedelta(days=1))
+        if login_screen(): # Sua função de login
+            # Se logou, injetamos o token na URL e no estado
+            st.query_params["auth"] = "token_seguro_123"
             st.session_state['autenticado'] = True
-            time_module.sleep(0.5)
             st.rerun()
         else:
             st.stop()
@@ -600,8 +593,8 @@ def main():
         st.divider()
         # Adiciona um botão de Sair no topo ou fim do sidebar
         if st.button("Logout"):
-            cookie_manager.delete("auditoria_token")
-            st.session_state['autenticado'] = False
+            st.query_params.clear()
+            st.session_state["autenticado"] = False
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
