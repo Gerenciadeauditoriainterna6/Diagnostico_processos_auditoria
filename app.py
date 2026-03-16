@@ -221,9 +221,16 @@ def login_screen():
             # O botão encerra o conteúdo do card
             if st.button("Entrar", use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
+
+                    with st.spinner("Autenticando..."):
+                        cookie_manager.set(
+                            "usuario_audit",
+                            usuario,
+                            expires_at=datetime.now() + timedelta(days=1),
+                            key="gravacao_cookie_final"
+                        )
                     
-                    # --- ALTERAÇÃO AQUI: Registra a sessão antes de mudar o estado ---
-                    registrar_sessao_no_banco(usuario)
+                        time_module.sleep(1.5)
                     
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
