@@ -286,38 +286,23 @@ def tela_consulta_detalhada():
                     for _, etapa in etapas.iterrows():
                         with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
                             st.subheader("Detalhes da Execução")
-                            # Informações rápidas em uma linha (opcional, para não ocupar muito espaço)
-                            col_info = st.columns(3)
-                            col_info.metric("Status", etapa.get('status_etapa', 'Ativa'))
-                            col_info.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
-                            col_info.write(f"**Eficácia:** {etapa['realizado_corretamente']}")
-                            
-                            st.divider()
+                            c1 = st.columns(2)
 
-                            # Blocos de texto em largura total
-                            st.write(f"### 🎯 Objetivo")
-                            st.write(etapa['objetivo_etapa'])
-                            
-                            st.write(f"### 🔍 O que é feito")
-                            st.info(etapa.get('oque_faz', 'N/A')) # Usei info para destacar o texto longo
-                            
-                            st.write(f"### ⚙️ Como é feito")
-                            st.write(etapa['como_e_feito'])
-                            
-                            st.write(f"### 📜 Política Interna")
-                            st.write(etapa['politica_interna'] if etapa['politica_interna'] else "Não informada")
-
-                            st.divider()
-                            
-                            # Seção de Melhorias e Análise (também em largura total)
-                            st.subheader("🚀 Análise e Melhorias")
-                            st.warning(f"**Análise Crítica:** {etapa['analise_critica']}")
-                            
-                            st.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
-                            
-                            c_melhoria = st.columns(2)
-                            c_melhoria.write(f"**Necessidade:** {etapa['necessidade_implantacao']}")
-                            c_melhoria.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
+                            c1.metric(
+                                label="**Status da Etapa**", 
+                                value=etapa.get('status_etapa', 'Ativa')
+                            )
+                            c1.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
+                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
+                            c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
+                            c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
+                            c1.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
+                            c1.write(f"**Política Interna:** {etapa['politica_interna']}")
+                            c3 = st.columns(2)
+                            c3.write(f"**Análise Crítica:** {etapa['analise_critica']}")
+                            c3.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
+                            c3.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
+                            c3.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
                             
                             st.divider()
                             # Botões
