@@ -19,6 +19,13 @@ cookie_manager = stx.CookieManager()
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
 
+# --- INICIALIZAÇÃO DO COOKIE MANAGER ---
+@st.cache_resource
+def get_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_manager()
+
 # --- 2. FUNÇÕES DE SESSÃO E IP (SUPABASE) ---
 
 def get_identificador_cliente():
@@ -611,18 +618,31 @@ def marcar_relatorio_gerado(codigo_processo):
 # --- 5. Execução do app ---
 
 def main():
-    # 1. Tenta recuperar sessão do banco se não estiver autenticado no session_state
-    if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
-        usuario_auto = verificar_sessao_ativa()
-        if usuario_auto:
-            st.session_state["autenticado"] = True
-            st.session_state["usuario_logado"] = usuario_auto
-            # Opcional: st.rerun() se quiser garantir a atualização imediata da tela
+    # 1. Pequeno delay para o JS carregar (Essencial para o stx)
+    time_module.sleep(0.5) 
+    
+    # 2. Captura todos os cookies para debug
+    all_cookies = cookie_manager.get_all()
+    
+    # --- PAINEL DE DEBUG (SÓ APARECE PARA VOCÊ) ---
+    with st.expander("🔍 Debug de Sessão", expanded=False):
+        st.write("Cookies capturados:", all_cookies)
+        st.write("Session State:", st.session_state.to_dict())
 
-    # 2. Se depois de checar o banco ele CONTINUA sem autenticação, mostra a tela de login
-    if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
+    # 3. Lógica de Persistência
+    cookie_auth = cookie_manager.get("usuario_audit")
+
+    if not st.session_state.get('autenticado'):
+        if cookie_auth:
+            # Se achou o cookie, restaura a sessão
+            st.session_state['autenticado'] = True
+            st.session_state['usuario_logado'] = cookie_auth
+            st.rerun()
+
+    # --- O RESTO DO SEU APP ---
+    if not st.session_state.get('autenticado'):
         login_screen()
-        st.stop() # Interrompe a execução para não mostrar o resto do app
+        st.stop()
 
     # --- SIDEBAR ---
     with st.sidebar:
