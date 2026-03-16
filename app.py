@@ -637,8 +637,14 @@ def main():
         st.divider()
         # Adiciona um botão de Sair no topo ou fim do sidebar
         if st.button("Logout"):
-            st.query_params.clear()
+            # 1. Deleta do banco de dados para o F5 não logar sozinho depois
+            deletar_sessao_banco()
+            
+            # 2. Limpa o estado do navegador
             st.session_state["autenticado"] = False
+            st.session_state["usuario_logado"] = None
+            
+            # 3. Força o recarregamento para cair no if do login_screen
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
