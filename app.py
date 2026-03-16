@@ -277,7 +277,7 @@ def tela_consulta_detalhada():
                             # Execução
                             st.subheader("Detalhes da Execução")
                             c1, c2 = st.columns(2)
-                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}", help='Teste')
+                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
                             c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
                             c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
                             c2.write(f"**Realizado corretamente:** {etapa['realizado_corretamente']}")
