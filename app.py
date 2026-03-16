@@ -286,7 +286,7 @@ def tela_consulta_detalhada():
                     for _, etapa in etapas.iterrows():
                         with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
                             st.subheader("Detalhes da Execução")
-                            c1 = st.columns(2)
+                            c1, c2 = st.columns(2)
 
                             c1.metric(
                                 label="**Status da Etapa**", 
