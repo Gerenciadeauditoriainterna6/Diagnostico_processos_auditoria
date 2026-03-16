@@ -564,9 +564,8 @@ def marcar_relatorio_gerado(codigo_processo):
 
 def main():
 
-    cookie_manager.run()
-
     if "inicializado" not in st.session_state:
+        cookie_manager.get(cookie="auditoria_token")
         time_module.sleep(1)
         st.session_state['inicializado'] = True
         st.rerun()
