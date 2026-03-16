@@ -2,11 +2,12 @@ import streamlit as st
 import os
 import pandas as pd
 from sqlalchemy import text
-from database import engine
+from database import engine, supabase
 import time as time_module
 import base64
 import extra_streamlit_components as stx
 from datetime import timedelta, datetime
+from streamlit.web.server.websocket_headers import _get_websocket_headers
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
@@ -17,6 +18,59 @@ cookie_manager = stx.CookieManager()
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
+
+# --- 2. FUNÇÕES DE SESSÃO E IP (SUPABASE) ---
+
+def get_identificador_cliente():
+    """Captura o IP do auditor para reconhecê-lo após o F5 no Streamlit Cloud."""
+    headers = _get_websocket_headers()
+    # No Streamlit Cloud, o IP real vem no header X-Forwarded-For
+    ip = headers.get("X-Forwarded-For", "127.0.0.1").split(',')[0]
+    return ip
+
+def registrar_sessao_no_banco(usuario_nome):
+    """Registra ou atualiza a sessão ativa no Supabase."""
+    identificador = get_identificador_cliente()
+    try:
+        # Limpa sessões antigas deste IP/Usuário
+        supabase.table("sessoes_ativas").delete().or_(
+            f"usuario_id.eq.{usuario_nome},identificador_sessao.eq.{identificador}"
+        ).execute()
+        
+        # Insere a nova sessão
+        dados = {
+            "usuario_id": usuario_nome,
+            "identificador_sessao": identificador,
+            "ultima_atividade": datetime.now().isoformat()
+        }
+        supabase.table("sessoes_ativas").insert(dados).execute()
+    except Exception as e:
+        st.error(f"Erro ao registrar sessão: {e}")
+
+def verificar_sessao_ativa():
+    """Consulta o Supabase para ver se este IP tem login recente."""
+    identificador = get_identificador_cliente()
+    limite_tempo = (datetime.now() - timedelta(hours=2)).isoformat()
+    try:
+        resposta = supabase.table("sessoes_ativas")\
+            .select("usuario_id")\
+            .eq("identificador_sessao", identificador)\
+            .gt("ultima_atividade", limite_tempo)\
+            .execute()
+        
+        if resposta.data:
+            return resposta.data[0]["usuario_id"]
+        return None
+    except Exception:
+        return None
+
+def deletar_sessao_banco():
+    """Remove a sessão do banco ao fazer Logout."""
+    identificador = get_identificador_cliente()
+    try:
+        supabase.table("sessoes_ativas").delete().eq("identificador_sessao", identificador).execute()
+    except Exception:
+        pass
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64"""
@@ -559,26 +613,22 @@ def marcar_relatorio_gerado(codigo_processo):
     with engine.begin() as conn:
         conn.execute(query, {"codigo": codigo_processo})
 
-
 # --- 5. Execução do app ---
 
 def main():
-    # 1. Recupera o status da URL (Sincronização imediata no F5)
-    # Se 'auth' estiver na URL, o Streamlit lê instantaneamente
-    token_na_url = st.query_params.get("auth")
-
-    if token_na_url == "token_seguro_123":
-        st.session_state['autenticado'] = True
-
-    # 2. Barreira de Segurança
-    if not st.session_state.get('autenticado'):
-        if login_screen(): # Sua função de login
-            # Se logou, injetamos o token na URL e no estado
-            st.query_params["auth"] = "token_seguro_123"
-            st.session_state['autenticado'] = True
-            st.rerun()
+    # Recuperação automática via Banco de Dados (Supabase)
+    if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
+        usuario_auto = verificar_sessao_ativa()
+        if usuario_auto:
+            st.session_state["autenticado"] = True
+            st.session_state["usuario_logado"] = usuario_auto
         else:
-            st.stop()
+            st.session_state["autenticado"] = False
+
+    # Barreira de Login
+    if not st.session_state.get('autenticado'):
+        login_screen()
+        st.stop()
 
     # --- SIDEBAR ---
     with st.sidebar:
