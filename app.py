@@ -13,6 +13,7 @@ buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, l
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo
 )
 
+cookie_manager = stx.CookieManager()
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
@@ -563,12 +564,12 @@ def marcar_relatorio_gerado(codigo_processo):
 
 def main():
 
-    # Tenta ler o cookie de login
-    cookie_manager = stx.CookieManager()
+    cookie_manager.run()
 
-    if "cookie_lido" not in st.session_state:
-        time_module.sleep(0.5)
-        st.session_state['cookie_lido'] = True
+    if "inicializado" not in st.session_state:
+        time_module.sleep(1)
+        st.session_state['inicializado'] = True
+        st.rerun()
 
     auth_cookie = cookie_manager.get(cookie="auditoria_token")
 
@@ -577,14 +578,12 @@ def main():
 
     if auth_cookie == "token_seguro_usuario_123":
         st.session_state['autenticado'] = True
-
-    if auth_cookie:
-        st.session_state['autenticado'] = True
     
     if not st.session_state.get('autenticado'):
         if login_screen():
-            cookie_manager.set("auditoria_token", "token_seguro_usuario_123", expires_at=datetime.now() + timedelta(days=1))
+            cookie_manager.set(cookie="auditoria_token", val="token_seguro_usuario_123", expires_at=datetime.now() + timedelta(days=1))
             st.session_state['autenticado'] = True
+            time_module.sleep(0.5)
             st.rerun()
         else:
             st.stop()
