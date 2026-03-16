@@ -41,6 +41,7 @@ def login_screen():
     try:
         bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
         bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
+        bin_logo_auditoria = get_base64(os.path.join("assets", "logo_auditoria.png"))
         bin_logo_fusve = get_base64(os.path.join("assets", "logo_fusve.png"))
     except Exception as e:
         st.error(f"erro ao carregar imagens: {e}")
@@ -391,9 +392,6 @@ def tela_consulta_detalhada():
                             with tab_v_controle:
                                 controles_df = listar_controles_da_etapa(etapa['id'])
 
-                                if controles_df == None:
-                                    st.warning("Nenhum Controle cadastrado ainda!")
-
                                 for _, ctrl in controles_df.iterrows():
                                     # O título agora mostra o Risco de Origem e o Nome do Controle
                                     titulo = f"🛡️ Controle: {ctrl['nome_controle']} (Risco: {ctrl['risco_pai']})"
@@ -616,7 +614,7 @@ def main():
     # --- SIDEBAR ---
     with st.sidebar:
         caminho_script = os.path.dirname(os.path.abspath(__file__))
-        logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria_recortada_circulo.png")
+        logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria.png")
         
         if os.path.exists(logo_auditoria_path):
             st.image(logo_auditoria_path, width=200)
