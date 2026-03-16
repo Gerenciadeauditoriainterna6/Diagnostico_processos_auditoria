@@ -30,12 +30,12 @@ def salvar_etapa_no_banco(dados_etapa):
     try:
         query = text("""
             INSERT INTO etapas_processo (
-                    processo_id, codigo_etapa, descricao_etapa, como_e_feito, objetivo_etapa,
+                    processo_id, codigo_etapa, descricao_etapa, oque_faz, status_etapa, como_e_feito, objetivo_etapa,
                     realizado_corretamente, link_diagrama_etapa, politica_interna, analise_critica,
                     sugestao_melhoria, necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
                     criticidade_etapa, manual_processo_link
                 ) VALUES (
-                    :p_id, :cod, :desc, :como, :obj, :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
+                    :p_id, :cod, :desc, :oque, :status, :como, :obj, :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
                 )
         """)
         

@@ -277,12 +277,7 @@ def tela_consulta_detalhada():
                             # Execução
                             st.subheader("Detalhes da Execução")
                             c1, c2 = st.columns(2)
-                            c1.text_area(
-                                "Como é feito", 
-                                value=etapa['como_e_feito'], 
-                                disabled=True, 
-                                help="Descreve o passo a passo operacional realizado pelo executor."
-                            )
+                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
                             c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
                             c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
                             c2.write(f"**Realizado corretamente:** {etapa['realizado_corretamente']}")
@@ -480,25 +475,43 @@ def tela_consulta_detalhada():
                 with st.form("form_nova_etapa", clear_on_submit=True):
                     c1, c2 = st.columns([1, 3])
                     c1.text_input("Código", value=prox_cod, disabled=True)
-                    desc_etapa = c2.text_input("Título da Etapa")
-                    como = st.text_area("Como é feito?")
-                    obj_etapa = st.text_area("Objetivo?")
+                    desc_etapa = c2.text_input("Etapa", help="Nome da etapa")
+                    oque = st.text_area("O que você faz?", help="DESCRIÇÃO DA ETAPA DO PROCESSO - O QUE VOCÊ FAZ? (Gestor descreve o que é feito na etapa desde o inicio até o final seguindo para a próxima etapa, processo ou área)")
+                    como = st.text_area("Como você faz?", help="ESSA ETAPA SERÁ AVALIDO PELA GERÊNCIA A NECESSIDADE DE DESCRIÇÃO DA ETAPA DO PROCESSO - COMO VOCÊ FAZ? (Gestor descreve como é feito na etapa desde o inicio até o final seguindo para a próxima etapa, processo ou área)")
+                    obj_etapa = st.text_area("Qual o objetivo??", help="Qual o OBJETIVO da Etapa? (Gestor contextualiza o porque a etapa é realizada)")
+                    status = st.selectbox("Status da etapa:", ["Ativa", "Inativa"])
                     col_f1, col_f2, col_f3 = st.columns(3)
-                    correto = col_f1.selectbox("Realizado corretamente?", ["Sim", "Não", "Parcial"])
-                    crit_etapa = col_f2.selectbox("Criticidade", ["Baixa", "Média", "Alta", "Crítica"])
+                    correto = col_f1.selectbox("Teste de eficácia?", ["Sim", "Não", "Parcial"], help="TESTE DE EFICÁCIA - O OBJETIVO DA ETAPA ESTA SENDO REALIZADO DE MANEIRA CORRETA  E ALCANÇANDO O OBJETIVO?")
                     executa = col_f3.text_input("Executor", value=processo['executor'])
-                    link_bpmn = st.text_input("Link Diagrama")
+                    link_bpmn = st.text_input("Link Diagrama", help="Diagrama BPMN (FLUXO DA ETAPA)")
                     link_manual = st.text_input("Link Manual")
-                    politica = st.text_area("Política Interna")
-                    analise = st.text_area("Análise Crítica")
-                    melhoria = st.text_area("Sugestão de Melhoria")
+                    politica = st.text_area("Política Interna", help="POLITICA INTERNA (De acordo com a descrição da Etapa)")
+                    analise = st.text_area("Análise Crítica", help="ANÁLISE CRITICA do Gestor. 1) O que falta na Etapa do Processo? 2) O que essa falta provoca no processo? CONCLUSÃO: Essa falta são as dores do processo. ")
+                    melhoria = st.text_area("Sugestão de Melhoria", help="SUGESTÃO E OPORTUNIDADE DE MELHORIA.")
                     col_f4, col_f5 = st.columns(2)
-                    necessidade = col_f4.text_input("Necessidade")
-                    ganho = col_f5.text_input("Ganho")
-                    obrigacoes = st.text_input("Obrigações Reg.")
+                    necessidade = col_f4.text_input("Necessidade para implantação", help="Qual a NECESSIDADE PARA IMPLANTAÇÃO da sugestão de melhoria?")
+                    ganho = col_f5.text_input("Ganho previsto", help="Qual o GANHO PREVISTO após a melhoria implantada?")
+                    obrigacoes = st.text_input("Obrigações Regulatórias", help=" Obrigações Regulatórias EXTERNAS COM ou SEM obrigatoriedade de ENTREGA ao Órgão regulador. (Anexar o Documento Legal + Documento da Obrigação)")
+                    crit_etapa = col_f2.selectbox("Criticidade", ["Aprovado", "Em Aprovação"], help='Criticidade (APROVADO OU EM APROVAÇÃO) – colocamos aprovado quando o manual é publicado.')
                     if st.form_submit_button("Salvar Detalhamento"):
                         with st.spinner("Salvando etapa na base de dados..."):
-                            dados = {"p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn, "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade, "gan": ganho, "obri": obrigacoes, "crit": crit_etapa, "man": link_manual}
+                            dados = {"p_id": int(processo['id']), 
+                                     "cod": prox_cod, 
+                                     "desc": desc_etapa,
+                                     "oque": oque,
+                                     "status": status,
+                                     "como": como, 
+                                     "obj": obj_etapa, 
+                                     "real": correto, 
+                                     "link_d": link_bpmn, 
+                                     "pol": politica, 
+                                     "ana": analise, 
+                                     "sug": melhoria, 
+                                     "nec": necessidade, 
+                                     "gan": ganho, 
+                                     "obri": obrigacoes, 
+                                     "crit": crit_etapa, 
+                                     "man": link_manual}
                             if salvar_etapa_no_banco(dados):
                                 st.success("Etapa salva!")
                                 st.rerun()
