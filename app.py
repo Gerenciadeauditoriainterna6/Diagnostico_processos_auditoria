@@ -277,7 +277,12 @@ def tela_consulta_detalhada():
                             # Execução
                             st.subheader("Detalhes da Execução")
                             c1, c2 = st.columns(2)
-                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
+                            c1.text_area(
+                                "Como é feito", 
+                                value=etapa['como_e_feito'], 
+                                disabled=True, 
+                                help="Descreve o passo a passo operacional realizado pelo executor."
+                            )
                             c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
                             c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
                             c2.write(f"**Realizado corretamente:** {etapa['realizado_corretamente']}")
