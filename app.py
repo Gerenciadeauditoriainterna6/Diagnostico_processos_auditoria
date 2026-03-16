@@ -611,19 +611,18 @@ def marcar_relatorio_gerado(codigo_processo):
 # --- 5. Execução do app ---
 
 def main():
-    # Recuperação automática via Banco de Dados (Supabase)
+    # 1. Tenta recuperar sessão do banco se não estiver autenticado no session_state
     if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
         usuario_auto = verificar_sessao_ativa()
         if usuario_auto:
             st.session_state["autenticado"] = True
             st.session_state["usuario_logado"] = usuario_auto
-        else:
-            st.session_state["autenticado"] = False
+            # Opcional: st.rerun() se quiser garantir a atualização imediata da tela
 
-    # Barreira de Login
-    if not st.session_state.get('autenticado'):
+    # 2. Se depois de checar o banco ele CONTINUA sem autenticação, mostra a tela de login
+    if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
         login_screen()
-        st.stop()
+        st.stop() # Interrompe a execução para não mostrar o resto do app
 
     # --- SIDEBAR ---
     with st.sidebar:
