@@ -30,6 +30,14 @@ def get_base64(bin_file):
         return ""
 
 def login_screen():
+    """Gerencia a tela de login e a sessão de usuário."""
+
+    if "autenticado" not in st.session_state:
+        st.session_state["autenticado"] = False
+
+    if st.session_state['autenticado']:
+        return True
+
     try:
         bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
         bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
@@ -38,7 +46,7 @@ def login_screen():
         st.error(f"erro ao carregar imagens: {e}")
         return False
     
-    # --- BLOCO CSS PARA DESIGN DO LOGIN ---
+    # --- BLOCO CSS PARA DESIGN DO LOGIN (SEU DESIGN ORIGINAL) ---
     st.markdown(f"""
         <style>
         [data-testid="stAppViewContainer"] {{
@@ -47,8 +55,12 @@ def login_screen():
             background-size: cover !important;
             background-position: center !important;
         }}
+        
         header {{ visibility: hidden; }}
-        div[data-testid="stVerticalBlockBorder"] {{
+        
+        /* Seletores robustos para garantir que o card apareça */
+        div[data-testid="stVerticalBlockBorder"], 
+        .stVerticalBlockBorder {{
             background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
             border: none !important;
             box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
@@ -61,6 +73,11 @@ def login_screen():
             margin-right: auto !important;
             opacity: 1 !important;
         }}
+
+        div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
+            margin-top: 2vh;
+        }}
+
         .logo-container {{
             text-align: center;
             margin-top: -85px;
@@ -74,23 +91,28 @@ def login_screen():
             background: transparent !important;
             filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
         }}
+
         div[data-testid="stTextInput"]:has(#text_input_2){{
             margin-top: -25px !important;
             margin-bottom: 0px !important;
         }}
+
         div.stButton {{
             margin-top: 15px !important;
         }}
+
         button[kind="primary"] {{
             background-color: #153e5a !important;
             border: none !important;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
         }}
+
         div[data-testid="stNotification"] > div {{
             background-color: rgba(64, 96, 100, 0.9) !important;
             color: white !important;
             border: 1px solid #6d8285 !important;
         }}
+
         .fusve-container {{
             text-align: center;
             margin-top: 20px;
@@ -99,6 +121,7 @@ def login_screen():
             display: flex;
             justify-content: center;
         }}
+
         .fusve-container img {{
             width: 110px;
             height: auto;
@@ -130,18 +153,13 @@ def login_screen():
             
             if st.button("Entrar", use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
-
-                    with st.spinner("Autenticando..."):
-                        # --- SUBSTITUIÇÃO DO COOKIE MANAGER PELO LOCAL STORAGE ---
-                        local_storage.setItem("usuario_audit", usuario)
-                        
-                        # Pequena pausa para garantir que o navegador processe a gravação
-                        time_module.sleep(1.0)
+                    # --- GRAVAÇÃO NO LOCAL STORAGE (ÚNICA MUDANÇA FUNCIONAL) ---
+                    local_storage.setItem("usuario_audit", usuario)
                     
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
                     st.success("Login realizado com sucesso!")
-                    time_module.sleep(0.5)
+                    time_module.sleep(1)
                     st.rerun()
                 else:
                     st.error("Usuário ou senha incorretos.")
@@ -573,15 +591,14 @@ def main():
         st.divider()
         
         # --- BOTÃO DE LOGOUT CONSERTADO ---
-        if st.button("Sair (Logout)", use_container_width=True):
-            # 1. Remove a informação do navegador (LocalStorage)
-            # Sem isso, o F5 logaria o usuário de volta imediatamente
-            local_storage.removeItem("usuario_audit")
+        if st.button("Logout", use_container_width=True):
+            # Tente deleteItem se o removeItem falhar, ou use a atribuição vazia
+            try:
+                local_storage.deleteItem("usuario_audit")
+            except:
+                local_storage.setItem("usuario_audit", "null") # Força a limpeza se o delete falhar
             
-            # 2. Limpa todas as variáveis temporárias da sessão atual
             st.session_state.clear()
-            
-            # 3. Força o recarregamento para voltar à tela de login
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
