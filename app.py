@@ -391,7 +391,7 @@ def tela_consulta_detalhada():
                             with tab_v_controle:
                                 controles_df = listar_controles_da_etapa(etapa['id'])
 
-                                if controles_df.empty():
+                                if controles_df == None:
                                     st.warning("Nenhum Controle cadastrado ainda!")
 
                                 for _, ctrl in controles_df.iterrows():
