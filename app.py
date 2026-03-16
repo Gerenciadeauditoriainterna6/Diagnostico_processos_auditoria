@@ -41,7 +41,7 @@ def login_screen():
     try:
         bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
         bin_logo = get_base64(os.path.join("assets", "logo_auditoria_recortada_circulo.png"))
-        bin_logo_auditoria = get_base64(os.path.join("assets", "logo_auditoria.png"))
+        bin_logo_auditoria = get_base64(os.path.join("assets", "logo_auditoria-removebg-preview.png"))
         bin_logo_fusve = get_base64(os.path.join("assets", "logo_fusve.png"))
     except Exception as e:
         st.error(f"erro ao carregar imagens: {e}")
@@ -614,7 +614,7 @@ def main():
     # --- SIDEBAR ---
     with st.sidebar:
         caminho_script = os.path.dirname(os.path.abspath(__file__))
-        logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria.png")
+        logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria-removebg-preview.png")
         
         if os.path.exists(logo_auditoria_path):
             st.image(logo_auditoria_path, width=200)
