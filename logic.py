@@ -248,15 +248,19 @@ def salvar_no_banco():
         return False
 
 def buscar_processos_pendentes():
-    # Mantemos o JOIN e adicionamos a ordenação lógica por código
     query = text("""
-        SELECT DISTINCT p.id, p.codigo_processo, i.nome_area, p.nome_processo 
+        SELECT DISTINCT 
+            p.id, 
+            p.codigo_processo, 
+            i.nome_area, 
+            p.nome_processo,
+            string_to_array(p.codigo_processo, '.')::int[] AS ordem_logica -- Incluído aqui
         FROM processos p
         JOIN riscos r ON p.id = r.processo_id
         JOIN informacoes_area i ON p.id_area = i.id_area
         WHERE r.relatorio_gerado != 'Sim' OR r.relatorio_gerado IS NULL
         ORDER BY 
-            string_to_array(p.codigo_processo, '.')::int[] -- Ordenação numérica (1.1, 1.2, 1.10...)
+            ordem_logica -- Agora usamos o apelido que está no SELECT
     """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
