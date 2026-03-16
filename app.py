@@ -79,13 +79,21 @@ def get_base64(bin_file):
         return ""
 
 def login_screen():
-    """Gerencia a tela de login e a sessão de usuário."""
+    # ... seu código de input de usuário e senha ...
+    usuario = st.text_input("Usuário")
+    senha = st.text_input("Senha", type="password")
 
-    if "autenticado" not in st.session_state:
-        st.session_state["autenticado"] = False
-
-    if st.session_state['autenticado']:
-        return True
+    if st.button("Entrar"):
+        if validar_login_no_banco(usuario, senha):
+            # --- O PONTO CRÍTICO É AQUI ---
+            registrar_sessao_no_banco(usuario) 
+            
+            st.session_state["autenticado"] = True
+            st.session_state["usuario_logado"] = usuario
+            st.success("Login realizado!")
+            st.rerun()
+        else:
+            st.error("Usuário ou senha incorretos.")
 
     try:
         bin_fundo = get_base64(os.path.join("assets", "imagem_fundo.png"))
