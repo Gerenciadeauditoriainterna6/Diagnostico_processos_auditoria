@@ -60,6 +60,7 @@ def login_screen():
         
         /* Seletores robustos para garantir que o card apareça */
         div[data-testid="stVerticalBlockBorder"], 
+        div[data-class="st.VerticalBlockBorder"],
         .stVerticalBlockBorder {{
             background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
             border: none !important;
@@ -554,8 +555,8 @@ def main():
     usuario_cache = local_storage.getItem("usuario_audit")
     
     # --- PAINEL DE DEBUG (Opcional: Pode remover quando tudo estiver ok) ---
-    with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
-        st.write(f"Usuário no LocalStorage: {usuario_cache}")
+    #with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
+        #st.write(f"Usuário no LocalStorage: {usuario_cache}")
 
     # 2. Lógica de Reautenticação Automática (F5)
     if not st.session_state.get('autenticado'):
