@@ -809,52 +809,46 @@ def main():
             st.info("Nenhum processo pendente para gerar relatório.")
 
     elif opcao == "Plano Anual de Auditoria":
-
-        # --- O TRUQUE MÁGICO DO CSS ---
+        
+        # O truque do CSS continua para garantir que o Streamlit fique largo
         st.markdown("""
             <style>
-                /* Força a largura máxima no container principal em qualquer versão do Streamlit */
-                .block-container, 
-                [data-testid="stMainBlockContainer"], 
+                [data-testid="block-container"], 
                 [data-testid="stAppViewBlockContainer"] {
                     max-width: 95% !important;
-                    padding-left: 2rem !important;
-                    padding-right: 2rem !important;
-                }
-                /* Garante que o iframe do PDF também possa crescer */
-                iframe {
-                    max-width: 100% !important;
+                    padding-top: 2rem !important;
                 }
             </style>
         """, unsafe_allow_html=True)
-        # ---------------------------------------------------
 
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # O caminho dinâmico original que funcionou perfeitamente! (Buscando da pasta assets)
-        caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
+        # Caminho físico real no seu computador
+        caminho_fisico = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
 
-        if os.path.exists(caminho_pdf):
+        if os.path.exists(caminho_fisico):
             try:
-                # O visualizador da biblioteca que deu certo da primeira vez
-                pdf_viewer(caminho_pdf, width=700, height=800)
+                # O PULO DO GATO ESTÁ AQUI:
+                # O parâmetro width não é mais um número, nós apagamos ele!
+                # O parâmetro 'use_container_width=True' ou 'responsive=True'
+                # (dependendo da versão da biblioteca, nós forçamos o CSS direto nela)
+                pdf_viewer(caminho_fisico, height=850)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
             st.divider()
             
-            # O botão de download
-            with open(caminho_pdf, "rb") as f:
+            with open(caminho_fisico, "rb") as f:
                 st.download_button(
-                    label="📥 Baixar Plano Anual (PDF)",
+                    label="📥 Baixar Plano Anual para o Computador",
                     data=f,
                     file_name="Plano_Auditoria_2026.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
         else:
-            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado na pasta 'assets'.")
+            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado.")
 
             
 # --- DISPARADOR FINAL ---
