@@ -816,7 +816,7 @@ def main():
         caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
         if os.path.exists(caminho_pdf):
-            pdf_viewer(caminho_pdf, width=700, height=800)
+            pdf_viewer(caminho_pdf, width=900, height=800)
 
             # Adicionado botão de download logo abaixo do visualizador
             # Caso o navegador do usuário seja muito restrito, ele ainda consegue baixar!
