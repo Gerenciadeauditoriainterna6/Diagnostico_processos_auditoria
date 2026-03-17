@@ -15,4 +15,4 @@ textColor = "#262730"
 font = "sans serif"
 
 [server]
-enableStaticServing =
+enableStaticServing = true
