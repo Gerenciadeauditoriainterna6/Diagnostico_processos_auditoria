@@ -819,7 +819,7 @@ def main():
 
         if pdf_base64:
             # Cria a janela (iframe) para renderizar o pdf ocupando toda a largura
-            pdf_display = f'<embed src="data:application/pdf;base64,{pdf_base64}" width="100%" height="800" type="application/pdf">'
+            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="100%" height="800" type="application/pdf"></iframe>'
             st.markdown(pdf_display, unsafe_allow_html=True)
 
             # Adicionado botão de download logo abaixo do visualizador
