@@ -7,11 +7,12 @@ import time as time_module
 import base64
 from datetime import timedelta, datetime
 from streamlit_local_storage import LocalStorage
+from streamlit_pdf_viewer import pdf_viewer
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
-atualizar_etapa_no_banco, carregar_pdf_base64
+atualizar_etapa_no_banco
 )
 
 local_storage = LocalStorage()
@@ -814,13 +815,8 @@ def main():
         # Caminho onde o ficheiro deve estar guardado
         caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
-        # conversão de PDF
-        pdf_base64 = carregar_pdf_base64(caminho_pdf)
-
-        if pdf_base64:
-            # Cria a janela (iframe) para renderizar o pdf ocupando toda a largura
-            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="100%" height="800" type="application/pdf"></iframe>'
-            st.markdown(pdf_display, unsafe_allow_html=True)
+        if os.path.exists(caminho_pdf):
+            pdf_viewer(caminho_pdf, width=700, height=800)
 
             # Adicionado botão de download logo abaixo do visualizador
             # Caso o navegador do usuário seja muito restrito, ele ainda consegue baixar!
