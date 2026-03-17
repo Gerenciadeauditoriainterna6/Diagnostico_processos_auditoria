@@ -809,19 +809,25 @@ def main():
             st.info("Nenhum processo pendente para gerar relatório.")
 
     elif opcao == "Plano Anual de Auditoria":
-        
+
         # --- O TRUQUE MÁGICO DO CSS ---
-        # Este código só é executado nesta aba, alargando a tela temporariamente para 95%
         st.markdown("""
             <style>
-                [data-testid="block-container"], 
+                /* Força a largura máxima no container principal em qualquer versão do Streamlit */
+                .block-container, 
+                [data-testid="stMainBlockContainer"], 
                 [data-testid="stAppViewBlockContainer"] {
                     max-width: 95% !important;
-                    padding-top: 2rem !important;
+                    padding-left: 2rem !important;
+                    padding-right: 2rem !important;
+                }
+                /* Garante que o iframe do PDF também possa crescer */
+                iframe {
+                    max-width: 100% !important;
                 }
             </style>
         """, unsafe_allow_html=True)
-        # ------------------------------
+        # ---------------------------------------------------
 
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
