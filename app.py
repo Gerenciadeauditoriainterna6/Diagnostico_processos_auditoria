@@ -809,6 +809,20 @@ def main():
             st.info("Nenhum processo pendente para gerar relatório.")
 
     elif opcao == "Plano Anual de Auditoria":
+        
+        # --- O TRUQUE MÁGICO DO CSS ---
+        # Este código só é executado nesta aba, alargando a tela temporariamente para 95%
+        st.markdown("""
+            <style>
+                [data-testid="block-container"], 
+                [data-testid="stAppViewBlockContainer"] {
+                    max-width: 95% !important;
+                    padding-top: 2rem !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        # ------------------------------
+
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
