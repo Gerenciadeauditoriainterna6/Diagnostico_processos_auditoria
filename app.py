@@ -813,15 +813,18 @@ def main():
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
         # Caminho onde o ficheiro deve estar guardado
-        caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
+        caminho_url = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
 
-        if os.path.exists(caminho_pdf):
-            pdf_viewer(caminho_pdf, width=1200, height=800)
-
-            # Adicionado botão de download logo abaixo do visualizador
-            # Caso o navegador do usuário seja muito restrito, ele ainda consegue baixar!
-            st.divider()
-            with open(caminho_pdf, "rb") as f:
+        # Iframe chamando a URL direta. O navegador vai usar o próprio leitor de PDF!
+        pdf_display = f'<iframe src="{caminho_url}" width="100%" height="800" type="application/pdf"></iframe>'
+        st.markdown(pdf_display, unsafe_allow_html=True)
+            
+        st.divider()
+        
+        # Botão de download buscando da pasta física 'static'
+        caminho_fisico = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "plano_auditoria_2026.pdf")
+        if os.path.exists(caminho_fisico):
+            with open(caminho_fisico, "rb") as f:
                 st.download_button(
                     label="📥 Baixar Plano Anual (PDF)",
                     data=f,
