@@ -830,7 +830,7 @@ def main():
             try:
                 # 2. A SOLUÇÃO: Voltamos com o width fixo alto. 
                 # Como a página agora tem 95% de largura, os 1200px vão caber!
-                pdf_viewer(caminho_pdf, width=1200, height=850)
+                pdf_viewer(caminho_pdf, width=1400, height=850)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
