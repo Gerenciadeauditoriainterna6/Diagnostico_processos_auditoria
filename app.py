@@ -809,8 +809,8 @@ def main():
             st.info("Nenhum processo pendente para gerar relatório.")
 
     elif opcao == "Plano Anual de Auditoria":
-        
-        # O truque do CSS continua para garantir que o Streamlit fique largo
+
+        # --- O TRUQUE MÁGICO DO CSS ---
         st.markdown("""
             <style>
                 [data-testid="block-container"], 
@@ -824,31 +824,32 @@ def main():
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # Caminho físico real no seu computador
-        caminho_fisico = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
+        # O caminho dinâmico original que funcionou perfeitamente! (Buscando da pasta assets)
+        caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
-        if os.path.exists(caminho_fisico):
+        if os.path.exists(caminho_pdf):
             try:
                 # O PULO DO GATO ESTÁ AQUI:
                 # O parâmetro width não é mais um número, nós apagamos ele!
                 # O parâmetro 'use_container_width=True' ou 'responsive=True'
                 # (dependendo da versão da biblioteca, nós forçamos o CSS direto nela)
-                pdf_viewer(caminho_fisico, height=850)
+                pdf_viewer(caminho_pdf, height=850)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
             st.divider()
             
-            with open(caminho_fisico, "rb") as f:
+            # O botão de download
+            with open(caminho_pdf, "rb") as f:
                 st.download_button(
-                    label="📥 Baixar Plano Anual para o Computador",
+                    label="📥 Baixar Plano Anual (PDF)",
                     data=f,
                     file_name="Plano_Auditoria_2026.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
         else:
-            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado.")
+            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado na pasta 'assets'.")
 
             
 # --- DISPARADOR FINAL ---
