@@ -819,11 +819,23 @@ def main():
 
         if pdf_base64:
             # Cria a janela (iframe) para renderizar o pdf ocupando toda a largura
-            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="100%" height="800" type="application/pdf"></iframe>'
+            pdf_display = f'<embed src="data:application/pdf;base64,{pdf_base64}" width="100%" height="800" type="application/pdf">'
             st.markdown(pdf_display, unsafe_allow_html=True)
+
+            # Adicionado botão de download logo abaixo do visualizador
+            # Caso o navegador do usuário seja muito restrito, ele ainda consegue baixar!
+            st.divider()
+            with open(caminho_pdf, "rb") as f:
+                st.download_button(
+                    label="📥 Baixar Plano Anual (PDF)",
+                    data=f,
+                    file_name="Plano_Auditoria_2026.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
         else:
             st.warning("⚠️ O ficheiro do Plano Anual não foi encontrado. Verifique se 'plano_auditoria_2026.pdf' está na pasta 'assets'.")
-            
+
 # --- DISPARADOR FINAL ---
 
 if __name__ == "__main__":
