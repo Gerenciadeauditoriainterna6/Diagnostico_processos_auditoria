@@ -288,23 +288,21 @@ def tela_consulta_detalhada():
                     for _, etapa in etapas.iterrows():
                         with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
                             st.subheader("Detalhes da Execução")
-                            c1, c2 = st.columns(2)
 
-                            c1.metric(
+                            st.metric(
                                 label="**Status da Etapa**", 
                                 value=etapa.get('status_etapa', 'Ativa')
                             )
-                            c1.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
-                            c1.write(f"**Como é feito:** {etapa['como_e_feito']}")
-                            c1.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
-                            c1.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
-                            c1.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
-                            c1.write(f"**Política Interna:** {etapa['politica_interna']}")
-                            c3 = st.columns(2)
-                            c3.write(f"**Análise Crítica:** {etapa['analise_critica']}")
-                            c3.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
-                            c3.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
-                            c3.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
+                            st.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
+                            st.write(f"**Como é feito:** {etapa['como_e_feito']}")
+                            st.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
+                            st.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
+                            st.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
+                            st.write(f"**Política Interna:** {etapa['politica_interna']}")
+                            st.write(f"**Análise Crítica:** {etapa['analise_critica']}")
+                            st.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
+                            st.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
+                            st.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
                             
                             st.divider()
                             # Botões
