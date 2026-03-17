@@ -812,21 +812,46 @@ def main():
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # Caminho onde o ficheiro deve estar guardado
+        # Caminho da web (criado pelo Streamlit)
         caminho_url = "app/static/plano_auditoria_2026.pdf"
 
-        # Iframe chamando a URL direta. O navegador vai usar o próprio leitor de PDF!
-        pdf_display = f'<iframe src="{caminho_url}" width="100%" height="800" type="application/pdf"></iframe>'
+        # 1. Tentativa com a tag <object> (muito mais aceita pelos navegadores que o iframe)
+        pdf_display = f'''
+            <object data="{caminho_url}" type="application/pdf" width="100%" height="800">
+                <p>Seu navegador está bloqueando a visualização embutida.</p>
+            </object>
+        '''
         st.markdown(pdf_display, unsafe_allow_html=True)
             
         st.divider()
         
-        # Botão de download buscando da pasta física 'static'
-        caminho_fisico = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "plano_auditoria_2026.pdf")
+        # 2. BOTÃO INFALÍVEL: Abrir em Nova Guia!
+        # Como o arquivo está no servidor estático, podemos criar um link direto para ele
+        st.markdown(f'''
+            <a href="{caminho_url}" target="_blank" style="
+                display: inline-block;
+                padding: 10px 20px;
+                background-color: #1f77b4;
+                color: white;
+                text-align: center;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: bold;
+                width: 100%;
+            ">
+                ↗️ Abrir Apresentação em Tela Cheia (Nova Aba)
+            </a>
+        ''', unsafe_allow_html=True)
+        
+        st.write("") # Espaço em branco
+        
+        # 3. O botão de download físico continua aqui
+        caminho_fisico = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
+        
         if os.path.exists(caminho_fisico):
             with open(caminho_fisico, "rb") as f:
                 st.download_button(
-                    label="📥 Baixar Plano Anual (PDF)",
+                    label="📥 Baixar Plano Anual para o Computador",
                     data=f,
                     file_name="Plano_Auditoria_2026.pdf",
                     mime="application/pdf",
