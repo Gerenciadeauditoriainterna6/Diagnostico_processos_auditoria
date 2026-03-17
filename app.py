@@ -812,43 +812,19 @@ def main():
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # Caminho da web (criado pelo Streamlit)
-        caminho_url = "app/static/plano_auditoria_2026.pdf"
-
-        # 1. Tentativa com a tag <object> (muito mais aceita pelos navegadores que o iframe)
-        pdf_display = f'''
-            <object data="{caminho_url}" type="application/pdf" width="100%" height="800">
-                <p>Seu navegador está bloqueando a visualização embutida.</p>
-            </object>
-        '''
-        st.markdown(pdf_display, unsafe_allow_html=True)
-            
-        st.divider()
-        
-        # 2. BOTÃO INFALÍVEL: Abrir em Nova Guia!
-        # Como o arquivo está no servidor estático, podemos criar um link direto para ele
-        st.markdown(f'''
-            <a href="{caminho_url}" target="_blank" style="
-                display: inline-block;
-                padding: 10px 20px;
-                background-color: #1f77b4;
-                color: white;
-                text-align: center;
-                text-decoration: none;
-                border-radius: 5px;
-                font-weight: bold;
-                width: 100%;
-            ">
-                ↗️ Abrir Apresentação em Tela Cheia (Nova Aba)
-            </a>
-        ''', unsafe_allow_html=True)
-        
-        st.write("") # Espaço em branco
-        
-        # 3. O botão de download físico continua aqui
+        # Caminho físico real no seu computador
         caminho_fisico = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
-        
+
         if os.path.exists(caminho_fisico):
+            try:
+                # Essa é a mágica que fura o bloqueio do navegador!
+                pdf_viewer(caminho_fisico, width=700, height=800)
+            except Exception as e:
+                st.error(f"Erro ao carregar o visualizador: {e}")
+            
+            st.divider()
+            
+            # O botão de download contínua intacto
             with open(caminho_fisico, "rb") as f:
                 st.download_button(
                     label="📥 Baixar Plano Anual para o Computador",
@@ -858,7 +834,7 @@ def main():
                     use_container_width=True
                 )
         else:
-            st.warning("⚠️ O ficheiro do Plano Anual não foi encontrado. Verifique se 'plano_auditoria_2026.pdf' está na pasta 'assets'.")
+            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado.")
 
 # --- DISPARADOR FINAL ---
 
