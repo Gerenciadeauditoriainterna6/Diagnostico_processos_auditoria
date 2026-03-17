@@ -810,13 +810,26 @@ def main():
 
     elif opcao == "Plano Anual de Auditoria":
         
-        # 1. ALARGAMOS A PÁGINA AQUI (Isso funcionou, a tela cresceu)
+        # 1. CSS AGRESSIVO: Alarga a página E força o componente do PDF a ocupar 100%
         st.markdown("""
             <style>
+                /* Alarga o container do Streamlit */
                 [data-testid="block-container"], 
                 [data-testid="stAppViewBlockContainer"] {
                     max-width: 95% !important;
                     padding-top: 2rem !important;
+                }
+                
+                /* Força o visualizador de PDF a ignorar os 686px e usar a tela toda */
+                #pdfViewer, .scrolling-container {
+                    width: 100% !important;
+                    max-width: none !important;
+                }
+                
+                /* Força as páginas e os desenhos (canvas) a acompanharem a largura */
+                .page, .canvasWrapper, canvas {
+                    width: 100% !important;
+                    height: auto !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -828,9 +841,10 @@ def main():
 
         if os.path.exists(caminho_pdf):
             try:
-                # 2. A SOLUÇÃO: Voltamos com o width fixo alto. 
-                # Como a página agora tem 95% de largura, os 1200px vão caber!
-                pdf_viewer(caminho_pdf, width=1400, height=850)
+                # 2. MUDANÇA CRUCIAL: 
+                # Removemos o 'width' numérico. Algumas versões dessa lib usam 'rendering="unwrapped"'
+                # ou apenas não definir o width permite que o nosso CSS acima tome o controle.
+                pdf_viewer(caminho_pdf, height=1000) 
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
@@ -844,8 +858,6 @@ def main():
                     mime="application/pdf",
                     use_container_width=True
                 )
-        else:
-            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado na pasta 'assets'.")
 
             
 # --- DISPARADOR FINAL ---
