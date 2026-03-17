@@ -818,6 +818,18 @@ def main():
                     max-width: 95% !important;
                     padding-top: 2rem !important;
                 }
+                #pdfViewer, .scrolling-container {
+                    width: 100% !important;
+                    max-width: none !important;
+                }
+                .page {
+                    width: 100% !important;
+                    height: auto !important;
+                }
+                .page canvas {
+                    width: 100% !important;
+                    height: auto !important;
+                }
             </style>
         """, unsafe_allow_html=True)
 
