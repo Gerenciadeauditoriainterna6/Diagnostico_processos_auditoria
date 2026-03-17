@@ -810,26 +810,33 @@ def main():
 
     elif opcao == "Plano Anual de Auditoria":
         
-        # 1. CSS AGRESSIVO: Alarga a página E força o componente do PDF a ocupar 100%
+        # 1. CSS ULTRA AGRESSIVO
+        # Aqui atacamos o 'stApp', que é o pai de todos os elementos
         st.markdown("""
             <style>
-                /* Alarga o container do Streamlit */
-                [data-testid="block-container"], 
-                [data-testid="stAppViewBlockContainer"] {
-                    max-width: 95% !important;
-                    padding-top: 2rem !important;
+                /* Remove o limite de largura de TODA a página */
+                .main .block-container {
+                    max-width: 98vw !important;
+                    padding-left: 1rem !important;
+                    padding-right: 1rem !important;
                 }
                 
-                /* Força o visualizador de PDF a ignorar os 686px e usar a tela toda */
+                /* Força o título e textos a irem para o canto esquerdo real */
+                .stMarkdown, .stTitle, .stText {
+                    width: 100% !important;
+                    text-align: left !important;
+                }
+
+                /* Alvo: O visualizador de PDF */
                 #pdfViewer, .scrolling-container {
-                    width: 100% !important;
-                    max-width: none !important;
+                    width: 95vw !important;
+                    max-width: 95vw !important;
+                    margin-left: 0 !important;
                 }
-                
-                /* Força as páginas e os desenhos (canvas) a acompanharem a largura */
-                .page, .canvasWrapper, canvas {
+
+                /* Garante que os frames internos não limitem a largura */
+                iframe {
                     width: 100% !important;
-                    height: auto !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -837,14 +844,14 @@ def main():
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
+        # Caminho dinâmico (Assets)
         caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
         if os.path.exists(caminho_pdf):
             try:
-                # 2. MUDANÇA CRUCIAL: 
-                # Removemos o 'width' numérico. Algumas versões dessa lib usam 'rendering="unwrapped"'
-                # ou apenas não definir o width permite que o nosso CSS acima tome o controle.
-                pdf_viewer(caminho_pdf, height=1000) 
+                # 2. Chamada sem largura fixa para deixar o CSS acima mandar
+                # Aumentei a resolução para não perder qualidade ao esticar
+                pdf_viewer(caminho_pdf, height=900)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
@@ -858,6 +865,8 @@ def main():
                     mime="application/pdf",
                     use_container_width=True
                 )
+        else:
+            st.warning("⚠️ Arquivo não encontrado na pasta assets.")
 
             
 # --- DISPARADOR FINAL ---
