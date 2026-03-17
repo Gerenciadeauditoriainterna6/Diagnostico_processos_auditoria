@@ -813,7 +813,7 @@ def main():
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
         # Caminho onde o ficheiro deve estar guardado
-        caminho_url = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
+        caminho_url = "app/static/plano_auditoria_2026.pdf"
 
         # Iframe chamando a URL direta. O navegador vai usar o próprio leitor de PDF!
         pdf_display = f'<iframe src="{caminho_url}" width="100%" height="800" type="application/pdf"></iframe>'
