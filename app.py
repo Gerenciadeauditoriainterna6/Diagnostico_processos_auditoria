@@ -809,8 +809,8 @@ def main():
             st.info("Nenhum processo pendente para gerar relatório.")
 
     elif opcao == "Plano Anual de Auditoria":
-
-        # --- O TRUQUE MÁGICO DO CSS ---
+        
+        # 1. ALARGAMOS A PÁGINA AQUI (Isso funcionou, a tela cresceu)
         st.markdown("""
             <style>
                 [data-testid="block-container"], 
@@ -818,40 +818,24 @@ def main():
                     max-width: 95% !important;
                     padding-top: 2rem !important;
                 }
-                #pdfViewer, .scrolling-container {
-                    width: 100% !important;
-                    max-width: none !important;
-                }
-                .page {
-                    width: 100% !important;
-                    height: auto !important;
-                }
-                .page canvas {
-                    width: 100% !important;
-                    height: auto !important;
-                }
             </style>
         """, unsafe_allow_html=True)
 
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # O caminho dinâmico original que funcionou perfeitamente! (Buscando da pasta assets)
         caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
         if os.path.exists(caminho_pdf):
             try:
-                # O PULO DO GATO ESTÁ AQUI:
-                # O parâmetro width não é mais um número, nós apagamos ele!
-                # O parâmetro 'use_container_width=True' ou 'responsive=True'
-                # (dependendo da versão da biblioteca, nós forçamos o CSS direto nela)
-                pdf_viewer(caminho_pdf, height=850)
+                # 2. A SOLUÇÃO: Voltamos com o width fixo alto. 
+                # Como a página agora tem 95% de largura, os 1200px vão caber!
+                pdf_viewer(caminho_pdf, width=1200, height=850)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
             st.divider()
             
-            # O botão de download
             with open(caminho_pdf, "rb") as f:
                 st.download_button(
                     label="📥 Baixar Plano Anual (PDF)",
