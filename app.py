@@ -10,7 +10,8 @@ from streamlit_local_storage import LocalStorage
 from logic import (MAPA_RISCO, processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
-listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, atualizar_etapa_no_banco
+listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
+atualizar_etapa_no_banco, carregar_pdf_base64
 )
 
 local_storage = LocalStorage()
@@ -683,7 +684,7 @@ def main():
         
         opcao = st.radio(
             "Menu", 
-            ["Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"]
+            ["Plano Anula de Auditoria", "Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"]
         )
 
         st.divider()
@@ -806,6 +807,23 @@ def main():
         else:
             st.info("Nenhum processo pendente para gerar relatório.")
 
+    elif opcao == "Plano Anual de Auditoria":
+        st.title("📊 Plano Anual de Auditoria - 2026")
+        st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
+
+        # Caminho onde o ficheiro deve estar guardado
+        caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
+
+        # conversão de PDF
+        pdf_base64 = carregar_pdf_base64(caminho_pdf)
+
+        if pdf_base64:
+            # Cria a janela (iframe) para renderizar o pdf ocupando toda a largura
+            pdf_display = f'<iframe src="data:application/pdf;base64,{pdf_base64}" width="100%" height="800" type="application/pdf"></iframe>'
+            st.markdown(pdf_display, unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ O ficheiro do Plano Anual não foi encontrado. Verifique se 'plano_auditoria_2026.pdf' está na pasta 'assets'.")
+            
 # --- DISPARADOR FINAL ---
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from fpdf.enums import XPos, YPos
 from sqlalchemy import text
 from database import engine
 from datetime import datetime
+import base64
 
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,6 +13,16 @@ CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
 CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 #MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
+
+def carregar_pdf_base64(caminho_pdf):
+    """Lê o arquivo PDF e converte para base64 para exibição no iframe do Streamlit"""
+    try:
+        with open(caminho_pdf, "rb") as f:
+            base64_pdf = base64.b64encode(f.read()).decode("utf-8")
+        return base64_pdf
+    except Exception as e:
+        print("erro ao carregar o PDF: {e}")
+        return None
 
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
@@ -582,7 +593,3 @@ def atualizar_status_processo(id_processo, novo_status, coluna):
     with engine.connect() as conn:
         conn.execute(query, {"valor": novo_status, "id": id_processo})
         conn.commit()
-
-
-
-# Adicionar o criterios do risco e do controle conforme a planilha.
