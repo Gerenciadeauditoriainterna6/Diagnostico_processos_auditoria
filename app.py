@@ -812,33 +812,31 @@ def main():
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # Caminho físico real no seu computador
-        caminho_fisico = r"C:\Users\Audi-02\OneDrive - Universidade de Vassouras (1)\Auditoria Interna FUSVE\PROJETO AUTOMACAO PYTHON\GERADOR DE DADOS\static\plano_auditoria_2026.pdf"
+        # O caminho dinâmico original que funcionou perfeitamente! (Buscando da pasta assets)
+        caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
-        if os.path.exists(caminho_fisico):
-            # Abre o arquivo UMA vez em modo leitura de bytes ("rb")
-            with open(caminho_fisico, "rb") as f:
-                pdf_bytes = f.read() # Lê todo o PDF para a memória
-                
+        if os.path.exists(caminho_pdf):
             try:
-                # Agora passamos os BYTES para o visualizador, não o caminho!
-                # Isso impede qualquer erro de leitura de pastas do Windows
-                pdf_viewer(pdf_bytes, width=700, height=800)
+                # O visualizador da biblioteca que deu certo da primeira vez
+                pdf_viewer(caminho_pdf, width=700, height=800)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
             
             st.divider()
             
-            # O botão de download também usa a mesma leitura!
-            st.download_button(
-                label="📥 Baixar Plano Anual para o Computador",
-                data=pdf_bytes,
-                file_name="plano_Auditoria_2026.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+            # O botão de download
+            with open(caminho_pdf, "rb") as f:
+                st.download_button(
+                    label="📥 Baixar Plano Anual (PDF)",
+                    data=f,
+                    file_name="Plano_Auditoria_2026.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
         else:
-            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado. Verifique se o caminho físico está correto.")
+            st.warning("⚠️ O arquivo do Plano Anual não foi encontrado na pasta 'assets'.")
+
+            
 # --- DISPARADOR FINAL ---
 
 if __name__ == "__main__":
