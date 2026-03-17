@@ -684,7 +684,7 @@ def main():
         
         opcao = st.radio(
             "Menu", 
-            ["Plano Anula de Auditoria", "Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"]
+            ["Plano Anual de Auditoria", "Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"]
         )
 
         st.divider()
