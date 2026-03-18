@@ -231,7 +231,6 @@ def tela_visao_geral_processos():
             p.codigo_processo,
             p.nome_processo,
             i.nome_area,
-            i.gestor,
             p.aprovacao as criticidade,
             COUNT(DISTINCT r.id) as total_riscos,
             COALESCE(MAX(r.score_risco), 0) as maior_risco,
@@ -270,15 +269,12 @@ def tela_visao_geral_processos():
         params['cod_auditoria'] = cod_auditoria
     
     query_base += """
-        GROUP BY p.id, i.nome_area, i.gestor
-        ORDER BY 
-            CASE 
-                WHEN p.codigo_processo ~ '^[0-9]+\.[0-9]+$' 
-                THEN array_length(string_to_array(p.codigo_processo, '.'), 1)::text
-                ELSE '0'
-            END,
-            p.codigo_processo
-    """
+    GROUP BY p.id, i.nome_area
+    ORDER BY 
+        (string_to_array(p.codigo_processo, '.'))[1]::int,
+        (string_to_array(p.codigo_processo, '.'))[2]::int,
+        (string_to_array(p.codigo_processo, '.'))[3]::int
+"""
     
     # Executar consulta
     with engine.connect() as conn:
@@ -1104,7 +1100,7 @@ def main():
                     "📅 Plano Anual de Auditoria",
                     "📋 Auditorias por Trimestre",        
                     "🔍 Diagnóstico dos Processos",
-                    "📝 Detalhamento dos Processos",
+                    "👁️ Visão Geral do Diagnóstico",
                     "✅ Checklists de Eficácia",           
                     "📊 Resultados e Pareceres",
                     "📄 Geração de Relatórios"           
@@ -1189,7 +1185,7 @@ def main():
                 st.session_state['deve_limpar'] = True
                 st.rerun()
 
-    elif opcao == "📝 Detalhamento dos Processos": #@ Chamaremos de Visão Geral do Diagnóstico
+    elif opcao == "👁️ Visão Geral do Diagnóstico":
         #tela_consulta_detalhada() -> Antiga função
         tela_visao_geral_processos()
 
