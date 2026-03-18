@@ -784,12 +784,11 @@ def tela_detalhe_auditoria():
     st.title(f"📋 {auditoria['titulo']}")
     
     # Métricas em colunas
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
+    
+    st.metric("Área", auditoria['nome_area'])
     
     with col1:
-        st.metric("Área", auditoria['nome_area'])
-    
-    with col2:
         status = auditoria['status']
         if status == "Planejamento":
             st.metric("Status", "🟡 Planejamento")
@@ -798,10 +797,10 @@ def tela_detalhe_auditoria():
         else:
             st.metric("Status", "✅ Concluída")
     
-    with col3:
+    with col2:
         st.metric("Trimestre", f"{auditoria['trimestre']}º/{auditoria['ano']}")
     
-    with col4:
+    with col3:
         st.metric("Responsável", auditoria.get('responsavel_equipe', ['Não definido'])[0] if auditoria.get('responsavel_equipe') else "Não definido")
     
     # Datas
