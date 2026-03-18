@@ -191,402 +191,169 @@ def login_screen():
                     
     return False
 
-def tela_consulta_detalhada():
-    if "etapa_para_editar" not in st.session_state:
-        st.session_state["etapa_para_editar"] = None
-    st.title("🔍 Consulta Detalhada de Processos")
-    st.info("Selecione um processo abaixo para detalhar as etapas.")
-
-    # 1. Usamos o session_state para carregar a lista apenas uma vez
-    if "lista_processos" not in st.session_state:
-        st.session_state["lista_processos"] = buscar_todos_processos()
+def tela_visao_geral_processos():
+    """Tela de visão geral de todos os processos mapeados, com filtros por área e auditoria"""
     
-    df_processos = st.session_state["lista_processos"]
-
-    if not df_processos.empty:
-        # Exibe a tabela para referência do usuário
-        with st.expander("Ver lista de processos"): #@ Fazer com que a tabela de processos apareça o Risco e não o Gestor
-            st.dataframe(df_processos, use_container_width=True,
-                         column_config={
-                             "area": "Área",
-                             "codigo_processo": 'Nº Processo',
-                             "nome_processo": "Processo",
-                             "gestor": "Gestor Responsável",
-                             "aprovacao": "Criticidade"
-
-                         },
-                         column_order=("area", "codigo_processo", "nome_processo", "gestor", "aprovacao")
-                         )
-
-        # Cria uma lista formatada para o selectbox
-        # Exibe: "Código - Nome"
-        opcoes = [f"{row['codigo_processo']} - {row['nome_processo']}" for _, row in df_processos.iterrows()]
-        
-        # Selectbox para escolha
-        selecao = st.selectbox("Escolha o processo:", options=[""] + opcoes)
-
-        # 2. Lógica de busca baseada na seleção
-        if selecao:
-            # Extrai apenas o código (antes do " - ")
-            codigo_busca = selecao.split(" - ")[0]
-            processo = buscar_processo_por_codigo(codigo_busca)
-            st.metric("Status", processo.get('status', 'Ativo'))
-            # Exibição visual da Aprovação
-            aprov = processo.get('aprovacao', 'Em Aprovação')
-            cor_aprov = "orange" if aprov == "Em Aprovação" else "green"
-            st.metric("Criticidade", aprov)
-            st.write(f"**Gestor:** {processo['responsavel_area']}")
-            st.write(f"**Área:** {processo['nome_area']}")
-
-            # --- Botões de ação rápida ---
-            c_diag1, c_diag2 = st.columns([1, 2])
-            with c_diag1:
-                if processo.get('url_diagrama'):
-                    st.link_button('Abrir Diagrama Macro', processo['url_diagrama'], use_container_width=True)
-                else:
-                    st.info("Sem diagrama macro")
-            
-            # --- NOVO EXPANDER ---
-            with st.expander("Diagrama e aprovação da criticidade"):
-                col_g1, col_g2 = st.columns(2)
-
-                with col_g1:
-                    st.write("**🔗 Link do Diagrama**")
-                    novo_link = st.text_input("Inserir/Editar Link do Diagrama", value=processo.get('url_diagrama', ''), key=f"edit_link_{processo['id']}")
-                    if st.button('Salvar Novo Link', key=f"btn_link_{processo['id']}"):
-                        atualizar_status_processo(processo['id'], novo_link, "url_diagrama")
-                        st.rerun()
-                with col_g2:
-                    st.write("**✅ Status de Aprovação**")
-                    status_atual = processo.get('aprovacao', 'Em Aprovação')
-                    if status_atual == "Em Aprovação":
-                        if st.button("Aprovar Processo Agora", type="primary", use_container_width=True):
-                            atualizar_status_processo(processo['id'], 'Aprovado', 'aprovacao')
-                            st.rerun()
-                    else:
-                        if st.button("Reverter para 'Em Aprovação'", use_container_width=True):
-                            atualizar_status_processo(processo['id'], "Em Aprovação", 'aprovacao')
-                            st.rerun()
-
-            with st.expander("📄 Ver Objetivo e Descrição Geral"):
-                st.write(f"**Objetivo:** {processo['objetivo']}")
-                st.write(f"**Descrição:** {processo['descricao']}")
-
-            st.divider()
-
-            # --- SEÇÃO DE ETAPAS (FILHOS) ---
-            etapa_edit = st.session_state.get("etapa_em_edicao")
-
-            titulos_tabs = ["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa"]
-            if etapa_edit:
-                titulos_tabs.append("📝 Editar Etapa")
-
-            tabs = st.tabs(titulos_tabs)
-            tab_lista = tabs[0]
-            tab_cadastro = tabs[1]
-
-            with tab_lista:
-                etapas = listar_etapas_do_processo(processo['id'])
-                if not etapas.empty:
-                    for _, etapa in etapas.iterrows():
-                        with st.expander(f"Etapa {etapa['codigo_etapa']} - {etapa['descricao_etapa']}"):
-                            st.subheader("Detalhes da Execução")
-
-                            st.metric(
-                                label="**Status da Etapa**", 
-                                value=etapa.get('status_etapa', 'Ativa')
-                            )
-                            st.write(f"**O que é feito:** {etapa.get('oque_faz', 'N/A')}")
-                            st.write(f"**Como é feito:** {etapa['como_e_feito']}")
-                            st.write(f"**Objetivo:** {etapa['objetivo_etapa']}")
-                            st.write(f"**Criticidade:** {etapa['criticidade_etapa']}")
-                            st.write(f"**Teste de Eficácia:** {etapa['realizado_corretamente']}")
-                            st.write(f"**Política Interna:** {etapa['politica_interna']}")
-                            st.write(f"**Análise Crítica:** {etapa['analise_critica']}")
-                            st.write(f"**Sugestão de melhoria:** {etapa['sugestao_melhoria']}")
-                            st.write(f"**Necessidade para implantação da melhoria:** {etapa['necessidade_implantacao']}")
-                            st.write(f"**Ganho Previsto:** {etapa['ganho_previsto']}")
-                            
-                            st.divider()
-                            # Botões
-                            b1, b2, b3 = st.columns(3)
-                            if etapa['link_diagrama_etapa']: b1.link_button("🖼️ Desenho da Etapa", etapa['link_diagrama_etapa'])
-                            if etapa['manual_processo_link']: b2.link_button("📖 Manual do Processo", etapa['manual_processo_link'])
-
-                            if b3.button("📝 Editar Etapa", key=f"edit_btn_{etapa['id']}"):
-                                st.session_state["etapa_em_edicao"] = etapa.to_dict()
-                                st.rerun()
-                                                        
-                            st.divider()                    
-
-                            # --- VISUALIZAÇÃO DE RISCOS (ATUALIZADA) ---
-                            st.subheader("⚠️ Riscos desta Etapa")
-                        
-                            tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"])
-                            
-                            with tab_v_risco:
-                                riscos_df = listar_riscos_etapa(etapa['id'])
-                                if not riscos_df.empty:
-                                    for _, risco in riscos_df.iterrows():
-                                        # Expander para cada risco
-                                        with st.expander(f"⚠️ {risco['categoria']} - {str(risco['fator_risco'])[:40]}..."):
-                                            col_a, col_b = st.columns(2)
-                                            col_a.write(f"**Origem:** {risco['origem']}")
-                                            col_b.write(f"**Financeiro:** {'Sim' if risco['financeiro'] else 'Não'}")
-                                            st.write(f"**Fator:** {risco['fator_risco']}")
-                                            st.write(f"**Consequência:** {risco['consequencia']}")
-                                            
-                                            col_c, col_d = st.columns(2)
-                                            col_c.metric("Impacto", risco['impacto'])
-                                            col_d.metric("Probabilidade", risco['probabilidade'])
-                                            st.info(f"Magnitude: {risco['magnitude']}")
-                                            st.write(f"**Apetite:** {risco['apetite']}")
-                                            st.write(f"**Tratamento:** {risco['tratamento']}")
-                                            st.write(f"**Informações adicionais:** {risco['info_adicional']}")
-                                            st.write(f"**Documentação legal:** {risco['doc_legal']}")
-                                else:
-                                    st.info("Nenhum risco mapeado para esta etapa.")
-                            
-                            # --- ABA ADICIONAR RISCO ---
-                            with tab_c_risco:
-                                with st.form(key=f"form_risco_{etapa['id']}", clear_on_submit=True):
-                                    col1, col2 = st.columns(2)
-                                    categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
-                                    origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
-                                    
-                                    fator = st.text_area("Fator de Risco", key=f"fat_{etapa['id']}")
-                                    cons = st.text_area("Consequência", key=f"cons_{etapa['id']}")
-                                    
-                                    c3, c4 = st.columns(2)
-                                    financeiro = c3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
-                                    ativo = c4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
-                                    
-                                    imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
-                                    prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
-                                    
-                                    mag = MAPA_RISCO.get((imp, prob), 0)
-                                    cor, emoji = get_estilo_risco(mag)
-                                    st.markdown(f'''<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin-bottom: 10px;">{emoji} Magnitude: {mag}</div>''', unsafe_allow_html=True)
-                                    
-                                    apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
-                                    tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
-                                    info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
-                                    doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
-                                    
-                                    if st.form_submit_button("💾 Salvar Risco", type="primary"):
-                                        if not fator or not cons:
-                                            st.warning("Preencha fator e consequência.")
-                                        else:
-                                            with st.spinner("Salvando risco da etapa na base de dados..."):
-                                                dados_r = {
-                                                    "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
-                                                    "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
-                                                    "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
-                                                }
-                                                if salvar_risco_etapa(dados_r):
-                                                # Feedback visual que sobrevive ao rerun
-                                                    st.toast("Risco da etapa salvo com sucesso!", icon="✅")
-                                                    st.rerun()
-                                                else:
-                                                    st.error("Erro ao salvar no banco de dados. Tente novamente!")
-                                                    time_module.sleep(2)
-
-                            st.divider()
-
-                            # --- VISUALIZAÇÃO DE CONTROLES ---
-                            st.divider()
-                            st.subheader("🎮 Controles da Etapa")
-
-                            # --- VISUALIZAÇÃO E CADASTRO DE CONTROLES ---
-                            from logic import listar_controles_da_etapa
-
-                            tab_v_controle, tab_c_controle = st.tabs(["📊 Visualizar Controles", "➕ Adicionar Controle"])
-
-                            with tab_v_controle:
-                                controles_df = listar_controles_da_etapa(etapa['id'])
-
-                                if not controles_df.empty:
-
-                                    for _, ctrl in controles_df.iterrows():
-                                        # O título agora mostra o Risco de Origem e o Nome do Controle
-                                        titulo = f"🛡️ Controle: {ctrl['nome_controle']} (Risco: {ctrl['risco_pai']})"
-                                        
-                                        with st.expander(titulo):
-                                            col1, col2 = st.columns(2)
-                                            
-                                            with col1:
-                                                st.write(f"**Avaliação do Risco:** {ctrl['risco_avaliacao']}")
-                                                st.write(f"**Causa/Motivo:** {ctrl['causa_motivo']}")
-                                                st.write(f"**Como é executado:** {ctrl['como_executado']}")
-                                                st.write(f"**Objetivo:** {ctrl['objetivo_controle']}")
-                                                st.write(f"**Periodicidade:** {ctrl['periodicidade_execucao']}")
-                                                st.write(f"**Data Atualização:** {ctrl['data_atualizacao']}")
-
-                                            with col2:
-                                                st.write(f"**Evidência:** {ctrl['evidencia_realizacao']}")
-                                                st.write(f"**Forma:** {ctrl['forma_execucao']}")
-                                                st.write(f"**Natureza:** {ctrl['natureza']}")
-                                                st.write(f"**Status:** {ctrl['status_controle']}")
-                                                st.write(f"**Frequência:** {ctrl['frequencia_evidencia']}")
-                                                st.write(f"**Responsáveis:** {ctrl['responsaveis_tratamento']}")
-                                else:
-                                    st.info("Nenhum controle cadastrado para esta etapa.")
-
-                            with tab_c_controle:
-                                # Precisamos carregar os riscos para saber o que mitigar
-                                df_riscos_atuais = listar_riscos_etapa(etapa['id'])
-
-                                if not df_riscos_atuais.empty:
-                                    # Prepara as opções para o selectbox
-                                    opcoes_riscos = {f"{row['categoria']} - {row['fator_risco'][:50]}...": row['id'] for _, row in df_riscos_atuais.iterrows()}
-                                    
-                                    selecao_risco = st.selectbox(
-                                        "Selecione o Risco para mitigar:", 
-                                        options=list(opcoes_riscos.keys()), 
-                                        key=f"sel_risco_ctrl_{etapa['id']}"
-                                    )
-
-                                    risco_selecionado_id = opcoes_riscos[selecao_risco]
-                                    # Pega o fator de risco original para exibir como "Causa" (desabilitado)
-                                    fator_orig = df_riscos_atuais[df_riscos_atuais['id'] == risco_selecionado_id]['fator_risco'].values[0]
-
-                                    with st.form(key=f"form_ctrl_novo_{etapa['id']}", clear_on_submit=True):
-                                        col1, col2 = st.columns(2)
-                                        # Exibimos a causa apenas para referência do usuário
-                                        col1.text_area("Causa (Fator de Risco Original)", value=fator_orig, disabled=True)
-                                        aval = col2.text_area("Risco e Avaliação do Controle", key=f"aval_ctrl_{etapa['id']}")
-
-                                        nome_c = st.text_input("Nome da Ação de Controle", key=f"nome_ctrl_{etapa['id']}")
-
-                                        c3, c4, c5 = st.columns(3)
-                                        forma = c3.selectbox("Forma de Execução", ["Manual", "Automático"], key=f"forma_ctrl_{etapa['id']}")
-                                        nat = c4.selectbox("Natureza", ["Preventiva", "Detectiva", "Corretiva"], key=f"nat_ctrl_{etapa['id']}")
-                                        stat = c5.selectbox("Status", ["Ativo", "Inativo"], key=f"stat_ctrl_{etapa['id']}")
-
-                                        freq = st.selectbox("Frequência de Execução", ["Diário", "Semanal", "Mensal", "Trimestral", "Anual", "Por Evento"], key=f"freq_ctrl_{etapa['id']}")
-                                        resp = st.text_input("Usuário Responsável", key=f"resp_ctrl_{etapa['id']}")
-
-                                        if st.form_submit_button("💾 Salvar Controle", type="primary"):
-                                            if not nome_c or not resp:
-                                                st.warning("Preencha o nome do controle e o responsável.")
-                                            else:
-                                                dados_c = {
-                                                    "risco_id": int(risco_selecionado_id),
-                                                    "nome": nome_c,
-                                                    "forma": forma,
-                                                    "natureza": nat,
-                                                    "status": stat,
-                                                    "frequencia": freq,
-                                                    "responsavel": resp,
-                                                    "avaliacao": aval
-                                                }
-                                                if salvar_controle_no_banco(dados_c):
-                                                    st.toast("Controle salvo com sucesso!", icon="✅")
-                                                    st.rerun()
-                                                else:
-                                                    st.error("Erro ao salvar controle.")    
-                        
-                else:
-                    st.info("Nenhuma etapa cadastrada.")
-                    st.warning("É necessário cadastrar um risco para essa etapa antes de cadastrar um controle.")
-
-            with tab_cadastro:
-                st.write("### Cadastro de Nova Etapa")
-                prox_cod = obter_proximo_codigo_etapa(processo['id'], processo['codigo_processo'])
-                with st.form("form_nova_etapa", clear_on_submit=True):
-                    c1, c2 = st.columns([1, 3])
-                    c1.text_input("Código", value=prox_cod, disabled=True)
-                    desc_etapa = c2.text_input("Etapa", help="Nome da etapa")
-                    oque = st.text_area("O que você faz?")
-                    como = st.text_area("Como você faz?")
-                    obj_etapa = st.text_area("Qual o objetivo??")
-                    status = st.selectbox("Status da etapa:", ["Ativa", "Inativa"])
-                    
-                    col_f1, col_f2, col_f3 = st.columns(3)
-                    correto = col_f1.selectbox("Teste de eficácia?", ["Sim", "Não", "Parcial"])
-                    executa = col_f3.text_input("Executor", value=processo['executor'])
-                    link_bpmn = st.text_input("Link Diagrama")
-                    link_manual = st.text_input("Link Manual")
-                    
-                    politica = st.text_area("Política Interna")
-                    analise = st.text_area("Análise Crítica")
-                    melhoria = st.text_area("Sugestão de Melhoria")
-                    
-                    col_f4, col_f5 = st.columns(2)
-                    necessidade = col_f4.text_input("Necessidade para implantação")
-                    ganho = col_f5.text_input("Ganho previsto")
-                    obrigacoes = st.text_input("Obrigações Regulatórias")
-                    crit_etapa = col_f2.selectbox("Criticidade", ["Aprovado", "Em Aprovação"])
-
-                    if st.form_submit_button("Salvar Detalhamento", type="primary"):
-                        dados = {
-                            "p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "oque": oque,
-                            "status": status, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn,
-                            "pol": politica, "ana": analise, "sug": melhoria, "nec": necessidade, "gan": ganho,
-                            "obri": obrigacoes, "crit": crit_etapa, "man": link_manual
-                        }
-                        if salvar_etapa_no_banco(dados):
-                            st.success("Etapa salva!")
-                            st.rerun()
-            # --- ABA 3: EDIÇÃO (CONDICIONAL) ---
-            if etapa_edit:
-                tab_edicao = tabs[2] # Pega a terceira aba da lista
-                with tab_edicao:
-                    st.write(f"### Editando Etapa: {etapa_edit['codigo_etapa']}")
-                    
-                    # Botão para fechar a aba de edição caso o usuário desista
-                    if st.button("🚫 Cancelar e Fechar Edição"):
-                        st.session_state["etapa_em_edicao"] = None
-                        st.rerun()
-
-                    with st.form("form_edicao_etapa"):
-                        c1, c2 = st.columns([1, 3])
-                        c1.text_input("Código", value=etapa_edit['codigo_etapa'], disabled=True)
-                        desc_edit = c2.text_input("Etapa", value=etapa_edit['descricao_etapa'])
-                        oque_edit = st.text_area("O que você faz?", value=etapa_edit.get('oque_faz', ''))
-                        como_edit = st.text_area("Como você faz?", value=etapa_edit['como_e_feito'])
-                        obj_edit = st.text_area("Qual o objetivo??", value=etapa_edit['objetivo_etapa'])
-                        
-                        st_list = ["Ativa", "Inativa"]
-                        status_edit = st.selectbox("Status da etapa:", st_list, index=st_list.index(etapa_edit['status_etapa']) if etapa_edit['status_etapa'] in st_list else 0)
-                        
-                        col_e1, col_e2, col_e3 = st.columns(3)
-                        ef_list = ["Sim", "Não", "Parcial"]
-                        correto_edit = col_e1.selectbox("Teste de eficácia?", ef_list, index=ef_list.index(etapa_edit['realizado_corretamente']) if etapa_edit['realizado_corretamente'] in ef_list else 0)
-                        
-                        exec_edit = col_e3.text_input("Executor", value=etapa_edit.get('executor', processo['executor']))
-                        link_d_edit = st.text_input("Link Diagrama", value=etapa_edit['link_diagrama_etapa'])
-                        link_m_edit = st.text_input("Link Manual", value=etapa_edit['manual_processo_link'])
-                        
-                        pol_edit = st.text_area("Política Interna", value=etapa_edit['politica_interna'])
-                        ana_edit = st.text_area("Análise Crítica", value=etapa_edit['analise_critica'])
-                        sug_edit = st.text_area("Sugestão de Melhoria", value=etapa_edit['sugestao_melhoria'])
-                        
-                        col_e4, col_e5 = st.columns(2)
-                        nec_edit = col_e4.text_input("Necessidade para implantação", value=etapa_edit['necessidade_implantacao'])
-                        gan_edit = col_e5.text_input("Ganho previsto", value=etapa_edit['ganho_previsto'])
-                        
-                        obri_edit = st.text_input("Obrigações Regulatórias", value=etapa_edit.get('obrigações_regulatorias', ''))
-                        
-                        crit_list = ["Aprovado", "Em Aprovação"]
-                        crit_edit = col_e2.selectbox("Criticidade", crit_list, index=crit_list.index(etapa_edit['criticidade_etapa']) if etapa_edit['criticidade_etapa'] in crit_list else 0)
-
-                        if st.form_submit_button("Atualizar Detalhamento", type="primary"):
-                            dados_update = {
-                                "etapa_id": etapa_edit['id'],
-                                "desc": desc_edit, "oque": oque_edit, "status": status_edit,
-                                "como": como_edit, "obj": obj_edit, "real": correto_edit,
-                                "link_d": link_d_edit, "pol": pol_edit, "ana": ana_edit,
-                                "sug": sug_edit, "nec": nec_edit, "gan": gan_edit,
-                                "obri": obri_edit, "crit": crit_edit, "man": link_m_edit
-                            }
-                            if atualizar_etapa_no_banco(dados_update):
-                                st.success("Etapa atualizada!")
-                                st.session_state["etapa_em_edicao"] = None
-                                st.rerun()
-
+    st.title("📋 Visão Geral dos Processos Mapeados")
+    st.caption("Consulte todos os processos já diagnosticados, com opções de filtro por área ou auditoria.")
+    
+    # ===== FILTROS =====
+    col_f1, col_f2, col_f3 = st.columns(3)
+    
+    with col_f1:
+        # Filtro por Área
+        areas_dict = carregar_areas_banco()
+        areas_list = ["Todas as Áreas"] + list(areas_dict.keys())
+        filtro_area = st.selectbox("Filtrar por Área:", areas_list)
+    
+    with col_f2:
+        # Filtro por Auditoria (ano/trimestre)
+        # Buscar auditorias disponíveis
+        df_auditorias = listar_auditorias_por_ano()
+        if not df_auditorias.empty:
+            opcoes_auditoria = ["Todas as Auditorias"] + [
+                f"{row['codigo_auditoria']} - {row['titulo']}" 
+                for _, row in df_auditorias.iterrows()
+            ]
+            filtro_auditoria = st.selectbox("Filtrar por Auditoria:", opcoes_auditoria)
         else:
-            st.warning("Código não encontrado.")
+            filtro_auditoria = "Todas as Auditorias"
+            st.info("Nenhuma auditoria encontrada.")
+    
+    with col_f3:
+        # Filtro por texto (busca rápida)
+        filtro_texto = st.text_input("🔍 Buscar processo:", placeholder="Nome ou código...")
+    
+    # ===== CONSULTA PRINCIPAL =====
+    query_base = """
+        SELECT 
+            p.id,
+            p.codigo_processo,
+            p.nome_processo,
+            i.nome_area,
+            i.gestor,
+            p.aprovacao as criticidade,
+            COUNT(DISTINCT r.id) as total_riscos,
+            COALESCE(MAX(r.score_risco), 0) as maior_risco,
+            COUNT(DISTINCT e.id) as total_etapas,
+            COUNT(DISTINCT c.id) as total_controles
+        FROM processos p
+        JOIN informacoes_area i ON p.id_area = i.id_area
+        LEFT JOIN riscos r ON p.id = r.processo_id
+        LEFT JOIN etapas_processo e ON p.id = e.processo_id
+        LEFT JOIN riscos_etapa re ON e.id = re.etapa_id
+        LEFT JOIN controles_etapa c ON re.id = c.risco_id
+        WHERE 1=1
+    """
+    
+    params = {}
+    
+    # Aplicar filtro de área
+    if filtro_area != "Todas as Áreas":
+        id_area = areas_dict[filtro_area]
+        query_base += " AND p.id_area = :id_area"
+        params['id_area'] = id_area
+    
+    # Aplicar filtro de auditoria
+    if filtro_auditoria != "Todas as Auditorias":
+        # Extrair ID da auditoria da string selecionada
+        cod_auditoria = filtro_auditoria.split(" - ")[0]
+        query_base += """
+            AND p.id IN (
+                SELECT processo_id 
+                FROM auditoria_processos 
+                WHERE auditoria_id = (
+                    SELECT id FROM auditorias WHERE codigo_auditoria = :cod_auditoria
+                )
+            )
+        """
+        params['cod_auditoria'] = cod_auditoria
+    
+    query_base += """
+        GROUP BY p.id, i.nome_area, i.gestor
+        ORDER BY 
+            CASE 
+                WHEN p.codigo_processo ~ '^[0-9]+\.[0-9]+$' 
+                THEN array_length(string_to_array(p.codigo_processo, '.'), 1)::text
+                ELSE '0'
+            END,
+            p.codigo_processo
+    """
+    
+    # Executar consulta
+    with engine.connect() as conn:
+        df_processos = pd.read_sql(text(query_base), conn, params=params)
+    
+    # Aplicar filtro de texto (em memória, após a consulta)
+    if filtro_texto:
+        filtro_texto = filtro_texto.lower()
+        df_processos = df_processos[
+            df_processos['nome_processo'].str.lower().str.contains(filtro_texto, na=False) |
+            df_processos['codigo_processo'].str.lower().str.contains(filtro_texto, na=False)
+        ]
+    
+    # ===== EXIBIÇÃO DOS RESULTADOS =====
+    st.divider()
+    st.subheader(f"📊 Resultados: {len(df_processos)} processos encontrados")
+    
+    if not df_processos.empty:
+        # Métricas resumidas
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        with col_m1:
+            st.metric("Total de Processos", len(df_processos))
+        with col_m2:
+            st.metric("Riscos Mapeados", df_processos['total_riscos'].sum())
+        with col_m3:
+            st.metric("Etapas Mapeadas", df_processos['total_etapas'].sum())
+        with col_m4:
+            st.metric("Controles Mapeados", df_processos['total_controles'].sum())
+        
+        st.divider()
+        
+        # Tabela interativa
+        st.dataframe(
+            df_processos[[
+                'codigo_processo', 'nome_processo', 'nome_area', 'gestor',
+                'criticidade', 'maior_risco', 'total_riscos', 'total_etapas', 'total_controles'
+            ]],
+            use_container_width=True,
+            column_config={
+                "codigo_processo": "Código",
+                "nome_processo": "Processo",
+                "nome_area": "Área",
+                "gestor": "Gestor",
+                "criticidade": "Criticidade",
+                "maior_risco": "Maior Risco",
+                "total_riscos": "Qtd Riscos",
+                "total_etapas": "Etapas",
+                "total_controles": "Controles"
+            },
+            hide_index=True
+        )
+        
+        # Opção de expandir para ver detalhes completos
+        with st.expander("📋 Ver detalhes completos dos processos"):
+            # Selectbox para escolher um processo e ver detalhes
+            opcoes_detalhe = [f"{row['codigo_processo']} - {row['nome_processo']}" for _, row in df_processos.iterrows()]
+            processo_selecionado = st.selectbox("Selecione um processo para ver detalhes:", [""] + opcoes_detalhe)
+            
+            if processo_selecionado:
+                codigo = processo_selecionado.split(" - ")[0]
+                processo = buscar_processo_por_codigo(codigo)
+                
+                if processo:
+                    st.write(f"**Objetivo:** {processo['objetivo']}")
+                    st.write(f"**Descrição:** {processo['descricao']}")
+                    st.write(f"**Executor:** {processo['executor']}")
+                    
+                    # Mostrar etapas resumidas
+                    etapas = listar_etapas_do_processo(processo['id'])
+                    if not etapas.empty:
+                        st.write("**Etapas:**")
+                        for _, etapa in etapas.iterrows():
+                            st.caption(f"• {etapa['codigo_etapa']} - {etapa['descricao_etapa']}")
+    else:
+        st.warning("Nenhum processo encontrado com os filtros selecionados.")
 
 def limpar_campos_por_prefixo(prefixo):
     for key in st.session_state.keys():
@@ -1423,7 +1190,8 @@ def main():
                 st.rerun()
 
     elif opcao == "📝 Detalhamento dos Processos": #@ Chamaremos de Visão Geral do Diagnóstico
-        tela_consulta_detalhada()
+        #tela_consulta_detalhada() -> Antiga função
+        tela_visao_geral_processos()
 
     elif opcao == "Geração de Relatórios":
         st.title("Relatórios - FUSVE")
