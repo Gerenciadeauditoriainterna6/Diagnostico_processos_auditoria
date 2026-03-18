@@ -784,9 +784,9 @@ def tela_detalhe_auditoria():
     st.title(f"📋 {auditoria['titulo']}")
     
     # Métricas em colunas
-    col1, col2, col3 = st.columns(3)
-    
     st.metric("Área", auditoria['nome_area'])
+
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         status = auditoria['status']
@@ -976,7 +976,7 @@ def main():
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
-    if opcao == "Diagnóstico dos Processos":
+    if opcao == "🔍 Diagnóstico dos Processos":
         st.title("Diagnóstico de Processos - FUSVE")
         st.markdown("""
         <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
