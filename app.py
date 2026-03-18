@@ -748,7 +748,7 @@ def tela_detalhe_auditoria():
         <style>
             /* Reduz tamanho dos valores das métricas */
             [data-testid="stMetricValue"] {
-                font-size: 9px !important;
+                font-size: 12px !important;
             }
             
             /* Reduz tamanho dos labels das métricas */
