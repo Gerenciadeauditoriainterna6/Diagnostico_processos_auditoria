@@ -309,7 +309,7 @@ def tela_visao_geral_processos():
         # Tabela interativa
         st.dataframe(
             df_processos[[
-                'codigo_processo', 'nome_processo', 'nome_area', 'gestor',
+                'codigo_processo', 'nome_processo', 'nome_area',
                 'criticidade', 'maior_risco', 'total_riscos', 'total_etapas', 'total_controles'
             ]],
             use_container_width=True,
@@ -317,7 +317,6 @@ def tela_visao_geral_processos():
                 "codigo_processo": "Código",
                 "nome_processo": "Processo",
                 "nome_area": "Área",
-                "gestor": "Gestor",
                 "criticidade": "Criticidade",
                 "maior_risco": "Maior Risco",
                 "total_riscos": "Qtd Riscos",
