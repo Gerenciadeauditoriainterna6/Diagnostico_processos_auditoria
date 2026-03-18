@@ -740,7 +740,28 @@ def tela_auditorias_trimestrais():
                         st.divider()
 
 def tela_detalhe_auditoria():
+
     """Tela de detalhamento de uma auditoria específica"""
+
+     # CSS para reduzir fonte dos métricas
+    st.markdown("""
+        <style>
+            /* Reduz tamanho dos valores das métricas */
+            [data-testid="stMetricValue"] {
+                font-size: 9px !important;
+            }
+            
+            /* Reduz tamanho dos labels das métricas */
+            [data-testid="stMetricLabel"] {
+                font-size: 14px !important;
+            }
+            
+            /* Reduz tamanho da delta (se houver) */
+            [data-testid="stMetricDelta"] {
+                font-size: 12px !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
     
     # Verifica se temos uma auditoria selecionada
     if 'auditoria_selecionada' not in st.session_state:
