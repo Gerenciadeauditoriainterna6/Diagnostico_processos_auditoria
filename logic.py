@@ -421,23 +421,54 @@ def salvar_etapa_no_banco(dados_etapa, auditoria_id=None):
         return False
     
 def atualizar_etapa_no_banco(dados):
-    query = text("""
-        UPDATE etapas_processo SET
-            descricao_etapa = :desc,
-            oque_faz = :oque,
-            como_e_feito = :como,
-            objetivo_etapa = :obj,
-            status_etapa = :status,
-            -- ... adicione todas as outras colunas ...
-        WHERE id = :etapa_id
-    """)
+    """Atualiza os dados de uma etapa existente"""
     try:
-        with engine.connect() as conn:
-            conn.execute(query, dados)
-            conn.commit()
+        query = text("""
+            UPDATE etapas_processo SET
+                descricao_etapa = :desc,
+                oque_faz = :oque,
+                como_e_feito = :como,
+                objetivo_etapa = :obj,
+                status_etapa = :status,
+                realizado_corretamente = :real,
+                criticidade_etapa = :crit,
+                executor = :exec,
+                link_diagrama_etapa = :link_d,
+                manual_processo_link = :link_m,
+                politica_interna = :pol,
+                analise_critica = :ana,
+                sugestao_melhoria = :sug,
+                necessidade_implantacao = :nec,
+                ganho_previsto = :gan,
+                obrigacoes_regulatorias = :obri,
+                updated_at = NOW()
+            WHERE id = :etapa_id
+        """)
+        
+        with engine.begin() as conn:
+            conn.execute(query, {
+                "etapa_id": dados['etapa_id'],
+                "desc": dados['desc'],
+                "oque": dados['oque'],
+                "como": dados['como'],
+                "obj": dados['obj'],
+                "status": dados['status'],
+                "real": dados['real'],
+                "crit": dados['crit'],
+                "exec": dados['exec'],
+                "link_d": dados['link_d'],
+                "link_m": dados['link_m'],
+                "pol": dados['pol'],
+                "ana": dados['ana'],
+                "sug": dados['sug'],
+                "nec": dados['nec'],
+                "gan": dados['gan'],
+                "obri": dados['obri']
+            })
+            
         return True
     except Exception as e:
-        print(f"Erro ao atualizar: {e}")
+        print(f"Erro ao atualizar etapa: {e}")
         return False
 
 def listar_etapas_do_processo(processo_id, auditoria_id=None):

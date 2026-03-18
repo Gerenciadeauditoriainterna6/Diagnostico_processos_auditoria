@@ -411,7 +411,7 @@ def marcar_relatorio_gerado(codigo_processo):
 
 def tela_auditorias_trimestrais():
     """Gerencia as auditorias organizadas por trimestre"""
-    st.title("📋 Auditorias por Trimestre")
+    st.title("📋 Detalhamento dos Processos")
 
     # Selecionar ano
     ano_atual = datetime.now().year
@@ -805,9 +805,118 @@ def tela_detalhe_processo_auditoria():
     etapa_edit = st.session_state.get("etapa_em_edicao")
     
     titulos_tabs = ["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa"]
+    # --- ABA 3: EDIÇÃO (CONDICIONAL) ---
     if etapa_edit:
-        titulos_tabs.append("📝 Editar Etapa")
-    
+        tab_edicao = tabs[2]  # Pega a terceira aba
+        with tab_edicao:
+            st.write(f"### ✏️ Editando Etapa: {etapa_edit['codigo_etapa']}")
+            
+            # Botão para cancelar
+            if st.button("🚫 Cancelar e Fechar Edição", use_container_width=True):
+                st.session_state["etapa_em_edicao"] = None
+                st.rerun()
+            
+            st.divider()
+            
+            with st.form("form_edicao_etapa_auditoria"):
+                # Dados básicos (código não editável)
+                c1, c2 = st.columns([1, 3])
+                with c1:
+                    st.text_input("Código", value=etapa_edit['codigo_etapa'], disabled=True)
+                
+                with c2:
+                    desc_edit = st.text_input("Etapa", value=etapa_edit['descricao_etapa'], help="Nome da etapa")
+                
+                # Campos principais
+                oque_edit = st.text_area("O que você faz?", value=etapa_edit.get('oque_faz', ''))
+                como_edit = st.text_area("Como você faz?", value=etapa_edit.get('como_e_feito', ''))
+                obj_edit = st.text_area("Qual o objetivo?", value=etapa_edit.get('objetivo_etapa', ''))
+                
+                # Status
+                st_list = ["Ativa", "Inativa"]
+                status_edit = st.selectbox(
+                    "Status da etapa:", 
+                    st_list, 
+                    index=st_list.index(etapa_edit['status_etapa']) if etapa_edit['status_etapa'] in st_list else 0
+                )
+                
+                # Colunas para seleções
+                col_e1, col_e2, col_e3 = st.columns(3)
+                
+                with col_e1:
+                    ef_list = ["Sim", "Não", "Parcial"]
+                    correto_edit = st.selectbox(
+                        "Teste de eficácia?", 
+                        ef_list, 
+                        index=ef_list.index(etapa_edit['realizado_corretamente']) if etapa_edit['realizado_corretamente'] in ef_list else 0
+                    )
+                
+                with col_e2:
+                    crit_list = ["Aprovado", "Em Aprovação"]
+                    crit_edit = st.selectbox(
+                        "Criticidade", 
+                        crit_list, 
+                        index=crit_list.index(etapa_edit['criticidade_etapa']) if etapa_edit['criticidade_etapa'] in crit_list else 0
+                    )
+                
+                with col_e3:
+                    # Executor (usa o do processo como fallback)
+                    exec_edit = st.text_input("Executor", value=etapa_edit.get('executor', processo['executor']))
+                
+                # Links
+                col_l1, col_l2 = st.columns(2)
+                with col_l1:
+                    link_d_edit = st.text_input("Link do Diagrama", value=etapa_edit.get('link_diagrama_etapa', ''))
+                with col_l2:
+                    link_m_edit = st.text_input("Link do Manual", value=etapa_edit.get('manual_processo_link', ''))
+                
+                # Políticas e análises
+                pol_edit = st.text_area("Política Interna", value=etapa_edit.get('politica_interna', ''))
+                ana_edit = st.text_area("Análise Crítica", value=etapa_edit.get('analise_critica', ''))
+                sug_edit = st.text_area("Sugestão de Melhoria", value=etapa_edit.get('sugestao_melhoria', ''))
+                
+                # Melhorias
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    nec_edit = st.text_input("Necessidade para implantação", value=etapa_edit.get('necessidade_implantacao', ''))
+                with col_m2:
+                    gan_edit = st.text_input("Ganho previsto", value=etapa_edit.get('ganho_previsto', ''))
+                
+                # Obrigações regulatórias
+                obri_edit = st.text_input("Obrigações Regulatórias", value=etapa_edit.get('obrigacoes_regulatorias', ''))
+                
+                # Botão de submit
+                if st.form_submit_button("💾 Atualizar Etapa", type="primary", use_container_width=True):
+                    # Preparar dados para update
+                    dados_update = {
+                        "etapa_id": etapa_edit['id'],
+                        "desc": desc_edit,
+                        "oque": oque_edit,
+                        "como": como_edit,
+                        "obj": obj_edit,
+                        "status": status_edit,
+                        "real": correto_edit,
+                        "crit": crit_edit,
+                        "exec": exec_edit,
+                        "link_d": link_d_edit,
+                        "link_m": link_m_edit,
+                        "pol": pol_edit,
+                        "ana": ana_edit,
+                        "sug": sug_edit,
+                        "nec": nec_edit,
+                        "gan": gan_edit,
+                        "obri": obri_edit
+                    }
+                    
+                    # Chamar função de atualização (precisa ser criada no logic.py)
+                    if atualizar_etapa_no_banco(dados_update):
+                        st.success("✅ Etapa atualizada com sucesso!")
+                        st.session_state["etapa_em_edicao"] = None
+                        time_module.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Erro ao atualizar etapa. Tente novamente.")
+
     tabs = st.tabs(titulos_tabs)
     tab_lista = tabs[0]
     tab_cadastro = tabs[1]
@@ -1097,7 +1206,7 @@ def main():
             "Menu", 
                 [
                     "📅 Plano Anual de Auditoria",
-                    "📋 Auditorias por Trimestre",        
+                    "📋 Detalhamento dos Processos",        
                     "🔍 Diagnóstico dos Processos",
                     "👁️ Visão Geral do Diagnóstico",
                     "✅ Checklists de Eficácia",           
@@ -1287,7 +1396,7 @@ def main():
         else:
             st.warning("⚠️ Arquivo não encontrado na pasta assets.")
 
-    elif opcao == "📋 Auditorias por Trimestre": #@ Chamaremos de detalhamento dos processos
+    elif opcao == "📋 Detalhamento dos Processos": #@ Chamaremos de detalhamento dos processos
         # Verifica se há uma auditoria selecionada para detalhar
         if 'processo_detalhe' in st.session_state:
             tela_detalhe_processo_auditoria()
