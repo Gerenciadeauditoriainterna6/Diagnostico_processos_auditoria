@@ -646,6 +646,100 @@ def marcar_relatorio_gerado(codigo_processo):
     with engine.begin() as conn:
         conn.execute(query, {"codigo": codigo_processo})
 
+def tela_auditorias_trimestrais():
+    """Gerencia as auditorias organizadas por trimestre"""
+    st.title("📋 Auditorias por Trimestre")
+
+    # Selecionar ano
+    ano_atual = datetime.now().year
+    ano = st.selectbox("Selecione o ano:", [ano_atual, ano_atual-1, ano_atual+1], index=0)
+
+    # Buscar auditorias do ano selecionado
+    df_auditorias = listar_auditorias_por_ano(ano)
+
+    if df_auditorias.empty:
+        st.info(f"Nenhuma auditoria encontrada para {ano}. Deseja criar uma nova?")
+
+        with st.expander("➕ Criar Nova Auditoria"):
+            with st.form("form_nova_auditoria"):
+                # Dados básicos
+                areas_dict = carregar_areas_banco()
+                area_selecionada = st.selectbox("Área a ser auditada:", list(areas_dict.keys()))
+
+                trimestre = st.selectbox("Trimestre:", [1, 2, 3, 4])
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    data_inicio = st.date_input("Data de início prevista")
+                with col2:
+                    data_fim = st.date_input("Data de término prevista")
+
+                titulo =st.text_input("Titulo de auditoria", value=f"Auditoria {area_selecionada} - {ano} {trimestre}º Trimestre")
+                objetivo = st.text_area("Objetivo da auditoria")
+                escopo = st.text_area("Escopo (o que será avaliado)")
+
+                if st.form_submit_button("Criar Auditoria", type="primary"):
+                    # Pegar o ID da área selecionada
+                    id_area = areas_dict[area_selecionada]
+
+                    dados = {
+                        "id_area": id_area,
+                        "titulo": titulo,
+                        "objetivo": objetivo,
+                        "escopo": escopo,
+                        "ano": ano,
+                        "trimestre": trimestre,
+                        "data_inicio": data_inicio,
+                        "data_fim": data_fim,
+                        "status": "Planejamento"
+                    }
+
+                    auditoria_id, codigo = criar_nova_auditoria(dados)
+
+                    if auditoria_id:
+                        st.success(f"Auditoria criada com sucesso! Código: {codigo}")
+                        st.rerun()
+                    else:
+                        st.error("Erro o criar auditoria. Já existe uma auditoria para esta área no trimestre?")
+    else:
+        # Mostrar auditorias existentes em cards
+        st.subheader(f"Auditorias de {ano}")
+
+        # Organizar por trimestre
+        for trimestre in range(1, 5):
+            df_trimestre = df_auditorias[df_auditorias['trimestre'] == trimestre]      
+
+            if not df_trimestre.empty:
+                with st.expander(f"📌 {trimestre}º Trimestre", expanded=True):  
+                    for _, row in df_trimestre.iterrows():
+                        # Card da auditoria
+                        col1, col2, col3, col4 = st.columnas([2, 1, 1, 1])
+
+                        with col1:
+                            st.markdown(f"**{row['titulo']}**")
+                            st.caption(f"Código: {row['codigo_auditoria']} | Área: {row['nome_area']}")
+
+                        with col2:
+                            status = row['status']
+                            if status == "Planejamento":
+                                st.markdown("🟡 **Planejamento**")
+                            elif status == "Em Execução":
+                                st.markdown("🟢 **Em Execução**")
+                            else:
+                                st.markdown("✅ **Concluída**")
+                        
+                        with col3:
+                            st.markdown(f"📅 {row['data_inicio'] or 'TBD'} a {row['data_fim'] or 'TBD'}")
+
+                        with col4:
+                            if st.button("🔍 Detalhar", key=f"btn_{row['id']}"):
+                                st.session_state['auditoria_selecionada'] = row['id']
+                                st.session_state['tela_atual'] = 'detalhe_auditoria'
+                                st.rerun()
+                        
+                        st.divider()
+                                
+
 # --- 5. Execução do app ---
 
 def main():
@@ -685,8 +779,16 @@ def main():
         
         opcao = st.radio(
             "Menu", 
-            ["Plano Anual de Auditoria", "Diagnóstico dos Processos", "Detalhamento dos Processos", "Geração de Relatórios"]
-        )
+                [
+                    "📅 Plano Anual de Auditoria",
+                    "📋 Auditorias por Trimestre",        
+                    "🔍 Diagnóstico dos Processos",
+                    "📝 Detalhamento dos Processos",
+                    "✅ Checklists de Eficácia",           
+                    "📊 Resultados e Pareceres",
+                    "📄 Geração de Relatórios"           
+                ]
+            )
 
         st.divider()
         
@@ -867,6 +969,10 @@ def main():
                 )
         else:
             st.warning("⚠️ Arquivo não encontrado na pasta assets.")
+
+    elif opcao == "📋 Auditorias por Trimestre":
+        tela_auditorias_trimestrais()
+
 
             
 # --- DISPARADOR FINAL ---
