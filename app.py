@@ -14,7 +14,7 @@ buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, l
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
-buscar_conclusao_auditoria, get_resumo_trimestre
+buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos
 )
 
 local_storage = LocalStorage()
@@ -738,7 +738,155 @@ def tela_auditorias_trimestrais():
                                 st.rerun()
                         
                         st.divider()
-                                
+
+def tela_detalhe_auditoria():
+    """Tela de detalhamento de uma auditoria específica"""
+    
+    # Verifica se temos uma auditoria selecionada
+    if 'auditoria_selecionada' not in st.session_state:
+        st.error("Nenhuma auditoria selecionada.")
+        if st.button("🔙 Voltar para lista de auditorias"):
+            st.session_state.pop('auditoria_selecionada', None)
+            st.rerun()
+        return
+    
+    auditoria_id = st.session_state['auditoria_selecionada']
+    
+    # Busca dados da auditoria
+    auditoria = buscar_auditoria_por_id(auditoria_id)
+    
+    if not auditoria:
+        st.error("Auditoria não encontrada.")
+        return
+    
+    # Cabeçalho com informações da auditoria
+    st.title(f"📋 {auditoria['titulo']}")
+    
+    # Métricas em colunas
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Área", auditoria['nome_area'])
+    
+    with col2:
+        status = auditoria['status']
+        if status == "Planejamento":
+            st.metric("Status", "🟡 Planejamento")
+        elif status == "Em Execução":
+            st.metric("Status", "🟢 Em Execução")
+        else:
+            st.metric("Status", "✅ Concluída")
+    
+    with col3:
+        st.metric("Trimestre", f"{auditoria['trimestre']}º/{auditoria['ano']}")
+    
+    with col4:
+        st.metric("Responsável", auditoria.get('responsavel_equipe', ['Não definido'])[0] if auditoria.get('responsavel_equipe') else "Não definido")
+    
+    # Datas
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        st.info(f"📅 **Início:** {auditoria['data_inicio'] or 'Não definida'}")
+    with col_d2:
+        st.info(f"📅 **Término:** {auditoria['data_fim'] or 'Não definida'}")
+    
+    # Expander com objetivo e escopo
+    with st.expander("📌 Objetivo e Escopo da Auditoria"):
+        st.write(f"**Objetivo:** {auditoria['objetivo']}")
+        st.write(f"**Escopo:** {auditoria['escopo']}")
+    
+    st.divider()
+    
+    # Abas para organizar o conteúdo
+    tab1, tab2, tab3 = st.tabs(["📋 Processos Selecionados", "✅ Checklists", "📊 Parecer Final"])
+    
+    # ===== ABA 1: PROCESSOS SELECIONADOS =====
+    with tab1:
+        st.subheader("Processos selecionados para auditoria")
+        
+        # Busca os processos vinculados
+        df_processos = listar_processos_da_auditoria_com_riscos(auditoria_id)
+        
+        if df_processos.empty:
+            st.warning("Nenhum processo selecionado para esta auditoria ainda.")
+            
+            # Sugestão de processos para adicionar
+            st.info("💡 Use o botão abaixo para começar a selecionar processos.")
+            
+            if st.button("➕ Adicionar Primeiro Processo"):
+                st.session_state['mostrar_selecao_processos'] = True
+                st.rerun()
+        else:
+            # Mostra cada processo em um card
+            for _, row in df_processos.iterrows():
+                # Define cor baseada no maior risco
+                cor, emoji = get_estilo_risco(row['maior_risco'])
+                
+                with st.container(border=True):
+                    col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
+                    
+                    with col_p1:
+                        st.markdown(f"**{row['codigo_processo']} - {row['nome_processo']}**")
+                        st.caption(f"📝 Motivo: {row['motivo_selecao'] or 'Não informado'}")
+                    
+                    with col_p2:
+                        # Status de avaliação
+                        status_aval = row['status_avaliacao']
+                        if status_aval == "Pendente":
+                            st.markdown("⏳ **Pendente**")
+                        elif status_aval == "Em Andamento":
+                            st.markdown("🔄 **Em Andamento**")
+                        else:
+                            st.markdown("✅ **Avaliado**")
+                    
+                    with col_p3:
+                        # Score de risco
+                        st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {row['maior_risco'] or 'N/A'}</span>", unsafe_allow_html=True)
+                    
+                    # Botões de ação para o processo
+                    col_b1, col_b2, col_b3 = st.columns([1, 1, 3])
+                    
+                    with col_b1:
+                        if st.button("🔍 Ver Detalhes", key=f"ver_{row['processo_id']}"):
+                            st.session_state['processo_detalhe'] = row['processo_id']
+                            st.info("Funcionalidade de ver detalhes do processo será implementada em breve!")
+                    
+                    with col_b2:
+                        if st.button("📝 Checklists", key=f"check_{row['processo_id']}"):
+                            st.session_state['processo_checklist'] = row['processo_id']
+                            st.session_state['aba_ativa'] = 1  # Muda para aba de checklists
+                            st.rerun()
+                    
+                    with col_b3:
+                        if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
+                            # Aqui vamos implementar a remoção depois
+                            st.warning("Funcionalidade de remoção será implementada em breve!")
+        
+        st.divider()
+        
+        # Seção para adicionar novos processos
+        with st.expander("➕ Adicionar novo processo à auditoria"):
+            st.info("Em breve: lista de processos disponíveis para seleção")
+            
+            # Placeholder - depois implementaremos a lista completa
+            if st.button("Carregar processos disponíveis"):
+                st.session_state['mostrar_selecao_processos'] = True
+    
+    # ===== ABA 2: CHECKLISTS (placeholder) =====
+    with tab2:
+        st.info("📝 A funcionalidade de checklists será implementada no próximo passo.")
+        st.caption("Aqui você poderá avaliar a eficácia da governança, riscos e controles.")
+    
+    # ===== ABA 3: PARECER FINAL (placeholder) =====
+    with tab3:
+        st.info("📊 A funcionalidade de parecer final será implementada após os checklists.")
+        st.caption("Aqui serão consolidados os resultados e gerado o parecer da auditoria.")
+    
+    # Botão para voltar
+    st.divider()
+    if st.button("← Voltar para lista de auditorias"):
+        st.session_state.pop('auditoria_selecionada', None)
+        st.rerun()                        
 
 # --- 5. Execução do app ---
 
@@ -971,7 +1119,11 @@ def main():
             st.warning("⚠️ Arquivo não encontrado na pasta assets.")
 
     elif opcao == "📋 Auditorias por Trimestre":
-        tela_auditorias_trimestrais()
+        # Verifica se há uma auditoria selecionada para detalhar
+        if 'auditoria_selecionada' in st.session_state:
+            tela_detalhe_auditoria()
+        else:
+            tela_auditorias_trimestrais()
 
 
             

@@ -292,7 +292,45 @@ def get_resumo_trimestre(ano, trimestre):
     
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"ano": ano, "trimestre": trimestre})
-       
+
+def listar_processos_da_auditoria_com_riscos(auditoria_id):
+    """
+    Retorna os processos vinculados a uma auditoria com informações de riscos
+    """
+    query = text("""
+        SELECT 
+            ap.*,
+            p.codigo_processo,
+            p.nome_processo,
+            p.area,
+            COUNT(r.id) as total_riscos,
+            MAX(r.score_risco) as maior_risco,
+            STRING_AGG(DISTINCT r.impacto || ' - ' || r.probabilidade, '; ') as riscos_resumo
+        FROM auditoria_processos ap
+        JOIN processos p ON ap.processo_id = p.id
+        LEFT JOIN riscos r ON p.id = r.processo_id
+        WHERE ap.auditoria_id = :auditoria_id
+        GROUP BY ap.id, p.codigo_processo, p.nome_processo, p.area
+        ORDER BY maior_risco DESC NULLS LAST, p.codigo_processo
+    """)
+    
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"auditoria_id": auditoria_id})
+
+def get_cores_por_score(score):
+    """Retorna cor e emoji baseado no score do risco"""
+    if score is None:
+        return "#6c757d", "⚪"  # Cinza para sem risco
+    elif score >= 12:
+        return "#dc3545", "🔴"  # Vermelho - Muito Alto
+    elif score >= 8:
+        return "#fd7e14", "🟠"  # Laranja - Alto
+    elif score >= 4:
+        return "#ffc107", "🟡"  # Amarelo - Médio
+    else:
+        return "#28a745", "🟢"  # Verde - Baixo
+
+
 # =====================================================
 # NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
 # =====================================================
