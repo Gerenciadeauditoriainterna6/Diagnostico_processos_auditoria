@@ -382,21 +382,36 @@ def buscar_processo_por_codigo(codigo):
         result = conn.execute(query, {"c": str(codigo)}).mappings().first()
         return dict(result) if result else None
 
-def salvar_etapa_no_banco(dados_etapa):
-    """Salva os dados de uma etapa no banco de dados."""
+def salvar_etapa_no_banco(dados_etapa, auditoria_id=None):
+    """Salva os dados de uma etapa no banco de dados, opcionalmente vinculada a uma auditoria."""
     try:
-        query = text("""
-            INSERT INTO etapas_processo (
-                    processo_id, codigo_etapa, descricao_etapa, oque_faz, status_etapa, como_e_feito, objetivo_etapa,
-                    realizado_corretamente, link_diagrama_etapa, politica_interna, analise_critica,
-                    sugestao_melhoria, necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
-                    criticidade_etapa, manual_processo_link
+        if auditoria_id:
+            query = text("""
+                INSERT INTO etapas_processo (
+                    processo_id, auditoria_id, codigo_etapa, descricao_etapa, oque_faz, 
+                    status_etapa, como_e_feito, objetivo_etapa, realizado_corretamente, 
+                    link_diagrama_etapa, politica_interna, analise_critica,
+                    sugestao_melhoria, necessidade_implantacao, ganho_previsto, 
+                    obrigacoes_regulatorias, criticidade_etapa, manual_processo_link
                 ) VALUES (
-                    :p_id, :cod, :desc, :oque, :status, :como, :obj, :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
+                    :p_id, :auditoria_id, :cod, :desc, :oque, :status, :como, :obj, 
+                    :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
                 )
-        """)
+            """)
+            dados_etapa['auditoria_id'] = auditoria_id
+        else:
+            query = text("""
+                INSERT INTO etapas_processo (
+                    processo_id, codigo_etapa, descricao_etapa, oque_faz, status_etapa, 
+                    como_e_feito, objetivo_etapa, realizado_corretamente, link_diagrama_etapa, 
+                    politica_interna, analise_critica, sugestao_melhoria, necessidade_implantacao, 
+                    ganho_previsto, obrigacoes_regulatorias, criticidade_etapa, manual_processo_link
+                ) VALUES (
+                    :p_id, :cod, :desc, :oque, :status, :como, :obj, :real, :link_d, 
+                    :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
+                )
+            """)
         
-        # MUDANÇA: Use 'engine.begin()' em vez de 'engine.connect()'
         with engine.begin() as conn:
             conn.execute(query, dados_etapa)
             
@@ -425,11 +440,24 @@ def atualizar_etapa_no_banco(dados):
         print(f"Erro ao atualizar: {e}")
         return False
 
-def listar_etapas_do_processo(processo_id):
-    """Retorna todas as etapas de um processo específico."""
-    query = text("SELECT * FROM etapas_processo WHERE processo_id = :id ORDER BY codigo_etapa")
+def listar_etapas_do_processo(processo_id, auditoria_id=None):
+    """
+    Retorna todas as etapas de um processo.
+    Se auditoria_id for fornecido, filtra por auditoria.
+    """
+    if auditoria_id:
+        query = text("""
+            SELECT * FROM etapas_processo 
+            WHERE processo_id = :id AND auditoria_id = :auditoria_id 
+            ORDER BY codigo_etapa
+        """)
+        params = {"id": processo_id, "auditoria_id": auditoria_id}
+    else:
+        query = text("SELECT * FROM etapas_processo WHERE processo_id = :id ORDER BY codigo_etapa")
+        params = {"id": processo_id}
+    
     with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"id": processo_id})
+        return pd.read_sql(query, conn, params=params)
 
 def obter_proximo_codigo_etapa(processo_id, codigo_processo):
     """Gera o código 1.2.1 baseado no número de etapas existentes."""
@@ -448,21 +476,44 @@ def carregar_areas_banco():
     # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
     return dict(zip(df['nome_area'], df['id_area']))
 
-def salvar_risco_etapa(dados):
-    query = text("""
-        INSERT INTO riscos_etapa 
-        (etapa_id, categoria, fator_risco, consequencia, info_adicional, financeiro, 
-        ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
-        VALUES (:etapa_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, :imp, :prob, :mag, :apet, :trat)
-    """)
+def salvar_risco_etapa(dados, auditoria_id=None):
+    """Salva risco de etapa, opcionalmente vinculado a uma auditoria"""
+    if auditoria_id:
+        query = text("""
+            INSERT INTO riscos_etapa 
+            (etapa_id, auditoria_id, categoria, fator_risco, consequencia, info_adicional, 
+             financeiro, ativo, origem, doc_legal, impacto, probabilidade, magnitude, 
+             apetite, tratamento)
+            VALUES 
+            (:etapa_id, :auditoria_id, :cat, :fator, :cons, :info, :fin, :ativo, 
+             :ori, :doc, :imp, :prob, :mag, :apet, :trat)
+        """)
+        dados['auditoria_id'] = auditoria_id
+    else:
+        query = text("""
+            INSERT INTO riscos_etapa 
+            (etapa_id, categoria, fator_risco, consequencia, info_adicional, financeiro, 
+             ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
+            VALUES 
+            (:etapa_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, 
+             :imp, :prob, :mag, :apet, :trat)
+        """)
+    
     with engine.begin() as conn:
         conn.execute(query, dados)
         return True
 
-def listar_riscos_etapa(etapa_id):
-    query = text("SELECT * FROM riscos_etapa WHERE etapa_id = :e_id")
+def listar_riscos_etapa(etapa_id, auditoria_id=None):
+    """Lista riscos de uma etapa, opcionalmente filtrados por auditoria"""
+    if auditoria_id:
+        query = text("SELECT * FROM riscos_etapa WHERE etapa_id = :e_id AND auditoria_id = :auditoria_id")
+        params = {"e_id": etapa_id, "auditoria_id": auditoria_id}
+    else:
+        query = text("SELECT * FROM riscos_etapa WHERE etapa_id = :e_id")
+        params = {"e_id": etapa_id}
+    
     with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"e_id": etapa_id})
+        return pd.read_sql(query, conn, params=params)
 
 def buscar_todos_processos():
     query = text("""
@@ -895,7 +946,7 @@ def salvar_controle_no_banco(dados):
         print(f"❌ Erro detalhado no banco: {e}") 
         return False
 
-def listar_controles_da_etapa(etapa_id):
+def listar_controles_da_etapa(etapa_id, auditoria_id=None):
     query = text("""
         SELECT 
             c.*, 
@@ -903,11 +954,14 @@ def listar_controles_da_etapa(etapa_id):
         FROM controles_etapa c
         JOIN riscos_etapa r ON c.risco_id = r.id
         WHERE r.etapa_id = :etapa_id
+        AND (:auditoria_id IS NULL OR r.auditoria_id = :auditoria_id)
     """)
     try:
-        # CORREÇÃO: No SQLAlchemy 2.0+, o pandas precisa da conexão aberta para read_sql
         with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={"etapa_id": etapa_id})
+            return pd.read_sql(query, conn, params={
+                "etapa_id": etapa_id,
+                "auditoria_id": auditoria_id
+            })
     except Exception as e:
         print(f"Erro ao listar controles_etapa: {e}")
         return pd.DataFrame()
