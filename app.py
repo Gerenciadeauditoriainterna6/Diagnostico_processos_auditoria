@@ -806,7 +806,12 @@ def tela_detalhe_processo_auditoria():
     
     titulos_tabs = ["📋 Etapas Existentes", "➕ Cadastrar Nova Etapa"]
     # --- ABA 3: EDIÇÃO (CONDICIONAL) ---
+    tabs = st.tabs(titulos_tabs)
+    tab_lista = tabs[0]
+    tab_cadastro = tabs[1]
+
     if etapa_edit:
+        titulos_tabs.append("✏️ Editar Etapa")
         tab_edicao = tabs[2]  # Pega a terceira aba
         with tab_edicao:
             st.write(f"### ✏️ Editando Etapa: {etapa_edit['codigo_etapa']}")
@@ -917,9 +922,6 @@ def tela_detalhe_processo_auditoria():
                     else:
                         st.error("Erro ao atualizar etapa. Tente novamente.")
 
-    tabs = st.tabs(titulos_tabs)
-    tab_lista = tabs[0]
-    tab_cadastro = tabs[1]
     
     with tab_lista:
                 etapas = listar_etapas_do_processo(processo['id'], auditoria_id=auditoria_id)
