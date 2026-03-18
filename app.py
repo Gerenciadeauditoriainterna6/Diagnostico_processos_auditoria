@@ -910,7 +910,7 @@ def main():
         else:
             st.info("Nenhum processo pendente para gerar relatório.")
 
-    elif opcao == "Plano Anual de Auditoria":
+    elif opcao == "📅 Plano Anual de Auditoria":
         
         # 1. CSS ULTRA AGRESSIVO
         # Aqui atacamos o 'stApp', que é o pai de todos os elementos
