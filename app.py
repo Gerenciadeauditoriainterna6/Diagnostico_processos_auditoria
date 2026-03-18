@@ -1008,32 +1008,25 @@ def tela_detalhe_processo_auditoria():
     processo_id = st.session_state['processo_detalhe']
     auditoria_id = st.session_state['auditoria_selecionada']
     
-    # ===== DEBUG =====
-    st.write(f"🔍 DEBUG: processo_id = {processo_id} (tipo: {type(processo_id)})")
-    st.write(f"🔍 DEBUG: auditoria_id = {auditoria_id} (tipo: {type(auditoria_id)})")
-    # =================
-    
-    # Buscar dados do processo - PRECISAMOS DO CÓDIGO, NÃO DO ID
-    # Vamos primeiro buscar o código do processo
+    # Buscar o código do processo a partir do ID
     query = text("SELECT codigo_processo FROM processos WHERE id = :id")
     with engine.connect() as conn:
         resultado = conn.execute(query, {"id": processo_id}).fetchone()
     
     if not resultado:
-        st.error(f"Processo com ID {processo_id} não encontrado na base.")
+        st.error("Processo não encontrado.")
         if st.button("Voltar"):
             st.session_state.pop('processo_detalhe', None)
             st.rerun()
         return
     
     codigo_processo = resultado[0]
-    st.write(f"🔍 DEBUG: Código do processo = {codigo_processo}")
     
-    # Agora sim busca com o código
+    # Busca o processo completo usando o código
     processo = buscar_processo_por_codigo(codigo_processo)
 
     if not processo:
-        st.error(f"Processo com código {codigo_processo} não encontrado.")
+        st.error("Processo não encontrado.")
         return
     
     st.title(f"📌 Detalhamento do Processo: {processo['codigo_processo']} - {processo['nome_processo']}")
