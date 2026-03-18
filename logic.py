@@ -39,7 +39,7 @@ def criar_nova_auditoria(dados_auditoria):
         query = text(
             """
             INSERT INTO auditorias
-            (codigo_auditorias, id_area, titulo, objetivo, scopo, anp, timestre,
+            (codigo_auditorias, id_area, titulo, objetivo, scopo, ano, timestre,
             data_inicio, data_fim, status, responsavel_equipe)
             VALUES
             (:codigo, :id_area, :titutlo, :objetivo, :escopo, :ano, :trimestre,
@@ -330,6 +330,41 @@ def get_cores_por_score(score):
     else:
         return "#28a745", "🟢"  # Verde - Baixo
 
+def listar_processos_disponiveis_para_auditoria(auditoria_id, id_area):
+    """
+    Lista processos da área que AINDA NÃO estão vinculados a esta auditoria.
+    Retorna DataFrame com id, codigo_processo, nome_processo, maior_risco, total_riscos
+    """
+    query = text("""
+        SELECT 
+            p.id,
+            p.codigo_processo,
+            p.nome_processo,
+            COALESCE(MAX(r.score_risco), 0) as maior_risco,
+            COUNT(r.id) as total_riscos,
+            STRING_AGG(DISTINCT r.impacto || ' - ' || r.probabilidade, '; ') as riscos_resumo
+        FROM processos p
+        LEFT JOIN riscos r ON p.id = r.processo_id
+        WHERE p.id_area = :id_area
+        AND p.id NOT IN (
+            SELECT processo_id 
+            FROM auditoria_processos 
+            WHERE auditoria_id = :auditoria_id
+        )
+        GROUP BY p.id
+        ORDER BY maior_risco DESC, p.codigo_processo
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn, params={
+                "auditoria_id": auditoria_id,
+                "id_area": id_area
+            })
+            return df
+    except Exception as e:
+        print(f"Erro ao listar processos disponíveis: {e}")
+        return pd.DataFrame()
 
 # =====================================================
 # NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS

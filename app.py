@@ -14,7 +14,7 @@ buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, l
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
-buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos
+buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria
 )
 
 local_storage = LocalStorage()
@@ -886,13 +886,81 @@ def tela_detalhe_auditoria():
         
         # Seção para adicionar novos processos
         with st.expander("➕ Adicionar novo processo à auditoria"):
-            st.info("Em breve: lista de processos disponíveis para seleção")
+            # Buscar processos da área que NÃO estão nesta auditoria
+            df_disponiveis = listar_processos_disponiveis_para_auditoria(
+                auditoria_id=auditoria_id,
+                id_area=auditoria['id_area']
+            )
             
-            # Placeholder - depois implementaremos a lista completa
-            if st.button("Carregar processos disponíveis"):
-                st.session_state['mostrar_selecao_processos'] = True
-    
-    # ===== ABA 2: CHECKLISTS (placeholder) =====
+            if df_disponiveis.empty:
+                st.success("✅ Todos os processos da área já foram selecionados para esta auditoria!")
+                st.caption("Não há processos dispibíveis para adicionar")
+            else:    
+                st.caption(f"**{len(df_disponiveis)}** processos disponíveis para selecionar.")
+                
+                # Selectbox para escolher o processo
+                opcoes_processos = []
+                for _, row in df_disponiveis.iterrows():
+                    risco_info = f" (Risco: {int(row['maior_risco'])})" if row['maior_risco'] > 0 else " (Sem risco mapeado)"
+                    opcoes_processos.append({
+                        "id": row['id'],
+                        "display": f"{row['codigo_processo']} - {row['nome_processo']}{risco_info}"
+                    })
+            
+            display_list = [item["display"] for item in opcoes_processos]
+            id_map = {item['display']: item["id"] for item in opcoes_processos}
+
+            processo_selecionado_display = st.selectbox(
+                "Selecione o Processo:",
+                options=display_list,
+                key="select_processo_disponivel"
+            )
+
+            # Campo para motivo de seleção
+            motivo = st.text_area(
+                "Motivo da seleção (por que este processo será auditado?):",
+                placeholder="Ex: Processo com risco muito alto (score 11), crítico para a área...",
+                key="motivo_novo_processo"
+            )
+
+            # Botão para adicionar
+            col_add, col_cancel = st.columns([1, 3])
+            with col_add:
+                if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True):
+                    if processo_selecionado_display:
+                        processo_id = id_map[processo_selecionado_display]
+
+                        # Chamar a função para vincular
+                        if vincular_processo_a_auditoria(auditoria_id, processo_id, motivo):
+                            st.success("✅ Processo adicionado com sucesso!")
+                            st.session_state['processo_adicionado'] = True
+                            time_module.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("Erro ao adicionar processo, tente novamente.")
+                    else:
+                        st.warning("Selecione um processo.")
+            with col_cancel:
+                if st.button("Cancelar", use_container_width=True):
+                    st.session_state.pop('mostrar_selecao_processos', None)
+                    st.rerun()
+                    
+            # Placeholder - por enquanto, vamos criar a função depois
+            st.info("Carregando processos disponíveis...")
+            
+            # Botão para buscar (temporário)
+            if st.button("📋 Carregar processos disponíveis"):
+                st.session_state['mostrar_selecao'] = True
+                st.rerun()
+            
+            # Quando tiver a função, será assim:
+            if st.session_state.get('mostrar_selecao', False):
+                # Aqui vamos implementar a busca real
+                st.write("(Aguardando implementação da função de busca)")
+   
+   
+   
+   # ===== ABA 2: CHECKLISTS (placeholder) =====
     with tab2:
         st.info("📝 A funcionalidade de checklists será implementada no próximo passo.")
         st.caption("Aqui você poderá avaliar a eficácia da governança, riscos e controles.")
