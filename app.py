@@ -204,7 +204,7 @@ def tela_consulta_detalhada():
 
     if not df_processos.empty:
         # Exibe a tabela para referência do usuário
-        with st.expander("Ver lista de processos"):
+        with st.expander("Ver lista de processos"): #@ Fazer com que a tabela de processos apareça o Risco e não o Gestor
             st.dataframe(df_processos, use_container_width=True,
                          column_config={
                              "area": "Área",
@@ -1036,7 +1036,7 @@ def main():
                 st.session_state['deve_limpar'] = True
                 st.rerun()
 
-    elif opcao == "📝 Detalhamento dos Processos":
+    elif opcao == "📝 Detalhamento dos Processos": #@ Chamaremos de Visão Geral do Diagnóstico
         tela_consulta_detalhada()
 
     elif opcao == "Geração de Relatórios":
@@ -1138,7 +1138,7 @@ def main():
         else:
             st.warning("⚠️ Arquivo não encontrado na pasta assets.")
 
-    elif opcao == "📋 Auditorias por Trimestre":
+    elif opcao == "📋 Auditorias por Trimestre": #@ Chamaremos de detalhamento dos processos
         # Verifica se há uma auditoria selecionada para detalhar
         if 'auditoria_selecionada' in st.session_state:
             tela_detalhe_auditoria()
