@@ -713,7 +713,7 @@ def tela_auditorias_trimestrais():
                 with st.expander(f"📌 {trimestre}º Trimestre", expanded=True):  
                     for _, row in df_trimestre.iterrows():
                         # Card da auditoria
-                        col1, col2, col3, col4 = st.columnas([2, 1, 1, 1])
+                        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
 
                         with col1:
                             st.markdown(f"**{row['titulo']}**")
