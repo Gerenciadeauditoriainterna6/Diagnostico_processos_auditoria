@@ -14,7 +14,8 @@ buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, l
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
-buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria
+buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
+remover_processo_da_auditoria
 )
 
 local_storage = LocalStorage()
@@ -878,9 +879,32 @@ def tela_detalhe_auditoria():
                             st.rerun()
                     
                     with col_b3:
+                        # Botão de remover com confirmação
+                        remover_key = f"rm_{row['processo_id']}_{row['processo_id']}"
                         if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
-                            # Aqui vamos implementar a remoção depois
-                            st.warning("Funcionalidade de remoção será implementada em breve!")
+                            st.session_state[f"confirmar_remocao_{row["processo_id"]}"] = True
+                        
+                        # Mostrar confirmação se necessário
+                        if st.session_state.get(f'confirmar_remocao_{row['processo_id']}', False):
+                            st.warning(f"remover processo **{row['codigo_processo']}**?")
+                            col_sim, col_nao = st.columns(2)
+
+                            with col_sim:
+                                if st.button("✅ Sim, remover", key=f"conf_sim_{row['processo_id']}"):
+                                    if remover_processo_da_auditoria(auditoria_id, row['processo_id']):
+                                        st.success("Processo removido!")
+                                        # Limpar estado de confirmação
+                                        st.session_state.pop(f"confirmar_remocao_{row['processo_id']}", None)
+                                        time_module.sleep(1)
+                                        st.rerun()
+                                    else:
+                                        st.error("Erro ao remover processo.")
+                            with col_nao:
+                                if st.button("❌ Não", key=f"conf_nao_{row['processo_id']}"):
+                                    st.session_state.pop(f'confirmar_remocao_{row["processo_id"]}', None)
+                                    st.rerun()
+                        
+                            
         
         st.divider()
         
@@ -944,7 +968,7 @@ def tela_detalhe_auditoria():
                 if st.button("Cancelar", use_container_width=True):
                     st.session_state.pop('mostrar_selecao_processos', None)
                     st.rerun()
-                    
+
             # Placeholder - por enquanto, vamos criar a função depois
             st.info("Carregando processos disponíveis...")
             

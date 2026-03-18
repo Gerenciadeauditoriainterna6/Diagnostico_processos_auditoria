@@ -939,3 +939,26 @@ def atualizar_status_processo(id_processo, novo_status, coluna):
     with engine.connect() as conn:
         conn.execute(query, {"valor": novo_status, "id": id_processo})
         conn.commit()
+
+def remover_processo_da_auditoria(auditoria_id, processo_id):
+    """
+    Remove um processo da lista de selecionados da auditoria
+    """
+    try:
+        query = text("""
+            DELETE FROM auditoria_processos 
+            WHERE auditoria_id = :auditoria_id 
+            AND processo_id = :processo_id
+        """)
+        
+        with engine.begin() as conn:
+            conn.execute(query, {
+                "auditoria_id": auditoria_id,
+                "processo_id": processo_id
+            })
+        
+        return True
+    except Exception as e:
+        print(f"Erro ao remover processo: {e}")
+        return False
+
