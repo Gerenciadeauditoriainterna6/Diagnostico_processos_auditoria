@@ -13,6 +13,290 @@ CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 #MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
 
+# =====================================================
+# NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
+# =====================================================
+
+def criar_nova_auditoria(dados_auditoria):
+    """
+    Cria uma nova auditoria no banco de dados.
+    dados_auditoria deve conter: id_area, titulo, objetivo, escopo, ano, trimestre
+    """
+    try:
+        # Gera o código automático: AUD-SIGLA-ANO-TRIM
+        # Primeiro busca a sigla da área
+        query_area = text(
+            """
+            SELECT nome_area FROM informacoes_area WHERE id_area = :id
+        """)
+        with engine.connect() as conn:
+            nome_area = conn.execute(query_area, {"id": dados_auditoria['id_area']}).scalar()
+
+        # Extrai sigla (Ex: "Gerência de Gente e Gestão - GGG" -> "GGG")
+        sigla = nome_area.split('-')[-1].strip() if '-' in nome_area else nome_area[:3]
+        codigo = f"AUD-{sigla}-{dados_auditoria['ano']}-{dados_auditoria['trimestre']}T"
+
+        query = text(
+            """
+            INSERT INTO auditorias
+            (codigo_auditorias, id_area, titulo, objetivo, scopo, anp, timestre,
+            data_inicio, data_fim, status, responsavel_equipe)
+            VALUES
+            (:codigo, :id_area, :titutlo, :objetivo, :escopo, :ano, :trimestre,
+            :data_inicio, :data_fim, :status, :responsavel)
+            RETURNING id
+        """)
+
+        with engine.begin() as conn:
+            auditoria_id = conn.execute(query, {
+                "codigo": codigo,
+                "id_area": dados_auditoria['id_area'],
+                "titulo": dados_auditoria['titulo'],
+                "objetivo": dados_auditoria.get('objetivo', ''),
+                "escopo": dados_auditoria.get('escopo', ''),
+                "ano": dados_auditoria['ano'],
+                "trimestre": dados_auditoria['trimestre'],
+                "data_inicio": dados_auditoria.get('data_inicio'),
+                "data_fim": dados_auditoria.get('data_fim'),
+                "status": dados_auditoria.get('status', 'Planejamento'),
+                "responsavel": dados_auditoria.get('responsavel_equipe', [])
+            }).scalar()
+
+        return auditoria_id, codigo
+    except Exception as e:
+        print(f"Erro ao criar auditoria: {e}")
+        return None, None
+
+def listar_auditorias_por_ano(ano=None):
+    """
+    Retorna todas as auditorias, opcionalmente filtradas por ano
+    """
+
+    if ano:
+        query = text(
+            """
+            SELECT a.*, i.nome_area
+            FROM auditorias a
+            JOIN informacoes_area i ON a.id_area = i.id_area
+            WHERE a.ano = :ano
+            ORDER BY a.ano DESC, a.trimestre
+        """)
+        params = {"ano": ano}
+    else:
+        query = text("""
+            SELECT a.*, i.nome_area 
+            FROM auditorias a
+            JOIN informacoes_area i ON a.id_area = i.id_area
+            ORDER BY a.ano DESC, a.trimestre
+        """)
+        params = {}
+
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params=params)
+
+def buscar_auditoria_por_id(auditoria_id):
+    """
+    Busca detalhes completos de uma auditoria específica
+    """
+    query = text("""
+        SELECT a.*, i.nome_area, i.gestor
+        FROM auditorias a
+        JOIN informacoes_area i ON a.id_area = i.id_area
+        WHERE a.id = :id
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"id": auditoria_id}).mappings().first()
+        return dict(result) if result else None
+
+def vincular_processo_a_auditoria(auditoria_id, processo_id, motivo=""):
+    """
+    Vincula um processo a uma auditoria (seleciona para ser auditado)
+    """
+    try:
+        query = text("""
+            INSERT INTO auditoria_processos (auditoria_id, processo_id, motivo_selecao)
+            VALUES (:auditoria_id, :processo_id, :motivo)
+            ON CONFLICT (auditoria_id, processo_id) DO NOTHING
+            RETURNING id
+        """)
+        
+        with engine.begin() as conn:
+            result = conn.execute(query, {
+                "auditoria_id": auditoria_id,
+                "processo_id": processo_id,
+                "motivo": motivo
+            }).scalar()
+            
+        return result is not None
+    except Exception as e:
+        print(f"Erro ao vincular processo: {e}")
+        return False
+    
+def listar_processos_da_auditoria(auditoria_id):
+    """
+    Retorna todos os processos vinculados a uma auditoria
+    """
+    query = text("""
+        SELECT ap.*, p.codigo_processo, p.nome_processo, p.area,
+               COUNT(r.id) as total_riscos,
+               MAX(r.score_risco) as maior_risco
+        FROM auditoria_processos ap
+        JOIN processos p ON ap.processo_id = p.id
+        LEFT JOIN riscos r ON p.id = r.processo_id
+        WHERE ap.auditoria_id = :id
+        GROUP BY ap.id, p.codigo_processo, p.nome_processo, p.area
+        ORDER BY p.codigo_processo
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"id": auditoria_id})
+
+def salvar_checklist_eficacia(dados_checklist):
+    """
+    Salva uma resposta de checklist
+    dados_checklist deve conter: auditoria_id, processo_id, pilar, pergunta, 
+                                  peso, resposta, pontuacao, evidencia, conclusao
+    """
+    try:
+        query = text("""
+            INSERT INTO checklists_eficacia 
+            (auditoria_id, processo_id, pilar, pergunta, peso, 
+             resposta, pontuacao, evidencia, conclusao)
+            VALUES 
+            (:auditoria_id, :processo_id, :pilar, :pergunta, :peso,
+             :resposta, :pontuacao, :evidencia, :conclusao)
+            RETURNING id
+        """)
+        
+        with engine.begin() as conn:
+            checklist_id = conn.execute(query, dados_checklist).scalar()
+            
+        return checklist_id
+    except Exception as e:
+        print(f"Erro ao salvar checklist: {e}")
+        return None
+
+def listar_checklists_da_auditoria(auditoria_id, processo_id=None, pilar=None):
+    """
+    Lista checklists de uma auditoria, com filtros opcionais
+    """
+    query = text("""
+        SELECT c.*, p.codigo_processo, p.nome_processo
+        FROM checklists_eficacia c
+        JOIN processos p ON c.processo_id = p.id
+        WHERE c.auditoria_id = :auditoria_id
+        AND (:processo_id IS NULL OR c.processo_id = :processo_id)
+        AND (:pilar IS NULL OR c.pilar = :pilar)
+        ORDER BY c.pilar, c.id
+    """)
+    
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={
+            "auditoria_id": auditoria_id,
+            "processo_id": processo_id,
+            "pilar": pilar
+        })
+
+def calcular_maturidade_por_pilar(auditoria_id, pilar):
+    """
+    Calcula a média de pontuação para um pilar específico
+    """
+    query = text("""
+        SELECT AVG(pontuacao) as media, COUNT(*) as total_perguntas
+        FROM checklists_eficacia
+        WHERE auditoria_id = :auditoria_id
+        AND pilar = :pilar
+        AND pontuacao IS NOT NULL
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {
+            "auditoria_id": auditoria_id,
+            "pilar": pilar
+        }).mappings().first()
+        
+        if result and result['media']:
+            return round(result['media'], 2), result['total_perguntas']
+        return 0, 0
+
+def salvar_conclusao_auditoria(dados_conclusao):
+    """
+    Salva o parecer final da auditoria
+    dados_conclusao deve conter: auditoria_id, resumo_executivo, pontos_fortes,
+                                  oportunidades_melhoria, recomendacoes, parecer_final
+    """
+    try:
+        query = text("""
+            INSERT INTO conclusao_auditoria 
+            (auditoria_id, resumo_executivo, pontos_fortes, oportunidades_melhoria,
+             recomendacoes, parecer_final, data_conclusao, pdf_relatorio)
+            VALUES 
+            (:auditoria_id, :resumo, :pontos_fortes, :oportunidades,
+             :recomendacoes, :parecer, :data_conclusao, :pdf)
+            ON CONFLICT (auditoria_id) DO UPDATE SET
+                resumo_executivo = EXCLUDED.resumo_executivo,
+                pontos_fortes = EXCLUDED.pontos_fortes,
+                oportunidades_melhoria = EXCLUDED.oportunidades_melhoria,
+                recomendacoes = EXCLUDED.recomendacoes,
+                parecer_final = EXCLUDED.parecer_final,
+                data_conclusao = EXCLUDED.data_conclusao,
+                pdf_relatorio = EXCLUDED.pdf_relatorio
+            RETURNING id
+        """)
+        
+        with engine.begin() as conn:
+            conclusao_id = conn.execute(query, {
+                "auditoria_id": dados_conclusao['auditoria_id'],
+                "resumo": dados_conclusao.get('resumo_executivo', ''),
+                "pontos_fortes": dados_conclusao.get('pontos_fortes', []),
+                "oportunidades": dados_conclusao.get('oportunidades_melhoria', []),
+                "recomendacoes": dados_conclusao.get('recomendacoes', []),
+                "parecer": dados_conclusao.get('parecer_final', ''),
+                "data_conclusao": dados_conclusao.get('data_conclusao'),
+                "pdf": dados_conclusao.get('pdf_relatorio')
+            }).scalar()
+            
+        return conclusao_id
+    except Exception as e:
+        print(f"Erro ao salvar conclusão: {e}")
+        return None
+    
+def buscar_conclusao_auditoria(auditoria_id):
+    """
+    Busca a conclusão de uma auditoria específica
+    """
+    query = text("SELECT * FROM conclusao_auditoria WHERE auditoria_id = :id")
+    with engine.connect() as conn:
+        result = conn.execute(query, {"id": auditoria_id}).mappings().first()
+        return dict(result) if result else None
+
+def get_resumo_trimestre(ano, trimestre):
+    """
+    Retorna um resumo consolidado do trimestre para dashboard
+    """
+    query = text("""
+        SELECT 
+            a.id,
+            a.codigo_auditoria,
+            i.nome_area,
+            a.status,
+            COUNT(DISTINCT ap.processo_id) as total_processos,
+            COUNT(DISTINCT c.id) as total_checklists,
+            AVG(c.pontuacao) as media_geral
+        FROM auditorias a
+        JOIN informacoes_area i ON a.id_area = i.id_area
+        LEFT JOIN auditoria_processos ap ON a.id = ap.auditoria_id
+        LEFT JOIN checklists_eficacia c ON a.id = c.auditoria_id
+        WHERE a.ano = :ano AND a.trimestre = :trimestre
+        GROUP BY a.id, i.nome_area
+    """)
+    
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"ano": ano, "trimestre": trimestre})
+       
+# =====================================================
+# NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
+# =====================================================
+
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
     query = text("""

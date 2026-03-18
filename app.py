@@ -12,7 +12,9 @@ from logic import (MAPA_RISCO, processar_codigo_inteligente,
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
-atualizar_etapa_no_banco
+atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
+listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
+buscar_conclusao_auditoria, get_resumo_trimestre
 )
 
 local_storage = LocalStorage()
