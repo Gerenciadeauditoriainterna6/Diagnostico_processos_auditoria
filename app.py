@@ -831,12 +831,6 @@ def tela_detalhe_auditoria():
         if df_processos.empty:
             st.warning("Nenhum processo selecionado para esta auditoria ainda.")
             
-            # Sugestão de processos para adicionar
-            st.info("💡 Use o botão abaixo para começar a selecionar processos.")
-            
-            if st.button("➕ Adicionar Primeiro Processo"):
-                st.session_state['mostrar_selecao_processos'] = True
-                st.rerun()
         else:
             # Mostra cada processo em um card
             for _, row in df_processos.iterrows():
