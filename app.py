@@ -1036,7 +1036,7 @@ def main():
                 st.session_state['deve_limpar'] = True
                 st.rerun()
 
-    elif opcao == "Detalhamento dos Processos":
+    elif opcao == "📝 Detalhamento dos Processos":
         tela_consulta_detalhada()
 
     elif opcao == "Geração de Relatórios":
