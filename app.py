@@ -1412,9 +1412,9 @@ def main():
 
         # Subtítulo com ícone colado
         st.markdown("""
-            <div style='display: flex; align-items: center; gap: 5px; margin: 10px 0 5px 0;'>
+            <div style='display: flex; align-items: center; gap: 1px; margin: 10px 0 5px 0;'>
                 <h3 style='margin: 0; padding: 0;'>1. Dados do Processo</h3>
-                <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>❔</span>
+                <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
             </div>
         """, unsafe_allow_html=True)
         
