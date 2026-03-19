@@ -1017,6 +1017,8 @@ def tela_detalhe_processo_auditoria():
                             
                             # --- ABA ADICIONAR RISCO ---
                             with tab_c_risco:
+                                st.write("🔍 TESTE - Esta mensagem aparece?")
+                                exibir_criterios_risco()
                                 
                                 with st.form(key=f"form_risco_{etapa['id']}", clear_on_submit=True):
                                     col1, col2 = st.columns(2)
