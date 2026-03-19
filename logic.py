@@ -1100,3 +1100,78 @@ def remover_processo_da_auditoria(auditoria_id, processo_id):
         print(f"Erro ao remover processo: {e}")
         return False
 
+def validar_basicos():
+    """Valida apenas os campos básicos: nome do processo e executor"""
+    
+    if not st.session_state.get("input_processo", "").strip():
+        st.error("O campo 'Nome do Processo' é obrigatório.")
+        return False
+    
+    if not st.session_state.get("input_executor", "").strip():
+        st.error("O campo 'Funcionário(s) Que Executa(m)' é obrigatório.")
+        return False
+    
+    return True
+
+def salvar_informacoes_basicas():
+    """Salva apenas as informações básicas do processo (sem riscos)"""
+    import streamlit as st
+    try:
+        with engine.begin() as conn:
+            id_area_val = st.session_state.get("id_area_selecionado")
+            nome_area_val = st.session_state.get("area_selectbox")
+            nome_val = st.session_state.get("input_processo", "").strip()
+            
+            # Verificar se é edição
+            processo_existente_id = st.session_state.get('processo_existente_id')
+            
+            if processo_existente_id:
+                # Atualizar processo existente
+                sql_update = text("""
+                    UPDATE processos 
+                    SET executor=:ex
+                    WHERE id = :pid
+                """)
+                conn.execute(sql_update, {
+                    "pid": processo_existente_id,
+                    "ex": st.session_state.get('input_executor', '')
+                })
+                processo_id = processo_existente_id
+            else:
+                # Inserir novo processo
+                sql_insert = text("""
+                    INSERT INTO processos 
+                    (id_area, area, codigo_processo, nome_processo, executor, status, criticidade, categoria) 
+                    VALUES 
+                    (:id_a, :a, :c, :n, :ex, :st, :crit, :cat) 
+                    RETURNING id
+                """)
+                
+                params = {
+                    "id_a": id_area_val,
+                    "a": nome_area_val,
+                    "c": st.session_state['codigo_processo'],
+                    "n": nome_val,
+                    "ex": st.session_state.get('input_executor', ''),
+                    "st": "Ativo",
+                    "crit": "A definir",
+                    "cat": "Geral"
+                }
+                processo_id = conn.execute(sql_insert, params).scalar()
+                st.session_state['processo_existente_id'] = processo_id
+            
+            # Vincular à auditoria
+            if 'auditoria_diagnostico' in st.session_state:
+                vincular_processo_a_auditoria(
+                    auditoria_id=st.session_state['auditoria_diagnostico'],
+                    processo_id=processo_id,
+                    motivo="Processo identificado durante diagnóstico da área"
+                )
+            
+            st.session_state['ultimo_processo_id'] = processo_id
+            
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar informações básicas: {e}")
+        return False
+

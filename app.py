@@ -15,7 +15,7 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
-remover_processo_da_auditoria
+remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas
 )
 
 local_storage = LocalStorage()
@@ -1488,7 +1488,7 @@ def main():
             </div>
         """, unsafe_allow_html=True)
 
-        # Nome do Processo (obrigatório) - com verificação de existência
+        # Nome do Processo (obrigatório)
         nome_processo = st.text_input(
             "Nome do Processo:", 
             key="input_processo", 
@@ -1505,6 +1505,15 @@ def main():
             key="input_executor", 
             help="Funcionário(s) que executa(m) - Alçadas (Gestão ou operação?)"
         )
+
+        # Botão para salvar apenas as informações básicas
+        col_b1, col_b2 = st.columns([1, 3])
+        with col_b1:
+            if st.button("💾 Salvar Informações Básicas", type="secondary", use_container_width=True):
+                if validar_basicos():
+                    if salvar_informacoes_basicas():
+                        st.success("✅ Informações básicas salvas com sucesso!")
+                        st.rerun()
 
         # Mostrar indicador se é edição
         if st.session_state.get('processo_existente_id'):
