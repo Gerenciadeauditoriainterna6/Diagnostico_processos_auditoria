@@ -1409,17 +1409,23 @@ def main():
         st.divider()
         
         # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
-        col_titulo, col_ajuda = st.columns([6, 1])
+        col_titulo, col_ajuda = st.columns([10, 1], vertical_alignment="center")
 
         with col_titulo:
             st.subheader("1. Dados do Processo")
-        
+
         with col_ajuda:
-            st.markdown("#####")  # Ajuste fino do alinhamento vertical
-            st.markdown(
-                '<span style="font-size: 1.2rem; cursor: help;" title="Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.">ℹ️</span>',
-                unsafe_allow_html=True
-            )
+            with st.popover("ℹ️", help="Dicas de preenchimento"):
+                st.markdown("""
+                <div style='background-color: #f0f2f6; padding: 10px; border-radius: 5px;'>
+                    <h4 style='margin-top: 0;'>📋 Dicas Rápidas</h4>
+                    <ul style='margin-bottom: 0; padding-left: 20px;'>
+                        <li><strong>Nome:</strong> Seja claro e objetivo</li>
+                        <li><strong>Código:</strong> Gerado automaticamente</li>
+                        <li><strong>Descrição:</strong> Explique o propósito</li>
+                    </ul>
+                </div>
+                """, unsafe_allow_html=True)
         
         # Garante que o ID esteja inicializado
         if 'id_area_selecionado' not in st.session_state:
