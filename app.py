@@ -203,6 +203,59 @@ def tela_cadastro_area():
     with tab1:
         st.subheader("Nova Área")
         
+        # Inicializar lista de funcionários fora do formulário
+        if 'funcionarios_temp' not in st.session_state:
+            st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+        
+        # Botões de controle fora do formulário
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("➕ Adicionar funcionário", key="add_func_btn"):
+                st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
+                st.rerun()
+        
+        # Mostrar funcionários atual (fora do formulário também)
+        for i, func in enumerate(st.session_state['funcionarios_temp']):
+            with st.container(border=True):
+                st.markdown(f"**Funcionário {i+1}**")
+                
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    # Use text_input normal (sem form)
+                    func['nome'] = st.text_input(
+                        "Nome completo *",
+                        value=func['nome'],
+                        key=f"func_nome_{i}"
+                    )
+                with col_f2:
+                    func['cargo'] = st.text_input(
+                        "Cargo",
+                        value=func['cargo'],
+                        key=f"func_cargo_{i}"
+                    )
+                
+                col_f3, col_f4 = st.columns(2)
+                with col_f3:
+                    func['tempo_funcao'] = st.text_input(
+                        "Tempo na função",
+                        value=func['tempo_funcao'],
+                        key=f"func_tempof_{i}",
+                        placeholder="Ex: 2 anos"
+                    )
+                with col_f4:
+                    func['tempo_empresa'] = st.text_input(
+                        "Tempo na empresa",
+                        value=func['tempo_empresa'],
+                        key=f"func_tempoe_{i}",
+                        placeholder="Ex: 3 anos"
+                    )
+                
+                if i > 0:
+                    if st.button("❌ Remover", key=f"remove_func_{i}"):
+                        st.session_state['funcionarios_temp'].pop(i)
+                        st.rerun()
+        
+        # Agora sim, o formulário apenas para os dados da área e o botão de submit
         with st.form("form_nova_area"):
             nome_area = st.text_input("Nome da Área *", help="Ex: Gerência Financeira, Recursos Humanos, etc.")
             
@@ -217,61 +270,7 @@ def tela_cadastro_area():
             
             status = st.selectbox("Status", ["Ativo", "Inativo"])
             
-            st.markdown("---")
-            st.subheader("👥 Funcionários da Área")
-            
-            # Lista dinâmica de funcionários
-            if 'funcionarios_temp' not in st.session_state:
-                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
-            
-            # Mostrar cada funcionário
-            for i, func in enumerate(st.session_state['funcionarios_temp']):
-                with st.container(border=True):
-                    st.markdown(f"**Funcionário {i+1}**")
-                    
-                    col_f1, col_f2 = st.columns(2)
-                    with col_f1:
-                        func['nome'] = st.text_input(
-                            "Nome completo *",
-                            value=func['nome'],
-                            key=f"func_nome_{i}"
-                        )
-                    with col_f2:
-                        func['cargo'] = st.text_input(
-                            "Cargo",
-                            value=func['cargo'],
-                            key=f"func_cargo_{i}"
-                        )
-                    
-                    col_f3, col_f4 = st.columns(2)
-                    with col_f3:
-                        func['tempo_funcao'] = st.text_input(
-                            "Tempo na função",
-                            value=func['tempo_funcao'],
-                            key=f"func_tempof_{i}",
-                            placeholder="Ex: 2 anos"
-                        )
-                    with col_f4:
-                        func['tempo_empresa'] = st.text_input(
-                            "Tempo na empresa",
-                            value=func['tempo_empresa'],
-                            key=f"func_tempoe_{i}",
-                            placeholder="Ex: 3 anos"
-                        )
-                    
-                    if i > 0:  # Não permitir remover o primeiro
-                        if st.button("❌ Remover", key=f"remove_func_{i}"):
-                            st.session_state['funcionarios_temp'].pop(i)
-                            st.rerun()
-            
-            # Botão para adicionar mais funcionários
-            if st.button("➕ Adicionar outro funcionário"):
-                st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
-                st.rerun()
-            
-            st.markdown("---")
-            
-            # Botão de submit
+            # Botão de submit (único botão dentro do form)
             if st.form_submit_button("💾 Salvar Área e Funcionários", type="primary"):
                 # Validar campos obrigatórios
                 if not nome_area or not gestor:
