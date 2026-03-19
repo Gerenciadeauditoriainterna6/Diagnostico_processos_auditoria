@@ -1366,7 +1366,7 @@ def main():
             <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
         </div>
         """, unsafe_allow_html=True)
-        exibir_criterios_risco()
+        
         st.subheader("2. Riscos Associados")
         for i, _ in enumerate(st.session_state['riscos']):
             st.markdown(f"**Risco {i+1}**")
