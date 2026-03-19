@@ -1478,22 +1478,32 @@ def main():
                 if id_campo in st.session_state:
                     st.session_state.pop(id_campo, None)
             
-            # ===== LIMPAR RISCOS DA INTERFACE =====
-            # Primeiro, remover TODAS as keys de riscos
+            # 3. LIMPEZA AGRESSIVA DOS RISCOS
+            # Remover TODAS as keys que começam com os prefixos de risco
             prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
-            keys_to_remove = [key for key in list(st.session_state.keys()) 
-                            if any(key.startswith(prefix) for prefix in prefixos_risco)]
+            keys_to_remove = []
+            
+            for key in list(st.session_state.keys()):
+                if any(key.startswith(prefix) for prefix in prefixos_risco):
+                    keys_to_remove.append(key)
             
             for key in keys_to_remove:
                 st.session_state.pop(key, None)
+                st.write(f"✅ Removeu: {key}")
             
-            # DEPOIS, resetar riscos para UM risco vazio
-            # Isso vai fazer o loop criar UM risco com keys novas
+            # 4. RECRIAR A LISTA DE RISCOS DO ZERO
+            # Em vez de apenas [{}], vamos forçar a recriação completa
+            if 'riscos' in st.session_state:
+                st.session_state.pop('riscos')
+            
+            # Agora sim, criar nova lista vazia
             st.session_state['riscos'] = [{}]
             
-            st.write("**Session State após limpeza:**", dict(st.session_state))
+            # 5. DEBUG - Mostrar o que sobrou
+            st.write("**Session State após limpeza:**")
+            st.write({k: v for k, v in st.session_state.items() if not k.startswith('_')})
             
-            # Remover o flag
+            # 6. Remover o flag
             st.session_state.pop('deve_limpar_diagnostico')
             
             st.success("✅ Limpeza concluída! Recarregando...")
