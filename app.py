@@ -1498,6 +1498,7 @@ def main():
             st.session_state.pop('deve_limpar_diagnostico')
             
             st.success("✅ Limpeza concluída! Recarregando...")
+            time.sleep(3)
             st.rerun()
 
         st.title("Diagnóstico de Processos - FUSVE")
