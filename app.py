@@ -1015,7 +1015,7 @@ def tela_detalhe_processo_auditoria():
     st.caption(f"Auditoria: {auditoria_id} | Área: {processo['nome_area']}")
     
     # Botão para voltar
-    if st.button("← Voltar para a auditoria"):
+    if st.button("← Voltar para o Detalhamento dos Processos"):
         st.session_state.pop('processo_detalhe', None)
         st.rerun()
     
@@ -1711,7 +1711,7 @@ def main():
         """, unsafe_allow_html=True)
         
         # ===== SEÇÃO 0: VINCULAR À AUDITORIA =====
-        st.subheader("Vincular à Auditoria")
+        st.subheader("1. Vincular à Auditoria")
 
         def listar_auditorias_para_area(id_area):
             query = text("""
@@ -1779,8 +1779,8 @@ def main():
         
         # ===== SEÇÃO 1: INFORMAÇÕES BÁSICAS (OBRIGATÓRIAS) =====
         st.markdown("""
-            <div style='display: flex; align-items: center; gap: 2px; margin: 10px 0 5px 0;'>
-                <h3 style='margin: 0; padding: 0;'>1. Informações Básicas do Processo</h3>
+            <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
+                <h3 style='margin: 0; padding: 0;'>2. Informações Básicas do Processo</h3>
                 <span style='cursor: help; font-size: 1.2rem;' title='Campos obrigatórios para criar o processo'>ⓘ</span>
             </div>
         """, unsafe_allow_html=True)
@@ -1954,15 +1954,15 @@ def main():
 
         # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
         st.markdown("""
-            <div style='display: flex; align-items: center; gap: 2px; margin: 10px 0 5px 0;'>
+            <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
                 <h3 style='margin: 0; padding: 0;'>2. Detalhamento do Processo</h3>
-                <span style='cursor: help; font-size: 1.2rem;' title='Campos opcionais para complementar o diagnóstico'>ⓘ</span>
+                <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
             </div>
         """, unsafe_allow_html=True)
 
         st.info("ℹ️ Os campos abaixo são opcionais. Você pode preenchê-los agora ou editar depois.")
 
-        st.text_area("O que é o processo?:", key="input_descricao")
+        st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
         st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
                     help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
         st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
