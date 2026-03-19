@@ -1943,7 +1943,7 @@ def main():
         # Botão para salvar apenas as informações básicas
         col_b1, col_b2 = st.columns(2)
         with col_b1:
-            if st.button("💾 Salvar Informações Básicas", type="primary" if not st.sessions_state['info_basicas_salvas'] else "secondary",  use_container_width=True):
+            if st.button("💾 Salvar Informações Básicas", type="primary" if not st.session_state['info_basicas_salvas'] else "secondary",  use_container_width=True):
                 if validar_basicos():
                     with st.spinner("Salvando informações básicas..."):
                         if salvar_informacoes_basicas():
