@@ -1209,12 +1209,12 @@ def main():
             "Menu", 
                 [
                     "📅 Plano Anual de Auditoria",
-                    "📋 Detalhamento dos Processos",        
                     "🔍 Diagnóstico dos Processos",
-                    "👁️ Visão Geral do Diagnóstico",
-                    "✅ Checklists de Eficácia",           
-                    "📊 Resultados e Pareceres",
-                    "📄 Geração de Relatórios"           
+                    "📋 Detalhamento dos Processos",        
+                    "👁️ Visão Geral do Diagnóstico"
+                    #"✅ Checklists de Eficácia",           
+                    #"📊 Resultados e Pareceres",
+                    #"📄 Geração de Relatórios"           
                 ]
             )
 
