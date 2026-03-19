@@ -5,6 +5,7 @@ from fpdf.enums import XPos, YPos
 from sqlalchemy import text
 from database import engine
 from datetime import datetime
+import streamlit as st
 
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -617,24 +618,52 @@ def obter_proximo_codigo(id_area):
     return f"{id_area}.{contagem + 1}"
 
 def processar_codigo_inteligente():
-    import streamlit as st
-    # Certifique-se de que aqui você usa o ID, não o nome
+    """Gera o código do processo e verifica se já existe para carregar dados"""
+    
     id_area = st.session_state.get("id_area_selecionado") 
-    nome = st.session_state.get("input_processo")
+    nome = st.session_state.get("input_processo", "").strip()
     
     if not id_area or not nome:
         st.session_state['codigo_processo'] = ""
         return
-        
-    query = text("SELECT codigo_processo FROM processos WHERE id_area = :id_area AND nome_processo = :nome")
+    
+    # Verificar se já existe um processo com este nome na mesma área
+    query_check = text("""
+        SELECT id, codigo_processo, objetivo, executor, descricao, 
+               etapa_ini, etapa_fim, produto
+        FROM processos 
+        WHERE id_area = :id_area AND nome_processo = :nome
+    """)
+    
     with engine.connect() as conn:
-        # AQUI estava o erro: o parâmetro deve ser :id_area
-        resultado = conn.execute(query, {"id_area": id_area, "nome": nome}).fetchone()
-        
+        resultado = conn.execute(query_check, {
+            "id_area": id_area, 
+            "nome": nome
+        }).mappings().first()
+    
     if resultado:
-        st.session_state['codigo_processo'] = resultado[0]
+        # Processo existe - carregar todos os dados
+        st.session_state['processo_existente_id'] = resultado['id']
+        st.session_state['codigo_processo'] = resultado['codigo_processo']
+        st.session_state['input_objetivo'] = resultado['objetivo'] or ""
+        st.session_state['input_executor'] = resultado['executor'] or ""
+        st.session_state['input_descricao'] = resultado['descricao'] or ""
+        st.session_state['input_etapa_ini'] = resultado['etapa_ini'] or ""
+        st.session_state['input_etapa_fim'] = resultado['etapa_fim'] or ""
+        st.session_state['input_produto'] = resultado['produto'] or ""
+        
     else:
+        # Processo novo - gerar código
         st.session_state['codigo_processo'] = obter_proximo_codigo(id_area)
+        # Limpar dados de edição anterior
+        if 'processo_existente_id' in st.session_state:
+            st.session_state.pop('processo_existente_id', None)
+        # Limpar campos de detalhamento (opcional)
+        st.session_state['input_objetivo'] = ""
+        st.session_state['input_descricao'] = ""
+        st.session_state['input_etapa_ini'] = ""
+        st.session_state['input_etapa_fim'] = ""
+        st.session_state['input_produto'] = ""
 
 def salvar_no_banco():
     import streamlit as st
@@ -642,48 +671,69 @@ def salvar_no_banco():
         with engine.begin() as conn:
             id_area_val = st.session_state.get("id_area_selecionado") 
             nome_area_val = st.session_state.get("area_selectbox")
-            nome_val = st.session_state.get("input_processo")
+            nome_val = st.session_state.get("input_processo", "").strip()
             
-            query_busca = text("SELECT id FROM processos WHERE id_area = :id_a AND nome_processo = :nome")
-            processo_existente = conn.execute(query_busca, {"id_a": id_area_val, "nome": nome_val}).fetchone()
+            # Verificar se é edição de processo existente
+            processo_existente_id = st.session_state.get('processo_existente_id')
             
-            # Dados padrão para novos campos (evita erro na consulta detalhada)
-            dados_base = {
-                "o": st.session_state['input_objetivo'], 
-                "ex": st.session_state['input_executor'], 
-                "d": st.session_state['input_descricao'], 
-                "ei": st.session_state['input_etapa_ini'], 
-                "ef": st.session_state['input_etapa_fim'], 
-                "p": st.session_state['input_produto'],
-                "a": nome_area_val,
-                "st": "Ativo",        # Valor default
-                "crit": "A definir", # Valor default
-                "cat": "Geral"       # Valor default
-            }
-
-            if processo_existente:
-                processo_id = processo_existente[0]
+            if processo_existente_id:
+                # === MODO EDIÇÃO: Atualizar processo existente ===
+                processo_id = processo_existente_id
                 sql_update = text("""
                     UPDATE processos 
-                    SET objetivo=:o, executor=:ex, descricao=:d, etapa_ini=:ei, etapa_fim=:ef, produto=:p, area=:a
+                    SET objetivo=:o, executor=:ex, descricao=:d, 
+                        etapa_ini=:ei, etapa_fim=:ef, produto=:p, area=:a
                     WHERE id = :pid
                 """)
-                dados_base["pid"] = processo_id
-                conn.execute(sql_update, dados_base)
+                
+                dados_update = {
+                    "pid": processo_id,
+                    "o": st.session_state.get('input_objetivo', ''),
+                    "ex": st.session_state.get('input_executor', ''),
+                    "d": st.session_state.get('input_descricao', ''),
+                    "ei": st.session_state.get('input_etapa_ini', ''),
+                    "ef": st.session_state.get('input_etapa_fim', ''),
+                    "p": st.session_state.get('input_produto', ''),
+                    "a": nome_area_val
+                }
+                conn.execute(sql_update, dados_update)
+                
             else:
+                # === MODO CRIAÇÃO: Inserir novo processo ===
                 sql_p = text("""
-                    INSERT INTO processos (id_area, area, codigo_processo, nome_processo, objetivo, executor, descricao, etapa_ini, etapa_fim, produto, status, criticidade, categoria) 
-                    VALUES (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) RETURNING id
+                    INSERT INTO processos 
+                    (id_area, area, codigo_processo, nome_processo, objetivo, executor, 
+                     descricao, etapa_ini, etapa_fim, produto, status, criticidade, categoria) 
+                    VALUES 
+                    (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) 
+                    RETURNING id
                 """)
-                params_insert = {**dados_base, "id_a": id_area_val, "c": st.session_state['codigo_processo'], "n": nome_val}
+                
+                params_insert = {
+                    "id_a": id_area_val,
+                    "a": nome_area_val,
+                    "c": st.session_state['codigo_processo'],
+                    "n": nome_val,
+                    "o": st.session_state.get('input_objetivo', ''),
+                    "ex": st.session_state.get('input_executor', ''),
+                    "d": st.session_state.get('input_descricao', ''),
+                    "ei": st.session_state.get('input_etapa_ini', ''),
+                    "ef": st.session_state.get('input_etapa_fim', ''),
+                    "p": st.session_state.get('input_produto', ''),
+                    "st": "Ativo",
+                    "crit": "A definir",
+                    "cat": "Geral"
+                }
                 processo_id = conn.execute(sql_p, params_insert).scalar()
+                st.session_state['processo_existente_id'] = processo_id
 
-            # Riscos... (mantenha o código de riscos como está)
+            # ===== RISCOS (igual ao seu código existente) =====
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
 
-            # 3. Insere a lista atual de riscos
-            sql_risco = text("""INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, apetite_risco, motivo_risco, score_risco) 
-                                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)""")
+            sql_risco = text("""INSERT INTO riscos 
+                (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
+                 apetite_risco, motivo_risco, score_risco) 
+                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)""")
             
             for i in range(len(st.session_state['riscos'])):
                 imp = st.session_state.get(f"imp_{i}")
@@ -701,7 +751,9 @@ def salvar_no_banco():
                     "motivo": st.session_state.get(f"motivo_{i}"), 
                     "score": score
                 })
-                st.session_state['ultimo_processo_id'] = processo_id
+            
+            st.session_state['ultimo_processo_id'] = processo_id
+            
         return True
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
