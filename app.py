@@ -1678,51 +1678,15 @@ def main():
                         st.rerun()
         with col_b2:
             # ===== BOTÃO DE LIMPEZA =====
-                if st.button("🧹 **NOVO PROCESSO**", type="secondary", use_container_width=True):
-                    # Lista de todos os campos a serem limpos
-                    campos_para_limpar = [
-                        'input_processo',           # Nome do processo
-                        'input_executor',           # Executor
-                        'input_objetivo',           # Objetivo
-                        'input_descricao',          # Descrição
-                        'input_etapa_ini',          # Etapa inicial
-                        'input_etapa_fim',           # Etapa final
-                        'input_produto',             # Produto
-                        'codigo_processo',           # Código
-                        'processo_existente_id',     # ID de edição
-                        'ultimo_processo_id',        # Último ID salvo
-                        'auditoria_diagnostico'      # Auditoria selecionada (opcional)
-                    ]
-                    
-                    # Limpar campos da session_state
-                    for campo in campos_para_limpar:
-                        if campo in st.session_state:
-                            if campo == 'processo_existente_id' or campo == 'ultimo_processo_id':
-                                st.session_state.pop(campo)  # Remove completamente
-                            else:
-                                st.session_state[campo] = ""  # Zera strings
-                    
-                    # Resetar riscos para um único risco vazio
-                    st.session_state['riscos'] = [{}]
-                    
-                    # Limpar todas as keys de riscos (nome_0, fator_0, etc.)
-                    keys_to_remove = []
-                    for key in st.session_state.keys():
-                        if any(key.startswith(prefix) for prefix in ['nome_', 'fator_', 'melhoria_', 
-                                                                    'apetite_', 'imp_', 'prob_', 'motivo_']):
-                            keys_to_remove.append(key)
-                    
-                    for key in keys_to_remove:
-                        st.session_state.pop(key)
-                    
-                    st.success("✅ Todos os campos foram limpos! Pronto para novo cadastro.")
+                if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
+                    limpar_todos_campos()  # Esta função só seta o flag
                     st.rerun()
 
-        # Mostrar indicador se é edição
-        if st.session_state.get('processo_existente_id'):
-            st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
+                    # Mostrar indicador se é edição
+                    if st.session_state.get('processo_existente_id'):
+                        st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
 
-        st.divider()
+                    st.divider()
 
         # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
         st.markdown("""
