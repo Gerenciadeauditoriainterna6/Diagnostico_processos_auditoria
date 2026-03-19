@@ -1574,7 +1574,7 @@ def main():
             "Menu", 
                 [
                     #"📅 Plano Anual de Auditoria",
-                    "🏢 Cadastro de Áreas"
+                    "🏢 Cadastro de Áreas",
                     "🔍 Diagnóstico dos Processos",
                     "📋 Detalhamento dos Processos",        
                     "👁️ Visão Geral do Diagnóstico"
