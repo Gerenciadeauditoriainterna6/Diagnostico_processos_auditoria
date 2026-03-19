@@ -1474,7 +1474,19 @@ def carregar_dados_processo_para_edicao(processo_id):
     
     if not processo:
         return None
+    
     st.session_state['info_basicas_salvas'] = True
+    
+    # Preencher session_state com os dados existentes
+    st.session_state['input_processo'] = processo.get('nome_processo', '')
+    st.session_state['input_executor'] = processo.get('executor', '')
+    st.session_state['input_descricao'] = processo.get('descricao', '')
+    st.session_state['input_etapa_ini'] = processo.get('etapa_ini', '')
+    st.session_state['input_etapa_fim'] = processo.get('etapa_fim', '')
+    st.session_state['input_produto'] = processo.get('produto', '')
+    st.session_state['input_objetivo'] = processo.get('objetivo', '')
+    st.session_state['codigo_processo'] = processo.get('codigo_processo', '')
+    
     return True
     
     # Preencher session_state com os dados existentes
