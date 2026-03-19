@@ -1869,6 +1869,10 @@ def main():
                             st.rerun()
                     else:
                         st.warning("Selecione um processo.")
+                        
+        if st.session_state.get('processo_existente_id'):
+            st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
+               
         st.divider()
 
         # Nome do Processo (obrigatório)
@@ -1946,11 +1950,8 @@ def main():
                 st.warning("🔍 DEBUG: Flag de limpeza ativado!")
                 st.rerun()
 
-        # Mostrar indicador se é edição
-        if st.session_state.get('processo_existente_id'):
-            st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
-
         st.divider()
+        
 
         # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
         st.markdown("""
