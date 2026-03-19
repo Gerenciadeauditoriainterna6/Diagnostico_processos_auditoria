@@ -1224,3 +1224,84 @@ def listar_riscos_do_processo(processo_id):
     
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"pid": processo_id})
+
+def salvar_area(dados_area):
+    """Salva uma nova área no banco de dados"""
+    try:
+        query = text("""
+            INSERT INTO informacoes_area 
+            (nome_area, objetivo_area, status, email, telefone, gestor)
+            VALUES 
+            (:nome, :objetivo, :status, :email, :telefone, :gestor)
+            RETURNING id_area
+        """)
+        
+        with engine.begin() as conn:
+            id_area = conn.execute(query, {
+                "nome": dados_area['nome'],
+                "objetivo": dados_area.get('objetivo', ''),
+                "status": dados_area.get('status', 'Ativo'),
+                "email": dados_area.get('email', ''),
+                "telefone": dados_area.get('telefone', ''),
+                "gestor": dados_area.get('gestor', '')
+            }).scalar()
+            
+        return id_area
+    except Exception as e:
+        print(f"Erro ao salvar área: {e}")
+        return None
+
+def listar_areas():
+    """Retorna todas as áreas cadastradas"""
+    query = text("""
+        SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
+        FROM informacoes_area
+        ORDER BY nome_area
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
+
+def salvar_funcionarios_area(id_area, lista_funcionarios):
+    """Salva a lista de funcionários de uma área"""
+    try:
+        with engine.begin() as conn:
+            # Remove funcionários antigos
+            conn.execute(
+                text("DELETE FROM funcionarios_area WHERE id_area = :id_area"),
+                {"id_area": id_area}
+            )
+            
+            # Insere novos funcionários
+            if lista_funcionarios:
+                sql_insert = text("""
+                    INSERT INTO funcionarios_area 
+                    (id_area, nome_funcionario, cargo, tempo_funcao, tempo_empresa, ativo)
+                    VALUES 
+                    (:id_area, :nome, :cargo, :tempo_funcao, :tempo_empresa, :ativo)
+                """)
+                
+                for func in lista_funcionarios:
+                    if func.get('nome', '').strip():
+                        conn.execute(sql_insert, {
+                            "id_area": id_area,
+                            "nome": func['nome'].strip(),
+                            "cargo": func.get('cargo', '').strip(),
+                            "tempo_funcao": func.get('tempo_funcao', '').strip(),
+                            "tempo_empresa": func.get('tempo_empresa', '').strip(),
+                            "ativo": func.get('ativo', True)
+                        })
+            return True
+    except Exception as e:
+        print(f"Erro ao salvar funcionários: {e}")
+        return False
+
+def listar_funcionarios_area(id_area):
+    """Retorna os funcionários de uma área"""
+    query = text("""
+        SELECT id, nome_funcionario, cargo, tempo_funcao, tempo_empresa, ativo
+        FROM funcionarios_area
+        WHERE id_area = :id_area AND ativo = TRUE
+        ORDER BY nome_funcionario
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"id_area": id_area})

@@ -15,7 +15,8 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
-remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco
+remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
+salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area
 )
 
 local_storage = LocalStorage()
@@ -190,6 +191,151 @@ def login_screen():
             ''', unsafe_allow_html=True)
                     
     return False
+
+def tela_cadastro_area():
+    """Tela para cadastro de áreas e seus funcionários"""
+    
+    st.title("🏢 Cadastro de Áreas e Funcionários")
+    
+    # Abas para separar as funcionalidades
+    tab1, tab2 = st.tabs(["📌 Cadastrar Nova Área", "📋 Gerenciar Áreas Existentes"])
+    
+    with tab1:
+        st.subheader("Nova Área")
+        
+        with st.form("form_nova_area"):
+            nome_area = st.text_input("Nome da Área *", help="Ex: Gerência Financeira, Recursos Humanos, etc.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                email = st.text_input("E-mail", help="E-mail da área")
+            with col2:
+                telefone = st.text_input("Telefone", help="Telefone da área")
+            
+            gestor = st.text_input("Nome do Gestor *", help="Nome do responsável pela área")
+            objetivo = st.text_area("Objetivo da Área", help="Descreva brevemente o propósito da área")
+            
+            status = st.selectbox("Status", ["Ativo", "Inativo"])
+            
+            st.markdown("---")
+            st.subheader("👥 Funcionários da Área")
+            
+            # Lista dinâmica de funcionários
+            if 'funcionarios_temp' not in st.session_state:
+                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+            
+            # Mostrar cada funcionário
+            for i, func in enumerate(st.session_state['funcionarios_temp']):
+                with st.container(border=True):
+                    st.markdown(f"**Funcionário {i+1}**")
+                    
+                    col_f1, col_f2 = st.columns(2)
+                    with col_f1:
+                        func['nome'] = st.text_input(
+                            "Nome completo *",
+                            value=func['nome'],
+                            key=f"func_nome_{i}"
+                        )
+                    with col_f2:
+                        func['cargo'] = st.text_input(
+                            "Cargo",
+                            value=func['cargo'],
+                            key=f"func_cargo_{i}"
+                        )
+                    
+                    col_f3, col_f4 = st.columns(2)
+                    with col_f3:
+                        func['tempo_funcao'] = st.text_input(
+                            "Tempo na função",
+                            value=func['tempo_funcao'],
+                            key=f"func_tempof_{i}",
+                            placeholder="Ex: 2 anos"
+                        )
+                    with col_f4:
+                        func['tempo_empresa'] = st.text_input(
+                            "Tempo na empresa",
+                            value=func['tempo_empresa'],
+                            key=f"func_tempoe_{i}",
+                            placeholder="Ex: 3 anos"
+                        )
+                    
+                    if i > 0:  # Não permitir remover o primeiro
+                        if st.button("❌ Remover", key=f"remove_func_{i}"):
+                            st.session_state['funcionarios_temp'].pop(i)
+                            st.rerun()
+            
+            # Botão para adicionar mais funcionários
+            if st.button("➕ Adicionar outro funcionário"):
+                st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
+                st.rerun()
+            
+            st.markdown("---")
+            
+            # Botão de submit
+            if st.form_submit_button("💾 Salvar Área e Funcionários", type="primary"):
+                # Validar campos obrigatórios
+                if not nome_area or not gestor:
+                    st.error("Nome da Área e Nome do Gestor são obrigatórios.")
+                else:
+                    # Verificar se há pelo menos um funcionário com nome
+                    tem_funcionario = any(f.get('nome', '').strip() for f in st.session_state['funcionarios_temp'])
+                    
+                    if not tem_funcionario:
+                        st.warning("Adicione pelo menos um funcionário com nome.")
+                    else:
+                        # 1. Salvar área
+                        dados_area = {
+                            "nome": nome_area,
+                            "objetivo": objetivo,
+                            "status": status,
+                            "email": email,
+                            "telefone": telefone,
+                            "gestor": gestor
+                        }
+                        
+                        id_area = salvar_area(dados_area)
+                        
+                        if id_area:
+                            # 2. Salvar funcionários
+                            funcionarios_validos = [f for f in st.session_state['funcionarios_temp'] if f.get('nome', '').strip()]
+                            
+                            if salvar_funcionarios_area(id_area, funcionarios_validos):
+                                st.success(f"✅ Área '{nome_area}' cadastrada com sucesso!")
+                                # Limpar formulário
+                                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+                                st.rerun()
+                            else:
+                                st.error("Erro ao cadastrar funcionários.")
+                        else:
+                            st.error("Erro ao cadastrar área.")
+    
+    with tab2:
+        st.subheader("Áreas Cadastradas")
+        
+        df_areas = listar_areas()
+        
+        if not df_areas.empty:
+            for _, row in df_areas.iterrows():
+                with st.expander(f"🏢 {row['nome_area']} - Gestor: {row['gestor']}"):
+                    st.write(f"**E-mail:** {row['email'] or 'Não informado'}")
+                    st.write(f"**Telefone:** {row['telefone'] or 'Não informado'}")
+                    st.write(f"**Objetivo:** {row['objetivo_area'] or 'Não informado'}")
+                    st.write(f"**Status:** {row['status']}")
+                    
+                    # Listar funcionários da área
+                    df_func = listar_funcionarios_area(row['id_area'])
+                    
+                    if not df_func.empty:
+                        st.markdown("**👥 Funcionários:**")
+                        for _, func in df_func.iterrows():
+                            st.markdown(f"""
+                            - **{func['nome_funcionario']}**  
+                              Cargo: {func['cargo'] or 'N/A'} | Tempo na função: {func['tempo_funcao'] or 'N/A'} | Tempo na empresa: {func['tempo_empresa'] or 'N/A'}
+                            """)
+                    else:
+                        st.info("Nenhum funcionário cadastrado para esta área.")
+        else:
+            st.info("Nenhuma área cadastrada.")
 
 def limpar_todos_campos():
     """Limpa todos os campos da tela de diagnóstico - usa reset de formulário"""
@@ -1428,6 +1574,7 @@ def main():
             "Menu", 
                 [
                     #"📅 Plano Anual de Auditoria",
+                    "🏢 Cadastro de Áreas"
                     "🔍 Diagnóstico dos Processos",
                     "📋 Detalhamento dos Processos",        
                     "👁️ Visão Geral do Diagnóstico"
@@ -1551,6 +1698,17 @@ def main():
             key="area_selectbox", 
             on_change=atualizar_id_area
         )
+
+        id_area_atual = st.session_state.get('id_area_selecionado')
+        if id_area_atual:
+            df_funcionarios = listar_funcionarios_area(id_area_atual)
+            if not df_funcionarios.empty:
+                with st.expander("👥 Funcionários da Área", expanded=False):
+                    for _, func in df_funcionarios.iterrows():
+                        st.markdown(f"""
+                        - **{func['nome_funcionario']}**  
+                        *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
+                        """)
 
         if 'id_area_selecionado' not in st.session_state:
             st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
@@ -1789,6 +1947,8 @@ def main():
                 st.success("Dados salvos!")
                 st.session_state['deve_limpar'] = True
                 st.rerun()
+    elif opcao == "🏢 Cadastro de Áreas":
+        tela_cadastro_area()
 
     elif opcao == "👁️ Visão Geral do Diagnóstico":
         #tela_consulta_detalhada() -> Antiga função
