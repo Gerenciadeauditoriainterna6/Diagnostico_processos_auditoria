@@ -1488,18 +1488,6 @@ def carregar_dados_processo_para_edicao(processo_id):
     st.session_state['codigo_processo'] = processo.get('codigo_processo', '')
     
     return True
-    
-    # Preencher session_state com os dados existentes
-    st.session_state['input_processo'] = processo.get('nome_processo', '')
-    st.session_state['input_executor'] = processo.get('executor', '')
-    st.session_state['input_descricao'] = processo.get('descricao', '')
-    st.session_state['input_etapa_ini'] = processo.get('etapa_ini', '')
-    st.session_state['input_etapa_fim'] = processo.get('etapa_fim', '')
-    st.session_state['input_produto'] = processo.get('produto', '')
-    st.session_state['input_objetivo'] = processo.get('objetivo', '')
-    st.session_state['codigo_processo'] = processo.get('codigo_processo', '')
-    
-    return True
 
 def verificar_e_carregar_processo():
     """
@@ -1621,7 +1609,7 @@ def main():
             "Menu", 
                 [
                     #"📅 Plano Anual de Auditoria",
-                    "🏢 Cadastro de Áreas",
+                    "🏢 Cadastro de Áreas e Funcionários",
                     "🔍 Diagnóstico dos Processos",
                     "📋 Detalhamento dos Processos",        
                     "👁️ Visão Geral do Diagnóstico"
@@ -2081,7 +2069,7 @@ def main():
             st.info("👆 **Primeiro, preencha e salve as Informações Básicas do Processo.**")
             st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
 
-    elif opcao == "🏢 Cadastro de Áreas":
+    elif opcao == "🏢 Cadastro de Áreas e Funcionários":
         tela_cadastro_area()
 
     elif opcao == "👁️ Visão Geral do Diagnóstico":
