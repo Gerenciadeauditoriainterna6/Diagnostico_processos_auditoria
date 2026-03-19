@@ -1478,8 +1478,8 @@ def main():
                 if id_campo in st.session_state:
                     st.session_state.pop(id_campo, None)
             
-            # 3. LIMPEZA AGRESSIVA DOS RISCOS
-            # Remover TODAS as keys que começam com os prefixos de risco
+            # 3. LIMPEZA TOTAL DOS RISCOS
+            # Primeiro, identificar TODAS as keys relacionadas a riscos
             prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
             keys_to_remove = []
             
@@ -1487,23 +1487,36 @@ def main():
                 if any(key.startswith(prefix) for prefix in prefixos_risco):
                     keys_to_remove.append(key)
             
+            # Remover as keys
             for key in keys_to_remove:
                 st.session_state.pop(key, None)
                 st.write(f"✅ Removeu: {key}")
             
-            # 4. RECRIAR A LISTA DE RISCOS DO ZERO
-            # Em vez de apenas [{}], vamos forçar a recriação completa
+            # 4. RECRIAR A LISTA DE RISCOS
+            # Em vez de apenas um elemento, vamos garantir que seja uma lista vazia
+            # e depois adicionar UM elemento vazio
             if 'riscos' in st.session_state:
                 st.session_state.pop('riscos')
             
-            # Agora sim, criar nova lista vazia
+            # Criar nova lista com UM risco vazio
             st.session_state['riscos'] = [{}]
             
-            # 5. DEBUG - Mostrar o que sobrou
+            # 5. FORÇAR A CRIAÇÃO DAS KEYS DO PRIMEIRO RISCO
+            # Isso garante que o primeiro risco exista com valores vazios
+            idx = 0
+            st.session_state[f'nome_{idx}'] = ""
+            st.session_state[f'fator_{idx}'] = ""
+            st.session_state[f'melhoria_{idx}'] = ""
+            st.session_state[f'apetite_{idx}'] = ""
+            st.session_state[f'imp_{idx}'] = "Baixo"
+            st.session_state[f'prob_{idx}'] = "Baixo"
+            st.session_state[f'motivo_{idx}'] = ""
+            
+            # 6. DEBUG - Mostrar o que sobrou
             st.write("**Session State após limpeza:**")
             st.write({k: v for k, v in st.session_state.items() if not k.startswith('_')})
             
-            # 6. Remover o flag
+            # 7. Remover o flag
             st.session_state.pop('deve_limpar_diagnostico')
             
             st.success("✅ Limpeza concluída! Recarregando...")
