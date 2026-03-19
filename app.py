@@ -1456,49 +1456,46 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
+    
         # ===== VERIFICAR SE DEVE LIMPAR OS CAMPOS =====
         if st.session_state.get('deve_limpar_diagnostico', False):
             
-            st.warning("🔍 DEBUG: Entrou no bloco de limpeza!")  # ← Mensagem de debug
+            st.warning("🔍 DEBUG: Entrou no bloco de limpeza!")
             
-            # Lista de campos a remover
-            campos_para_remover = [
-                'input_processo', 'input_executor', 'codigo_processo',
-                'input_objetivo', 'input_descricao', 'input_etapa_ini', 
-                'input_etapa_fim', 'input_produto',
-                'processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico'
-            ]
+            # RECRIAR campos com valores vazios (em vez de apenas remover)
+            st.session_state['input_processo'] = ""
+            st.session_state['input_executor'] = ""
+            st.session_state['codigo_processo'] = ""
+            st.session_state['input_objetivo'] = ""
+            st.session_state['input_descricao'] = ""
+            st.session_state['input_etapa_ini'] = ""
+            st.session_state['input_etapa_fim'] = ""
+            st.session_state['input_produto'] = ""
             
-            # Mostrar antes
-            st.write("**Antes da limpeza:**", list(st.session_state.keys()))
-            
-            # Remover campos
-            for campo in campos_para_remover:
-                if campo in st.session_state:
-                    st.session_state.pop(campo, None)
-                    st.write(f"✅ Removeu: {campo}")
+            # Remover apenas os IDs (esses não devem ter valor)
+            ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
+            for id_campo in ids_remover:
+                if id_campo in st.session_state:
+                    st.session_state.pop(id_campo, None)
             
             # Resetar riscos
             st.session_state['riscos'] = [{}]
-            st.write("✅ Resetou riscos")
             
-            # Remover keys de riscos
+            # Remover keys de riscos (mas vamos recriar com valores vazios depois)
             prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
             keys_to_remove = [key for key in list(st.session_state.keys()) 
                             if any(key.startswith(prefix) for prefix in prefixos_risco)]
             
             for key in keys_to_remove:
                 st.session_state.pop(key, None)
-                st.write(f"✅ Removeu key de risco: {key}")
             
-            # Mostrar depois
-            st.write("**Depois da limpeza:**", list(st.session_state.keys()))
+            st.write("**Session State após limpeza:**", dict(st.session_state))
             
             # Remover o flag
             st.session_state.pop('deve_limpar_diagnostico')
             
             st.success("✅ Limpeza concluída! Recarregando...")
-            time_module.sleep(10)
+            time_module.sleep(2)
             st.rerun()
 
         st.title("Diagnóstico de Processos - FUSVE")
