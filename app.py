@@ -990,7 +990,7 @@ def tela_detalhe_processo_auditoria():
                             # --- VISUALIZAÇÃO DE RISCOS (ATUALIZADA) ---
                             st.subheader("⚠️ Riscos desta Etapa")
                         
-                            tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"])
+                            tab_v_risco, tab_c_risco = st.tabs(["📊 Visualizar Riscos", "➕ Adicionar Risco"], key=f"risco_tabs_{etapa['id']}")
                             
                             with tab_v_risco:
                                 riscos_df = listar_riscos_etapa(etapa['id'], auditoria_id=auditoria_id)
@@ -1017,36 +1017,86 @@ def tela_detalhe_processo_auditoria():
                             
                             # --- ABA ADICIONAR RISCO ---
                             with tab_c_risco:
-                                st.write("🔍 TESTE - Esta mensagem aparece?")
+                                # DEBUG PARA VERIFICAR SE ENTROU
+                                st.write(f"✅ Entrou na aba de adicionar risco para etapa {etapa['id']}")
+                                
+                                # EXPANDER COM CRITÉRIOS (FORA DO FORMULÁRIO)
                                 exibir_criterios_risco()
                                 
-                                with st.form(key=f"form_risco_{etapa['id']}", clear_on_submit=True):
+                                st.divider()
+                                
+                                with st.form(key=f"form_risco_{etapa['id']}_{auditoria_id}", clear_on_submit=True):
                                     col1, col2 = st.columns(2)
-                                    categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
-                                    origem = col2.selectbox("Origem", ["Interna", "Externa"], key=f"ori_{etapa['id']}")
+                                    categoria = col1.selectbox(
+                                        "Categoria", 
+                                        ["Risco Inerente", "Risco de TI", "Risco de Fraude"], 
+                                        key=f"cat_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
+                                    origem = col2.selectbox(
+                                        "Origem", 
+                                        ["Interna", "Externa"], 
+                                        key=f"ori_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
                                     
-                                    fator = st.text_area("Fator de Risco", key=f"fat_{etapa['id']}")
-                                    cons = st.text_area("Consequência", key=f"cons_{etapa['id']}")
+                                    fator = st.text_area(
+                                        "Fator de Risco", 
+                                        key=f"fat_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
+                                    cons = st.text_area(
+                                        "Consequência", 
+                                        key=f"cons_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
                                     
                                     c3, c4 = st.columns(2)
-                                    financeiro = c3.selectbox("Impacta Financeiramente?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"fin_{etapa['id']}")
-                                    ativo = c4.selectbox("Risco Ativo?", [True, False], format_func=lambda x: "Sim" if x else "Não", key=f"ativ_{etapa['id']}")
+                                    with c3:
+                                        financeiro = st.selectbox(
+                                            "Impacta Financeiramente?", 
+                                            [True, False], 
+                                            format_func=lambda x: "Sim" if x else "Não",
+                                            key=f"fin_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                        )
+                                    with c4:
+                                        ativo = st.selectbox(
+                                            "Risco Ativo?", 
+                                            [True, False], 
+                                            format_func=lambda x: "Sim" if x else "Não",
+                                            key=f"ativ_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                        )
                                     
-                                    imp = st.selectbox("Impacto", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"imp_{etapa['id']}")
-                                    prob = st.selectbox("Probabilidade", ["Baixo", "Médio", "Alto", "Muito Alto"], key=f"prob_{etapa['id']}")
+                                    # AVISO SOBRE OS CRITÉRIOS
+                                    st.info("👆 **Consulte os critérios acima antes de selecionar Impacto e Probabilidade**")
+                                    
+                                    imp = st.selectbox(
+                                        "Impacto", 
+                                        ["Baixo", "Médio", "Alto", "Muito Alto"], 
+                                        key=f"imp_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
+                                    prob = st.selectbox(
+                                        "Probabilidade", 
+                                        ["Baixo", "Médio", "Alto", "Muito Alto"], 
+                                        key=f"prob_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
                                     
                                     mag = MAPA_RISCO.get((imp, prob), 0)
                                     cor, emoji = get_estilo_risco(mag)
                                     st.markdown(f'''<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin-bottom: 10px;">{emoji} Magnitude: {mag}</div>''', unsafe_allow_html=True)
                                     
-                                    apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
-                                    # DEBUG
-                                    st.write("DEBUG: Antes do expander")
-                                    exibir_criterios_risco()
-                                    st.write("DEBUG: Depois do expander")
-                                    tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
-                                    info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
-                                    doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
+                                    apetite = st.text_area(
+                                        "Apetite ao Risco", 
+                                        key=f"apet_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
+                                    tratamento = st.text_area(
+                                        "Tratamento", 
+                                        key=f"trat_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
+                                    info_adicional = st.text_area(
+                                        "Informações Adicionais", 
+                                        key=f"info_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
+                                    doc_legal = st.text_area(
+                                        "Documentação Legal", 
+                                        key=f"doc_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
+                                    )
                                     
                                     if st.form_submit_button("💾 Salvar Risco", type="primary"):
                                         if not fator or not cons:
@@ -1054,12 +1104,22 @@ def tela_detalhe_processo_auditoria():
                                         else:
                                             with st.spinner("Salvando risco da etapa na base de dados..."):
                                                 dados_r = {
-                                                    "etapa_id": etapa['id'], "cat": categoria, "fator": fator, "cons": cons,
-                                                    "info": info_adicional, "fin": financeiro, "ativo": ativo, "ori": origem,
-                                                    "doc": doc_legal, "imp": imp, "prob": prob, "mag": mag, "apet": apetite, "trat": tratamento
+                                                    "etapa_id": etapa['id'], 
+                                                    "cat": categoria, 
+                                                    "fator": fator, 
+                                                    "cons": cons,
+                                                    "info": info_adicional, 
+                                                    "fin": financeiro, 
+                                                    "ativo": ativo, 
+                                                    "ori": origem,
+                                                    "doc": doc_legal, 
+                                                    "imp": imp, 
+                                                    "prob": prob, 
+                                                    "mag": mag, 
+                                                    "apet": apetite, 
+                                                    "trat": tratamento
                                                 }
                                                 if salvar_risco_etapa(dados_r, auditoria_id=auditoria_id):
-                                                # Feedback visual que sobrevive ao rerun
                                                     st.toast("Risco da etapa salvo com sucesso!", icon="✅")
                                                     st.rerun()
                                                 else:
@@ -1379,6 +1439,7 @@ def main():
             st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
             st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
             st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
+            exibir_criterios_risco()
             col_i, col_p = st.columns(2)
             with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
             with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer? Mediante isso, podemos criar os níveis que iremos classificar a probabilidade do risco acontecer.")
