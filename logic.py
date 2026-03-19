@@ -1323,7 +1323,7 @@ def listar_funcionarios_por_area(id_area):
         WHERE id_area = :id_area AND ativo = TRUE
         ORDER BY nome_funcionario
     """)
-    with engine.connect as conn:
+    with engine.connect() as conn:
         df = pd.read_sql(query, conn, params={'id_area': id_area})
         # Criar lista de tuplas (id, nome) para o selectbox
         return [(row['id'], f"{row['nome_funcionario']} ({row['cargo']})")
