@@ -760,13 +760,15 @@ def salvar_no_banco():
                 processo_id = conn.execute(sql_p, params_insert).scalar()
                 st.session_state['processo_existente_id'] = processo_id
 
-            # ===== RISCOS (igual ao seu código existente) =====
+            # ===== RISCOS COM CATEGORIA =====
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
 
-            sql_risco = text("""INSERT INTO riscos 
+            sql_risco = text("""
+                INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
-                 apetite_risco, motivo_risco, score_risco) 
-                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)""")
+                 apetite_risco, motivo_risco, score_risco, categoria) 
+                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
+            """)
             
             for i in range(len(st.session_state['riscos'])):
                 imp = st.session_state.get(f"imp_{i}")
@@ -787,7 +789,8 @@ def salvar_no_banco():
                     "prob": prob, 
                     "apetite": st.session_state.get(f"apetite_{i}"), 
                     "motivo": st.session_state.get(f"motivo_{i}"), 
-                    "score": score
+                    "score": score,
+                    "categoria": st.session_state.get(f"categoria_{i}", "Risco Inerente")  # ← NOVO CAMPO
                 })
             
             st.session_state['ultimo_processo_id'] = processo_id
@@ -1224,7 +1227,7 @@ def listar_riscos_do_processo(processo_id):
     """Retorna todos os riscos de um processo"""
     query = text("""
         SELECT id, nome_risco, fator_risco, melhoria, impacto, probabilidade,
-               apetite_risco, motivo_risco, score_risco
+               apetite_risco, motivo_risco, score_risco, categoria
         FROM riscos
         WHERE processo_id = :pid
         ORDER BY id

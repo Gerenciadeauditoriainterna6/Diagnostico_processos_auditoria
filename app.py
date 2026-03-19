@@ -1660,7 +1660,7 @@ def main():
             
             # 3. LIMPEZA TOTAL DOS RISCOS
             # Primeiro, identificar TODAS as keys relacionadas a riscos
-            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
+            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_', 'categoria_']
             keys_to_remove = []
             
             for key in list(st.session_state.keys()):
@@ -1869,7 +1869,7 @@ def main():
                             st.rerun()
                     else:
                         st.warning("Selecione um processo.")
-                        
+
         if st.session_state.get('processo_existente_id'):
             st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
                
@@ -1985,6 +1985,13 @@ def main():
         for i, _ in enumerate(st.session_state['riscos']):
             st.markdown(f"**Risco {i+1}**")
             st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
+            # ===== NOVO CAMPO DE CATEGORIA =====
+            st.selectbox(
+                f"Categoria do Risco:", 
+                ["Risco Inerente", "Risco de TI", "Risco de Fraude"],
+                key=f"categoria_{i}",
+                help="Classifique o tipo de risco"
+            )
             st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
             st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
             st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
