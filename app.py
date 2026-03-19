@@ -191,6 +191,35 @@ def login_screen():
                     
     return False
 
+def exibir_criterios_risco():
+    """Exibe os critérios de Probabilidade e Impacto em um expander"""
+    with st.expander("📋 **Critérios para Avaliação de Riscos**", expanded=False):
+        col_c1, col_c2 = st.columns(2)
+        
+        with col_c1:
+            st.markdown("""
+            ### 📊 **PROBABILIDADE**
+            
+            | Nível | Descrição |
+            |-------|-----------|
+            | **Baixa** | Pode ser que ocorra uma vez dentro de um ano, em função de historicamente bons controles sendo adotados. |
+            | **Média** | Pode ser que ocorra mais de uma vez dentro de um ano, em função de controles moderados sendo adotados. |
+            | **Alta** | Pode ser que ocorra mensalmente, em função de controles ineficazes sendo adotados. |
+            | **Muito Alta** | Pode ser que ocorra diariamente, em função de controles ineficazes sendo adotados ou omitidos a execução. |
+            """)
+        
+        with col_c2:
+            st.markdown("""
+            ### 💰 **IMPACTO**
+            
+            | Nível | Descrição |
+            |-------|-----------|
+            | **Baixo** | Desembolsos de até R$ 15.000,00, os riscos possuem consequências reversíveis em curto prazo com custos pouco baixos. |
+            | **Médio** | Desembolsos de R$ 15.000,00 até R$ 55.000,00, os riscos possuem consequências reversíveis em curto e médio prazo com custos médios. |
+            | **Alto** | Desembolso de R$ 55.000,00 até R$ 100.000,00, os riscos possuem consequências reversíveis em médio e longo prazo com custos altos. |
+            | **Muito Alto** | Desembolso acima de R$ 100.000,00, os riscos possuem consequências reversíveis em médio e longo prazo com custos altos. |
+            """)
+
 def tela_visao_geral_processos():
     """Tela de visão geral de todos os processos mapeados, com filtros por área e auditoria"""
     
@@ -1208,7 +1237,7 @@ def main():
         opcao = st.radio(
             "Menu", 
                 [
-                    "📅 Plano Anual de Auditoria",
+                    #"📅 Plano Anual de Auditoria",
                     "🔍 Diagnóstico dos Processos",
                     "📋 Detalhamento dos Processos",        
                     "👁️ Visão Geral do Diagnóstico"
