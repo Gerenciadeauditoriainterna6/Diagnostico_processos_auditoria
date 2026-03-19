@@ -1462,7 +1462,7 @@ def main():
             
             st.warning("🔍 DEBUG: Entrou no bloco de limpeza!")
             
-            # RECRIAR campos com valores vazios (em vez de apenas remover)
+            # RECRIAR campos com valores vazios
             st.session_state['input_processo'] = ""
             st.session_state['input_executor'] = ""
             st.session_state['codigo_processo'] = ""
@@ -1472,36 +1472,32 @@ def main():
             st.session_state['input_etapa_fim'] = ""
             st.session_state['input_produto'] = ""
             
-            # ===== 2. REMOVER IDs =====
-        ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
-        for id_campo in ids_remover:
-            if id_campo in st.session_state:
-                st.session_state.pop(id_campo, None)
-        
-        # ===== 3. LIMPAR RISCOS =====
-        # Remover TODAS as keys de riscos
-        prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
-        keys_to_remove = [key for key in list(st.session_state.keys()) 
-                         if any(key.startswith(prefix) for prefix in prefixos_risco)]
-        
-        st.write(f"**Removendo keys de risco:** {keys_to_remove}")
-        
-        for key in keys_to_remove:
-            st.session_state.pop(key, None)
-        
-        # Recriar a lista de riscos com UM item vazio
-        st.session_state['riscos'] = [{}]
-        
-        # ===== 4. DEBUG =====
-        st.write("**Session State após limpeza:**")
-        st.write({k: v for k, v in st.session_state.items() if not k.startswith('_')})
-        
-        # ===== 5. REMOVER FLAG =====
-        st.session_state.pop('deve_limpar_diagnostico')
-        
-        st.success("✅ Limpeza concluída! Recarregando...")
-        time_module.sleep(2)
-        st.rerun()
+            # Remover apenas os IDs
+            ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
+            for id_campo in ids_remover:
+                if id_campo in st.session_state:
+                    st.session_state.pop(id_campo, None)
+            
+            # ===== LIMPAR RISCOS DA INTERFACE =====
+            # Resetar riscos para UM risco vazio (não remove do banco)
+            st.session_state['riscos'] = [{}]
+            
+            # Remover TODAS as keys de riscos da session_state
+            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
+            keys_to_remove = [key for key in list(st.session_state.keys()) 
+                            if any(key.startswith(prefix) for prefix in prefixos_risco)]
+            
+            for key in keys_to_remove:
+                st.session_state.pop(key, None)
+            
+            st.write("**Session State após limpeza:**", dict(st.session_state))
+            
+            # Remover o flag
+            st.session_state.pop('deve_limpar_diagnostico')
+            
+            st.success("✅ Limpeza concluída! Recarregando...")
+            time_module.sleep(2)
+            st.rerun()
 
         st.title("Diagnóstico de Processos - FUSVE")
         st.markdown("""
