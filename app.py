@@ -1245,9 +1245,9 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # ===== NOVO: SELEÇÃO MANUAL DA AUDITORIA =====
+        # ===== NOVO: SELEÇÃO MANUAL DA AUDITORIA (SEM OPÇÃO "NÃO VINCULAR") =====
         st.subheader("0. Vincular à Auditoria")
-        
+
         # Função para buscar auditorias disponíveis para a área
         def listar_auditorias_para_area(id_area):
             """Retorna todas as auditorias da área (qualquer trimestre/ano)"""
@@ -1261,7 +1261,7 @@ def main():
             
             with engine.connect() as conn:
                 return pd.read_sql(query, conn, params={"id_area": id_area})
-        
+
         # Selectbox de área (já existente)
         st.selectbox(
             "Selecione a Área:", 
@@ -1269,15 +1269,15 @@ def main():
             key="area_selectbox", 
             on_change=atualizar_id_area
         )
-        
+
         # Garante que o ID esteja inicializado
         if 'id_area_selecionado' not in st.session_state:
             st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
-        
+
         # Buscar auditorias disponíveis para a área selecionada
         id_area_atual = st.session_state['id_area_selecionado']
         df_auditorias_area = listar_auditorias_para_area(id_area_atual)
-        
+
         if not df_auditorias_area.empty:
             # Criar opções para o selectbox
             opcoes_auditoria = []
@@ -1291,29 +1291,25 @@ def main():
             display_list = [item["display"] for item in opcoes_auditoria]
             id_map = {item["display"]: item["id"] for item in opcoes_auditoria}
             
-            # Adicionar opção "Não vincular agora"
-            display_list = ["🚫 Não vincular a nenhuma auditoria"] + display_list
-            id_map["🚫 Não vincular a nenhuma auditoria"] = None
-            
+            # Selectbox SEM a opção "Não vincular"
             auditoria_escolhida = st.selectbox(
                 "Escolha a auditoria para vincular este processo:",
                 options=display_list,
-                help="Selecione a auditoria à qual este processo pertence. Processos podem ser vinculados depois em 'Auditorias por Trimestre'."
+                help="Selecione a auditoria à qual este processo pertence."
             )
             
-            if auditoria_escolhida != "🚫 Não vincular a nenhuma auditoria":
-                st.session_state['auditoria_diagnostico'] = id_map[auditoria_escolhida]
-                auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == id_map[auditoria_escolhida]].iloc[0]
-                st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
-            else:
-                if 'auditoria_diagnostico' in st.session_state:
-                    st.session_state.pop('auditoria_diagnostico', None)
-                st.info("ℹ️ Processo será salvo sem vínculo. Você poderá adicioná-lo a uma auditoria depois.")
+            # Guardar o ID da auditoria escolhida
+            st.session_state['auditoria_diagnostico'] = id_map[auditoria_escolhida]
+            
+            # Mostrar confirmação
+            auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == id_map[auditoria_escolhida]].iloc[0]
+            st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
+            
         else:
-            st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Auditorias por Trimestre' primeiro.")
+            st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
             if 'auditoria_diagnostico' in st.session_state:
                 st.session_state.pop('auditoria_diagnostico', None)
-        
+
         st.divider()
         
         # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
