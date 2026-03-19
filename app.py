@@ -1552,23 +1552,35 @@ def main():
                 id_area_atual = st.session_state.get('id_area_selecionado')
                 
                 if id_area_atual:
+                    # QUERY CORRIGIDA - Ordenação numérica
                     query = text("""
                         SELECT id, codigo_processo, nome_processo
                         FROM processos
                         WHERE id_area = :id_area
-                        ORDER BY codigo_processo
+                        ORDER BY 
+                            (string_to_array(codigo_processo, '.'))[1]::int,
+                            (string_to_array(codigo_processo, '.'))[2]::int,
+                            (string_to_array(codigo_processo, '.'))[3]::int
                     """)
                     
                     with engine.connect() as conn:
                         df_processos = pd.read_sql(query, conn, params={"id_area": id_area_atual})
                     
                     if not df_processos.empty:
-                        opcoes = [f"{row['codigo_processo']} - {row['nome_processo']}" 
-                                for _, row in df_processos.iterrows()]
+                        # Criar opções mantendo a ordem do SQL
+                        opcoes = []
+                        for _, row in df_processos.iterrows():
+                            opcoes.append({
+                                "display": f"{row['codigo_processo']} - {row['nome_processo']}",
+                                "codigo": row['codigo_processo'],
+                                "id": row['id']
+                            })
+                        
+                        display_list = [item["display"] for item in opcoes]
                         
                         processo_selecionado = st.selectbox(
                             "Selecione um processo para editar:",
-                            options=[""] + opcoes,
+                            options=[""] + display_list,
                             key="select_processo_editar"
                         )
                     else:
@@ -1606,7 +1618,6 @@ def main():
                             st.rerun()
                     else:
                         st.warning("Selecione um processo.")
-
         st.divider()
 
         # Nome do Processo (obrigatório)
