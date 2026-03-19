@@ -16,7 +16,7 @@ atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, busca
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
-salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area
+salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo
 )
 
 local_storage = LocalStorage()
@@ -1463,6 +1463,9 @@ def carregar_dados_processo_para_edicao(processo_id):
     
     codigo = resultado[0]
     processo = buscar_processo_por_codigo(codigo)
+
+    executores_ids = listar_executores_processo(processo_id)
+    st.session_state['executores_selecionados'] = executores_ids
     
     if not processo:
         return None
@@ -1683,13 +1686,12 @@ def main():
             st.session_state[f'imp_{idx}'] = "Baixo"
             st.session_state[f'prob_{idx}'] = "Baixo"
             st.session_state[f'motivo_{idx}'] = ""
-            
-            # 6. DEBUG - Mostrar o que sobrou
-            st.write("**Session State após limpeza:**")
-            st.write({k: v for k, v in st.session_state.items() if not k.startswith('_')})
-            
-            # 7. Remover o flag
+
+            # 6. Remover o flag
             st.session_state.pop('deve_limpar_diagnostico')
+
+            if 'executores_selecionados' in st.session_state:
+                st.session_state.pop('executores_selecionados')
             
             st.success("✅ Limpeza concluída! Recarregando...")
             time_module.sleep(2)
@@ -1881,6 +1883,47 @@ def main():
             key="input_executor", 
             help="Funcionário(s) que executa(m) - Alçadas (Gestão ou operação?)"
         )
+
+        # ===== EXECUTORES DO PROCESSO =====
+        st.markdown("**Funcionário(s) que executam o processo:**")
+
+        # Buscar funcionários da área selecionada
+        id_area_atual = st.session_state.get('id_area_selecionado')
+        funcionarios_lista = []
+
+        if id_area_atual:
+            funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
+
+        if not funcionarios_lista:
+            st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas'.")
+            # Inicializar session_state para múltipla escolha
+            if 'executores_selecionados' not in st.session_state:
+                st.session_state['executores_selecionados'] = []
+        else:
+            # Separar IDs e nomes para o multiselect
+            funcionarios_ids = [f[0] for f in funcionarios_lista]
+            funcionarios_nomes = [f[1] for f in funcionarios_lista]
+            
+            # Criar dicionário para mapear ID -> nome
+            funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
+            
+            # Multiselect para escolher vários funcionários
+            selecionados = st.multiselect(
+                "Selecione os funcionários que executam este processo:",
+                options=funcionarios_ids,
+                format_func=lambda x: funcionarios_dict[x],
+                default=st.session_state.get('executores_selecionados', []),
+                key="multiselect_executores",
+                help="Você pode selecionar um ou mais funcionários"
+            )
+            
+            # Guardar no session_state
+            st.session_state['executores_selecionados'] = selecionados
+            
+            # Mostrar os selecionados em formato de texto (opcional)
+            if selecionados:
+                nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
+                st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
 
         # Botão para salvar apenas as informações básicas
         col_b1, col_b2 = st.columns(2)

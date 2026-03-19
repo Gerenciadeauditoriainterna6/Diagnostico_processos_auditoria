@@ -1139,20 +1139,20 @@ def remover_processo_da_auditoria(auditoria_id, processo_id):
         return False
 
 def validar_basicos():
-    """Valida apenas os campos básicos: nome do processo e executor"""
+    """Valida nome do processo e pelo menos um executor selecionado"""
     
     if not st.session_state.get("input_processo", "").strip():
         st.error("O campo 'Nome do Processo' é obrigatório.")
         return False
     
-    if not st.session_state.get("input_executor", "").strip():
-        st.error("O campo 'Funcionário(s) Que Executa(m)' é obrigatório.")
+    if not st.session_state.get('executores_selecionados'):
+        st.error("Selecione pelo menos um funcionário para executar o processo.")
         return False
     
     return True
 
 def salvar_informacoes_basicas():
-    """Salva apenas as informações básicas do processo (sem riscos)"""
+    """Salva as informações básicas do processo incluindo múltiplos executores"""
     import streamlit as st
     try:
         with engine.begin() as conn:
@@ -1160,28 +1160,20 @@ def salvar_informacoes_basicas():
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo", "").strip()
             
-            # Verificar se é edição
+            # Processo existente ou novo
             processo_existente_id = st.session_state.get('processo_existente_id')
             
             if processo_existente_id:
-                # Atualizar processo existente - SÓ o executor
-                sql_update = text("""
-                    UPDATE processos 
-                    SET executor = :ex
-                    WHERE id = :pid
-                """)
-                conn.execute(sql_update, {
-                    "pid": processo_existente_id,
-                    "ex": st.session_state.get('input_executor', '')
-                })
+                # Atualizar processo existente
                 processo_id = processo_existente_id
+                # Não precisamos atualizar o executor aqui, será tratado na tabela separada
             else:
-                # Inserir novo processo - SEM criticidade e categoria
+                # Inserir novo processo (sem executor)
                 sql_insert = text("""
                     INSERT INTO processos 
-                    (id_area, area, codigo_processo, nome_processo, executor, status, aprovacao) 
+                    (id_area, area, codigo_processo, nome_processo, status, aprovacao) 
                     VALUES 
-                    (:id_a, :a, :c, :n, :ex, :st, :aprov) 
+                    (:id_a, :a, :c, :n, :st, :aprov) 
                     RETURNING id
                 """)
                 
@@ -1190,12 +1182,28 @@ def salvar_informacoes_basicas():
                     "a": nome_area_val,
                     "c": st.session_state['codigo_processo'],
                     "n": nome_val,
-                    "ex": st.session_state.get('input_executor', ''),
                     "st": "Ativo",
-                    "aprov": "Em Aprovação"  # Valor padrão para aprovacao
+                    "aprov": "Em Aprovação"
                 }
                 processo_id = conn.execute(sql_insert, params).scalar()
                 st.session_state['processo_existente_id'] = processo_id
+            
+            # ===== SALVAR EXECUTORES NA NOVA TABELA =====
+            # Remover executores antigos
+            conn.execute(
+                text("DELETE FROM processo_executores WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            )
+            
+            # Inserir novos executores
+            executores_ids = st.session_state.get('executores_selecionados', [])
+            if executores_ids:
+                sql_exec = text("""
+                    INSERT INTO processo_executores (processo_id, funcionario_id)
+                    VALUES (:pid, :fid)
+                """)
+                for fid in executores_ids:
+                    conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
             
             # Vincular à auditoria
             if 'auditoria_diagnostico' in st.session_state:
@@ -1305,3 +1313,39 @@ def listar_funcionarios_area(id_area):
     """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"id_area": id_area})
+
+def listar_funcionarios_por_area(id_area):
+    """Retorna lista de funcionários de uma área para usar em selectbox"""
+    query = text(
+        """
+        SELECT id, nome_funcionario, cargo
+        FROM funcionarios_area
+        WHERE id_area = :id_area AND ativo = TRUE
+        ORDER BY nome_funcionario
+    """)
+    with engine.connect as conn:
+        df = pd.read_sql(query, conn, params={'id_area': id_area})
+        # Criar lista de tuplas (id, nome) para o selectbox
+        return [(row['id'], f"{row['nome_funcionario']} ({row['cargo']})")
+                for _, row in df.iterrows()]
+
+def listar_executores_processo(processo_id):
+    """Retorna os IDs dos funcionários que executam um processo"""
+    query = text("""
+        SELECT funcionario_id
+        FROM processo_executores
+        WHERE processo_id = :pid
+    """)
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params={"pid": processo_id})
+        return df['funcionario_id'].tolist() if not df.empty else []
+
+def buscar_funcionario_por_id(funcionario_id):
+    """Busca dados de um funcionário pelo ID"""
+    query = text("""
+        SELECT id, nome_funcionario, cargo
+        FROM funcionarios_area
+        WHERE id = :fid
+    """)
+    with engine.connect() as conn:
+        return conn.execute(query, {"fid": funcionario_id}).mappings().first()
