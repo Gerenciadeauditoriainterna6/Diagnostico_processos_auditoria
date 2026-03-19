@@ -665,6 +665,39 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_fim'] = ""
         st.session_state['input_produto'] = ""
 
+def normalizar_valor_risco(valor):
+    """
+    Converte valores de risco para o formato correto:
+    'MUITO ALTO' → 'Muito Alto'
+    'ALTO' → 'Alto'
+    'MÉDIO' → 'Médio'
+    'BAIXO' → 'Baixo'
+    """
+    if not valor:
+        return "Baixo"
+    
+    valor_str = str(valor).strip().upper()
+    
+    if valor_str == 'MUITO ALTO':
+        return "Muito Alto"
+    elif valor_str == 'ALTO':
+        return "Alto"
+    elif valor_str == 'MÉDIO' or valor_str == 'MEDIO':
+        return "Médio"
+    elif valor_str == 'BAIXO':
+        return "Baixo"
+    else:
+        # Se não for nenhum dos padrões, tenta encontrar no texto
+        if 'MUITO ALTO' in valor_str:
+            return "Muito Alto"
+        elif 'ALTO' in valor_str:
+            return "Alto"
+        elif 'MÉDIO' in valor_str or 'MEDIO' in valor_str:
+            return "Médio"
+        else:
+            return "Baixo"
+
+
 def salvar_no_banco():
     import streamlit as st
     try: 
@@ -738,6 +771,11 @@ def salvar_no_banco():
             for i in range(len(st.session_state['riscos'])):
                 imp = st.session_state.get(f"imp_{i}")
                 prob = st.session_state.get(f"prob_{i}")
+
+                # Normalizar antes de salvar
+                imp_normalizado = normalizar_valor_risco(imp)
+                prob_normalizado = normalizar_valor_risco(prob)  
+
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
                 conn.execute(sql_risco, {

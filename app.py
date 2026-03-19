@@ -15,7 +15,7 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
-remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo
+remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco
 )
 
 local_storage = LocalStorage()
@@ -1385,20 +1385,29 @@ def carregar_riscos_processo(processo_id):
         # Limpar riscos existentes
         st.session_state['riscos'] = []
         
-        for _, row in df_riscos.iterrows():
-            idx = len(st.session_state['riscos'])
+        # Limpar keys antigas
+        keys_to_remove = [key for key in st.session_state.keys() 
+                         if any(key.startswith(prefix) for prefix in 
+                               ['nome_', 'fator_', 'melhoria_', 'apetite_', 
+                                'imp_', 'prob_', 'motivo_'])]
+        for key in keys_to_remove:
+            st.session_state.pop(key)
+        
+        # Carregar cada risco com normalização
+        for idx, (_, row) in enumerate(df_riscos.iterrows()):
             st.session_state['riscos'].append({})
             
-            # Preencher os campos do risco
-            st.session_state[f'nome_{idx}'] = row['nome_risco']
-            st.session_state[f'fator_{idx}'] = row['fator_risco']
-            st.session_state[f'melhoria_{idx}'] = row['melhoria']
-            st.session_state[f'apetite_{idx}'] = row['apetite_risco']
-            st.session_state[f'imp_{idx}'] = row['impacto']
-            st.session_state[f'prob_{idx}'] = row['probabilidade']
-            st.session_state[f'motivo_{idx}'] = row['motivo_risco']
+            # Preencher campos básicos
+            st.session_state[f'nome_{idx}'] = row['nome_risco'] or ""
+            st.session_state[f'fator_{idx}'] = row['fator_risco'] or ""
+            st.session_state[f'melhoria_{idx}'] = row['melhoria'] or ""
+            st.session_state[f'apetite_{idx}'] = row['apetite_risco'] or ""
+            st.session_state[f'motivo_{idx}'] = row['motivo_risco'] or ""
+            
+            # NORMALIZAR impacto e probabilidade
+            st.session_state[f'imp_{idx}'] = normalizar_valor_risco(row['impacto'])
+            st.session_state[f'prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
     else:
-        # Se não tem riscos, iniciar com um vazio
         st.session_state['riscos'] = [{}]
 
 # --- 5. Execução do app ---
@@ -1613,6 +1622,14 @@ def main():
                             
                             # Carregar riscos
                             carregar_riscos_processo(processo['id'])
+                            # Depois de carregar os riscos, adicione:
+                            with st.expander("🔍 DEBUG - Riscos carregados"):
+                                for i in range(len(st.session_state['riscos'])):
+                                    st.write(f"**Risco {i+1}:**")
+                                    st.write(f"- Impacto: {st.session_state.get(f'imp_{i}', 'NÃO CARREGADO')}")
+                                    st.write(f"- Probabilidade: {st.session_state.get(f'prob_{i}', 'NÃO CARREGADO')}")
+                                    st.write(f"- Nome: {st.session_state.get(f'nome_{i}', '')}")
+                                    st.divider()
                             
                             st.success(f"Processo {codigo} carregado para edição!")
                             st.rerun()
