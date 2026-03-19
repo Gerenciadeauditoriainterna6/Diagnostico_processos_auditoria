@@ -1417,14 +1417,10 @@ def main():
         with col_ajuda:
             with st.popover("ℹ️", help="Dicas de preenchimento"):
                 st.markdown("""
-                <div style='background-color: #f0f2f6; padding: 10px; border-radius: 5px;'>
-                    <h4 style='margin-top: 0;'>📋 Dicas Rápidas</h4>
-                    <ul style='margin-bottom: 0; padding-left: 20px;'>
-                        <li><strong>Nome:</strong> Seja claro e objetivo</li>
-                        <li><strong>Código:</strong> Gerado automaticamente</li>
-                        <li><strong>Descrição:</strong> Explique o propósito</li>
-                    </ul>
-                </div>
+                    <div style='display: flex; align-items: center; gap: 5px; margin-bottom: 0px;'>
+                        <h3 style='margin: 0; padding: 0;'>1. Dados do Processo</h3>
+                        <span style='cursor: help; font-size: 1.2rem;' title='Preencha os dados básicos do processo'>ℹ️</span>
+                    </div>
                 """, unsafe_allow_html=True)
         
         # Garante que o ID esteja inicializado
