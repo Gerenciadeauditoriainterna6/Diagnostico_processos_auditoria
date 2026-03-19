@@ -1474,6 +1474,8 @@ def carregar_dados_processo_para_edicao(processo_id):
     
     if not processo:
         return None
+    st.session_state['info_basicas_salvas'] = True
+    return True
     
     # Preencher session_state com os dados existentes
     st.session_state['input_processo'] = processo.get('nome_processo', '')
@@ -1636,6 +1638,9 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
+
+        if 'info_basicas_salvas' not in st.session_state:
+            st.session_state['info_basicas_salvas'] = False
     
         # ===== VERIFICAR SE DEVE LIMPAR OS CAMPOS =====
         if st.session_state.get('deve_limpar_diagnostico', False):
@@ -1938,100 +1943,108 @@ def main():
         # Botão para salvar apenas as informações básicas
         col_b1, col_b2 = st.columns(2)
         with col_b1:
-            if st.button("💾 Salvar Informações Básicas", type="secondary", use_container_width=True):
+            if st.button("💾 Salvar Informações Básicas", type="primary" if not st.sessions_state['info_basicas_salvas'] else "secondary",  use_container_width=True):
                 if validar_basicos():
-                    if salvar_informacoes_basicas():
-                        st.success("✅ Informações básicas salvas com sucesso!")
-                        time_module.sleep(2)
-                        st.rerun()
-                    else:
-                        st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
+                    with st.spinner("Salvando informações básicas..."):
+                        if salvar_informacoes_basicas():
+                            st.session_state['info_basicas_salvas'] = True
+                            st.success("✅ Informações básicas salvas com sucesso!")
+                            time_module.sleep(2)
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
         with col_b2:
             # ===== BOTÃO DE LIMPEZA =====
+            st.session_state['info_basicas_salvas'] = False
             if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
                 st.session_state['deve_limpar_diagnostico'] = True
-                st.warning("🔍 DEBUG: Flag de limpeza ativado!")
                 st.rerun()
 
         st.divider()
         
 
         # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
-        st.markdown("""
-            <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
-                <h3 style='margin: 0; padding: 0;'>2. Detalhamento do Processo</h3>
-                <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
+        if st.session_state['info_basicas_salvas']:
+
+            st.markdown("""
+                <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
+                    <h3 style='margin: 0; padding: 0;'>2. Detalhamento do Processo</h3>
+                    <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+            st.info("ℹ️ Os campos abaixo são opcionais. Você pode preenchê-los agora ou editar depois.")
+
+            st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
+            st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
+                        help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
+            st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
+                        help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
+            st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
+                        help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
+            st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
+
+            st.write("")
+        
+            # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
+            st.markdown("""
+            <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
+                <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
             </div>
-        """, unsafe_allow_html=True)
-
-        st.info("ℹ️ Os campos abaixo são opcionais. Você pode preenchê-los agora ou editar depois.")
-
-        st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
-        st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
-                    help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
-        st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
-                    help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
-        st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
-                    help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
-        st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
-
-        st.write("")
-        
-        # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
-        st.markdown("""
-        <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
-            <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.subheader("3. Riscos Associados")
-        for i, _ in enumerate(st.session_state['riscos']):
-            st.markdown(f"**Risco {i+1}**")
-            st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
-            # ===== NOVO CAMPO DE CATEGORIA =====
-            st.selectbox(
-                f"Categoria do Risco:", 
-                ["Risco Inerente", "Risco de TI", "Risco de Fraude"],
-                key=f"categoria_{i}",
-                help="Classifique o tipo de risco"
-            )
-            st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
-            st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
-            st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
-            exibir_criterios_risco()
-            col_i, col_p = st.columns(2)
-            with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
-            with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer? Mediante isso, podemos criar os níveis que iremos classificar a probabilidade do risco acontecer.")
+            """, unsafe_allow_html=True)
             
-            score_v = MAPA_RISCO.get((st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")), 0)
-            cor, emoji = get_estilo_risco(score_v)
-            st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
-            st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
-            st.markdown("---")
-
-        col_add, col_save = st.columns(2)
-        if col_add.button("➕ Adicionar Risco"):
-            st.session_state['riscos'].append({})
-            st.rerun()
-        
-        if col_save.button("💾 Salvar Todos os Dados", type="primary"):
-            if validar_formulario() and salvar_no_banco():
-                # Vincular à auditoria após salvar
-                if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
-                    auditoria_id = st.session_state['auditoria_diagnostico']
-                    processo_id = st.session_state.get('ultimo_processo_id')
-                    
-                    if processo_id:
-                        vincular_processo_a_auditoria(
-                            auditoria_id=auditoria_id,
-                            processo_id=processo_id,
-                            motivo="Processo identificado durante diagnóstico da área"
-                        )
-                        st.success("Processo vinculado à auditoria com sucesso!")
+            st.subheader("3. Riscos Associados")
+            for i, _ in enumerate(st.session_state['riscos']):
+                st.markdown(f"**Risco {i+1}**")
+                st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
+                # ===== NOVO CAMPO DE CATEGORIA =====
+                st.selectbox(
+                    f"Categoria do Risco:", 
+                    ["Risco Inerente", "Risco de TI", "Risco de Fraude"],
+                    key=f"categoria_{i}",
+                    help="Classifique o tipo de risco"
+                )
+                st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
+                st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
+                st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
+                exibir_criterios_risco()
+                col_i, col_p = st.columns(2)
+                with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
+                with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer? Mediante isso, podemos criar os níveis que iremos classificar a probabilidade do risco acontecer.")
                 
-                st.success("Dados salvos!")
-                st.session_state['deve_limpar'] = True
+                score_v = MAPA_RISCO.get((st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")), 0)
+                cor, emoji = get_estilo_risco(score_v)
+                st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
+                st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
+                st.markdown("---")
+
+            col_add, col_save = st.columns(2)
+            if col_add.button("➕ Adicionar Risco"):
+                st.session_state['riscos'].append({})
                 st.rerun()
+            
+            if col_save.button("💾 Salvar Todos os Dados", type="primary"):
+                if validar_formulario() and salvar_no_banco():
+                    # Vincular à auditoria após salvar
+                    if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
+                        auditoria_id = st.session_state['auditoria_diagnostico']
+                        processo_id = st.session_state.get('ultimo_processo_id')
+                        
+                        if processo_id:
+                            vincular_processo_a_auditoria(
+                                auditoria_id=auditoria_id,
+                                processo_id=processo_id,
+                                motivo="Processo identificado durante diagnóstico da área"
+                            )
+                            st.success("Processo vinculado à auditoria com sucesso!")
+                    
+                    st.success("Dados salvos!")
+                    st.session_state['deve_limpar'] = True
+                    st.rerun()
+        else:
+            st.info("👆 **Primeiro, preencha e salve as Informações Básicas do Processo.**")
+            st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
+
     elif opcao == "🏢 Cadastro de Áreas":
         tela_cadastro_area()
 
