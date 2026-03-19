@@ -1126,10 +1126,10 @@ def salvar_informacoes_basicas():
             processo_existente_id = st.session_state.get('processo_existente_id')
             
             if processo_existente_id:
-                # Atualizar processo existente
+                # Atualizar processo existente - SÓ o executor
                 sql_update = text("""
                     UPDATE processos 
-                    SET executor=:ex
+                    SET executor = :ex
                     WHERE id = :pid
                 """)
                 conn.execute(sql_update, {
@@ -1138,12 +1138,12 @@ def salvar_informacoes_basicas():
                 })
                 processo_id = processo_existente_id
             else:
-                # Inserir novo processo
+                # Inserir novo processo - SEM criticidade e categoria
                 sql_insert = text("""
                     INSERT INTO processos 
-                    (id_area, area, codigo_processo, nome_processo, executor, status, criticidade, categoria) 
+                    (id_area, area, codigo_processo, nome_processo, executor, status, aprovacao) 
                     VALUES 
-                    (:id_a, :a, :c, :n, :ex, :st, :crit, :cat) 
+                    (:id_a, :a, :c, :n, :ex, :st, :aprov) 
                     RETURNING id
                 """)
                 
@@ -1154,8 +1154,7 @@ def salvar_informacoes_basicas():
                     "n": nome_val,
                     "ex": st.session_state.get('input_executor', ''),
                     "st": "Ativo",
-                    "crit": "A definir",
-                    "cat": "Geral"
+                    "aprov": "Em Aprovação"  # Valor padrão para aprovacao
                 }
                 processo_id = conn.execute(sql_insert, params).scalar()
                 st.session_state['processo_existente_id'] = processo_id
@@ -1174,4 +1173,3 @@ def salvar_informacoes_basicas():
     except Exception as e:
         st.error(f"Erro ao salvar informações básicas: {e}")
         return False
-
