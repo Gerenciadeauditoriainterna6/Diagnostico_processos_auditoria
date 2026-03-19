@@ -1017,7 +1017,7 @@ def tela_detalhe_processo_auditoria():
                             
                             # --- ABA ADICIONAR RISCO ---
                             with tab_c_risco:
-                                exibir_criterios_risco()
+                                
                                 with st.form(key=f"form_risco_{etapa['id']}", clear_on_submit=True):
                                     col1, col2 = st.columns(2)
                                     categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
@@ -1038,6 +1038,7 @@ def tela_detalhe_processo_auditoria():
                                     st.markdown(f'''<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin-bottom: 10px;">{emoji} Magnitude: {mag}</div>''', unsafe_allow_html=True)
                                     
                                     apetite = st.text_area("Apetite ao Risco", key=f"apet_{etapa['id']}")
+                                    exibir_criterios_risco()
                                     tratamento = st.text_area("Tratamento", key=f"trat_{etapa['id']}")
                                     info_adicional = st.text_area("Informações Adicionais", key=f"info_{etapa['id']}")
                                     doc_legal = st.text_area("Documentação Legal", key=f"doc_{etapa['id']}")
