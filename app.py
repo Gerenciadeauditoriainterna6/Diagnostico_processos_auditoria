@@ -1342,7 +1342,7 @@ def main():
         """, unsafe_allow_html=True)
         
         # ===== NOVO: SELEÇÃO MANUAL DA AUDITORIA (SEM OPÇÃO "NÃO VINCULAR") =====
-        st.subheader("0. Vincular à Auditoria")
+        st.subheader("Vincular à Auditoria")
 
         # Função para buscar auditorias disponíveis para a área
         def listar_auditorias_para_area(id_area):
@@ -1409,7 +1409,17 @@ def main():
         st.divider()
         
         # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
-        st.subheader("1. Dados do Processo")
+        col_titulo, col_ajuda = st.columns([6, 1])
+
+        with col_titulo:
+            st.subheader("1. Dados do Processo")
+        
+        with col_ajuda:
+            st.markdown("#####")  # Ajuste fino do alinhamento vertical
+            st.markdown(
+                '<span style="font-size: 1.2rem; cursor: help;" title="Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.">ℹ️</span>',
+                unsafe_allow_html=True
+            )
         
         # Garante que o ID esteja inicializado
         if 'id_area_selecionado' not in st.session_state:
