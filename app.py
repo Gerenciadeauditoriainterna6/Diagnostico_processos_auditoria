@@ -1942,7 +1942,10 @@ def main():
                 if validar_basicos():
                     if salvar_informacoes_basicas():
                         st.success("✅ Informações básicas salvas com sucesso!")
+                        time_module.sleep(2)
                         st.rerun()
+                    else:
+                        st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
         with col_b2:
             # ===== BOTÃO DE LIMPEZA =====
             if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
