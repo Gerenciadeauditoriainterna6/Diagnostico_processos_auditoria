@@ -1479,16 +1479,17 @@ def main():
                     st.session_state.pop(id_campo, None)
             
             # ===== LIMPAR RISCOS DA INTERFACE =====
-            # Resetar riscos para UM risco vazio (não remove do banco)
-            st.session_state['riscos'] = [{}]
-            
-            # Remover TODAS as keys de riscos da session_state
+            # Primeiro, remover TODAS as keys de riscos
             prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
             keys_to_remove = [key for key in list(st.session_state.keys()) 
                             if any(key.startswith(prefix) for prefix in prefixos_risco)]
             
             for key in keys_to_remove:
                 st.session_state.pop(key, None)
+            
+            # DEPOIS, resetar riscos para UM risco vazio
+            # Isso vai fazer o loop criar UM risco com keys novas
+            st.session_state['riscos'] = [{}]
             
             st.write("**Session State após limpeza:**", dict(st.session_state))
             
