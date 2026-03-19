@@ -2006,8 +2006,23 @@ def main():
             """, unsafe_allow_html=True)
             
             st.subheader("3. Riscos Associados")
+
+            # Lista para armazenar índices a remover (não podemos remover durante iteração)
+            indices_para_remover = []
+
             for i, _ in enumerate(st.session_state['riscos']):
-                st.markdown(f"**Risco {i+1}**")
+                col_titulo_risco, col_remove_risco = st.columns([5, 1])
+                
+                with col_titulo_risco:
+                    st.markdown(f"**Risco {i+1}**")
+                
+                with col_remove_risco:
+                # Botão de remover (só aparece se houver mais de 1 risco)
+                    if len(st.session_state['riscos']) > 1:
+                        if st.button("🗑️", key=f"remove_risco_{i}", help="Remover este risco"):
+                            indices_para_remover.append(i)
+                            st.rerun()
+
                 st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
                 # ===== NOVO CAMPO DE CATEGORIA =====
                 st.selectbox(
@@ -2029,6 +2044,15 @@ def main():
                 st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
                 st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
                 st.markdown("---")
+            for idx in reversed(indices_para_remover):
+                st.session_state['riscos'].pop(idx)
+                keys_to_remove = [f'nome_{idx}', f'categoria_{idx}', f'fator_{idx}', f'melhoria_{idx}', 
+                      f'apetite_{idx}', f'imp_{idx}', f'prob_{idx}', f'motivo_{idx}']
+                for key in keys_to_remove:
+                    if key in st.session_state:
+                        st.session_state.pop(key)
+            if indices_para_remover:
+                st.rerun()
 
             col_add, col_save = st.columns(2)
             if col_add.button("➕ Adicionar Risco"):
