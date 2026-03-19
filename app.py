@@ -1314,12 +1314,6 @@ def main():
         
         # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
         st.subheader("1. Dados do Processo")
-        st.selectbox(
-            "Selecione a Área:", 
-            list(areas_dict.keys()), 
-            key="area_selectbox", 
-            on_change=atualizar_id_area
-        )
         
         # Garante que o ID esteja inicializado
         if 'id_area_selecionado' not in st.session_state:
