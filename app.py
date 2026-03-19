@@ -16,7 +16,8 @@ atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, busca
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
-salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo
+salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
+listar_executores_processo_com_nomes
 )
 
 local_storage = LocalStorage()
@@ -546,7 +547,15 @@ def tela_visao_geral_processos():
                 if processo:
                     st.write(f"**Objetivo:** {processo['objetivo']}")
                     st.write(f"**Descrição:** {processo['descricao']}")
-                    st.write(f"**Executor:** {processo['executor']}")
+
+                    # ===== MOSTRAR EXECUTORES CORRETAMENTE =====
+                    executores = listar_executores_processo_com_nomes(processo['id'])
+                    if executores:
+                        st.write("**Executores:**")
+                        for exec_nome in executores:
+                            st.write(f"- {exec_nome}")
+                    else:
+                        st.write("**Executores:** Nenhum executor cadastrado")
                     
                     # Mostrar etapas resumidas
                     etapas = listar_etapas_do_processo(processo['id'])

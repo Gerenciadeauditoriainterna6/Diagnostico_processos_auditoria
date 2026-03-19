@@ -1349,3 +1349,19 @@ def buscar_funcionario_por_id(funcionario_id):
     """)
     with engine.connect() as conn:
         return conn.execute(query, {"fid": funcionario_id}).mappings().first()
+
+def listar_executores_processo_com_nomes(processo_id):
+    """Retorna os nomes dos funcionários que executam um processo"""
+    query = text("""
+        SELECT f.nome_funcionario, f.cargo
+        FROM processo_executores pe
+        JOIN funcionarios_area f ON pe.funcionario_id = f.id
+        WHERE pe.processo_id = :pid
+        ORDER BY f.nome_funcionario
+    """)
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params={"pid": processo_id})
+        if df.empty:
+            return []
+        return [f"{row['nome_funcionario']} ({row['cargo']})" 
+                for _, row in df.iterrows()]
