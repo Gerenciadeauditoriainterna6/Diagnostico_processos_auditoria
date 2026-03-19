@@ -192,34 +192,11 @@ def login_screen():
     return False
 
 def limpar_todos_campos():
-    """Limpa todos os campos da tela de diagnóstico"""
+    """Limpa todos os campos da tela de diagnóstico - usa reset de formulário"""
     
-    # Campos principais
-    campos_texto = [
-        'input_processo', 'input_executor', 'input_objetivo', 'input_descricao',
-        'input_etapa_ini', 'input_etapa_fim', 'input_produto', 'codigo_processo'
-    ]
-    
-    for campo in campos_texto:
-        if campo in st.session_state:
-            st.session_state[campo] = ""
-    
-    # IDs e estados
-    ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
-    for id_campo in ids_remover:
-        if id_campo in st.session_state:
-            st.session_state.pop(id_campo)
-    
-    # Resetar riscos
-    st.session_state['riscos'] = [{}]
-    
-    # Remover todas as keys de riscos
-    prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
-    keys_to_remove = [key for key in st.session_state.keys() 
-                     if any(key.startswith(prefix) for prefix in prefixos_risco)]
-    
-    for key in keys_to_remove:
-        st.session_state.pop(key)
+    # Em vez de modificar o session_state diretamente,
+    # vamos usar um flag para indicar que deve limpar
+    st.session_state['deve_limpar_diagnostico'] = True
 
 def exibir_criterios_risco():
     """Exibe os critérios de Probabilidade e Impacto em um expander"""
@@ -1486,6 +1463,42 @@ def main():
             <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
         </div>
         """, unsafe_allow_html=True)
+        # Verificar se deve limpar os campos
+    if st.session_state.get('deve_limpar_diagnostico', False):
+        # Limpar campos específicos que são controlados pelo session_state
+        campos_para_limpar = [
+            'input_processo', 'input_executor', 'input_objetivo', 'input_descricao',
+            'input_etapa_ini', 'input_etapa_fim', 'input_produto', 'codigo_processo'
+        ]
+        
+        for campo in campos_para_limpar:
+            if campo in st.session_state:
+                # Para widgets do Streamlit, precisamos resetar de forma diferente
+                # Vamos apenas marcar para serem recriados
+                st.session_state.pop(campo, None)
+        
+        # Remover IDs
+        ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
+        for id_campo in ids_remover:
+            if id_campo in st.session_state:
+                st.session_state.pop(id_campo)
+        
+        # Resetar riscos
+        st.session_state['riscos'] = [{}]
+        
+        # Limpar keys de riscos
+        prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
+        keys_to_remove = [key for key in st.session_state.keys() 
+                         if any(key.startswith(prefix) for prefix in prefixos_risco)]
+        
+        for key in keys_to_remove:
+            st.session_state.pop(key)
+        
+        # Remover o flag
+        st.session_state.pop('deve_limpar_diagnostico')
+        
+        # Forçar rerun para recriar os widgets com valores padrão
+        st.rerun()
         
         # ===== SEÇÃO 0: VINCULAR À AUDITORIA =====
         st.subheader("Vincular à Auditoria")
