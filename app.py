@@ -1409,19 +1409,21 @@ def main():
         st.divider()
         
         # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
-        col_titulo, col_ajuda = st.columns([10, 1], vertical_alignment="center")
+        # Título principal com ícone
+        st.markdown("""
+            <div style='display: flex; align-items: center; gap: 5px; margin-bottom: 20px;'>
+                <h1 style='margin: 0; padding: 0;'>Diagnóstico de Processos - FUSVE</h1>
+                <span style='cursor: help; font-size: 1.5rem;' title='Tela para cadastro de novos processos'>ℹ️</span>
+            </div>
+        """, unsafe_allow_html=True)
 
-        with col_titulo:
-            st.subheader("1. Dados do Processo")
-
-        with col_ajuda:
-            with st.popover("ℹ️", help="Dicas de preenchimento"):
-                st.markdown("""
-                    <div style='display: flex; align-items: center; gap: 5px; margin-bottom: 0px;'>
-                        <h3 style='margin: 0; padding: 0;'>1. Dados do Processo</h3>
-                        <span style='cursor: help; font-size: 1.2rem;' title='Preencha os dados básicos do processo'>ℹ️</span>
-                    </div>
-                """, unsafe_allow_html=True)
+        # Subtítulo com ícone colado
+        st.markdown("""
+            <div style='display: flex; align-items: center; gap: 5px; margin: 10px 0 5px 0;'>
+                <h3 style='margin: 0; padding: 0;'>1. Dados do Processo</h3>
+                <span style='cursor: help; font-size: 1.2rem;' title='Preencha os dados básicos do processo'>ℹ️</span>
+            </div>
+        """, unsafe_allow_html=True)
         
         # Garante que o ID esteja inicializado
         if 'id_area_selecionado' not in st.session_state:
