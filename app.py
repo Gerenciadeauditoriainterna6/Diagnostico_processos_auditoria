@@ -1955,9 +1955,9 @@ def main():
                             st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
         with col_b2:
             # ===== BOTÃO DE LIMPEZA =====
-            st.session_state['info_basicas_salvas'] = False
             if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
                 st.session_state['deve_limpar_diagnostico'] = True
+                st.session_state['info_basicas_salvas'] = False
                 st.rerun()
 
         st.divider()
