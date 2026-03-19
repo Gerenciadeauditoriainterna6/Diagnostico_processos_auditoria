@@ -191,6 +191,36 @@ def login_screen():
                     
     return False
 
+def limpar_todos_campos():
+    """Limpa todos os campos da tela de diagnóstico"""
+    
+    # Campos principais
+    campos_texto = [
+        'input_processo', 'input_executor', 'input_objetivo', 'input_descricao',
+        'input_etapa_ini', 'input_etapa_fim', 'input_produto', 'codigo_processo'
+    ]
+    
+    for campo in campos_texto:
+        if campo in st.session_state:
+            st.session_state[campo] = ""
+    
+    # IDs e estados
+    ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
+    for id_campo in ids_remover:
+        if id_campo in st.session_state:
+            st.session_state.pop(id_campo)
+    
+    # Resetar riscos
+    st.session_state['riscos'] = [{}]
+    
+    # Remover todas as keys de riscos
+    prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
+    keys_to_remove = [key for key in st.session_state.keys() 
+                     if any(key.startswith(prefix) for prefix in prefixos_risco)]
+    
+    for key in keys_to_remove:
+        st.session_state.pop(key)
+
 def exibir_criterios_risco():
     """Exibe os critérios de Probabilidade e Impacto em um expander"""
     with st.expander("📋 **Critérios para Avaliação de Riscos**", expanded=False):
@@ -1569,6 +1599,59 @@ def main():
                         st.warning("Selecione um processo.")
 
         st.divider()
+
+        # ===== BOTÃO DE LIMPEZA =====
+        col_limpar1, col_limpar2, col_limpar3 = st.columns([1, 1, 3])
+        with col_limpar1:
+            if st.button("🧹 **NOVO PROCESSO**", type="secondary", use_container_width=True):
+                # Lista de todos os campos a serem limpos
+                campos_para_limpar = [
+                    'input_processo',           # Nome do processo
+                    'input_executor',           # Executor
+                    'input_objetivo',           # Objetivo
+                    'input_descricao',          # Descrição
+                    'input_etapa_ini',          # Etapa inicial
+                    'input_etapa_fim',           # Etapa final
+                    'input_produto',             # Produto
+                    'codigo_processo',           # Código
+                    'processo_existente_id',     # ID de edição
+                    'ultimo_processo_id',        # Último ID salvo
+                    'auditoria_diagnostico'      # Auditoria selecionada (opcional)
+                ]
+                
+                # Limpar campos da session_state
+                for campo in campos_para_limpar:
+                    if campo in st.session_state:
+                        if campo == 'processo_existente_id' or campo == 'ultimo_processo_id':
+                            st.session_state.pop(campo)  # Remove completamente
+                        else:
+                            st.session_state[campo] = ""  # Zera strings
+                
+                # Resetar riscos para um único risco vazio
+                st.session_state['riscos'] = [{}]
+                
+                # Limpar todas as keys de riscos (nome_0, fator_0, etc.)
+                keys_to_remove = []
+                for key in st.session_state.keys():
+                    if any(key.startswith(prefix) for prefix in ['nome_', 'fator_', 'melhoria_', 
+                                                                'apetite_', 'imp_', 'prob_', 'motivo_']):
+                        keys_to_remove.append(key)
+                
+                for key in keys_to_remove:
+                    st.session_state.pop(key)
+                
+                st.success("✅ Todos os campos foram limpos! Pronto para novo cadastro.")
+                st.rerun()
+
+        with col_limpar2:
+            if st.button("❓ **AJUDA**", type="secondary", use_container_width=True):
+                st.info("""
+                **Como usar:**
+                1. Pesquise um processo existente para editar OU
+                2. Preencha um novo processo
+                3. Adicione os riscos
+                4. Clique em "Salvar Todos os Dados"
+                """)
         
         # ===== SEÇÃO 1: INFORMAÇÕES BÁSICAS (OBRIGATÓRIAS) =====
         st.markdown("""
