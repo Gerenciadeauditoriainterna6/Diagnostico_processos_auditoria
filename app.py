@@ -1017,6 +1017,7 @@ def tela_detalhe_processo_auditoria():
                             
                             # --- ABA ADICIONAR RISCO ---
                             with tab_c_risco:
+                                exibir_criterios_risco()
                                 with st.form(key=f"form_risco_{etapa['id']}", clear_on_submit=True):
                                     col1, col2 = st.columns(2)
                                     categoria = col1.selectbox("Categoria", ["Risco Inerente", "Risco de TI", "Risco de Fraude"], key=f"cat_{etapa['id']}")
@@ -1364,7 +1365,7 @@ def main():
             <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
         </div>
         """, unsafe_allow_html=True)
-        
+        exibir_criterios_risco()
         st.subheader("2. Riscos Associados")
         for i, _ in enumerate(st.session_state['riscos']):
             st.markdown(f"**Risco {i+1}**")
