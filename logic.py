@@ -701,6 +701,7 @@ def salvar_no_banco():
                     "motivo": st.session_state.get(f"motivo_{i}"), 
                     "score": score
                 })
+                st.session_state['ultimo_processo_id'] = processo_id
         return True
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")

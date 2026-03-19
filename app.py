@@ -1243,17 +1243,92 @@ def main():
             <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
             <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
         </div>
-    """, unsafe_allow_html=True)
-        st.subheader("1. Dados do Processo")
+        """, unsafe_allow_html=True)
+        
+        # ===== NOVO: SELEÇÃO MANUAL DA AUDITORIA =====
+        st.subheader("0. Vincular à Auditoria")
+        
+        # Função para buscar auditorias disponíveis para a área
+        def listar_auditorias_para_area(id_area):
+            """Retorna todas as auditorias da área (qualquer trimestre/ano)"""
+            query = text("""
+                SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+                FROM auditorias
+                WHERE id_area = :id_area
+                AND status IN ('Planejamento', 'Em Execução')
+                ORDER BY ano DESC, trimestre DESC
+            """)
+            
+            with engine.connect() as conn:
+                return pd.read_sql(query, conn, params={"id_area": id_area})
+        
+        # Selectbox de área (já existente)
         st.selectbox(
-        "Selecione a Área:", 
-        list(areas_dict.keys()), 
-        key="area_selectbox", 
-        on_change=atualizar_id_area
-    )
+            "Selecione a Área:", 
+            list(areas_dict.keys()), 
+            key="area_selectbox", 
+            on_change=atualizar_id_area
+        )
+        
         # Garante que o ID esteja inicializado
         if 'id_area_selecionado' not in st.session_state:
             st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
+        
+        # Buscar auditorias disponíveis para a área selecionada
+        id_area_atual = st.session_state['id_area_selecionado']
+        df_auditorias_area = listar_auditorias_para_area(id_area_atual)
+        
+        if not df_auditorias_area.empty:
+            # Criar opções para o selectbox
+            opcoes_auditoria = []
+            for _, row in df_auditorias_area.iterrows():
+                status_emoji = "🟡" if row['status'] == 'Planejamento' else "🟢"
+                opcoes_auditoria.append({
+                    "id": row['id'],
+                    "display": f"{status_emoji} {row['codigo_auditoria']} - {row['titulo']} ({row['ano']} {row['trimestre']}º trim)"
+                })
+            
+            display_list = [item["display"] for item in opcoes_auditoria]
+            id_map = {item["display"]: item["id"] for item in opcoes_auditoria}
+            
+            # Adicionar opção "Não vincular agora"
+            display_list = ["🚫 Não vincular a nenhuma auditoria"] + display_list
+            id_map["🚫 Não vincular a nenhuma auditoria"] = None
+            
+            auditoria_escolhida = st.selectbox(
+                "Escolha a auditoria para vincular este processo:",
+                options=display_list,
+                help="Selecione a auditoria à qual este processo pertence. Processos podem ser vinculados depois em 'Auditorias por Trimestre'."
+            )
+            
+            if auditoria_escolhida != "🚫 Não vincular a nenhuma auditoria":
+                st.session_state['auditoria_diagnostico'] = id_map[auditoria_escolhida]
+                auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == id_map[auditoria_escolhida]].iloc[0]
+                st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
+            else:
+                if 'auditoria_diagnostico' in st.session_state:
+                    st.session_state.pop('auditoria_diagnostico', None)
+                st.info("ℹ️ Processo será salvo sem vínculo. Você poderá adicioná-lo a uma auditoria depois.")
+        else:
+            st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Auditorias por Trimestre' primeiro.")
+            if 'auditoria_diagnostico' in st.session_state:
+                st.session_state.pop('auditoria_diagnostico', None)
+        
+        st.divider()
+        
+        # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
+        st.subheader("1. Dados do Processo")
+        st.selectbox(
+            "Selecione a Área:", 
+            list(areas_dict.keys()), 
+            key="area_selectbox", 
+            on_change=atualizar_id_area
+        )
+        
+        # Garante que o ID esteja inicializado
+        if 'id_area_selecionado' not in st.session_state:
+            st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
+        
         st.text_input("Nome do Processo:", key="input_processo", on_change=processar_codigo_inteligente,
                     help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).")
         st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
@@ -1264,11 +1339,13 @@ def main():
         st.text_area("Depois de Acabado, para onde envia?", key="input_etapa_fim", help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
         st.text_area("Qual o Objetivo do Processo? e Por que faz?", key="input_objetivo")
         st.write("")
+        
         st.markdown("""
         <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
             <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
-            </div>
-    """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.subheader("2. Riscos Associados")
         for i, _ in enumerate(st.session_state['riscos']):
             st.markdown(f"**Risco {i+1}**")
@@ -1290,8 +1367,22 @@ def main():
         if col_add.button("➕ Adicionar Risco"):
             st.session_state['riscos'].append({})
             st.rerun()
+        
         if col_save.button("💾 Salvar Todos os Dados", type="primary"):
             if validar_formulario() and salvar_no_banco():
+                # ===== NOVO: Vincular à auditoria após salvar =====
+                if 'auditoria_diagnostico' in st.session_state and 'processo_id' in st.session_state:
+                    auditoria_id = st.session_state['auditoria_diagnostico']
+                    processo_id = st.session_state.get('ultimo_processo_id')
+                    
+                    if processo_id:
+                        vincular_processo_a_auditoria(
+                            auditoria_id=auditoria_id,
+                            processo_id=processo_id,
+                            motivo="Processo identificado durante diagnóstico da área"
+                        )
+                        st.success("Processo vinculado à auditoria com sucesso!")
+                
                 st.success("Dados salvos!")
                 st.session_state['deve_limpar'] = True
                 st.rerun()
