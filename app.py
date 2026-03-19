@@ -597,10 +597,6 @@ def validar_formulario():
         st.error("O campo 'Nome do Processo' é obrigatório.")
         return False
     
-    if not st.session_state.get("input_executor", "").strip():
-        st.error("O campo 'Funcionário(s) Que Executa(m)' é obrigatório.")
-        return False
-    
     # Validação dos riscos
     if not st.session_state['riscos']:
         st.error("Adicione pelo menos um risco.")
