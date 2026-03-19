@@ -1408,20 +1408,13 @@ def main():
 
         st.divider()
         
-        # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) =====
-        # Título principal com ícone
-        st.markdown("""
-            <div style='display: flex; align-items: center; gap: 5px; margin-bottom: 20px;'>
-                <h1 style='margin: 0; padding: 0;'>Diagnóstico de Processos - FUSVE</h1>
-                <span style='cursor: help; font-size: 1.5rem;' title='Tela para cadastro de novos processos'>ℹ️</span>
-            </div>
-        """, unsafe_allow_html=True)
+        # ===== RESTANTE DO SEU CÓDIGO (INALTERADO) ===
 
         # Subtítulo com ícone colado
         st.markdown("""
             <div style='display: flex; align-items: center; gap: 5px; margin: 10px 0 5px 0;'>
                 <h3 style='margin: 0; padding: 0;'>1. Dados do Processo</h3>
-                <span style='cursor: help; font-size: 1.2rem;' title='Preencha os dados básicos do processo'>ℹ️</span>
+                <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ℹ❔</span>
             </div>
         """, unsafe_allow_html=True)
         
