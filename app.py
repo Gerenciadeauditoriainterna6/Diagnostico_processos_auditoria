@@ -1456,23 +1456,38 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
-         # ===== VERIFICAR SE DEVE LIMPAR OS CAMPOS =====
+        # ===== VERIFICAR SE DEVE LIMPAR OS CAMPOS =====
         if st.session_state.get('deve_limpar_diagnostico', False):
-            # Remover campos do session_state para recriá-los vazios
+            
+            # Lista de campos a remover COMPLETA
             campos_para_remover = [
-                'input_processo', 'input_executor', 'input_objetivo', 'input_descricao',
-                'input_etapa_ini', 'input_etapa_fim', 'input_produto', 'codigo_processo',
-                'processo_existente_id', 'ultimo_processo_id'
+                # Campos básicos
+                'input_processo', 
+                'input_executor', 
+                'codigo_processo',
+                
+                # Campos de detalhamento
+                'input_objetivo', 
+                'input_descricao', 
+                'input_etapa_ini', 
+                'input_etapa_fim', 
+                'input_produto',
+                
+                # IDs e estados
+                'processo_existente_id', 
+                'ultimo_processo_id',
+                'auditoria_diagnostico'
             ]
             
+            # Remover campos
             for campo in campos_para_remover:
                 if campo in st.session_state:
                     st.session_state.pop(campo, None)
             
-            # Resetar riscos
+            # Resetar riscos para UM risco vazio
             st.session_state['riscos'] = [{}]
             
-            # Remover keys de riscos
+            # Remover TODAS as keys de riscos (nome_0, fator_0, imp_0, etc.)
             prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
             keys_to_remove = [key for key in list(st.session_state.keys()) 
                             if any(key.startswith(prefix) for prefix in prefixos_risco)]
@@ -1485,7 +1500,7 @@ def main():
             
             # Forçar rerun para recriar os widgets
             st.rerun()
-            
+
         st.title("Diagnóstico de Processos - FUSVE")
         st.markdown("""
         <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
