@@ -1877,12 +1877,6 @@ def main():
         # Código do Processo (gerado automaticamente)
         st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
 
-        # Funcionário(s) Que Executa(m) (obrigatório)
-        st.text_area(
-            "Funcionário(s) Que Executa(m)", 
-            key="input_executor", 
-            help="Funcionário(s) que executa(m) - Alçadas (Gestão ou operação?)"
-        )
 
         # ===== EXECUTORES DO PROCESSO =====
         st.markdown("**Funcionário(s) que executam o processo:**")
@@ -1907,12 +1901,19 @@ def main():
             # Criar dicionário para mapear ID -> nome
             funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
             
+            # VALIDAR OS VALORES PADRÃO - remover IDs que não existem mais
+            defaults_validos = []
+            if 'executores_selecionados' in st.session_state:
+                for exec_id in st.session_state['executores_selecionados']:
+                    if exec_id in funcionarios_dict:
+                        defaults_validos.append(exec_id)
+
             # Multiselect para escolher vários funcionários
             selecionados = st.multiselect(
                 "Selecione os funcionários que executam este processo:",
                 options=funcionarios_ids,
                 format_func=lambda x: funcionarios_dict[x],
-                default=st.session_state.get('executores_selecionados', []),
+                default=defaults_validos,
                 key="multiselect_executores",
                 help="Você pode selecionar um ou mais funcionários"
             )
