@@ -1456,6 +1456,36 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
+         # ===== VERIFICAR SE DEVE LIMPAR OS CAMPOS =====
+        if st.session_state.get('deve_limpar_diagnostico', False):
+            # Remover campos do session_state para recriá-los vazios
+            campos_para_remover = [
+                'input_processo', 'input_executor', 'input_objetivo', 'input_descricao',
+                'input_etapa_ini', 'input_etapa_fim', 'input_produto', 'codigo_processo',
+                'processo_existente_id', 'ultimo_processo_id'
+            ]
+            
+            for campo in campos_para_remover:
+                if campo in st.session_state:
+                    st.session_state.pop(campo, None)
+            
+            # Resetar riscos
+            st.session_state['riscos'] = [{}]
+            
+            # Remover keys de riscos
+            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
+            keys_to_remove = [key for key in list(st.session_state.keys()) 
+                            if any(key.startswith(prefix) for prefix in prefixos_risco)]
+            
+            for key in keys_to_remove:
+                st.session_state.pop(key, None)
+            
+            # Remover o flag
+            st.session_state.pop('deve_limpar_diagnostico')
+            
+            # Forçar rerun para recriar os widgets
+            st.rerun()
+            
         st.title("Diagnóstico de Processos - FUSVE")
         st.markdown("""
         <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
@@ -1463,42 +1493,6 @@ def main():
             <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
         </div>
         """, unsafe_allow_html=True)
-        # Verificar se deve limpar os campos
-    if st.session_state.get('deve_limpar_diagnostico', False):
-        # Limpar campos específicos que são controlados pelo session_state
-        campos_para_limpar = [
-            'input_processo', 'input_executor', 'input_objetivo', 'input_descricao',
-            'input_etapa_ini', 'input_etapa_fim', 'input_produto', 'codigo_processo'
-        ]
-        
-        for campo in campos_para_limpar:
-            if campo in st.session_state:
-                # Para widgets do Streamlit, precisamos resetar de forma diferente
-                # Vamos apenas marcar para serem recriados
-                st.session_state.pop(campo, None)
-        
-        # Remover IDs
-        ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
-        for id_campo in ids_remover:
-            if id_campo in st.session_state:
-                st.session_state.pop(id_campo)
-        
-        # Resetar riscos
-        st.session_state['riscos'] = [{}]
-        
-        # Limpar keys de riscos
-        prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_']
-        keys_to_remove = [key for key in st.session_state.keys() 
-                         if any(key.startswith(prefix) for prefix in prefixos_risco)]
-        
-        for key in keys_to_remove:
-            st.session_state.pop(key)
-        
-        # Remover o flag
-        st.session_state.pop('deve_limpar_diagnostico')
-        
-        # Forçar rerun para recriar os widgets com valores padrão
-        st.rerun()
         
         # ===== SEÇÃO 0: VINCULAR À AUDITORIA =====
         st.subheader("Vincular à Auditoria")
@@ -1678,15 +1672,15 @@ def main():
                         st.rerun()
         with col_b2:
             # ===== BOTÃO DE LIMPEZA =====
-                if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
-                    limpar_todos_campos()  # Esta função só seta o flag
-                    st.rerun()
+            if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
+                st.session_state['deve_limpar_diagnostico'] = True
+                st.rerun()
 
-                    # Mostrar indicador se é edição
-                    if st.session_state.get('processo_existente_id'):
-                        st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
+        # Mostrar indicador se é edição
+        if st.session_state.get('processo_existente_id'):
+            st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
 
-                    st.divider()
+        st.divider()
 
         # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
         st.markdown("""
