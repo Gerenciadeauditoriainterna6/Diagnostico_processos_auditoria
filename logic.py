@@ -1173,3 +1173,16 @@ def salvar_informacoes_basicas():
     except Exception as e:
         st.error(f"Erro ao salvar informações básicas: {e}")
         return False
+
+def listar_riscos_do_processo(processo_id):
+    """Retorna todos os riscos de um processo"""
+    query = text("""
+        SELECT id, nome_risco, fator_risco, melhoria, impacto, probabilidade,
+               apetite_risco, motivo_risco, score_risco
+        FROM riscos
+        WHERE processo_id = :pid
+        ORDER BY id
+    """)
+    
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"pid": processo_id})

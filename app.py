@@ -15,7 +15,7 @@ listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_l
 atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, 
 listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_auditoria, calcular_maturidade_por_pilar, salvar_conclusao_auditoria, 
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
-remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas
+remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo
 )
 
 local_storage = LocalStorage()
@@ -1347,6 +1347,30 @@ def verificar_e_carregar_processo():
         st.session_state.pop('processo_existente_id', None)
     return False
 
+def carregar_riscos_processo(processo_id):
+    """Carrega os riscos do processo para a session_state"""
+    df_riscos = listar_riscos_do_processo(processo_id)
+    
+    if not df_riscos.empty:
+        # Limpar riscos existentes
+        st.session_state['riscos'] = []
+        
+        for _, row in df_riscos.iterrows():
+            idx = len(st.session_state['riscos'])
+            st.session_state['riscos'].append({})
+            
+            # Preencher os campos do risco
+            st.session_state[f'nome_{idx}'] = row['nome_risco']
+            st.session_state[f'fator_{idx}'] = row['fator_risco']
+            st.session_state[f'melhoria_{idx}'] = row['melhoria']
+            st.session_state[f'apetite_{idx}'] = row['apetite_risco']
+            st.session_state[f'imp_{idx}'] = row['impacto']
+            st.session_state[f'prob_{idx}'] = row['probabilidade']
+            st.session_state[f'motivo_{idx}'] = row['motivo_risco']
+    else:
+        # Se não tem riscos, iniciar com um vazio
+        st.session_state['riscos'] = [{}]
+
 # --- 5. Execução do app ---
 
 def main():
@@ -1477,6 +1501,72 @@ def main():
             st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
             if 'auditoria_diagnostico' in st.session_state:
                 st.session_state.pop('auditoria_diagnostico', None)
+
+        st.divider()
+
+        # ===== SEÇÃO DE PESQUISA DE PROCESSOS =====
+        with st.expander("🔍 **Pesquisar processo existente para editar**", expanded=False):
+            col_p1, col_p2 = st.columns([3, 1])
+            
+            with col_p1:
+                # Buscar processos da área selecionada
+                id_area_atual = st.session_state.get('id_area_selecionado')
+                
+                if id_area_atual:
+                    query = text("""
+                        SELECT id, codigo_processo, nome_processo
+                        FROM processos
+                        WHERE id_area = :id_area
+                        ORDER BY codigo_processo
+                    """)
+                    
+                    with engine.connect() as conn:
+                        df_processos = pd.read_sql(query, conn, params={"id_area": id_area_atual})
+                    
+                    if not df_processos.empty:
+                        opcoes = [f"{row['codigo_processo']} - {row['nome_processo']}" 
+                                for _, row in df_processos.iterrows()]
+                        
+                        processo_selecionado = st.selectbox(
+                            "Selecione um processo para editar:",
+                            options=[""] + opcoes,
+                            key="select_processo_editar"
+                        )
+                    else:
+                        st.info("Nenhum processo cadastrado para esta área.")
+                        processo_selecionado = ""
+            
+            with col_p2:
+                st.markdown("<br>", unsafe_allow_html=True)  # Espaçamento vertical
+                if st.button("📂 Carregar para edição", use_container_width=True):
+                    if processo_selecionado:
+                        # Extrair o código do processo
+                        codigo = processo_selecionado.split(" - ")[0]
+                        
+                        # Buscar dados completos do processo
+                        processo = buscar_processo_por_codigo(codigo)
+                        
+                        if processo:
+                            # Carregar dados básicos
+                            st.session_state['input_processo'] = processo['nome_processo']
+                            st.session_state['input_executor'] = processo.get('executor', '')
+                            st.session_state['codigo_processo'] = processo['codigo_processo']
+                            st.session_state['processo_existente_id'] = processo['id']
+                            
+                            # Carregar detalhamento
+                            st.session_state['input_objetivo'] = processo.get('objetivo', '')
+                            st.session_state['input_descricao'] = processo.get('descricao', '')
+                            st.session_state['input_etapa_ini'] = processo.get('etapa_ini', '')
+                            st.session_state['input_etapa_fim'] = processo.get('etapa_fim', '')
+                            st.session_state['input_produto'] = processo.get('produto', '')
+                            
+                            # Carregar riscos
+                            carregar_riscos_processo(processo['id'])
+                            
+                            st.success(f"Processo {codigo} carregado para edição!")
+                            st.rerun()
+                    else:
+                        st.warning("Selecione um processo.")
 
         st.divider()
         
