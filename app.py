@@ -585,16 +585,6 @@ if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
 
-
-# --- 3. LIMPEZA PÓS-SALVO ---
-if st.session_state['deve_limpar']:
-    campos_to_reset = ["input_processo", "input_objetivo", "input_executor", "input_descricao", "input_etapa_ini", "input_etapa_fim", "input_produto", "codigo_processo", "area"]
-    for campo in campos_to_reset:
-        st.session_state[campo] = None if campo == "area" else ""
-    st.session_state['riscos'] = []
-    st.session_state['deve_limpar'] = False
-    st.rerun()
-
 # --- 4. FUNÇÕES DE SUPORTE ---
 def validar_formulario():
     """Valida apenas os campos obrigatórios: nome do processo e executor"""
@@ -1671,11 +1661,6 @@ def main():
                 st.session_state['riscos'] = []
                 st.session_state['info_basicas_salvas'] = False
                 st.session_state['deve_limpar_diagnostico'] = False
-                st.rerun()
-            
-            # Limpar flag de limpeza se necessário
-            if st.session_state.get('deve_limpar_diagnostico', False):
-                st.session_state.pop('deve_limpar_diagnostico', None)
                 st.rerun()
             
             st.title("Diagnóstico dos Processos")
