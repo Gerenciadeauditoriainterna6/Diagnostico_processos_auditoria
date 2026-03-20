@@ -1758,9 +1758,9 @@ def main():
                 help="Digite o nome do processo."
             )
 
-            # Código do Processo (gerado automaticamente)
-            # Usando uma key diferente para evitar conflito com a variável que queremos modificar
-            st.text_input("Código do Processo:", key="codigo_processo_widget", disabled=True)
+            # Código do Processo (gerado automaticamente) - APENAS EXIBIÇÃO, SEM STATE
+            codigo_atual = st.session_state.get('codigo_processo_display', '')
+            st.text_input("Código do Processo:", value=codigo_atual, disabled=True)
 
             # Sincronizar o valor do widget com a variável de estado
             if 'codigo_processo_display' in st.session_state:

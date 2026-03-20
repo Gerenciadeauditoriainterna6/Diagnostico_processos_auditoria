@@ -655,7 +655,6 @@ def processar_codigo_inteligente():
         
     else:
         # Processo novo - gerar código baseado no último código da área
-        # Usando ordenação numérica correta
         ultimo_codigo_query = text("""
             SELECT codigo_processo 
             FROM processos 
@@ -670,7 +669,6 @@ def processar_codigo_inteligente():
             ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area}).scalar()
         
         if ultimo:
-            # Extrair o número após o ponto
             partes = ultimo.split('.')
             if len(partes) >= 2:
                 ultimo_numero = int(partes[1])
@@ -692,7 +690,6 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_fim'] = ""
         st.session_state['input_produto'] = ""
         st.session_state['info_basicas_salvas'] = False
-
 def normalizar_valor_risco(valor):
     """
     Converte valores de risco para o formato correto:
