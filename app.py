@@ -2163,15 +2163,6 @@ def main():
                 # ===== RISCOS ASSOCIADOS (EDIÇÃO) =====
                 st.markdown("### Riscos Associados")
 
-                # Botão para adicionar novo risco
-                col_add_risco_edit, col_spacer_edit = st.columns([1, 4])
-                with col_add_risco_edit:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco_main", use_container_width=True):
-                        if 'edit_riscos' not in st.session_state:
-                            st.session_state['edit_riscos'] = []
-                        st.session_state['edit_riscos'].append({})
-                        st.rerun()
-
                 st.divider()
 
                 # Lista para armazenar índices a remover
