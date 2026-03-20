@@ -1889,7 +1889,7 @@ def main():
                         with col_titulo:
                             st.markdown(f"**Detalhes do Risco {i+1}**")
                         with col_remove:
-                            if len(st.session_state['risco']) > 1:
+                            if len(st.session_state['riscos']) > 1:
                                 if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True):
                                     indices_para_remover.append(i)
                                     st.rerun()
