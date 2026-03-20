@@ -726,55 +726,55 @@ def normalizar_valor_risco(valor):
 
 def salvar_no_banco():
     import streamlit as st
-    try: 
+    try:
         with engine.begin() as conn:
-            id_area_val = st.session_state.get("id_area_selecionado") 
+            id_area_val = st.session_state.get("id_area_selecionado")
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo", "").strip()
-            
-            # Verificar se é edição de processo existente
+
+            # === DETERMINA SE É EDIÇÃO OU NOVO PROCESSO ===
+            # Se já existe um ID na sessão, é edição
             processo_existente_id = st.session_state.get('processo_existente_id')
-            
+
             if processo_existente_id:
                 # === MODO EDIÇÃO: Atualizar processo existente ===
                 processo_id = processo_existente_id
+
                 sql_update = text("""
                     UPDATE processos 
-                    SET objetivo=:o, executor=:ex, descricao=:d, 
-                        etapa_ini=:ei, etapa_fim=:ef, produto=:p, area=:a
+                    SET objetivo=:o, descricao=:d, 
+                        etapa_ini=:ei, etapa_fim=:ef, produto=:p
                     WHERE id = :pid
                 """)
-                
-                dados_update = {
+
+                conn.execute(sql_update, {
                     "pid": processo_id,
                     "o": st.session_state.get('input_objetivo', ''),
-                    "ex": st.session_state.get('input_executor', ''),
                     "d": st.session_state.get('input_descricao', ''),
                     "ei": st.session_state.get('input_etapa_ini', ''),
                     "ef": st.session_state.get('input_etapa_fim', ''),
-                    "p": st.session_state.get('input_produto', ''),
-                    "a": nome_area_val
-                }
-                conn.execute(sql_update, dados_update)
-                
+                    "p": st.session_state.get('input_produto', '')
+                })
+
             else:
                 # === MODO CRIAÇÃO: Inserir novo processo ===
-                sql_p = text("""
+                codigo_processo = st.session_state.get('codigo_processo_display', '')
+
+                sql_insert = text("""
                     INSERT INTO processos 
-                    (id_area, area, codigo_processo, nome_processo, objetivo, executor, 
+                    (id_area, area, codigo_processo, nome_processo, objetivo, 
                      descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES 
-                    (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :cat) 
+                    (:id_a, :a, :c, :n, :o, :d, :ei, :ef, :p, :st, :cat) 
                     RETURNING id
                 """)
-                
+
                 params_insert = {
                     "id_a": id_area_val,
                     "a": nome_area_val,
-                    "c": st.session_state.get('codigo_processo_display', ''),
+                    "c": codigo_processo,
                     "n": nome_val,
                     "o": st.session_state.get('input_objetivo', ''),
-                    "ex": st.session_state.get('input_executor', ''),
                     "d": st.session_state.get('input_descricao', ''),
                     "ei": st.session_state.get('input_etapa_ini', ''),
                     "ef": st.session_state.get('input_etapa_fim', ''),
@@ -782,49 +782,46 @@ def salvar_no_banco():
                     "st": "Ativo",
                     "cat": "Geral"
                 }
-                processo_id = conn.execute(sql_p, params_insert).scalar()
+
+                processo_id = conn.execute(sql_insert, params_insert).scalar()
                 st.session_state['processo_existente_id'] = processo_id
+                st.session_state['ultimo_processo_id'] = processo_id
 
-            # ===== RISCOS COM MÚLTIPLAS CATEGORIAS =====
-            # Remove todos os riscos antigos do processo
-            conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
+            # ===== RISCOS: REMOVE OS ANTIGOS E INSERE OS NOVOS =====
+            conn.execute(
+                text("DELETE FROM riscos WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            )
 
-            # Query para inserir risco (SEM categoria)
             sql_risco = text("""
                 INSERT INTO riscos 
-                (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
-                 apetite_risco, motivo_risco, score_risco) 
-                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                (processo_id, nome_risco, fator_risco, melhoria, impacto, 
+                 probabilidade, apetite_risco, motivo_risco, score_risco) 
+                VALUES 
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
                 RETURNING id
             """)
-            
+
             for i in range(len(st.session_state['riscos'])):
                 imp = st.session_state.get(f"imp_{i}")
                 prob = st.session_state.get(f"prob_{i}")
-
-                # Normalizar antes de salvar
-                imp_normalizado = normalizar_valor_risco(imp)
-                prob_normalizado = normalizar_valor_risco(prob)  
-
                 score = MAPA_RISCO.get((imp, prob), 0)
-                
-                # Inserir o risco e obter o ID gerado
+
                 result = conn.execute(sql_risco, {
-                    "pid": processo_id, 
-                    "nome": st.session_state.get(f"nome_{i}"), 
-                    "fator": st.session_state.get(f"fator_{i}"), 
-                    "melhoria": st.session_state.get(f"melhoria_{i}"), 
-                    "imp": imp, 
-                    "prob": prob, 
-                    "apetite": st.session_state.get(f"apetite_{i}"), 
-                    "motivo": st.session_state.get(f"motivo_{i}"), 
+                    "pid": processo_id,
+                    "nome": st.session_state.get(f"nome_{i}"),
+                    "fator": st.session_state.get(f"fator_{i}"),
+                    "melhoria": st.session_state.get(f"melhoria_{i}"),
+                    "imp": imp,
+                    "prob": prob,
+                    "apetite": st.session_state.get(f"apetite_{i}"),
+                    "motivo": st.session_state.get(f"motivo_{i}"),
                     "score": score
                 })
-                
-                # Pega o ID do risco recém-inserido
+
                 risco_id = result.scalar()
-                
-                # ===== SALVAR CATEGORIAS DO RISCO =====
+
+                # === SALVAR CATEGORIAS DO RISCO ===
                 categorias_ids = st.session_state.get(f"categorias_{i}", [])
                 if categorias_ids:
                     for cat_id in categorias_ids:
@@ -832,10 +829,9 @@ def salvar_no_banco():
                             text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
                             {"rid": risco_id, "cid": cat_id}
                         )
-            
-            st.session_state['ultimo_processo_id'] = processo_id
-            
+
         return True
+
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
         return False
