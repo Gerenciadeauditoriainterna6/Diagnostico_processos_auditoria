@@ -1881,7 +1881,7 @@ def main():
                             
                             # ===== ATIVAR FLAG DE INFORMAÇÕES BÁSICAS SALVAS =====
                             st.session_state['info_basicas_salvas'] = True
-                            
+
                             st.success(f"Processo {codigo} carregado para edição!")
                             st.rerun()
                     else:
@@ -1933,6 +1933,11 @@ def main():
                 for exec_id in st.session_state['executores_selecionados']:
                     if exec_id in funcionarios_dict:
                         defaults_validos.append(exec_id)
+
+            # ===== DEBUG: Mostrar o que está sendo passado =====
+            st.write(f"🔍 DEBUG: IDs de executores no session_state: {st.session_state.get('executores_selecionados', [])}")
+            st.write(f"🔍 DEBUG: IDs válidos para default: {defaults_validos}")
+            st.write(f"🔍 DEBUG: Funcionários disponíveis: {funcionarios_dict}")
 
             # Multiselect para escolher vários funcionários
             selecionados = st.multiselect(
@@ -2086,6 +2091,14 @@ def main():
         else:
             st.info("👆 **Primeiro, preencha e salve as Informações Básicas do Processo.**")
             st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
+    
+        # DEBUG
+        with st.expander("🔍 DEBUG - Estado da Sessão"):
+            st.write("**executores_selecionados:**", st.session_state.get('executores_selecionados', []))
+            st.write("**processo_existente_id:**", st.session_state.get('processo_existente_id'))
+            st.write("**info_basicas_salvas:**", st.session_state.get('info_basicas_salvas'))
+            st.write("**input_processo:**", st.session_state.get('input_processo'))
+
 
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
         tela_cadastro_area()
