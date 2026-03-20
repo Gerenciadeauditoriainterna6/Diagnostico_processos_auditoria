@@ -2050,14 +2050,17 @@ def main():
                     
                     if processo_escolhido:
                         if st.button("📂 Carregar Processo", type="primary", use_container_width=True):
-                            processo_id = id_map[processo_escolhido]
-                            # ===== LIMPAR KEYS DE EDIÇÃO ANTERIORES =====
-                            keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
+                            # ===== LIMPEZA COMPLETA =====
+                            # Remover TODAS as keys de edição
+                            keys_to_clear = [k for k in list(st.session_state.keys()) if k.startswith('edit_')]
                             for key in keys_to_clear:
                                 st.session_state.pop(key, None)
                             
                             # Resetar modo de edição
                             st.session_state['modo_edicao'] = False
+                            
+                            # ===== CARREGAR NOVO PROCESSO =====
+                            processo_id = id_map[processo_escolhido]
                             
                             # Buscar código e dados
                             query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :id")

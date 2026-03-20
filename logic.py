@@ -1438,15 +1438,27 @@ def listar_categorias_do_risco(risco_id):
     
 def carregar_riscos_processo_para_edicao(processo_id):
     """Carrega os riscos do processo para a session_state de edição"""
-    df_riscos = listar_riscos_do_processo(processo_id)
-    # ===== LIMPAR KEYS DE RISCOS ANTERIORES =====
-    keys_to_remove = [k for k in st.session_state.keys() 
-                     if any(k.startswith(prefix) for prefix in 
-                           ['edit_nome_', 'edit_fator_', 'edit_melhoria_', 
-                            'edit_apetite_', 'edit_imp_', 'edit_prob_', 
-                            'edit_motivo_', 'edit_categorias_'])]
+    import streamlit as st
+    
+    # ===== LIMPEZA AGRESSIVA DE TODAS AS KEYS DE EDIÇÃO DE RISCOS =====
+    # Remover a lista principal
+    if 'edit_riscos' in st.session_state:
+        st.session_state.pop('edit_riscos', None)
+    
+    # Remover todas as keys que começam com edit_ e são relacionadas a riscos
+    keys_to_remove = []
+    for key in list(st.session_state.keys()):
+        if key.startswith('edit_nome_') or key.startswith('edit_fator_') or \
+           key.startswith('edit_melhoria_') or key.startswith('edit_apetite_') or \
+           key.startswith('edit_imp_') or key.startswith('edit_prob_') or \
+           key.startswith('edit_motivo_') or key.startswith('edit_categorias_'):
+            keys_to_remove.append(key)
+    
     for key in keys_to_remove:
         st.session_state.pop(key, None)
+    
+    # ===== CARREGAR NOVOS RISCOS =====
+    df_riscos = listar_riscos_do_processo(processo_id)
     
     if not df_riscos.empty:
         st.session_state['edit_riscos'] = []
@@ -1463,6 +1475,9 @@ def carregar_riscos_processo_para_edicao(processo_id):
             st.session_state[f'edit_prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
     else:
         st.session_state['edit_riscos'] = [{}]
+    
+    # DEBUG - para verificar o que foi carregado
+    print(f"🔍 Riscos carregados: {len(st.session_state['edit_riscos'])} riscos")
 
 def salvar_edicao_processo():
     """Salva as alterações de um processo existente"""
