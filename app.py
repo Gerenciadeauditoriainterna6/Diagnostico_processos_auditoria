@@ -1880,7 +1880,6 @@ def main():
                             if len(st.session_state['riscos']) > 1:
                                 if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True):
                                     indices_para_remover.append(i)
-                                    st.rerun()
                         st.divider()
 
                         # Campos do risco
