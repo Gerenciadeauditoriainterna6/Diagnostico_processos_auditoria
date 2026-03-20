@@ -690,6 +690,7 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_fim'] = ""
         st.session_state['input_produto'] = ""
         st.session_state['info_basicas_salvas'] = False
+        
 def normalizar_valor_risco(valor):
     """
     Converte valores de risco para o formato correto:

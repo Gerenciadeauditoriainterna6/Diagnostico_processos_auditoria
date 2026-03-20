@@ -1656,8 +1656,8 @@ def main():
                 st.session_state.pop('processo_existente_id', None)
             if 'executores_selecionados' in st.session_state:
                 st.session_state.pop('executores_selecionados', None)
-            if 'info_basicas_salvas' in st.session_state:
-                st.session_state['info_basicas_salvas'] = False
+            #if 'info_basicas_salvas' in st.session_state:
+             #   st.session_state['info_basicas_salvas'] = False
             if 'riscos' not in st.session_state or len(st.session_state['riscos']) == 0:
                 st.session_state['riscos'] = [{}]
             
@@ -1827,6 +1827,10 @@ def main():
                     if 'executores_selecionados' in st.session_state:
                         st.session_state.pop('executores_selecionados')
                     st.rerun()
+       
+                    # DEBUG - mostrar o valor atual da flag
+                    st.write(f"🔍 DEBUG: info_basicas_salvas = {st.session_state.get('info_basicas_salvas', False)}")
+                    st.write(f"🔍 DEBUG: codigo_processo_display = {st.session_state.get('codigo_processo_display', '')}")
 
             st.divider()
 
