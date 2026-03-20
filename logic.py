@@ -760,14 +760,17 @@ def salvar_no_banco():
                 processo_id = conn.execute(sql_p, params_insert).scalar()
                 st.session_state['processo_existente_id'] = processo_id
 
-            # ===== RISCOS COM CATEGORIA =====
+            # ===== RISCOS COM MÚLTIPLAS CATEGORIAS =====
+            # Remove todos os riscos antigos do processo
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
 
+            # Query para inserir risco (SEM categoria)
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
-                 apetite_risco, motivo_risco, score_risco, categoria) 
-                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
+                 apetite_risco, motivo_risco, score_risco) 
+                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                RETURNING id
             """)
             
             for i in range(len(st.session_state['riscos'])):
@@ -780,7 +783,8 @@ def salvar_no_banco():
 
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
-                conn.execute(sql_risco, {
+                # Inserir o risco e obter o ID gerado
+                result = conn.execute(sql_risco, {
                     "pid": processo_id, 
                     "nome": st.session_state.get(f"nome_{i}"), 
                     "fator": st.session_state.get(f"fator_{i}"), 
@@ -789,9 +793,20 @@ def salvar_no_banco():
                     "prob": prob, 
                     "apetite": st.session_state.get(f"apetite_{i}"), 
                     "motivo": st.session_state.get(f"motivo_{i}"), 
-                    "score": score,
-                    "categoria": st.session_state.get(f"categoria_{i}", "Risco Inerente")  # ← NOVO CAMPO
+                    "score": score
                 })
+                
+                # Pega o ID do risco recém-inserido
+                risco_id = result.scalar()
+                
+                # ===== SALVAR CATEGORIAS DO RISCO =====
+                categorias_ids = st.session_state.get(f"categorias_{i}", [])
+                if categorias_ids:
+                    for cat_id in categorias_ids:
+                        conn.execute(
+                            text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
+                            {"rid": risco_id, "cid": cat_id}
+                        )
             
             st.session_state['ultimo_processo_id'] = processo_id
             
@@ -1224,13 +1239,18 @@ def salvar_informacoes_basicas():
         return False
 
 def listar_riscos_do_processo(processo_id):
-    """Retorna todos os riscos de um processo"""
+    """Retorna todos os riscos de um processo com suas categorias"""
     query = text("""
-        SELECT id, nome_risco, fator_risco, melhoria, impacto, probabilidade,
-               apetite_risco, motivo_risco, score_risco, categoria
-        FROM riscos
-        WHERE processo_id = :pid
-        ORDER BY id
+        SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
+               r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
+               ARRAY_AGG(c.id) as categorias_ids,
+               ARRAY_AGG(c.nome) as categorias_nomes
+        FROM riscos r
+        LEFT JOIN risco_categorias rc ON r.id = rc.risco_id
+        LEFT JOIN categorias_risco c ON rc.categoria_id = c.id
+        WHERE r.processo_id = :pid
+        GROUP BY r.id
+        ORDER BY r.id
     """)
     
     with engine.connect() as conn:
@@ -1368,3 +1388,50 @@ def listar_executores_processo_com_nomes(processo_id):
             return []
         return [f"{row['nome_funcionario']} ({row['cargo']})" 
                 for _, row in df.iterrows()]
+
+def listar_categorias():
+    """Retorna todas as categorias disponíveis"""
+    query = text(
+        """SELECT id, nome
+           FROM categorias_risco ORDER BY id 
+        """)
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+        return dict(zip(df['id'], df['nome']))
+
+def salvar_categorias_risco(risco_id, categorias_ids):
+    """Salva as categorias de um risco"""
+    try:
+        with engine.connect() as conn:
+            # Remove categorias antigas
+            conn.execute(
+                text("""
+                    DELETE FROM risco_categorias WHERE risco_id = :rid
+                    """),
+                    {'id': risco_id}
+            )
+
+            # Insere novas categorias
+            if categorias_ids:
+                for cat_id in categorias_ids:
+                    conn.execute(
+                        text(
+                            """INSERT INTO risco_categorias (risco_id, categoria_id)
+                                VALUES (:rid, :cid)
+                            """), {'rid': risco_id, "cid": cat_id}
+                    )
+            return True
+    except Exception as e:
+        print(f"Erro ao salvar categorias: {e}")
+        return False
+
+def listar_categorias_do_risco(risco_id):
+    """Retorna os IDs das categorias de um risco"""
+    query = text(
+        """SELECT categoria_id
+            FROM risco_categorias
+            WHERE risco_id = :rid
+        """)
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params={'rid': risco_id})
+        return df['categoria_id'].tolist() if not df.empty else []

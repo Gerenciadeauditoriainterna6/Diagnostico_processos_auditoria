@@ -17,7 +17,7 @@ listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_a
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
-listar_executores_processo_com_nomes
+listar_executores_processo_com_nomes, listar_categorias
 )
 
 local_storage = LocalStorage()
@@ -1547,11 +1547,11 @@ def carregar_riscos_processo(processo_id):
         keys_to_remove = [key for key in st.session_state.keys() 
                          if any(key.startswith(prefix) for prefix in 
                                ['nome_', 'fator_', 'melhoria_', 'apetite_', 
-                                'imp_', 'prob_', 'motivo_'])]
+                                'imp_', 'prob_', 'motivo_', 'categorias_'])]
         for key in keys_to_remove:
             st.session_state.pop(key)
         
-        # Carregar cada risco com normalização
+        # Carregar cada risco
         for idx, (_, row) in enumerate(df_riscos.iterrows()):
             st.session_state['riscos'].append({})
             
@@ -1561,6 +1561,9 @@ def carregar_riscos_processo(processo_id):
             st.session_state[f'melhoria_{idx}'] = row['melhoria'] or ""
             st.session_state[f'apetite_{idx}'] = row['apetite_risco'] or ""
             st.session_state[f'motivo_{idx}'] = row['motivo_risco'] or ""
+            
+            # Carregar categorias
+            st.session_state[f'categorias_{idx}'] = row['categorias_ids'] if row['categorias_ids'] else []
             
             # NORMALIZAR impacto e probabilidade
             st.session_state[f'imp_{idx}'] = normalizar_valor_risco(row['impacto'])
@@ -1665,7 +1668,7 @@ def main():
             
             # 3. LIMPEZA TOTAL DOS RISCOS
             # Primeiro, identificar TODAS as keys relacionadas a riscos
-            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_', 'categoria_']
+            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_', 'categorias_']
             keys_to_remove = []
             
             for key in list(st.session_state.keys()):
@@ -1861,14 +1864,6 @@ def main():
                             
                             # Carregar riscos
                             carregar_riscos_processo(processo['id'])
-                            # Depois de carregar os riscos, adicione:
-                            with st.expander("🔍 DEBUG - Riscos carregados"):
-                                for i in range(len(st.session_state['riscos'])):
-                                    st.write(f"**Risco {i+1}:**")
-                                    st.write(f"- Impacto: {st.session_state.get(f'imp_{i}', 'NÃO CARREGADO')}")
-                                    st.write(f"- Probabilidade: {st.session_state.get(f'prob_{i}', 'NÃO CARREGADO')}")
-                                    st.write(f"- Nome: {st.session_state.get(f'nome_{i}', '')}")
-                                    st.divider()
                             
                             st.success(f"Processo {codigo} carregado para edição!")
                             st.rerun()
@@ -2012,12 +2007,18 @@ def main():
                             st.rerun()
 
                 st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
-                # ===== NOVO CAMPO DE CATEGORIA =====
-                st.selectbox(
-                    f"Categoria do Risco:", 
-                    ["Risco Inerente", "Risco de TI", "Risco de Fraude"],
-                    key=f"categoria_{i}",
-                    help="Classifique o tipo de risco"
+                # ===== NOVO CAMPO DE CATEGORIA COM MULTISELEÇÃO=====
+                categorias_dict = listar_categorias()
+                opcoes_categorias = list(categorias_dict.values())
+                ids_categorias = list(categorias_dict.keys())
+
+                st.multiselect(
+                    f"Categorias do Risco:", 
+                    options=ids_categorias,
+                    format_func=lambda x: categorias_dict[x],
+                    default=st.session_state.get(f'categorias_{i}', []),
+                    key=f"categorias_{i}",
+                    help="Selecione uma ou mais categorias para este risco"
                 )
                 st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
                 st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
@@ -2034,7 +2035,7 @@ def main():
                 st.markdown("---")
             for idx in reversed(indices_para_remover):
                 st.session_state['riscos'].pop(idx)
-                keys_to_remove = [f'nome_{idx}', f'categoria_{idx}', f'fator_{idx}', f'melhoria_{idx}', 
+                keys_to_remove = [f'nome_{idx}', f'categorias_{idx}', f'fator_{idx}', f'melhoria_{idx}', 
                       f'apetite_{idx}', f'imp_{idx}', f'prob_{idx}', f'motivo_{idx}']
                 for key in keys_to_remove:
                     if key in st.session_state:
