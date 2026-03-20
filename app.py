@@ -1859,17 +1859,6 @@ def main():
                 
                 st.subheader("3. Riscos Associados")
 
-                indices_para_remover = []
-
-                col_add_risco, col_spacer = st.columns([1, 3])
-                with col_add_risco:
-                    if st.button("➕ Adicionar Risco", key="add_risco_main", use_container_width=True):
-                        st.session_state['riscos'].append({})
-                        st.rerun()
-
-                # Lista para armazenar índices a remover
-                indices_para_remover = []
-
                 # Mostrar cada risco em um expander
                 for i, _ in enumerate(st.session_state['riscos']):
                     # Título do expander
