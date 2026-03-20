@@ -762,7 +762,7 @@ def salvar_no_banco():
                 sql_p = text("""
                     INSERT INTO processos 
                     (id_area, area, codigo_processo, nome_processo, objetivo, executor, 
-                     descricao, etapa_ini, etapa_fim, produto, status, criticidade, categoria) 
+                     descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES 
                     (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) 
                     RETURNING id
@@ -780,7 +780,6 @@ def salvar_no_banco():
                     "ef": st.session_state.get('input_etapa_fim', ''),
                     "p": st.session_state.get('input_produto', ''),
                     "st": "Ativo",
-                    "crit": "A definir",
                     "cat": "Geral"
                 }
                 processo_id = conn.execute(sql_p, params_insert).scalar()
