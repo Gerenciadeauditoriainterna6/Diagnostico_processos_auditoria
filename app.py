@@ -2328,7 +2328,7 @@ def main():
                     st.info("📌 Nenhum risco cadastrado para este processo. Clique em 'Adicionar Risco' para começar.")
                 
                 # ===== BOTÕES DE AÇÃO =====
-                col_add_bottom, col_save_bottom, col_cancel_bottom = st.columns(2)
+                col_save_bottom, col_cancel_bottom = st.columns(2)
                 
                 with col_save_bottom:
                     if st.button("💾 Salvar Alterações", type="primary", key="edit_save", use_container_width=True):
