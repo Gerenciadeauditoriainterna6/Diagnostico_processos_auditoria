@@ -2294,7 +2294,7 @@ def main():
                 # Botões de ação
                 col_add_bottom, col_save_bottom, col_cancel_bottom = st.columns([1, 1, 1])
                 with col_add_bottom:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco_bottom", use_container_width=True):
+                    if st.button("➕ Adicionar Risco", key="edit_add_risco_bottom_{processo_id}", use_container_width=True):
                         if 'edit_riscos' not in st.session_state:
                             st.session_state['edit_riscos'] = []
                         st.session_state['edit_riscos'].append({})
