@@ -2189,17 +2189,6 @@ def main():
                 # ===== RISCOS ASSOCIADOS =====
                 st.markdown("### Riscos Associados")
                 
-                # Botão para adicionar risco (sempre visível)
-                col_add_risco_edit, col_spacer_edit = st.columns([1, 4])
-                with col_add_risco_edit:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco_main", use_container_width=True):
-                        if 'edit_riscos' not in st.session_state:
-                            st.session_state['edit_riscos'] = []
-                        st.session_state['edit_riscos'].append({})
-                        st.rerun()
-                
-                st.divider()
-                
                 # ===== EXIBIÇÃO DOS RISCOS =====
                 edit_riscos = st.session_state.get('edit_riscos', [])
                 
