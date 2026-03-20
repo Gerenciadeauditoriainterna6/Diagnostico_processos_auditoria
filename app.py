@@ -365,9 +365,6 @@ def tela_cadastro_area():
 
 def limpar_todos_campos():
     """Limpa todos os campos da tela de diagnóstico - usa reset de formulário"""
-    
-    # Em vez de modificar o session_state diretamente,
-    # vamos usar um flag para indicar que deve limpar
     st.session_state['deve_limpar_diagnostico'] = True
 
 def exibir_criterios_risco():
@@ -1648,488 +1645,346 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
-        # No início do if opcao == "🔍 Diagnóstico dos Processos", após st.title()
-        with st.expander("🔍 DEBUG - Session State Completo", expanded=True):
-            st.write("**executores_selecionados:**", st.session_state.get('executores_selecionados'))
-            st.write("**processo_existente_id:**", st.session_state.get('processo_existente_id'))
-            st.write("**id_area_selecionado:**", st.session_state.get('id_area_selecionado'))
-            st.write("**info_basicas_salvas:**", st.session_state.get('info_basicas_salvas'))
-            st.write("**area_selectbox:**", st.session_state.get('area_selectbox'))
-
-        if 'info_basicas_salvas' not in st.session_state:
-            st.session_state['info_basicas_salvas'] = False
-    
-        # ===== VERIFICAR SE DEVE LIMPAR OS CAMPOS =====
-        if st.session_state.get('deve_limpar_diagnostico', False):
-            
-            st.warning("🔍 DEBUG: Entrou no bloco de limpeza!")
-            
-            # RECRIAR campos com valores vazios
-            st.session_state['input_processo'] = ""
-            st.session_state['input_executor'] = ""
-            st.session_state['codigo_processo'] = ""
-            st.session_state['input_objetivo'] = ""
-            st.session_state['input_descricao'] = ""
-            st.session_state['input_etapa_ini'] = ""
-            st.session_state['input_etapa_fim'] = ""
-            st.session_state['input_produto'] = ""
-            
-            # Remover apenas os IDs
-            ids_remover = ['processo_existente_id', 'ultimo_processo_id', 'auditoria_diagnostico']
-            for id_campo in ids_remover:
-                if id_campo in st.session_state:
-                    st.session_state.pop(id_campo, None)
-            
-            # 3. LIMPEZA TOTAL DOS RISCOS
-            # Primeiro, identificar TODAS as keys relacionadas a riscos
-            prefixos_risco = ['nome_', 'fator_', 'melhoria_', 'apetite_', 'imp_', 'prob_', 'motivo_', 'categorias_']
-            keys_to_remove = []
-            
-            for key in list(st.session_state.keys()):
-                if any(key.startswith(prefix) for prefix in prefixos_risco):
-                    keys_to_remove.append(key)
-            
-            # Remover as keys
-            for key in keys_to_remove:
-                st.session_state.pop(key, None)
-                st.write(f"✅ Removeu: {key}")
-            
-            # 4. RECRIAR A LISTA DE RISCOS
-            # Em vez de apenas um elemento, vamos garantir que seja uma lista vazia
-            # e depois adicionar UM elemento vazio
-            if 'riscos' in st.session_state:
-                st.session_state.pop('riscos')
-            
-            # Criar nova lista com UM risco vazio
-            st.session_state['riscos'] = [{}]
-            
-            # 5. FORÇAR A CRIAÇÃO DAS KEYS DO PRIMEIRO RISCO
-            # Isso garante que o primeiro risco exista com valores vazios
-            idx = 0
-            st.session_state[f'nome_{idx}'] = ""
-            st.session_state[f'fator_{idx}'] = ""
-            st.session_state[f'melhoria_{idx}'] = ""
-            st.session_state[f'apetite_{idx}'] = ""
-            st.session_state[f'imp_{idx}'] = "Baixo"
-            st.session_state[f'prob_{idx}'] = "Baixo"
-            st.session_state[f'motivo_{idx}'] = ""
-
-            # 6. Remover o flag
-            st.session_state.pop('deve_limpar_diagnostico')
-
-            if 'executores_selecionados' in st.session_state:
-                st.session_state.pop('executores_selecionados')
-            
-            st.success("✅ Limpeza concluída! Recarregando...")
-            time_module.sleep(2)
-            st.rerun()
-
-        st.title("Diagnóstico de Processos - FUSVE")
-        st.markdown("""
-        <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
-            <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
-            <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
-        </div>
-        """, unsafe_allow_html=True)
         
-        # ===== SEÇÃO 0: VINCULAR À AUDITORIA =====
-        st.subheader("1. Vincular à Auditoria")
-
-        def listar_auditorias_para_area(id_area):
-            query = text("""
-                SELECT id, codigo_auditoria, titulo, trimestre, ano, status
-                FROM auditorias
-                WHERE id_area = :id_area
-                AND status IN ('Planejamento', 'Em Execução')
-                ORDER BY ano DESC, trimestre DESC
-            """)
-            with engine.connect() as conn:
-                return pd.read_sql(query, conn, params={"id_area": id_area})
-
-        st.selectbox(
-            "Selecione a Área:", 
-            list(areas_dict.keys()), 
-            key="area_selectbox", 
-            on_change=atualizar_id_area
-        )
-
-        id_area_atual = st.session_state.get('id_area_selecionado')
-        if id_area_atual:
-            df_funcionarios = listar_funcionarios_area(id_area_atual)
-            if not df_funcionarios.empty:
-                with st.expander("👥 Funcionários da Área", expanded=False):
-                    for _, func in df_funcionarios.iterrows():
-                        st.markdown(f"""
-                        - **{func['nome_funcionario']}**  
-                        *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
-                        """)
-
-        if 'id_area_selecionado' not in st.session_state:
-            st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
-
-        id_area_atual = st.session_state['id_area_selecionado']
-        df_auditorias_area = listar_auditorias_para_area(id_area_atual)
-
-        if not df_auditorias_area.empty:
-            opcoes_auditoria = []
-            for _, row in df_auditorias_area.iterrows():
-                status_emoji = "🟡" if row['status'] == 'Planejamento' else "🟢"
-                opcoes_auditoria.append({
-                    "id": row['id'],
-                    "display": f"{status_emoji} {row['codigo_auditoria']} - {row['titulo']} ({row['ano']} {row['trimestre']}º trim)"
-                })
-            
-            display_list = [item["display"] for item in opcoes_auditoria]
-            id_map = {item["display"]: item["id"] for item in opcoes_auditoria}
-            
-            auditoria_escolhida = st.selectbox(
-                "Escolha a auditoria para vincular este processo:",
-                options=display_list,
-                help="Selecione a auditoria à qual este processo pertence."
-            )
-            
-            st.session_state['auditoria_diagnostico'] = id_map[auditoria_escolhida]
-            auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == id_map[auditoria_escolhida]].iloc[0]
-            st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
-            
-        else:
-            st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
-            if 'auditoria_diagnostico' in st.session_state:
-                st.session_state.pop('auditoria_diagnostico', None)
-
-        st.divider()
+        # NOVA ESTRUTURA COM DUAS ABAS
+        tab_novo, tab_editar = st.tabs(["📝 Novo Processo", "✏️ Editar Processo Existente"])
         
-        # ===== SEÇÃO 1: INFORMAÇÕES BÁSICAS (OBRIGATÓRIAS) =====
-        st.markdown("""
-            <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
-                <h3 style='margin: 0; padding: 0;'>2. Informações Básicas do Processo</h3>
-                <span style='cursor: help; font-size: 1.2rem;' title='Campos obrigatórios para criar o processo'>ⓘ</span>
-            </div>
-        """, unsafe_allow_html=True)
-        st.divider()
-
-        # ===== SEÇÃO DE PESQUISA DE PROCESSOS =====
-        with st.expander("🔍 **Pesquisar processo existente para editar**", expanded=False):
-            col_p1, col_p2 = st.columns([3, 1])
-            
-            with col_p1:
-                # Buscar processos da área selecionada
-                id_area_atual = st.session_state.get('id_area_selecionado')
-                
-                if id_area_atual:
-                    # QUERY CORRIGIDA - Ordenação numérica
-                    query = text("""
-                        SELECT id, codigo_processo, nome_processo
-                        FROM processos
-                        WHERE id_area = :id_area
-                        ORDER BY 
-                            (string_to_array(codigo_processo, '.'))[1]::int,
-                            (string_to_array(codigo_processo, '.'))[2]::int,
-                            (string_to_array(codigo_processo, '.'))[3]::int
-                    """)
-                    
-                    with engine.connect() as conn:
-                        df_processos = pd.read_sql(query, conn, params={"id_area": id_area_atual})
-                    
-                    if not df_processos.empty:
-                        # Criar opções mantendo a ordem do SQL
-                        opcoes = []
-                        for _, row in df_processos.iterrows():
-                            opcoes.append({
-                                "display": f"{row['codigo_processo']} - {row['nome_processo']}",
-                                "codigo": row['codigo_processo'],
-                                "id": row['id']
-                            })
-                        
-                        display_list = [item["display"] for item in opcoes]
-                        
-                        processo_selecionado = st.selectbox(
-                            "Selecione um processo para editar:",
-                            options=[""] + display_list,
-                            key="select_processo_editar"
-                        )
-                    else:
-                        st.info("Nenhum processo cadastrado para esta área.")
-                        processo_selecionado = ""
-            
-            with col_p2:
-                st.markdown("<br>", unsafe_allow_html=True)  # Espaçamento vertical
-                if st.button("📂 Carregar para edição", use_container_width=True):
-                    if processo_selecionado:
-                        codigo = processo_selecionado.split(" - ")[0]
-                        processo = buscar_processo_por_codigo(codigo)
-                        
-                        if processo:
-                            # Carregar dados básicos
-                            st.session_state['input_processo'] = processo['nome_processo']
-                            st.session_state['codigo_processo'] = processo['codigo_processo']
-                            st.session_state['processo_existente_id'] = processo['id']
-                            
-                            # ===== CARREGAR EXECUTORES COM VALIDAÇÃO =====
-                            executores_ids = listar_executores_processo(processo['id'])
-                            
-                            # Validar se os IDs ainda existem na tabela de funcionários
-                            validos = []
-                            for exec_id in executores_ids:
-                                query = text("SELECT id FROM funcionarios_area WHERE id = :fid")
-                                with engine.connect() as conn:
-                                    existe = conn.execute(query, {"fid": exec_id}).fetchone()
-                                    if existe:
-                                        validos.append(exec_id)
-                                    else:
-                                        # Se o executor não existe mais, remover do banco
-                                        with engine.begin() as conn:
-                                            conn.execute(
-                                                text("DELETE FROM processo_executores WHERE processo_id = :pid AND funcionario_id = :fid"),
-                                                {"pid": processo['id'], "fid": exec_id}
-                                            )
-                            
-                            st.session_state['executores_selecionados'] = validos
-                            
-                            # DEBUG
-                            st.info(f"🔍 {len(validos)} executor(es) válido(s) carregado(s)")
-                            
-                            # Carregar detalhamento
-                            st.session_state['input_objetivo'] = processo.get('objetivo', '')
-                            st.session_state['input_descricao'] = processo.get('descricao', '')
-                            st.session_state['input_etapa_ini'] = processo.get('etapa_ini', '')
-                            st.session_state['input_etapa_fim'] = processo.get('etapa_fim', '')
-                            st.session_state['input_produto'] = processo.get('produto', '')
-                            
-                            # Carregar riscos
-                            carregar_riscos_processo(processo['id'])
-                            
-                            st.session_state['info_basicas_salvas'] = True
-                            
-                            st.success(f"Processo {codigo} carregado para edição!")
-                            st.rerun()
-                    else:
-                        st.warning("Selecione um processo.")
-
-        if st.session_state.get('processo_existente_id'):
-            st.info(f"✏️ **Editando processo existente**. Os dados abaixo foram carregados automaticamente.")
-               
-        st.divider()
-
-        # Nome do Processo (obrigatório)
-        nome_processo = st.text_input(
-            "Nome do Processo:", 
-            key="input_processo", 
-            on_change=processar_codigo_inteligente,
-            help="Digite o nome do processo. Se já existir, os dados serão carregados automaticamente."
-        )
-
-        # Código do Processo (gerado automaticamente)
-        st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
-
-
-        # ===== EXECUTORES DO PROCESSO =====
-        st.markdown("**Funcionário(s) que executam o processo:**")
-
-        # Buscar funcionários da área selecionada
-        id_area_atual = st.session_state.get('id_area_selecionado')
-        funcionarios_lista = []
-
-        if id_area_atual:
-            funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
-
-        if not funcionarios_lista:
-            st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas'.")
-            # Inicializar session_state para múltipla escolha
-            if 'executores_selecionados' not in st.session_state:
-                st.session_state['executores_selecionados'] = []
-        else:
-            # Separar IDs e nomes para o multiselect
-            funcionarios_ids = [f[0] for f in funcionarios_lista]
-            funcionarios_nomes = [f[1] for f in funcionarios_lista]
-            
-            # Criar dicionário para mapear ID -> nome
-            funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
-            
-            # VALIDAR OS VALORES PADRÃO - remover IDs que não existem mais
-            defaults_validos = []
+        # ===== TAB 1: NOVO PROCESSO =====
+        with tab_novo:
+            # Resetar estado para novo processo
+            if 'processo_existente_id' in st.session_state:
+                st.session_state.pop('processo_existente_id', None)
             if 'executores_selecionados' in st.session_state:
-                for exec_id in st.session_state['executores_selecionados']:
-                    if exec_id in funcionarios_dict:
-                        defaults_validos.append(exec_id)
-
-            # ===== DEBUG: Mostrar o que está sendo passado =====
-            st.write(f"🔍 DEBUG: IDs de executores no session_state: {st.session_state.get('executores_selecionados', [])}")
-            st.write(f"🔍 DEBUG: IDs válidos para default: {defaults_validos}")
-            st.write(f"🔍 DEBUG: Funcionários disponíveis: {funcionarios_dict}")
-
-            # Antes do multiselect
-            st.write(f"🔍 DEBUG: ID da área atual = {id_area_atual}")
-            st.write(f"🔍 DEBUG: Funcionários disponíveis = {funcionarios_dict}")
-            st.write(f"🔍 DEBUG: Executores no session_state = {st.session_state.get('executores_selecionados', [])}")
-            st.write(f"🔍 DEBUG: Defaults válidos = {defaults_validos}")
-            
-            # Multiselect para escolher vários funcionários
-            selecionados = st.multiselect(
-                "Selecione os funcionários que executam este processo:",
-                options=funcionarios_ids,
-                format_func=lambda x: funcionarios_dict[x],
-                default=defaults_validos,
-                key="multiselect_executores",
-                help="Você pode selecionar um ou mais funcionários"
-            )
-            
-            # Guardar no session_state
-            st.session_state['executores_selecionados'] = selecionados
-            
-            # Mostrar os selecionados em formato de texto (opcional)
-            if selecionados:
-                nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
-                st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
-
-        # Botão para salvar apenas as informações básicas
-        col_b1, col_b2 = st.columns(2)
-        with col_b1:
-            if st.button("💾 Salvar Informações Básicas", type="primary" if not st.session_state['info_basicas_salvas'] else "secondary",  use_container_width=True):
-                if validar_basicos():
-                    with st.spinner("Salvando informações básicas..."):
-                        if salvar_informacoes_basicas():
-                            st.session_state['info_basicas_salvas'] = True
-                            st.success("✅ Informações básicas salvas com sucesso!")
-                            time_module.sleep(2)
-                            st.rerun()
-                        else:
-                            st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
-        with col_b2:
-            # ===== BOTÃO DE LIMPEZA =====
-            if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
-                st.session_state['deve_limpar_diagnostico'] = True
+                st.session_state.pop('executores_selecionados', None)
+            if 'info_basicas_salvas' in st.session_state:
                 st.session_state['info_basicas_salvas'] = False
+            if 'riscos' not in st.session_state or len(st.session_state['riscos']) == 0:
+                st.session_state['riscos'] = [{}]
+            
+            # Limpar flag de limpeza se necessário
+            if st.session_state.get('deve_limpar_diagnostico', False):
+                st.session_state.pop('deve_limpar_diagnostico', None)
                 st.rerun()
+            
+            st.title("Diagnóstico de Processos - FUSVE")
+            st.markdown("""
+            <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
+                <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
+                <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # ===== SEÇÃO 0: VINCULAR À AUDITORIA =====
+            st.subheader("1. Vincular à Auditoria")
 
-        st.divider()
-        
+            def listar_auditorias_para_area(id_area):
+                query = text("""
+                    SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+                    FROM auditorias
+                    WHERE id_area = :id_area
+                    AND status IN ('Planejamento', 'Em Execução')
+                    ORDER BY ano DESC, trimestre DESC
+                """)
+                with engine.connect() as conn:
+                    return pd.read_sql(query, conn, params={"id_area": id_area})
 
-        # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
-        if st.session_state['info_basicas_salvas']:
+            st.selectbox(
+                "Selecione a Área:", 
+                list(areas_dict.keys()), 
+                key="area_selectbox", 
+                on_change=atualizar_id_area
+            )
 
+            id_area_atual = st.session_state.get('id_area_selecionado')
+            if id_area_atual:
+                df_funcionarios = listar_funcionarios_area(id_area_atual)
+                if not df_funcionarios.empty:
+                    with st.expander("👥 Funcionários da Área", expanded=False):
+                        for _, func in df_funcionarios.iterrows():
+                            st.markdown(f"""
+                            - **{func['nome_funcionario']}**  
+                            *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
+                            """)
+
+            if 'id_area_selecionado' not in st.session_state:
+                st.session_state['id_area_selecionado'] = list(areas_dict.values())[0]
+
+            id_area_atual = st.session_state['id_area_selecionado']
+            df_auditorias_area = listar_auditorias_para_area(id_area_atual)
+
+            if not df_auditorias_area.empty:
+                opcoes_auditoria = []
+                for _, row in df_auditorias_area.iterrows():
+                    status_emoji = "🟡" if row['status'] == 'Planejamento' else "🟢"
+                    opcoes_auditoria.append({
+                        "id": row['id'],
+                        "display": f"{status_emoji} {row['codigo_auditoria']} - {row['titulo']} ({row['ano']} {row['trimestre']}º trim)"
+                    })
+                
+                display_list = [item["display"] for item in opcoes_auditoria]
+                id_map = {item["display"]: item["id"] for item in opcoes_auditoria}
+                
+                auditoria_escolhida = st.selectbox(
+                    "Escolha a auditoria para vincular este processo:",
+                    options=display_list,
+                    help="Selecione a auditoria à qual este processo pertence."
+                )
+                
+                st.session_state['auditoria_diagnostico'] = id_map[auditoria_escolhida]
+                auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == id_map[auditoria_escolhida]].iloc[0]
+                st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
+                
+            else:
+                st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
+                if 'auditoria_diagnostico' in st.session_state:
+                    st.session_state.pop('auditoria_diagnostico', None)
+
+            st.divider()
+            
+            # ===== SEÇÃO 1: INFORMAÇÕES BÁSICAS (OBRIGATÓRIAS) =====
             st.markdown("""
                 <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
-                    <h3 style='margin: 0; padding: 0;'>2. Detalhamento do Processo</h3>
-                    <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
+                    <h3 style='margin: 0; padding: 0;'>2. Informações Básicas do Processo</h3>
+                    <span style='cursor: help; font-size: 1.2rem;' title='Campos obrigatórios para criar o processo'>ⓘ</span>
                 </div>
             """, unsafe_allow_html=True)
+            st.divider()
 
-            st.info("ℹ️ Os campos abaixo são opcionais. Você pode preenchê-los agora ou editar depois.")
+            # Nome do Processo (obrigatório)
+            nome_processo = st.text_input(
+                "Nome do Processo:", 
+                key="input_processo", 
+                on_change=processar_codigo_inteligente,
+                help="Digite o nome do processo."
+            )
 
-            st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
-            st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
-                        help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
-            st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
-                        help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
-            st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
-                        help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
-            st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
+            # Código do Processo (gerado automaticamente)
+            st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
 
-            st.write("")
-        
-            # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
-            st.markdown("""
-            <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
-                <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.subheader("3. Riscos Associados")
+            # ===== EXECUTORES DO PROCESSO =====
+            st.markdown("**Funcionário(s) que executam o processo:**")
 
-            # Lista para armazenar índices a remover (não podemos remover durante iteração)
-            indices_para_remover = []
+            # Buscar funcionários da área selecionada
+            id_area_atual = st.session_state.get('id_area_selecionado')
+            funcionarios_lista = []
 
-            for i, _ in enumerate(st.session_state['riscos']):
-                col_titulo_risco, col_remove_risco = st.columns([5, 1])
+            if id_area_atual:
+                funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
+
+            if not funcionarios_lista:
+                st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas'.")
+                if 'executores_selecionados' not in st.session_state:
+                    st.session_state['executores_selecionados'] = []
+            else:
+                funcionarios_ids = [f[0] for f in funcionarios_lista]
+                funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                 
-                with col_titulo_risco:
-                    st.markdown(f"**Risco {i+1}**")
-                
-                with col_remove_risco:
-                # Botão de remover (só aparece se houver mais de 1 risco)
-                    if len(st.session_state['riscos']) > 1:
-                        if st.button("🗑️", key=f"remove_risco_{i}", help="Remover este risco"):
-                            indices_para_remover.append(i)
-                            st.rerun()
+                defaults_validos = []
+                if 'executores_selecionados' in st.session_state:
+                    for exec_id in st.session_state['executores_selecionados']:
+                        if exec_id in funcionarios_dict:
+                            defaults_validos.append(exec_id)
 
-                st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente? 2º  Categorizar os Riscos identificados em: (RISCOS INERENTES ao processo, RISCO DE T.I E RISCO DE FRAUDE vunerabilidades de atos de irregularidades)")
-                # ===== NOVO CAMPO DE CATEGORIA COM MULTISELEÇÃO=====
-                categorias_dict = listar_categorias()
-                opcoes_categorias = list(categorias_dict.values())
-                ids_categorias = list(categorias_dict.keys())
-
-                st.multiselect(
-                    f"Categorias do Risco:", 
-                    options=ids_categorias,
-                    format_func=lambda x: categorias_dict[x],
-                    default=st.session_state.get(f'categorias_{i}', []),
-                    key=f"categorias_{i}",
-                    help="Selecione uma ou mais categorias para este risco"
+                selecionados = st.multiselect(
+                    "Selecione os funcionários que executam este processo:",
+                    options=funcionarios_ids,
+                    format_func=lambda x: funcionarios_dict[x],
+                    default=defaults_validos,
+                    key="multiselect_executores",
+                    help="Você pode selecionar um ou mais funcionários"
                 )
-                st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
-                st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
-                st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto.")
-                exibir_criterios_risco()
-                col_i, col_p = st.columns(2)
-                with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
-                with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer? Mediante isso, podemos criar os níveis que iremos classificar a probabilidade do risco acontecer.")
                 
-                score_v = MAPA_RISCO.get((st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")), 0)
-                cor, emoji = get_estilo_risco(score_v)
-                st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
-                st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
-                st.markdown("---")
-            for idx in reversed(indices_para_remover):
-                st.session_state['riscos'].pop(idx)
-                keys_to_remove = [f'nome_{idx}', f'categorias_{idx}', f'fator_{idx}', f'melhoria_{idx}', 
-                      f'apetite_{idx}', f'imp_{idx}', f'prob_{idx}', f'motivo_{idx}']
-                for key in keys_to_remove:
-                    if key in st.session_state:
-                        st.session_state.pop(key)
-            if indices_para_remover:
-                st.rerun()
+                st.session_state['executores_selecionados'] = selecionados
+                
+                if selecionados:
+                    nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
+                    st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
 
-            col_add, col_save = st.columns(2)
-            if col_add.button("➕ Adicionar Risco"):
-                st.session_state['riscos'].append({})
-                st.rerun()
-            
-            if col_save.button("💾 Salvar Todos os Dados", type="primary"):
-                if validar_formulario() and salvar_no_banco():
-                    # Vincular à auditoria após salvar
-                    if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
-                        auditoria_id = st.session_state['auditoria_diagnostico']
-                        processo_id = st.session_state.get('ultimo_processo_id')
-                        
-                        if processo_id:
-                            vincular_processo_a_auditoria(
-                                auditoria_id=auditoria_id,
-                                processo_id=processo_id,
-                                motivo="Processo identificado durante diagnóstico da área"
-                            )
-                            st.success("Processo vinculado à auditoria com sucesso!")
-                    
-                    st.success("Dados salvos!")
-                    st.session_state['deve_limpar'] = True
+            # Botão para salvar informações básicas
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True):
+                    if validar_basicos():
+                        with st.spinner("Salvando informações básicas..."):
+                            if salvar_informacoes_basicas():
+                                st.session_state['info_basicas_salvas'] = True
+                                st.success("✅ Informações básicas salvas com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
+            with col_b2:
+                if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
+                    st.session_state['deve_limpar_diagnostico'] = True
+                    st.session_state['info_basicas_salvas'] = False
+                    if 'executores_selecionados' in st.session_state:
+                        st.session_state.pop('executores_selecionados')
                     st.rerun()
-        else:
-            st.info("👆 **Primeiro, preencha e salve as Informações Básicas do Processo.**")
-            st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
-    
-        # DEBUG
-        with st.expander("🔍 DEBUG - Estado da Sessão"):
-            st.write("**executores_selecionados:**", st.session_state.get('executores_selecionados', []))
-            st.write("**processo_existente_id:**", st.session_state.get('processo_existente_id'))
-            st.write("**info_basicas_salvas:**", st.session_state.get('info_basicas_salvas'))
-            st.write("**input_processo:**", st.session_state.get('input_processo'))
 
+            st.divider()
+
+            # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
+            if st.session_state.get('info_basicas_salvas', False):
+
+                st.markdown("""
+                    <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
+                        <h3 style='margin: 0; padding: 0;'>2. Detalhamento do Processo</h3>
+                        <span style='cursor: help; font-size: 1.2rem;' title='Campos opcionais para complementar o diagnóstico'>ⓘ</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                st.info("ℹ️ Os campos abaixo são opcionais. Você pode preenchê-los agora ou editar depois.")
+
+                st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
+                st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
+                            help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
+                st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
+                            help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
+                st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
+                            help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
+                st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
+
+                st.write("")
+            
+                # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
+                st.markdown("""
+                <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
+                    <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.subheader("3. Riscos Associados")
+
+                indices_para_remover = []
+
+                for i, _ in enumerate(st.session_state['riscos']):
+                    col_titulo_risco, col_remove_risco = st.columns([5, 1])
+                    
+                    with col_titulo_risco:
+                        st.markdown(f"**Risco {i+1}**")
+                    
+                    with col_remove_risco:
+                        if len(st.session_state['riscos']) > 1:
+                            if st.button("🗑️", key=f"remove_risco_{i}", help="Remover este risco"):
+                                indices_para_remover.append(i)
+                                st.rerun()
+
+                    st.text_input(f"Nome do Risco:", key=f"nome_{i}", help="1º Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente?")
+                    
+                    categorias_dict = listar_categorias()
+                    ids_categorias = list(categorias_dict.keys())
+
+                    st.multiselect(
+                        f"Categorias do Risco:", 
+                        options=ids_categorias,
+                        format_func=lambda x: categorias_dict[x],
+                        default=st.session_state.get(f'categorias_{i}', []),
+                        key=f"categorias_{i}",
+                        help="Selecione uma ou mais categorias para este risco"
+                    )
+                    st.text_area(f"Fator de Risco:", key=f"fator_{i}", help="Fator de risco, causa ou motivo desse risco acontecer?")
+                    st.text_area(f"Ponto de Melhoria:", key=f"melhoria_{i}", help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?")
+                    st.text_area(f"Apetite ao risco:", key=f"apetite_{i}", help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco.")
+                    exibir_criterios_risco()
+                    col_i, col_p = st.columns(2)
+                    with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"imp_{i}", help="Impacto do risco materializado")
+                    with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"prob_{i}", help="Probabilidade do risco acontecer?")
+                    
+                    score_v = MAPA_RISCO.get((st.session_state.get(f"imp_{i}"), st.session_state.get(f"prob_{i}")), 0)
+                    cor, emoji = get_estilo_risco(score_v)
+                    st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto (Impacto + Probabilidade): {score_v}</div>', unsafe_allow_html=True)
+                    st.text_area(f"Motivo:", key=f"motivo_{i}", help="Qual o motivo da classificação do nivel da probabilidade? - ANÁLISE")
+                    st.markdown("---")
+                
+                for idx in reversed(indices_para_remover):
+                    st.session_state['riscos'].pop(idx)
+                    keys_to_remove = [f'nome_{idx}', f'categorias_{idx}', f'fator_{idx}', f'melhoria_{idx}', 
+                          f'apetite_{idx}', f'imp_{idx}', f'prob_{idx}', f'motivo_{idx}']
+                    for key in keys_to_remove:
+                        if key in st.session_state:
+                            st.session_state.pop(key)
+                if indices_para_remover:
+                    st.rerun()
+
+                col_add, col_save = st.columns(2)
+                if col_add.button("➕ Adicionar Risco"):
+                    st.session_state['riscos'].append({})
+                    st.rerun()
+                
+                if col_save.button("💾 Salvar Todos os Dados", type="primary"):
+                    if validar_formulario() and salvar_no_banco():
+                        if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
+                            auditoria_id = st.session_state['auditoria_diagnostico']
+                            processo_id = st.session_state.get('ultimo_processo_id')
+                            
+                            if processo_id:
+                                vincular_processo_a_auditoria(
+                                    auditoria_id=auditoria_id,
+                                    processo_id=processo_id,
+                                    motivo="Processo identificado durante diagnóstico da área"
+                                )
+                                st.success("Processo vinculado à auditoria com sucesso!")
+                        
+                        st.success("Dados salvos!")
+                        st.session_state['deve_limpar'] = True
+                        st.rerun()
+            else:
+                st.info("👆 **Primeiro, preencha e salve as Informações Básicas do Processo.**")
+                st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
+        
+        # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
+        with tab_editar:
+            st.title("✏️ Editar Processo Existente")
+            st.markdown("Selecione um processo abaixo para editar suas informações.")
+            
+            # Buscar processos da área selecionada
+            id_area_atual = st.session_state.get('id_area_selecionado')
+            
+            if id_area_atual:
+                query = text("""
+                    SELECT id, codigo_processo, nome_processo
+                    FROM processos
+                    WHERE id_area = :id_area
+                    ORDER BY 
+                        (string_to_array(codigo_processo, '.'))[1]::int,
+                        (string_to_array(codigo_processo, '.'))[2]::int,
+                        (string_to_array(codigo_processo, '.'))[3]::int
+                """)
+                
+                with engine.connect() as conn:
+                    df_processos = pd.read_sql(query, conn, params={"id_area": id_area_atual})
+                
+                if not df_processos.empty:
+                    opcoes = []
+                    for _, row in df_processos.iterrows():
+                        opcoes.append({
+                            "display": f"{row['codigo_processo']} - {row['nome_processo']}",
+                            "id": row['id']
+                        })
+                    
+                    display_list = [item["display"] for item in opcoes]
+                    id_map = {item["display"]: item["id"] for item in opcoes}
+                    
+                    processo_escolhido = st.selectbox(
+                        "Selecione o processo para editar:",
+                        options=[""] + display_list,
+                        key="select_processo_editar_tab"
+                    )
+                    
+                    if processo_escolhido:
+                        if st.button("📂 Carregar Processo", type="primary", use_container_width=True):
+                            processo_id = id_map[processo_escolhido]
+                            carregar_dados_processo_para_edicao(processo_id)
+                            st.success("Processo carregado para edição! Vá para a aba 'Novo Processo' para editar.")
+                            st.rerun()
+                else:
+                    st.info("Nenhum processo cadastrado para esta área.")
+            else:
+                st.info("Selecione uma área no menu superior para ver os processos disponíveis.")
 
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
         tela_cadastro_area()
 
     elif opcao == "👁️ Visão Geral do Diagnóstico":
-        #tela_consulta_detalhada() -> Antiga função
         tela_visao_geral_processos()
 
     elif opcao == "Geração de Relatórios":
@@ -2142,7 +1997,6 @@ def main():
             df = st.session_state['df_pendentes']
             st.dataframe(df)
             
-            # O on_change limpa o 'pdf_pronto' toda vez que o usuário escolhe um processo novo
             codigo_selecionado = st.selectbox(
                 "Selecione o Código do Processo:", 
                 df['codigo_processo'].tolist(),
@@ -2160,7 +2014,6 @@ def main():
                 else:
                     st.error("Erro ao gerar PDF.")
             
-            # Download button preenchido corretamente
             if 'pdf_pronto' in st.session_state:
                 st.download_button(
                     label="📥 Baixar Relatório em PDF",
@@ -2173,31 +2026,22 @@ def main():
 
     elif opcao == "📅 Plano Anual de Auditoria":
         
-        # 1. CSS ULTRA AGRESSIVO
-        # Aqui atacamos o 'stApp', que é o pai de todos os elementos
         st.markdown("""
             <style>
-                /* Remove o limite de largura de TODA a página */
                 .main .block-container {
                     max-width: 98vw !important;
                     padding-left: 1rem !important;
                     padding-right: 1rem !important;
                 }
-                
-                /* Força o título e textos a irem para o canto esquerdo real */
                 .stMarkdown, .stTitle, .stText {
                     width: 100% !important;
                     text-align: left !important;
                 }
-
-                /* Alvo: O visualizador de PDF */
                 #pdfViewer, .scrolling-container {
                     width: 95vw !important;
                     max-width: 95vw !important;
                     margin-left: 0 !important;
                 }
-
-                /* Garante que os frames internos não limitem a largura */
                 iframe {
                     width: 100% !important;
                 }
@@ -2207,13 +2051,10 @@ def main():
         st.title("📊 Plano Anual de Auditoria - 2026")
         st.write("Visualize abaixo as diretrizes e o cronograma para o ano atual.")
 
-        # Caminho dinâmico (Assets)
         caminho_pdf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "plano_auditoria_2026.pdf")
 
         if os.path.exists(caminho_pdf):
             try:
-                # 2. Chamada sem largura fixa para deixar o CSS acima mandar
-                # Aumentei a resolução para não perder qualidade ao esticar
                 pdf_viewer(caminho_pdf, height=900)
             except Exception as e:
                 st.error(f"Erro ao carregar o visualizador: {e}")
@@ -2231,20 +2072,15 @@ def main():
         else:
             st.warning("⚠️ Arquivo não encontrado na pasta assets.")
 
-    elif opcao == "📋 Detalhamento dos Processos": #@ Chamaremos de detalhamento dos processos
-        # Verifica se há uma auditoria selecionada para detalhar
+    elif opcao == "📋 Detalhamento dos Processos":
         if 'processo_detalhe' in st.session_state:
             tela_detalhe_processo_auditoria()
-        # Verifica se há uma auditoria selecionada para detalhar
         elif 'auditoria_selecionada' in st.session_state:
             tela_detalhe_auditoria()
         else:
             tela_auditorias_trimestrais()
 
 
-
-
-            
 # --- DISPARADOR FINAL ---
 
 if __name__ == "__main__":
