@@ -1859,6 +1859,9 @@ def main():
                 
                 st.subheader("3. Riscos Associados")
 
+                # Lista para armazenar índices a remover - NÃO REMOVA ESTA LINHA!
+                indices_para_remover = []
+
                 # Mostrar cada risco em um expander
                 for i, _ in enumerate(st.session_state['riscos']):
                     # Título do expander
