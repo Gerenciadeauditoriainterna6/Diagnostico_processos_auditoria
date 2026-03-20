@@ -1759,7 +1759,12 @@ def main():
             )
 
             # Código do Processo (gerado automaticamente)
-            st.text_input("Código do Processo:", key="codigo_processo_display", disabled=True)
+            # Usando uma key diferente para evitar conflito com a variável que queremos modificar
+            st.text_input("Código do Processo:", key="codigo_processo_widget", disabled=True)
+
+            # Sincronizar o valor do widget com a variável de estado
+            if 'codigo_processo_display' in st.session_state:
+                st.session_state['codigo_processo_widget'] = st.session_state['codigo_processo_display']
 
             # ===== EXECUTORES DO PROCESSO =====
             st.markdown("**Funcionário(s) que executam o processo:**")
