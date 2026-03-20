@@ -1659,7 +1659,7 @@ def main():
             #if 'info_basicas_salvas' in st.session_state:
              #   st.session_state['info_basicas_salvas'] = False
             if 'riscos' not in st.session_state or len(st.session_state['riscos']) == 0:
-                st.session_state['riscos'] = [{}]
+                st.session_state['riscos'] = []
             
             # Limpar flag de limpeza se necessário
             if st.session_state.get('deve_limpar_diagnostico', False):
@@ -1823,10 +1823,6 @@ def main():
                     if 'executores_selecionados' in st.session_state:
                         st.session_state.pop('executores_selecionados')
                     st.rerun()
-       
-                # DEBUG - mostrar o valor atual da flag
-                st.write(f"🔍 DEBUG: info_basicas_salvas = {st.session_state.get('info_basicas_salvas', False)}")
-                st.write(f"🔍 DEBUG: codigo_processo_display = {st.session_state.get('codigo_processo_display', '')}")
 
             st.divider()
 
