@@ -2141,13 +2141,13 @@ def main():
                 
                 # ===== EXECUTORES =====
                 st.markdown("**Funcionário(s) que executam o processo:**")
-                
+
                 id_area_atual = st.session_state.get('id_area_selecionado')
                 funcionarios_lista = []
-                
+
                 if id_area_atual:
                     funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
-                
+
                 if not funcionarios_lista:
                     st.warning("⚠️ Nenhum funcionário cadastrado para esta área.")
                 else:
@@ -2169,6 +2169,11 @@ def main():
                     st.write(f"🔍 KEY do multiselect: {multiselect_key}")
                     st.write(f"🔍 Executores no session_state: {executores_atuais}")
                     st.write(f"🔍 Defaults válidos: {defaults_validos}")
+                    st.write(f"🔍 Funcionários disponíveis: {funcionarios_dict}")
+                    
+                    # Se não há defaults válidos, mostrar uma mensagem
+                    if not defaults_validos and executores_atuais:
+                        st.warning(f"⚠️ Os executores {executores_atuais} não foram encontrados na lista de funcionários da área.")
                     
                     selecionados = st.multiselect(
                         "Selecione os funcionários que executam este processo:",
