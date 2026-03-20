@@ -2191,18 +2191,9 @@ def main():
                     else:
                         titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
                     
-                    with st.expander(titulo_expander, expanded=False):
-                        # Cabeçalho com botão de remover
-                        col_titulo, col_remove = st.columns([5, 1])
-                        with col_titulo:
-                            st.markdown(f"**Detalhes do Risco {i+1}**")
-                        with col_remove:
-                            if len(st.session_state.get('edit_riscos', [])) > 1:
-                                if st.button("🗑️ Remover Risco", key=f"edit_remove_risco_{i}", use_container_width=True):
-                                    indices_para_remover_edit.append(i)
-                                    st.rerun()
-                        
-                        st.divider()
+                    # ===== ADICIONAR KEY ÚNICA BASEADA NO ID DO PROCESSO =====
+                    processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
+                    with st.expander(titulo_expander, expanded=False, key=f"edit_risco_expander_{processo_id}_{i}"):
                         
                         # Campos do risco
                         st.text_input(
