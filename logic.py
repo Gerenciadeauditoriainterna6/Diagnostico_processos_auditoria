@@ -655,14 +655,14 @@ def processar_codigo_inteligente():
         
     else:
         # Processo novo - gerar código baseado no último código da área
+        # Usando ordenação numérica correta
         ultimo_codigo_query = text("""
             SELECT codigo_processo 
             FROM processos 
             WHERE id_area = :id_area
             ORDER BY 
-                (string_to_array(codigo_processo, '.'))[1]::int,
-                (string_to_array(codigo_processo, '.'))[2]::int,
-                (string_to_array(codigo_processo, '.'))[3]::int DESC
+                CAST(split_part(codigo_processo, '.', 1) AS INTEGER),
+                CAST(split_part(codigo_processo, '.', 2) AS INTEGER) DESC
             LIMIT 1
         """)
         
@@ -670,10 +670,10 @@ def processar_codigo_inteligente():
             ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area}).scalar()
         
         if ultimo:
-            # Extrair o número após o último ponto
+            # Extrair o número após o ponto
             partes = ultimo.split('.')
             if len(partes) >= 2:
-                ultimo_numero = int(partes[-1])
+                ultimo_numero = int(partes[1])
                 novo_numero = ultimo_numero + 1
                 codigo = f"{id_area}.{novo_numero}"
             else:
@@ -1230,15 +1230,14 @@ def salvar_informacoes_basicas():
                 processo_id = processo_existente_id
             else:
                 # GERAR CÓDIGO DO PROCESSO ANTES DE INSERIR
-                # Buscar o último código para esta área
+                # Buscar o último código para esta área com ordenação numérica correta
                 ultimo_codigo_query = text("""
                     SELECT codigo_processo 
                     FROM processos 
                     WHERE id_area = :id_area
                     ORDER BY 
-                        (string_to_array(codigo_processo, '.'))[1]::int,
-                        (string_to_array(codigo_processo, '.'))[2]::int,
-                        (string_to_array(codigo_processo, '.'))[3]::int DESC
+                        CAST(split_part(codigo_processo, '.', 1) AS INTEGER),
+                        CAST(split_part(codigo_processo, '.', 2) AS INTEGER) DESC
                     LIMIT 1
                 """)
                 
@@ -1248,7 +1247,7 @@ def salvar_informacoes_basicas():
                     # Extrair o número após o último ponto
                     partes = ultimo.split('.')
                     if len(partes) >= 2:
-                        ultimo_numero = int(partes[-1])
+                        ultimo_numero = int(partes[1])
                         novo_numero = ultimo_numero + 1
                         codigo_processo = f"{id_area_val}.{novo_numero}"
                     else:
