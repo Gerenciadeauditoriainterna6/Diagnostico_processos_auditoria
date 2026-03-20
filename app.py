@@ -1660,6 +1660,18 @@ def main():
              #   st.session_state['info_basicas_salvas'] = False
             if 'riscos' not in st.session_state or len(st.session_state['riscos']) == 0:
                 st.session_state['riscos'] = []
+
+            # ===== LIMPEZA PÓS-SALVO (NOVO) =====
+            if st.session_state.get('deve_limpar_diagnostico', False):
+                campos_to_reset = ["input_processo", "input_objetivo", "input_descricao", 
+                                "input_etapa_ini", "input_etapa_fim", "input_produto"]
+                for campo in campos_to_reset:
+                    if campo in st.session_state:
+                        st.session_state[campo] = ""
+                st.session_state['riscos'] = []
+                st.session_state['info_basicas_salvas'] = False
+                st.session_state['deve_limpar_diagnostico'] = False
+                st.rerun()
             
             # Limpar flag de limpeza se necessário
             if st.session_state.get('deve_limpar_diagnostico', False):
@@ -1997,7 +2009,7 @@ def main():
                                     )
                                     st.success("Processo vinculado à auditoria com sucesso!")
                             st.success("Dados salvos!")
-                            st.session_state['deve_limpar'] = True
+                            st.session_state['deve_limpar_diagnostico'] = True
                             st.rerun()
                 
             else:
