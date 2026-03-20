@@ -1573,7 +1573,7 @@ def carregar_riscos_processo(processo_id):
             st.session_state[f'imp_{idx}'] = normalizar_valor_risco(row['impacto'])
             st.session_state[f'prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
     else:
-        st.session_state['riscos'] = [{}]
+        st.session_state['riscos'] = []
 
 # --- 5. Execução do app ---
 
