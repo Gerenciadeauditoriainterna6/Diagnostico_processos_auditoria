@@ -1762,10 +1762,6 @@ def main():
             codigo_atual = st.session_state.get('codigo_processo_display', '')
             st.text_input("Código do Processo:", value=codigo_atual, disabled=True)
 
-            # Sincronizar o valor do widget com a variável de estado
-            if 'codigo_processo_display' in st.session_state:
-                st.session_state['codigo_processo_widget'] = st.session_state['codigo_processo_display']
-
             # ===== EXECUTORES DO PROCESSO =====
             st.markdown("**Funcionário(s) que executam o processo:**")
 
@@ -1828,9 +1824,9 @@ def main():
                         st.session_state.pop('executores_selecionados')
                     st.rerun()
        
-                    # DEBUG - mostrar o valor atual da flag
-                    st.write(f"🔍 DEBUG: info_basicas_salvas = {st.session_state.get('info_basicas_salvas', False)}")
-                    st.write(f"🔍 DEBUG: codigo_processo_display = {st.session_state.get('codigo_processo_display', '')}")
+                # DEBUG - mostrar o valor atual da flag
+                st.write(f"🔍 DEBUG: info_basicas_salvas = {st.session_state.get('info_basicas_salvas', False)}")
+                st.write(f"🔍 DEBUG: codigo_processo_display = {st.session_state.get('codigo_processo_display', '')}")
 
             st.divider()
 
