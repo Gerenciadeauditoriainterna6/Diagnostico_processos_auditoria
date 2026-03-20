@@ -2052,7 +2052,6 @@ def main():
                         if st.button("📂 Carregar Processo", type="primary", use_container_width=True):
                             processo_id = id_map[processo_escolhido]
                             
-                            # ===== CARREGAR DADOS DO PROCESSO COM KEYS ESPECÍFICAS =====
                             # Buscar código e dados
                             query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :id")
                             with engine.connect() as conn:
@@ -2063,7 +2062,7 @@ def main():
                                 processo = buscar_processo_por_codigo(codigo)
                                 
                                 if processo:
-                                    # Usar keys específicas da edição (com prefixo 'edit_')
+                                    # Usar keys específicas da edição
                                     st.session_state['edit_input_processo'] = processo.get('nome_processo', '')
                                     st.session_state['edit_codigo_processo'] = processo.get('codigo_processo', '')
                                     st.session_state['edit_processo_existente_id'] = processo['id']
@@ -2326,78 +2325,8 @@ def main():
                             st.session_state.pop(key, None)
                         st.session_state['modo_edicao'] = False
                         st.rerun()
-                
-                for i, _ in enumerate(st.session_state.get('edit_riscos', [])):
-                    st.markdown(f"**Risco {i+1}**")
-                    
-                    col_titulo_risco, col_remove_risco = st.columns([5, 1])
-                    with col_titulo_risco:
-                        st.markdown(f"**Risco {i+1}**")
-                    with col_remove_risco:
-                        if len(st.session_state.get('edit_riscos', [])) > 1:
-                            if st.button("🗑️", key=f"edit_remove_risco_{i}"):
-                                st.session_state['edit_riscos'].pop(i)
-                                # Limpar keys
-                                keys = [f'edit_nome_{i}', f'edit_categorias_{i}', f'edit_fator_{i}', 
-                                        f'edit_melhoria_{i}', f'edit_apetite_{i}', f'edit_imp_{i}', 
-                                        f'edit_prob_{i}', f'edit_motivo_{i}']
-                                for key in keys:
-                                    if key in st.session_state:
-                                        st.session_state.pop(key)
-                                st.rerun()
-                    
-                    st.text_input(f"Nome do Risco:", key=f"edit_nome_{i}")
-                    
-                    categorias_dict = listar_categorias()
-                    ids_categorias = list(categorias_dict.keys())
-                    
-                    st.multiselect(
-                        f"Categorias do Risco:", 
-                        options=ids_categorias,
-                        format_func=lambda x: categorias_dict[x],
-                        default=st.session_state.get(f'edit_categorias_{i}', []),
-                        key=f"edit_categorias_{i}"
-                    )
-                    st.text_area(f"Fator de Risco:", key=f"edit_fator_{i}")
-                    st.text_area(f"Ponto de Melhoria:", key=f"edit_melhoria_{i}")
-                    st.text_area(f"Apetite ao risco:", key=f"edit_apetite_{i}")
-                    exibir_criterios_risco()
-                    col_i, col_p = st.columns(2)
-                    with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"edit_imp_{i}")
-                    with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"edit_prob_{i}")
-                    
-                    score_v = MAPA_RISCO.get((st.session_state.get(f"edit_imp_{i}"), st.session_state.get(f"edit_prob_{i}")), 0)
-                    cor, emoji = get_estilo_risco(score_v)
-                    st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto: {score_v}</div>', unsafe_allow_html=True)
-                    st.text_area(f"Motivo:", key=f"edit_motivo_{i}")
-                    st.markdown("---")
-                
-                col_add, col_save = st.columns(2)
-                if col_add.button("➕ Adicionar Risco", key="edit_add_risco"):
-                    if 'edit_riscos' not in st.session_state:
-                        st.session_state['edit_riscos'] = []
-                    st.session_state['edit_riscos'].append({})
-                    st.rerun()
-                
-                if col_save.button("💾 Salvar Alterações", type="primary", key="edit_save"):
-                    # Aqui você precisa criar uma função salvar_edicao() ou adaptar salvar_no_banco
-                    # para usar as keys 'edit_'
-                    if st.session_state.get('edit_processo_existente_id'):
-                        # Chamar função de salvamento com os dados editados
-                        if salvar_edicao_processo():
-                            st.success("✅ Alterações salvas com sucesso!")
-                            st.session_state['modo_edicao'] = False
-                            st.rerun()
-                        else:
-                            st.error("❌ Erro ao salvar alterações.")
-                
-                if st.button("Cancelar Edição", key="edit_cancel"):
-                    # Limpar todas as keys de edição
-                    keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
-                    for key in keys_to_clear:
-                        st.session_state.pop(key, None)
-                    st.session_state['modo_edicao'] = False
-                    st.rerun()
+
+
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
         tela_cadastro_area()
 
