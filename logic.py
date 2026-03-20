@@ -1230,7 +1230,6 @@ def salvar_informacoes_basicas():
                 processo_id = processo_existente_id
             else:
                 # GERAR CÓDIGO DO PROCESSO ANTES DE INSERIR
-                # Buscar o último código para esta área com ordenação numérica correta
                 ultimo_codigo_query = text("""
                     SELECT codigo_processo 
                     FROM processos 
@@ -1244,7 +1243,6 @@ def salvar_informacoes_basicas():
                 ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area_val}).scalar()
                 
                 if ultimo:
-                    # Extrair o número após o último ponto
                     partes = ultimo.split('.')
                     if len(partes) >= 2:
                         ultimo_numero = int(partes[1])
@@ -1254,9 +1252,6 @@ def salvar_informacoes_basicas():
                         codigo_processo = f"{id_area_val}.1"
                 else:
                     codigo_processo = f"{id_area_val}.1"
-                
-                # Armazenar na session_state
-                st.session_state['codigo_processo'] = codigo_processo
                 
                 # Inserir novo processo
                 sql_insert = text("""
@@ -1277,6 +1272,10 @@ def salvar_informacoes_basicas():
                 }
                 processo_id = conn.execute(sql_insert, params).scalar()
                 st.session_state['processo_existente_id'] = processo_id
+
+                # CORREÇÃO: Não modificar diretamente o widget
+                # Armazenar em uma variável de sessão separada para atualização depois
+                st.session_state['codigo_processo_novo'] = codigo_processo
             
             # ===== SALVAR EXECUTORES NA NOVA TABELA =====
             # Remover executores antigos
@@ -1298,7 +1297,6 @@ def salvar_informacoes_basicas():
             # Vincular à auditoria
             if 'auditoria_diagnostico' in st.session_state:
                 auditoria_id = st.session_state['auditoria_diagnostico']
-                # Verificar se já está vinculado
                 check_vinc = text("""
                     SELECT id FROM auditoria_processos 
                     WHERE auditoria_id = :aud_id AND processo_id = :proc_id
@@ -1321,7 +1319,7 @@ def salvar_informacoes_basicas():
     except Exception as e:
         st.error(f"Erro ao salvar informações básicas: {e}")
         return False
-
+    
 def listar_riscos_do_processo(processo_id):
     """Retorna todos os riscos de um processo com suas categorias"""
     query = text("""

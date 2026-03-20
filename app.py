@@ -1807,6 +1807,11 @@ def main():
                     if validar_basicos():
                         with st.spinner("Salvando informações básicas..."):
                             if salvar_informacoes_basicas():
+                                if 'codigo_processo_novo' in st.session_state:
+                                    st.session_state['codigo_processo'] = st.session_state['codigo_processo_novo']
+
+                                    del st.session_state['codigo_processo_novo']
+                                
                                 st.session_state['info_basicas_salvas'] = True
                                 st.success("✅ Informações básicas salvas com sucesso!")
                                 st.rerun()
