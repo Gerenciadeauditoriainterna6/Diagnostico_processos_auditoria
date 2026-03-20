@@ -1339,17 +1339,17 @@ def listar_funcionarios_area(id_area):
 
 def listar_funcionarios_por_area(id_area):
     """Retorna lista de funcionários de uma área para usar em selectbox"""
-    query = text(
-        """
+    query = text("""
         SELECT id, nome_funcionario, cargo
         FROM funcionarios_area
         WHERE id_area = :id_area AND ativo = TRUE
         ORDER BY nome_funcionario
     """)
     with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={'id_area': id_area})
-        # Criar lista de tuplas (id, nome) para o selectbox
-        return [(row['id'], f"{row['nome_funcionario']} ({row['cargo']})")
+        df = pd.read_sql(query, conn, params={"id_area": id_area})
+        if df.empty:
+            return []
+        return [(row['id'], f"{row['nome_funcionario']} ({row['cargo']})") 
                 for _, row in df.iterrows()]
 
 def listar_executores_processo(processo_id):

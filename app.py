@@ -1468,24 +1468,31 @@ def carregar_dados_processo_para_edicao(processo_id):
     
     codigo = resultado[0]
     processo = buscar_processo_por_codigo(codigo)
-
-    executores_ids = listar_executores_processo(processo_id)
-    st.session_state['executores_selecionados'] = executores_ids
     
     if not processo:
         return None
     
-    st.session_state['info_basicas_salvas'] = True
-    
-    # Preencher session_state com os dados existentes
+    # ===== CARREGAR DADOS BÁSICOS =====
     st.session_state['input_processo'] = processo.get('nome_processo', '')
-    st.session_state['input_executor'] = processo.get('executor', '')
+    st.session_state['codigo_processo'] = processo.get('codigo_processo', '')
+    st.session_state['processo_existente_id'] = processo['id']
+    
+    # ===== CARREGAR EXECUTORES =====
+    executores_ids = listar_executores_processo(processo_id)
+    st.session_state['executores_selecionados'] = executores_ids
+    
+    # ===== CARREGAR DETALHAMENTO =====
+    st.session_state['input_objetivo'] = processo.get('objetivo', '')
     st.session_state['input_descricao'] = processo.get('descricao', '')
     st.session_state['input_etapa_ini'] = processo.get('etapa_ini', '')
     st.session_state['input_etapa_fim'] = processo.get('etapa_fim', '')
     st.session_state['input_produto'] = processo.get('produto', '')
-    st.session_state['input_objetivo'] = processo.get('objetivo', '')
-    st.session_state['codigo_processo'] = processo.get('codigo_processo', '')
+    
+    # ===== CARREGAR RISCOS =====
+    carregar_riscos_processo(processo['id'])
+    
+    # ===== ATIVAR FLAG DE INFORMAÇÕES BÁSICAS SALVAS =====
+    st.session_state['info_basicas_salvas'] = True
     
     return True
 
@@ -1849,11 +1856,18 @@ def main():
                         processo = buscar_processo_por_codigo(codigo)
                         
                         if processo:
+                
                             # Carregar dados básicos
                             st.session_state['input_processo'] = processo['nome_processo']
-                            st.session_state['input_executor'] = processo.get('executor', '')
                             st.session_state['codigo_processo'] = processo['codigo_processo']
                             st.session_state['processo_existente_id'] = processo['id']
+
+                            # Carregar executor
+                            executores_ids = listar_executores_processo(processo['id'])
+                            st.session_state['executores_selecionados'] = executores_ids
+
+                            # DEBUG - verificar executores carregados
+                            st.info(f"🔍 DEBUG: {len(executores_ids)} executor(es) carregado(s): {executores_ids}")
                             
                             # Carregar detalhamento
                             st.session_state['input_objetivo'] = processo.get('objetivo', '')
@@ -1864,6 +1878,9 @@ def main():
                             
                             # Carregar riscos
                             carregar_riscos_processo(processo['id'])
+                            
+                            # ===== ATIVAR FLAG DE INFORMAÇÕES BÁSICAS SALVAS =====
+                            st.session_state['info_basicas_salvas'] = True
                             
                             st.success(f"Processo {codigo} carregado para edição!")
                             st.rerun()
