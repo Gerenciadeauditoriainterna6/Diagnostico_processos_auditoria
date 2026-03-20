@@ -1439,6 +1439,14 @@ def listar_categorias_do_risco(risco_id):
 def carregar_riscos_processo_para_edicao(processo_id):
     """Carrega os riscos do processo para a session_state de edição"""
     df_riscos = listar_riscos_do_processo(processo_id)
+    # ===== LIMPAR KEYS DE RISCOS ANTERIORES =====
+    keys_to_remove = [k for k in st.session_state.keys() 
+                     if any(k.startswith(prefix) for prefix in 
+                           ['edit_nome_', 'edit_fator_', 'edit_melhoria_', 
+                            'edit_apetite_', 'edit_imp_', 'edit_prob_', 
+                            'edit_motivo_', 'edit_categorias_'])]
+    for key in keys_to_remove:
+        st.session_state.pop(key, None)
     
     if not df_riscos.empty:
         st.session_state['edit_riscos'] = []
