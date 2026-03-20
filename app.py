@@ -1648,6 +1648,13 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
+        # No início do if opcao == "🔍 Diagnóstico dos Processos", após st.title()
+        with st.expander("🔍 DEBUG - Session State Completo", expanded=True):
+            st.write("**executores_selecionados:**", st.session_state.get('executores_selecionados'))
+            st.write("**processo_existente_id:**", st.session_state.get('processo_existente_id'))
+            st.write("**id_area_selecionado:**", st.session_state.get('id_area_selecionado'))
+            st.write("**info_basicas_salvas:**", st.session_state.get('info_basicas_salvas'))
+            st.write("**area_selectbox:**", st.session_state.get('area_selectbox'))
 
         if 'info_basicas_salvas' not in st.session_state:
             st.session_state['info_basicas_salvas'] = False
