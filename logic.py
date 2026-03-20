@@ -764,7 +764,7 @@ def salvar_no_banco():
                     (id_area, area, codigo_processo, nome_processo, objetivo, executor, 
                      descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES 
-                    (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :crit, :cat) 
+                    (:id_a, :a, :c, :n, :o, :ex, :d, :ei, :ef, :p, :st, :cat) 
                     RETURNING id
                 """)
                 
