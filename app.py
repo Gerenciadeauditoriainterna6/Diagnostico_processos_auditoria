@@ -1856,25 +1856,38 @@ def main():
                 st.markdown("<br>", unsafe_allow_html=True)  # Espaçamento vertical
                 if st.button("📂 Carregar para edição", use_container_width=True):
                     if processo_selecionado:
-                        # Extrair o código do processo
                         codigo = processo_selecionado.split(" - ")[0]
-                        
-                        # Buscar dados completos do processo
                         processo = buscar_processo_por_codigo(codigo)
                         
                         if processo:
-                
                             # Carregar dados básicos
                             st.session_state['input_processo'] = processo['nome_processo']
                             st.session_state['codigo_processo'] = processo['codigo_processo']
                             st.session_state['processo_existente_id'] = processo['id']
-
-                            # Carregar executor
+                            
+                            # ===== CARREGAR EXECUTORES COM VALIDAÇÃO =====
                             executores_ids = listar_executores_processo(processo['id'])
-                            st.session_state['executores_selecionados'] = executores_ids
-
-                            # DEBUG - verificar executores carregados
-                            st.info(f"🔍 DEBUG: {len(executores_ids)} executor(es) carregado(s): {executores_ids}")
+                            
+                            # Validar se os IDs ainda existem na tabela de funcionários
+                            validos = []
+                            for exec_id in executores_ids:
+                                query = text("SELECT id FROM funcionarios_area WHERE id = :fid")
+                                with engine.connect() as conn:
+                                    existe = conn.execute(query, {"fid": exec_id}).fetchone()
+                                    if existe:
+                                        validos.append(exec_id)
+                                    else:
+                                        # Se o executor não existe mais, remover do banco
+                                        with engine.begin() as conn:
+                                            conn.execute(
+                                                text("DELETE FROM processo_executores WHERE processo_id = :pid AND funcionario_id = :fid"),
+                                                {"pid": processo['id'], "fid": exec_id}
+                                            )
+                            
+                            st.session_state['executores_selecionados'] = validos
+                            
+                            # DEBUG
+                            st.info(f"🔍 {len(validos)} executor(es) válido(s) carregado(s)")
                             
                             # Carregar detalhamento
                             st.session_state['input_objetivo'] = processo.get('objetivo', '')
@@ -1886,9 +1899,8 @@ def main():
                             # Carregar riscos
                             carregar_riscos_processo(processo['id'])
                             
-                            # ===== ATIVAR FLAG DE INFORMAÇÕES BÁSICAS SALVAS =====
                             st.session_state['info_basicas_salvas'] = True
-
+                            
                             st.success(f"Processo {codigo} carregado para edição!")
                             st.rerun()
                     else:
@@ -1946,6 +1958,12 @@ def main():
             st.write(f"🔍 DEBUG: IDs válidos para default: {defaults_validos}")
             st.write(f"🔍 DEBUG: Funcionários disponíveis: {funcionarios_dict}")
 
+            # Antes do multiselect
+            st.write(f"🔍 DEBUG: ID da área atual = {id_area_atual}")
+            st.write(f"🔍 DEBUG: Funcionários disponíveis = {funcionarios_dict}")
+            st.write(f"🔍 DEBUG: Executores no session_state = {st.session_state.get('executores_selecionados', [])}")
+            st.write(f"🔍 DEBUG: Defaults válidos = {defaults_validos}")
+            
             # Multiselect para escolher vários funcionários
             selecionados = st.multiselect(
                 "Selecione os funcionários que executam este processo:",
