@@ -1435,3 +1435,106 @@ def listar_categorias_do_risco(risco_id):
     with engine.connect() as conn:
         df = pd.read_sql(query, conn, params={'rid': risco_id})
         return df['categoria_id'].tolist() if not df.empty else []
+    
+def carregar_riscos_processo_para_edicao(processo_id):
+    """Carrega os riscos do processo para a session_state de edição"""
+    df_riscos = listar_riscos_do_processo(processo_id)
+    
+    if not df_riscos.empty:
+        st.session_state['edit_riscos'] = []
+        
+        for idx, (_, row) in enumerate(df_riscos.iterrows()):
+            st.session_state['edit_riscos'].append({})
+            st.session_state[f'edit_nome_{idx}'] = row['nome_risco'] or ""
+            st.session_state[f'edit_fator_{idx}'] = row['fator_risco'] or ""
+            st.session_state[f'edit_melhoria_{idx}'] = row['melhoria'] or ""
+            st.session_state[f'edit_apetite_{idx}'] = row['apetite_risco'] or ""
+            st.session_state[f'edit_motivo_{idx}'] = row['motivo_risco'] or ""
+            st.session_state[f'edit_categorias_{idx}'] = row['categorias_ids'] if row['categorias_ids'] else []
+            st.session_state[f'edit_imp_{idx}'] = normalizar_valor_risco(row['impacto'])
+            st.session_state[f'edit_prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
+    else:
+        st.session_state['edit_riscos'] = [{}]
+
+def salvar_edicao_processo():
+    """Salva as alterações de um processo existente"""
+    import streamlit as st
+    try:
+        with engine.begin() as conn:
+            processo_id = st.session_state.get('edit_processo_existente_id')
+            if not processo_id:
+                st.error("Processo não identificado.")
+                return False
+            
+            # Atualizar dados básicos
+            sql_update = text("""
+                UPDATE processos 
+                SET nome_processo=:nome, objetivo=:o, descricao=:d, 
+                    etapa_ini=:ei, etapa_fim=:ef, produto=:p
+                WHERE id = :pid
+            """)
+            
+            conn.execute(sql_update, {
+                "pid": processo_id,
+                "nome": st.session_state.get('edit_input_processo', ''),
+                "o": st.session_state.get('edit_input_objetivo', ''),
+                "d": st.session_state.get('edit_input_descricao', ''),
+                "ei": st.session_state.get('edit_input_etapa_ini', ''),
+                "ef": st.session_state.get('edit_input_etapa_fim', ''),
+                "p": st.session_state.get('edit_input_produto', '')
+            })
+            
+            # Atualizar executores
+            conn.execute(
+                text("DELETE FROM processo_executores WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            )
+            
+            executores_ids = st.session_state.get('edit_executores_selecionados', [])
+            if executores_ids:
+                sql_exec = text("INSERT INTO processo_executores (processo_id, funcionario_id) VALUES (:pid, :fid)")
+                for fid in executores_ids:
+                    conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+            
+            # Atualizar riscos (remover antigos e inserir novos)
+            conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
+            
+            sql_risco = text("""
+                INSERT INTO riscos 
+                (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
+                 apetite_risco, motivo_risco, score_risco) 
+                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                RETURNING id
+            """)
+            
+            for i in range(len(st.session_state.get('edit_riscos', []))):
+                imp = st.session_state.get(f"edit_imp_{i}")
+                prob = st.session_state.get(f"edit_prob_{i}")
+                score = MAPA_RISCO.get((imp, prob), 0)
+                
+                result = conn.execute(sql_risco, {
+                    "pid": processo_id, 
+                    "nome": st.session_state.get(f"edit_nome_{i}"), 
+                    "fator": st.session_state.get(f"edit_fator_{i}"), 
+                    "melhoria": st.session_state.get(f"edit_melhoria_{i}"), 
+                    "imp": imp, 
+                    "prob": prob, 
+                    "apetite": st.session_state.get(f"edit_apetite_{i}"), 
+                    "motivo": st.session_state.get(f"edit_motivo_{i}"), 
+                    "score": score
+                })
+                
+                risco_id = result.scalar()
+                
+                categorias_ids = st.session_state.get(f"edit_categorias_{i}", [])
+                if categorias_ids:
+                    for cat_id in categorias_ids:
+                        conn.execute(
+                            text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
+                            {"rid": risco_id, "cid": cat_id}
+                        )
+            
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar edição: {e}")
+        return False

@@ -17,7 +17,7 @@ listar_processos_da_auditoria, salvar_checklist_eficacia, listar_checklists_da_a
 buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
-listar_executores_processo_com_nomes, listar_categorias
+listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo
 )
 
 local_storage = LocalStorage()
@@ -1666,7 +1666,7 @@ def main():
                 st.session_state.pop('deve_limpar_diagnostico', None)
                 st.rerun()
             
-            st.title("Diagnóstico de Processos - FUSVE")
+            st.title("Diagnóstico dos Processos")
             st.markdown("""
             <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
                 <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
@@ -1973,14 +1973,190 @@ def main():
                     if processo_escolhido:
                         if st.button("📂 Carregar Processo", type="primary", use_container_width=True):
                             processo_id = id_map[processo_escolhido]
-                            carregar_dados_processo_para_edicao(processo_id)
-                            st.success("Processo carregado para edição! Vá para a aba 'Novo Processo' para editar.")
-                            st.rerun()
+                            
+                            # ===== CARREGAR DADOS DO PROCESSO COM KEYS ESPECÍFICAS =====
+                            # Buscar código e dados
+                            query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :id")
+                            with engine.connect() as conn:
+                                resultado = conn.execute(query_codigo, {"id": processo_id}).fetchone()
+                            
+                            if resultado:
+                                codigo = resultado[0]
+                                processo = buscar_processo_por_codigo(codigo)
+                                
+                                if processo:
+                                    # Usar keys específicas da edição (com prefixo 'edit_')
+                                    st.session_state['edit_input_processo'] = processo.get('nome_processo', '')
+                                    st.session_state['edit_codigo_processo'] = processo.get('codigo_processo', '')
+                                    st.session_state['edit_processo_existente_id'] = processo['id']
+                                    
+                                    # Carregar executores
+                                    executores_ids = listar_executores_processo(processo['id'])
+                                    st.session_state['edit_executores_selecionados'] = executores_ids
+                                    
+                                    # Carregar detalhamento
+                                    st.session_state['edit_input_objetivo'] = processo.get('objetivo', '')
+                                    st.session_state['edit_input_descricao'] = processo.get('descricao', '')
+                                    st.session_state['edit_input_etapa_ini'] = processo.get('etapa_ini', '')
+                                    st.session_state['edit_input_etapa_fim'] = processo.get('etapa_fim', '')
+                                    st.session_state['edit_input_produto'] = processo.get('produto', '')
+                                    
+                                    # Carregar riscos
+                                    carregar_riscos_processo_para_edicao(processo['id'])
+                                    
+                                    st.session_state['modo_edicao'] = True
+                                    st.success(f"✅ Processo {codigo} carregado! Agora edite os campos abaixo.")
+                                    st.rerun()
                 else:
                     st.info("Nenhum processo cadastrado para esta área.")
             else:
                 st.info("Selecione uma área no menu superior para ver os processos disponíveis.")
-
+            
+            # ===== FORMULÁRIO DE EDIÇÃO (só aparece se modo_edicao = True) =====
+            if st.session_state.get('modo_edicao', False):
+                st.divider()
+                st.subheader("✏️ Editando Processo")
+                
+                # Nome do Processo
+                st.text_input(
+                    "Nome do Processo:", 
+                    value=st.session_state.get('edit_input_processo', ''),
+                    key="edit_input_processo",
+                    help="Digite o nome do processo."
+                )
+                
+                # Código do Processo
+                st.text_input(
+                    "Código do Processo:", 
+                    value=st.session_state.get('edit_codigo_processo', ''),
+                    key="edit_codigo_processo",
+                    disabled=True
+                )
+                
+                # Executores
+                st.markdown("**Funcionário(s) que executam o processo:**")
+                
+                id_area_atual = st.session_state.get('id_area_selecionado')
+                funcionarios_lista = []
+                
+                if id_area_atual:
+                    funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
+                
+                if not funcionarios_lista:
+                    st.warning("⚠️ Nenhum funcionário cadastrado para esta área.")
+                else:
+                    funcionarios_ids = [f[0] for f in funcionarios_lista]
+                    funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
+                    
+                    defaults_validos = []
+                    if 'edit_executores_selecionados' in st.session_state:
+                        for exec_id in st.session_state['edit_executores_selecionados']:
+                            if exec_id in funcionarios_dict:
+                                defaults_validos.append(exec_id)
+                    
+                    selecionados = st.multiselect(
+                        "Selecione os funcionários que executam este processo:",
+                        options=funcionarios_ids,
+                        format_func=lambda x: funcionarios_dict[x],
+                        default=defaults_validos,
+                        key="edit_multiselect_executores",
+                        help="Você pode selecionar um ou mais funcionários"
+                    )
+                    
+                    st.session_state['edit_executores_selecionados'] = selecionados
+                    
+                    if selecionados:
+                        nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
+                        st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
+                
+                st.divider()
+                
+                # Detalhamento
+                st.markdown("### Detalhamento do Processo")
+                st.info("ℹ️ Os campos abaixo são opcionais.")
+                
+                st.text_area("O que é o processo?:", key="edit_input_descricao")
+                st.text_area("Onde Começa o Processo?:", key="edit_input_etapa_ini")
+                st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="edit_input_produto")
+                st.text_area("Depois de Acabado, para onde envia?:", key="edit_input_etapa_fim")
+                st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="edit_input_objetivo")
+                
+                st.write("")
+                
+                # Riscos
+                st.markdown("### Riscos Associados")
+                
+                for i, _ in enumerate(st.session_state.get('edit_riscos', [])):
+                    st.markdown(f"**Risco {i+1}**")
+                    
+                    col_titulo_risco, col_remove_risco = st.columns([5, 1])
+                    with col_titulo_risco:
+                        st.markdown(f"**Risco {i+1}**")
+                    with col_remove_risco:
+                        if len(st.session_state.get('edit_riscos', [])) > 1:
+                            if st.button("🗑️", key=f"edit_remove_risco_{i}"):
+                                st.session_state['edit_riscos'].pop(i)
+                                # Limpar keys
+                                keys = [f'edit_nome_{i}', f'edit_categorias_{i}', f'edit_fator_{i}', 
+                                        f'edit_melhoria_{i}', f'edit_apetite_{i}', f'edit_imp_{i}', 
+                                        f'edit_prob_{i}', f'edit_motivo_{i}']
+                                for key in keys:
+                                    if key in st.session_state:
+                                        st.session_state.pop(key)
+                                st.rerun()
+                    
+                    st.text_input(f"Nome do Risco:", key=f"edit_nome_{i}")
+                    
+                    categorias_dict = listar_categorias()
+                    ids_categorias = list(categorias_dict.keys())
+                    
+                    st.multiselect(
+                        f"Categorias do Risco:", 
+                        options=ids_categorias,
+                        format_func=lambda x: categorias_dict[x],
+                        default=st.session_state.get(f'edit_categorias_{i}', []),
+                        key=f"edit_categorias_{i}"
+                    )
+                    st.text_area(f"Fator de Risco:", key=f"edit_fator_{i}")
+                    st.text_area(f"Ponto de Melhoria:", key=f"edit_melhoria_{i}")
+                    st.text_area(f"Apetite ao risco:", key=f"edit_apetite_{i}")
+                    exibir_criterios_risco()
+                    col_i, col_p = st.columns(2)
+                    with col_i: st.selectbox(f"Impacto:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"edit_imp_{i}")
+                    with col_p: st.selectbox(f"Probabilidade:", ["Muito Alto", "Alto", "Médio", "Baixo"], key=f"edit_prob_{i}")
+                    
+                    score_v = MAPA_RISCO.get((st.session_state.get(f"edit_imp_{i}"), st.session_state.get(f"edit_prob_{i}")), 0)
+                    cor, emoji = get_estilo_risco(score_v)
+                    st.markdown(f'<div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white;">{emoji} Risco Bruto: {score_v}</div>', unsafe_allow_html=True)
+                    st.text_area(f"Motivo:", key=f"edit_motivo_{i}")
+                    st.markdown("---")
+                
+                col_add, col_save = st.columns(2)
+                if col_add.button("➕ Adicionar Risco", key="edit_add_risco"):
+                    if 'edit_riscos' not in st.session_state:
+                        st.session_state['edit_riscos'] = []
+                    st.session_state['edit_riscos'].append({})
+                    st.rerun()
+                
+                if col_save.button("💾 Salvar Alterações", type="primary", key="edit_save"):
+                    # Aqui você precisa criar uma função salvar_edicao() ou adaptar salvar_no_banco
+                    # para usar as keys 'edit_'
+                    if st.session_state.get('edit_processo_existente_id'):
+                        # Chamar função de salvamento com os dados editados
+                        if salvar_edicao_processo():
+                            st.success("✅ Alterações salvas com sucesso!")
+                            st.session_state['modo_edicao'] = False
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar alterações.")
+                
+                if st.button("Cancelar Edição", key="edit_cancel"):
+                    # Limpar todas as keys de edição
+                    keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
+                    for key in keys_to_clear:
+                        st.session_state.pop(key, None)
+                    st.session_state['modo_edicao'] = False
+                    st.rerun()
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
         tela_cadastro_area()
 
