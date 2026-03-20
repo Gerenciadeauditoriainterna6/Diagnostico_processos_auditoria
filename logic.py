@@ -1440,18 +1440,15 @@ def carregar_riscos_processo_para_edicao(processo_id):
     """Carrega os riscos do processo para a session_state de edição"""
     import streamlit as st
     
-    # ===== LIMPEZA AGRESSIVA DE TODAS AS KEYS DE EDIÇÃO DE RISCOS =====
-    # Remover a lista principal
-    if 'edit_riscos' in st.session_state:
-        st.session_state.pop('edit_riscos', None)
-    
-    # Remover todas as keys que começam com edit_ e são relacionadas a riscos
+    # ===== LIMPEZA AGRESSIVA =====
+    # Remover todas as keys de edição de riscos
     keys_to_remove = []
     for key in list(st.session_state.keys()):
         if key.startswith('edit_nome_') or key.startswith('edit_fator_') or \
            key.startswith('edit_melhoria_') or key.startswith('edit_apetite_') or \
            key.startswith('edit_imp_') or key.startswith('edit_prob_') or \
-           key.startswith('edit_motivo_') or key.startswith('edit_categorias_'):
+           key.startswith('edit_motivo_') or key.startswith('edit_categorias_') or \
+           key == 'edit_riscos':
             keys_to_remove.append(key)
     
     for key in keys_to_remove:
@@ -1476,8 +1473,8 @@ def carregar_riscos_processo_para_edicao(processo_id):
     else:
         st.session_state['edit_riscos'] = [{}]
     
-    # DEBUG - para verificar o que foi carregado
-    print(f"🔍 Riscos carregados: {len(st.session_state['edit_riscos'])} riscos")
+    # DEBUG
+    st.write(f"🔍 Carregados {len(st.session_state['edit_riscos'])} riscos para o processo {processo_id}")
 
 def salvar_edicao_processo():
     """Salva as alterações de um processo existente"""
