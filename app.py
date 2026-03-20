@@ -1856,7 +1856,7 @@ def main():
 
                 indices_para_remover = []
 
-                col_add_risco, col_spacer = st.solumns([1, 4])
+                col_add_risco, col_spacer = st.columns([1, 4])
                 with col_add_risco:
                     if st.button("➕ Adicionar Risco", key="add_risco_main", use_container_width=True):
                         st.session_state['riscos'].append({})
@@ -1867,7 +1867,7 @@ def main():
                 indices_para_remover = []
 
                 # Mostrar cada risco em um expander
-                for i, _ in enumerate(st.session_state['risco']):
+                for i, _ in enumerate(st.session_state['riscos']):
                     # Título do expander
                     titulo_risco = st.session_state.get(f'nome_{i}', f'Risco {i+1}')
                     if titulo_risco and titulo_risco != f'Risco {i+1}':
@@ -1879,7 +1879,7 @@ def main():
                         # Cabeçalho com botão de remover
                         col_titulo, col_remove = st.columns([5, 1])
                         with col_titulo:
-                            st.markdoun(f"**Detalhes do Risco {i+1}**")
+                            st.markdown(f"**Detalhes do Risco {i+1}**")
                         with col_remove:
                             if len(st.session_state['risco']) > 1:
                                 if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True):
@@ -1991,10 +1991,9 @@ def main():
                     if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
                         if validar_formulario() and salvar_no_banco():
                             # Vincular à auditoria após salvar
-                            if 'auditoria_diagnostico' in st.sessions_state and 'ultimo_processo_id' in st.session_state:
+                            if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
                                 auditoria_id = st.session_state['auditoria_diagnostico']
                                 processo_id = st.session_state.get('ultimo_processo_id')
-
                                 if processo_id:
                                     vincular_processo_a_auditoria(
                                         auditoria_id=auditoria_id,
