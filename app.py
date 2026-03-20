@@ -2191,6 +2191,7 @@ def main():
                 st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="edit_input_objetivo")
                 
                 st.write("")
+                st.divider()
                 
                 # ===== RISCOS ASSOCIADOS =====
                 st.markdown("### Riscos Associados")
@@ -2203,8 +2204,6 @@ def main():
                             st.session_state['edit_riscos'] = []
                         st.session_state['edit_riscos'].append({})
                         st.rerun()
-                
-                st.divider()
                 
                 # ===== EXIBIÇÃO DOS RISCOS =====
                 edit_riscos = st.session_state.get('edit_riscos', [])
