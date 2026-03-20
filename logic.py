@@ -690,7 +690,7 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_fim'] = ""
         st.session_state['input_produto'] = ""
         st.session_state['info_basicas_salvas'] = False
-        
+
 def normalizar_valor_risco(valor):
     """
     Converte valores de risco para o formato correto:
@@ -771,7 +771,7 @@ def salvar_no_banco():
                 params_insert = {
                     "id_a": id_area_val,
                     "a": nome_area_val,
-                    "c": st.session_state['codigo_processo'],
+                    "c": st.session_state.get('codigo_processo_display', ''),
                     "n": nome_val,
                     "o": st.session_state.get('input_objetivo', ''),
                     "ex": st.session_state.get('input_executor', ''),
