@@ -2010,6 +2010,10 @@ def main():
                 st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
         
         # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
+        # No início da Tab 2, após st.title
+        with st.expander("🔍 DEBUG - Estado da Edição", expanded=False):
+            st.write("**edit_riscos:**", st.session_state.get('edit_riscos', []))
+            st.write("**Keys edit_***:", [k for k in st.session_state.keys() if k.startswith('edit_')])
         with tab_editar:
             st.title("✏️ Editar Processo Existente")
             st.markdown("Selecione um processo abaixo para editar suas informações.")
