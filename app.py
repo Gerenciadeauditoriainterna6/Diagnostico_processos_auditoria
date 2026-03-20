@@ -2113,12 +2113,6 @@ def main():
             else:
                 st.info("Selecione uma área no menu superior para ver os processos disponíveis.")
             
-            # ===== BOTÃO DE DEBUG (FORA DO IF) =====
-            if st.button("🔍 Ver Estado das Keys", key="debug_keys_edit"):
-                st.write("**Keys edit_*:**", [k for k in st.session_state.keys() if k.startswith('edit_')])
-                st.write("**edit_executores_selecionados:**", st.session_state.get('edit_executores_selecionados'))
-                st.write("**edit_riscos:**", st.session_state.get('edit_riscos', []))
-            
             # ===== FORMULÁRIO DE EDIÇÃO =====
             if st.session_state.get('modo_edicao', False):
                 st.divider()
@@ -2164,13 +2158,7 @@ def main():
                     # ===== KEY ÚNICA COM ID DO PROCESSO =====
                     processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
                     multiselect_key = f"edit_multiselect_executores_{processo_id}"
-                    
-                    # DEBUG
-                    st.write(f"🔍 KEY do multiselect: {multiselect_key}")
-                    st.write(f"🔍 Executores no session_state: {executores_atuais}")
-                    st.write(f"🔍 Defaults válidos: {defaults_validos}")
-                    st.write(f"🔍 Funcionários disponíveis: {funcionarios_dict}")
-                    
+          
                     # Se não há defaults válidos, mostrar uma mensagem
                     if not defaults_validos and executores_atuais:
                         st.warning(f"⚠️ Os executores {executores_atuais} não foram encontrados na lista de funcionários da área.")
@@ -2340,14 +2328,7 @@ def main():
                     st.info("📌 Nenhum risco cadastrado para este processo. Clique em 'Adicionar Risco' para começar.")
                 
                 # ===== BOTÕES DE AÇÃO =====
-                col_add_bottom, col_save_bottom, col_cancel_bottom = st.columns([1, 1, 1])
-                
-                with col_add_bottom:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco_bottom", use_container_width=True):
-                        if 'edit_riscos' not in st.session_state:
-                            st.session_state['edit_riscos'] = []
-                        st.session_state['edit_riscos'].append({})
-                        st.rerun()
+                col_add_bottom, col_save_bottom, col_cancel_bottom = st.columns(2)
                 
                 with col_save_bottom:
                     if st.button("💾 Salvar Alterações", type="primary", key="edit_save", use_container_width=True):
