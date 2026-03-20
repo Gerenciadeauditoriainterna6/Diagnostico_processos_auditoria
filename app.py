@@ -2057,6 +2057,11 @@ def main():
                             keys_to_clear = [k for k in list(st.session_state.keys()) if k.startswith('edit_')]
                             for key in keys_to_clear:
                                 st.session_state.pop(key, None)
+
+                            # ===== LIMPEZA ESPECÍFICA DOS EXECUTORES =====
+                            # Garantir que as keys de executores sejam removidas
+                            if 'edit_executores_selecionados' in st.session_state:
+                                st.session_state.pop('edit_executores_selecionados', None)
                             
                             # Resetar modo de edição
                             st.session_state['modo_edicao'] = False
@@ -2151,11 +2156,13 @@ def main():
                     funcionarios_ids = [f[0] for f in funcionarios_lista]
                     funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                     
+                    # ===== VALIDAR OS VALORES PADRÃO =====
                     defaults_validos = []
-                    if 'edit_executores_selecionados' in st.session_state:
-                        for exec_id in st.session_state['edit_executores_selecionados']:
-                            if exec_id in funcionarios_dict:
-                                defaults_validos.append(exec_id)
+                    executores_atuais = st.session_state.get('edit_executores_selecionados', [])
+                    
+                    for exec_id in st.session_state['edit_executores_selecionados']:
+                        if exec_id in funcionarios_dict:
+                            defaults_validos.append(exec_id)
                     
                     selecionados = st.multiselect(
                         "Selecione os funcionários que executam este processo:",
