@@ -618,18 +618,19 @@ def obter_proximo_codigo(id_area):
     return f"{id_area}.{contagem + 1}"
 
 def processar_codigo_inteligente():
-    """Gera o código do processo e verifica se já existe"""
+    """Gera o código do processo e verifica se já existe para carregar dados"""
     
     id_area = st.session_state.get("id_area_selecionado") 
     nome = st.session_state.get("input_processo", "").strip()
     
     if not id_area or not nome:
-        st.session_state['codigo_mostrar'] = ""
+        st.session_state['codigo_processo'] = ""
         return
     
-    # Buscar se já existe
+    # Verificar se já existe um processo com este nome na mesma área
     query_check = text("""
-        SELECT id, codigo_processo
+        SELECT id, codigo_processo, objetivo, executor, descricao, 
+               etapa_ini, etapa_fim, produto
         FROM processos 
         WHERE id_area = :id_area AND nome_processo = :nome
     """)
@@ -641,15 +642,55 @@ def processar_codigo_inteligente():
         }).mappings().first()
     
     if resultado:
-        # Processo existe
+        # Processo existe - carregar todos os dados
         st.session_state['processo_existente_id'] = resultado['id']
-        st.session_state['codigo_mostrar'] = resultado['codigo_processo']
+        st.session_state['codigo_processo'] = resultado['codigo_processo']
+        st.session_state['input_objetivo'] = resultado['objetivo'] or ""
+        st.session_state['input_executor'] = resultado['executor'] or ""
+        st.session_state['input_descricao'] = resultado['descricao'] or ""
+        st.session_state['input_etapa_ini'] = resultado['etapa_ini'] or ""
+        st.session_state['input_etapa_fim'] = resultado['etapa_fim'] or ""
+        st.session_state['input_produto'] = resultado['produto'] or ""
         st.session_state['info_basicas_salvas'] = True
+        
     else:
-        # Processo novo - gerar código
-        # ... (código para gerar novo código)
-        codigo = f"{id_area}.1"  # Simplificado
-        st.session_state['codigo_mostrar'] = codigo
+        # Processo novo - gerar código baseado no último código da área
+        # Usando ordenação numérica correta
+        ultimo_codigo_query = text("""
+            SELECT codigo_processo 
+            FROM processos 
+            WHERE id_area = :id_area
+            ORDER BY 
+                CAST(split_part(codigo_processo, '.', 1) AS INTEGER),
+                CAST(split_part(codigo_processo, '.', 2) AS INTEGER) DESC
+            LIMIT 1
+        """)
+        
+        with engine.connect() as conn:
+            ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area}).scalar()
+        
+        if ultimo:
+            # Extrair o número após o ponto
+            partes = ultimo.split('.')
+            if len(partes) >= 2:
+                ultimo_numero = int(partes[1])
+                novo_numero = ultimo_numero + 1
+                codigo = f"{id_area}.{novo_numero}"
+            else:
+                codigo = f"{id_area}.1"
+        else:
+            codigo = f"{id_area}.1"
+        
+        st.session_state['codigo_processo'] = codigo
+        # Limpar dados de edição anterior
+        if 'processo_existente_id' in st.session_state:
+            st.session_state.pop('processo_existente_id', None)
+        # Limpar campos de detalhamento (opcional)
+        st.session_state['input_objetivo'] = ""
+        st.session_state['input_descricao'] = ""
+        st.session_state['input_etapa_ini'] = ""
+        st.session_state['input_etapa_fim'] = ""
+        st.session_state['input_produto'] = ""
         st.session_state['info_basicas_salvas'] = False
 
 def normalizar_valor_risco(valor):
