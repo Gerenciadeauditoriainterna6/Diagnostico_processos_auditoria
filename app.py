@@ -2051,16 +2051,7 @@ def main():
                     
                     if processo_escolhido:
                         if st.button("📂 Carregar Processo", type="primary", use_container_width=True):
-                            # ===== LIMPEZA DO MULTISELECT =====
-                            # Método 1: Remover a key do session_state
-                            if 'edit_multiselect_executores' in st.session_state:
-                                st.session_state.pop('edit_multiselect_executores', None)
-                            
-                            # Método 2: Resetar a variável que alimenta o multiselect
-                            if 'edit_executores_selecionados' in st.session_state:
-                                st.session_state.pop('edit_executores_selecionados', None)
-                            
-                            # Método 3: Limpar todas as keys de edição
+                            # ===== LIMPEZA TOTAL DO ESTADO DE EDIÇÃO =====
                             keys_to_clear = [k for k in list(st.session_state.keys()) if k.startswith('edit_')]
                             for key in keys_to_clear:
                                 st.session_state.pop(key, None)
@@ -2068,10 +2059,9 @@ def main():
                             # Resetar modo de edição
                             st.session_state['modo_edicao'] = False
                             
-                            # ===== CARREGAR NOVO PROCESSO (APENAS DADOS BÁSICOS POR ENQUANTO) =====
+                            # ===== CARREGAR NOVO PROCESSO =====
                             processo_id = id_map[processo_escolhido]
                             
-                            # Buscar código e dados
                             query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :id")
                             with engine.connect() as conn:
                                 resultado = conn.execute(query_codigo, {"id": processo_id}).fetchone()
@@ -2086,9 +2076,9 @@ def main():
                                     st.session_state['edit_codigo_processo'] = processo.get('codigo_processo', '')
                                     st.session_state['edit_processo_existente_id'] = processo['id']
                                     
-                                    # ===== NÃO CARREGAR EXECUTORES AINDA =====
-                                    # Deixar vazio para testar a limpeza
-                                    st.session_state['edit_executores_selecionados'] = []
+                                    # Carregar executores
+                                    executores_ids = listar_executores_processo(processo['id'])
+                                    st.session_state['edit_executores_selecionados'] = executores_ids if executores_ids else []
                                     
                                     # Carregar detalhamento
                                     st.session_state['edit_input_objetivo'] = processo.get('objetivo', '')
@@ -2097,23 +2087,37 @@ def main():
                                     st.session_state['edit_input_etapa_fim'] = processo.get('etapa_fim', '')
                                     st.session_state['edit_input_produto'] = processo.get('produto', '')
                                     
-                                    # Riscos vazios
-                                    st.session_state['edit_riscos'] = []
+                                    # ===== CARREGAR RISCOS =====
+                                    df_riscos = listar_riscos_do_processo(processo['id'])
+                                    
+                                    if not df_riscos.empty:
+                                        st.session_state['edit_riscos'] = []
+                                        for idx, (_, row) in enumerate(df_riscos.iterrows()):
+                                            st.session_state['edit_riscos'].append({})
+                                            st.session_state[f'edit_nome_{idx}'] = row['nome_risco'] or ""
+                                            st.session_state[f'edit_fator_{idx}'] = row['fator_risco'] or ""
+                                            st.session_state[f'edit_melhoria_{idx}'] = row['melhoria'] or ""
+                                            st.session_state[f'edit_apetite_{idx}'] = row['apetite_risco'] or ""
+                                            st.session_state[f'edit_motivo_{idx}'] = row['motivo_risco'] or ""
+                                            st.session_state[f'edit_categorias_{idx}'] = row['categorias_ids'] if row['categorias_ids'] else []
+                                            st.session_state[f'edit_imp_{idx}'] = normalizar_valor_risco(row['impacto'])
+                                            st.session_state[f'edit_prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
+                                    else:
+                                        st.session_state['edit_riscos'] = []
                                     
                                     st.session_state['modo_edicao'] = True
-                                    st.success(f"✅ Processo {codigo} carregado! (Executores não carregados para teste)")
+                                    st.success(f"✅ Processo {codigo} carregado!")
                                     st.rerun()
-                                    
-                        # DEBUG APÓS O BOTÃO DE CARREGAR
-                        if st.button("🔍 Ver Estado das Keys", key="debug_keys"):
-                            st.write("**Keys edit_*:**", [k for k in st.session_state.keys() if k.startswith('edit_')])
-                            st.write("**edit_executores_selecionados:**", st.session_state.get('edit_executores_selecionados'))
-                            st.write("**edit_multiselect_executores_*:**", [k for k in st.session_state.keys() if 'multiselect' in k])
-                        
                 else:
                     st.info("Nenhum processo cadastrado para esta área.")
             else:
                 st.info("Selecione uma área no menu superior para ver os processos disponíveis.")
+            
+            # ===== BOTÃO DE DEBUG (FORA DO IF) =====
+            if st.button("🔍 Ver Estado das Keys", key="debug_keys_edit"):
+                st.write("**Keys edit_*:**", [k for k in st.session_state.keys() if k.startswith('edit_')])
+                st.write("**edit_executores_selecionados:**", st.session_state.get('edit_executores_selecionados'))
+                st.write("**edit_riscos:**", st.session_state.get('edit_riscos', []))
             
             # ===== FORMULÁRIO DE EDIÇÃO =====
             if st.session_state.get('modo_edicao', False):
@@ -2150,20 +2154,28 @@ def main():
                     funcionarios_ids = [f[0] for f in funcionarios_lista]
                     funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                     
-                    # ===== KEY ÚNICA COM O ID DO PROCESSO =====
+                    # ===== VALIDAR DEFAULTS =====
+                    defaults_validos = []
+                    executores_atuais = st.session_state.get('edit_executores_selecionados', [])
+                    for exec_id in executores_atuais:
+                        if exec_id in funcionarios_dict:
+                            defaults_validos.append(exec_id)
+                    
+                    # ===== KEY ÚNICA COM ID DO PROCESSO =====
                     processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
                     multiselect_key = f"edit_multiselect_executores_{processo_id}"
                     
                     # DEBUG
                     st.write(f"🔍 KEY do multiselect: {multiselect_key}")
-                    st.write(f"🔍 Executores no session_state: {st.session_state.get('edit_executores_selecionados', [])}")
+                    st.write(f"🔍 Executores no session_state: {executores_atuais}")
+                    st.write(f"🔍 Defaults válidos: {defaults_validos}")
                     
                     selecionados = st.multiselect(
                         "Selecione os funcionários que executam este processo:",
                         options=funcionarios_ids,
                         format_func=lambda x: funcionarios_dict[x],
                         default=defaults_validos,
-                        key="edit_multiselect_executores",
+                        key=multiselect_key,
                         help="Você pode selecionar um ou mais funcionários"
                     )
                     
@@ -2189,6 +2201,17 @@ def main():
                 
                 # ===== RISCOS ASSOCIADOS =====
                 st.markdown("### Riscos Associados")
+                
+                # Botão para adicionar risco
+                col_add_risco_edit, col_spacer_edit = st.columns([1, 4])
+                with col_add_risco_edit:
+                    if st.button("➕ Adicionar Risco", key="edit_add_risco_main", use_container_width=True):
+                        if 'edit_riscos' not in st.session_state:
+                            st.session_state['edit_riscos'] = []
+                        st.session_state['edit_riscos'].append({})
+                        st.rerun()
+                
+                st.divider()
                 
                 # ===== EXIBIÇÃO DOS RISCOS =====
                 edit_riscos = st.session_state.get('edit_riscos', [])
@@ -2326,7 +2349,6 @@ def main():
                         if st.session_state.get('edit_processo_existente_id'):
                             if salvar_edicao_processo():
                                 st.success("✅ Alterações salvas com sucesso!")
-                                # Limpar estado de edição
                                 keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
                                 for key in keys_to_clear:
                                     st.session_state.pop(key, None)
