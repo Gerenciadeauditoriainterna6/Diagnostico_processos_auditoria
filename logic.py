@@ -624,7 +624,7 @@ def processar_codigo_inteligente():
     nome = st.session_state.get("input_processo", "").strip()
     
     if not id_area or not nome:
-        st.session_state['codigo_processo'] = ""
+        st.session_state['codigo_processo_display'] = ""
         return
     
     # Verificar se já existe um processo com este nome na mesma área
@@ -644,7 +644,7 @@ def processar_codigo_inteligente():
     if resultado:
         # Processo existe - carregar todos os dados
         st.session_state['processo_existente_id'] = resultado['id']
-        st.session_state['codigo_processo'] = resultado['codigo_processo']
+        st.session_state['codigo_processo_display'] = resultado['codigo_processo']
         st.session_state['input_objetivo'] = resultado['objetivo'] or ""
         st.session_state['input_executor'] = resultado['executor'] or ""
         st.session_state['input_descricao'] = resultado['descricao'] or ""
@@ -681,7 +681,7 @@ def processar_codigo_inteligente():
         else:
             codigo = f"{id_area}.1"
         
-        st.session_state['codigo_processo'] = codigo
+        st.session_state['codigo_processo_display'] = codigo
         # Limpar dados de edição anterior
         if 'processo_existente_id' in st.session_state:
             st.session_state.pop('processo_existente_id', None)

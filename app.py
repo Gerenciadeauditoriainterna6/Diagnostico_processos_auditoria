@@ -580,7 +580,7 @@ def atualizar_id_area():
 if 'riscos' not in st.session_state: st.session_state['riscos'] = []
 if 'deve_limpar' not in st.session_state: st.session_state['deve_limpar'] = False
 if 'df_pendentes' not in st.session_state: st.session_state['df_pendentes'] = pd.DataFrame()
-
+if 'codigo_processo_display' not in st.session_state: st.session_state['codigo_processo_display'] = "" 
 if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
@@ -1759,7 +1759,7 @@ def main():
             )
 
             # Código do Processo (gerado automaticamente)
-            st.text_input("Código do Processo:", key="codigo_processo", disabled=True)
+            st.text_input("Código do Processo:", key="codigo_processo_display", disabled=True)
 
             # ===== EXECUTORES DO PROCESSO =====
             st.markdown("**Funcionário(s) que executam o processo:**")
