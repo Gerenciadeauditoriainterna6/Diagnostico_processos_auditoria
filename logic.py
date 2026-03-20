@@ -1447,8 +1447,7 @@ def carregar_riscos_processo_para_edicao(processo_id):
         if key.startswith('edit_nome_') or key.startswith('edit_fator_') or \
            key.startswith('edit_melhoria_') or key.startswith('edit_apetite_') or \
            key.startswith('edit_imp_') or key.startswith('edit_prob_') or \
-           key.startswith('edit_motivo_') or key.startswith('edit_categorias_') or \
-           key == 'edit_riscos':
+           key.startswith('edit_motivo_') or key.startswith('edit_categorias_'):
             keys_to_remove.append(key)
     
     for key in keys_to_remove:
@@ -1457,6 +1456,7 @@ def carregar_riscos_processo_para_edicao(processo_id):
     # ===== CARREGAR NOVOS RISCOS =====
     df_riscos = listar_riscos_do_processo(processo_id)
     
+    # CRUCIAL: Se não há riscos, criar lista VAZIA, não [{}]
     if not df_riscos.empty:
         st.session_state['edit_riscos'] = []
         
@@ -1471,10 +1471,11 @@ def carregar_riscos_processo_para_edicao(processo_id):
             st.session_state[f'edit_imp_{idx}'] = normalizar_valor_risco(row['impacto'])
             st.session_state[f'edit_prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
     else:
-        st.session_state['edit_riscos'] = [{}]
+        # ===== MUDANÇA CRÍTICA: LISTA VAZIA, NÃO [{}] =====
+        st.session_state['edit_riscos'] = []  # ← LISTA VAZIA
     
     # DEBUG
-    st.write(f"🔍 Carregados {len(st.session_state['edit_riscos'])} riscos para o processo {processo_id}")
+    print(f"🔍 Carregados {len(st.session_state['edit_riscos'])} riscos para o processo {processo_id}")
 
 def salvar_edicao_processo():
     """Salva as alterações de um processo existente"""

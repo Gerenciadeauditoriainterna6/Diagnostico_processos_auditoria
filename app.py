@@ -2175,152 +2175,186 @@ def main():
                 st.write("")
                 
                 # ===== RISCOS ASSOCIADOS (EDIÇÃO) =====
-                st.markdown("### Riscos Associados")
+        st.markdown("### Riscos Associados")
 
-                st.divider()
+        # Botão para adicionar novo risco
+        col_add_risco_edit, col_spacer_edit = st.columns([1, 4])
+        with col_add_risco_edit:
+            if st.button("➕ Adicionar Risco", key="edit_add_risco_main", use_container_width=True):
+                if 'edit_riscos' not in st.session_state:
+                    st.session_state['edit_riscos'] = []
+                st.session_state['edit_riscos'].append({})
+                st.rerun()
 
-                # Lista para armazenar índices a remover
-                indices_para_remover_edit = []
+        st.divider()
 
-                # Mostrar cada risco em um expander
-                for i, _ in enumerate(st.session_state.get('edit_riscos', [])):
-                    # Título do expander
-                    titulo_risco = st.session_state.get(f'edit_nome_{i}', f'Risco {i+1}')
-                    if titulo_risco and titulo_risco != f'Risco {i+1}':
-                        titulo_expander = f"⚠️ {titulo_risco[:50]}"
-                    else:
-                        titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
+        # Só mostrar riscos se houver na lista
+        if st.session_state.get('edit_riscos', []):
+            # Lista para armazenar índices a remover
+            indices_para_remover_edit = []
+            
+            processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
+
+            # Mostrar cada risco em um expander
+            for i, _ in enumerate(st.session_state.get('edit_riscos', [])):
+                # Título do expander
+                titulo_risco = st.session_state.get(f'edit_nome_{i}', f'Risco {i+1}')
+                if titulo_risco and titulo_risco != f'Risco {i+1}':
+                    titulo_expander = f"⚠️ {titulo_risco[:50]}"
+                else:
+                    titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
+                
+                with st.expander(titulo_expander, expanded=False, key=f"edit_risco_expander_{processo_id}_{i}"):
+                    # Cabeçalho com botão de remover
+                    col_titulo, col_remove = st.columns([5, 1])
+                    with col_titulo:
+                        st.markdown(f"**Detalhes do Risco {i+1}**")
+                    with col_remove:
+                        if len(st.session_state.get('edit_riscos', [])) > 1:
+                            if st.button("🗑️ Remover Risco", key=f"edit_remove_risco_{i}_{processo_id}", use_container_width=True):
+                                indices_para_remover_edit.append(i)
+                                st.rerun()
                     
-                    # ===== ADICIONAR KEY ÚNICA BASEADA NO ID DO PROCESSO =====
-                    processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
-                    with st.expander(titulo_expander, expanded=False, key=f"edit_risco_expander_{processo_id}_{i}"):
-                        
-                        # Campos do risco
-                        st.text_input(
-                            f"Nome do Risco:", 
-                            key=f"edit_nome_{i}", 
-                            placeholder="Ex: Risco de erro no cadastro, Risco de falha sistêmica...",
-                            help="Descreva o risco de forma clara e objetiva"
+                    st.divider()
+                    
+                    # Campos do risco (mantém igual)
+                    st.text_input(
+                        f"Nome do Risco:", 
+                        key=f"edit_nome_{i}", 
+                        placeholder="Ex: Risco de erro no cadastro, Risco de falha sistêmica...",
+                        help="Descreva o risco de forma clara e objetiva"
+                    )
+                    
+                    # Categorias
+                    categorias_dict = listar_categorias()
+                    ids_categorias = list(categorias_dict.keys())
+                    
+                    st.multiselect(
+                        f"Categorias do Risco:", 
+                        options=ids_categorias,
+                        format_func=lambda x: categorias_dict[x],
+                        default=st.session_state.get(f'edit_categorias_{i}', []),
+                        key=f"edit_categorias_{i}",
+                        help="Selecione uma ou mais categorias para este risco"
+                    )
+                    
+                    # Fator de Risco
+                    st.text_area(
+                        f"Fator de Risco:", 
+                        key=f"edit_fator_{i}", 
+                        placeholder="O que causa ou contribui para que este risco aconteça?",
+                        help="Fator de risco, causa ou motivo desse risco acontecer."
+                    )
+                    
+                    # Ponto de Melhoria
+                    st.text_area(
+                        f"Ponto de Melhoria:", 
+                        key=f"edit_melhoria_{i}", 
+                        placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
+                        help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
+                    )
+                    
+                    # Apetite ao Risco
+                    st.text_area(
+                        f"Apetite ao risco:", 
+                        key=f"edit_apetite_{i}", 
+                        placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
+                        help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco."
+                    )
+                    
+                    # Critérios
+                    exibir_criterios_risco()
+                    
+                    # Impacto e Probabilidade
+                    col_i, col_p = st.columns(2)
+                    with col_i:
+                        st.selectbox(
+                            f"Impacto:", 
+                            ["Muito Alto", "Alto", "Médio", "Baixo"], 
+                            key=f"edit_imp_{i}", 
+                            help="Impacto do risco materializado"
                         )
-                        
-                        # Categorias
-                        categorias_dict = listar_categorias()
-                        ids_categorias = list(categorias_dict.keys())
-                        
-                        st.multiselect(
-                            f"Categorias do Risco:", 
-                            options=ids_categorias,
-                            format_func=lambda x: categorias_dict[x],
-                            default=st.session_state.get(f'edit_categorias_{i}', []),
-                            key=f"edit_categorias_{i}",
-                            help="Selecione uma ou mais categorias para este risco"
+                    with col_p:
+                        st.selectbox(
+                            f"Probabilidade:", 
+                            ["Muito Alto", "Alto", "Médio", "Baixo"], 
+                            key=f"edit_prob_{i}", 
+                            help="Probabilidade do risco acontecer?"
                         )
-                        
-                        # Fator de Risco
-                        st.text_area(
-                            f"Fator de Risco:", 
-                            key=f"edit_fator_{i}", 
-                            placeholder="O que causa ou contribui para que este risco aconteça?",
-                            help="Fator de risco, causa ou motivo desse risco acontecer."
-                        )
-                        
-                        # Ponto de Melhoria
-                        st.text_area(
-                            f"Ponto de Melhoria:", 
-                            key=f"edit_melhoria_{i}", 
-                            placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
-                            help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
-                        )
-                        
-                        # Apetite ao Risco
-                        st.text_area(
-                            f"Apetite ao risco:", 
-                            key=f"edit_apetite_{i}", 
-                            placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
-                            help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco."
-                        )
-                        
-                        # Critérios
-                        exibir_criterios_risco()
-                        
-                        # Impacto e Probabilidade
-                        col_i, col_p = st.columns(2)
-                        with col_i:
-                            st.selectbox(
-                                f"Impacto:", 
-                                ["Muito Alto", "Alto", "Médio", "Baixo"], 
-                                key=f"edit_imp_{i}", 
-                                help="Impacto do risco materializado"
-                            )
-                        with col_p:
-                            st.selectbox(
-                                f"Probabilidade:", 
-                                ["Muito Alto", "Alto", "Médio", "Baixo"], 
-                                key=f"edit_prob_{i}", 
-                                help="Probabilidade do risco acontecer?"
-                            )
-                        
-                        # Cálculo do Risco Bruto
-                        score_v = MAPA_RISCO.get((st.session_state.get(f"edit_imp_{i}"), st.session_state.get(f"edit_prob_{i}")), 0)
-                        cor, emoji = get_estilo_risco(score_v)
-                        st.markdown(f"""
-                        <div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin: 10px 0;">
-                            {emoji} <strong>Risco Bruto (Impacto + Probabilidade): {score_v}</strong>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Motivo da classificação
-                        st.text_area(
-                            f"Motivo:", 
-                            key=f"edit_motivo_{i}", 
-                            placeholder="Justifique a escolha do impacto e probabilidade acima.",
-                            help="Qual o motivo da classificação do nível da probabilidade? - ANÁLISE"
-                        )
-                        
-                        st.markdown("---")
-
-                # Remover os riscos marcados
-                for idx in reversed(indices_para_remover_edit):
-                    st.session_state['edit_riscos'].pop(idx)
-                    keys_to_remove = [f'edit_nome_{idx}', f'edit_categorias_{idx}', f'edit_fator_{idx}', f'edit_melhoria_{idx}', 
-                                    f'edit_apetite_{idx}', f'edit_imp_{idx}', f'edit_prob_{idx}', f'edit_motivo_{idx}']
-                    for key in keys_to_remove:
-                        if key in st.session_state:
-                            st.session_state.pop(key)
-
-                if indices_para_remover_edit:
+                    
+                    # Cálculo do Risco Bruto
+                    score_v = MAPA_RISCO.get((st.session_state.get(f"edit_imp_{i}"), st.session_state.get(f"edit_prob_{i}")), 0)
+                    cor, emoji = get_estilo_risco(score_v)
+                    st.markdown(f"""
+                    <div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin: 10px 0;">
+                        {emoji} <strong>Risco Bruto (Impacto + Probabilidade): {score_v}</strong>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Motivo da classificação
+                    st.text_area(
+                        f"Motivo:", 
+                        key=f"edit_motivo_{i}", 
+                        placeholder="Justifique a escolha do impacto e probabilidade acima.",
+                        help="Qual o motivo da classificação do nível da probabilidade? - ANÁLISE"
+                    )
+                    
+                    st.markdown("---")
+            
+            # Remover os riscos marcados
+            for idx in reversed(indices_para_remover_edit):
+                st.session_state['edit_riscos'].pop(idx)
+                keys_to_remove = [f'edit_nome_{idx}', f'edit_categorias_{idx}', f'edit_fator_{idx}', f'edit_melhoria_{idx}', 
+                                f'edit_apetite_{idx}', f'edit_imp_{idx}', f'edit_prob_{idx}', f'edit_motivo_{idx}']
+                for key in keys_to_remove:
+                    if key in st.session_state:
+                        st.session_state.pop(key)
+            
+            if indices_para_remover_edit:
+                st.rerun()
+            
+            # Botões de ação (apenas quando há riscos)
+            col_add_bottom, col_save_bottom, col_cancel_bottom = st.columns([1, 1, 1])
+            with col_add_bottom:
+                if st.button("➕ Adicionar Risco", key=f"edit_add_risco_bottom_{processo_id}", use_container_width=True):
+                    if 'edit_riscos' not in st.session_state:
+                        st.session_state['edit_riscos'] = []
+                    st.session_state['edit_riscos'].append({})
                     st.rerun()
 
-                # Botões de ação
-                col_add_bottom, col_save_bottom, col_cancel_bottom = st.columns([1, 1, 1])
-                with col_add_bottom:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco_bottom_{processo_id}", use_container_width=True):
-                        if 'edit_riscos' not in st.session_state:
-                            st.session_state['edit_riscos'] = []
-                        st.session_state['edit_riscos'].append({})
-                        st.rerun()
+        else:
+            # ===== MENSAGEM QUANDO NÃO HÁ RISCOS =====
+            st.info("📌 Nenhum risco cadastrado para este processo. Clique em 'Adicionar Risco' para começar.")
+            
+            # Botão para adicionar primeiro risco
+            if st.button("➕ Adicionar Primeiro Risco", key="edit_add_first_risco", use_container_width=True):
+                if 'edit_riscos' not in st.session_state:
+                    st.session_state['edit_riscos'] = []
+                st.session_state['edit_riscos'].append({})
+                st.rerun()
+            
+            # Botões de ação sem os riscos
+            col_save_bottom, col_cancel_bottom = st.columns([1, 1])
+            with col_save_bottom:
+                if st.button("💾 Salvar Alterações", type="primary", key="edit_save", use_container_width=True):
+                    if st.session_state.get('edit_processo_existente_id'):
+                        if salvar_edicao_processo():
+                            st.success("✅ Alterações salvas com sucesso!")
+                            keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
+                            for key in keys_to_clear:
+                                st.session_state.pop(key, None)
+                            st.session_state['modo_edicao'] = False
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar alterações.")
 
-                with col_save_bottom:
-                    if st.button("💾 Salvar Alterações", type="primary", key="edit_save", use_container_width=True):
-                        if st.session_state.get('edit_processo_existente_id'):
-                            if salvar_edicao_processo():
-                                st.success("✅ Alterações salvas com sucesso!")
-                                # Limpar estado de edição
-                                keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
-                                for key in keys_to_clear:
-                                    st.session_state.pop(key, None)
-                                st.session_state['modo_edicao'] = False
-                                st.rerun()
-                            else:
-                                st.error("❌ Erro ao salvar alterações.")
-
-                with col_cancel_bottom:
-                    if st.button("❌ Cancelar Edição", key="edit_cancel", use_container_width=True):
-                        keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
-                        for key in keys_to_clear:
-                            st.session_state.pop(key, None)
-                        st.session_state['modo_edicao'] = False
-                        st.rerun()
+            with col_cancel_bottom:
+                if st.button("❌ Cancelar Edição", key="edit_cancel", use_container_width=True):
+                    keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
+                    for key in keys_to_clear:
+                        st.session_state.pop(key, None)
+                    st.session_state['modo_edicao'] = False
+                    st.rerun()
 
 
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
