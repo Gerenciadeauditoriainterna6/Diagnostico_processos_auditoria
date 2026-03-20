@@ -651,10 +651,37 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_ini'] = resultado['etapa_ini'] or ""
         st.session_state['input_etapa_fim'] = resultado['etapa_fim'] or ""
         st.session_state['input_produto'] = resultado['produto'] or ""
+        st.session_state['info_basicas_salvas'] = True
         
     else:
-        # Processo novo - gerar código
-        st.session_state['codigo_processo'] = obter_proximo_codigo(id_area)
+        # Processo novo - gerar código baseado no último código da área
+        ultimo_codigo_query = text("""
+            SELECT codigo_processo 
+            FROM processos 
+            WHERE id_area = :id_area
+            ORDER BY 
+                (string_to_array(codigo_processo, '.'))[1]::int,
+                (string_to_array(codigo_processo, '.'))[2]::int,
+                (string_to_array(codigo_processo, '.'))[3]::int DESC
+            LIMIT 1
+        """)
+        
+        with engine.connect() as conn:
+            ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area}).scalar()
+        
+        if ultimo:
+            # Extrair o número após o último ponto
+            partes = ultimo.split('.')
+            if len(partes) >= 2:
+                ultimo_numero = int(partes[-1])
+                novo_numero = ultimo_numero + 1
+                codigo = f"{id_area}.{novo_numero}"
+            else:
+                codigo = f"{id_area}.1"
+        else:
+            codigo = f"{id_area}.1"
+        
+        st.session_state['codigo_processo'] = codigo
         # Limpar dados de edição anterior
         if 'processo_existente_id' in st.session_state:
             st.session_state.pop('processo_existente_id', None)
@@ -664,6 +691,7 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_ini'] = ""
         st.session_state['input_etapa_fim'] = ""
         st.session_state['input_produto'] = ""
+        st.session_state['info_basicas_salvas'] = False
 
 def normalizar_valor_risco(valor):
     """
@@ -1178,15 +1206,60 @@ def salvar_informacoes_basicas():
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo", "").strip()
             
-            # Processo existente ou novo
+            # VERIFICAR SE O PROCESSO JÁ EXISTE NESTA ÁREA
+            check_query = text("""
+                SELECT id FROM processos 
+                WHERE id_area = :id_area AND nome_processo = :nome
+            """)
+            existing = conn.execute(check_query, {
+                "id_area": id_area_val,
+                "nome": nome_val
+            }).fetchone()
+            
             processo_existente_id = st.session_state.get('processo_existente_id')
             
+            if existing:
+                # Se já existe, usar o ID existente
+                processo_id = existing[0]
+                st.session_state['processo_existente_id'] = processo_id
+                st.info(f"Processo já existe. Carregando dados existentes...")
+                return True
+            
             if processo_existente_id:
-                # Atualizar processo existente
+                # Atualizar processo existente (não deve entrar aqui se não encontrou)
                 processo_id = processo_existente_id
-                # Não precisamos atualizar o executor aqui, será tratado na tabela separada
             else:
-                # Inserir novo processo (sem executor)
+                # GERAR CÓDIGO DO PROCESSO ANTES DE INSERIR
+                # Buscar o último código para esta área
+                ultimo_codigo_query = text("""
+                    SELECT codigo_processo 
+                    FROM processos 
+                    WHERE id_area = :id_area
+                    ORDER BY 
+                        (string_to_array(codigo_processo, '.'))[1]::int,
+                        (string_to_array(codigo_processo, '.'))[2]::int,
+                        (string_to_array(codigo_processo, '.'))[3]::int DESC
+                    LIMIT 1
+                """)
+                
+                ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area_val}).scalar()
+                
+                if ultimo:
+                    # Extrair o número após o último ponto
+                    partes = ultimo.split('.')
+                    if len(partes) >= 2:
+                        ultimo_numero = int(partes[-1])
+                        novo_numero = ultimo_numero + 1
+                        codigo_processo = f"{id_area_val}.{novo_numero}"
+                    else:
+                        codigo_processo = f"{id_area_val}.1"
+                else:
+                    codigo_processo = f"{id_area_val}.1"
+                
+                # Armazenar na session_state
+                st.session_state['codigo_processo'] = codigo_processo
+                
+                # Inserir novo processo
                 sql_insert = text("""
                     INSERT INTO processos 
                     (id_area, area, codigo_processo, nome_processo, status, aprovacao) 
@@ -1198,7 +1271,7 @@ def salvar_informacoes_basicas():
                 params = {
                     "id_a": id_area_val,
                     "a": nome_area_val,
-                    "c": st.session_state['codigo_processo'],
+                    "c": codigo_processo,
                     "n": nome_val,
                     "st": "Ativo",
                     "aprov": "Em Aprovação"
@@ -1225,11 +1298,23 @@ def salvar_informacoes_basicas():
             
             # Vincular à auditoria
             if 'auditoria_diagnostico' in st.session_state:
-                vincular_processo_a_auditoria(
-                    auditoria_id=st.session_state['auditoria_diagnostico'],
-                    processo_id=processo_id,
-                    motivo="Processo identificado durante diagnóstico da área"
-                )
+                auditoria_id = st.session_state['auditoria_diagnostico']
+                # Verificar se já está vinculado
+                check_vinc = text("""
+                    SELECT id FROM auditoria_processos 
+                    WHERE auditoria_id = :aud_id AND processo_id = :proc_id
+                """)
+                ja_existe = conn.execute(check_vinc, {
+                    "aud_id": auditoria_id,
+                    "proc_id": processo_id
+                }).fetchone()
+                
+                if not ja_existe:
+                    vincular_processo_a_auditoria(
+                        auditoria_id=auditoria_id,
+                        processo_id=processo_id,
+                        motivo="Processo identificado durante diagnóstico da área"
+                    )
             
             st.session_state['ultimo_processo_id'] = processo_id
             
