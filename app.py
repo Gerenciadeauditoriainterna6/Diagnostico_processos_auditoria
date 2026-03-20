@@ -1806,12 +1806,10 @@ def main():
                 if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True):
                     if validar_basicos():
                         with st.spinner("Salvando informações básicas..."):
-                            if salvar_informacoes_basicas():
-                                if 'codigo_processo_novo' in st.session_state:
-                                    st.session_state['codigo_processo'] = st.session_state['codigo_processo_novo']
-
-                                    del st.session_state['codigo_processo_novo']
-                                
+                            resultado, novo_codigo = salvar_informacoes_basicas()  # Retorna também o código
+                            if resultado:
+                                if novo_codigo:
+                                    st.session_state['codigo_processo_display'] = novo_codigo
                                 st.session_state['info_basicas_salvas'] = True
                                 st.success("✅ Informações básicas salvas com sucesso!")
                                 st.rerun()
