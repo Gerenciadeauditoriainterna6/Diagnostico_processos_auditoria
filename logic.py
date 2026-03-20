@@ -732,13 +732,20 @@ def salvar_no_banco():
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo", "").strip()
 
-            # === DETERMINA SE É EDIÇÃO OU NOVO PROCESSO ===
-            # Se já existe um ID na sessão, é edição
-            processo_existente_id = st.session_state.get('processo_existente_id')
+            # === PRIMEIRO: VERIFICAR SE O PROCESSO JÁ EXISTE ===
+            check_query = text("""
+                SELECT id FROM processos 
+                WHERE id_area = :id_area AND nome_processo = :nome
+            """)
+            existing = conn.execute(check_query, {
+                "id_area": id_area_val,
+                "nome": nome_val
+            }).fetchone()
 
-            if processo_existente_id:
+            if existing:
                 # === MODO EDIÇÃO: Atualizar processo existente ===
-                processo_id = processo_existente_id
+                processo_id = existing[0]
+                st.session_state['processo_existente_id'] = processo_id
 
                 sql_update = text("""
                     UPDATE processos 
@@ -785,7 +792,6 @@ def salvar_no_banco():
 
                 processo_id = conn.execute(sql_insert, params_insert).scalar()
                 st.session_state['processo_existente_id'] = processo_id
-                st.session_state['ultimo_processo_id'] = processo_id
 
             # ===== RISCOS: REMOVE OS ANTIGOS E INSERE OS NOVOS =====
             conn.execute(
@@ -829,6 +835,8 @@ def salvar_no_banco():
                             text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
                             {"rid": risco_id, "cid": cat_id}
                         )
+
+            st.session_state['ultimo_processo_id'] = processo_id
 
         return True
 
