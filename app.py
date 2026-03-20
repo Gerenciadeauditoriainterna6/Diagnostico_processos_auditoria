@@ -2010,27 +2010,109 @@ def main():
                 st.info("Após salvar, você poderá adicionar o detalhamento e os riscos.")
         
         # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
+    
         with tab_editar:
             st.title("✏️ Editar Processo Existente")
             st.markdown("Selecione um processo abaixo para editar suas informações.")
             
-            # Buscar processos da área selecionada
-            id_area_atual = st.session_state.get('id_area_selecionado')
+            # ===== VINCULAR À AUDITORIA (MESMO DA TAB 1) =====
+            st.subheader("1. Vincular à Auditoria")
             
-            # ===== SELEÇÃO DO PROCESSO =====
-            if id_area_atual:
+            def listar_auditorias_para_area(id_area):
                 query = text("""
-                    SELECT id, codigo_processo, nome_processo
-                    FROM processos
+                    SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+                    FROM auditorias
                     WHERE id_area = :id_area
+                    AND status IN ('Planejamento', 'Em Execução')
+                    ORDER BY ano DESC, trimestre DESC
+                """)
+                with engine.connect() as conn:
+                    return pd.read_sql(query, conn, params={"id_area": id_area})
+            
+            # Selectbox de área
+            st.selectbox(
+                "Selecione a Área:", 
+                list(areas_dict.keys()), 
+                key="area_selectbox_edit",  # Key diferente para não conflitar com Tab 1
+                on_change=atualizar_id_area
+            )
+            
+            # Garantir que o ID da área esteja inicializado
+            if 'id_area_selecionado_edit' not in st.session_state:
+                st.session_state['id_area_selecionado_edit'] = list(areas_dict.values())[0]
+            
+            # Atualizar ID da área quando mudar
+            def atualizar_id_area_edit():
+                nome_selecionado = st.session_state['area_selectbox_edit']
+                st.session_state['id_area_selecionado_edit'] = areas_dict[nome_selecionado]
+            
+            # Registrar o on_change
+            if 'area_selectbox_edit' in st.session_state:
+                atualizar_id_area_edit()
+            
+            id_area_atual_edit = st.session_state.get('id_area_selecionado_edit')
+            
+            # Mostrar funcionários da área (opcional)
+            if id_area_atual_edit:
+                df_funcionarios = listar_funcionarios_area(id_area_atual_edit)
+                if not df_funcionarios.empty:
+                    with st.expander("👥 Funcionários da Área", expanded=False):
+                        for _, func in df_funcionarios.iterrows():
+                            st.markdown(f"""
+                            - **{func['nome_funcionario']}**  
+                            *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
+                            """)
+            
+            # Buscar auditorias da área selecionada
+            df_auditorias_area = listar_auditorias_para_area(id_area_atual_edit)
+            
+            if not df_auditorias_area.empty:
+                opcoes_auditoria = []
+                for _, row in df_auditorias_area.iterrows():
+                    status_emoji = "🟡" if row['status'] == 'Planejamento' else "🟢"
+                    opcoes_auditoria.append({
+                        "id": row['id'],
+                        "display": f"{status_emoji} {row['codigo_auditoria']} - {row['titulo']} ({row['ano']} {row['trimestre']}º trim)"
+                    })
+                
+                display_list = [item["display"] for item in opcoes_auditoria]
+                id_map_auditoria = {item["display"]: item["id"] for item in opcoes_auditoria}
+                
+                auditoria_escolhida = st.selectbox(
+                    "Escolha a auditoria para filtrar os processos:",
+                    options=display_list,
+                    key="auditoria_select_edit",
+                    help="Selecione a auditoria à qual o processo pertence."
+                )
+                
+                st.session_state['auditoria_edit'] = id_map_auditoria[auditoria_escolhida]
+                st.success(f"✅ Filtrando processos da auditoria: **{auditoria_escolhida.split(' - ')[0]}**")
+            else:
+                st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
+                st.session_state['auditoria_edit'] = None
+            
+            st.divider()
+            
+            # ===== BUSCAR PROCESSOS DA ÁREA E AUDITORIA SELECIONADAS =====
+            if id_area_atual_edit and st.session_state.get('auditoria_edit'):
+                
+                query = text("""
+                    SELECT p.id, p.codigo_processo, p.nome_processo
+                    FROM processos p
+                    JOIN auditoria_processos ap ON p.id = ap.processo_id
+                    WHERE p.id_area = :id_area
+                    AND ap.auditoria_id = :auditoria_id
                     ORDER BY 
-                        (string_to_array(codigo_processo, '.'))[1]::int,
-                        (string_to_array(codigo_processo, '.'))[2]::int,
-                        (string_to_array(codigo_processo, '.'))[3]::int
+                        (string_to_array(p.codigo_processo, '.'))[1]::int,
+                        (string_to_array(p.codigo_processo, '.'))[2]::int,
+                        (string_to_array(p.codigo_processo, '.'))[3]::int
                 """)
                 
                 with engine.connect() as conn:
-                    df_processos = pd.read_sql(query, conn, params={"id_area": id_area_atual})
+                    df_processos = pd.read_sql(query, conn, params={
+                        "id_area": id_area_atual_edit,
+                        "auditoria_id": st.session_state['auditoria_edit']
+                    })
                 
                 if not df_processos.empty:
                     opcoes = []
@@ -2109,9 +2191,12 @@ def main():
                                     st.success(f"✅ Processo {codigo} carregado!")
                                     st.rerun()
                 else:
-                    st.info("Nenhum processo cadastrado para esta área.")
+                    st.info("Nenhum processo cadastrado para esta área e auditoria.")
             else:
-                st.info("Selecione uma área no menu superior para ver os processos disponíveis.")
+                if not id_area_atual_edit:
+                    st.info("Selecione uma área no menu superior para ver os processos disponíveis.")
+                elif not st.session_state.get('auditoria_edit'):
+                    st.info("Selecione uma auditoria para filtrar os processos.")
             
             # ===== FORMULÁRIO DE EDIÇÃO =====
             if st.session_state.get('modo_edicao', False):
@@ -2135,33 +2220,29 @@ def main():
                 
                 # ===== EXECUTORES =====
                 st.markdown("**Funcionário(s) que executam o processo:**")
-
-                id_area_atual = st.session_state.get('id_area_selecionado')
+                
+                id_area_atual = st.session_state.get('id_area_selecionado_edit')
                 funcionarios_lista = []
-
+                
                 if id_area_atual:
                     funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
-
+                
                 if not funcionarios_lista:
                     st.warning("⚠️ Nenhum funcionário cadastrado para esta área.")
                 else:
                     funcionarios_ids = [f[0] for f in funcionarios_lista]
                     funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                     
-                    # ===== VALIDAR DEFAULTS =====
+                    # Validar defaults
                     defaults_validos = []
                     executores_atuais = st.session_state.get('edit_executores_selecionados', [])
                     for exec_id in executores_atuais:
                         if exec_id in funcionarios_dict:
                             defaults_validos.append(exec_id)
                     
-                    # ===== KEY ÚNICA COM ID DO PROCESSO =====
+                    # Key única com ID do processo
                     processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
                     multiselect_key = f"edit_multiselect_executores_{processo_id}"
-          
-                    # Se não há defaults válidos, mostrar uma mensagem
-                    if not defaults_validos and executores_atuais:
-                        st.warning(f"⚠️ Os executores {executores_atuais} não foram encontrados na lista de funcionários da área.")
                     
                     selecionados = st.multiselect(
                         "Selecione os funcionários que executam este processo:",
@@ -2191,19 +2272,20 @@ def main():
                 st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="edit_input_objetivo")
                 
                 st.write("")
-                st.divider()
                 
                 # ===== RISCOS ASSOCIADOS =====
                 st.markdown("### Riscos Associados")
                 
                 # Botão para adicionar risco
-                col_add_risco_edit, col_spacer_edit = st.columns([1, 4])
-                with col_add_risco_edit:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco_main", use_container_width=True):
+                col_add_risco, col_spacer = st.columns([1, 4])
+                with col_add_risco:
+                    if st.button("➕ Adicionar Risco", key="edit_add_risco", use_container_width=True):
                         if 'edit_riscos' not in st.session_state:
                             st.session_state['edit_riscos'] = []
                         st.session_state['edit_riscos'].append({})
                         st.rerun()
+                
+                st.divider()
                 
                 # ===== EXIBIÇÃO DOS RISCOS =====
                 edit_riscos = st.session_state.get('edit_riscos', [])
@@ -2323,13 +2405,12 @@ def main():
                         st.rerun()
                 
                 else:
-                    # ===== MENSAGEM QUANDO NÃO HÁ RISCOS =====
                     st.info("📌 Nenhum risco cadastrado para este processo. Clique em 'Adicionar Risco' para começar.")
                 
                 # ===== BOTÕES DE AÇÃO =====
-                col_save_bottom, col_cancel_bottom = st.columns(2)
+                col_save, col_cancel = st.columns(2)
                 
-                with col_save_bottom:
+                with col_save:
                     if st.button("💾 Salvar Alterações", type="primary", key="edit_save", use_container_width=True):
                         if st.session_state.get('edit_processo_existente_id'):
                             if salvar_edicao_processo():
@@ -2342,7 +2423,7 @@ def main():
                             else:
                                 st.error("❌ Erro ao salvar alterações.")
                 
-                with col_cancel_bottom:
+                with col_cancel:
                     if st.button("❌ Cancelar Edição", key="edit_cancel", use_container_width=True):
                         keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
                         for key in keys_to_clear:
