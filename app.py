@@ -1748,8 +1748,8 @@ def main():
             # ===== SEÇÃO 1: INFORMAÇÕES BÁSICAS (OBRIGATÓRIAS) =====
             st.markdown("""
                 <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
-                    <h3 style='margin: 0; padding: 0;'>2. Informações Básicas do Processo</h3>
-                    <span style='cursor: help; font-size: 1.2rem;' title='Campos obrigatórios para criar o processo'>ⓘ</span>
+                    <h3 style='margin: 0; padding: 0;'>2. Informações Iniciais do Processo</h3>
+                    <span style='cursor: help; font-size: 1.2rem;' title='Associeo aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
                 </div>
             """, unsafe_allow_html=True)
             st.divider()
@@ -1840,7 +1840,7 @@ def main():
 
                 st.markdown("""
                     <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
-                        <h3 style='margin: 0; padding: 0;'>2. Detalhamento do Processo</h3>
+                        <h3 style='margin: 0; padding: 0;'>2. Dados do Processo</h3>
                         <span style='cursor: help; font-size: 1.2rem;' title='Campos opcionais para complementar o diagnóstico'>ⓘ</span>
                     </div>
                 """, unsafe_allow_html=True)
@@ -2249,12 +2249,13 @@ def main():
                     defaults_validos = [exec_id for exec_id in executores_ids if exec_id in funcionarios_dict]
                     
                     selecionados = st.multiselect(
-                        "Selecione os funcionários que executam este processo:",
+                        "",
                         options=funcionarios_ids,
                         format_func=lambda x: funcionarios_dict[x],
                         default=defaults_validos,
                         key='edit_multiselect_executores',
-                        help="Você pode selecionar um ou mais funcionários"
+                        help="Você pode selecionar um ou mais funcionários",
+                        placeholder= 'Selecione os funcionários que executam este processo: '
                     )
                     
                     st.session_state['edit_executores_selecionados'] = selecionados
