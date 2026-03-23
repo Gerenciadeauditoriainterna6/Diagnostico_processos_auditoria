@@ -643,7 +643,7 @@ def processar_codigo_inteligente():
     
     if resultado:
         # Processo já existe - carregar todos os dados
-        st.session_state['processo_existente_id'] = resultado['id']
+        st.session_state['novo_processo_existente_id'] = resultado['id']
         st.session_state['codigo_processo_display'] = resultado['codigo_processo']
         
         # NÃO carregar os detalhamentos para não enganar o usuário
@@ -663,7 +663,7 @@ def processar_codigo_inteligente():
         return
         
     else:
-        
+
         # Processo novo - gerar código baseado no último código da área
         ultimo_codigo_query = text("""
             SELECT codigo_processo 

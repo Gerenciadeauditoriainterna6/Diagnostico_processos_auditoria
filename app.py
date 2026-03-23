@@ -1568,6 +1568,8 @@ def carregar_riscos_processo(processo_id):
 # --- 5. Execução do app ---
 
 def main():
+    if 'aba_ativa_diagnostico' not in st.session_state:
+        st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
     # 1. Tenta ler o usuário salvo no navegador (Local Storage)
     # Diferente do cookie, aqui a leitura é imediata
     usuario_cache = local_storage.getItem("usuario_audit")
@@ -1642,10 +1644,10 @@ def main():
         # ===== TAB 1: NOVO PROCESSO =====
         with tab_novo:
             # Resetar estado para novo processo
-            if 'processo_existente_id' in st.session_state:
-                st.session_state.pop('processo_existente_id', None)
-            if 'executores_selecionados' in st.session_state:
-                st.session_state.pop('executores_selecionados', None)
+            if 'novo_processo_existente_id' in st.session_state:
+                st.session_state.pop('novo_processo_existente_id', None)
+            if 'novo_executores_selecionados' in st.session_state:
+                st.session_state.pop('novo_executores_selecionados', None)
             #if 'info_basicas_salvas' in st.session_state:
              #   st.session_state['info_basicas_salvas'] = False
             if 'riscos' not in st.session_state or len(st.session_state['riscos']) == 0:
@@ -1771,15 +1773,15 @@ def main():
 
             if not funcionarios_lista:
                 st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas'.")
-                if 'executores_selecionados' not in st.session_state:
-                    st.session_state['executores_selecionados'] = []
+                if 'novo_executores_selecionados' not in st.session_state:
+                    st.session_state['novo_executores_selecionados'] = []
             else:
                 funcionarios_ids = [f[0] for f in funcionarios_lista]
                 funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                 
                 defaults_validos = []
-                if 'executores_selecionados' in st.session_state:
-                    for exec_id in st.session_state['executores_selecionados']:
+                if 'edit_executores_selecionados' in st.session_state:
+                    for exec_id in st.session_state['edit_executores_selecionados']:
                         if exec_id in funcionarios_dict:
                             defaults_validos.append(exec_id)
 
@@ -1788,11 +1790,11 @@ def main():
                     options=funcionarios_ids,
                     format_func=lambda x: funcionarios_dict[x],
                     default=defaults_validos,
-                    key="multiselect_executores",
+                    key="edit_multiselect_executores",
                     help="Você pode selecionar um ou mais funcionários"
                 )
                 
-                st.session_state['executores_selecionados'] = selecionados
+                st.session_state['edit_executores_selecionados'] = selecionados
                 
                 if selecionados:
                     nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
@@ -1802,7 +1804,7 @@ def main():
             col_b1, col_b2 = st.columns(2)
             with col_b1:
 
-                processo_ja_existe = 'processo_existente_id' in st.session_state
+                processo_ja_existe = 'novo_processo_existente_id' in st.session_state
 
                 if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True, disabled=processo_ja_existe):
                     if validar_basicos():
@@ -1820,8 +1822,10 @@ def main():
                 if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
                     st.session_state['deve_limpar_diagnostico'] = True
                     st.session_state['info_basicas_salvas'] = False
-                    if 'executores_selecionados' in st.session_state:
-                        st.session_state.pop('executores_selecionados')
+                    if 'novo_executores_selecionados' in st.session_state:
+                        st.session_state.pop('novo_executores_selecionados')
+                    if 'novo_processo_existente_id' in st.session_state:
+                        st.session_state.pop('novo_processo_existente_id')
                     st.rerun()
 
             st.divider()
@@ -2007,6 +2011,9 @@ def main():
         # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
     
         with tab_editar:
+            if 'processo_selecionado_para_editar' not in st.session_state:
+                st.session_state['processo_selecionado_para_editar'] = None
+
             st.title("✏️ Editar Processo Existente")
             st.markdown("Selecione um processo abaixo para editar suas informações.")
             
@@ -2127,7 +2134,11 @@ def main():
                     )
                     
                     if processo_escolhido:
-                        if st.button("📂 Carregar Processo", type="primary", use_container_width=True):
+                        st.session_state['processo_selecionado_para_editar'] = processo_escolhido
+                        if st.button("📂 Carregar Processo", type="primary", use_container_width=True, key='btn_carregar_processo'):
+                            if st.session_state.get('processo_selecionado_para_editar'):
+                                processo_escolhido = st.session_state['processo_selecionado_para_editar']
+
                             # ===== LIMPEZA TOTAL DO ESTADO DE EDIÇÃO =====
                             keys_to_clear = [k for k in list(st.session_state.keys()) if k.startswith('edit_')]
                             for key in keys_to_clear:
@@ -2230,10 +2241,11 @@ def main():
                     
                     # Validar defaults
                     defaults_validos = []
-                    executores_atuais = st.session_state.get('edit_executores_selecionados', [])
-                    for exec_id in executores_atuais:
-                        if exec_id in funcionarios_dict:
-                            defaults_validos.append(exec_id)
+
+                    if 'novo_executores_selecionados' in st.session_state:
+                        for exec_id in st.session_state['novo_executores_selecionados']:
+                            if exec_id in funcionarios_dict:
+                                defaults_validos.append(exec_id)
                     
                     # Key única com ID do processo
                     processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
@@ -2244,11 +2256,11 @@ def main():
                         options=funcionarios_ids,
                         format_func=lambda x: funcionarios_dict[x],
                         default=defaults_validos,
-                        key=multiselect_key,
+                        key='novo_multiselect_executores',
                         help="Você pode selecionar um ou mais funcionários"
                     )
                     
-                    st.session_state['edit_executores_selecionados'] = selecionados
+                    st.session_state['novo_executores_selecionados'] = selecionados
                     
                     if selecionados:
                         nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
