@@ -2415,10 +2415,11 @@ def main():
                 col_save, col_cancel = st.columns(2)
                 
                 with col_save:
-                    if st.button("💾 Salvar Alterações", type="primary", key="edit_save", use_container_width=True):
+                    if st.button("💾 Atualizar Alterações", type="primary", key="edit_save", use_container_width=True):
                         if st.session_state.get('edit_processo_existente_id'):
                             if salvar_edicao_processo():
-                                st.success("✅ Alterações salvas com sucesso!")
+                                st.toast("✅ Alterações salvas com sucesso!", icon="✅")
+                                time_module.sleep(1.5)
                                 keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
                                 for key in keys_to_clear:
                                     st.session_state.pop(key, None)
