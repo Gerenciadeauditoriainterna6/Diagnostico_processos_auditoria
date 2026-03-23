@@ -276,7 +276,7 @@ def tela_cadastro_area():
             # Mostrar funcionários para cadastro
             for i, func in enumerate(st.session_state['funcionarios_temp']):
                 with st.container(border=True):
-                    st.markdown(f"**Funcionário {i+1}**")
+                    st.markdown(f"**Funcionário**")
                     
                     col_f1, col_f2 = st.columns(2)
                     with col_f1:
@@ -1607,7 +1607,7 @@ def main():
         opcao = st.radio(
             "Menu", 
                 [
-                    #"📅 Plano Anual de Auditoria",
+                    "📅 Plano Anual de Auditoria",
                     "🏢 Cadastro de Áreas e Funcionários",
                     "🔍 Diagnóstico dos Processos",
                     "📋 Detalhamento dos Processos",        
@@ -1670,7 +1670,7 @@ def main():
                 st.session_state['deve_limpar_diagnostico'] = False
                 st.rerun()
             
-            st.title("Diagnóstico dos Processos")
+            st.title("Diagnóstico dos Processos - Cadastro de novo processo")
             st.markdown("""
             <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
                 <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
@@ -2019,7 +2019,7 @@ def main():
             if 'processo_selecionado_para_editar' not in st.session_state:
                 st.session_state['processo_selecionado_para_editar'] = None
 
-            st.title("✏️ Editar Processo Existente")
+            st.title("Edição de processo existente")
             st.markdown("Selecione um processo abaixo para editar suas informações.")
             
             # ===== VINCULAR À AUDITORIA (MESMO DA TAB 1) =====
@@ -2418,7 +2418,7 @@ def main():
                     if st.button("💾 Atualizar Alterações", type="primary", key="edit_save", use_container_width=True):
                         if st.session_state.get('edit_processo_existente_id'):
                             if salvar_edicao_processo():
-                                st.toast("✅ Alterações salvas com sucesso!", icon="✅")
+                                st.toast("Alterações salvas com sucesso!", icon="✅")
                                 time_module.sleep(1.5)
                                 keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
                                 for key in keys_to_clear:
