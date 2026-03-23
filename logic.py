@@ -1648,7 +1648,7 @@ def tempo_restante_sessao():
         login_time = st.session_state.get('login_timestamp')
         if login_time:
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            tempo_restante = max(0, 1800 - tempo_decorrido)
+            tempo_restante = max(0, 60 - tempo_decorrido)
             minutos = int(tempo_restante // 60)
             segundos = int(tempo_restante % 60)
             return f"{minutos:02d}:{segundos:02d}"
