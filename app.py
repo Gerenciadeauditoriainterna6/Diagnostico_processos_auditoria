@@ -585,6 +585,20 @@ if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
 
+def atualizar_id_area_edit():
+    nome_selecionado = st.session_state['area_selectbox_edit']
+    st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
+    st.session_state['codigo_processo'] = ""
+    st.session_state['input_processo'] = "" 
+
+if 'riscos' not in st.session_state: st.session_state['riscos'] = []
+if 'deve_limpar' not in st.session_state: st.session_state['deve_limpar'] = False
+if 'df_pendentes' not in st.session_state: st.session_state['df_pendentes'] = pd.DataFrame()
+if 'codigo_processo_display' not in st.session_state: st.session_state['codigo_processo_display'] = "" 
+if 'id_area_selecionado' not in st.session_state and areas_dict:
+    primeiro_nome = list(areas_dict.keys())[0]
+    st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
+
 # --- 4. FUNÇÕES DE SUPORTE ---
 def validar_formulario():
     """Valida apenas os campos obrigatórios: nome do processo e executor"""
@@ -1750,8 +1764,8 @@ def main():
             st.selectbox(
                 "Selecione a Área:", 
                 list(areas_dict.keys()), 
-                key="area_selectbox", 
-                on_change=atualizar_id_area
+                key="area_selectbox_edit", 
+                on_change=atualizar_id_area_edit
             )
 
             id_area_atual = st.session_state.get('id_area_selecionado')
