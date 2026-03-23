@@ -2233,8 +2233,8 @@ def main():
                 id_area_atual = st.session_state.get('id_area_selecionado_edit')
                 funcionarios_lista = []
                 
-                if id_area_atual:
-                    funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
+                if id_area_atual_edit:
+                    funcionarios_lista = listar_funcionarios_por_area(id_area_atual_edit)
                 
                 if not funcionarios_lista:
                     st.warning("⚠️ Nenhum funcionário cadastrado para esta área.")
@@ -2242,28 +2242,22 @@ def main():
                     funcionarios_ids = [f[0] for f in funcionarios_lista]
                     funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                     
-                    # Validar defaults
-                    defaults_validos = []
+                    # Obter os IDs dos executores já salvos no processo (carregados anteriormente)
+                    executores_ids = st.session_state.get('edit_executores_selecionados', [])
 
-                    if 'novo_executores_selecionados' in st.session_state:
-                        for exec_id in st.session_state['novo_executores_selecionados']:
-                            if exec_id in funcionarios_dict:
-                                defaults_validos.append(exec_id)
-                    
-                    # Key única com ID do processo
-                    processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
-                    multiselect_key = f"edit_multiselect_executores_{processo_id}"
+                    # Filtrar apenas os que ainda existem na área (caso algum funcionário tenha sido removido)
+                    defaults_validos = [exec_id for exec_id in executores_ids if exec_id in funcionarios_dict]
                     
                     selecionados = st.multiselect(
                         "Selecione os funcionários que executam este processo:",
                         options=funcionarios_ids,
                         format_func=lambda x: funcionarios_dict[x],
                         default=defaults_validos,
-                        key='novo_multiselect_executores',
+                        key='edit_multiselect_executores',
                         help="Você pode selecionar um ou mais funcionários"
                     )
                     
-                    st.session_state['novo_executores_selecionados'] = selecionados
+                    st.session_state['edit_executores_selecionados'] = selecionados
                     
                     if selecionados:
                         nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
