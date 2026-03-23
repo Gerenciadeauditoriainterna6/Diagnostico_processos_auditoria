@@ -1721,6 +1721,13 @@ def main():
                 for campo in campos_to_reset:
                     if campo in st.session_state:
                         st.session_state[campo] = ""
+                
+                # Limpar executores
+                st.session_state['novo_executores_selecionados'] = []  # <-- ADICIONAR
+                
+                # Limpar código do processo
+                st.session_state['codigo_processo_display'] = ""  # <-- ADICIONAR
+                
                 st.session_state['riscos'] = []
                 st.session_state['info_basicas_salvas'] = False
                 st.session_state['deve_limpar_diagnostico'] = False
@@ -1893,13 +1900,6 @@ def main():
                 if st.button("🧹 Limpar Informações", type="secondary", use_container_width=True):
                     st.session_state['deve_limpar_diagnostico'] = True
                     st.session_state['info_basicas_salvas'] = False
-
-                    # Limpa a variável do multiselect
-                    st.session_state['novo_executores_selecionados'] = []
-                    # Limpa o campo do nome do processo
-                    st.session_state['input_processo'] = ''
-                    # Limpa o código do processo
-                    st.session_state['codigo_processo_display'] = ''
 
                     if 'novo_processo_existente_id' in st.session_state:
                         st.session_state.pop('novo_processo_existente_id')
