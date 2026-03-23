@@ -586,6 +586,7 @@ if 'id_area_selecionado' not in st.session_state and areas_dict:
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
 
 def atualizar_id_area_edit():
+    global areas_dict
     nome_selecionado = st.session_state['area_selectbox_edit']
     st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
     st.session_state['codigo_processo'] = ""
