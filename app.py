@@ -1791,12 +1791,13 @@ def main():
                             defaults_validos.append(exec_id)
 
                 selecionados = st.multiselect(
-                    "Selecione os funcionários que executam este processo:",
+                    "",
                     options=funcionarios_ids,
                     format_func=lambda x: funcionarios_dict[x],
                     default=defaults_validos,
                     key="edit_multiselect_executores",
-                    help="Você pode selecionar um ou mais funcionários"
+                    help="Você pode selecionar um ou mais funcionários",
+                    placeholder="Selecione os funcionários que executam este processo:"
                 )
                 
                 st.session_state['edit_executores_selecionados'] = selecionados
