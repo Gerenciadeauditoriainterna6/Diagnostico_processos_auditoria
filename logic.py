@@ -6,7 +6,9 @@ from sqlalchemy import text
 from database import engine
 from datetime import datetime
 import streamlit as st
+from streamlit_local_storage import LocalStorage
 
+local_storage = LocalStorage()
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
@@ -1651,3 +1653,22 @@ def tempo_restante_sessao():
             segundos = int(tempo_restante % 60)
             return f"{minutos:02d}:{segundos:02d}"
     return "00:00"
+
+def verificar_sessao():
+    """Verifica se a sessão do usuário ainda é válida (30 minutos)"""
+    if st.session_state.get("autenticado"):
+        login_time = st.session_state.get("login_timestamp")
+        if login_time:
+            tempo_decorrido = (datetime.now() - login_time).total_seconds()
+            if tempo_decorrido > 1800:  # 30 minutos expirados
+                # Sessão expirada
+                st.session_state["autenticado"] = False
+                st.session_state["usuario_logado"] = None
+                st.session_state.pop("login_timestamp", None)
+                # Limpar local storage
+                try:
+                    local_storage.deleteItem("usuario_audit")
+                except:
+                    local_storage.setItem("usuario_audit", "null")
+                return False
+    return True

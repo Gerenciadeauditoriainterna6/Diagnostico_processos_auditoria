@@ -18,7 +18,7 @@ buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
-tempo_restante_sessao
+tempo_restante_sessao, verificar_sessao
 )
 
 local_storage = LocalStorage()
@@ -1590,12 +1590,19 @@ def verificar_sessao():
 # --- 5. Execução do app ---
 
 def main():
-    if 'aba_ativa_diagnostico' not in st.session_state:
-        st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
+    # --- RESETAR TIMER A CADA INTERAÇÃO ---
+    # Isso garante que qualquer ação do usuário (clique, digitação, etc.) renova a sessão
+    if st.session_state.get("autenticado"):
+        st.session_state["login_timestamp"] = datetime.now()
+    
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
     if not verificar_sessao():
-        st.warning("Sua sessão expiroum faça o login novamente.")
+        st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
         st.stop()
+    
+    # --- RESTANTE DO SEU CÓDIGO ---
+    if 'aba_ativa_diagnostico' not in st.session_state:
+        st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
 
     # Tenta ler o usuário salvo no navegador (Local Storage)   
     usuario_cache = local_storage.getItem("usuario_audit")
