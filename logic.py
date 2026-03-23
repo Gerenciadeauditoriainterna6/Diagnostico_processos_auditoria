@@ -14,6 +14,11 @@ CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 #MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
 
+def resetar_timer_sessao():
+    """Reseta o timestamp da sessão para a hora atual"""
+    if st.session_state.get('autenticado'):
+        st.session_state['login_timestamp'] = datetime.now()
+
 # =====================================================
 # NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
 # =====================================================
@@ -619,6 +624,7 @@ def obter_proximo_codigo(id_area):
 
 def processar_codigo_inteligente():
     """Gera o código do processo e verifica se já existe para carregar dados"""
+    resetar_timer_sessao()
     
     id_area = st.session_state.get("id_area_selecionado") 
     nome = st.session_state.get("input_processo", "").strip()
@@ -735,7 +741,7 @@ def normalizar_valor_risco(valor):
 
 
 def salvar_no_banco():
-    import streamlit as st
+    resetar_timer_sessao()
     try:
         with engine.begin() as conn:
             id_area_val = st.session_state.get("id_area_selecionado")
@@ -1212,6 +1218,7 @@ def salvar_informacoes_basicas():
     """Salva as informações básicas do processo
     Retorna: (bool, str) - (sucesso, codigo_do_processo)
     """
+    resetar_timer_sessao()
     try:
         with engine.begin() as conn:
             id_area_val = st.session_state.get("id_area_selecionado")
@@ -1552,7 +1559,7 @@ def carregar_riscos_processo_para_edicao(processo_id):
 
 def salvar_edicao_processo():
     """Salva as alterações de um processo existente"""
-    import streamlit as st
+    resetar_timer_sessao()
     try:
         with engine.begin() as conn:
             processo_id = st.session_state.get('edit_processo_existente_id')
@@ -1632,3 +1639,15 @@ def salvar_edicao_processo():
     except Exception as e:
         st.error(f"Erro ao salvar edição: {e}")
         return False
+    
+def tempo_restante_sessao():
+    """Retorna o tempo restante em minutos e segundos"""
+    if st.session_state.get('autenticado'):
+        login_time = st.session_state.get('login_timestamp')
+        if login_time:
+            tempo_decorrido = (datetime.now() - login_time).total_seconds()
+            tempo_restante = max(0, 1800 - tempo_decorrido)
+            minutos = int(tempo_restante // 60)
+            segundos = int(tempo_restante % 60)
+            return f"{minutos:02d}:{segundos:02d}"
+    return "00:00"
