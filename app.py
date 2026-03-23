@@ -1639,10 +1639,15 @@ def main():
     if opcao == "🔍 Diagnóstico dos Processos":
         
         # NOVA ESTRUTURA COM DUAS ABAS
-        tab_novo, tab_editar = st.tabs(["📝 Novo Processo", "✏️ Editar Processo Existente"])
+        aba_escolhida = st.radio(
+            "",
+            ["📝 Novo Processo", "✏️ Editar Processo Existente"],
+            key="diagnostico_aba",
+            horizontal=True
+        )
         
         # ===== TAB 1: NOVO PROCESSO =====
-        with tab_novo:
+        if aba_escolhida == "📝 Novo Processo":
             # Resetar estado para novo processo
             if 'novo_processo_existente_id' in st.session_state:
                 st.session_state.pop('novo_processo_existente_id', None)
@@ -2010,7 +2015,7 @@ def main():
         
         # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
     
-        with tab_editar:
+        else:
             if 'processo_selecionado_para_editar' not in st.session_state:
                 st.session_state['processo_selecionado_para_editar'] = None
 
