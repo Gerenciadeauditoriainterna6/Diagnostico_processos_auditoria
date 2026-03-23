@@ -23,7 +23,7 @@ listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_process
 local_storage = LocalStorage()
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
-st.set_page_config(page_title="Diagnóstico FUSVE", layout="centered")
+st.set_page_config(page_title="SISTEMA GERÊNCIA DE AUDITORIA INTERNA - FUSVE", layout="centered")
 
 # --- 2. FUNÇÕES DE SESSÃO E IP (SUPABASE) ---
 
@@ -1639,6 +1639,28 @@ def main():
     if opcao == "🔍 Diagnóstico dos Processos":
         
         # NOVA ESTRUTURA COM DUAS ABAS
+        # Estilo CSS para fazer o radio parecer tabs
+        st.markdown("""
+        <style>
+            div[data-testid="stHorizontalRadio"] {
+                gap: 0px;
+                background-color: #f0f2f6;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            div[data-testid="stHorizontalRadio"] label {
+                background-color: transparent;
+                border-radius: 6px;
+                padding: 8px 20px;
+                margin: 0px;
+            }
+            div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"]:has(input:checked) {
+                background-color: white;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
         aba_escolhida = st.radio(
             "",
             ["📝 Novo Processo", "✏️ Editar Processo Existente"],
@@ -2006,7 +2028,9 @@ def main():
                                         motivo="Processo identificado durante diagnóstico da área"
                                     )
                                     st.success("Processo vinculado à auditoria com sucesso!")
-                            st.success("Dados salvos!")
+                                    time_module.sleep(1)
+                            st.toast("Dados salvos!", icon='✅')
+                            time_module.sleep(1.5)
                             st.session_state['deve_limpar_diagnostico'] = True
                             st.rerun()
                 
@@ -2267,14 +2291,14 @@ def main():
                 
                 st.divider()
                 
-                # ===== DETALHAMENTO =====
+                # ===== DETALHAMENTO DO PROCESSO FORMULÁRIO DE EDIÇÃO =====
                 st.markdown("### Detalhamento do Processo")
                 st.info("ℹ️ Os campos abaixo são opcionais.")
                 
-                st.text_area("O que é o processo?:", key="edit_input_descricao")
-                st.text_area("Onde Começa o Processo?:", key="edit_input_etapa_ini")
-                st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="edit_input_produto")
-                st.text_area("Depois de Acabado, para onde envia?:", key="edit_input_etapa_fim")
+                st.text_area("O que é o processo?:", key="edit_input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
+                st.text_area("Onde Começa o Processo?:", key="edit_input_etapa_ini", help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
+                st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="edit_input_produto", help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
+                st.text_area("Depois de Acabado, para onde envia?:", key="edit_input_etapa_fim", help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
                 st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="edit_input_objetivo")
                 
                 st.write("")
