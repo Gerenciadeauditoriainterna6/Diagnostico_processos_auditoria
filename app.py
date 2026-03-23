@@ -1764,8 +1764,8 @@ def main():
             st.selectbox(
                 "Selecione a Área:", 
                 list(areas_dict.keys()), 
-                key="area_selectbox_edit", 
-                on_change=atualizar_id_area_edit
+                key="area_selectbox", 
+                on_change=atualizar_id_area
             )
 
             id_area_atual = st.session_state.get('id_area_selecionado')
@@ -2113,7 +2113,7 @@ def main():
                 "Selecione a Área:", 
                 list(areas_dict.keys()), 
                 key="area_selectbox_edit",  # Key diferente para não conflitar com Tab 1
-                on_change=atualizar_id_area
+                on_change=atualizar_id_area_edit
             )
             
             # Garantir que o ID da área esteja inicializado
