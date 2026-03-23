@@ -1613,7 +1613,12 @@ def main():
             st.session_state.pop("sessao_expirada", None)
             st.rerun()
         
-        st.stop()  # Impede a execução do resto do app
+        st.stop()
+    
+    # --- RESETAR TIMER A CADA INTERAÇÃO (ADICIONAR AQUI) ---
+    # Se chegou até aqui, a sessão é válida. Renova o timestamp.
+    if st.session_state.get("autenticado"):
+        st.session_state["login_timestamp"] = datetime.now()
     
     if 'aba_ativa_diagnostico' not in st.session_state:
         st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
