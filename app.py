@@ -1600,7 +1600,6 @@ def main():
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
     if not verificar_sessao():
         # Mostrar tela de sessão expirada
-        st.title("🔒 Sessão Expirada")
         st.markdown("""
         <div style='text-align: center; padding: 2rem;'>
             <h2>⏰ Sua sessão expirou</h2>
