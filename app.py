@@ -1639,28 +1639,7 @@ def main():
     if opcao == "🔍 Diagnóstico dos Processos":
         
         # NOVA ESTRUTURA COM DUAS ABAS
-        # Estilo CSS para fazer o radio parecer tabs
-        st.markdown("""
-        <style>
-            div[data-testid="stHorizontalRadio"] {
-                gap: 0px;
-                background-color: #f0f2f6;
-                border-radius: 8px;
-                padding: 4px;
-            }
-            div[data-testid="stHorizontalRadio"] label {
-                background-color: transparent;
-                border-radius: 6px;
-                padding: 8px 20px;
-                margin: 0px;
-            }
-            div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"]:has(input:checked) {
-                background-color: white;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
+        
         aba_escolhida = st.radio(
             "",
             ["📝 Novo Processo", "✏️ Editar Processo Existente"],
