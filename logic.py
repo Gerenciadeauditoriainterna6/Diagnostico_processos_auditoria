@@ -652,9 +652,17 @@ def processar_codigo_inteligente():
         st.session_state['input_etapa_fim'] = resultado['etapa_fim'] or ""
         st.session_state['input_produto'] = resultado['produto'] or ""
         st.session_state['info_basicas_salvas'] = True
+
+        # ===== CARREGAR EXECUTORES DO PROCESSO =====
+        # ADICIONE ESTE PRINT PARA DEBUG
+        print(f"🔍 DEBUG: Carregando executores para o processo {resultado['id']}")
     
         # Carrega os executores do Processo
         executores_ids = listar_executores_processo(resultado['id'])
+
+        # ADICIONE ESTE PRINT PARA VER O QUE FOI RETORNADO
+        print(f"🔍 DEBUG: Executores encontrados: {executores_ids}")
+
         st.session_state['executores_selecionados'] = executores_ids if executores_ids else []      
     else:
         # Processo novo - gerar código baseado no último código da área
