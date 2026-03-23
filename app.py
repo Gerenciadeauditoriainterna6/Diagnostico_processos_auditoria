@@ -1597,8 +1597,15 @@ def verificar_sessao():
 # --- 5. Execução do app ---
 
 def main():
+    # --- DEBUG: Mostrar estado atual da sessão ---
+    if st.session_state.get("autenticado"):
+        login_time = st.session_state.get("login_timestamp")
+        if login_time:
+            tempo_decorrido = (datetime.now() - login_time).total_seconds()
+            st.sidebar.write(f"🔍 DEBUG: Tempo decorrido: {tempo_decorrido:.0f}s")
+            st.sidebar.write(f"🔍 DEBUG: Expira em: {60 - tempo_decorrido:.0f}s")
+    
     # --- RESETAR TIMER A CADA INTERAÇÃO ---
-    # Isso garante que qualquer ação do usuário (clique, digitação, etc.) renova a sessão
     if st.session_state.get("autenticado"):
         st.session_state["login_timestamp"] = datetime.now()
     
@@ -1606,6 +1613,7 @@ def main():
     if not verificar_sessao():
         st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
         st.stop()
+    
     
     # --- RESTANTE DO SEU CÓDIGO ---
     if 'aba_ativa_diagnostico' not in st.session_state:
@@ -1686,6 +1694,14 @@ def main():
             st.session_state["usuario_logado"] = None
             
             # 3. Força o recarregamento
+            st.rerun()
+    with st.sidebar:
+    # ... seu código existente ...
+    
+        if st.button("🧪 Simular Expiração"):
+            # Forçar expiração imediata
+            st.session_state["login_timestamp"] = datetime.now() - timedelta(minutes=31)
+            st.warning("Timestamp forçado para 31 minutos atrás. Clique em qualquer lugar para testar.")
             st.rerun()
 
     # --- LÓGICA PRINCIPAL ---
