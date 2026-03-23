@@ -1801,7 +1801,10 @@ def main():
             # Botão para salvar informações básicas
             col_b1, col_b2 = st.columns(2)
             with col_b1:
-                if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True):
+
+                processo_ja_existe = 'processo_existente_id' in st.session_state
+
+                if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True, disabled=processo_ja_existe):
                     if validar_basicos():
                         with st.spinner("Salvando informações básicas..."):
                             resultado, novo_codigo = salvar_informacoes_basicas()  # Retorna também o código

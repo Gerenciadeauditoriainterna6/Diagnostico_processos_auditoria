@@ -642,29 +642,28 @@ def processar_codigo_inteligente():
         }).mappings().first()
     
     if resultado:
-        # Processo existe - carregar todos os dados
+        # Processo já existe - carregar todos os dados
         st.session_state['processo_existente_id'] = resultado['id']
         st.session_state['codigo_processo_display'] = resultado['codigo_processo']
-        st.session_state['input_objetivo'] = resultado['objetivo'] or ""
-        st.session_state['input_executor'] = resultado['executor'] or ""
-        st.session_state['input_descricao'] = resultado['descricao'] or ""
-        st.session_state['input_etapa_ini'] = resultado['etapa_ini'] or ""
-        st.session_state['input_etapa_fim'] = resultado['etapa_fim'] or ""
-        st.session_state['input_produto'] = resultado['produto'] or ""
-        st.session_state['info_basicas_salvas'] = True
+        
+        # NÃO carregar os detalhamentos para não enganar o usuário
+        # NÃO setar info_basicas_salvas = True
 
-        # ===== CARREGAR EXECUTORES DO PROCESSO =====
-        # ADICIONE ESTE PRINT PARA DEBUG
-        print(f"🔍 DEBUG: Carregando executores para o processo {resultado['id']}")
-    
-        # Carrega os executores do Processo
-        executores_ids = listar_executores_processo(resultado['id'])
-
-        # ADICIONE ESTE PRINT PARA VER O QUE FOI RETORNADO
-        print(f"🔍 DEBUG: Executores encontrados: {executores_ids}")
-
-        st.session_state['executores_selecionados'] = executores_ids if executores_ids else []      
+        # Mostrar aviso claro para o usuário
+        st.warning(f"⚠️ O processo '{nome}' já existe na área selecionada. "
+                   f"Por favor, utilize a aba '✏️ Editar Processo Existente' para modificá-lo.")
+        
+        # Limpar campos que poderiam dar a impressão de que é um novo processo
+        st.session_state['input_objetivo'] = ""
+        st.session_state['input_descricao'] = ""
+        st.session_state['input_etapa_ini'] = ""
+        st.session_state['input_etapa_fim'] = ""
+        st.session_state['input_produto'] = ""
+        
+        return
+        
     else:
+        
         # Processo novo - gerar código baseado no último código da área
         ultimo_codigo_query = text("""
             SELECT codigo_processo 
