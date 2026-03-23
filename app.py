@@ -1597,27 +1597,23 @@ def verificar_sessao():
 # --- 5. Execução do app ---
 
 def main():
-    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO PRIMEIRO ---
-    # Isso garante que a expiração seja verificada ANTES de qualquer reset
-    if not verificar_sessao():
-        st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
-        st.stop()
-        
-    # --- DEBUG: Mostrar estado atual da sessão ---
+    # --- DEBUG COMPLETO ---
     if st.session_state.get("autenticado"):
         login_time = st.session_state.get("login_timestamp")
         if login_time:
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            st.sidebar.write(f"🔍 DEBUG: Tempo decorrido: {tempo_decorrido:.0f}s")
-            st.sidebar.write(f"🔍 DEBUG: Expira em: {60 - tempo_decorrido:.0f}s")
-
-    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
+            st.sidebar.write(f"🔍 Tempo decorrido: {tempo_decorrido:.0f}s")
+            st.sidebar.write(f"🔍 Expira em: {60 - tempo_decorrido:.0f}s")
+            
+            # Forçar verificação de expiração
+            if tempo_decorrido > 60:
+                st.sidebar.error("⚠️ SESSÃO EXPIRADA (detectada no debug)")
+    
+    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO PRIMEIRO ---
     if not verificar_sessao():
         st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
         st.stop()
     
-    
-    # --- RESTANTE DO SEU CÓDIGO ---
     if 'aba_ativa_diagnostico' not in st.session_state:
         st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
 
