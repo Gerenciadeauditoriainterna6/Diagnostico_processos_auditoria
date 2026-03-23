@@ -8,7 +8,7 @@ import base64
 from datetime import timedelta, datetime
 from streamlit_local_storage import LocalStorage
 from streamlit_pdf_viewer import pdf_viewer
-from logic import (MAPA_RISCO, processar_codigo_inteligente, 
+from logic import (processar_codigo_inteligente, 
 get_estilo_risco, salvar_no_banco, gerar_pdf_em_memoria, buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, buscar_todos_processos, salvar_controle_no_banco, validar_login_no_banco, atualizar_status_processo, 
@@ -20,6 +20,13 @@ salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, l
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
 tempo_restante_sessao, verificar_sessao
 )
+
+MAPA_RISCO = {
+    ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
+    ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
+    ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6, ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
+    ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
+}
 
 local_storage = LocalStorage()
 
