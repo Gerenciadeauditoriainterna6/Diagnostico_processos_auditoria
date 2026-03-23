@@ -574,7 +574,7 @@ areas_dict = carregar_areas_banco()
 def atualizar_id_area():
     areas = carregar_areas_banco()
     nome_selecionado = st.session_state['area_selectbox']
-    st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
+    st.session_state['id_area_selecionado'] = areas[nome_selecionado]
     st.session_state['codigo_processo'] = ""
     st.session_state['input_processo'] = "" 
 
@@ -589,7 +589,7 @@ if 'id_area_selecionado' not in st.session_state and areas_dict:
 def atualizar_id_area_edit():
     areas = carregar_areas_banco()
     nome_selecionado = st.session_state['area_selectbox_edit']
-    st.session_state['id_area_selecionado'] = areas_dict[nome_selecionado]
+    st.session_state['id_area_selecionado'] = areas[nome_selecionado]
     st.session_state['codigo_processo'] = ""
     st.session_state['input_processo'] = "" 
 
