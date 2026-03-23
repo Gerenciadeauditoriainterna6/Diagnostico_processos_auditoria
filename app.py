@@ -1651,11 +1651,11 @@ def main():
             )
 
         # DEBUG - mostrar o horário do último reset
-        if st.session_state.get('autenticado'):
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                st.write(f"Último reset: {login_time.strftime('%H:%M:%S')}")
-            st.write(f"⏱️ Sessão: {tempo_restante_sessao()}")
+        #if st.session_state.get('autenticado'):
+         #   login_time = st.session_state.get("login_timestamp")
+          #  if login_time:
+           #     st.write(f"Último reset: {login_time.strftime('%H:%M:%S')}")
+            #st.write(f"⏱️ Sessão: {tempo_restante_sessao()}")
         
         opcao = st.radio(
             "Menu", 
