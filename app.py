@@ -586,21 +586,6 @@ if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
 
-def atualizar_id_area_edit():
-    areas = carregar_areas_banco()
-    nome_selecionado = st.session_state['area_selectbox_edit']
-    st.session_state['id_area_selecionado'] = areas[nome_selecionado]
-    st.session_state['codigo_processo'] = ""
-    st.session_state['input_processo'] = "" 
-
-if 'riscos' not in st.session_state: st.session_state['riscos'] = []
-if 'deve_limpar' not in st.session_state: st.session_state['deve_limpar'] = False
-if 'df_pendentes' not in st.session_state: st.session_state['df_pendentes'] = pd.DataFrame()
-if 'codigo_processo_display' not in st.session_state: st.session_state['codigo_processo_display'] = "" 
-if 'id_area_selecionado' not in st.session_state and areas_dict:
-    primeiro_nome = list(areas_dict.keys())[0]
-    st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
-
 # --- 4. FUNÇÕES DE SUPORTE ---
 def validar_formulario():
     """Valida apenas os campos obrigatórios: nome do processo e executor"""
@@ -1763,6 +1748,15 @@ def main():
                 with engine.connect() as conn:
                     return pd.read_sql(query, conn, params={"id_area": id_area})
 
+            # PRIMEIRO: Definir as funções
+            def atualizar_id_area():
+                areas = carregar_areas_banco()
+                nome_selecionado = st.session_state['area_selectbox']
+                st.session_state['id_area_selecionado'] = areas[nome_selecionado]
+                st.session_state['codigo_processo'] = ""
+                st.session_state['input_processo'] = ""
+            
+            # SEGUNDO: Usar a função no selectbox
             st.selectbox(
                 "Selecione a Área:", 
                 list(areas_dict.keys()), 
@@ -2110,12 +2104,20 @@ def main():
                 with engine.connect() as conn:
                     return pd.read_sql(query, conn, params={"id_area": id_area})
             
-            # Selectbox de área
+            # PRIMEIRO: Definir as funções
+            def atualizar_id_area_edit():
+                areas = carregar_areas_banco()
+                nome_selecionado = st.session_state['area_selectbox_edit']
+                st.session_state['id_area_selecionado_edit'] = areas[nome_selecionado]
+                st.session_state['codigo_processo'] = ""
+                st.session_state['input_processo'] = ""
+            
+            # SEGUNDO: Usar a função no selectbox
             st.selectbox(
                 "Selecione a Área:", 
                 list(areas_dict.keys()), 
-                key="area_selectbox_edit",  # Key diferente para não conflitar com Tab 1
-                on_change=atualizar_id_area_edit
+                key="area_selectbox_edit",
+                on_change=atualizar_id_area_edit  # <-- AGORA A FUNÇÃO JÁ ESTÁ DEFINIDA
             )
             
             # Garantir que o ID da área esteja inicializado
@@ -2126,10 +2128,6 @@ def main():
             def atualizar_id_area_edit():
                 nome_selecionado = st.session_state['area_selectbox_edit']
                 st.session_state['id_area_selecionado_edit'] = areas_dict[nome_selecionado]
-            
-            # Registrar o on_change
-            if 'area_selectbox_edit' in st.session_state:
-                atualizar_id_area_edit()
             
             id_area_atual_edit = st.session_state.get('id_area_selecionado_edit')
             
