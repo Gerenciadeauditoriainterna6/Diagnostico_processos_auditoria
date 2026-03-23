@@ -188,6 +188,7 @@ def login_screen():
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
                     st.session_state['login_timestamp'] = datetime.now()
+                    st.session_state.pop('sessao_expirada', None)
                     st.success("Login realizado com sucesso!")
                     time_module.sleep(1)
                     st.rerun()
@@ -1581,11 +1582,10 @@ def verificar_sessao():
         login_time = st.session_state.get("login_timestamp")
         if login_time:
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            print(f"🔍 [TERMINAL] tempo_decorrido = {tempo_decorrido:.0f}s")  # Log no terminal
-            if tempo_decorrido > 60:  # 60 segundos para teste
-                print(f"🔍 [TERMINAL] SESSÃO EXPIRADA! Deslogando...")
+            if tempo_decorrido > 1800:  # 30 minutos
                 st.session_state["autenticado"] = False
                 st.session_state["usuario_logado"] = None
+                st.session_state["sessao_expirada"] = True  # <-- Flag para tela de expiração
                 st.session_state.pop("login_timestamp", None)
                 try:
                     local_storage.deleteItem("usuario_audit")
@@ -1597,22 +1597,24 @@ def verificar_sessao():
 # --- 5. Execução do app ---
 
 def main():
-    # --- DEBUG COMPLETO ---
-    if st.session_state.get("autenticado"):
-        login_time = st.session_state.get("login_timestamp")
-        if login_time:
-            tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            st.sidebar.write(f"🔍 Tempo decorrido: {tempo_decorrido:.0f}s")
-            st.sidebar.write(f"🔍 Expira em: {60 - tempo_decorrido:.0f}s")
-            
-            # Forçar verificação de expiração
-            if tempo_decorrido > 60:
-                st.sidebar.error("⚠️ SESSÃO EXPIRADA (detectada no debug)")
-    
-    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO PRIMEIRO ---
+    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
     if not verificar_sessao():
-        st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
-        st.stop()
+        # Mostrar tela de sessão expirada
+        st.title("🔒 Sessão Expirada")
+        st.markdown("""
+        <div style='text-align: center; padding: 2rem;'>
+            <h2>⏰ Sua sessão expirou</h2>
+            <p>Por questões de segurança, sua sessão foi encerrada após 30 minutos de inatividade.</p>
+            <p>Clique no botão abaixo para fazer login novamente.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Botão para voltar ao login
+        if st.button("🔐 Fazer Login Novamente", type="primary", use_container_width=True):
+            st.session_state.pop("sessao_expirada", None)
+            st.rerun()
+        
+        st.stop()  # Impede a execução do resto do app
     
     if 'aba_ativa_diagnostico' not in st.session_state:
         st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
@@ -1693,14 +1695,16 @@ def main():
             
             # 3. Força o recarregamento
             st.rerun()
-    with st.sidebar:
-    # ... seu código existente ...
-    
-        if st.button("🧪 Simular Expiração"):
-            # Forçar expiração imediata
-            st.session_state["login_timestamp"] = datetime.now() - timedelta(minutes=31)
-            st.warning("Timestamp forçado para 31 minutos atrás. Clique em qualquer lugar para testar.")
+
+        if st.session_state.get('autenticado'):
+            st.markdown(f"<small>⏳ Sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
+        
+        # Botão para renovar sessão
+        if st.button("🔄 Renovar Sessão (+30min)", use_container_width=True):
+            st.session_state["login_timestamp"] = datetime.now()
+            st.toast("✅ Sessão renovada por mais 30 minutos!", icon="🔄")
             st.rerun()
+        
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
