@@ -1212,7 +1212,6 @@ def salvar_informacoes_basicas():
     """Salva as informações básicas do processo
     Retorna: (bool, str) - (sucesso, codigo_do_processo)
     """
-    import streamlit as st
     try:
         with engine.begin() as conn:
             id_area_val = st.session_state.get("id_area_selecionado")
@@ -1286,7 +1285,7 @@ def salvar_informacoes_basicas():
                 {"pid": processo_id}
             )
             
-            executores_ids = st.session_state.get('executores_selecionados', [])
+            executores_ids = st.session_state.get('novo_executores_selecionados', [])
             if executores_ids:
                 sql_exec = text("""
                     INSERT INTO processo_executores (processo_id, funcionario_id)

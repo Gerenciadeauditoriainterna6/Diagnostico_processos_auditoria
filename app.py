@@ -1778,14 +1778,14 @@ def main():
 
             if not funcionarios_lista:
                 st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas e Funcionários'.")
-                if 'nexecutores_selecionados' not in st.session_state:
-                    st.session_state['executores_selecionados'] = []
+                if 'novo_executores_selecionados' not in st.session_state:
+                    st.session_state['novo_executores_selecionados'] = []
             else:
                 funcionarios_ids = [f[0] for f in funcionarios_lista]
                 funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                 
                 defaults_validos = []
-                if 'executores_selecionados' in st.session_state:
+                if 'novo_executores_selecionados' in st.session_state:
                     for exec_id in st.session_state['executores_selecionados']:
                         if exec_id in funcionarios_dict:
                             defaults_validos.append(exec_id)
@@ -1800,7 +1800,7 @@ def main():
                     placeholder="Selecione os funcionários que executam este processo:"
                 )
                 
-                st.session_state['executores_selecionados'] = selecionados
+                st.session_state['novo_executores_selecionados'] = selecionados
                 
                 if selecionados:
                     nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
