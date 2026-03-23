@@ -1202,7 +1202,7 @@ def validar_basicos():
         st.error("❌ O campo 'Nome do Processo' é obrigatório.")
         return False
     
-    if not st.session_state.get('executores_selecionados'):
+    if not st.session_state.get('novo_executores_selecionados'):
         st.error("❌ Selecione pelo menos um funcionário para executar o processo.")
         return False
     
