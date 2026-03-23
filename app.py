@@ -2217,14 +2217,12 @@ def main():
                 # ===== DADOS BÁSICOS =====
                 st.text_input(
                     "Nome do Processo:", 
-                    value=st.session_state.get('edit_input_processo', ''),
                     key="edit_input_processo",
                     help="Digite o nome do processo."
                 )
                 
                 st.text_input(
-                    "Código do Processo:", 
-                    value=st.session_state.get('edit_codigo_processo', ''),
+                    "Código do Processo:",
                     key="edit_codigo_processo",
                     disabled=True
                 )
