@@ -1582,7 +1582,7 @@ def verificar_sessao():
         login_time = st.session_state.get("login_timestamp")
         if login_time:
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            if tempo_decorrido > 1800:  # 30 minutos
+            if tempo_decorrido > 60:  # 30 minutos
                 st.session_state["autenticado"] = False
                 st.session_state["usuario_logado"] = None
                 st.session_state["sessao_expirada"] = True  # <-- Flag para tela de expiração
@@ -1685,7 +1685,7 @@ def main():
             st.rerun()
 
         if st.session_state.get('autenticado'):
-            st.markdown(f"<small>⏳ Sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
+            st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
         # Botão para renovar sessão
         if st.button("🔄 Renovar Sessão (+30min)", use_container_width=True):
