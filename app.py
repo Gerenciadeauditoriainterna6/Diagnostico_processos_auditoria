@@ -1597,6 +1597,12 @@ def verificar_sessao():
 # --- 5. Execução do app ---
 
 def main():
+    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO PRIMEIRO ---
+    # Isso garante que a expiração seja verificada ANTES de qualquer reset
+    if not verificar_sessao():
+        st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
+        st.stop()
+        
     # --- DEBUG: Mostrar estado atual da sessão ---
     if st.session_state.get("autenticado"):
         login_time = st.session_state.get("login_timestamp")
@@ -1604,11 +1610,7 @@ def main():
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
             st.sidebar.write(f"🔍 DEBUG: Tempo decorrido: {tempo_decorrido:.0f}s")
             st.sidebar.write(f"🔍 DEBUG: Expira em: {60 - tempo_decorrido:.0f}s")
-    
-    # --- RESETAR TIMER A CADA INTERAÇÃO ---
-    if st.session_state.get("autenticado"):
-        st.session_state["login_timestamp"] = datetime.now()
-    
+
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
     if not verificar_sessao():
         st.warning("⏰ Sua sessão expirou. Por favor, faça login novamente.")
