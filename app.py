@@ -1890,11 +1890,17 @@ def main():
                             else:
                                 st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
             with col_b2:
-                if st.button("🧹 NOVO PROCESSO", type="secondary", use_container_width=True):
+                if st.button("🧹 Limpar Informações", type="secondary", use_container_width=True):
                     st.session_state['deve_limpar_diagnostico'] = True
                     st.session_state['info_basicas_salvas'] = False
-                    if 'novo_executores_selecionados' in st.session_state:
-                        st.session_state.pop('novo_executores_selecionados')
+
+                    # Limpa a variável do multiselect
+                    st.session_state['novo_executores_selecionados'] = []
+                    # Limpa o campo do nome do processo
+                    st.session_state['input_processo'] = ''
+                    # Limpa o código do processo
+                    st.session_state['codigo_processo_display'] = ''
+
                     if 'novo_processo_existente_id' in st.session_state:
                         st.session_state.pop('novo_processo_existente_id')
                     st.rerun()
