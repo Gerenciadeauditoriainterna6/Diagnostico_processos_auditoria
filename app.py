@@ -1704,6 +1704,8 @@ def main():
         
         # ===== TAB 1: NOVO PROCESSO =====
         if aba_escolhida == "📝 Novo Processo":
+            if 'multiselect_key_counter' not in st.session_state:
+                st.session_state['multiselect_key_counter'] = 0     
             # Resetar estado para novo processo
             if 'novo_processo_existente_id' in st.session_state:
                 st.session_state.pop('novo_processo_existente_id', None)
@@ -1728,6 +1730,9 @@ def main():
                 # Limpar código do processo
                 st.session_state['codigo_processo_display'] = ""  # <-- ADICIONAR
                 
+                 # FORÇAR RECRIAÇÃO DO MULTISELECT
+                st.session_state['multiselect_key_counter'] += 1  # <-- ADICIONAR
+
                 st.session_state['riscos'] = []
                 st.session_state['info_basicas_salvas'] = False
                 st.session_state['deve_limpar_diagnostico'] = False
@@ -1867,7 +1872,7 @@ def main():
                     options=funcionarios_ids,
                     format_func=lambda x: funcionarios_dict[x],
                     default=defaults_validos,
-                    key="multiselect_executores",
+                    key=f"multiselect_executores_{st.session_state.get('multiselect_key_counter', 0)}",
                     help="Você pode selecionar um ou mais funcionários",
                     placeholder="Selecione os funcionários que executam este processo:"
                 )
