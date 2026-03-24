@@ -18,7 +18,7 @@ remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, list
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
 tempo_restante_sessao)
-from logic import (processar_codigo_inteligente, TEMPO_SESSAO_SEGUNDOS)
+from logic import (processar_codigo_inteligente, TEMPO_SESSAO_SEGUNDOS, verificar_sessao)
 
 MAPA_RISCO = {
     ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
@@ -1574,24 +1574,6 @@ def carregar_riscos_processo(processo_id):
             st.session_state[f'prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
     else:
         st.session_state['riscos'] = []
-
-def verificar_sessao():
-    """Verifica se a sessão do usuário ainda é válida (30 minutos)"""
-    if st.session_state.get("autenticado"):
-        login_time = st.session_state.get("login_timestamp")
-        if login_time:
-            tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            if tempo_decorrido > 60:  # 30 minutos
-                st.session_state["autenticado"] = False
-                st.session_state["usuario_logado"] = None
-                st.session_state["sessao_expirada"] = True  # <-- Flag para tela de expiração
-                st.session_state.pop("login_timestamp", None)
-                try:
-                    local_storage.deleteItem("usuario_audit")
-                except:
-                    local_storage.setItem("usuario_audit", "null")
-                return False
-    return True
 
 # --- 5. Execução do app ---
 

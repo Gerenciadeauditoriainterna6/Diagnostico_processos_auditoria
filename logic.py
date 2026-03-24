@@ -1663,6 +1663,7 @@ def verificar_sessao():
         if login_time:
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
             if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:  # 30 minutos expirados
+                print("🔍 [TERMINAL] EXPIRANDO...")
                 # Sessão expirada
                 st.session_state["autenticado"] = False
                 st.session_state["usuario_logado"] = None
