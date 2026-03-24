@@ -1740,14 +1740,15 @@ def main():
         # Botão para renovar sessão
         if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
             st.session_state["login_timestamp"] = datetime.now()
-            # Atualiza também no localStorage
-            session_data = {
-                "usuario": st.session_state.get("usuario_logado"),
-                "timestamp": datetime.now().isoformat()
-            }
-            local_storage.setItem("session_data", json.dumps(session_data))
-            st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
-            st.rerun()
+            # Só atualiza o localStorage se NÃO foi uma renovação manual
+            if not st.session_state.get("sessao_renovada_manual", False):
+                session_data = {
+                    "usuario": st.session_state.get("usuario_logado"),
+                    "timestamp": datetime.now().isoformat()
+                }
+                local_storage.setItem("session_data", json.dumps(session_data))
+                st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
+                st.session_state['sessao_renovada_manual'] = False
         
 
     # --- LÓGICA PRINCIPAL ---
