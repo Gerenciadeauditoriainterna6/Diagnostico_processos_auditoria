@@ -791,9 +791,11 @@ def salvar_no_banco():
                 sql_insert = text("""
                     INSERT INTO processos 
                     (id_area, area, codigo_processo, nome_processo, objetivo, 
-                     descricao, etapa_ini, etapa_fim, produto, status, categoria) 
+                    descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES 
-                    (:id_a, :a, :c, :n, CONCAT('Garantir ', :o), :d, :ei, :ef, :p, :st, :cat) 
+                    (:id_a, :a, :c, :n, 
+                    CASE WHEN :o IS NOT NULL AND :o != '' THEN 'Garantir ' || :o ELSE NULL END, 
+                    :d, :ei, :ef, :p, :st, :cat) 
                     RETURNING id
                 """)
 
@@ -823,9 +825,18 @@ def salvar_no_banco():
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                 probabilidade, apetite_risco, motivo_risco, score_risco) 
+                probabilidade, apetite_risco, motivo_risco, score_risco) 
                 VALUES 
-                (:pid, CONCAT('Risco pela possibilidade ', :nome), CONCAT('Pelo motivo ', :fator), :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                (
+                    :pid, 
+                    CASE WHEN :nome IS NOT NULL AND :nome != '' 
+                        THEN 'Risco pela possibilidade ' || :nome 
+                        ELSE NULL END,
+                    CASE WHEN :fator IS NOT NULL AND :fator != '' 
+                        THEN 'Pelo motivo ' || :fator 
+                        ELSE NULL END,
+                    :melhoria, :imp, :prob, :apetite, :motivo, :score
+                )
                 RETURNING id
             """)
 
@@ -1575,7 +1586,10 @@ def salvar_edicao_processo():
             # Atualizar dados básicos
             sql_update = text("""
                 UPDATE processos 
-                SET nome_processo=:nome, objetivo=CONCAT('Garantir ' :o), descricao=:d, 
+                SET objetivo = CASE WHEN :o IS NOT NULL AND :o != '' 
+                                    THEN 'Garantir ' || :o 
+                                    ELSE NULL END,
+                    descricao=:d, 
                     etapa_ini=:ei, etapa_fim=:ef, produto=:p
                 WHERE id = :pid
             """)
@@ -1607,18 +1621,19 @@ def salvar_edicao_processo():
             
             sql_risco = text("""
                 INSERT INTO riscos 
-                (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
-                 apetite_risco, motivo_risco, score_risco) 
+                (processo_id, nome_risco, fator_risco, melhoria, impacto, 
+                probabilidade, apetite_risco, motivo_risco, score_risco) 
                 VALUES 
                 (
-                    :pid,
-                    CASE WHEN :nome IS NOT NULL AND :NOME != ''
-                            THEN CONCAT('Risco pela possibilidade ', :nome)
-                            ELSE NULL END,
-                    CASE WHEN :fator IS NOT NULL AND :fator != ''
-                             THEN CONCAT('Pelo motivo ', :fator)
-                             ELSE NULL END,
-                    :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                    :pid, 
+                    CASE WHEN :nome IS NOT NULL AND :nome != '' 
+                        THEN 'Risco pela possibilidade ' || :nome 
+                        ELSE NULL END,
+                    CASE WHEN :fator IS NOT NULL AND :fator != '' 
+                        THEN 'Pelo motivo ' || :fator 
+                        ELSE NULL END,
+                    :melhoria, :imp, :prob, :apetite, :motivo, :score
+                )
                 RETURNING id
             """)
             
