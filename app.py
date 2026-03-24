@@ -19,6 +19,8 @@ salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, l
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
 tempo_restante_sessao)
 from logic import (processar_codigo_inteligente, TEMPO_SESSAO_SEGUNDOS, verificar_sessao, get_estilo_risco, salvar_no_banco)
+import json
+
 
 MAPA_RISCO = {
     ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
@@ -193,11 +195,17 @@ def login_screen():
                     # --- GRAVAÇÃO NO LOCAL STORAGE (ÚNICA MUDANÇA FUNCIONAL) ---
                     local_storage.setItem("usuario_audit", usuario, key='set_usuario_audit')
                     local_storage.setItem("login_timestamp", datetime.now().isoformat(), key='set_login_timestamp')
-                    
+                    session_data = {
+                        'usuario': usuario,
+                        'timestamp': datetime.now().isoformat()
+                    }
+
+                    local_storage.setItem('session_data', json.dumps(session_data))
+
+
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
                     st.session_state['login_timestamp'] = datetime.now()
-                    st.session_state.pop('sessao_expirada', None)
                     st.session_state.pop('sessao_expirada', None)
                     st.success("Login realizado com sucesso!")
                     time_module.sleep(1)
@@ -1590,18 +1598,21 @@ def carregar_riscos_processo(processo_id):
 
 def main():
     # --- LER DO LOCALSTORAGE UMA VEZ ---
-    usuario_cache = local_storage.getItem("usuario_audit", key='get_usuario_audit')
-    ts_str = local_storage.getItem("login_timestamp", key='get_login_timestamp')
-    if ts_str and ts_str not in ["undefined", "null", "None"]:
+    session_data_str = local_storage.getItem("session_data")
+    usuario_cache = None
+    login_timestamp_cache = None
+    if session_data_str and session_data_str not in ["undefined", "null", "None"]:
         try:
-            login_timestamp_cache = datetime.fromisoformat(ts_str)
-        except:
-            login_timestamp_cache = None
-    else:
-        login_timestamp_cache = None
+            data = json.loads(session_data_str)
+            usuario_cache = data.get("usuario")
+            ts_str = data.get("timestamp")
+            if ts_str:
+                login_timestamp_cache = datetime.fromisoformat(ts_str)
+        except Exception:
+            pass
 
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO (usando o timestamp lido) ---
-    if not verificar_sessao(login_timestamp_cache):
+    if not verificar_sessao(login_timestamp_cache=login_timestamp_cache):
    
         # Mostrar tela de sessão expirada
         st.markdown("""
@@ -1690,11 +1701,9 @@ def main():
         if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
             # 1. Remove a informação do navegador
             try:
-                local_storage.deleteItem("usuario_audit", key='del_usuario_audit')
-                local_storage.deleteItem("login_timestamp", key='del_login_timestamp')
+                local_storage.deleteItem("session_data")
             except:
-                local_storage.setItem("usuario_audit", "null", key='set_usuario_audit_null')
-                local_storage.setItem("login_timestamp", "null", key='set_login_timestamp_null')
+                local_storage.setItem('session_data', 'null')
             
             # 2. Em vez de .clear(), limpamos apenas o que interessa
             # Isso evita o KeyError nos widgets (selectbox, etc)
@@ -1711,7 +1720,11 @@ def main():
         if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
             st.session_state["login_timestamp"] = datetime.now()
             # Atualiza também no localStorage
-            local_storage.setItem('login_timestamp', datetime.now().isoformat(), key='set_login_timestamp_renew')
+            session_data = {
+                "usuario": st.session_state.get("usuario_logado"),
+                "timestamp": datetime.now().isoformat()
+            }
+            local_storage.setItem("session_data", json.dumps(session_data))
             st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
             st.rerun()
         
