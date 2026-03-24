@@ -1675,14 +1675,14 @@ def main():
     # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
     
     # --- RESETAR TIMER A CADA INTERAÇÃO ---
-    if st.session_state.get("autenticado"):
-        st.session_state["login_timestamp"] = datetime.now()
+    #if st.session_state.get("autenticado"):
+     #   st.session_state["login_timestamp"] = datetime.now()
         # Atualiza também no localStorage
-        session_data = {
-            "usuario": st.session_state.get("usuario_logado"),
-            "timestamp": datetime.now().isoformat()
-        }
-        local_storage.setItem("session_data", json.dumps(session_data))
+      #  session_data = {
+       #     "usuario": st.session_state.get("usuario_logado"),
+        #    "timestamp": datetime.now().isoformat()
+        #}
+        #local_storage.setItem("session_data", json.dumps(session_data))
 
     # --- SIDEBAR ---
     with st.sidebar:
@@ -1740,15 +1740,14 @@ def main():
         # Botão para renovar sessão
         if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
             st.session_state["login_timestamp"] = datetime.now()
-            # Só atualiza o localStorage se NÃO foi uma renovação manual
-            if not st.session_state.get("sessao_renovada_manual", False):
-                session_data = {
-                    "usuario": st.session_state.get("usuario_logado"),
-                    "timestamp": datetime.now().isoformat()
-                }
-                local_storage.setItem("session_data", json.dumps(session_data))
-                st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
-                st.session_state['sessao_renovada_manual'] = False
+            import json
+            session_data = {
+                "usuario": st.session_state.get("usuario_logado"),
+                "timestamp": datetime.now().isoformat()
+            }
+            local_storage.setItem("session_data", json.dumps(session_data))
+            st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
+            st.rerun()
         
 
     # --- LÓGICA PRINCIPAL ---
