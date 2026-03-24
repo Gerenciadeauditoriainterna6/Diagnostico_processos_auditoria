@@ -1675,14 +1675,18 @@ def main():
     # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
     
     # --- RESETAR TIMER A CADA INTERAÇÃO ---
-    #if st.session_state.get("autenticado"):
-     #   st.session_state["login_timestamp"] = datetime.now()
-        # Atualiza também no localStorage
-      #  session_data = {
-       #     "usuario": st.session_state.get("usuario_logado"),
-        #    "timestamp": datetime.now().isoformat()
-        #}
-        #local_storage.setItem("session_data", json.dumps(session_data))
+    # Só executa o reset automático se NÃO foi uma ação do botão de renovar
+    if st.session_state.get("autenticado") and not st.session_state.get("skip_auto_reset", False):
+        st.session_state["login_timestamp"] = datetime.now()
+        import json
+        session_data = {
+            "usuario": st.session_state.get("usuario_logado"),
+            "timestamp": datetime.now().isoformat()
+        }
+        local_storage.setItem("session_data", json.dumps(session_data))
+    else:
+        # Limpa a flag após o rerun
+        st.session_state["skip_auto_reset"] = False
 
     # --- SIDEBAR ---
     with st.sidebar:
@@ -1740,6 +1744,7 @@ def main():
         # Botão para renovar sessão
         if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
             st.session_state["login_timestamp"] = datetime.now()
+            st.session_state["skip_auto_reset"] = True  # <-- Impede o reset automático
             import json
             session_data = {
                 "usuario": st.session_state.get("usuario_logado"),
