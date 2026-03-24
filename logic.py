@@ -753,6 +753,10 @@ def salvar_no_banco():
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo", "").strip()
 
+            # === DEBUG ===
+            objetivo_raw = st.session_state.get('input_objetivo', '')
+            print(f"DEBUG - objetivo_raw: '{objetivo_raw}'")
+
             # === PRIMEIRO: VERIFICAR SE O PROCESSO JÁ EXISTE ===
             check_query = text("""
                 SELECT id FROM processos 
