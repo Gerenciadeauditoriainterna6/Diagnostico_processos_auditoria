@@ -1587,6 +1587,9 @@ def carregar_riscos_processo(processo_id):
 # --- 5. Execução do app ---
 
 def main():
+    # DEBUG
+    st.write(f"🔍 DEBUG: autenticado = {st.session_state.get('autenticado')}")
+    st.write(f"🔍 DEBUG: login_timestamp = {st.session_state.get('login_timestamp')}")
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
     if not verificar_sessao():
         # Mostrar tela de sessão expirada
@@ -1712,8 +1715,6 @@ def main():
                 tempo_decorrido = (datetime.now() - login_time).total_seconds()
                 if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
                     st.error("⚠️ SESSÃO EXPIRADA")
-            
-            st.markdown(f"<small>⏳ Sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
         if st.sidebar.button("Sair (Logout)", use_container_width=True):
             # 1. Remove a informação do navegador
