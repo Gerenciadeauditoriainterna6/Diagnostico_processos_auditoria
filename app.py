@@ -188,7 +188,7 @@ def login_screen():
             usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
             senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
             
-            if st.button("Entrar", use_container_width=True, type="primary"):
+            if st.button("Entrar", key='btn_login', use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
                     # --- GRAVAÇÃO NO LOCAL STORAGE ---
                     local_storage.setItem("usuario_audit", usuario)
@@ -1604,7 +1604,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("🔐 Fazer Login Novamente", type="primary", use_container_width=True):
+        if st.button("🔐 Fazer Login Novamente", key='btn_login_again', type="primary", use_container_width=True):
             st.session_state.pop("sessao_expirada", None)
             st.rerun()
         
@@ -1692,7 +1692,7 @@ def main():
                 if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
                     st.error("⚠️ SESSÃO EXPIRADA")
         
-        if st.sidebar.button("Sair (Logout)", use_container_width=True):
+        if st.sidebar.button("Sair (Logout)", key='btn_logout', use_container_width=True):
             # 1. Remove a informação do navegador
             try:
                 local_storage.deleteItem("usuario_audit")
@@ -1711,7 +1711,7 @@ def main():
             st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
         # Botão para renovar sessão
-        if st.button("🔄 Renovar Sessão (+30min)", use_container_width=True):
+        if st.button("🔄 Renovar Sessão (+30min)", key='btn_renew', use_container_width=True):
             st.session_state["login_timestamp"] = datetime.now()
             st.toast("✅ Sessão renovada por mais 30 minutos!", icon="🔄")
             st.rerun()
@@ -1970,7 +1970,7 @@ def main():
 
                 processo_ja_existe = 'novo_processo_existente_id' in st.session_state
 
-                if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True, disabled=processo_ja_existe):
+                if st.button("💾 Salvar Informações Básicas", key='btn_save_basic', type="primary", use_container_width=True, disabled=processo_ja_existe):
                     if validar_basicos():
                         with st.spinner("Salvando informações básicas..."):
                             resultado, novo_codigo = salvar_informacoes_basicas()  # Retorna também o código
@@ -1983,7 +1983,7 @@ def main():
                             else:
                                 st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
             with col_b2:
-                if st.button("🧹 Limpar Informações", type="secondary", use_container_width=True):
+                if st.button("🧹 Limpar Informações", key='btn_clear_basic', type="secondary", use_container_width=True):
                     st.session_state['deve_limpar_diagnostico'] = True
                     st.session_state['info_basicas_salvas'] = False
 
@@ -2150,7 +2150,7 @@ def main():
                         st.session_state['riscos'].append({})
                         st.rerun()
                 with col_save:
-                    if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
+                    if st.button("💾 Salvar Todos os Dados", key='btn_save_all',type="primary", use_container_width=True):
                         if validar_formulario() and salvar_no_banco():
                             # Vincular à auditoria após salvar
                             if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
@@ -2307,7 +2307,7 @@ def main():
                     
                     if processo_escolhido:
                         st.session_state['processo_selecionado_para_editar'] = processo_escolhido
-                        if st.button("📂 Carregar Processo", type="primary", use_container_width=True, key='btn_carregar_processo'):
+                        if st.button("📂 Carregar Processo", key='btn_load_process',type="primary", use_container_width=True, key='btn_carregar_processo'):
                             if st.session_state.get('processo_selecionado_para_editar'):
                                 processo_escolhido = st.session_state['processo_selecionado_para_editar']
 
