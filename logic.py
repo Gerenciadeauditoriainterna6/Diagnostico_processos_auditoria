@@ -1657,9 +1657,9 @@ def tempo_restante_sessao():
             return f"{minutos:02d}:{segundos:02d}"
     return "00:00"
 
-def verificar_sessao(login_time_cache=None):
+def verificar_sessao(login_timestamp_cache=None):
     # Se não recebeu por parâmetro, tenta do session_state
-    login_time = st.session_state.get("login_timestamp") or login_time_cache
+    login_time = st.session_state.get("login_timestamp") or login_timestamp_cache
     if st.session_state.get("autenticado") and login_time:
         tempo_decorrido = (datetime.now() - login_time).total_seconds()
         if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
