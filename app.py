@@ -2307,7 +2307,7 @@ def main():
                     
                     if processo_escolhido:
                         st.session_state['processo_selecionado_para_editar'] = processo_escolhido
-                        if st.button("📂 Carregar Processo", key='btn_load_process',type="primary", use_container_width=True, key='btn_carregar_processo'):
+                        if st.button("📂 Carregar Processo",type="primary", use_container_width=True, key='btn_carregar_processo'):
                             if st.session_state.get('processo_selecionado_para_editar'):
                                 processo_escolhido = st.session_state['processo_selecionado_para_editar']
 
