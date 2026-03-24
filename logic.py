@@ -14,7 +14,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
 CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
-TEMPO_SESSAO_SEGUNDOS = 1800
+# Tempo da sessão do usuário
+TEMPO_SESSAO_SEGUNDOS = 10
 
 #MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
 
@@ -1662,8 +1663,7 @@ def verificar_sessao():
         login_time = st.session_state.get("login_timestamp")
         if login_time:
             tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:  # 30 minutos expirados
-                print("🔍 [TERMINAL] EXPIRANDO...")
+            if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
                 # Sessão expirada
                 st.session_state["autenticado"] = False
                 st.session_state["usuario_logado"] = None

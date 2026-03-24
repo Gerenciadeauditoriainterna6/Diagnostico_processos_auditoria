@@ -1658,16 +1658,8 @@ def main():
             login_time = st.session_state.get("login_timestamp")
             if login_time:
                 tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                
-                # DEBUG COMPLETO
-                st.write(f"🔍 Login timestamp: {login_time.strftime('%H:%M:%S')}")
-                st.write(f"🔍 Agora: {datetime.now().strftime('%H:%M:%S')}")
-                st.write(f"🔍 Tempo decorrido: {tempo_decorrido:.0f}s")
-                st.write(f"🔍 Limite: {TEMPO_SESSAO_SEGUNDOS}s")
-                st.write(f"🔍 Expira em: {TEMPO_SESSAO_SEGUNDOS - tempo_decorrido:.0f}s")
-                
                 if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-                    st.error("⚠️ SESSÃO EXPIRADA (detectada no debug)")
+                    st.error("⚠️ SESSÃO EXPIRADA")
             
             st.markdown(f"<small>⏳ Sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
