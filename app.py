@@ -31,6 +31,15 @@ local_storage = LocalStorage()
 
 # --- 1. CONFIGURAÇÃO INICIAL ---
 st.set_page_config(page_title="SISTEMA GERÊNCIA DE AUDITORIA INTERNA - FUSVE", layout="centered")
+# --- Script que remove o localstorage sempre que a aba do navegador se fecha, impossibilitando vazamento de segurança ---
+st.markdown(
+    """
+    <script>
+        window.addEventListener('beforeunload', function() {
+        localStorage.removeItem('usuario_audit');
+        });
+        </script>
+    """, unsafe_allow_html=True)
 
 # --- 2. FUNÇÕES DE SESSÃO E IP (SUPABASE) ---
 

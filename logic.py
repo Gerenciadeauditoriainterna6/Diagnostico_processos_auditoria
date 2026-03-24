@@ -15,7 +15,7 @@ CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
 CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
 
 # Tempo da sessão do usuário
-TEMPO_SESSAO_SEGUNDOS = 10
+TEMPO_SESSAO_SEGUNDOS = 1800
 
 #MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
 
