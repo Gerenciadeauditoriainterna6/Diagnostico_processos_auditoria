@@ -1587,9 +1587,10 @@ def carregar_riscos_processo(processo_id):
 # --- 5. Execução do app ---
 
 def main():
-    # DEBUG
+     # --- PAINEL DE DEBUG (remova depois que tudo estiver funcionando) ---
     st.write(f"🔍 DEBUG: autenticado = {st.session_state.get('autenticado')}")
     st.write(f"🔍 DEBUG: login_timestamp = {st.session_state.get('login_timestamp')}")
+    
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
     if not verificar_sessao():
         # Mostrar tela de sessão expirada
@@ -1607,27 +1608,15 @@ def main():
         
         st.stop()
     
-    # --- REAUTENTICAÇÃO (se necessário) ---
-    if not st.session_state.get('autenticado'):
+    # --- RESTAURAR SESSÃO (apenas se necessário) ---
+    # Se a sessão é válida mas o estado de autenticação foi perdido
+    if not st.session_state.get('autenticado') and st.session_state.get('login_timestamp'):
         usuario_cache = local_storage.getItem("usuario_audit")
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
-                    # Sessão válida - restaura estado
-                    st.session_state['autenticado'] = True
-                    st.session_state['usuario_logado'] = usuario_cache
-                    # NÃO usar st.rerun() - continua normal
-                else:
-                    # Sessão expirada - limpa cache
-                    try:
-                        local_storage.deleteItem("usuario_audit")
-                    except:
-                        local_storage.setItem("usuario_audit", "null")
-                    st.session_state.pop("login_timestamp", None)
+            st.session_state['autenticado'] = True
+            st.session_state['usuario_logado'] = usuario_cache
     
-    # 3. Bloqueio de Acesso
+    # --- BLOQUEIO DE ACESSO ---
     if not st.session_state.get('autenticado'):
         login_screen()
         st.stop()
@@ -1646,38 +1635,6 @@ def main():
     # --- PAINEL DE DEBUG (Opcional: Pode remover quando tudo estiver ok) ---
     #with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
         #st.write(f"Usuário no LocalStorage: {usuario_cache}")
-
-    # 2. Lógica de Reautenticação Automática (F5)
-    if not st.session_state.get('autenticado'):
-        # Verificamos se o cache existe e não é uma string vazia/nula do JS
-        if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            # O cache existe, mas a sessão não está ativa.
-            # Precisamos verificar se o timestamp ainda é válido
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
-                    # Sessão ainda válida - recriar estado autenticado
-                    st.session_state['autenticado'] = True
-                    st.session_state['usuario_logado'] = usuario_cache
-                    # NÃO fazer rerun aqui! Deixe o fluxo continuar naturalmente
-                else:
-                    # Sessão expirou - limpar tudo
-                    st.session_state.pop("login_timestamp", None)
-                    try:
-                        local_storage.deleteItem("usuario_audit")
-                    except:
-                        local_storage.setItem("usuario_audit", "null")
-                    # NÃO fazer rerun - deixa o fluxo ir para a tela de login
-            else:
-                # Não tem timestamp - provavelmente é um novo acesso
-                # NÃO recriar sessão automaticamente
-                pass
-
-    # 3. Bloqueio de Acesso
-    if not st.session_state.get('autenticado'):
-        login_screen()
-        st.stop()  # Interrompe a execução aqui se não estiver logado
 
     # --- SE CHEGOU AQUI, O USUÁRIO ESTÁ AUTENTICADO ---
 
