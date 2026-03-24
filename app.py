@@ -1614,7 +1614,8 @@ def carregar_riscos_processo(processo_id):
 # --- 5. Execução do app ---
 
 def main():
-    # --- LER DO LOCALSTORAGE UMA VEZ ---
+     # --- LER DO LOCALSTORAGE UMA VEZ ---
+    import json
     session_data_str = local_storage.getItem("session_data")
     usuario_cache = None
     login_timestamp_cache = None
@@ -1628,9 +1629,8 @@ def main():
         except Exception:
             pass
 
-    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO (usando o timestamp lido) ---
-    if not verificar_sessao(login_timestamp_cache=login_timestamp_cache):
-   
+    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
+    if not verificar_sessao(login_time_cache=login_timestamp_cache):
         # Mostrar tela de sessão expirada
         st.markdown("""
         <div style='text-align: center; padding: 2rem;'>
@@ -1646,7 +1646,7 @@ def main():
         
         st.stop()
     
-    # --- REAUTENTICAÇÃO (usando as variáveis já lidas) ---
+    # --- REAUTENTICAÇÃO ---
     if not st.session_state.get('autenticado'):
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
             if login_timestamp_cache:
@@ -1655,34 +1655,29 @@ def main():
                     st.session_state['usuario_logado'] = usuario_cache
                     st.session_state['login_timestamp'] = login_timestamp_cache
                 else:
-                    # expirado, limpa
+                    # expirado, limpa localStorage
                     try:
-                        local_storage.deleteItem("usuario_audit", key='del_usuario_audit')
-                        local_storage.deleteItem("login_timestamp", key='del_login_timestamp')
+                        local_storage.deleteItem("session_data")
                     except:
-                        local_storage.setItem('usuario_audit', 'null', key='set_usuario_audit_null')
-                        local_storage.setItem('login_timestamp', 'null', key='set_login_timestamp_null')
+                        local_storage.setItem("session_data", "null")
             else:
                 # não tem timestamp, limpa cache
                 try:
-                    local_storage.deleteItem("usuario_audit", key='del_usuario_audit')
-                    local_storage.deleteItem("login_timestamp", key='del_login_timestamp')
+                    local_storage.deleteItem("session_data")
                 except:
-                    local_storage.setItem('usuario_audit', 'null', key='set_usuario_audit_null')
-                    local_storage.setItem('login_timestamp', 'null', key='set_login_timestamp_null')
+                    local_storage.setItem("session_data", "null")
 
     # --- BLOQUEIO DE ACESSO ---
     if not st.session_state.get('autenticado'):
         login_screen()
         st.stop()
 
-
+    # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
+    
     # --- RESETAR TIMER A CADA INTERAÇÃO ---
-    # Se chegou até aqui, a sessão é válida. Renova o timestamp.
     if st.session_state.get("autenticado"):
         st.session_state["login_timestamp"] = datetime.now()
         # Atualiza também no localStorage
-        import json
         session_data = {
             "usuario": st.session_state.get("usuario_logado"),
             "timestamp": datetime.now().isoformat()
