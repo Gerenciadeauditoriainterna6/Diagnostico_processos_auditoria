@@ -1622,10 +1622,30 @@ def main():
 
     # 2. Lógica de Reautenticação Automática (F5)
     if not st.session_state.get('autenticado'):
-        # Verificamos se o cache existe e não é uma string vazia/nula do JS
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            st.session_state['autenticado'] = True
-            st.session_state['usuario_logado'] = usuario_cache
+            # Verifica se o timestamp ainda é válido antes de recriar a sessão
+            login_time = st.session_state.get('login_timestamp')
+            if login_time:
+                tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario_logado'] = usuario_cache
+                    st.rerun()
+            else:
+                # SESSÃO EXPIRADA, limpa o cache e força o login
+                try:
+                    local_storage.deleteItem('usuario_audit')
+                except:
+                    local_storage.setItem('usuario_audit', 'null')
+                st.session_state.pop('login_timestamp', None)
+                st.warning("Sua sessão expirou, Faça o login novamente.")
+                st.rerun()
+        else:
+            # Não tem timestamp, provavelmente primeiro acesso após expiração
+            try:
+                local_storage.deletItem("usuario_audit")
+            except:
+                local_storage.setItem("usuario_audit", "null")
             st.rerun()
 
     # 3. Bloqueio de Acesso
