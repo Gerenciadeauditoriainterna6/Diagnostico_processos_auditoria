@@ -188,7 +188,7 @@ def login_screen():
             usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
             senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
             
-            if st.button("Entrar", use_container_width=True, type="primary"):
+            if st.button("Entrar", use_container_width=True, key='btn_entrar_login',type="primary"):
                 if validar_login_no_banco(usuario, senha):
                     # --- GRAVAÇÃO NO LOCAL STORAGE (ÚNICA MUDANÇA FUNCIONAL) ---
                     local_storage.setItem("usuario_audit", usuario)
@@ -238,7 +238,7 @@ def tela_cadastro_area():
             
             status = st.selectbox("Status", ["Ativo", "Inativo"])
             
-            if st.form_submit_button("💾 Salvar Área", type="primary"):
+            if st.form_submit_button("💾 Salvar Área", type="primary", key='btn_salvar_area'):
                 if not nome_area or not gestor:
                     st.error("Nome da Área e Nome do Gestor são obrigatórios.")
                 else:
@@ -757,7 +757,7 @@ def tela_detalhe_auditoria():
     # Verifica se temos uma auditoria selecionada
     if 'auditoria_selecionada' not in st.session_state:
         st.error("Nenhuma auditoria selecionada.")
-        if st.button("🔙 Voltar para lista de auditorias"):
+        if st.button("🔙 Voltar para lista de auditorias", key='btn_voltar_lista_auditorias'):
             st.session_state.pop('auditoria_selecionada', None)
             st.rerun()
         return
@@ -935,7 +935,7 @@ def tela_detalhe_auditoria():
             # Botão para adicionar
             col_add, col_cancel = st.columns([1, 3])
             with col_add:
-                if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True):
+                if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True, key='btn_add_a_auditoria'):
                     if processo_selecionado_display:
                         processo_id = id_map[processo_selecionado_display]
 
@@ -950,7 +950,7 @@ def tela_detalhe_auditoria():
                     else:
                         st.warning("Selecione um processo.")
             with col_cancel:
-                if st.button("Cancelar", use_container_width=True):
+                if st.button("Cancelar", use_container_width=True, key='btn_cancelar'):
                     st.session_state.pop('mostrar_selecao_processos', None)
                     st.rerun()
 
@@ -958,7 +958,7 @@ def tela_detalhe_auditoria():
             st.info("Carregando processos disponíveis...")
             
             # Botão para buscar (temporário)
-            if st.button("📋 Carregar processos disponíveis"):
+            if st.button("📋 Carregar processos disponíveis", key='btn_carregar_processos_disponiveis'):
                 st.session_state['mostrar_selecao'] = True
                 st.rerun()
             
@@ -981,7 +981,7 @@ def tela_detalhe_auditoria():
     
     # Botão para voltar
     st.divider()
-    if st.button("← Voltar para lista de auditorias"):
+    if st.button("← Voltar para lista de auditorias", key='btn_voltar_lista_auditorias_2'):
         st.session_state.pop('auditoria_selecionada', None)
         st.rerun()    
 
@@ -990,7 +990,7 @@ def tela_detalhe_processo_auditoria():
     
     if 'processo_detalhe' not in st.session_state or 'auditoria_selecionada' not in st.session_state:
         st.error("Processo ou auditoria não selecionados.")
-        if st.button("Voltar"):
+        if st.button("Voltar", key='btn_voltar'):
             st.session_state.pop('processo_detalhe', None)
             st.rerun()
         return
@@ -1005,7 +1005,7 @@ def tela_detalhe_processo_auditoria():
     
     if not resultado:
         st.error("Processo não encontrado.")
-        if st.button("Voltar"):
+        if st.button("Voltar", key='btn_voltar_2'):
             st.session_state.pop('processo_detalhe', None)
             st.rerun()
         return
@@ -1023,7 +1023,7 @@ def tela_detalhe_processo_auditoria():
     st.caption(f"Auditoria: {auditoria_id} | Área: {processo['nome_area']}")
     
     # Botão para voltar
-    if st.button("← Voltar para o Detalhamento dos Processos"):
+    if st.button("← Voltar para o Detalhamento dos Processos", key='btn_voltar_detalhamento_dos_processos'):
         st.session_state.pop('processo_detalhe', None)
         st.rerun()
     
@@ -1046,7 +1046,7 @@ def tela_detalhe_processo_auditoria():
             st.write(f"### ✏️ Editando Etapa: {etapa_edit['codigo_etapa']}")
             
             # Botão para cancelar
-            if st.button("🚫 Cancelar e Fechar Edição", use_container_width=True):
+            if st.button("🚫 Cancelar e Fechar Edição", use_container_width=True, key='btn_cancelar_e_fechar_edicao'):
                 st.session_state["etapa_em_edicao"] = None
                 st.rerun()
             
@@ -1600,7 +1600,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("🔐 Fazer Login Novamente", type="primary", use_container_width=True):
+        if st.button("🔐 Fazer Login Novamente", type="primary", use_container_width=True, key='btn_fazer_login_novamente'):
             st.session_state.pop("sessao_expirada", None)
             st.rerun()
         
@@ -1678,7 +1678,7 @@ def main():
                 if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
                     st.error("⚠️ SESSÃO EXPIRADA")
             
-        if st.sidebar.button("Sair (Logout)", use_container_width=True):
+        if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
             # 1. Remove a informação do navegador
             try:
                 local_storage.deleteItem("usuario_audit")
@@ -1958,7 +1958,7 @@ def main():
 
                 processo_ja_existe = 'novo_processo_existente_id' in st.session_state
 
-                if st.button("💾 Salvar Informações Básicas", type="primary", use_container_width=True, disabled=processo_ja_existe):
+                if st.button("💾 Salvar Informações Básicas", key='btn_salvar_infos_basicas', type="primary", use_container_width=True, disabled=processo_ja_existe):
                     if validar_basicos():
                         with st.spinner("Salvando informações básicas..."):
                             resultado, novo_codigo = salvar_informacoes_basicas()  # Retorna também o código
@@ -1971,7 +1971,7 @@ def main():
                             else:
                                 st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
             with col_b2:
-                if st.button("🧹 Limpar Informações", type="secondary", use_container_width=True):
+                if st.button("🧹 Limpar Informações", type="secondary", use_container_width=True, key='btn_limpar_informacoes'):
                     st.session_state['deve_limpar_diagnostico'] = True
                     st.session_state['info_basicas_salvas'] = False
 
@@ -2033,7 +2033,7 @@ def main():
                             st.markdown(f"**Detalhes do Risco {i+1}**")
                         with col_remove:
                             if len(st.session_state['riscos']) > 1:
-                                if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True):
+                                if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True, key='btn_remover_risco'):
                                     indices_para_remover.append(i)
                         st.divider()
 
@@ -2138,7 +2138,7 @@ def main():
                         st.session_state['riscos'].append({})
                         st.rerun()
                 with col_save:
-                    if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True):
+                    if st.button("💾 Salvar Todos os Dados", type="primary", use_container_width=True, key='btn_salvar_todos_os_dados'):
                         if validar_formulario() and salvar_no_banco():
                             # Vincular à auditoria após salvar
                             if 'auditoria_diagnostico' in st.session_state and 'ultimo_processo_id' in st.session_state:
@@ -2602,7 +2602,7 @@ def main():
     elif opcao == "Geração de Relatórios":
         st.title("Relatórios - FUSVE")
         
-        if st.button("Atualizar Lista de Processos"):
+        if st.button("Atualizar Lista de Processos", key='btn_atualizar_lista_de_processos'):
             st.session_state['df_pendentes'] = buscar_processos_pendentes()
         
         if not st.session_state['df_pendentes'].empty:
@@ -2615,7 +2615,7 @@ def main():
                 on_change=lambda: st.session_state.pop('pdf_pronto', None)
             )
 
-            if st.button("Gerar e Marcar como Pronto"):
+            if st.button("Gerar e Marcar como Pronto", key='btn_gerar_e_marcar_pronto'):
                 marcar_relatorio_gerado(codigo_selecionado)
                 pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
                 
