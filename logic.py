@@ -793,7 +793,7 @@ def salvar_no_banco():
                     (id_area, area, codigo_processo, nome_processo, objetivo, 
                      descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES 
-                    (:id_a, :a, :c, :n, :o, :d, :ei, :ef, :p, :st, :cat) 
+                    (:id_a, :a, :c, :n, CONCAT('Garantir ', :o), :d, :ei, :ef, :p, :st, :cat) 
                     RETURNING id
                 """)
 
@@ -825,7 +825,7 @@ def salvar_no_banco():
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
                  probabilidade, apetite_risco, motivo_risco, score_risco) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                (:pid, CONCAT('Risco pela possibilidade ', :nome), CONCAT('Pelo motivo ', :fator), :melhoria, :imp, :prob, :apetite, :motivo, :score)
                 RETURNING id
             """)
 
@@ -1575,7 +1575,7 @@ def salvar_edicao_processo():
             # Atualizar dados básicos
             sql_update = text("""
                 UPDATE processos 
-                SET nome_processo=:nome, objetivo=:o, descricao=:d, 
+                SET nome_processo=:nome, objetivo=CONCAT('Garantir ' :o), descricao=:d, 
                     etapa_ini=:ei, etapa_fim=:ef, produto=:p
                 WHERE id = :pid
             """)
@@ -1609,7 +1609,16 @@ def salvar_edicao_processo():
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, probabilidade, 
                  apetite_risco, motivo_risco, score_risco) 
-                VALUES (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                VALUES 
+                (
+                    :pid,
+                    CASE WHEN :nome IS NOT NULL AND :NOME != ''
+                            THEN CONCAT('Risco pela possibilidade ', :nome)
+                            ELSE NULL END,
+                    CASE WHEN :fator IS NOT NULL AND :fator != ''
+                             THEN CONCAT('Pelo motivo ', :fator)
+                             ELSE NULL END,
+                    :melhoria, :imp, :prob, :apetite, :motivo, :score)
                 RETURNING id
             """)
             
