@@ -18,7 +18,7 @@ remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, list
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
 tempo_restante_sessao)
-from logic import (processar_codigo_inteligente)
+from logic import (processar_codigo_inteligente, TEMPO_SESSAO_SEGUNDOS)
 
 MAPA_RISCO = {
     ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
@@ -1671,6 +1671,23 @@ def main():
             )
 
         st.divider()
+
+        if st.session_state.get('autenticado'):
+            login_time = st.session_state.get("login_timestamp")
+            if login_time:
+                tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                
+                # DEBUG COMPLETO
+                st.write(f"🔍 Login timestamp: {login_time.strftime('%H:%M:%S')}")
+                st.write(f"🔍 Agora: {datetime.now().strftime('%H:%M:%S')}")
+                st.write(f"🔍 Tempo decorrido: {tempo_decorrido:.0f}s")
+                st.write(f"🔍 Limite: {TEMPO_SESSAO_SEGUNDOS}s")
+                st.write(f"🔍 Expira em: {TEMPO_SESSAO_SEGUNDOS - tempo_decorrido:.0f}s")
+                
+                if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
+                    st.error("⚠️ SESSÃO EXPIRADA (detectada no debug)")
+            
+            st.markdown(f"<small>⏳ Sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
         if st.sidebar.button("Sair (Logout)", use_container_width=True):
             # 1. Remove a informação do navegador
