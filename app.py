@@ -729,11 +729,11 @@ def tela_auditorias_trimestrais():
                         
                         with col3:
                             if row['data_inicio']:
-                                data_inicio_str = row['data_inicio'].strftime('%d-%m-%Y')
+                                data_inicio_str = row['data_inicio'].strftime('%d/%m/%Y')
                             else:
                                 data_inicio_str = 'TBD'
                             if row['data_fim']:
-                                data_fim_str = row['data_fim'].strftime('%d-%m-%Y')
+                                data_fim_str = row['data_fim'].strftime('%d/%m/%Y')
                             else:
                                 data_fim_str = 'TBD'
                             
@@ -1676,9 +1676,18 @@ def main():
         login_screen()
         st.stop()
 
-                    
 
-    # --- SE CHEGOU AQUI, O USUÁRIO ESTÁ AUTENTICADO ---
+    # --- RESETAR TIMER A CADA INTERAÇÃO ---
+    # Se chegou até aqui, a sessão é válida. Renova o timestamp.
+    if st.session_state.get("autenticado"):
+        st.session_state["login_timestamp"] = datetime.now()
+        # Atualiza também no localStorage
+        import json
+        session_data = {
+            "usuario": st.session_state.get("usuario_logado"),
+            "timestamp": datetime.now().isoformat()
+        }
+        local_storage.setItem("session_data", json.dumps(session_data))
 
     # --- SIDEBAR ---
     with st.sidebar:
