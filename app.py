@@ -1674,6 +1674,8 @@ def main():
         st.stop()
 
     # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
+    if st.session_state.get('autenticado'):
+        st.session_state['login_timestamp'] = datetime.now()
 
     # --- SIDEBAR ---
     with st.sidebar:
