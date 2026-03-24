@@ -1598,11 +1598,35 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Botão para voltar ao login
         if st.button("🔐 Fazer Login Novamente", type="primary", use_container_width=True):
             st.session_state.pop("sessao_expirada", None)
             st.rerun()
         
+        st.stop()
+    
+    # --- REAUTENTICAÇÃO (se necessário) ---
+    if not st.session_state.get('autenticado'):
+        usuario_cache = local_storage.getItem("usuario_audit")
+        if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
+            login_time = st.session_state.get("login_timestamp")
+            if login_time:
+                tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
+                    # Sessão válida - restaura estado
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario_logado'] = usuario_cache
+                    # NÃO usar st.rerun() - continua normal
+                else:
+                    # Sessão expirada - limpa cache
+                    try:
+                        local_storage.deleteItem("usuario_audit")
+                    except:
+                        local_storage.setItem("usuario_audit", "null")
+                    st.session_state.pop("login_timestamp", None)
+    
+    # 3. Bloqueio de Acesso
+    if not st.session_state.get('autenticado'):
+        login_screen()
         st.stop()
     
     # --- RESETAR TIMER A CADA INTERAÇÃO (ADICIONAR AQUI) ---
@@ -1620,13 +1644,32 @@ def main():
     #with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
         #st.write(f"Usuário no LocalStorage: {usuario_cache}")
 
-    # 2. Lógica de Reautenticação Automática (F5) - SIMPLIFICADA
+    # 2. Lógica de Reautenticação Automática (F5)
     if not st.session_state.get('autenticado'):
         # Verificamos se o cache existe e não é uma string vazia/nula do JS
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            # Apenas pré-preencher o campo de usuário, NÃO recriar a sessão automaticamente
-            # O usuário ainda precisa clicar em "Entrar"
-            pass
+            # O cache existe, mas a sessão não está ativa.
+            # Precisamos verificar se o timestamp ainda é válido
+            login_time = st.session_state.get("login_timestamp")
+            if login_time:
+                tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
+                    # Sessão ainda válida - recriar estado autenticado
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario_logado'] = usuario_cache
+                    # NÃO fazer rerun aqui! Deixe o fluxo continuar naturalmente
+                else:
+                    # Sessão expirou - limpar tudo
+                    st.session_state.pop("login_timestamp", None)
+                    try:
+                        local_storage.deleteItem("usuario_audit")
+                    except:
+                        local_storage.setItem("usuario_audit", "null")
+                    # NÃO fazer rerun - deixa o fluxo ir para a tela de login
+            else:
+                # Não tem timestamp - provavelmente é um novo acesso
+                # NÃO recriar sessão automaticamente
+                pass
 
     # 3. Bloqueio de Acesso
     if not st.session_state.get('autenticado'):
