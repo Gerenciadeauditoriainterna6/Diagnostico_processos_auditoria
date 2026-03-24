@@ -1630,7 +1630,7 @@ def main():
             pass
 
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
-    if not verificar_sessao(login_time_cache=login_timestamp_cache):
+    if not verificar_sessao(login_timestamp_cache=login_timestamp_cache):
         # Mostrar tela de sessão expirada
         st.markdown("""
         <div style='text-align: center; padding: 2rem;'>
