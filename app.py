@@ -728,7 +728,16 @@ def tela_auditorias_trimestrais():
                                 st.markdown("✅ **Concluída**")
                         
                         with col3:
-                            st.markdown(f"📅 {row['data_inicio'] or 'TBD'} a {row['data_fim'] or 'TBD'}")
+                            if row['data_inicio']:
+                                data_inicio_str = row['data_inicio'].strftime('%d-%m-%Y')
+                            else:
+                                data_inicio_str = 'TBD'
+                            if row['data_fim']:
+                                data_fim_str = row['data_fim'].strftime('%d-%m-%Y')
+                            else:
+                                data_fim_str = 'TBD'
+                            
+                            st.markdown(f"📅 {data_inicio_str} a {data_fim_str}")
 
                         with col4:
                             if st.button("🔍 Detalhar", key=f"btn_{row['id']}"):
