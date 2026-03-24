@@ -1657,30 +1657,16 @@ def tempo_restante_sessao():
             return f"{minutos:02d}:{segundos:02d}"
     return "00:00"
 
-def verificar_sessao():
-    """Verifica se a sessão do usuário ainda é válida (30 minutos)"""
-    # Primeiro, tenta obter o timestamp do session_state
-    login_time = st.session_state.get("login_timestamp")
-    
-    # Se não estiver no session_state, tenta recuperar do localStorage
-    if not login_time:
-        try:
-            ts_str = local_storage.getItem("login_timestamp")
-            if ts_str and ts_str not in ["undefined", "null", "None"]:
-                login_time = datetime.fromisoformat(ts_str)
-                # Restaura no session_state para uso futuro
-                st.session_state["login_timestamp"] = login_time
-        except Exception as e:
-            print(f"Erro ao recuperar timestamp do localStorage: {e}")
-    
+def verificar_sessao(login_time_cache=None):
+    # Se não recebeu por parâmetro, tenta do session_state
+    login_time = st.session_state.get("login_timestamp") or login_time_cache
     if st.session_state.get("autenticado") and login_time:
         tempo_decorrido = (datetime.now() - login_time).total_seconds()
         if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-            # Sessão expirada
+            # expirada
             st.session_state["autenticado"] = False
             st.session_state["usuario_logado"] = None
             st.session_state.pop("login_timestamp", None)
-            # Limpar local storage (remover apenas o usuário e timestamp)
             try:
                 local_storage.deleteItem("usuario_audit")
                 local_storage.deleteItem("login_timestamp")

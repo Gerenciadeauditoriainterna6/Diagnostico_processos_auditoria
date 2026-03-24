@@ -1589,8 +1589,20 @@ def carregar_riscos_processo(processo_id):
 # --- 5. Execução do app ---
 
 def main():
-    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
-    if not verificar_sessao():
+    # --- LER DO LOCALSTORAGE UMA VEZ ---
+    usuario_cache = local_storage.getItem("usuario_audit")
+    ts_str = local_storage.getItem("login_timestamp")
+    if ts_str and ts_str not in ["undefined", "null", "None"]:
+        try:
+            login_timestamp_cache = datetime.fromisoformat(ts_str)
+        except:
+            login_timestamp_cache = None
+    else:
+        login_timestamp_cache = None
+
+    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO (usando o timestamp lido) ---
+    if not verificar_sessao(login_timestamp_cache):
+   
         # Mostrar tela de sessão expirada
         st.markdown("""
         <div style='text-align: center; padding: 2rem;'>
@@ -1606,39 +1618,34 @@ def main():
         
         st.stop()
     
-    # --- REAUTENTICAÇÃO (se necessário) ---
-    # Se não estiver autenticado, tenta restaurar do localStorage
+    # --- REAUTENTICAÇÃO (usando as variáveis já lidas) ---
     if not st.session_state.get('autenticado'):
-        usuario_cache = local_storage.getItem("usuario_audit")
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            # Verifica se há timestamp no session_state
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                # Tenta tecuperar do localStorage
-                ts_str = local_storage.getItem('login_timestamp')
-                if ts_str and ts_str not in ['undefined', 'null', 'None']:
+            if login_timestamp_cache:
+                if (datetime.now() - login_timestamp_cache).total_seconds() <= TEMPO_SESSAO_SEGUNDOS:
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario_logado'] = usuario_cache
+                    st.session_state['login_timestamp'] = login_timestamp_cache
+                else:
+                    # expirado, limpa
                     try:
-                        login_time = datetime.fromisoformat(ts_str)
-                        # Verifica se ainda é válido (já que verificar_sessao já rodou, mas por segurança)
-                        if (datetime.now() - login_time).total_seconds <= TEMPO_SESSAO_SEGUNDOS:
-                            st.session_state['login_timestamp'] = login_time
+                        local_storage.deleteItem("usuario_audit")
+                        local_storage.deleteItem("login_timestamp")
                     except:
                         pass
-                    if login_time:
-                        # Tem timestamp valido, então restaura autenticação
-                        st.session_state['autenticado'] = True
-                        st.session_state['usuario_logado'] = usuario_cache
-                    else:
-                        # Não tem timestamp válido, limp o cache
-                        try:
-                            local_storage.deleteItem('usuario_audit')
-                            local_storage.deleteItem('login_timestamp')
-                        except:
-                            pass
+            else:
+                # não tem timestamp, limpa cache
+                try:
+                    local_storage.deleteItem("usuario_audit")
+                    local_storage.deleteItem("login_timestamp")
+                except:
+                    pass
+
     # --- BLOQUEIO DE ACESSO ---
     if not st.session_state.get('autenticado'):
         login_screen()
         st.stop()
+
                     
 
     # --- SE CHEGOU AQUI, O USUÁRIO ESTÁ AUTENTICADO ---
