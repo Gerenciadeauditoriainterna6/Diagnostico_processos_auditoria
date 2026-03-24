@@ -190,8 +190,10 @@ def login_screen():
             
             if st.button("Entrar", use_container_width=True, type="primary"):
                 if validar_login_no_banco(usuario, senha):
-                    # --- GRAVAÇÃO NO LOCAL STORAGE (ÚNICA MUDANÇA FUNCIONAL) ---
+                    # --- GRAVAÇÃO NO LOCAL STORAGE ---
                     local_storage.setItem("usuario_audit", usuario)
+                    # SAvar o timestamp também no localStorage
+                    local_storage.setItem("login_timestamp", datetime.now().isoformat())
                     
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
@@ -1609,12 +1611,29 @@ def main():
         st.stop()
     
     # --- RESTAURAR SESSÃO (apenas se necessário) ---
-    # Se a sessão é válida mas o estado de autenticação foi perdido
     if not st.session_state.get('autenticado') and st.session_state.get('login_timestamp'):
+        # Já temos timestamp no session_state, restaura autenticado
         usuario_cache = local_storage.getItem("usuario_audit")
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
             st.session_state['autenticado'] = True
             st.session_state['usuario_logado'] = usuario_cache
+    else:
+        # Se não temos timestamp no session_state, tenta do localStorage
+        if not st.session_state.get('autenticado'):
+            ts_str = local_storage.getItem("login_timestamp")
+            if ts_str and ts_str not in ["undefined", "null", "None"]:
+                try:
+                    login_time = datetime.fromisoformat(ts_str)
+                    tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                    if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
+                        # Sessão ainda válida
+                        usuario_cache = local_storage.getItem("usuario_audit")
+                        if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
+                            st.session_state['autenticado'] = True
+                            st.session_state['usuario_logado'] = usuario_cache
+                            st.session_state['login_timestamp'] = login_time
+                except Exception as e:
+                    print(f"Erro ao processar timestamp do localStorage: {e}")
     
     # --- BLOQUEIO DE ACESSO ---
     if not st.session_state.get('autenticado'):
