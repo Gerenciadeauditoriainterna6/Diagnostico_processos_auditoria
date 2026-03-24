@@ -669,7 +669,7 @@ def tela_auditorias_trimestrais():
                 objetivo = st.text_area("Objetivo da auditoria")
                 escopo = st.text_area("Escopo (o que será avaliado)")
 
-                if st.form_submit_button("Criar Auditoria", type="primary"):
+                if st.form_submit_button("Criar Auditoria", type="primary", key='btn_criar_auditoria'):
                     # Pegar o ID da área selecionada
                     id_area = areas_dict[area_selecionada]
 
@@ -1120,7 +1120,7 @@ def tela_detalhe_processo_auditoria():
                 obri_edit = st.text_input("Obrigações Regulatórias", value=etapa_edit.get('obrigacoes_regulatorias', ''))
                 
                 # Botão de submit
-                if st.form_submit_button("💾 Atualizar Etapa", type="primary", use_container_width=True):
+                if st.form_submit_button("💾 Atualizar Etapa", type="primary", use_container_width=True, key='btn_atualizar_etapa'):
                     # Preparar dados para update
                     dados_update = {
                         "etapa_id": etapa_edit['id'],
@@ -1297,7 +1297,7 @@ def tela_detalhe_processo_auditoria():
                                         key=f"doc_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
                                     )
                                     
-                                    if st.form_submit_button("💾 Salvar Risco", type="primary"):
+                                    if st.form_submit_button("💾 Salvar Risco", type="primary", key='btn_salvar_risco'):
                                         if not fator or not cons:
                                             st.warning("Preencha fator e consequência.")
                                         else:
@@ -1400,7 +1400,7 @@ def tela_detalhe_processo_auditoria():
                                         freq = st.selectbox("Frequência de Execução", ["Diário", "Semanal", "Mensal", "Trimestral", "Anual", "Por Evento"], key=f"freq_ctrl_{etapa['id']}")
                                         resp = st.text_input("Usuário Responsável", key=f"resp_ctrl_{etapa['id']}")
 
-                                        if st.form_submit_button("💾 Salvar Controle", type="primary"):
+                                        if st.form_submit_button("💾 Salvar Controle", type="primary", key='btn_salvar_controle'):
                                             if not nome_c or not resp:
                                                 st.warning("Preencha o nome do controle e o responsável.")
                                             else:
@@ -1452,7 +1452,7 @@ def tela_detalhe_processo_auditoria():
             obrigacoes = st.text_input("Obrigações Regulatórias")
             crit_etapa = col_f2.selectbox("Criticidade", ["Aprovado", "Em Aprovação"])
 
-            if st.form_submit_button("Salvar Detalhamento", type="primary"):
+            if st.form_submit_button("Salvar Detalhamento", type="primary", key='btn_salvar_detalhamento'):
                 dados = {
                     "p_id": int(processo['id']), "cod": prox_cod, "desc": desc_etapa, "oque": oque,
                     "status": status, "como": como, "obj": obj_etapa, "real": correto, "link_d": link_bpmn,
