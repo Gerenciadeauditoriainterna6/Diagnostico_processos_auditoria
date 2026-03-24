@@ -56,6 +56,7 @@ def get_base64(bin_file):
 
 def login_screen():
     """Gerencia a tela de login e a sessão de usuário."""
+    st.session_state["skip_auto_reset"] = False
 
     if "autenticado" not in st.session_state:
         st.session_state["autenticado"] = False
