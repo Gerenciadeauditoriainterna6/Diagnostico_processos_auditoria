@@ -805,9 +805,17 @@ def tela_detalhe_auditoria():
     # Datas
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        st.info(f"📅 **Início:** {auditoria['data_inicio'] or 'Não definida'}")
+        if auditoria['data_inicio']:
+            data_inicio_str = auditoria['data_inicio'].strftime('%d/%m/%Y')
+        else:
+            data_inicio_str = 'Não definida'
+        st.info(f"📅 **Início:** {data_inicio_str}")
     with col_d2:
-        st.info(f"📅 **Término:** {auditoria['data_fim'] or 'Não definida'}")
+        if auditoria['data_fim']:
+            data_fim_str = auditoria['data_fim'].strftime('%d/%m/%Y')
+        else:
+            data_fim_str = 'Não definida'
+        st.info(f"📅 **Término:** {data_fim_str}")
     
     # Expander com objetivo e escopo
     with st.expander("📌 Objetivo e Escopo da Auditoria"):
