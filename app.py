@@ -192,10 +192,12 @@ def login_screen():
                 if validar_login_no_banco(usuario, senha):
                     # --- GRAVAÇÃO NO LOCAL STORAGE (ÚNICA MUDANÇA FUNCIONAL) ---
                     local_storage.setItem("usuario_audit", usuario)
+                    local_storage.setItem("login_timestamp", datetime.now().isoformat())
                     
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
                     st.session_state['login_timestamp'] = datetime.now()
+                    st.session_state.pop('sessao_expirada', None)
                     st.session_state.pop('sessao_expirada', None)
                     st.success("Login realizado com sucesso!")
                     time_module.sleep(1)
@@ -1605,76 +1607,39 @@ def main():
         st.stop()
     
     # --- REAUTENTICAÇÃO (se necessário) ---
+    # Se não estiver autenticado, tenta restaurar do localStorage
     if not st.session_state.get('autenticado'):
         usuario_cache = local_storage.getItem("usuario_audit")
         if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
+            # Verifica se há timestamp no session_state
             login_time = st.session_state.get("login_timestamp")
             if login_time:
-                tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
-                    # Sessão válida - restaura estado
-                    st.session_state['autenticado'] = True
-                    st.session_state['usuario_logado'] = usuario_cache
-                    # NÃO usar st.rerun() - continua normal
-                else:
-                    # Sessão expirada - limpa cache
+                # Tenta tecuperar do localStorage
+                ts_str = local_storage.getItem('login_timestamp')
+                if ts_str and ts_str not in ['undefined', 'null', 'None']:
                     try:
-                        local_storage.deleteItem("usuario_audit")
+                        login_time = datetime.fromisoformat(ts_str)
+                        # Verifica se ainda é válido (já que verificar_sessao já rodou, mas por segurança)
+                        if (datetime.now() - login_time).total_seconds <= TEMPO_SESSAO_SEGUNDOS:
+                            st.session_state['login_timestamp'] = login_time
                     except:
-                        local_storage.setItem("usuario_audit", "null")
-                    st.session_state.pop("login_timestamp", None)
-    
-    # 3. Bloqueio de Acesso
+                        pass
+                    if login_time:
+                        # Tem timestamp valido, então restaura autenticação
+                        st.session_state['autenticado'] = True
+                        st.session_state['usuario_logado'] = usuario_cache
+                    else:
+                        # Não tem timestamp válido, limp o cache
+                        try:
+                            local_storage.deleteItem('usuario_audit')
+                            local_storage.deleteItem('login_timestamp')
+                        except:
+                            pass
+    # --- BLOQUEIO DE ACESSO ---
     if not st.session_state.get('autenticado'):
         login_screen()
         st.stop()
-    
-    # --- RESETAR TIMER A CADA INTERAÇÃO (ADICIONAR AQUI) ---
-    # Se chegou até aqui, a sessão é válida. Renova o timestamp.
-    #if st.session_state.get("autenticado"):
-     #   st.session_state["login_timestamp"] = datetime.now()
-    
-    if 'aba_ativa_diagnostico' not in st.session_state:
-        st.session_state['aba_ativa_diagnostico'] = 0  # 0 = Novo Processo, 1 = Editar Processo
-
-    # Tenta ler o usuário salvo no navegador (Local Storage)   
-    usuario_cache = local_storage.getItem("usuario_audit")
-    
-    # --- PAINEL DE DEBUG (Opcional: Pode remover quando tudo estiver ok) ---
-    #with st.expander("🔍 Diagnóstico de Persistência", expanded=False):
-        #st.write(f"Usuário no LocalStorage: {usuario_cache}")
-
-    # 2. Lógica de Reautenticação Automática (F5)
-    if not st.session_state.get('autenticado'):
-        # Verificamos se o cache existe e não é uma string vazia/nula do JS
-        if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            # O cache existe, mas a sessão não está ativa.
-            # Precisamos verificar se o timestamp ainda é válido
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                if tempo_decorrido <= TEMPO_SESSAO_SEGUNDOS:
-                    # Sessão ainda válida - recriar estado autenticado
-                    st.session_state['autenticado'] = True
-                    st.session_state['usuario_logado'] = usuario_cache
-                    # NÃO fazer rerun aqui! Deixe o fluxo continuar naturalmente
-                else:
-                    # Sessão expirou - limpar tudo
-                    st.session_state.pop("login_timestamp", None)
-                    try:
-                        local_storage.deleteItem("usuario_audit")
-                    except:
-                        local_storage.setItem("usuario_audit", "null")
-                    # NÃO fazer rerun - deixa o fluxo ir para a tela de login
-            else:
-                # Não tem timestamp - provavelmente é um novo acesso
-                # NÃO recriar sessão automaticamente
-                pass
-
-    # 3. Bloqueio de Acesso
-    if not st.session_state.get('autenticado'):
-        login_screen()
-        st.stop()  # Interrompe a execução aqui se não estiver logado
+                    
 
     # --- SE CHEGOU AQUI, O USUÁRIO ESTÁ AUTENTICADO ---
 
@@ -1713,8 +1678,6 @@ def main():
                 if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
                     st.error("⚠️ SESSÃO EXPIRADA")
             
-            st.markdown(f"<small>⏳ Sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
-        
         if st.sidebar.button("Sair (Logout)", use_container_width=True):
             # 1. Remove a informação do navegador
             try:
@@ -1734,9 +1697,11 @@ def main():
             st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
         # Botão para renovar sessão
-        if st.button("🔄 Renovar Sessão (+30min)", use_container_width=True):
+        if st.button("🔄 Renovar Sessão (+30min)", key='btn_renew', use_container_width=True):
             st.session_state["login_timestamp"] = datetime.now()
-            st.toast("✅ Sessão renovada por mais 30 minutos!", icon="🔄")
+            # Atualiza também no localStorage
+            local_storage.setItem('login_timestamp', datetime.now().isoformat())
+            st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
             st.rerun()
         
 
