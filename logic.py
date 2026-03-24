@@ -1657,21 +1657,32 @@ def tempo_restante_sessao():
             return f"{minutos:02d}:{segundos:02d}"
     return "00:00"
 
-def verificar_sessao(login_time_cache=None):
-    # Se não recebeu por parâmetro, tenta do session_state
-    login_time = st.session_state.get("login_timestamp") or login_time_cache
+def verificar_sessao():
+    # Tenta obter timestamp do session_state
+    login_time = st.session_state.get("login_timestamp")
+    
+    # Se não tem, tenta do localStorage (com key única)
+    if not login_time:
+        try:
+            ts_str = local_storage.getItem("login_timestamp", key="get_login_timestamp")
+            if ts_str and ts_str not in ["undefined", "null", "None"]:
+                login_time = datetime.fromisoformat(ts_str)
+                st.session_state["login_timestamp"] = login_time
+        except Exception:
+            pass
+
     if st.session_state.get("autenticado") and login_time:
         tempo_decorrido = (datetime.now() - login_time).total_seconds()
         if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-            # expirada
+            # Sessão expirada
             st.session_state["autenticado"] = False
             st.session_state["usuario_logado"] = None
             st.session_state.pop("login_timestamp", None)
             try:
-                local_storage.deleteItem("usuario_audit")
-                local_storage.deleteItem("login_timestamp")
+                local_storage.deleteItem("usuario_audit", key="del_usuario_audit")
+                local_storage.deleteItem("login_timestamp", key="del_login_timestamp")
             except:
-                local_storage.setItem("usuario_audit", "null")
-                local_storage.setItem("login_timestamp", "null")
+                local_storage.setItem("usuario_audit", "null", key="set_usuario_audit_null")
+                local_storage.setItem("login_timestamp", "null", key="set_login_timestamp_null")
             return False
     return True
