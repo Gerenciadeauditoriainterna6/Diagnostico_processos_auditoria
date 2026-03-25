@@ -8,6 +8,7 @@ import base64
 from datetime import timedelta, datetime
 from streamlit_local_storage import LocalStorage
 from streamlit_pdf_viewer import pdf_viewer
+import json
 from logic import (processar_codigo_inteligente, TEMPO_SESSAO_SEGUNDOS, verificar_sessao, get_estilo_risco, salvar_no_banco,
 gerar_pdf_em_memoria,buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
@@ -19,7 +20,6 @@ remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, list
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
 tempo_restante_sessao)
-import json
 
 
 MAPA_RISCO = {

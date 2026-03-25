@@ -756,6 +756,16 @@ def salvar_no_banco():
             # === DEBUG ===
             objetivo_raw = st.session_state.get('input_objetivo', '')
             print(f"DEBUG - objetivo_raw: '{objetivo_raw}'")
+            print(f"DEBUG - objetivo_raw: '{objetivo_raw}' - tipo: {type(objetivo_raw)}")
+            print(f"DEBUG - objetivo_raw é None? {objetivo_raw is None}")
+            print(f"DEBUG - objetivo_raw é string vazia? {objetivo_raw == ''}")
+
+            # === CONCATENAR NO PYTHON ===
+            objetivo_raw = st.session_state.get('input_objetivo', '').strip()
+            if objetivo_raw:
+                objetivo_com_prefixo = f"Garantir {objetivo_raw}"
+            else:
+                objetivo_com_prefixo = ''
 
             # === PRIMEIRO: VERIFICAR SE O PROCESSO JÁ EXISTE ===
             check_query = text("""
@@ -781,7 +791,7 @@ def salvar_no_banco():
 
                 conn.execute(sql_update, {
                     "pid": processo_id,
-                    "o": st.session_state.get('input_objetivo', ''),
+                    "o": objetivo_com_prefixo,
                     "d": st.session_state.get('input_descricao', ''),
                     "ei": st.session_state.get('input_etapa_ini', ''),
                     "ef": st.session_state.get('input_etapa_fim', ''),
@@ -797,9 +807,7 @@ def salvar_no_banco():
                     (id_area, area, codigo_processo, nome_processo, objetivo, 
                     descricao, etapa_ini, etapa_fim, produto, status, categoria) 
                     VALUES 
-                    (:id_a, :a, :c, :n, 
-                    CASE WHEN :o IS NOT NULL AND :o != '' THEN 'Garantir ' || :o ELSE NULL END, 
-                    :d, :ei, :ef, :p, :st, :cat) 
+                    (:id_a, :a, :c, :n, :o, :d, :ei, :ef, :p, :st, :cat) 
                     RETURNING id
                 """)
 
@@ -808,7 +816,7 @@ def salvar_no_banco():
                     "a": nome_area_val,
                     "c": codigo_processo,
                     "n": nome_val,
-                    "o": st.session_state.get('input_objetivo', ''),
+                    "o": objetivo_com_prefixo,
                     "d": st.session_state.get('input_descricao', ''),
                     "ei": st.session_state.get('input_etapa_ini', ''),
                     "ef": st.session_state.get('input_etapa_fim', ''),
@@ -831,28 +839,32 @@ def salvar_no_banco():
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
                 probabilidade, apetite_risco, motivo_risco, score_risco) 
                 VALUES 
-                (
-                    :pid, 
-                    CASE WHEN :nome IS NOT NULL AND :nome != '' 
-                        THEN 'Risco pela possibilidade ' || :nome 
-                        ELSE NULL END,
-                    CASE WHEN :fator IS NOT NULL AND :fator != '' 
-                        THEN 'Pelo motivo ' || :fator 
-                        ELSE NULL END,
-                    :melhoria, :imp, :prob, :apetite, :motivo, :score
-                )
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
                 RETURNING id
             """)
 
             for i in range(len(st.session_state['riscos'])):
+                # === CONCATENAR NOME DO RISCO NO PYTHON ===
+                nome_risco_raw = st.session_state.get(f"nome_{i}", '').strip()
+                if nome_risco_raw:
+                    nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}"
+                else:
+                    nome_risco_com_prefixo = ''
+                # === CONCATENAR FATOR DO RISCO NO PYTHON ===
+                fator_raw = st.session_state.get(f"fator_{i}", '').strip()
+                if fator_raw:
+                    fator_com_prefixo = f"Pelo motivo {fator_raw}"
+                else:
+                    fator_com_prefixo = ''    
+
                 imp = st.session_state.get(f"imp_{i}")
                 prob = st.session_state.get(f"prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
 
                 result = conn.execute(sql_risco, {
                     "pid": processo_id,
-                    "nome": st.session_state.get(f"nome_{i}"),
-                    "fator": st.session_state.get(f"fator_{i}"),
+                    "nome": nome_risco_com_prefixo,
+                    "fator": fator_com_prefixo,
                     "melhoria": st.session_state.get(f"melhoria_{i}"),
                     "imp": imp,
                     "prob": prob,
@@ -1587,13 +1599,17 @@ def salvar_edicao_processo():
                 st.error("Processo não identificado.")
                 return False
             
+            # === CONCATENAR OBJETIVO ===
+            objetivo_raw = st.session_state.get('edit_input_objetivo', '').strip()
+            if objetivo_raw:
+                objetivo_com_prefixo = f"Garantir {objetivo_raw}"
+            else:
+                objetivo_com_prefixo = ''
+            
             # Atualizar dados básicos
             sql_update = text("""
                 UPDATE processos 
-                SET objetivo = CASE WHEN :o IS NOT NULL AND :o != '' 
-                                    THEN 'Garantir ' || :o 
-                                    ELSE NULL END,
-                    descricao=:d, 
+                SET nome_processo=:nome, objetivo=:o, descricao=:d, 
                     etapa_ini=:ei, etapa_fim=:ef, produto=:p
                 WHERE id = :pid
             """)
@@ -1601,7 +1617,7 @@ def salvar_edicao_processo():
             conn.execute(sql_update, {
                 "pid": processo_id,
                 "nome": st.session_state.get('edit_input_processo', ''),
-                "o": st.session_state.get('edit_input_objetivo', ''),
+                "o": objetivo_com_prefixo,
                 "d": st.session_state.get('edit_input_descricao', ''),
                 "ei": st.session_state.get('edit_input_etapa_ini', ''),
                 "ef": st.session_state.get('edit_input_etapa_fim', ''),
@@ -1628,28 +1644,33 @@ def salvar_edicao_processo():
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
                 probabilidade, apetite_risco, motivo_risco, score_risco) 
                 VALUES 
-                (
-                    :pid, 
-                    CASE WHEN :nome IS NOT NULL AND :nome != '' 
-                        THEN 'Risco pela possibilidade ' || :nome 
-                        ELSE NULL END,
-                    CASE WHEN :fator IS NOT NULL AND :fator != '' 
-                        THEN 'Pelo motivo ' || :fator 
-                        ELSE NULL END,
-                    :melhoria, :imp, :prob, :apetite, :motivo, :score
-                )
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
                 RETURNING id
             """)
             
             for i in range(len(st.session_state.get('edit_riscos', []))):
+                # === CONCATENAR NOME DO RISCO ===
+                nome_risco_raw = st.session_state.get(f"edit_nome_{i}", '').strip()
+                if nome_risco_raw:
+                    nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}"
+                else:
+                    nome_risco_com_prefixo = ''
+                
+                # === CONCATENAR FATOR DO RISCO ===
+                fator_raw = st.session_state.get(f"edit_fator_{i}", '').strip()
+                if fator_raw:
+                    fator_com_prefixo = f"Pelo motivo {fator_raw}"
+                else:
+                    fator_com_prefixo = ''
+                
                 imp = st.session_state.get(f"edit_imp_{i}")
                 prob = st.session_state.get(f"edit_prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
                 result = conn.execute(sql_risco, {
                     "pid": processo_id, 
-                    "nome": st.session_state.get(f"edit_nome_{i}"), 
-                    "fator": st.session_state.get(f"edit_fator_{i}"), 
+                    "nome": nome_risco_com_prefixo,   # <-- USAR CONCATENADO
+                    "fator": fator_com_prefixo,       # <-- USAR CONCATENADO
                     "melhoria": st.session_state.get(f"edit_melhoria_{i}"), 
                     "imp": imp, 
                     "prob": prob, 
