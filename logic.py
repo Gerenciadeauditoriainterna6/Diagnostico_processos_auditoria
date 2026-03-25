@@ -1115,7 +1115,11 @@ def gerar_pdf_em_memoria(id_proc):
     return pdf.output(dest='S')
 
 def get_estilo_risco(score):
-    if score >= 12:
+    """Retorna cor e emoji baseado no score do risco"""
+    # Tratar valores nulos
+    if score is None:
+        return "#6c757d", "⚪"  # Cinza para sem risco
+    elif score >= 12:
         return "#ff0000", "🔴" 
     elif score >= 8:
         return "#f0ad4e", "🟠" 
