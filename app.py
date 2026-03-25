@@ -2204,6 +2204,9 @@ def main():
         else:
             if 'processo_selecionado_para_editar' not in st.session_state:
                 st.session_state['processo_selecionado_para_editar'] = None
+            
+            if 'edit_multiselect_version' not in st.session_state:
+                    st.session_state['edit_multiselect_version'] = 0
 
             st.title("Edição de processo existente")
             st.markdown("Selecione um processo abaixo para editar suas informações.")
@@ -2372,6 +2375,12 @@ def main():
                                     st.session_state['edit_input_etapa_ini'] = processo.get('etapa_ini', '')
                                     st.session_state['edit_input_etapa_fim'] = processo.get('etapa_fim', '')
                                     st.session_state['edit_input_produto'] = processo.get('produto', '')
+
+                                    # Incrementar a versão
+                                    st.session_state['edit_multiselect_version'] = st.session_state.get('edit_multiselect_version', 0) + 1
+
+                                    st.toast(f'Processo {codigo} carregado!', icon='✅')
+                                    st.rerun()
                                     
                                     # ===== CARREGAR RISCOS =====
                                     df_riscos = listar_riscos_do_processo(processo['id'])
@@ -2402,7 +2411,7 @@ def main():
                 elif not st.session_state.get('auditoria_edit'):
                     st.info("Selecione uma auditoria para filtrar os processos.")
             
-            # ===== FORMULÁRIO DE EDIÇÃO =====
+            # ===== FORMULÁRIO DE EDIÇÃO (✏️ EDITAR PROCESSO EXISTENTE) =====
             if st.session_state.get('modo_edicao', False):
                 st.divider()
                 st.subheader("✏️ Editando Processo")
@@ -2446,7 +2455,7 @@ def main():
                         options=funcionarios_ids,
                         format_func=lambda x: funcionarios_dict[x],
                         default=defaults_validos,
-                        key='edit_multiselect_executores',
+                        key=f'edit_multiselect_executores_{st.session_state.get('edit_multiselect_version', 0)}',
                         help="Você pode selecionar um ou mais funcionários",
                         placeholder= 'Selecione os funcionários que executam este processo: '
                     )
