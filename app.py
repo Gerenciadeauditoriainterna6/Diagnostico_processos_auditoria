@@ -844,12 +844,31 @@ def tela_detalhe_auditoria():
             st.warning("Nenhum processo selecionado para esta auditoria ainda.")
             
         else:
-            # ==== ORDENA PROCESSOS PELO CÓDIGO ====
-            # Extrair o número após o ponto e converter para inteiro
-            df_processos['numero_ordem'] = df_processos['codigo_processo'].apply(lambda x: int(x.split('.')[1]) if '.' in x and x.split('.')[1].isdigit() else 0 )
-            
-            df_processos = df_processos.sort_values('numero_ordem', ascending=True)
-            
+            # ==== FILTRO DE ORDENAÇÃO ====
+            col_filtro1, col_filtro2 = st.columns([1, 3])
+            with col_filtro1:
+                ordem_opcao = st.radio(
+                    'Ordenar por: ',
+                    ['Código do Processo', 'Maior Risco'],
+                    key='ordem_processos_auditoria',
+                    horizontal=True
+                )
+            # === APLICAR ORDENAÇÃO CONFORME ESCOLHA ====
+            if ordem_opcao == "Código do Processo":
+        
+                # ==== ORDENA PROCESSOS PELO CÓDIGO ====
+                # Extrair o número após o ponto e converter para inteiro
+                df_processos['numero_ordem'] = df_processos['codigo_processo'].apply(lambda x: int(x.split('.')[1]) if '.' in x and x.split('.')[1].isdigit() else 0 )
+                
+                df_processos = df_processos.sort_values('numero_ordem', ascending=True)
+            else:
+                # Maior Risco
+                # Ordenar pelo maior risco (descrescente)
+                # Tratar valores nulos (colocar no final)
+                df_processos['maior_risco'] = df_processos['maior_risco'].fillna(-1)
+                df_processos = df_processos.sort_values('maior_risco', ascending=False)
+
+
             # Mostra cada processo em um card
             for _, row in df_processos.iterrows():
                 # Define cor baseada no maior risco
