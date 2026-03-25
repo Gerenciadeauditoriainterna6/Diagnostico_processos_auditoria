@@ -168,14 +168,6 @@ def login_screen():
         </style>
     """, unsafe_allow_html=True)
 
-def formatar_risco_para_card(valor):
-    """Formata o valor do risco para exibição no card"""
-    if pd.isna(valor) or valor is None or valor <= 0:
-        return "#6c757d", "⚪", "N/A"
-    else:
-        cor, emoji = get_estilo_risco(valor)
-        return cor, emoji, str(int(valor))
-
     # ----- LAYOUT DO LOGIN -----
     col1, col2, col3 = st.columns([0.5, 2, 0.5]) 
     
@@ -225,6 +217,14 @@ def formatar_risco_para_card(valor):
             ''', unsafe_allow_html=True)
                     
     return False
+
+def formatar_risco_para_card(valor):
+    """Formata o valor do risco para exibição no card"""
+    if pd.isna(valor) or valor is None or valor <= 0:
+        return "#6c757d", "⚪", "N/A"
+    else:
+        cor, emoji = get_estilo_risco(valor)
+        return cor, emoji, str(int(valor))
 
 def tela_cadastro_area():
     """Tela para cadastro de áreas e seus funcionários"""
