@@ -2375,12 +2375,6 @@ def main():
                                     st.session_state['edit_input_etapa_ini'] = processo.get('etapa_ini', '')
                                     st.session_state['edit_input_etapa_fim'] = processo.get('etapa_fim', '')
                                     st.session_state['edit_input_produto'] = processo.get('produto', '')
-
-                                    # Incrementar a versão
-                                    st.session_state['edit_multiselect_version'] = st.session_state.get('edit_multiselect_version', 0) + 1
-
-                                    st.toast(f'Processo {codigo} carregado!', icon='✅')
-                                    st.rerun()
                                     
                                     # ===== CARREGAR RISCOS =====
                                     df_riscos = listar_riscos_do_processo(processo['id'])
@@ -2400,9 +2394,15 @@ def main():
                                     else:
                                         st.session_state['edit_riscos'] = []
                                     
-                                    st.session_state['modo_edicao'] = True
+                                    # Incrementar a versão do multiselect
+                                    st.session_state['edit_multiselect_version'] = st.session_state.get('edit_multiselect_version', 0) + 1
+
+                                    # Ativar modo de edição
+                                    st.sessions_state['modo_edicao'] = True
+
                                     st.success(f"✅ Processo {codigo} carregado!")
                                     st.rerun()
+                                    
                 else:
                     st.info("Nenhum processo cadastrado para esta área e auditoria.")
             else:
