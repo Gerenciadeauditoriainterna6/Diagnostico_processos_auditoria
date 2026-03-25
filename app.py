@@ -844,6 +844,12 @@ def tela_detalhe_auditoria():
             st.warning("Nenhum processo selecionado para esta auditoria ainda.")
             
         else:
+            # ==== ORDENA PROCESSOS PELO CÓDIGO ====
+            # Extrair o número após o ponto e converter para inteiro
+            df_processos['numero_ordem'] = df_processos['codigo_processo'].apply(lambda x: int(x.split('.')[1]) if '.' in x and x.split('.')[1].isdigit() else 0 )
+            
+            df_processos = df_processos.sort_values('numero_ordem', ascending=True)
+            
             # Mostra cada processo em um card
             for _, row in df_processos.iterrows():
                 # Define cor baseada no maior risco
