@@ -868,8 +868,41 @@ def tela_detalhe_auditoria():
                     
                     with col_p3:
                         # Score de risco
-                        st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {row['maior_risco'] or 'N/A'}</span>", unsafe_allow_html=True)
-                    
+                        st.markdown(f"""<span style='background-color: {cor};
+                                    padding: 5px 10px; border-radius: 5px;
+                                    color: white; font-weight: bold;'>{emoji}
+                                    Risco: {row['maior_risco'] or 'N/A'}
+                                    </span>""",
+                                    unsafe_allow_html=True
+                                    )
+                    # ==== EXPANDER COM RISCOS DO PROCESSO ====
+                    # Buscar os riscos deste processo específico
+                    df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
+
+                    if not df_riscos_processo.empty:
+                        with st.expander(f"⚠️ Riscos deste Processo ({len(df_riscos_processo)})", expanded=False):
+                            for _, risco in df_riscos_processo.iterrows():
+                                # Calcular score e estilo para cada risco
+                                score = risco.get('socre_risco', 0)
+                                cor_risco, emoji_risco = get_estilo_risco(score)
+
+                                # Exibir cada risco
+                                st.markdown(f"""
+                                    <div style='margin-bottom: 10px;
+                                        padding: 8px;
+                                        border-left: 4px solid {cor_risco};
+                                        background-color: #f9f9f9;'>
+                                        <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
+                                        <span style='font-size: 0.9em; color: #666;'>
+                                            <strong>Fator:</strong> {risco['fator_risco']}<br>
+                                            <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
+                                            <strong>Magnitude:</strong> {score}
+<                                       </span>
+                                    </div>""", unsafe_allow_html=True)
+                    else:
+                        with st.expander(f"⚠️ Riscos deste Processo (0)", expanded=False):
+                            st.caption('Nenhum risco mapeado para este processo.')
+
                     # Botões de ação para o processo
                     col_b1, col_b2, col_b3 = st.columns([1, 1, 3])
                     
@@ -887,13 +920,13 @@ def tela_detalhe_auditoria():
                     
                     with col_b3:
                         # Botão de remover com confirmação
-                        remover_key = f"rm_{row['processo_id']}_{row['processo_id']}"
                         if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
                             st.session_state[f"confirmar_remocao_{row["processo_id"]}"] = True
                         
                         # Mostrar confirmação se necessário
                         if st.session_state.get(f'confirmar_remocao_{row['processo_id']}', False):
-                            st.warning(f"remover processo **{row['codigo_processo']}**?")
+                            st.warning(f"Remover processo **{row['codigo_processo']}** da lista dos selecionados?")
+                            
                             col_sim, col_nao = st.columns(2)
 
                             with col_sim:
@@ -906,12 +939,12 @@ def tela_detalhe_auditoria():
                                         st.rerun()
                                     else:
                                         st.error("Erro ao remover processo.")
+
                             with col_nao:
                                 if st.button("❌ Não", key=f"conf_nao_{row['processo_id']}"):
                                     st.session_state.pop(f'confirmar_remocao_{row["processo_id"]}', None)
                                     st.rerun()
                         
-                            
         
         st.divider()
         
