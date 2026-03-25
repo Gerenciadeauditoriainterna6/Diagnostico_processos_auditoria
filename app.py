@@ -19,7 +19,7 @@ buscar_conclusao_auditoria, get_resumo_trimestre, listar_processos_da_auditoria_
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
 listar_executores_processo_com_nomes, listar_categorias, carregar_riscos_processo_para_edicao, salvar_edicao_processo,
-tempo_restante_sessao)
+tempo_restante_sessao, salvar_edicao_processo_completa)
 
 
 MAPA_RISCO = {
@@ -2202,11 +2202,12 @@ def main():
         # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
     
         else:
+            # Criar um placeholder para o formulário de edição
+            if 'edit_form_placeholder' not in st.session_state:
+                st.session_state['edit_form_placeholder'] = st.empty()
+
             if 'processo_selecionado_para_editar' not in st.session_state:
                 st.session_state['processo_selecionado_para_editar'] = None
-            
-            if 'edit_multiselect_version' not in st.session_state:
-                    st.session_state['edit_multiselect_version'] = 0
 
             st.title("Edição de processo existente")
             st.markdown("Selecione um processo abaixo para editar suas informações.")
@@ -2339,16 +2340,8 @@ def main():
                         if st.button("📂 Carregar Processo", type="primary", use_container_width=True, key='btn_carregar_processo'):
                             if st.session_state.get('processo_selecionado_para_editar'):
                                 processo_escolhido = st.session_state['processo_selecionado_para_editar']
-
-                            # ===== LIMPEZA TOTAL DO ESTADO DE EDIÇÃO =====
-                            keys_to_clear = [k for k in list(st.session_state.keys()) if k.startswith('edit_')]
-                            for key in keys_to_clear:
-                                st.session_state.pop(key, None)
                             
-                            # Resetar modo de edição
-                            st.session_state['modo_edicao'] = False
-                            
-                            # ===== CARREGAR NOVO PROCESSO =====
+                            # ===== CARREGAR DADOS DO PROCESSO =====
                             processo_id = id_map[processo_escolhido]
                             
                             query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :id")
@@ -2360,48 +2353,40 @@ def main():
                                 processo = buscar_processo_por_codigo(codigo)
                                 
                                 if processo:
-                                    # Carregar dados básicos
-                                    st.session_state['edit_input_processo'] = processo.get('nome_processo', '')
-                                    st.session_state['edit_codigo_processo'] = processo.get('codigo_processo', '')
-                                    st.session_state['edit_processo_existente_id'] = processo['id']
-                                    
-                                    # Carregar executores
-                                    executores_ids = listar_executores_processo(processo['id'])
-                                    st.session_state['edit_executores_selecionados'] = executores_ids if executores_ids else []
-                                    
-                                    # Carregar detalhamento
-                                    st.session_state['edit_input_objetivo'] = processo.get('objetivo', '')
-                                    st.session_state['edit_input_descricao'] = processo.get('descricao', '')
-                                    st.session_state['edit_input_etapa_ini'] = processo.get('etapa_ini', '')
-                                    st.session_state['edit_input_etapa_fim'] = processo.get('etapa_fim', '')
-                                    st.session_state['edit_input_produto'] = processo.get('produto', '')
+                                    # Salvar todos os dados em session_state
+                                    st.session_state['edit_processo_data'] = {
+                                        'codigo': codigo,
+                                        'id': processo['id'],
+                                        'nome_processo': processo.get('nome_processo', ''),
+                                        'codigo_processo': processo.get('codigo_processo', ''),
+                                        'objetivo': processo.get('objetivo', ''),
+                                        'descricao': processo.get('descricao', ''),
+                                        'etapa_ini': processo.get('etapa_ini', ''),
+                                        'etapa_fim': processo.get('etapa_fim', ''),
+                                        'produto': processo.get('produto', ''),
+                                        'executores': listar_executores_processo(processo['id']),
+                                        'riscos': []
+                                    }
                                     
                                     # ===== CARREGAR RISCOS =====
                                     df_riscos = listar_riscos_do_processo(processo['id'])
                                     
                                     if not df_riscos.empty:
-                                        st.session_state['edit_riscos'] = []
-                                        for idx, (_, row) in enumerate(df_riscos.iterrows()):
-                                            st.session_state['edit_riscos'].append({})
-                                            st.session_state[f'edit_nome_{idx}'] = row['nome_risco'] or ""
-                                            st.session_state[f'edit_fator_{idx}'] = row['fator_risco'] or ""
-                                            st.session_state[f'edit_melhoria_{idx}'] = row['melhoria'] or ""
-                                            st.session_state[f'edit_apetite_{idx}'] = row['apetite_risco'] or ""
-                                            st.session_state[f'edit_motivo_{idx}'] = row['motivo_risco'] or ""
-                                            st.session_state[f'edit_categorias_{idx}'] = row['categorias_ids'] if row['categorias_ids'] else []
-                                            st.session_state[f'edit_imp_{idx}'] = normalizar_valor_risco(row['impacto'])
-                                            st.session_state[f'edit_prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
-                                    else:
-                                        st.session_state['edit_riscos'] = []
-                                    
-                                    # Incrementar a versão do multiselect
-                                    st.session_state['edit_multiselect_version'] = st.session_state.get('edit_multiselect_version', 0) + 1
-
-                                    # Ativar modo de edição
+                                        for _, row in df_riscos.iterrows():
+                                            st.session_state['edit_processo_data']['riscos'].append({
+                                                'nome': row['nome_risco'] or "",
+                                                'fator': row['fator_risco'] or "",
+                                                'melhoria': row['melhoria'] or "",
+                                                'apetite': row['apetite_risco'] or "",
+                                                'motivo': row['motivo_risco'] or "",
+                                                'categorias': row['categorias_ids'] if row['categorias_ids'] else [],
+                                                'impacto': normalizar_valor_risco(row['impacto']),
+                                                'probabilidade': normalizar_valor_risco(row['probabilidade'])
+                                            })
                                     st.session_state['modo_edicao'] = True
-
-                                    st.success(f"✅ Processo {codigo} carregado!")
+                                    st.session_state['edit_form_version'] = st.session_state.get('edit_form_version', 0) + 1
                                     st.rerun()
+                                    
 
                 else:
                     st.info("Nenhum processo cadastrado para esta área e auditoria.")
@@ -2413,21 +2398,32 @@ def main():
             
             # ===== FORMULÁRIO DE EDIÇÃO (✏️ EDITAR PROCESSO EXISTENTE) =====
             if st.session_state.get('modo_edicao', False):
-                st.divider()
-                st.subheader("✏️ Editando Processo")
+                # Usar o placeholder para recriar o formulário
+                with st.session_state['edit_form_placeholder'].container():
+                    # Incrementar versão apra garantir recriação
+                    form_version = st.session_state.get('edit_form_version', 0)
+
+                    st.divider()
+                    st.subheader("✏️ Editando Processo")
+
+                    # Obter dados do processo
+                    processo_data = st.session_state.get('edit_processo_data', {})
+
                 
-                # ===== DADOS BÁSICOS =====
-                st.text_input(
-                    "Nome do Processo:", 
-                    key="edit_input_processo",
-                    help="Digite o nome do processo."
-                )
-                
-                st.text_input(
-                    "Código do Processo:",
-                    key="edit_codigo_processo",
-                    disabled=True
-                )
+                    # ===== DADOS BÁSICOS =====
+                    st.text_input(
+                        "Nome do Processo:",
+                        value=processo_data.get('nome_processo', ''), 
+                        key=f"edit_input_processo_{form_version}",
+                        help="Digite o nome do processo."
+                    )
+                    
+                    st.text_input(
+                        "Código do Processo:",
+                        value=processo_data.get('codigo', ''),
+                        key=f"edit_codigo_processo_{form_version}",
+                        disabled=True
+                    )
                 
                 # ===== EXECUTORES =====
                 st.markdown("**Funcionário(s) que executam o processo:**")
@@ -2445,8 +2441,7 @@ def main():
                     funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
                     
                     # Obter os IDs dos executores já salvos no processo (carregados anteriormente)
-                    executores_ids = st.session_state.get('edit_executores_selecionados', [])
-
+                    executores_ids = processo_data.get('executores', [])
                     # Filtrar apenas os que ainda existem na área (caso algum funcionário tenha sido removido)
                     defaults_validos = [exec_id for exec_id in executores_ids if exec_id in funcionarios_dict]
                     
@@ -2455,11 +2450,12 @@ def main():
                         options=funcionarios_ids,
                         format_func=lambda x: funcionarios_dict[x],
                         default=defaults_validos,
-                        key=f'edit_multiselect_executores_{st.session_state.get('edit_multiselect_version', 0)}',
+                        key=f'edit_multiselect_executores_{form_version}',
                         help="Você pode selecionar um ou mais funcionários",
                         placeholder= 'Selecione os funcionários que executam este processo: '
                     )
                     
+                    # Salvar no session_state para uso nno salvamento
                     st.session_state['edit_executores_selecionados'] = selecionados
                     
                     if selecionados:
@@ -2472,11 +2468,35 @@ def main():
                 st.markdown("### Detalhamento do Processo")
                 st.info("ℹ️ Os campos abaixo são opcionais.")
                 
-                st.text_area("O que é o processo?:", key="edit_input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
-                st.text_area("Onde Começa o Processo?:", key="edit_input_etapa_ini", help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
-                st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="edit_input_produto", help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
-                st.text_area("Depois de Acabado, para onde envia?:", key="edit_input_etapa_fim", help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
-                st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="edit_input_objetivo")
+                st.text_area(
+                    "O que é o processo?:", 
+                    value=processo_data.get('descricao', ''),
+                    key=f"edit_input_descricao_{form_version}",
+                    help="Gestor diz com as suas palavras o que entende ser o processo."
+                )
+                st.text_area(
+                    "Onde Começa o Processo?:", 
+                    value=processo_data.get('etapa_ini', ''),
+                    key=f"edit_input_etapa_ini_{form_version}",
+                    help="Onde começa o processo? - ETAPA INICIAL"
+                )
+                st.text_area(
+                    "Qual (is) o Produto (s) Final Desse Processo?:", 
+                    value=processo_data.get('produto', ''),
+                    key=f"edit_input_produto_{form_version}",
+                    help="Qual(is) o(s) produto(s) final(is) desse processo?"
+                )
+                st.text_area(
+                    "Depois de Acabado, para onde envia?:", 
+                    value=processo_data.get('etapa_fim', ''),
+                    key=f"edit_input_etapa_fim_{form_version}",
+                    help="Depois de acabado, para onde envia? - ETAPA FINAL"
+                )
+                st.text_area(
+                    "Qual o Objetivo do Processo? e Por que faz?:", 
+                    value=processo_data.get('objetivo', ''),
+                    key=f"edit_input_objetivo_{form_version}"
+                )
                 
                 st.write("")
                 
@@ -2486,46 +2506,48 @@ def main():
                 # Botão para adicionar risco
                 col_add_risco, col_spacer = st.columns([1, 4])
                 with col_add_risco:
-                    if st.button("➕ Adicionar Risco", key="edit_add_risco", use_container_width=True):
-                        if 'edit_riscos' not in st.session_state:
-                            st.session_state['edit_riscos'] = []
-                        st.session_state['edit_riscos'].append({})
+                    if st.button("➕ Adicionar Risco", key=f"edit_add_risco_{form_version}", use_container_width=True):
+                        if 'edit_riscos_temp' not in st.session_state:
+                            st.session_state['edit_riscos_temp'] = processo_data.get('riscos', []).copy()
+                        
+                        st.session_state['edit_riscos_temp'].append({})
                         st.rerun()
                 
                 st.divider()
                 
                 # ===== EXIBIÇÃO DOS RISCOS =====
-                edit_riscos = st.session_state.get('edit_riscos', [])
+                riscos_lista = st.session_state.get('edit_riscos_temp', processo_data.get('riscos', []))
                 
-                if edit_riscos:
+                if riscos_lista:
                     indices_para_remover = []
-                    processo_id = st.session_state.get('edit_processo_existente_id', 'novo')
                     
-                    for i, risco in enumerate(edit_riscos):
+                    
+                    for i, risco in enumerate(riscos_lista):
                         # Título do expander
-                        titulo_risco = st.session_state.get(f'edit_nome_{i}', f'Risco {i+1}')
+                        titulo_risco = risco.get('nome', f'Risco {i+1}')
                         if titulo_risco and titulo_risco != f'Risco {i+1}':
                             titulo_expander = f"⚠️ {titulo_risco[:50]}"
                         else:
                             titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
                         
-                        with st.expander(titulo_expander, expanded=False, key=f"edit_risco_expander_{processo_id}_{i}"):
+                        with st.expander(titulo_expander, expanded=False, key=f"edit_risco_expander_{form_version}_{i}"):
                             # Cabeçalho com botão de remover
                             col_titulo, col_remove = st.columns([5, 1])
                             with col_titulo:
                                 st.markdown(f"**Detalhes do Risco {i+1}**")
                             with col_remove:
-                                if len(edit_riscos) > 1:
-                                    if st.button("🗑️ Remover", key=f"edit_remove_risco_{i}", use_container_width=True):
+                                if len(riscos_lista) > 1:
+                                    if st.button("🗑️ Remover", key=f"edit_remove_risco_{form_version}_{i}", use_container_width=True):
                                         indices_para_remover.append(i)
                                         st.rerun()
                             
                             st.divider()
                             
-                            # Campos do risco
-                            st.text_input(
-                                "Nome do Risco:", 
-                                key=f"edit_nome_{i}", 
+                            # Campos do risco (usando keys como versão)
+                            risco['nome'] = st.text_input(
+                                "Nome do Risco:",
+                                value=risco.get('nome', ''), 
+                                key=f"edit_nome_{form_version}_{i}", 
                                 placeholder="Ex: Risco de erro no cadastro...",
                                 help="Descreva o risco de forma clara e objetiva"
                             )
@@ -2534,32 +2556,36 @@ def main():
                             categorias_dict = listar_categorias()
                             ids_categorias = list(categorias_dict.keys())
                             
-                            st.multiselect(
+                            categorias_selecionadas = st.multiselect(
                                 "Categorias do Risco:", 
                                 options=ids_categorias,
                                 format_func=lambda x: categorias_dict[x],
-                                default=st.session_state.get(f'edit_categorias_{i}', []),
-                                key=f"edit_categorias_{i}",
+                                default=risco.get('categorias', []),
+                                key=f"edit_categorias_{form_version}_{i}",
                                 help="Selecione uma ou mais categorias para este risco"
                             )
-                            
-                            st.text_area(
-                                "Fator de Risco:", 
-                                key=f"edit_fator_{i}", 
+                            risco['categorias'] = categorias_selecionadas
+
+                            risco['fator'] = st.text_area(
+                                "Fator de Risco:",
+                                value=risco.get('fator', ''),
+                                key=f"edit_fator_{form_version}_{i}", 
                                 placeholder="O que causa ou contribui para que este risco aconteça?",
                                 help="Fator de risco, causa ou motivo desse risco acontecer."
                             )
                             
-                            st.text_area(
-                                "Ponto de Melhoria:", 
-                                key=f"edit_melhoria_{i}", 
+                            risco['melhoria'] = st.text_area(
+                                "Ponto de Melhoria:",
+                                value=risco.get('melhoria', ''),
+                                key=f"edit_melhoria_{form_version}_{i}", 
                                 placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
                                 help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
                             )
                             
-                            st.text_area(
-                                "Apetite ao risco:", 
-                                key=f"edit_apetite_{i}", 
+                            risco['apetite'] = st.text_area(
+                                "Apetite ao risco:",
+                                value=risco.get('apetite', ''),
+                                key=f"edit_apetite_{form_version}_{i}", 
                                 placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
                                 help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável."
                             )
@@ -2568,21 +2594,23 @@ def main():
                             
                             col_i, col_p = st.columns(2)
                             with col_i:
-                                st.selectbox(
+                                risco['impacto'] = st.selectbox(
                                     "Impacto:", 
                                     ["Muito Alto", "Alto", "Médio", "Baixo"], 
-                                    key=f"edit_imp_{i}", 
+                                    index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('impacto', 'Médio')),
+                                    key=f"edit_imp_{form_version}_{i}", 
                                     help="Impacto do risco materializado"
                                 )
                             with col_p:
-                                st.selectbox(
+                                risco['probabilidade'] = st.selectbox(
                                     "Probabilidade:", 
-                                    ["Muito Alto", "Alto", "Médio", "Baixo"], 
-                                    key=f"edit_prob_{i}", 
+                                    ["Muito Alto", "Alto", "Médio", "Baixo"],
+                                    index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('probabilidade', 'Médio')),
+                                    key=f"edit_prob_{form_version}_{i}", 
                                     help="Probabilidade do risco acontecer?"
                                 )
                             
-                            score_v = MAPA_RISCO.get((st.session_state.get(f"edit_imp_{i}"), st.session_state.get(f"edit_prob_{i}")), 0)
+                            score_v = MAPA_RISCO.get((risco.get('impacto', 'Médio'), risco.get('probabilidade', 'Médio')), 0)
                             cor, emoji = get_estilo_risco(score_v)
                             st.markdown(f"""
                             <div style="background-color: {cor}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin: 10px 0;">
@@ -2590,9 +2618,10 @@ def main():
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            st.text_area(
-                                "Motivo:", 
-                                key=f"edit_motivo_{i}", 
+                            risco['motivo'] = st.text_area(
+                                "Motivo:",
+                                value=risco.get('motivo', ''), 
+                                key=f"edit_motivo_{form_version}_{i}", 
                                 placeholder="Justifique a escolha do impacto e probabilidade acima.",
                                 help="Qual o motivo da classificação do nível da probabilidade?"
                             )
@@ -2601,14 +2630,10 @@ def main():
                     
                     # Remover riscos marcados
                     for idx in reversed(indices_para_remover):
-                        st.session_state['edit_riscos'].pop(idx)
-                        keys_to_remove = [f'edit_nome_{idx}', f'edit_categorias_{idx}', f'edit_fator_{idx}', f'edit_melhoria_{idx}', 
-                                        f'edit_apetite_{idx}', f'edit_imp_{idx}', f'edit_prob_{idx}', f'edit_motivo_{idx}']
-                        for key in keys_to_remove:
-                            if key in st.session_state:
-                                st.session_state.pop(key)
+                        riscos_lista.pop(idx)
                     
                     if indices_para_remover:
+                        st.session_state['edit_riscos_temp'] = riscos_lista
                         st.rerun()
                 
                 else:
@@ -2618,25 +2643,36 @@ def main():
                 col_save, col_cancel = st.columns(2)
                 
                 with col_save:
-                    if st.button("💾 Atualizar Alterações", type="primary", key="edit_save", use_container_width=True):
-                        if st.session_state.get('edit_processo_existente_id'):
-                            if salvar_edicao_processo():
-                                st.toast("Alterações salvas com sucesso!", icon="✅")
-                                time_module.sleep(1.5)
-                                keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
-                                for key in keys_to_clear:
-                                    st.session_state.pop(key, None)
-                                st.session_state['modo_edicao'] = False
-                                st.rerun()
-                            else:
-                                st.error("❌ Erro ao salvar alterações.")
+                    if st.button("💾 Atualizar Alterações", type="primary", key=f"edit_save_{form_version}", use_container_width=True):
+                        # Preparar dados para salvar
+                        edit_data = {
+                            'processo_id': processo_data.get('id'),
+                            'nome_processo': st.session_state.get(f"edit_input_processo_{form_version}", ''),
+                            'objetivo': st.session_state.get(f"edit_input_objetivo_{form_version}", ''),
+                            'descricao': st.session_state.get(f"edit_input_descricao_{form_version}", ''),
+                            'etapa_ini': st.session_state.get(f"edit_input_etapa_ini_{form_version}", ''),
+                            'etapa_fim': st.session_state.get(f"edit_input_etapa_fim_{form_version}", ''),
+                            'produto': st.session_state.get(f"edit_input_produto_{form_version}", ''),
+                            'executores': st.session_state.get('edit_executores_selecionados', []),
+                            'riscos': riscos_lista
+                        }
+                        
+                        if salvar_edicao_processo_completa(edit_data):
+                            st.toast("Alterações salvas com sucesso!", icon="✅")
+                            time_module.sleep(1.5)
+                            # Limpar estados de edição
+                            st.session_state.pop('modo_edicao', None)
+                            st.session_state.pop('edit_processo_data', None)
+                            st.session_state.pop('edit_riscos_temp', None)
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar alterações.")
                 
                 with col_cancel:
-                    if st.button("❌ Cancelar Edição", key="edit_cancel", use_container_width=True):
-                        keys_to_clear = [k for k in st.session_state.keys() if k.startswith('edit_')]
-                        for key in keys_to_clear:
-                            st.session_state.pop(key, None)
-                        st.session_state['modo_edicao'] = False
+                    if st.button("❌ Cancelar Edição", key=f"edit_cancel_{form_version}", use_container_width=True):
+                        st.session_state.pop('modo_edicao', None)
+                        st.session_state.pop('edit_processo_data', None)
+                        st.session_state.pop('edit_riscos_temp', None)
                         st.rerun()
 
 

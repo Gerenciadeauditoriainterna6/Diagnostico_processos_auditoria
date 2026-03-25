@@ -1722,3 +1722,100 @@ def verificar_sessao(login_timestamp_cache=None):
                 local_storage.setItem("session_data", "null")
             return False
     return True
+
+def salvar_edicao_processo_completa(dados):
+    """Salva as alterações de um processo existente usando os dados preparados"""
+    try:
+        with engine.begin() as conn:
+            processo_id = dados.get('processo_id')
+            if not processo_id:
+                return False
+            
+            # === CONCATENAR OBJETIVO ===
+            objetivo_raw = dados.get('objetivo', '').strip()
+            if objetivo_raw:
+                objetivo_com_prefixo = f"Garantir {objetivo_raw}"
+            else:
+                objetivo_com_prefixo = ''
+            
+            # Atualizar dados básicos
+            sql_update = text("""
+                UPDATE processos 
+                SET nome_processo=:nome, objetivo=:o, descricao=:d, 
+                    etapa_ini=:ei, etapa_fim=:ef, produto=:p
+                WHERE id = :pid
+            """)
+            
+            conn.execute(sql_update, {
+                "pid": processo_id,
+                "nome": dados.get('nome_processo', ''),
+                "o": objetivo_com_prefixo,
+                "d": dados.get('descricao', ''),
+                "ei": dados.get('etapa_ini', ''),
+                "ef": dados.get('etapa_fim', ''),
+                "p": dados.get('produto', '')
+            })
+            
+            # Atualizar executores
+            conn.execute(
+                text("DELETE FROM processo_executores WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            )
+            
+            executores_ids = dados.get('executores', [])
+            if executores_ids:
+                sql_exec = text("INSERT INTO processo_executores (processo_id, funcionario_id) VALUES (:pid, :fid)")
+                for fid in executores_ids:
+                    conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+            
+            # Atualizar riscos
+            conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
+            
+            sql_risco = text("""
+                INSERT INTO riscos 
+                (processo_id, nome_risco, fator_risco, melhoria, impacto, 
+                 probabilidade, apetite_risco, motivo_risco, score_risco) 
+                VALUES 
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                RETURNING id
+            """)
+            
+            for risco in dados.get('riscos', []):
+                # Concatenar prefixos
+                nome_raw = risco.get('nome', '').strip()
+                nome_com_prefixo = f"Risco pela possibilidade {nome_raw}" if nome_raw else ''
+                
+                fator_raw = risco.get('fator', '').strip()
+                fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
+                
+                imp = risco.get('impacto', 'Médio')
+                prob = risco.get('probabilidade', 'Médio')
+                score = MAPA_RISCO.get((imp, prob), 0)
+                
+                result = conn.execute(sql_risco, {
+                    "pid": processo_id,
+                    "nome": nome_com_prefixo,
+                    "fator": fator_com_prefixo,
+                    "melhoria": risco.get('melhoria', ''),
+                    "imp": imp,
+                    "prob": prob,
+                    "apetite": risco.get('apetite', ''),
+                    "motivo": risco.get('motivo', ''),
+                    "score": score
+                })
+                
+                risco_id = result.scalar()
+                
+                # Salvar categorias
+                categorias_ids = risco.get('categorias', [])
+                if categorias_ids:
+                    for cat_id in categorias_ids:
+                        conn.execute(
+                            text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
+                            {"rid": risco_id, "cid": cat_id}
+                        )
+            
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar edição: {e}")
+        return False
