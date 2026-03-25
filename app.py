@@ -845,7 +845,7 @@ def tela_detalhe_auditoria():
             
         else:
             # ==== FILTRO DE ORDENAÇÃO ====
-            col_filtro1, col_filtro2 = st.columns([1, 3])
+            col_filtro1, col_filtro2 = st.columns(2)
             with col_filtro1:
                 ordem_opcao = st.radio(
                     'Ordenar por: ',
@@ -871,8 +871,16 @@ def tela_detalhe_auditoria():
 
             # Mostra cada processo em um card
             for _, row in df_processos.iterrows():
+                risco_valor = row['maior_risco'] if row['maior_risco'] is not None else 0
                 # Define cor baseada no maior risco
-                cor, emoji = get_estilo_risco(row['maior_risco'])
+                cor, emoji = get_estilo_risco(risco_valor)
+                 # Texto do risco para exibição
+                if row['maior_risco'] is None or row['maior_risco'] <= 0:
+                    texto_risco = "N/A"
+                    risco_exibicao = "⚪ Sem risco mapeado"
+                else:
+                    texto_risco = str(int(row['maior_risco']))
+                    risco_exibicao = f"{emoji} Risco: {texto_risco}"
                 
                 with st.container(border=True):
                     col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
@@ -893,13 +901,11 @@ def tela_detalhe_auditoria():
                     
                     with col_p3:
                         # Score de risco
-                        st.markdown(f"""<span style='background-color: {cor};
-                                    padding: 5px 10px; border-radius: 5px;
-                                    color: white; font-weight: bold;'>{emoji}
-                                    Risco: {row['maior_risco'] or 'N/A'}
-                                    </span>""",
-                                    unsafe_allow_html=True
-                                    )
+                        if row['maior_risco'] is None or row['maior_risco'] <= 0:
+                            st.markdown(f"<span style='background-color: #6c757d; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>⚪ Risco: N/A</span>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {int(row['maior_risco'])}</span>", unsafe_allow_html=True)
+                    
                     # ==== EXPANDER COM RISCOS DO PROCESSO ====
                     # Buscar os riscos deste processo específico
                     df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
