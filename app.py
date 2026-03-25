@@ -1727,8 +1727,8 @@ def main():
             # 3. Força o recarregamento
             st.rerun()
 
-        if st.session_state.get('autenticado'):
-            st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
+        #if st.session_state.get('autenticado'):
+            #st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
         
         # Botão para renovar sessão
         if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
