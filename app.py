@@ -2398,11 +2398,11 @@ def main():
                                     st.session_state['edit_multiselect_version'] = st.session_state.get('edit_multiselect_version', 0) + 1
 
                                     # Ativar modo de edição
-                                    st.sessions_state['modo_edicao'] = True
+                                    st.session_state['modo_edicao'] = True
 
                                     st.success(f"✅ Processo {codigo} carregado!")
                                     st.rerun()
-                                    
+
                 else:
                     st.info("Nenhum processo cadastrado para esta área e auditoria.")
             else:
