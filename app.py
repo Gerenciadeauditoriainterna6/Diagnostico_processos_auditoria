@@ -883,7 +883,7 @@ def tela_detalhe_auditoria():
                         with st.expander(f"⚠️ Riscos deste Processo ({len(df_riscos_processo)})", expanded=False):
                             for _, risco in df_riscos_processo.iterrows():
                                 # Calcular score e estilo para cada risco
-                                score = risco.get('socre_risco', 0)
+                                score = risco.get('score_risco', 0)
                                 cor_risco, emoji_risco = get_estilo_risco(score)
 
                                 # Exibir cada risco
