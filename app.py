@@ -880,8 +880,9 @@ def tela_detalhe_auditoria():
                     df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
 
                     if not df_riscos_processo.empty:
-                        with st.expander(f"⚠️ Riscos deste Processo ({len(df_riscos_processo)})", expanded=False):
-                            for _, risco in df_riscos_processo.iterrows():
+                        df_riscos_ordenados = df_riscos_processo.sort_values('score_risco', ascending= False)
+                        with st.expander(f"⚠️ Riscos deste Processo ({len(df_riscos_ordenados)})", expanded=False):
+                            for _, risco in df_riscos_ordenados.iterrows():
                                 # Calcular score e estilo para cada risco
                                 score = risco.get('score_risco', 0)
                                 cor_risco, emoji_risco = get_estilo_risco(score)
