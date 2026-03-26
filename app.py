@@ -1032,7 +1032,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                         st.rerun()
 
 def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
-    """Exibe o formulário de edição do processo dentro da tela de Detalhamento dos Processos"""
+    """Exibe o formulário de edição do processo dentro da tela de auditoria"""
     
     # Buscar dados completos do processo
     processo = buscar_processo_por_codigo(row['codigo_processo'])
@@ -1044,12 +1044,15 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
             st.rerun()
         return
     
-    # Carregar riscos do processo
-    df_riscos = listar_riscos_do_processo(processo['id'])
-
-    # Preparar lista de riscos (inicializar se não existir)
-    if f'riscos_edit_{row['processo_id']}' not in st.session_state:
+    # ===== INICIALIZAÇÃO CORRETA DA CHAVE DE RISCOS =====
+    riscos_key = f"riscos_edit_{row['processo_id']}"
+    
+    # Verificar se a chave existe e inicializar se necessário
+    if riscos_key not in st.session_state:
+        # Carregar riscos do processo
+        df_riscos = listar_riscos_do_processo(processo['id'])
         riscos_lista = []
+        
         if not df_riscos.empty:
             for _, risco_row in df_riscos.iterrows():
                 riscos_lista.append({
@@ -1063,10 +1066,11 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
                     'impacto': normalizar_valor_risco(risco_row.get('impacto', 'Médio')),
                     'probabilidade': normalizar_valor_risco(risco_row.get('probabilidade', 'Médio'))
                 })
-        st.session_state[f'riscos_edit_{row["processo_id"]}'] = riscos_lista
-
-    riscos_lista = st.session_state[f'risco_edit_{row['processo_id']}']
-
+        
+        st.session_state[riscos_key] = riscos_lista
+    
+    # Obter a lista de riscos
+    riscos_lista = st.session_state[riscos_key]
     
     # Container do formulário de edição
     with st.container(border=True):
@@ -1079,7 +1083,9 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
         
         # Botão para cancelar edição (fora do form)
         if st.button("❌ Cancelar Edição", key=f"cancel_edit_{row['processo_id']}", use_container_width=True):
-            st.session_state.pop(f'riscos_edit_{row['processo_id']}', None)
+            # Limpar a chave de riscos
+            if riscos_key in st.session_state:
+                st.session_state.pop(riscos_key, None)
             st.session_state['processo_em_edicao'] = None
             st.rerun()
         
@@ -1170,9 +1176,6 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
             # ===== RISCOS ASSOCIADOS =====
             st.markdown("### Riscos Associados")
             st.caption("⚠️ Os riscos são editados abaixo do formulário. Após adicionar ou remover riscos, clique em 'Salvar Alterações'.")
-            
-            # Botão de adicionar risco (fora do form) - VAI FICAR DEPOIS DO FORM
-            # Por isso não colocamos nada aqui dentro do form
         
         # ===== FIM DO FORMULÁRIO =====
         
@@ -1185,7 +1188,7 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
         with col_add_risco:
             if st.button("➕ Adicionar Risco", key=f"edit_add_risco_{row['processo_id']}", use_container_width=True):
                 riscos_lista.append({})
-                st.session_state[f'riscos_edit_{row["processo_id"]}'] = riscos_lista
+                st.session_state[riscos_key] = riscos_lista
                 st.rerun()
         
         st.markdown("---")
@@ -1306,15 +1309,14 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
             riscos_lista.pop(idx)
         
         if indices_para_remover:
-            st.session_state[f'riscos_edit_{row["processo_id"]}'] = riscos_lista
+            st.session_state[riscos_key] = riscos_lista
             st.rerun()
         
-        # ===== BOTÕES DE AÇÃO (AGORA COM st.form_submit_button) =====
+        # ===== BOTÕES DE AÇÃO =====
         st.markdown("---")
         col_save, col_cancel = st.columns(2)
         
         with col_save:
-            # Agora usamos um novo formulário APENAS para os botões de salvar/cancelar
             with st.form(key=f"form_acoes_{row['processo_id']}"):
                 submitted = st.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True)
                 
@@ -1341,7 +1343,9 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
                         with st.spinner("Salvando alterações..."):
                             if salvar_edicao_processo_completa(edit_data):
                                 st.toast("✅ Alterações salvas com sucesso!", icon="✅")
-                                st.session_state.pop(f'riscos_edit_{row["processo_id"]}', None)
+                                # Limpar a chave de riscos
+                                if riscos_key in st.session_state:
+                                    st.session_state.pop(riscos_key, None)
                                 st.session_state['processo_em_edicao'] = None
                                 time_module.sleep(1)
                                 st.rerun()
@@ -1351,7 +1355,9 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
         with col_cancel:
             with st.form(key=f"form_cancel_{row['processo_id']}"):
                 if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                    st.session_state.pop(f'riscos_edit_{row["processo_id"]}', None)
+                    # Limpar a chave de riscos
+                    if riscos_key in st.session_state:
+                        st.session_state.pop(riscos_key, None)
                     st.session_state['processo_em_edicao'] = None
                     st.rerun()
            
