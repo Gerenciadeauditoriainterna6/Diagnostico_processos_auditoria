@@ -968,6 +968,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
             st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {texto_risco}</span>", unsafe_allow_html=True)
         
         # Expander com riscos do processo
+        df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
         # Conta quantos riscos o processo tem
         quantidade_riscos = len(df_riscos_processo) if not df_riscos_processo.empty else 0
 
