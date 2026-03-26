@@ -753,25 +753,20 @@ def tela_auditorias_trimestrais():
                         st.divider()
 
 def tela_detalhe_auditoria():
-
     """Tela de detalhamento de uma auditoria específica"""
-
-     # CSS para reduzir fonte dos métricas
+    
+    # CSS para reduzir fonte dos métricas
     st.markdown("""
         <style>
-            /* Reduz tamanho dos valores das métricas */
-            [data-testid="stMetricValue"] {
-                font-size: 14px !important;
-            }
-            
-            /* Reduz tamanho dos labels das métricas */
-            [data-testid="stMetricLabel"] {
-                font-size: 14px !important;
-            }
-            
-            /* Reduz tamanho da delta (se houver) */
-            [data-testid="stMetricDelta"] {
-                font-size: 12px !important;
+            [data-testid="stMetricValue"] { font-size: 14px !important; }
+            [data-testid="stMetricLabel"] { font-size: 14px !important; }
+            [data-testid="stMetricDelta"] { font-size: 12px !important; }
+            .edit-form-container {
+                background-color: #f8f9fa;
+                border-radius: 10px;
+                padding: 20px;
+                margin: 10px 0;
+                border: 1px solid #e0e0e0;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -783,6 +778,10 @@ def tela_detalhe_auditoria():
             st.session_state.pop('auditoria_selecionada', None)
             st.rerun()
         return
+    
+    # Inicializar variável de controle de edição
+    if 'processo_em_edicao' not in st.session_state:
+        st.session_state['processo_em_edicao'] = None
     
     auditoria_id = st.session_state['auditoria_selecionada']
     
@@ -796,12 +795,12 @@ def tela_detalhe_auditoria():
     # Cabeçalho com informações da auditoria
     st.title(f"📋 {auditoria['titulo']}")
     
-    # Métricas em colunas
-    st.metric("Área", auditoria['nome_area'])
-
     col1, col2, col3 = st.columns(3)
     
     with col1:
+        st.metric("Área", auditoria['nome_area'])
+    
+    with col2:
         status = auditoria['status']
         if status == "Planejamento":
             st.metric("Status", "🟡 Planejamento")
@@ -810,25 +809,16 @@ def tela_detalhe_auditoria():
         else:
             st.metric("Status", "✅ Concluída")
     
-    with col2:
-        st.metric("Trimestre", f"{auditoria['trimestre']}º/{auditoria['ano']}")
-    
     with col3:
-        st.metric("Responsável", auditoria.get('responsavel_equipe', ['Não definido'])[0] if auditoria.get('responsavel_equipe') else "Não definido")
+        st.metric("Trimestre", f"{auditoria['trimestre']}º/{auditoria['ano']}")
     
     # Datas
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        if auditoria['data_inicio']:
-            data_inicio_str = auditoria['data_inicio'].strftime('%d/%m/%Y')
-        else:
-            data_inicio_str = 'Não definida'
+        data_inicio_str = auditoria['data_inicio'].strftime('%d/%m/%Y') if auditoria['data_inicio'] else 'Não definida'
         st.info(f"📅 **Início:** {data_inicio_str}")
     with col_d2:
-        if auditoria['data_fim']:
-            data_fim_str = auditoria['data_fim'].strftime('%d/%m/%Y')
-        else:
-            data_fim_str = 'Não definida'
+        data_fim_str = auditoria['data_fim'].strftime('%d/%m/%Y') if auditoria['data_fim'] else 'Não definida'
         st.info(f"📅 **Término:** {data_fim_str}")
     
     # Expander com objetivo e escopo
@@ -852,216 +842,93 @@ def tela_detalhe_auditoria():
             st.warning("Nenhum processo selecionado para esta auditoria ainda.")
             
         else:
-            # ==== FILTRO DE ORDENAÇÃO ====
+            # Filtro de ordenação
             col_filtro1, col_filtro2 = st.columns(2)
             with col_filtro1:
                 ordem_opcao = st.radio(
-                    'Ordenar por: ',
+                    'Ordenar por:',
                     ['Código do Processo', 'Maior Risco'],
                     key='ordem_processos_auditoria',
                     horizontal=True
                 )
-            # === APLICAR ORDENAÇÃO CONFORME ESCOLHA ====
+            
+            # Aplicar ordenação
             if ordem_opcao == "Código do Processo":
-        
-                # ==== ORDENA PROCESSOS PELO CÓDIGO ====
-                # Extrair o número após o ponto e converter para inteiro
-                df_processos['numero_ordem'] = df_processos['codigo_processo'].apply(lambda x: int(x.split('.')[1]) if '.' in x and x.split('.')[1].isdigit() else 0 )
-                
+                df_processos['numero_ordem'] = df_processos['codigo_processo'].apply(
+                    lambda x: int(x.split('.')[1]) if '.' in x and x.split('.')[1].isdigit() else 0
+                )
                 df_processos = df_processos.sort_values('numero_ordem', ascending=True)
             else:
-                # Maior Risco
-                # Ordenar pelo maior risco (descrescente)
-                # Tratar valores nulos (colocar no final)
                 df_processos['maior_risco'] = df_processos['maior_risco'].fillna(-1)
                 df_processos = df_processos.sort_values('maior_risco', ascending=False)
-
-
-            # ==== MOSTRA CADA PROCESSO EM UM CARD ====
+            
+            # ===== PERCORRER CADA PROCESSO =====
             for _, row in df_processos.iterrows():
-                cor, emoji, texto_risco = formatar_risco_para_card(row['maior_risco'])
                 
-                with st.container(border=True):
-                    col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
+                # VERIFICAR SE ESTE PROCESSO ESTÁ EM MODO DE EDIÇÃO
+                if st.session_state['processo_em_edicao'] == row['processo_id']:
+                    # ===== EXIBIR FORMULÁRIO DE EDIÇÃO =====
+                    _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria)
+                else:
+                    # ===== EXIBIR CARD NORMAL =====
+                    _exibir_card_processo_auditoria(row, auditoria_id)
+            
+            # ===== SEÇÃO PARA ADICIONAR NOVOS PROCESSOS (já existente) =====
+            st.divider()
+            
+            with st.expander("➕ Adicionar novo processo à auditoria"):
+                df_disponiveis = listar_processos_disponiveis_para_auditoria(
+                    auditoria_id=auditoria_id,
+                    id_area=auditoria['id_area']
+                )
+                
+                if df_disponiveis.empty:
+                    st.success("✅ Todos os processos da área já foram selecionados para esta auditoria!")
+                else:
+                    st.caption(f"**{len(df_disponiveis)}** processos disponíveis para selecionar.")
                     
-                    with col_p1:
-                        st.markdown(f"**{row['codigo_processo']} - {row['nome_processo']}**")
-                        st.caption(f"📝 Motivo: {row['motivo_selecao'] or 'Não informado'}")
+                    opcoes_processos = []
+                    for _, proc_row in df_disponiveis.iterrows():
+                        risco_info = f" (Risco: {int(proc_row['maior_risco'])})" if proc_row['maior_risco'] > 0 else " (Sem risco mapeado)"
+                        opcoes_processos.append({
+                            "id": proc_row['id'],
+                            "display": f"{proc_row['codigo_processo']} - {proc_row['nome_processo']}{risco_info}"
+                        })
                     
-                    with col_p2:
-                        # Status de avaliação
-                        status_aval = row['status_avaliacao']
-                        if status_aval == "Pendente":
-                            st.markdown("⏳ **Pendente**")
-                        elif status_aval == "Em Andamento":
-                            st.markdown("🔄 **Em Andamento**")
-                        else:
-                            st.markdown("✅ **Avaliado**")
+                    display_list = [item["display"] for item in opcoes_processos]
+                    id_map = {item['display']: item["id"] for item in opcoes_processos}
                     
-                    with col_p3:
-                        st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {texto_risco}</span>", unsafe_allow_html=True)
+                    processo_selecionado_display = st.selectbox(
+                        "Selecione o Processo:",
+                        options=display_list,
+                        key="select_processo_disponivel"
+                    )
                     
-                    # ==== EXPANDER COM RISCOS DO PROCESSO ====
-                    # Buscar os riscos deste processo específico
-                    df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
-
-                    if not df_riscos_processo.empty:
-                        df_riscos_ordenados = df_riscos_processo.sort_values('score_risco', ascending= False)
-                        with st.expander(f"⚠️ Riscos deste Processo ({len(df_riscos_ordenados)})", expanded=False):
-                            for _, risco in df_riscos_ordenados.iterrows():
-                                # Calcular score e estilo para cada risco
-                                score = risco.get('score_risco', 0)
-                                cor_risco, emoji_risco = get_estilo_risco(score)
-
-                                # Exibir cada risco
-                                st.markdown(f"""
-                                    <div style='margin-bottom: 10px;
-                                        padding: 8px;
-                                        border-left: 4px solid {cor_risco};
-                                        background-color: #f9f9f9;'>
-                                        <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
-                                        <span style='font-size: 0.9em; color: #666;'>
-                                            <strong>Fator:</strong> {risco['fator_risco']}<br>
-                                            <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
-                                            <strong>Magnitude:</strong> {score}
-<                                       </span>
-                                    </div>""", unsafe_allow_html=True)
-                    else:
-                        with st.expander(f"⚠️ Riscos deste Processo (0)", expanded=False):
-                            st.caption('Nenhum risco mapeado para este processo.')
-
-                    # ==== BOTÕES DE AÇÃO DO PROCESSO ====
-                    col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
+                    motivo = st.text_area(
+                        "Motivo da seleção:",
+                        placeholder="Ex: Processo com risco muito alto, crítico para a área...",
+                        key="motivo_novo_processo"
+                    )
                     
-                    with col_b1:
-                        if st.button("🔍 Ver Detalhes", key=f"ver_{row['processo_id']}"):
-                            st.session_state['processo_detalhe'] = row['processo_id']
-                            st.session_state['tela_atual'] = 'detalhe_processo'
-                            st.rerun()
-                    with col_b2:
-                        if st.button("✏️ Editar", key=f'editar_{row['processo_id']}'):
-                            # Salvar o ID do Processo e a Auditoria Atual
-                            st.session_state['processo_para_editar'] = row['processo_id']
-                            st.session_state['auditoria_origem'] = auditoria_id
-                            st.session_state['voltar_para_auditoria'] = True
-                            # Redirecionar para a aba de Diagnóstico dos Processos
-                            st.session_state['opcao_menu'] = "🔍 Diagnóstico dos Processos"
-                            st.session_state['aba_editar_ativa'] = True
-                            st.rerun()
-                    
-                    with col_b3:
-                        if st.button("📝 Checklists", key=f"check_{row['processo_id']}"):
-                            st.session_state['processo_checklist'] = row['processo_id']
-                            st.session_state['aba_ativa'] = 1  # Muda para aba de checklists
-                            st.rerun()
-                    
-                    with col_b4:
-                        # Botão de remover com confirmação
-                        if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
-                            st.session_state[f"confirmar_remocao_{row["processo_id"]}"] = True
-                        
-                        # Mostrar confirmação se necessário
-                        if st.session_state.get(f'confirmar_remocao_{row['processo_id']}', False):
-                            st.warning(f"Remover processo **{row['codigo_processo']}** da lista dos selecionados?")
-                            
-                            col_sim, col_nao = st.columns(2)
-
-                            with col_sim:
-                                if st.button("✅ Sim, remover", key=f"conf_sim_{row['processo_id']}"):
-                                    if remover_processo_da_auditoria(auditoria_id, row['processo_id']):
-                                        st.success("Processo removido!")
-                                        # Limpar estado de confirmação
-                                        st.session_state.pop(f"confirmar_remocao_{row['processo_id']}", None)
-                                        time_module.sleep(1)
-                                        st.rerun()
-                                    else:
-                                        st.error("Erro ao remover processo.")
-
-                            with col_nao:
-                                if st.button("❌ Não", key=f"conf_nao_{row['processo_id']}"):
-                                    st.session_state.pop(f'confirmar_remocao_{row["processo_id"]}', None)
+                    col_add, col_cancel = st.columns([1, 3])
+                    with col_add:
+                        if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True, key='btn_add_a_auditoria'):
+                            if processo_selecionado_display:
+                                processo_id = id_map[processo_selecionado_display]
+                                if vincular_processo_a_auditoria(auditoria_id, processo_id, motivo):
+                                    st.success("✅ Processo adicionado com sucesso!")
+                                    time_module.sleep(1)
                                     st.rerun()
-                        
-        
-        st.divider()
-        
-        # Seção para adicionar novos processos
-        with st.expander("➕ Adicionar novo processo à auditoria"):
-            # Buscar processos da área que NÃO estão nesta auditoria
-            df_disponiveis = listar_processos_disponiveis_para_auditoria(
-                auditoria_id=auditoria_id,
-                id_area=auditoria['id_area']
-            )
-            
-            if df_disponiveis.empty:
-                st.success("✅ Todos os processos da área já foram selecionados para esta auditoria!")
-                st.caption("Não há processos dispibíveis para adicionar")
-            else:    
-                st.caption(f"**{len(df_disponiveis)}** processos disponíveis para selecionar.")
-                
-                # Selectbox para escolher o processo
-                opcoes_processos = []
-                for _, row in df_disponiveis.iterrows():
-                    risco_info = f" (Risco: {int(row['maior_risco'])})" if row['maior_risco'] > 0 else " (Sem risco mapeado)"
-                    opcoes_processos.append({
-                        "id": row['id'],
-                        "display": f"{row['codigo_processo']} - {row['nome_processo']}{risco_info}"
-                    })
-            
-            display_list = [item["display"] for item in opcoes_processos]
-            id_map = {item['display']: item["id"] for item in opcoes_processos}
-
-            processo_selecionado_display = st.selectbox(
-                "Selecione o Processo:",
-                options=display_list,
-                key="select_processo_disponivel"
-            )
-
-            # Campo para motivo de seleção
-            motivo = st.text_area(
-                "Motivo da seleção (por que este processo será auditado?):",
-                placeholder="Ex: Processo com risco muito alto (score 11), crítico para a área...",
-                key="motivo_novo_processo"
-            )
-
-            # Botão para adicionar
-            col_add, col_cancel = st.columns([1, 3])
-            with col_add:
-                if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True, key='btn_add_a_auditoria'):
-                    if processo_selecionado_display:
-                        processo_id = id_map[processo_selecionado_display]
-
-                        # Chamar a função para vincular
-                        if vincular_processo_a_auditoria(auditoria_id, processo_id, motivo):
-                            st.success("✅ Processo adicionado com sucesso!")
-                            st.session_state['processo_adicionado'] = True
-                            time_module.sleep(1)
+                                else:
+                                    st.error("Erro ao adicionar processo.")
+                            else:
+                                st.warning("Selecione um processo.")
+                    with col_cancel:
+                        if st.button("Cancelar", use_container_width=True, key='btn_cancelar'):
+                            st.session_state.pop('mostrar_selecao_processos', None)
                             st.rerun()
-                        else:
-                            st.error("Erro ao adicionar processo, tente novamente.")
-                    else:
-                        st.warning("Selecione um processo.")
-            with col_cancel:
-                if st.button("Cancelar", use_container_width=True, key='btn_cancelar'):
-                    st.session_state.pop('mostrar_selecao_processos', None)
-                    st.rerun()
-
-            # Placeholder - por enquanto, vamos criar a função depois
-            st.info("Carregando processos disponíveis...")
-            
-            # Botão para buscar (temporário)
-            if st.button("📋 Carregar processos disponíveis", key='btn_carregar_processos_disponiveis'):
-                st.session_state['mostrar_selecao'] = True
-                st.rerun()
-            
-            # Quando tiver a função, será assim:
-            if st.session_state.get('mostrar_selecao', False):
-                # Aqui vamos implementar a busca real
-                st.write("(Aguardando implementação da função de busca)")
-   
-   
-   
-   # ===== ABA 2: CHECKLISTS (placeholder) =====
+    
+    # ===== ABA 2: CHECKLISTS (placeholder) =====
     with tab2:
         st.info("📝 A funcionalidade de checklists será implementada no próximo passo.")
         st.caption("Aqui você poderá avaliar a eficácia da governança, riscos e controles.")
@@ -1075,7 +942,389 @@ def tela_detalhe_auditoria():
     st.divider()
     if st.button("← Voltar para lista de auditorias", key='btn_voltar_lista_auditorias_2'):
         st.session_state.pop('auditoria_selecionada', None)
-        st.rerun()    
+        st.rerun()
+
+def _exibir_card_processo_auditoria(row, auditoria_id):
+    """Exibe o card normal do processo"""
+    cor, emoji, texto_risco = formatar_risco_para_card(row['maior_risco'])
+    
+    with st.container(border=True):
+        col_p1, col_p2, col_p3 = st.columns([3, 1, 1])
+        
+        with col_p1:
+            st.markdown(f"**{row['codigo_processo']} - {row['nome_processo']}**")
+            st.caption(f"📝 Motivo: {row['motivo_selecao'] or 'Não informado'}")
+        
+        with col_p2:
+            status_aval = row.get('status_avaliacao', 'Pendente')
+            if status_aval == "Pendente":
+                st.markdown("⏳ **Pendente**")
+            elif status_aval == "Em Andamento":
+                st.markdown("🔄 **Em Andamento**")
+            else:
+                st.markdown("✅ **Avaliado**")
+        
+        with col_p3:
+            st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {texto_risco}</span>", unsafe_allow_html=True)
+        
+        # Expander com riscos do processo
+        with st.expander(f"⚠️ Riscos deste Processo", expanded=False):
+            df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
+            
+            if not df_riscos_processo.empty:
+                df_riscos_ordenados = df_riscos_processo.sort_values('score_risco', ascending=False)
+                for _, risco in df_riscos_ordenados.iterrows():
+                    score = risco.get('score_risco', 0)
+                    cor_risco, emoji_risco = get_estilo_risco(score)
+                    
+                    st.markdown(f"""
+                        <div style='margin-bottom: 10px; padding: 8px; border-left: 4px solid {cor_risco}; background-color: #f9f9f9;'>
+                            <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
+                            <span style='font-size: 0.9em; color: #666;'>
+                                <strong>Fator:</strong> {risco['fator_risco']}<br>
+                                <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
+                                <strong>Magnitude:</strong> {score}
+                            </span>
+                        </div>""", unsafe_allow_html=True)
+            else:
+                st.caption("Nenhum risco mapeado para este processo.")
+        
+        # Botões de ação
+        col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
+        
+        with col_b1:
+            if st.button("🔍 Ver Detalhes", key=f"ver_{row['processo_id']}"):
+                st.session_state['processo_detalhe'] = row['processo_id']
+                st.session_state['tela_atual'] = 'detalhe_processo'
+                st.rerun()
+        
+        with col_b2:
+            if st.button("✏️ Editar", key=f'editar_{row["processo_id"]}'):
+                st.session_state['processo_em_edicao'] = row['processo_id']
+                st.rerun()
+        
+        with col_b3:
+            if st.button("📝 Checklists", key=f"check_{row['processo_id']}"):
+                st.session_state['processo_checklist'] = row['processo_id']
+                st.session_state['aba_ativa'] = 1
+                st.rerun()
+        
+        with col_b4:
+            if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
+                st.session_state[f"confirmar_remocao_{row['processo_id']}"] = True
+            
+            if st.session_state.get(f'confirmar_remocao_{row["processo_id"]}', False):
+                st.warning(f"Remover processo **{row['codigo_processo']}** da lista dos selecionados?")
+                
+                col_sim, col_nao = st.columns(2)
+                with col_sim:
+                    if st.button("✅ Sim, remover", key=f"conf_sim_{row['processo_id']}"):
+                        if remover_processo_da_auditoria(auditoria_id, row['processo_id']):
+                            st.success("Processo removido!")
+                            st.session_state.pop(f"confirmar_remocao_{row['processo_id']}", None)
+                            time_module.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("Erro ao remover processo.")
+                with col_nao:
+                    if st.button("❌ Não", key=f"conf_nao_{row['processo_id']}"):
+                        st.session_state.pop(f'confirmar_remocao_{row["processo_id"]}', None)
+                        st.rerun()
+
+def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
+    """Exibe o formulário de edição do processo dentro da tela de auditoria"""
+    
+    # Buscar dados completos do processo
+    processo = buscar_processo_por_codigo(row['codigo_processo'])
+    
+    if not processo:
+        st.error("Erro ao carregar dados do processo")
+        if st.button("Fechar", key=f"close_error_{row['processo_id']}"):
+            st.session_state['processo_em_edicao'] = None
+            st.rerun()
+        return
+    
+    # Carregar riscos do processo
+    df_riscos = listar_riscos_do_processo(processo['id'])
+    
+    # Container do formulário de edição
+    with st.container(border=True):
+        st.markdown(f"""
+        <div class="edit-form-container">
+            <h3>✏️ Editando Processo</h3>
+            <p><strong>Código:</strong> {row['codigo_processo']} | <strong>Área:</strong> {auditoria['nome_area']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Botão para cancelar edição
+        if st.button("❌ Cancelar Edição", key=f"cancel_edit_{row['processo_id']}", use_container_width=True):
+            st.session_state['processo_em_edicao'] = None
+            st.rerun()
+        
+        st.divider()
+        
+        # ===== FORMULÁRIO DE EDIÇÃO =====
+        with st.form(key=f"form_edicao_processo_{row['processo_id']}"):
+            
+            # Nome do Processo
+            nome_processo = st.text_input(
+                "Nome do Processo *", 
+                value=processo.get('nome_processo', ''),
+                help="Digite o nome do processo."
+            )
+            
+            # Código (desabilitado)
+            st.text_input(
+                "Código do Processo", 
+                value=processo.get('codigo_processo', ''), 
+                disabled=True
+            )
+            
+            # ===== EXECUTORES DO PROCESSO =====
+            st.markdown("**Funcionário(s) que executam o processo:**")
+            
+            id_area = processo.get('id_area')
+            funcionarios_lista = listar_funcionarios_por_area(id_area) if id_area else []
+            
+            if not funcionarios_lista:
+                st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas e Funcionários'.")
+                executores_selecionados = []
+            else:
+                funcionarios_ids = [f[0] for f in funcionarios_lista]
+                funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
+                executores_atuais = listar_executores_processo(processo['id'])
+                defaults_validos = [exec_id for exec_id in executores_atuais if exec_id in funcionarios_dict]
+                
+                executores_selecionados = st.multiselect(
+                    "Selecione os funcionários que executam este processo:",
+                    options=funcionarios_ids,
+                    format_func=lambda x: funcionarios_dict[x],
+                    default=defaults_validos,
+                    help="Você pode selecionar um ou mais funcionários",
+                    placeholder="Selecione os funcionários que executam este processo:"
+                )
+                
+                if executores_selecionados:
+                    nomes_selecionados = [funcionarios_dict[id] for id in executores_selecionados]
+                    st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
+            
+            st.divider()
+            
+            # ===== DETALHAMENTO DO PROCESSO =====
+            st.markdown("### Detalhamento do Processo")
+            st.info("ℹ️ Os campos abaixo são opcionais.")
+            
+            descricao = st.text_area(
+                "O que é o processo?:",
+                value=processo.get('descricao', ''),
+                help="Gestor diz com as suas palavras o que entende ser o processo."
+            )
+            
+            etapa_ini = st.text_area(
+                "Onde Começa o Processo?:",
+                value=processo.get('etapa_ini', ''),
+                help="Onde começa o processo? - ETAPA INICIAL"
+            )
+            
+            produto = st.text_area(
+                "Qual (is) o Produto (s) Final Desse Processo?:",
+                value=processo.get('produto', ''),
+                help="Qual(is) o(s) produto(s) final(is) desse processo?"
+            )
+            
+            etapa_fim = st.text_area(
+                "Depois de Acabado, para onde envia?:",
+                value=processo.get('etapa_fim', ''),
+                help="Depois de acabado, para onde envia? - ETAPA FINAL"
+            )
+            
+            objetivo = st.text_area(
+                "Qual o Objetivo do Processo? e Por que faz?:",
+                value=processo.get('objetivo', '')
+            )
+            
+            st.divider()
+            
+            # ===== RISCOS ASSOCIADOS =====
+            st.markdown("### Riscos Associados")
+            
+            # Preparar lista de riscos para edição
+            riscos_lista = []
+            if not df_riscos.empty:
+                for _, risco_row in df_riscos.iterrows():
+                    riscos_lista.append({
+                        'id': risco_row.get('id'),
+                        'nome': risco_row.get('nome_risco', ''),
+                        'fator': risco_row.get('fator_risco', ''),
+                        'melhoria': risco_row.get('melhoria', ''),
+                        'apetite': risco_row.get('apetite_risco', ''),
+                        'motivo': risco_row.get('motivo_risco', ''),
+                        'categorias': risco_row.get('categorias_ids', []),
+                        'impacto': normalizar_valor_risco(risco_row.get('impacto', 'Médio')),
+                        'probabilidade': normalizar_valor_risco(risco_row.get('probabilidade', 'Médio'))
+                    })
+            
+            # Botão para adicionar novo risco
+            if st.button("➕ Adicionar Risco", key=f"edit_add_risco_{row['processo_id']}", use_container_width=True):
+                riscos_lista.append({})
+                st.rerun()
+            
+            st.markdown("---")
+            
+            # Exibir riscos existentes
+            categorias_dict = listar_categorias()
+            ids_categorias = list(categorias_dict.keys())
+            
+            indices_para_remover = []
+            
+            for i, risco in enumerate(riscos_lista):
+                titulo_risco = risco.get('nome', f'Risco {i+1}')
+                if titulo_risco and titulo_risco != f'Risco {i+1}':
+                    titulo_expander = f"⚠️ {titulo_risco[:50]}"
+                else:
+                    titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
+                
+                with st.expander(titulo_expander, expanded=False):
+                    col_titulo, col_remove = st.columns([5, 1])
+                    with col_remove:
+                        if len(riscos_lista) > 1:
+                            if st.button("🗑️ Remover", key=f"edit_remove_risco_{row['processo_id']}_{i}", use_container_width=True):
+                                indices_para_remover.append(i)
+                    
+                    st.divider()
+                    
+                    # Campos do risco
+                    risco['nome'] = st.text_input(
+                        "Nome do Risco:",
+                        value=risco.get('nome', ''),
+                        key=f"edit_nome_{row['processo_id']}_{i}",
+                        placeholder="Ex: Risco de erro no cadastro...",
+                        help="Descreva o risco de forma clara e objetiva"
+                    )
+                    
+                    # Categorias
+                    risco['categorias'] = st.multiselect(
+                        "Categorias do Risco:",
+                        options=ids_categorias,
+                        format_func=lambda x: categorias_dict[x],
+                        default=risco.get('categorias', []),
+                        key=f"edit_categorias_{row['processo_id']}_{i}",
+                        help="Selecione uma ou mais categorias para este risco"
+                    )
+                    
+                    # Fator de Risco
+                    risco['fator'] = st.text_area(
+                        "Fator de Risco:",
+                        value=risco.get('fator', ''),
+                        key=f"edit_fator_{row['processo_id']}_{i}",
+                        placeholder="O que causa ou contribui para que este risco aconteça?",
+                        help="Fator de risco, causa ou motivo desse risco acontecer."
+                    )
+                    
+                    # Ponto de Melhoria
+                    risco['melhoria'] = st.text_area(
+                        "Ponto de Melhoria:",
+                        value=risco.get('melhoria', ''),
+                        key=f"edit_melhoria_{row['processo_id']}_{i}",
+                        placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
+                        help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
+                    )
+                    
+                    # Apetite ao Risco
+                    risco['apetite'] = st.text_area(
+                        "Apetite ao risco:",
+                        value=risco.get('apetite', ''),
+                        key=f"edit_apetite_{row['processo_id']}_{i}",
+                        placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
+                        help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável."
+                    )
+                    
+                    # Critérios de risco
+                    exibir_criterios_risco()
+                    
+                    # Impacto e Probabilidade
+                    col_i, col_p = st.columns(2)
+                    with col_i:
+                        risco['impacto'] = st.selectbox(
+                            "Impacto:",
+                            ["Muito Alto", "Alto", "Médio", "Baixo"],
+                            index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('impacto', 'Médio')),
+                            key=f"edit_imp_{row['processo_id']}_{i}",
+                            help="Impacto do risco materializado"
+                        )
+                    with col_p:
+                        risco['probabilidade'] = st.selectbox(
+                            "Probabilidade:",
+                            ["Muito Alto", "Alto", "Médio", "Baixo"],
+                            index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('probabilidade', 'Médio')),
+                            key=f"edit_prob_{row['processo_id']}_{i}",
+                            help="Probabilidade do risco acontecer?"
+                        )
+                    
+                    # Cálculo do Risco Bruto
+                    score_v = MAPA_RISCO.get((risco.get('impacto', 'Médio'), risco.get('probabilidade', 'Médio')), 0)
+                    cor_risco, emoji_risco = get_estilo_risco(score_v)
+                    st.markdown(f"""
+                        <div style="background-color: {cor_risco}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin: 10px 0;">
+                            {emoji_risco} <strong>Risco Bruto (Impacto + Probabilidade): {score_v}</strong>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Motivo da classificação
+                    risco['motivo'] = st.text_area(
+                        "Motivo:",
+                        value=risco.get('motivo', ''),
+                        key=f"edit_motivo_{row['processo_id']}_{i}",
+                        placeholder="Justifique a escolha do impacto e probabilidade acima.",
+                        help="Qual o motivo da classificação do nível da probabilidade?"
+                    )
+                    
+                    st.markdown("---")
+            
+            # Remover riscos marcados
+            for idx in reversed(indices_para_remover):
+                riscos_lista.pop(idx)
+            
+            if indices_para_remover:
+                st.rerun()
+            
+            # ===== BOTÕES DE AÇÃO =====
+            col_save, col_cancel = st.columns(2)
+            
+            with col_save:
+                if st.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True):
+                    # Validar campos obrigatórios
+                    if not nome_processo.strip():
+                        st.error("❌ O campo 'Nome do Processo' é obrigatório.")
+                    elif not executores_selecionados:
+                        st.error("❌ Selecione pelo menos um funcionário para executar o processo.")
+                    else:
+                        # Preparar dados para salvar
+                        edit_data = {
+                            'processo_id': processo['id'],
+                            'nome_processo': nome_processo,
+                            'objetivo': objetivo,
+                            'descricao': descricao,
+                            'etapa_ini': etapa_ini,
+                            'etapa_fim': etapa_fim,
+                            'produto': produto,
+                            'executores': executores_selecionados,
+                            'riscos': riscos_lista
+                        }
+                        
+                        with st.spinner("Salvando alterações..."):
+                            if salvar_edicao_processo_completa(edit_data):
+                                st.toast("✅ Alterações salvas com sucesso!", icon="✅")
+                                st.session_state['processo_em_edicao'] = None
+                                time_module.sleep(1)
+                                st.rerun()
+                            else:
+                                st.error("❌ Erro ao salvar alterações. Tente novamente.")
+            
+            with col_cancel:
+                if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                    st.session_state['processo_em_edicao'] = None
+                    st.rerun()
 
 def tela_detalhe_processo_auditoria():
     """Tela de detalhamento de um processo dentro do contexto da auditoria"""
