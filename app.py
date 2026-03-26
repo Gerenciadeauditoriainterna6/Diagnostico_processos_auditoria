@@ -1044,33 +1044,24 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
             st.rerun()
         return
     
-    # ===== INICIALIZAÇÃO CORRETA DA CHAVE DE RISCOS =====
-    riscos_key = f"riscos_edit_{row['processo_id']}"
+    # Carregar riscos do processo
+    df_riscos = listar_riscos_do_processo(processo['id'])
     
-    # Verificar se a chave existe e inicializar se necessário
-    if riscos_key not in st.session_state:
-        # Carregar riscos do processo
-        df_riscos = listar_riscos_do_processo(processo['id'])
-        riscos_lista = []
-        
-        if not df_riscos.empty:
-            for _, risco_row in df_riscos.iterrows():
-                riscos_lista.append({
-                    'id': risco_row.get('id'),
-                    'nome': risco_row.get('nome_risco', ''),
-                    'fator': risco_row.get('fator_risco', ''),
-                    'melhoria': risco_row.get('melhoria', ''),
-                    'apetite': risco_row.get('apetite_risco', ''),
-                    'motivo': risco_row.get('motivo_risco', ''),
-                    'categorias': risco_row.get('categorias_ids', []),
-                    'impacto': normalizar_valor_risco(risco_row.get('impacto', 'Médio')),
-                    'probabilidade': normalizar_valor_risco(risco_row.get('probabilidade', 'Médio'))
-                })
-        
-        st.session_state[riscos_key] = riscos_lista
-    
-    # Obter a lista de riscos
-    riscos_lista = st.session_state[riscos_key]
+    # Preparar lista de riscos
+    riscos_lista = []
+    if not df_riscos.empty:
+        for _, risco_row in df_riscos.iterrows():
+            riscos_lista.append({
+                'id': risco_row.get('id'),
+                'nome': risco_row.get('nome_risco', ''),
+                'fator': risco_row.get('fator_risco', ''),
+                'melhoria': risco_row.get('melhoria', ''),
+                'apetite': risco_row.get('apetite_risco', ''),
+                'motivo': risco_row.get('motivo_risco', ''),
+                'categorias': risco_row.get('categorias_ids', []),
+                'impacto': normalizar_valor_risco(risco_row.get('impacto', 'Médio')),
+                'probabilidade': normalizar_valor_risco(risco_row.get('probabilidade', 'Médio'))
+            })
     
     # Container do formulário de edição
     with st.container(border=True):
@@ -1081,17 +1072,14 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
         </div>
         """, unsafe_allow_html=True)
         
-        # Botão para cancelar edição (fora do form)
+        # Botão para cancelar edição (fora do form - é permitido)
         if st.button("❌ Cancelar Edição", key=f"cancel_edit_{row['processo_id']}", use_container_width=True):
-            # Limpar a chave de riscos
-            if riscos_key in st.session_state:
-                st.session_state.pop(riscos_key, None)
             st.session_state['processo_em_edicao'] = None
             st.rerun()
         
         st.divider()
         
-        # ===== FORMULÁRIO DE EDIÇÃO =====
+        # ===== FORMULÁRIO ÚNICO DE EDIÇÃO =====
         with st.form(key=f"form_edicao_processo_{row['processo_id']}"):
             
             # Nome do Processo
@@ -1175,191 +1163,167 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
             
             # ===== RISCOS ASSOCIADOS =====
             st.markdown("### Riscos Associados")
-            st.caption("⚠️ Os riscos são editados abaixo do formulário. Após adicionar ou remover riscos, clique em 'Salvar Alterações'.")
-        
-        # ===== FIM DO FORMULÁRIO =====
-        
-        # ===== EXIBIÇÃO DOS RISCOS (FORA DO FORM) =====
-        st.markdown("---")
-        st.markdown("### Gerenciar Riscos")
-        
-        # Botão para adicionar novo risco (FORA DO FORM)
-        col_add_risco, _ = st.columns([1, 4])
-        with col_add_risco:
-            if st.button("➕ Adicionar Risco", key=f"edit_add_risco_{row['processo_id']}", use_container_width=True):
-                riscos_lista.append({})
-                st.session_state[riscos_key] = riscos_lista
-                st.rerun()
-        
-        st.markdown("---")
-        
-        # Exibir riscos existentes
-        categorias_dict = listar_categorias()
-        ids_categorias = list(categorias_dict.keys())
-        
-        indices_para_remover = []
-        
-        for i, risco in enumerate(riscos_lista):
-            titulo_risco = risco.get('nome', f'Risco {i+1}')
-            if titulo_risco and titulo_risco != f'Risco {i+1}':
-                titulo_expander = f"⚠️ {titulo_risco[:50]}"
-            else:
-                titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
             
-            with st.expander(titulo_expander, expanded=False):
-                col_titulo, col_remove = st.columns([5, 1])
-                with col_remove:
-                    if len(riscos_lista) > 1:
-                        if st.button("🗑️ Remover", key=f"edit_remove_risco_{row['processo_id']}_{i}", use_container_width=True):
-                            indices_para_remover.append(i)
+            # Botão para adicionar risco DENTRO do formulário usando st.form_submit_button
+            col_add, _ = st.columns([1, 4])
+            with col_add:
+                add_risco = st.form_submit_button("➕ Adicionar Risco", use_container_width=True)
+            
+            st.markdown("---")
+            
+            # Exibir riscos existentes
+            categorias_dict = listar_categorias()
+            ids_categorias = list(categorias_dict.keys())
+            
+            # Usar uma lista mutável que será atualizada pelo form
+            # Precisamos de um ID único para identificar este formulário e seus riscos
+            form_key = f"form_{row['processo_id']}"
+            
+            # Usar session_state para manter os riscos entre submits
+            if f'riscos_temp_{row["processo_id"]}' not in st.session_state:
+                st.session_state[f'riscos_temp_{row["processo_id"]}'] = riscos_lista.copy()
+            
+            riscos_temp = st.session_state[f'riscos_temp_{row["processo_id"]}']
+            
+            # Verificar se o botão de adicionar risco foi pressionado
+            if add_risco:
+                riscos_temp.append({})
+                st.session_state[f'riscos_temp_{row["processo_id"]}'] = riscos_temp
+                st.rerun()
+            
+            # Mostrar os riscos
+            indices_para_remover = []
+            
+            for i, risco in enumerate(riscos_temp):
+                titulo_risco = risco.get('nome', f'Risco {i+1}')
+                if titulo_risco and titulo_risco != f'Risco {i+1}':
+                    titulo_expander = f"⚠️ {titulo_risco[:50]}"
+                else:
+                    titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
+                
+                with st.expander(titulo_expander, expanded=False):
+                    col_titulo, col_remove = st.columns([5, 1])
+                    with col_remove:
+                        if len(riscos_temp) > 1:
+                            # Botão de remover dentro do form - usar form_submit_button
+                            remover = st.form_submit_button("🗑️ Remover", key=f"remove_risco_{i}_{row['processo_id']}", use_container_width=True)
+                            if remover:
+                                indices_para_remover.append(i)
+                    
+                    st.divider()
+                    
+                    # Campos do risco
+                    risco['nome'] = st.text_input(
+                        "Nome do Risco:",
+                        value=risco.get('nome', ''),
+                        key=f"edit_nome_{row['processo_id']}_{i}",
+                        placeholder="Ex: Risco de erro no cadastro..."
+                    )
+                    
+                    # Categorias
+                    risco['categorias'] = st.multiselect(
+                        "Categorias do Risco:",
+                        options=ids_categorias,
+                        format_func=lambda x: categorias_dict[x],
+                        default=risco.get('categorias', []),
+                        key=f"edit_categorias_{row['processo_id']}_{i}"
+                    )
+                    
+                    risco['fator'] = st.text_area(
+                        "Fator de Risco:",
+                        value=risco.get('fator', ''),
+                        key=f"edit_fator_{row['processo_id']}_{i}"
+                    )
+                    
+                    risco['melhoria'] = st.text_area(
+                        "Ponto de Melhoria:",
+                        value=risco.get('melhoria', ''),
+                        key=f"edit_melhoria_{row['processo_id']}_{i}"
+                    )
+                    
+                    risco['apetite'] = st.text_area(
+                        "Apetite ao risco:",
+                        value=risco.get('apetite', ''),
+                        key=f"edit_apetite_{row['processo_id']}_{i}"
+                    )
+                    
+                    exibir_criterios_risco()
+                    
+                    col_i, col_p = st.columns(2)
+                    with col_i:
+                        risco['impacto'] = st.selectbox(
+                            "Impacto:",
+                            ["Muito Alto", "Alto", "Médio", "Baixo"],
+                            index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('impacto', 'Médio')),
+                            key=f"edit_imp_{row['processo_id']}_{i}"
+                        )
+                    with col_p:
+                        risco['probabilidade'] = st.selectbox(
+                            "Probabilidade:",
+                            ["Muito Alto", "Alto", "Médio", "Baixo"],
+                            index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('probabilidade', 'Médio')),
+                            key=f"edit_prob_{row['processo_id']}_{i}"
+                        )
+                    
+                    score_v = MAPA_RISCO.get((risco.get('impacto', 'Médio'), risco.get('probabilidade', 'Médio')), 0)
+                    cor_risco, emoji_risco = get_estilo_risco(score_v)
+                    st.markdown(f"""
+                        <div style="background-color: {cor_risco}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin: 10px 0;">
+                            {emoji_risco} <strong>Risco Bruto: {score_v}</strong>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    risco['motivo'] = st.text_area(
+                        "Motivo:",
+                        value=risco.get('motivo', ''),
+                        key=f"edit_motivo_{row['processo_id']}_{i}"
+                    )
+                    
+                    st.markdown("---")
+            
+            # Remover riscos marcados
+            for idx in reversed(indices_para_remover):
+                riscos_temp.pop(idx)
+            
+            if indices_para_remover:
+                st.session_state[f'riscos_temp_{row["processo_id"]}'] = riscos_temp
+                st.rerun()
+            
+            st.markdown("---")
+            
+            # Botão de salvar
+            submitted = st.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True)
+            
+            if submitted:
+                # Validar campos obrigatórios
+                if not nome_processo.strip():
+                    st.error("❌ O campo 'Nome do Processo' é obrigatório.")
+                elif not executores_selecionados:
+                    st.error("❌ Selecione pelo menos um funcionário para executar o processo.")
+                else:
+                    # Preparar dados para salvar
+                    edit_data = {
+                        'processo_id': processo['id'],
+                        'nome_processo': nome_processo,
+                        'objetivo': objetivo,
+                        'descricao': descricao,
+                        'etapa_ini': etapa_ini,
+                        'etapa_fim': etapa_fim,
+                        'produto': produto,
+                        'executores': executores_selecionados,
+                        'riscos': riscos_temp
+                    }
+                    
+                    with st.spinner("Salvando alterações..."):
+                        if salvar_edicao_processo_completa(edit_data):
+                            # Limpar dados temporários
+                            st.session_state.pop(f'riscos_temp_{row["processo_id"]}', None)
+                            st.session_state['processo_em_edicao'] = None
+                            st.toast("✅ Alterações salvas com sucesso!", icon="✅")
+                            time_module.sleep(1)
                             st.rerun()
-                
-                st.divider()
-                
-                # Campos do risco (usando keys únicas)
-                risco['nome'] = st.text_input(
-                    "Nome do Risco:",
-                    value=risco.get('nome', ''),
-                    key=f"edit_nome_{row['processo_id']}_{i}",
-                    placeholder="Ex: Risco de erro no cadastro...",
-                    help="Descreva o risco de forma clara e objetiva"
-                )
-                
-                # Categorias
-                risco['categorias'] = st.multiselect(
-                    "Categorias do Risco:",
-                    options=ids_categorias,
-                    format_func=lambda x: categorias_dict[x],
-                    default=risco.get('categorias', []),
-                    key=f"edit_categorias_{row['processo_id']}_{i}",
-                    help="Selecione uma ou mais categorias para este risco"
-                )
-                
-                # Fator de Risco
-                risco['fator'] = st.text_area(
-                    "Fator de Risco:",
-                    value=risco.get('fator', ''),
-                    key=f"edit_fator_{row['processo_id']}_{i}",
-                    placeholder="O que causa ou contribui para que este risco aconteça?",
-                    help="Fator de risco, causa ou motivo desse risco acontecer."
-                )
-                
-                # Ponto de Melhoria
-                risco['melhoria'] = st.text_area(
-                    "Ponto de Melhoria:",
-                    value=risco.get('melhoria', ''),
-                    key=f"edit_melhoria_{row['processo_id']}_{i}",
-                    placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
-                    help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
-                )
-                
-                # Apetite ao Risco
-                risco['apetite'] = st.text_area(
-                    "Apetite ao risco:",
-                    value=risco.get('apetite', ''),
-                    key=f"edit_apetite_{row['processo_id']}_{i}",
-                    placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
-                    help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável."
-                )
-                
-                # Critérios de risco
-                exibir_criterios_risco()
-                
-                # Impacto e Probabilidade
-                col_i, col_p = st.columns(2)
-                with col_i:
-                    risco['impacto'] = st.selectbox(
-                        "Impacto:",
-                        ["Muito Alto", "Alto", "Médio", "Baixo"],
-                        index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('impacto', 'Médio')),
-                        key=f"edit_imp_{row['processo_id']}_{i}",
-                        help="Impacto do risco materializado"
-                    )
-                with col_p:
-                    risco['probabilidade'] = st.selectbox(
-                        "Probabilidade:",
-                        ["Muito Alto", "Alto", "Médio", "Baixo"],
-                        index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('probabilidade', 'Médio')),
-                        key=f"edit_prob_{row['processo_id']}_{i}",
-                        help="Probabilidade do risco acontecer?"
-                    )
-                
-                # Cálculo do Risco Bruto
-                score_v = MAPA_RISCO.get((risco.get('impacto', 'Médio'), risco.get('probabilidade', 'Médio')), 0)
-                cor_risco, emoji_risco = get_estilo_risco(score_v)
-                st.markdown(f"""
-                    <div style="background-color: {cor_risco}; padding: 10px; border-radius: 5px; text-align: center; color: white; margin: 10px 0;">
-                        {emoji_risco} <strong>Risco Bruto (Impacto + Probabilidade): {score_v}</strong>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                # Motivo da classificação
-                risco['motivo'] = st.text_area(
-                    "Motivo:",
-                    value=risco.get('motivo', ''),
-                    key=f"edit_motivo_{row['processo_id']}_{i}",
-                    placeholder="Justifique a escolha do impacto e probabilidade acima.",
-                    help="Qual o motivo da classificação do nível da probabilidade?"
-                )
-                
-                st.markdown("---")
-        
-        # Remover riscos marcados
-        for idx in reversed(indices_para_remover):
-            riscos_lista.pop(idx)
-        
-        if indices_para_remover:
-            st.session_state[riscos_key] = riscos_lista
-            st.rerun()
-        
-        # ===== BOTÕES DE AÇÃO =====
-        st.markdown("---")
-        col_save, col_cancel = st.columns(2)
-        
-        with col_save:
-            with st.form(key=f"form_acoes_{row['processo_id']}"):
-                submitted = st.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True)
-                
-                if submitted:
-                    # Validar campos obrigatórios
-                    if not nome_processo.strip():
-                        st.error("❌ O campo 'Nome do Processo' é obrigatório.")
-                    elif not executores_selecionados:
-                        st.error("❌ Selecione pelo menos um funcionário para executar o processo.")
-                    else:
-                        # Preparar dados para salvar
-                        edit_data = {
-                            'processo_id': processo['id'],
-                            'nome_processo': nome_processo,
-                            'objetivo': objetivo,
-                            'descricao': descricao,
-                            'etapa_ini': etapa_ini,
-                            'etapa_fim': etapa_fim,
-                            'produto': produto,
-                            'executores': executores_selecionados,
-                            'riscos': riscos_lista
-                        }
-                        
-                        with st.spinner("Salvando alterações..."):
-                            if salvar_edicao_processo_completa(edit_data):
-                                st.toast("✅ Alterações salvas com sucesso!", icon="✅")
-                                # Limpar a chave de riscos
-                                if riscos_key in st.session_state:
-                                    st.session_state.pop(riscos_key, None)
-                                st.session_state['processo_em_edicao'] = None
-                                time_module.sleep(1)
-                                st.rerun()
-                            else:
-                                st.error("❌ Erro ao salvar alterações. Tente novamente.")
-        
-        with col_cancel:
-            with st.form(key=f"form_cancel_{row['processo_id']}"):
-                if st.form_submit_button("❌ Cancelar", use_container_width=True):
-                    # Limpar a chave de riscos
-                    if riscos_key in st.session_state:
-                        st.session_state.pop(riscos_key, None)
-                    st.session_state['processo_em_edicao'] = None
-                    st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar alterações. Tente novamente.")
            
 
 def tela_detalhe_processo_auditoria():
