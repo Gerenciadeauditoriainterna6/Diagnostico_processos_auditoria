@@ -873,60 +873,60 @@ def tela_detalhe_auditoria():
                     # ===== EXIBIR CARD NORMAL =====
                     _exibir_card_processo_auditoria(row, auditoria_id)
             
-            """# ===== SEÇÃO PARA ADICIONAR NOVOS PROCESSOS (já existente) ===== (DESATIVADA POR ENQUANTO)
-            st.divider()
+            # """# ===== SEÇÃO PARA ADICIONAR NOVOS PROCESSOS (já existente) ===== (DESATIVADA POR ENQUANTO)
+            # st.divider()
             
-            with st.expander("➕ Adicionar novo processo à auditoria"):
-                df_disponiveis = listar_processos_disponiveis_para_auditoria(
-                    auditoria_id=auditoria_id,
-                    id_area=auditoria['id_area']
-                )
+            # with st.expander("➕ Adicionar novo processo à auditoria"):
+            #     df_disponiveis = listar_processos_disponiveis_para_auditoria(
+            #         auditoria_id=auditoria_id,
+            #         id_area=auditoria['id_area']
+            #     )
                 
-                if df_disponiveis.empty:
-                    st.success("✅ Todos os processos da área já foram selecionados para esta auditoria!")
-                else:
-                    st.caption(f"**{len(df_disponiveis)}** processos disponíveis para selecionar.")
+            #     if df_disponiveis.empty:
+            #         st.success("✅ Todos os processos da área já foram selecionados para esta auditoria!")
+            #     else:
+            #         st.caption(f"**{len(df_disponiveis)}** processos disponíveis para selecionar.")
                     
-                    opcoes_processos = []
-                    for _, proc_row in df_disponiveis.iterrows():
-                        risco_info = f" (Risco: {int(proc_row['maior_risco'])})" if proc_row['maior_risco'] > 0 else " (Sem risco mapeado)"
-                        opcoes_processos.append({
-                            "id": proc_row['id'],
-                            "display": f"{proc_row['codigo_processo']} - {proc_row['nome_processo']}{risco_info}"
-                        })
+            #         opcoes_processos = []
+            #         for _, proc_row in df_disponiveis.iterrows():
+            #             risco_info = f" (Risco: {int(proc_row['maior_risco'])})" if proc_row['maior_risco'] > 0 else " (Sem risco mapeado)"
+            #             opcoes_processos.append({
+            #                 "id": proc_row['id'],
+            #                 "display": f"{proc_row['codigo_processo']} - {proc_row['nome_processo']}{risco_info}"
+            #             })
                     
-                    display_list = [item["display"] for item in opcoes_processos]
-                    id_map = {item['display']: item["id"] for item in opcoes_processos}
+            #         display_list = [item["display"] for item in opcoes_processos]
+            #         id_map = {item['display']: item["id"] for item in opcoes_processos}
                     
-                    processo_selecionado_display = st.selectbox(
-                        "Selecione o Processo:",
-                        options=display_list,
-                        key="select_processo_disponivel"
-                    )
+            #         processo_selecionado_display = st.selectbox(
+            #             "Selecione o Processo:",
+            #             options=display_list,
+            #             key="select_processo_disponivel"
+            #         )
                     
-                    motivo = st.text_area(
-                        "Motivo da seleção:",
-                        placeholder="Ex: Processo com risco muito alto, crítico para a área...",
-                        key="motivo_novo_processo"
-                    )
+            #         motivo = st.text_area(
+            #             "Motivo da seleção:",
+            #             placeholder="Ex: Processo com risco muito alto, crítico para a área...",
+            #             key="motivo_novo_processo"
+            #         )
                     
-                    col_add, col_cancel = st.columns([1, 3])
-                    with col_add:
-                        if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True, key='btn_add_a_auditoria'):
-                            if processo_selecionado_display:
-                                processo_id = id_map[processo_selecionado_display]
-                                if vincular_processo_a_auditoria(auditoria_id, processo_id, motivo):
-                                    st.success("✅ Processo adicionado com sucesso!")
-                                    time_module.sleep(1)
-                                    st.rerun()
-                                else:
-                                    st.error("Erro ao adicionar processo.")
-                            else:
-                                st.warning("Selecione um processo.")
-                    with col_cancel:
-                        if st.button("Cancelar", use_container_width=True, key='btn_cancelar'):
-                            st.session_state.pop('mostrar_selecao_processos', None)
-                            st.rerun() """
+            #         col_add, col_cancel = st.columns([1, 3])
+            #         with col_add:
+            #             if st.button("✓ Adicionar à auditoria", type="primary", use_container_width=True, key='btn_add_a_auditoria'):
+            #                 if processo_selecionado_display:
+            #                     processo_id = id_map[processo_selecionado_display]
+            #                     if vincular_processo_a_auditoria(auditoria_id, processo_id, motivo):
+            #                         st.success("✅ Processo adicionado com sucesso!")
+            #                         time_module.sleep(1)
+            #                         st.rerun()
+            #                     else:
+            #                         st.error("Erro ao adicionar processo.")
+            #                 else:
+            #                     st.warning("Selecione um processo.")
+            #         with col_cancel:
+            #             if st.button("Cancelar", use_container_width=True, key='btn_cancelar'):
+            #                 st.session_state.pop('mostrar_selecao_processos', None)
+            #                 st.rerun() """
     
     # ===== ABA 2: CHECKLISTS (placeholder) =====
     with tab2:
