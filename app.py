@@ -877,7 +877,7 @@ def tela_detalhe_auditoria():
                 df_processos = df_processos.sort_values('maior_risco', ascending=False)
 
 
-            # Mostra cada processo em um card
+            # ==== MOSTRA CADA PROCESSO EM UM CARD ====
             for _, row in df_processos.iterrows():
                 cor, emoji, texto_risco = formatar_risco_para_card(row['maior_risco'])
                 
@@ -930,22 +930,32 @@ def tela_detalhe_auditoria():
                         with st.expander(f"⚠️ Riscos deste Processo (0)", expanded=False):
                             st.caption('Nenhum risco mapeado para este processo.')
 
-                    # Botões de ação para o processo
-                    col_b1, col_b2, col_b3 = st.columns([1, 1, 3])
+                    # ==== BOTÕES DE AÇÃO DO PROCESSO ====
+                    col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
                     
                     with col_b1:
                         if st.button("🔍 Ver Detalhes", key=f"ver_{row['processo_id']}"):
                             st.session_state['processo_detalhe'] = row['processo_id']
                             st.session_state['tela_atual'] = 'detalhe_processo'
                             st.rerun()
-                    
                     with col_b2:
+                        if st.button("✏️ Editar", key=f'editar_{row['processo_id']}'):
+                            # Salvar o ID do Processo e a Auditoria Atual
+                            st.session_state['processo_para_editar'] = row['processo_id']
+                            st.session_state['auditoria_origem'] = auditoria_id
+                            st.session_state['voltar_para_auditoria'] = True
+                            # Redirecionar para a aba de Diagnóstico dos Processos
+                            st.session_state['opcao_menu'] = "🔍 Diagnóstico dos Processos"
+                            st.session_state['aba_editar_ativa'] = True
+                            st.rerun()
+                    
+                    with col_b3:
                         if st.button("📝 Checklists", key=f"check_{row['processo_id']}"):
                             st.session_state['processo_checklist'] = row['processo_id']
                             st.session_state['aba_ativa'] = 1  # Muda para aba de checklists
                             st.rerun()
                     
-                    with col_b3:
+                    with col_b4:
                         # Botão de remover com confirmação
                         if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
                             st.session_state[f"confirmar_remocao_{row["processo_id"]}"] = True
@@ -1732,71 +1742,81 @@ def main():
     # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
     if st.session_state.get('autenticado'):
         st.session_state['login_timestamp'] = datetime.now()
+    
+    # ==== REDIRECIONAMENTO PARA EDIÇÃO DE PROCESSO ====
+    # Se veio da auditoria para editar um processo
+    if st.session_State.get('processo_para_editar') and st.session_state.get('opcao_menu'):
+        # Forçar a opção do menu para Diagnóstico dos processos
+        opcao = st.session_state['opcao_menu']
+        # Limpar após usar
+        # Não limpar ainda, vamos usar depois
+    else:
+        # Menu normal do sidebar
 
-    # --- SIDEBAR ---
-    with st.sidebar:
-        caminho_script = os.path.dirname(os.path.abspath(__file__))
-        logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria-removebg-preview.png")
-        
-        if os.path.exists(logo_auditoria_path):
-            st.image(logo_auditoria_path, width=200)
-
-        # Exibe o nome do usuário logado para confirmação
-        st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
-
-        
-        opcao = st.radio(
-            "Menu", 
-                [
-                    "📅 Plano Anual de Auditoria",
-                    "🏢 Cadastro de Áreas e Funcionários",
-                    "🔍 Diagnóstico dos Processos",
-                    "📋 Detalhamento dos Processos",        
-                    "👁️ Visão Geral do Diagnóstico"
-                    #"✅ Checklists de Eficácia",           
-                    #"📊 Resultados e Pareceres",
-                    #"📄 Geração de Relatórios"           
-                ]
-            )
-
-        st.divider()
-
-        if st.session_state.get('autenticado'):
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-                    st.error("⚠️ SESSÃO EXPIRADA")
+        # --- SIDEBAR ---
+        with st.sidebar:
+            caminho_script = os.path.dirname(os.path.abspath(__file__))
+            logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria-removebg-preview.png")
             
-        if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
-            # 1. Remove a informação do navegador
-            try:
-                local_storage.deleteItem("session_data")
-            except:
-                local_storage.setItem('session_data', 'null')
-            
-            # 2. Em vez de .clear(), limpamos apenas o que interessa
-            # Isso evita o KeyError nos widgets (selectbox, etc)
-            st.session_state["autenticado"] = False
-            st.session_state["usuario_logado"] = None
-            
-            # 3. Força o recarregamento
-            st.rerun()
+            if os.path.exists(logo_auditoria_path):
+                st.image(logo_auditoria_path, width=200)
 
-        #if st.session_state.get('autenticado'):
-            #st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
-        
-        # Botão para renovar sessão
-        if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
-            st.session_state["login_timestamp"] = datetime.now()
-           
-            session_data = {
-                "usuario": st.session_state.get("usuario_logado"),
-                "timestamp": datetime.now().isoformat()
-            }
-            local_storage.setItem("session_data", json.dumps(session_data))
-            st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
-            # Não chame st.rerun() aqui - deixa o rerun natural do Streamlit
+            # Exibe o nome do usuário logado para confirmação
+            st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
+
+            
+            opcao = st.radio(
+                "Menu", 
+                    [
+                        "📅 Plano Anual de Auditoria",
+                        "🏢 Cadastro de Áreas e Funcionários",
+                        "🔍 Diagnóstico dos Processos",
+                        "📋 Detalhamento dos Processos",        
+                        "👁️ Visão Geral do Diagnóstico"
+                        #"✅ Checklists de Eficácia",           
+                        #"📊 Resultados e Pareceres",
+                        #"📄 Geração de Relatórios"           
+                    ]
+                )
+
+            st.divider()
+
+            if st.session_state.get('autenticado'):
+                login_time = st.session_state.get("login_timestamp")
+                if login_time:
+                    tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                    if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
+                        st.error("⚠️ SESSÃO EXPIRADA")
+                
+            if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
+                # 1. Remove a informação do navegador
+                try:
+                    local_storage.deleteItem("session_data")
+                except:
+                    local_storage.setItem('session_data', 'null')
+                
+                # 2. Em vez de .clear(), limpamos apenas o que interessa
+                # Isso evita o KeyError nos widgets (selectbox, etc)
+                st.session_state["autenticado"] = False
+                st.session_state["usuario_logado"] = None
+                
+                # 3. Força o recarregamento
+                st.rerun()
+
+            #if st.session_state.get('autenticado'):
+                #st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
+            
+            # Botão para renovar sessão
+            if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
+                st.session_state["login_timestamp"] = datetime.now()
+            
+                session_data = {
+                    "usuario": st.session_state.get("usuario_logado"),
+                    "timestamp": datetime.now().isoformat()
+                }
+                local_storage.setItem("session_data", json.dumps(session_data))
+                st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
+                # Não chame st.rerun() aqui - deixa o rerun natural do Streamlit
         
 
     # --- LÓGICA PRINCIPAL ---
@@ -2307,8 +2327,9 @@ def main():
                 nome_selecionado = st.session_state['area_selectbox_edit']
                 st.session_state['id_area_selecionado_edit'] = areas_dict[nome_selecionado]
             
+            # ==== DEFINIR VARIÁVEIS ====
             id_area_atual_edit = st.session_state.get('id_area_selecionado_edit')
-            
+
             # Mostrar funcionários da área (opcional)
             if id_area_atual_edit:
                 df_funcionarios = listar_funcionarios_area(id_area_atual_edit)
@@ -2350,6 +2371,68 @@ def main():
                 st.session_state['auditoria_edit'] = None
             
             st.divider()
+
+            # ==== CARREGAMENTO AUTOMÁTICO (QUANDO VINDO DA AUDITORIA) ====
+            # Verificar se veio da auditoria para editar um processo
+            if st.session_state.get('processo_para_editar') and st.session_state.get('aba_editar_ativa'):
+                processo_id_automatico = st.session_state['processo_para_editar']
+
+                # Buscar dados do processo
+                query_codigo = text("SELECT codigo_processo, id_area FROM processos WHERE id = :id")
+                with engine.connect() as conn:
+                    resultado = conn.execute(query_codigo, {'id': processo_id_automatico}).fetchone()
+
+                if resultado:
+                    codigo = resultado[0]
+                    id_area_processo = resultado[1]
+
+                    # Ajustar a área selecionada para a área do processo
+                    areas_dict_inv = {v: k for k, v in areas_dict.items()}
+                    if id_area_processo in areas_dict_inv:
+                        st.session_state['area_selectbox_edit'] = areas_dict_inv[id_area_processo]
+                        st.session_state['id_area_selecionado_edit'] = id_area_processo
+                        id_area_atual_edit = id_area_processo
+
+                    processo = buscar_processo_por_codigo(codigo)
+
+                    if processo:
+                        # Salvar todos os dados em session_state
+                        st.session_state['edit_processo_data'] = {
+                            'codigo': codigo,
+                            'id': processo['id'],
+                            'nome_processo': processo.get('nome_processo', ''),
+                            'codigo_processo': processo.get('codigo_processo', ''),
+                            'objetivo': processo.get('objetivo', ''),
+                            'descricao': processo.get('descricao', ''),
+                            'etapa_ini': processo.get('etapa_ini', ''),
+                            'etapa_fim': processo.get('etapa_fim', ''),
+                            'produto': processo.get('produto', ''),
+                            'executores': listar_executores_processo(processo['id']),
+                            'riscos': []
+                        }
+
+                        # carregar riscos
+
+                        df_riscos = listar_riscos_do_processo(processo['id'])
+                        if not df_riscos.empty:
+                            for _, row in df_riscos.iterrows():
+                                st.session_state['edit_processo_data']['riscos'].append({
+                                    'nome': row['nome_risco'] or '',
+                                    'fator': row['fator_risco'] or '',
+                                    'melhoria': row['melhoria'] or '',
+                                    'apetite': row['apetite'] or '',
+                                    'motivo': row['motivo_risco'] or '',
+                                    'categorias': row['categorias_ids'] if row['categorias_ids'] else [],
+                                    'impacto': normalizar_valor_risco(row['impacto']),
+                                    'probabilidade': normalizar_valor_risco(row['probabilidade'])
+                                })
+                        st.session_state['modo_edicao'] = True
+                        st.session_state['edit_forma_version'] = st.session_state.fet('edit_form_version', 0) + 1
+
+                        # Limpar a flag para não recarregar novamente
+                        st.session_state.pop('processo_para_editar', None)
+                        st.session_state.pop('aba_editar_ativa', None)
+                        st.rerun()
 
             st.subheader("2. Seleção do Processo para Edição")
             
@@ -2476,7 +2559,7 @@ def main():
                     
                     st.text_input(
                         "Código do Processo:",
-                        value=processo_data.get('codigo', ''),
+                        value=processo_data.get('codigo_processo', ''),
                         key=f"edit_codigo_processo_{form_version}",
                         disabled=True
                     )
@@ -2729,6 +2812,13 @@ def main():
                         st.session_state.pop('modo_edicao', None)
                         st.session_state.pop('edit_processo_data', None)
                         st.session_state.pop('edit_riscos_temp', None)
+                        
+                        # Se veio da auditoria, voltar pra ela
+                        if st.session_state.get('auditoria_origem'):
+                            st.session_state['auditoria_selecionada'] = st.session_state['auditoria_origem']
+                            st.session_state.pop('auditoria_origem', None)
+                            st.session_state['tela_atual'] = 'detalhe_auditoria'
+
                         st.rerun()
 
 
