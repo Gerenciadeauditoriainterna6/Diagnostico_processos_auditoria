@@ -1054,7 +1054,7 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
             for _, risco_row in df_riscos.iterrows():
                 riscos_lista.append({
                     'id': risco_row.get('id'),
-                    'nome': risco-row.get('nome_risco', ''),
+                    'nome': risco_row.get('nome_risco', ''),
                     'fator': risco_row.get('fator_risco', ''),
                     'melhoria': risco_row.get('melhoria', ''),
                     'apetite': risco_row.get('apetite_risco', ''),
