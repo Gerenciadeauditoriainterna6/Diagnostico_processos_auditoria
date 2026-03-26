@@ -873,7 +873,7 @@ def tela_detalhe_auditoria():
                     # ===== EXIBIR CARD NORMAL =====
                     _exibir_card_processo_auditoria(row, auditoria_id)
             
-            # ===== SEÇÃO PARA ADICIONAR NOVOS PROCESSOS (já existente) =====
+            """# ===== SEÇÃO PARA ADICIONAR NOVOS PROCESSOS (já existente) ===== (DESATIVADA POR ENQUANTO)
             st.divider()
             
             with st.expander("➕ Adicionar novo processo à auditoria"):
@@ -926,7 +926,7 @@ def tela_detalhe_auditoria():
                     with col_cancel:
                         if st.button("Cancelar", use_container_width=True, key='btn_cancelar'):
                             st.session_state.pop('mostrar_selecao_processos', None)
-                            st.rerun()
+                            st.rerun() """
     
     # ===== ABA 2: CHECKLISTS (placeholder) =====
     with tab2:
@@ -968,7 +968,11 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
             st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {texto_risco}</span>", unsafe_allow_html=True)
         
         # Expander com riscos do processo
-        with st.expander(f"⚠️ Riscos deste Processo", expanded=False):
+        # Conta quantos riscos o processo tem
+        quantidade_riscos = len(df_riscos_processo) if not df_riscos_processo.empty else 0
+
+        # Título no expander com quantidade
+        with st.expander(f"⚠️ Riscos deste Processo ({quantidade_riscos})", expanded=False):
             df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
             
             if not df_riscos_processo.empty:
@@ -1003,13 +1007,14 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 st.session_state['processo_em_edicao'] = row['processo_id']
                 st.rerun()
         
-        with col_b3:
-            if st.button("📝 Checklists", key=f"check_{row['processo_id']}"):
-                st.session_state['processo_checklist'] = row['processo_id']
-                st.session_state['aba_ativa'] = 1
-                st.rerun()
+        # = NÃO VAMOS UTILIZAR ESSE BOTÃO POR ENQUANTO
+        # with col_b3:
+        #     if st.button("📝 Checklists", key=f"check_{row['processo_id']}"):
+        #         st.session_state['processo_checklist'] = row['processo_id']
+        #         st.session_state['aba_ativa'] = 1
+        #         st.rerun()
         
-        with col_b4:
+        with col_b3:
             if st.button("🗑️ Remover", key=f"rm_{row['processo_id']}"):
                 st.session_state[f"confirmar_remocao_{row['processo_id']}"] = True
             
