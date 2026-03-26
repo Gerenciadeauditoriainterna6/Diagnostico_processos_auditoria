@@ -1745,7 +1745,7 @@ def main():
     
     # ==== REDIRECIONAMENTO PARA EDIÇÃO DE PROCESSO ====
     # Se veio da auditoria para editar um processo
-    if st.session_State.get('processo_para_editar') and st.session_state.get('opcao_menu'):
+    if st.session_state.get('processo_para_editar') and st.session_state.get('opcao_menu'):
         # Forçar a opção do menu para Diagnóstico dos processos
         opcao = st.session_state['opcao_menu']
         # Limpar após usar
