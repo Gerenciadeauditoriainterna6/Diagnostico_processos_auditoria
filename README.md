@@ -38,7 +38,9 @@ O sistema permite o gerenciamento completo do ciclo de auditoria, desde o planej
 
 ---
 
+
 ## 🏗️ Arquitetura do Projeto
+```
 GERADOR DE DADOS/
 ├── app.py # Ponto de entrada principal
 ├── database.py # Conexão com banco de dados
@@ -69,7 +71,7 @@ GERADOR DE DADOS/
 │
 ├── assets/ # Imagens e arquivos estáticos
 └── utils/ # Utilitários gerais
-
+```
 
 ---
 
