@@ -6,9 +6,8 @@ from sqlalchemy import text
 from database import engine
 from datetime import datetime
 import streamlit as st
-from streamlit_local_storage import LocalStorage
 
-local_storage = LocalStorage()
+#local_storage = LocalStorage()
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
@@ -507,16 +506,6 @@ def obter_proximo_codigo_etapa(processo_id, codigo_processo):
     with engine.connect() as conn:
         contagem = conn.execute(query, {"id": processo_id}).scalar() or 0
     return f"{codigo_processo}.{contagem + 1}"
-  
-def carregar_areas_banco():
-    """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
-    query = text("SELECT id_area, nome_area FROM informacoes_area")
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-
-    # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
-    # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
-    return dict(zip(df['nome_area'], df['id_area']))
 
 def salvar_risco_etapa(dados, auditoria_id=None):
     """Salva risco de etapa, opcionalmente vinculado a uma auditoria"""
@@ -1709,23 +1698,6 @@ def tempo_restante_sessao():
             segundos = int(tempo_restante % 60)
             return f"{minutos:02d}:{segundos:02d}"
     return "00:00"
-
-def verificar_sessao(login_timestamp_cache=None):
-    # Se não recebeu por parâmetro, tenta do session_state
-    login_time = st.session_state.get("login_timestamp") or login_timestamp_cache
-    if st.session_state.get("autenticado") and login_time:
-        tempo_decorrido = (datetime.now() - login_time).total_seconds()
-        if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-            # expirada
-            st.session_state["autenticado"] = False
-            st.session_state["usuario_logado"] = None
-            st.session_state.pop("login_timestamp", None)
-            try:
-                local_storage.deleteItem("session_data")
-            except:
-                local_storage.setItem("session_data", "null")
-            return False
-    return True
 
 def salvar_edicao_processo_completa(dados):
     """Salva as alterações de um processo existente usando os dados preparados"""
