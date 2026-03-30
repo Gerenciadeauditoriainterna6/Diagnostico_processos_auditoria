@@ -545,6 +545,12 @@ def _tela_novo_processo():
 
 def _tela_editar_processo():
     """Sub-tela de edição de processo existente"""
+
+    # Atualizar ID da área quando mudar
+    def atualizar_id_area_edit():
+        nome_selecionado = st.session_state['area_selectbox_edit']
+        st.session_state['id_area_selecionado_edit'] = areas_dict[nome_selecionado]
+        
     # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
     
     # Criar um placeholder para o formulário de edição
@@ -582,11 +588,6 @@ def _tela_editar_processo():
     # Garantir que o ID da área esteja inicializado
     if 'id_area_selecionado_edit' not in st.session_state:
         st.session_state['id_area_selecionado_edit'] = list(areas_dict.values())[0]
-    
-    # Atualizar ID da área quando mudar
-    def atualizar_id_area_edit():
-        nome_selecionado = st.session_state['area_selectbox_edit']
-        st.session_state['id_area_selecionado_edit'] = areas_dict[nome_selecionado]
     
     # ==== DEFINIR VARIÁVEIS ====
     id_area_atual_edit = st.session_state.get('id_area_selecionado_edit')
