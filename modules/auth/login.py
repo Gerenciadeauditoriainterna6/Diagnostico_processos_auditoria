@@ -41,7 +41,8 @@ def login_screen(local_storage):
         st.error(f"erro ao carregar imagens: {e}")
         return False
     
-    # --- BLOCO CSS PARA DESIGN DO LOGIN (SEU DESIGN ORIGINAL) ---
+    
+    # --- BLOCO CSS PARA DESIGN DO LOGIN ---
     st.markdown(f"""
         <style>
         /* 1. Fundo da tela de login */
@@ -59,20 +60,17 @@ def login_screen(local_storage):
         .stVerticalBlockBorder, 
         .st-emotion-cache-139wymi, 
         .st-emotion-cache-1r6slb0 {{
-        background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
-        border: none !important;
-        box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
-        border-radius: 20px !important;
-        
-        /* Aqui garantimos o tamanho maior na parte de baixo (80px) */
-        padding: 15px 50px 30px 50px !important; 
-        
-        display: flex !important;
-        flex-direction: column !important;
-        width: 85% !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        opacity: 1 !important;
+            background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
+            border: none !important;
+            box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
+            border-radius: 20px !important;
+            padding: 15px 50px 30px 50px !important; 
+            display: flex !important;
+            flex-direction: column !important;
+            width: 85% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            opacity: 1 !important;
         }}
 
         /* Ajuste para centralização vertical do card na tela */
@@ -80,7 +78,7 @@ def login_screen(local_storage):
             margin-top: 2vh;
         }}
 
-        /* 4. Estilo da Logo e Títulos */
+        /* Estilo da Logo e Títulos */
         .logo-container {{
             text-align: center;
             margin-top: -85px;
@@ -132,45 +130,34 @@ def login_screen(local_storage):
             filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1));
             background: transparent !important;
         }}
-        
-        /* ===== CSS PARA AS LOGOS DO CANTO INFERIOR DIREITO ===== */
-        /* Container relativo para a coluna */
-        div[data-testid="column"] {{
-            position: relative;
+
+        /* Remover o container branco e esticar o fundo */
+        .st-emotion-cache-p7p7gf {{
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            backdrop-filter: none !important;
         }}
-        .bottom-right-logos {{
-            position: absolute;
-            bottom: -50px;
-            right: 0;
-            display: flex;
-            gap: 12px;
-            z-index: 10;
+
+        /* Garantir que o fundo ocupe toda a tela */
+        [data-testid="st.AppViewContainer"] {{
+            background: url("data:image/png;base64,{bin_fundo}") no-repeat center center fixed !important;
+            background-size: cover !important;
+            background-position: center !important;
+            min-height: 100vh !important;
+            height: 100% !important;
         }}
-        .bottom-right-logos img {{
-            height: 40px;
-            width: auto;
-            max-width: 80px;
-            object-fit: contain;
-            opacity: 0.8;
-        }}
-        .bottom-right-logos img:hover {{
-            opacity: 1;
-        }}
-        @media (max-width: 768px) {{
-            .bottom-right-logos {{
-                bottom: -35px;
-                gap: 8px;
-            }}
-            .bottom-right-logos img {{
-                height: 30px;
-            }}
-        }}
-        </style>
+         
     """, unsafe_allow_html=True)
 
-    # ----- LAYOUT DO LOGIN -----
+    # ----- LAYOUT DO LOGIN (3 COLUNAS) -----
     col1, col2, col3 = st.columns([0.5, 2, 0.5]) 
     
+    # ===== COLUNA 1 (esquerda - vazia) =====
+    with col1:
+        pass
+    
+    # ===== COLUNA 2 (centro - card de login) =====
     with col2:
         with st.container(border=True):
             st.markdown(f'''
@@ -187,7 +174,7 @@ def login_screen(local_storage):
             usuario = st.text_input("", placeholder="👤 Digite seu usuário", key="user_login")
             senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
             
-            if st.button("Entrar", use_container_width=True, key='btn_entrar_login',type="primary"):
+            if st.button("Entrar", use_container_width=True, key='btn_entrar_login', type="primary"):
                 if validar_login_no_banco(usuario, senha):
                     local_storage.setItem("usuario_audit", usuario, key='set_usuario_audit')
                     local_storage.setItem("login_timestamp", datetime.now().isoformat(), key='set_login_timestamp')
@@ -214,7 +201,7 @@ def login_screen(local_storage):
             </div>
         ''', unsafe_allow_html=True)
         
-        # ===== LOGO IIA (abaixo da FUSVE) =====
+        # Logo IIA (abaixo da FUSVE)
         try:
             bin_logo_iia = get_base64(os.path.join("assets", "logo_iia.png"))
             st.markdown(f'''
@@ -225,74 +212,74 @@ def login_screen(local_storage):
             ''', unsafe_allow_html=True)
         except:
             pass
-        
-        # ==== LOGOS DO CANTO INFERIOR DIREITO ====
+    
+    # ===== CSS PARA LOGO FIXA E RESPONSIVA =====
+    st.markdown("""
+        <style>
+            /* Logo fixa no canto inferior direito */
+            .floating-logos {
+                position: fixed;
+                bottom: 5vh;      /* 5% da altura da viewport */
+                right: 7vw;       /* 3% da largura da viewport */
+                z-index: 9999;
+                display: flex;
+                gap: 12px;
+                transition: all 0.3s ease;
+            }
+            .floating-logos img {
+                height: 50px;
+                width: auto;
+                /* max-width: 50px; */
+                object-fit: contain;
+                opacity: 0.85;
+                transition: opacity 0.2s;
+            }
+            .floating-logos img:hover {
+                opacity: 1;
+            }
+            
+            /* Ajuste para telas menores (CELULAR) */
+            @media (max-width: 768px) {
+                .floating-logos {
+                    bottom: 3vh;
+                    right: 3vw;
+                    gap: 8px;
+                    padding: 5px 8px;
+                }
+                .floating-logos img {
+                    height: 30px;
+                }
+            }
+            
+            /* Ajuste para telas muito grandes */
+            @media (min-width: 1920px) {
+                .floating-logos {
+                    bottom: 8vh;
+                    right: 5vw;
+                }
+                .floating-logos img {
+                    height: 50px;
+                }
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-        st.markdown("""
-            <style>
-                /* Faz a terceira coluna ter posição relativa */
-                    div[data-testid="column"]:nth-child(3) {
-                        position: relative;
-                    }
-                /* Container das logos dentro da terceira coluna */
-                .bottom-right-logos {
-                    position: absolute;
-                    bottom: 20px;
-                    right: 20px;
-                    display: flex;
-                    gap: 12px;
-                    z-index: 9999;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                }
-                .bottom-right-logos img {
-                    height: 40px;
-                    width: auto;
-                    max-width: 80px;
-                    object-fit: contain;
-                    opacity: 0.85;
-                    transition: opacity 0.2s;
-                }
-                .bottom-right-logos img:hover {
-                    opacity: 1;
-                }
-                /* Ajuste para telas menores */
-                @media (max-width: 768px) {
-                    .bottom-right-logos {
-                        bottom: 10px;
-                        right: 10px;
-                        padding: 4px 8px;
-                        gap: 8px;
-                    }
-                    .bottom-right-logos img {
-                        height: 30px;
-                    }
-                }
-                /* Ajuste para telas muito grandes */
-                @media (min-width: 1440px) {
-                    .bottom-right-logos {
-                        bottom: 30px;
-                        right: 30px;
-                    }
-                    .bottom-right-logos img {
-                        height: 45px;
-                    }
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # ===== LOGOS DO CANTO INFERIOR DIREITO =====
-        try:
-            bin_logo_coso = get_base64(os.path.join("assets", "logo_coso.png"))
-            st.markdown(f'''
-                <div class="bottom-right-logos">
-                    <img src="data:image/png;base64,{bin_logo_coso}" 
-                         title="Committee of Sponsoring Organizations">
-                </div>
-            ''', unsafe_allow_html=True)
-        except:
-            pass
+    # ===== ADICIONAR A LOGO =====
+    try:
+        bin_logo_coso = get_base64(os.path.join("assets", "logo_coso.png"))
+        bin_logo_ibgc = get_base64(os.path.join("assets", "logo_ibgc.png"))
+        st.markdown(f'''
+            <div class="floating-logos">
+                <img src="data:image/png;base64,{bin_logo_coso}" 
+                    style="height: 40px; width: auto;"
+                    title="Committee of Sponsoring Organizations">
+                <img src="data:image/png;base64,{bin_logo_ibgc}"
+                    style="height: 50px; width: auto;">
+    
+            </div>
+        ''', unsafe_allow_html=True)
+    except:
+        pass
                     
     return False
 
