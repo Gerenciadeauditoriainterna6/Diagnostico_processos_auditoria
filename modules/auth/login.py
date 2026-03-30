@@ -187,6 +187,68 @@ def login_screen(local_storage):
                     <img src="data:image/png;base64,{bin_logo_fusve}">
                 </div>
             ''', unsafe_allow_html=True)
+        
+        # ===== NOVA LOGO: IIA (abaixo da FUSVE) =====
+        try:
+            bin_logo_iia = get_base64(os.path.join("assets", "logo_iia.png"))
+            st.markdown(f'''
+                <div style="text-align: center; margin-top: -10px; margin-bottom: 15px;">
+                    <img src="data:image/png;base64,{bin_logo_iia}" 
+                        style="height: 50px; width: auto; opacity: 0.9;">
+                </div>
+            ''', unsafe_allow_html=True)
+        except Exception as e:
+            # Se a imagem não for encontrada, apenas ignora
+            pass
+
+        # ===== CSS PARA AS LOGOS DO RODAPÉ =====
+        st.markdown("""
+            <style>
+                /* Container para as logos do rodapé (canto inferior direito) */
+                .footer-logos {
+                    position: fixed;
+                    bottom: 10px;
+                    right: 10px;
+                    display: flex;
+                    gap: 12px;
+                    z-index: 999;
+                    background-color: rgba(255, 255, 255, 0.85);
+                    padding: 6px 12px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }
+                .footer-logos img {
+                    height: 35px;
+                    width: auto;
+                    max-width: 70px;
+                    object-fit: contain;
+                }
+                /* Ajuste para telas menores */
+                @media (max-width: 768px) {
+                    .footer-logos img {
+                        height: 25px;
+                    }
+                    .footer-logos {
+                        gap: 8px;
+                        padding: 4px 8px;
+                    }
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # ===== LOGOS DO RODAPÉ (canto inferior direito) =====
+        try:
+            # Carregar a logo do CFC
+            bin_logo_cfc = get_base64(os.path.join("assets", "logo_cfc.png"))
+            
+            st.markdown(f'''
+                <div class="footer-logos">
+                    <img src="data:image/png;base64,{bin_logo_cfc}" title="Conselho Federal de Contabilidade">
+                </div>
+            ''', unsafe_allow_html=True)
+        except Exception as e:
+            # Se a imagem não for encontrada, apenas ignora
+            pass
                     
     return False
 
