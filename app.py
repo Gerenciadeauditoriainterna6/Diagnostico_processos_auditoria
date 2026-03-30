@@ -1,25 +1,18 @@
 import streamlit as st
 import os
 import pandas as pd
-from sqlalchemy import text
-from database import engine
-import time as time_module
-import base64
-from datetime import timedelta, datetime
+from datetime import datetime
 from streamlit_local_storage import LocalStorage
-from streamlit_pdf_viewer import pdf_viewer
-import json
-from logic import (gerar_pdf_em_memoria,buscar_processos_pendentes, buscar_processo_por_codigo, listar_executores_processo)
-from modules.shared.utils import exibir_criterios_risco, limpar_campos_por_prefixo, limpar_todos_campos
-from modules.shared.components import formatar_risco_para_card
-from modules.shared.validators import validar_formulario
+
+from logic import (gerar_pdf_em_memoria,buscar_processos_pendentes)
+
 from modules.execucao.areas import tela_cadastro_area, carregar_areas_banco
 from modules.execucao.visao_geral import tela_visao_geral_processos
 from modules.planejamento.plano_anual import tela_plano_anual
 from modules.execucao.auditorias import (tela_auditorias_trimestrais, tela_detalhe_auditoria, tela_detalhe_processo_auditoria)
-from modules.auth.login import get_base64, login_screen, verificar_sessao
+from modules.auth.login import login_screen, verificar_sessao
 from modules.comunicacaoresultados.relatorios import marcar_relatorio_gerado
-from modules.execucao.processos import carregar_riscos_processo, tela_diagnostico_processos
+from modules.execucao.processos import tela_diagnostico_processos
 
 
 MAPA_RISCO = {
@@ -55,49 +48,6 @@ if 'codigo_processo_display' not in st.session_state: st.session_state['codigo_p
 if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
-
-# --- 4. FUNÇÕES DE SUPORTE ---
-
-def carregar_dados_processo_para_edicao(processo_id):
-    """Carrega os dados de um processo existente para edição"""
-    
-    # Buscar o código do processo
-    query = text("SELECT codigo_processo FROM processos WHERE id = :id")
-    with engine.connect() as conn:
-        resultado = conn.execute(query, {"id": processo_id}).fetchone()
-    
-    if not resultado:
-        return None
-    
-    codigo = resultado[0]
-    processo = buscar_processo_por_codigo(codigo)
-    
-    if not processo:
-        return None
-    
-    # ===== CARREGAR DADOS BÁSICOS =====
-    st.session_state['input_processo'] = processo.get('nome_processo', '')
-    st.session_state['codigo_processo'] = processo.get('codigo_processo', '')
-    st.session_state['processo_existente_id'] = processo['id']
-    
-    # ===== CARREGAR EXECUTORES =====
-    executores_ids = listar_executores_processo(processo_id)
-    st.session_state['executores_selecionados'] = executores_ids
-    
-    # ===== CARREGAR DETALHAMENTO =====
-    st.session_state['input_objetivo'] = processo.get('objetivo', '')
-    st.session_state['input_descricao'] = processo.get('descricao', '')
-    st.session_state['input_etapa_ini'] = processo.get('etapa_ini', '')
-    st.session_state['input_etapa_fim'] = processo.get('etapa_fim', '')
-    st.session_state['input_produto'] = processo.get('produto', '')
-    
-    # ===== CARREGAR RISCOS =====
-    carregar_riscos_processo(processo['id'])
-    
-    # ===== ATIVAR FLAG DE INFORMAÇÕES BÁSICAS SALVAS =====
-    st.session_state['info_basicas_salvas'] = True
-    
-    return True
 
 
 # --- 5. Execução do app ---

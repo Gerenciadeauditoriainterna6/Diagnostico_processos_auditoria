@@ -36,6 +36,7 @@ def atualizar_id_area():
     st.session_state['input_processo'] = "" 
 
 def atualizar_id_area_edit():
+        """Atualiza o ID da área selecionada na aba de edição"""
         areas = carregar_areas_banco()
         nome_selecionado = st.session_state['area_selectbox_edit']
         st.session_state['id_area_selecionado_edit'] = areas[nome_selecionado]
@@ -616,7 +617,6 @@ def _tela_editar_processo():
         display_list = [item["display"] for item in opcoes_auditoria]
         id_map_auditoria = {item["display"]: item["id"] for item in opcoes_auditoria}
                         
-
         auditoria_escolhida = st.selectbox(
             "Escolha a auditoria para filtrar os processos:",
             options=display_list,
