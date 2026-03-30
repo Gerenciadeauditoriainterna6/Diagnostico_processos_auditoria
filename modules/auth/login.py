@@ -83,7 +83,7 @@ def login_screen(local_storage):
         /* 4. Estilo da Logo e Títulos */
         .logo-container {{
             text-align: center;
-            margin-top: -85px; /* Faz a logo flutuar na borda superior */
+            margin-top: -85px;
             margin-bottom: 15px;
             position: relative;
             z-index: 10;
@@ -95,47 +95,75 @@ def login_screen(local_storage):
             filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
         }}
 
-        /* 1. Faz APENAS o campo de senha subir em direção ao usuário */
         div[data-testid="stTextInput"]:has(#text_input_2){{
-        margin-top: -25px !important;
-        margin-bottom: 0px !important;
+            margin-top: -25px !important;
+            margin-bottom: 0px !important;
         }}
 
-        /* 2. Mantém o botão na distância original ou empurra um pouco para baixo */
         div.stButton {{
-        margin-top: 15px !important; /* Ajuste esse valor para a distância que deseja */
+            margin-top: 15px !important;
         }}
 
         button[kind="primary"] {{
-        background-color: #153e5a !important;
-        border: none !important;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+            background-color: #153e5a !important;
+            border: none !important;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.2) !important;
         }}
 
-        /* 3. COR DA MENSAGEM DE SUCESSO */
-        /* Muda o fundo e a cor do texto da caixa de sucesso */
         div[data-testid="stNotification"] > div {{
-        background-color: rgba(64, 96, 100, 0.9) !important;
-        color: white !important;
-        border: 1px solid #6d8285 !important;
+            background-color: rgba(64, 96, 100, 0.9) !important;
+            color: white !important;
+            border: 1px solid #6d8285 !important;
         }}
 
-        /* --- Novo estilo para a logo da FUSVE (fora do card) --- */
         .fusve-container {{
-            text-align: center; /* Centraliza horizontalmente */
-            margin-top: 20px;   /* Espaço entre o final do card e a logo */
-            margin-bottom: 20px; /* Espaço para o final da página não colar */
-            width: 100%;        /* Garante que o container ocupe a largura da coluna */
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            width: 100%;
             display: flex;
-            justify-content: center; /* Alinhamento robusto para flex */
+            justify-content: center;
         }}
 
         .fusve-container img {{
-            width: 110px;       /* Ajuste o tamanho da logo da FUSVE aqui */
-            height: auto;       /* Mantém a proporção */
-            opacity: 0.8;       /* Deixa levemente transparente para não brigar com o card */
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1)); /* Sombra suave */
-            background: transparent !important; /* Força fundo transparente */
+            width: 110px;
+            height: auto;
+            opacity: 0.8;
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1));
+            background: transparent !important;
+        }}
+        
+        /* ===== CSS PARA AS LOGOS DO CANTO INFERIOR DIREITO ===== */
+        /* Container relativo para a coluna */
+        div[data-testid="column"] {{
+            position: relative;
+        }}
+        .bottom-right-logos {{
+            position: absolute;
+            bottom: -50px;
+            right: 0;
+            display: flex;
+            gap: 12px;
+            z-index: 10;
+        }}
+        .bottom-right-logos img {{
+            height: 40px;
+            width: auto;
+            max-width: 80px;
+            object-fit: contain;
+            opacity: 0.8;
+        }}
+        .bottom-right-logos img:hover {{
+            opacity: 1;
+        }}
+        @media (max-width: 768px) {{
+            .bottom-right-logos {{
+                bottom: -35px;
+                gap: 8px;
+            }}
+            .bottom-right-logos img {{
+                height: 30px;
+            }}
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -161,16 +189,13 @@ def login_screen(local_storage):
             
             if st.button("Entrar", use_container_width=True, key='btn_entrar_login',type="primary"):
                 if validar_login_no_banco(usuario, senha):
-                    # --- GRAVAÇÃO NO LOCAL STORAGE (ÚNICA MUDANÇA FUNCIONAL) ---
                     local_storage.setItem("usuario_audit", usuario, key='set_usuario_audit')
                     local_storage.setItem("login_timestamp", datetime.now().isoformat(), key='set_login_timestamp')
                     session_data = {
                         'usuario': usuario,
                         'timestamp': datetime.now().isoformat()
                     }
-
                     local_storage.setItem('session_data', json.dumps(session_data))
-
 
                     st.session_state["autenticado"] = True
                     st.session_state["usuario_logado"] = usuario
@@ -182,72 +207,91 @@ def login_screen(local_storage):
                 else:
                     st.error("Usuário ou senha incorretos.")
 
+        # Logo FUSVE (abaixo do card)
         st.markdown(f'''
-                <div class="fusve-container">
-                    <img src="data:image/png;base64,{bin_logo_fusve}">
-                </div>
-            ''', unsafe_allow_html=True)
+            <div class="fusve-container">
+                <img src="data:image/png;base64,{bin_logo_fusve}">
+            </div>
+        ''', unsafe_allow_html=True)
         
-        # ===== NOVA LOGO: IIA (abaixo da FUSVE) =====
+        # ===== LOGO IIA (abaixo da FUSVE) =====
         try:
             bin_logo_iia = get_base64(os.path.join("assets", "logo_iia.png"))
             st.markdown(f'''
-                <div style="text-align: center; margin-top: -10px; margin-bottom: 15px;">
+                <div style="text-align: center; margin-top: 25px; margin-bottom: 15px;">
                     <img src="data:image/png;base64,{bin_logo_iia}" 
-                        style="height: 50px; width: auto; opacity: 0.9;">
+                         style="height: 50px; width: auto; opacity: 0.9;">
                 </div>
             ''', unsafe_allow_html=True)
-        except Exception as e:
-            # Se a imagem não for encontrada, apenas ignora
+        except:
             pass
+        
+        # ==== LOGOS DO CANTO INFERIOR DIREITO ====
 
-        # ===== CSS PARA AS LOGOS DO RODAPÉ =====
         st.markdown("""
             <style>
-                /* Container para as logos do rodapé (canto inferior direito) */
-                .footer-logos {
-                    position: fixed;
-                    bottom: 10px;
-                    right: 10px;
+                /* Faz a terceira coluna ter posição relativa */
+                    div[data-testid="column"]:nth-child(3) {
+                        position: relative;
+                    }
+                /* Container das logos dentro da terceira coluna */
+                .bottom-right-logos {
+                    position: absolute;
+                    bottom: 20px;
+                    right: 20px;
                     display: flex;
                     gap: 12px;
-                    z-index: 999;
-                    background-color: rgba(255, 255, 255, 0.85);
+                    z-index: 9999;
                     padding: 6px 12px;
                     border-radius: 8px;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                 }
-                .footer-logos img {
-                    height: 35px;
+                .bottom-right-logos img {
+                    height: 40px;
                     width: auto;
-                    max-width: 70px;
+                    max-width: 80px;
                     object-fit: contain;
+                    opacity: 0.85;
+                    transition: opacity 0.2s;
+                }
+                .bottom-right-logos img:hover {
+                    opacity: 1;
                 }
                 /* Ajuste para telas menores */
                 @media (max-width: 768px) {
-                    .footer-logos img {
-                        height: 25px;
-                    }
-                    .footer-logos {
-                        gap: 8px;
+                    .bottom-right-logos {
+                        bottom: 10px;
+                        right: 10px;
                         padding: 4px 8px;
+                        gap: 8px;
+                    }
+                    .bottom-right-logos img {
+                        height: 30px;
+                    }
+                }
+                /* Ajuste para telas muito grandes */
+                @media (min-width: 1440px) {
+                    .bottom-right-logos {
+                        bottom: 30px;
+                        right: 30px;
+                    }
+                    .bottom-right-logos img {
+                        height: 45px;
                     }
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # ===== LOGOS DO RODAPÉ (canto inferior direito) =====
+        # ===== LOGOS DO CANTO INFERIOR DIREITO =====
         try:
-            # Carregar a logo do CFC
-            bin_logo_cfc = get_base64(os.path.join("assets", "logo_cfc.png"))
-            
+            bin_logo_coso = get_base64(os.path.join("assets", "logo_coso.png"))
             st.markdown(f'''
-                <div class="footer-logos">
-                    <img src="data:image/png;base64,{bin_logo_cfc}" title="Conselho Federal de Contabilidade">
+                <div class="bottom-right-logos">
+                    <img src="data:image/png;base64,{bin_logo_coso}" 
+                         title="Committee of Sponsoring Organizations">
                 </div>
             ''', unsafe_allow_html=True)
-        except Exception as e:
-            # Se a imagem não for encontrada, apenas ignora
+        except:
             pass
                     
     return False
