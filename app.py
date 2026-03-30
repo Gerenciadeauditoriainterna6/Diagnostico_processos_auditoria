@@ -9,13 +9,15 @@ from datetime import timedelta, datetime
 from streamlit_local_storage import LocalStorage
 from streamlit_pdf_viewer import pdf_viewer
 import json
+
 from logic import (processar_codigo_inteligente, TEMPO_SESSAO_SEGUNDOS, verificar_sessao, get_estilo_risco, salvar_no_banco,
 gerar_pdf_em_memoria,buscar_processos_pendentes, carregar_areas_banco,
 buscar_processo_por_codigo, obter_proximo_codigo_etapa, salvar_etapa_no_banco, listar_etapas_do_processo, salvar_risco_etapa,
 listar_riscos_etapa, salvar_controle_no_banco, validar_login_no_banco, atualizar_etapa_no_banco, criar_nova_auditoria, listar_auditorias_por_ano, buscar_auditoria_por_id, vincular_processo_a_auditoria, listar_processos_da_auditoria_com_riscos, listar_processos_disponiveis_para_auditoria,
 remover_processo_da_auditoria, validar_basicos, salvar_informacoes_basicas, listar_riscos_do_processo, normalizar_valor_risco,
 salvar_area, salvar_funcionarios_area, listar_areas, listar_funcionarios_area, listar_funcionarios_por_area, listar_executores_processo,
-listar_executores_processo_com_nomes, listar_categorias, salvar_edicao_processo_completa)#
+listar_executores_processo_com_nomes, listar_categorias, salvar_edicao_processo_completa)
+
 
 
 MAPA_RISCO = {
