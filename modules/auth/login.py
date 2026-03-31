@@ -46,9 +46,8 @@ def login_screen(local_storage):
     st.markdown(f"""
         <style>
         /* 1. Fundo da tela de login */
-        [data-testid="stAppViewContainer"] {{
-            background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0)),
-                        url("data:image/png;base64,{bin_fundo}");
+        body {{
+            background: url("data:image/png;base64,{bin_fundo}")no-repeat center center fixed !important;
             background-size: cover !important;
             background-position: center !important;
         }}
@@ -114,6 +113,17 @@ def login_screen(local_storage):
             border: 1px solid #6d8285 !important;
         }}
 
+        /* ==== REDUZ ESPAÇAMENTOS EXTERNOS ==== */
+        /* Remove o espaço extra no topo da página */
+        .main {{
+            padding-top: 0 !important;
+        }}
+        
+         /* Reduz margem superior do container principal */
+        div[data-testid="stVerticalBlock"]:first-child {{
+            margin-top: 0 !important;
+        }}
+
         .fusve-container {{
             text-align: center;
             margin-top: 20px;
@@ -147,8 +157,35 @@ def login_screen(local_storage):
             min-height: 100vh !important;
             height: 100% !important;
         }}
+
          
     """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <script>
+            // Debug: mostra as cores de fundo no console do navegador
+            console.log("=== DEBUG DE CORES DE FUNDO ===");
+            
+            var elementos = [
+                'body',
+                '[data-testid="stAppViewContainer"]',
+                '.st-emotion-cache-p7p7gf',
+                '.st-emotion-cache-139wymi',
+                '.st-emotion-cache-1r6slb0'
+            ];
+            
+            elementos.forEach(function(sel) {
+                var el = document.querySelector(sel);
+                if (el) {
+                    var bg = window.getComputedStyle(el).backgroundColor;
+                    console.log(sel + ' -> ' + bg);
+                } else {
+                    console.log(sel + ' -> não encontrado');
+                }
+            });
+        </script>
+    """, unsafe_allow_html=True)
+
 
     # ----- LAYOUT DO LOGIN (3 COLUNAS) -----
     col1, col2, col3 = st.columns([0.5, 2, 0.5]) 
@@ -167,7 +204,7 @@ def login_screen(local_storage):
             <div style="text-align: center; width: 100%; line-height: 1.2;">
                 <span style="color: white; font-family: sans-serif; font-size: 14px; display: block;">SISTEMA</span>
                 <span style="color: white; font-family: sans-serif; font-size: 16px; font-weight: bold; display: block;">GERÊNCIA DE AUDITORIA INTERNA</span>
-                <span style="color: #822a2d; font-family: sans-serif; font-size: 10px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: -20px;">Acesso Restrito!</span>
+                <span style="color: #822a2d; font-family: sans-serif; font-size: 10px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: -20px;">ACESSO RESTRITO!</span>
             </div>
             ''', unsafe_allow_html=True)
 
@@ -219,8 +256,8 @@ def login_screen(local_storage):
             /* Logo fixa no canto inferior direito */
             .floating-logos {
                 position: fixed;
-                bottom: 5vh;      /* 5% da altura da viewport */
-                right: 7vw;       /* 3% da largura da viewport */
+                bottom: 4vh;      /* 5% da altura da viewport */
+                right: 4vw;       /* 3% da largura da viewport */
                 z-index: 9999;
                 display: flex;
                 gap: 12px;
@@ -264,17 +301,18 @@ def login_screen(local_storage):
         </style>
     """, unsafe_allow_html=True)
 
-    # ===== ADICIONAR A LOGO =====
+    # ===== LOGOS DE CANTO DA TELA =====
     try:
         bin_logo_coso = get_base64(os.path.join("assets", "logo_coso.png"))
         bin_logo_ibgc = get_base64(os.path.join("assets", "logo_ibgc.png"))
+        bin_logo_denasus = get_base64(os.path.join("assets", "logo_denasus.png"))
+        bin_logo_iso31000 = get_base64(os.path.join("assets", "logo_iso31000.png"))
         st.markdown(f'''
             <div class="floating-logos">
-                <img src="data:image/png;base64,{bin_logo_coso}" 
-                    style="height: 40px; width: auto;"
-                    title="Committee of Sponsoring Organizations">
-                <img src="data:image/png;base64,{bin_logo_ibgc}"
-                    style="height: 50px; width: auto;">
+                <img src="data:image/png;base64,{bin_logo_coso}" style="height: 40px; width: auto;" title="Committee of Sponsoring Organizations">
+                <img src="data:image/png;base64,{bin_logo_ibgc}" style="height: 50px; width: auto;">
+                <img src="data:image/png;base64,{bin_logo_denasus}" style="height: 40px; width: auto;">
+                <img src="data:image/png;base64,{bin_logo_iso31000}" style="height: 50px; width: auto;">
     
             </div>
         ''', unsafe_allow_html=True)
