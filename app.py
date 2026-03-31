@@ -13,6 +13,7 @@ from modules.execucao.auditorias import (tela_auditorias_trimestrais, tela_detal
 from modules.auth.login import login_screen, verificar_sessao
 from modules.comunicacaoresultados.relatorios import marcar_relatorio_gerado
 from modules.execucao.processos import tela_diagnostico_processos
+from modules.shared.theme import apply_theme
 
 
 MAPA_RISCO = {
@@ -115,6 +116,10 @@ def main():
     if st.session_state.get('autenticado'):
         st.session_state['login_timestamp'] = datetime.now()
     
+    # ==== APLICAR TEMA GLOBAL ====
+    # Executado depois do login para não interferir na tela de login
+    apply_theme()
+    
     # ==== REDIRECIONAMENTO PARA EDIÇÃO DE PROCESSO ====
     # Se veio da auditoria para editar um processo
     if st.session_state.get('processo_para_editar') and st.session_state.get('opcao_menu'):
@@ -127,11 +132,64 @@ def main():
 
         # --- SIDEBAR ---
         with st.sidebar:
+            # CSS para controlar a largura do sidebar
+            st.markdown("""
+                <style>
+                        /* Ajsta a largura do sidebar */
+                        [data-testid="stSidebar"] {{
+                            min-width: 250px;
+                            max-width: 350px;
+                            width: 20vw !important;
+                        }}
+
+                        /* Ajusta o conteúdo do sidebar para se adaptar */
+                        [data-testid="stSidebar"] .sidebar-content {{
+                            width: 100%;
+                        }}
+                </style>
+            """, unsafe_allow_html=True)
+
             caminho_script = os.path.dirname(os.path.abspath(__file__))
-            logo_auditoria_path = os.path.join(caminho_script, "assets", "logo_auditoria-removebg-preview.png")
+            logo_auditoria_path = os.path.join('assets', 'logo_auditoria.png')
+
+            # CSS para centralizar a imagem usando HTML direto
+            st.markdown("""
+                <style>
+                    /* Esconde o header do sidebar */
+                        [data-testid="stSidebarHeader"] {
+                            display: none !important;
+                        }
+                    /* Container da imagem no sidebar */
+                    .sidebar-logo-container {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 100%;
+                        margin-bottom: 1rem;
+                        margin-top: 8px;
+                    }
+                    .sidebar-logo-container img {
+                        max-width: 200px;
+                        width: 100%;
+                        height: auto;
+                        transform: translateY(-20px);
+                    }
+                </style>
+            """, unsafe_allow_html=True)
             
             if os.path.exists(logo_auditoria_path):
-                st.image(logo_auditoria_path, width=200)
+                # Usa HTML direto em vez de st.image
+                with open(logo_auditoria_path, "rb") as f:
+                    import base64
+                    img_data = base64.b64encode(f.read()).decode()
+                
+                st.markdown(f'''
+                    <div class="sidebar-logo-container">
+                        <img src="data:image/png;base64,{img_data}">
+                    </div>
+                ''', unsafe_allow_html=True)
+            else:
+                st.image(logo_auditoria_path, width=200)  # fallback
 
             # Exibe o nome do usuário logado para confirmação
             st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")

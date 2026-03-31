@@ -207,6 +207,7 @@ def _tela_novo_processo():
         st.session_state['deve_limpar_diagnostico'] = False
         st.rerun()
     
+    st.divider()
     st.title("Diagnóstico dos Processos - Cadastro de novo processo")
     st.markdown("""
     <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
@@ -559,7 +560,7 @@ def _tela_editar_processo():
 
     if 'processo_selecionado_para_editar' not in st.session_state:
         st.session_state['processo_selecionado_para_editar'] = None
-
+    st.divider()
     st.title("Edição de processo existente")
     st.markdown("Selecione um processo abaixo para editar suas informações.")
     
