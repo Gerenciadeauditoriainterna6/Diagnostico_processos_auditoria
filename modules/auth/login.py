@@ -45,118 +45,210 @@ def login_screen(local_storage):
     # --- BLOCO CSS PARA DESIGN DO LOGIN ---
     st.markdown(f"""
         <style>
-        /* 1. Fundo da tela de login */
-        body {{
-            background: url("data:image/png;base64,{bin_fundo}")no-repeat center center fixed !important;
-            background-size: cover !important;
-            background-position: center !important;
-        }}
-        
-        /* 2. Esconde o cabeçalho padrão */
-        header {{ visibility: hidden; }}
-        
-        div[data-testid="stVerticalBlockBorder"], 
-        .stVerticalBlockBorder, 
-        .st-emotion-cache-139wymi, 
-        .st-emotion-cache-1r6slb0 {{
-            background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
-            border: none !important;
-            box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
-            border-radius: 20px !important;
-            padding: 15px 50px 30px 50px !important; 
-            display: flex !important;
-            flex-direction: column !important;
-            width: 85% !important;
-            margin-left: auto !important;
-            margin-right: auto !important;
-            opacity: 1 !important;
-        }}
+            /* ========== 1. Fundo da tela de login ========== */
+            body {{
+                background: url("data:image/png;base64,{bin_fundo}")no-repeat center center fixed !important;
+                background-size: cover !important;
+                background-position: center !important;
+                /* Remove margens padrão do body para evitar espaço extra */
+                margin: 0 !important;
+                padding: 0 !important;
+            }}
 
-        /* Ajuste para centralização vertical do card na tela */
-        div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
-            margin-top: 2vh;
-        }}
+            /* Remover o container branco e esticar o fundo */
+            .st-emotion-cache-p7p7gf {{
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+                backdrop-filter: none !important;
+            }}
 
-        /* Estilo da Logo e Títulos */
-        .logo-container {{
-            text-align: center;
-            margin-top: -85px;
-            margin-bottom: 15px;
-            position: relative;
-            z-index: 10;
-        }}
-        .logo-container img {{
-            width: 110px;
-            height: auto;
-            background: transparent !important;
-            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
-        }}
+            /* ========== 2. REMOVER ESPAÇOS EXTRAS DO STREAMLIT ========== */
+            /* Remove o padding superior do conteúdo principal (block-container) */
+            .block-container {{
+                padding-top: 5rem !important;
+                padding-bottom: 0rem !important;
+                max-width: 50% !important;
+            }}
+            
+            /* ========== 3. CARD DE LOGIN ========== */
+            div[data-testid="stVerticalBlockBorder"], 
+            .stVerticalBlockBorder, 
+            .st-emotion-cache-139wymi, 
+            .st-emotion-cache-1r6slb0 {{
+                background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
+                border: none !important;
+                box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
+                border-radius: 20px !important;
+                padding: 15px 50px 30px 50px !important; 
+                display: flex !important;
+                flex-direction: column !important;
+                width: 85% !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                opacity: 1 !important;
+            }}
 
-        div[data-testid="stTextInput"]:has(#text_input_2){{
-            margin-top: -25px !important;
-            margin-bottom: 0px !important;
-        }}
+            /* ========== 4. CONTAINER PAI DO CARD ========== */
 
-        div.stButton {{
-            margin-top: 15px !important;
-        }}
+            /* Ajuste para centralização vertical do card na tela */
+            div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-height: auto;      /* Remove altura mínima fixa, deixa fluir */
+                margin: 0 !important;
+            }}
 
-        button[kind="primary"] {{
-            background-color: #153e5a !important;
-            border: none !important;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.2) !important;
-        }}
+            /* ========== 5. LOGO PRINCIPAL ========== */
+            /* Estilo da Logo e Títulos */
+            .logo-container {{
+                text-align: center;
+                margin-top: -85px;
+                margin-bottom: 15px;
+                position: relative;
+                z-index: 10;
+            }}
+            .logo-container img {{
+                width: 110px;
+                height: auto;
+                background: transparent !important;
+                filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.2));
+            }}
 
-        div[data-testid="stNotification"] > div {{
-            background-color: rgba(64, 96, 100, 0.9) !important;
-            color: white !important;
-            border: 1px solid #6d8285 !important;
-        }}
+            /* ========== 6. TÍTULOS ========== */
+            /* Sem alterações */
+            div[style*="text-align: center; width: 100%; line-height: 1.2;"] {{
+                margin-bottom: 0 !important;
+            }}
+            .acesso-restrito {{
+                margin-top: 10px !important;
+                margin-bottom: 20px !important;
+            }}
 
-        /* ==== REDUZ ESPAÇAMENTOS EXTERNOS ==== */
-        /* Remove o espaço extra no topo da página */
-        .main {{
-            padding-top: 0 !important;
-        }}
-        
-         /* Reduz margem superior do container principal */
-        div[data-testid="stVerticalBlock"]:first-child {{
-            margin-top: 0 !important;
-        }}
+            /* ========== 7. CAMPOS DE INPUT ========== */
 
-        .fusve-container {{
-            text-align: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }}
+            div[data-testid="stTextInput"] {{
+                margin-bottom: 0px !important;
+            }}
 
-        .fusve-container img {{
-            width: 110px;
-            height: auto;
-            opacity: 0.8;
-            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1));
-            background: transparent !important;
-        }}
+            div[data-testid="stTextInput"]:has(#text_input_2){{
+                margin-top: -25px !important;
+                margin-bottom: 0px !important;
+            }}
 
-        /* Remover o container branco e esticar o fundo */
-        .st-emotion-cache-p7p7gf {{
-            background: transparent !important;
-            box-shadow: none !important;
-            border: none !important;
-            backdrop-filter: none !important;
-        }}
+            /* ========== 8. BOTÃO DE ENTRAR ========== */
+            div.stButton {{
+                margin-top: 15px !important;
+            }}
 
-        /* Garantir que o fundo ocupe toda a tela */
-        [data-testid="st.AppViewContainer"] {{
-            background: url("data:image/png;base64,{bin_fundo}") no-repeat center center fixed !important;
-            background-size: cover !important;
-            background-position: center !important;
-            min-height: 100vh !important;
-            height: 100% !important;
-        }}
+            button[kind="primary"] {{
+                background-color: #153e5a !important;
+                border: none !important;
+                box-shadow: 0px 4px 10px rgba(0,0,0,0.2) !important;
+            }}
+
+            /* ========== 9. LOGOS INFERIORES (FUSVE e IIA) ========== */
+            .fusve-container {{
+                text-align: center;
+                margin-top: 20px;
+                margin-bottom: 20px;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }}
+
+            .fusve-container img {{
+                width: 110px;
+                height: auto;
+                opacity: 0.8;
+                filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.1));
+                background: transparent !important;
+            }}
+
+
+            /* ========== 10. RESPONSIVIDADE ========== */
+            @media (max-width: 768px) {{
+                .block-container {{
+                    padding-top: 2rem !important;   /* Menor espaçamento no celular */
+                    max-width: 90% !important;
+                }}
+                .logo-container img {{
+                    width: 90px !important;
+                }}
+                .fusve-container img {{
+                    width: 80px !important;
+                }}
+                div[style*="text-align: center; margin-top: 25px; margin-bottom: 15px;"] img {{
+                    height: 40px !important;
+                }}
+                .floating-logos img {{
+                    height: 35px !important;
+                }}
+            }}
+
+            @media (min-width: 1920px) {{
+                .block-container {{
+                    padding-top: 8rem !important;   /* Mais espaço no topo para telas grandes */
+                    max-width: 40% !important;
+                }}
+                .floating-logos img {{
+                    height: 60px !important;
+                }}
+            }}
+
+            /* ========== 11. Esconde o cabeçalho padrão ========== */
+            header {{ visibility: hidden; }}
+
+            /* ========== 12. LOGOS FLUTUANTES (canto inferior direito) ========== */
+
+            /* Logo fixa no canto inferior direito */
+            .floating-logos {{
+                position: fixed;
+                bottom: 4vh;      /* 5% da altura da viewport */
+                right: 4vw;       /* 3% da largura da viewport */
+                z-index: 9999;
+                display: flex;
+                gap: 12px;
+                transition: all 0.3s ease;
+            }}
+            .floating-logos img {{
+                height: 50px;
+                width: auto;
+                /* max-width: 50px; */
+                object-fit: contain;
+                opacity: 0.85;
+                transition: opacity 0.2s;
+            }}
+            .floating-logos img:hover {{
+                opacity: 1;
+            }}
+            
+            /* Ajuste para telas menores (CELULAR) */
+            @media (max-width: 768px) {{
+                .floating-logos {{
+                    bottom: 3vh;
+                    right: 3vw;
+                    gap: 8px;
+                    padding: 5px 8px;
+                }}
+                .floating-logos img {{
+                    height: 30px;
+                }}
+            }}
+            
+            /* Ajuste para telas muito grandes */
+            @media (min-width: 1920px) {{
+                .floating-logos {{
+                    bottom: 8vh;
+                    right: 5vw;
+                }}
+                .floating-logos img {{ 
+                    height: 50px;
+                }}
+            }}
+
+        </style>
 
          
     """, unsafe_allow_html=True)
@@ -249,57 +341,6 @@ def login_screen(local_storage):
             ''', unsafe_allow_html=True)
         except:
             pass
-    
-    # ===== CSS PARA LOGO FIXA E RESPONSIVA =====
-    st.markdown("""
-        <style>
-            /* Logo fixa no canto inferior direito */
-            .floating-logos {
-                position: fixed;
-                bottom: 4vh;      /* 5% da altura da viewport */
-                right: 4vw;       /* 3% da largura da viewport */
-                z-index: 9999;
-                display: flex;
-                gap: 12px;
-                transition: all 0.3s ease;
-            }
-            .floating-logos img {
-                height: 50px;
-                width: auto;
-                /* max-width: 50px; */
-                object-fit: contain;
-                opacity: 0.85;
-                transition: opacity 0.2s;
-            }
-            .floating-logos img:hover {
-                opacity: 1;
-            }
-            
-            /* Ajuste para telas menores (CELULAR) */
-            @media (max-width: 768px) {
-                .floating-logos {
-                    bottom: 3vh;
-                    right: 3vw;
-                    gap: 8px;
-                    padding: 5px 8px;
-                }
-                .floating-logos img {
-                    height: 30px;
-                }
-            }
-            
-            /* Ajuste para telas muito grandes */
-            @media (min-width: 1920px) {
-                .floating-logos {
-                    bottom: 8vh;
-                    right: 5vw;
-                }
-                .floating-logos img {
-                    height: 50px;
-                }
-            }
-        </style>
-    """, unsafe_allow_html=True)
 
     # ===== LOGOS DE CANTO DA TELA =====
     try:
