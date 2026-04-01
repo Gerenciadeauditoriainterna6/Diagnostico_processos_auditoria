@@ -25,19 +25,60 @@ def tela_cadastro_area():
                 box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
             }
             
-            /* Estiliza os inputs dentro do formulário */
-            .stForm input,
-            .stForm textarea,
+            /* Estiliza os inputs de texto dentro do formulário */
+            .stForm input[type="text"],
+            .stForm input[type="password"],
+            .stForm input[type="email"],
+            .stForm input[type="number"] {
+                background-color: var(--background) !important;
+                border: 1px solid #ced4da !important;
+                border-radius: 8px !important;
+                padding: 8px 12px !important;
+                color: #182418 !important;
+            }
+            
+            /* Estiliza as áreas de texto */
+            .stForm textarea {
+                background-color: var(--background) !important;
+                border: 1px solid #ced4da !important;
+                border-radius: 8px !important;
+                padding: 8px 12px !important;
+                color: #182418 !important;
+            }
+            
+            /* Estiliza os selects (dropdowns) */
             .stForm select {
                 background-color: #ffffff !important;
                 border: 1px solid #ced4da !important;
+                border-radius: 8px !important;
+                padding: 8px 12px !important;
+                color: #182418 !important;
+            }
+            
+            /* Efeito ao focar no campo */
+            .stForm input:focus,
+            .stForm textarea:focus,
+            .stForm select:focus {
+                border-color: #1848d8 !important;
+                outline: none !important;
+                box-shadow: 0 0 0 2px rgba(24, 72, 216, 0.2) !important;
             }
             
             /* Estiliza os labels */
             .stForm label {
-                color: #495057 !important;
+                color: #48606c !important;
                 font-weight: 500 !important;
+                margin-bottom: 4px !important;
             }
+            
+            /* Estiliza os containers de funcionário (com borda) */
+            .funcionario-card {
+                background-color: var(--card-bg, #ffffff) !important;
+                border-radius: 16px !important;
+                padding: 24px !important;
+                border: 1px solid #e0e0e0 !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                }
         </style>
     """, unsafe_allow_html=True)
     
@@ -138,67 +179,69 @@ def tela_cadastro_area():
             if 'funcionarios_temp' not in st.session_state:
                 st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
             
-            # Mostrar funcionários para cadastro
-            for i, func in enumerate(st.session_state['funcionarios_temp']):
-                with st.container(border=True):
-                    st.markdown(f"**Funcionário**")
+            with st.form(key="form_funcionarios"):
+                # Mostrar funcionários para cadastro
+                for i, func in enumerate(st.session_state['funcionarios_temp']):
+                    st.markdown(f"**Funcionário {i+1}**")
                     
                     col_f1, col_f2 = st.columns(2)
                     with col_f1:
                         func['nome'] = st.text_input(
                             "Nome completo *",
-                            value=func['nome'],
-                            key=f"func_cad_nome_{i}"
+                            value=func.get('nome', ''),
+                            key=f"func_nome_{i}"
                         )
                     with col_f2:
                         func['cargo'] = st.text_input(
                             "Cargo",
-                            value=func['cargo'],
-                            key=f"func_cad_cargo_{i}"
+                            value=func.get('cargo', ''),
+                            key=f"func_cargo_{i}"
                         )
                     
                     col_f3, col_f4 = st.columns(2)
                     with col_f3:
                         func['tempo_funcao'] = st.text_input(
                             "Tempo na função",
-                            value=func['tempo_funcao'],
-                            key=f"func_cad_tempof_{i}",
+                            value=func.get('tempo_funcao', ''),
+                            key=f"func_tempof_{i}",
                             placeholder="Ex: 2 anos"
                         )
                     with col_f4:
                         func['tempo_empresa'] = st.text_input(
                             "Tempo na empresa",
-                            value=func['tempo_empresa'],
-                            key=f"func_cad_tempoe_{i}",
+                            value=func.get('tempo_empresa', ''),
+                            key=f"func_tempoe_{i}",
                             placeholder="Ex: 3 anos"
                         )
                     
-                    if i > 0:
-                        if st.button("❌ Remover", key=f"remove_func_cad_{i}"):
-                            st.session_state['funcionarios_temp'].pop(i)
+                    st.divider()
+                
+                # Botões dentro do formulário
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                with col_btn1:
+                    if st.form_submit_button("➕ Adicionar outro funcionário", use_container_width=True):
+                        st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
+                        st.rerun()
+                
+                with col_btn2:
+                    if st.form_submit_button("❌ Remover último funcionário", use_container_width=True):
+                        if len(st.session_state['funcionarios_temp']) > 1:
+                            st.session_state['funcionarios_temp'].pop()
                             st.rerun()
-            
-            col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
-            with col_btn1:
-                if st.button("➕ Adicionar outro funcionário", key="add_func_cad"):
-                    st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
-                    st.rerun()
-            
-            with col_btn2:
-                if st.button("💾 Salvar Funcionários", type="primary", key="save_func_cad"):
-                    # Validar se há pelo menos um funcionário com nome
-                    funcionarios_validos = [f for f in st.session_state['funcionarios_temp'] if f.get('nome', '').strip()]
-                    
-                    if not funcionarios_validos:
-                        st.warning("Adicione pelo menos um funcionário com nome.")
-                    else:
-                        if salvar_funcionarios_area(id_area_selecionada, funcionarios_validos):
-                            st.success(f"✅ {len(funcionarios_validos)} funcionário(s) cadastrado(s) com sucesso!")
-                            # Limpar lista temporária
-                            st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
-                            st.rerun()
+                
+                with col_btn3:
+                    if st.form_submit_button("💾 Salvar Funcionários", type="primary", use_container_width=True):
+                        funcionarios_validos = [f for f in st.session_state['funcionarios_temp'] if f.get('nome', '').strip()]
+                        
+                        if not funcionarios_validos:
+                            st.error("Adicione pelo menos um funcionário com nome.")
                         else:
-                            st.error("Erro ao cadastrar funcionários.")
+                            if salvar_funcionarios_area(id_area_selecionada, funcionarios_validos):
+                                st.success(f"✅ {len(funcionarios_validos)} funcionário(s) cadastrado(s) com sucesso!")
+                                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+                                st.rerun()
+                            else:
+                                st.error("Erro ao cadastrar funcionários.")
     
     with tab3:
         st.subheader("Áreas e Funcionários Cadastrados")

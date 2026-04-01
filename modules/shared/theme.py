@@ -10,8 +10,8 @@ SECONDARY_COLOR = "#18606c"    # Azul petróleo (hover, elementos secundários)
 ACCENT_COLOR = "#241824"        # Roxo escuro (alertas, destaques especiais)
 
 # ========== CORES DE FUNDO ==========
-BACKGROUND_COLOR = "#e4e4e4"    # Cinza claro (fundo da página)
-CARD_BACKGROUND = "#ffffff"     # Branco (fundos de cards)
+BACKGROUND_COLOR = "#ffffff"    # Cinza claro (fundo da página)
+CARD_BACKGROUND = "#e3e3e3"     # Branco (fundos de cards)
 SIDEBAR_BACKGROUND = "#184145"  # Verde azulado escuro (sidebar)
 
 # ========== CORES DE TEXTO ==========
