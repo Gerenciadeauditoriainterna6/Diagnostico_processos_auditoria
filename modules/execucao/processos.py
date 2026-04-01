@@ -208,9 +208,9 @@ def _tela_novo_processo():
         st.rerun()
     
     st.divider()
-    st.title("Diagnóstico dos Processos - Cadastro de novo processo")
+    st.title("🔍 Diagnóstico dos Processos")
     st.markdown("""
-    <div style='font-family: helvetica; color: #000000; font-size: 14px; line-height: 1.5;'>
+    <div style='font-family: helvetica==; color: #000000; font-size: 14px; line-height: 1.5;'>
         <p><strong>PASSO 1:</strong> PEDIR AO GESTOR PARA ESCREVER EM UM PAPEL O FLUXO DO PASSO A PASSO DO PROCESSO, INICIO AO FIM.</p>
         <p style='margin-top: 15px;'><strong>PASSO 2:</strong> ESCREVER ABAIXO OS PROCESSOS QUE FORAM SINALIZADOS NO FLUXO.</p>
     </div>
@@ -277,7 +277,7 @@ def _tela_novo_processo():
     st.markdown("""
         <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
             <h3 style='margin: 0; padding: 0;'>2. Informações Iniciais do Processo</h3>
-            <span style='cursor: help; font-size: 1.2rem;' title='Associeo aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
+            <span style='cursor: help; font-size: 1.2rem;' title='Associe o aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
         </div>
     """, unsafe_allow_html=True)
     st.divider()

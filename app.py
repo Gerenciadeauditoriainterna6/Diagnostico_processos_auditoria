@@ -154,28 +154,77 @@ def main():
 
             # CSS para centralizar a imagem usando HTML direto
             st.markdown("""
-                <style>
-                    /* Esconde o header do sidebar */
-                        [data-testid="stSidebarHeader"] {
-                            display: none !important;
-                        }
-                    /* Container da imagem no sidebar */
-                    .sidebar-logo-container {
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        width: 100%;
-                        margin-bottom: 1rem;
-                        margin-top: 8px;
-                    }
-                    .sidebar-logo-container img {
-                        max-width: 200px;
-                        width: 100%;
-                        height: auto;
-                        transform: translateY(-20px);
-                    }
-                </style>
-            """, unsafe_allow_html=True)
+            <style>
+                /* Reduz a altura do header do sidebar */
+                [data-testid="stSidebarHeader"] {
+                    height: 20px !important;
+                    min-height: 20px !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                /* Ajusta o botão de recolher */
+                [data-testid="stSidebarHeader"] button {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    margin-top: 25px !important;  /* ← controla a posição do botão */
+                    height: 10px !important;
+                }
+                    
+                /* Ícone do botão recolher (sidebar expandido) */
+                [data-testid="stSidebarHeader"] button svg {
+                    fill: #e4e4e4 !important;
+                    stroke: #e4e4e4 !important;
+                }
+                
+                /* Ícone do botão recolher (sidebar recolhido) */
+                button[kind="icon"] svg {
+                    fill: #e4e4e4 !important;
+                    stroke: #e4e4e4 !important;
+                }
+                
+                /* Ícone do controle recolhido */
+                [data-testid="collapsedControl"] svg {
+                    fill: #e4e4e4 !important;
+                    stroke: #e4e4e4 !important;
+                }
+                    
+                /* Container da imagem no sidebar */
+                .sidebar-logo-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100%;
+                    margin-bottom: 1rem;
+                    margin-top: 8px;  /* ← espaço acima da imagem */
+                }
+                .sidebar-logo-container img {
+                    max-width: 200px;
+                    width: 100%;
+                    height: auto;
+                    transform: translateY(-20px);  /* ← move a imagem para cima */
+                }
+                        
+                /* ... seu CSS existente ... */
+        
+                /* Ícone do botão quando o sidebar está recolhido */
+                span[data-testid="stIconMaterial"] {
+                    color: #e4e4e4 !important;
+                }
+                
+                /* Classe específica do ícone */
+                .st-emotion-cache-1g48ntn {
+                    color: #e4e4e4 !important;
+                }
+                
+                /* Para garantir em qualquer estado */
+                span[data-testid="stIconMaterial"] svg,
+                span[data-testid="stIconMaterial"] {
+                    color: #e4e4e4 !important;
+                    fill: #e4e4e4 !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
             
             if os.path.exists(logo_auditoria_path):
                 # Usa HTML direto em vez de st.image

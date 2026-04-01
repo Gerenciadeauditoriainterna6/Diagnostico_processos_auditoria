@@ -314,6 +314,8 @@ def get_theme_css():
             h1, h2, h3, h4, h5, h6 {{
                 color: var(--primary);
                 font-weight: 600;
+                font-family: 'helvetica' !important;
+                text-transform: uppercase !important; /* Linha para transformar todos os títulos em maísculos */
             }}
             
             /* ========== LINKS ========== */

@@ -11,21 +11,24 @@ def tela_plano_anual():
     
     st.markdown("""
         <style>
-            .main .block-container {
-                max-width: 98vw !important;
+            .block-container {
+                max-width: 95% !important;
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
             }
-            .stMarkdown, .stTitle, .stText {
+            
+            /* Remove qualquer padding lateral que possa estar limitando */
+            .stApp {
+                padding: 0 !important;
+            }
+            
+            /* Força o PDF a ocupar toda a largura */
+            iframe, .stElement, .stMarkdown {
                 width: 100% !important;
-                text-align: left !important;
             }
-            #pdfViewer, .scrolling-container {
-                width: 95vw !important;
-                max-width: 95vw !important;
-                margin-left: 0 !important;
-            }
-            iframe {
+            
+            /* Container do PDF */
+            .stElement iframe {
                 width: 100% !important;
             }
         </style>
