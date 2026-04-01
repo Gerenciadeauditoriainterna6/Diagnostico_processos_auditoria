@@ -13,7 +13,7 @@ from modules.execucao.auditorias import (tela_auditorias_trimestrais, tela_detal
 from modules.auth.login import login_screen, verificar_sessao
 from modules.comunicacaoresultados.relatorios import marcar_relatorio_gerado
 from modules.execucao.processos import tela_diagnostico_processos
-from modules.shared.theme import apply_theme
+from modules.shared.theme import apply_theme, set_page_width
 
 
 MAPA_RISCO = {
@@ -300,12 +300,15 @@ def main():
 
     # --- LÓGICA PRINCIPAL ---
     if opcao == "🔍 Diagnóstico dos Processos":
+       set_page_width(95) # 95% da tela segundo a função dentro de theme.py
        tela_diagnostico_processos()
 
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
+        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
         tela_cadastro_area()
 
     elif opcao == "👁️ Visão Geral do Diagnóstico":
+        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
         tela_visao_geral_processos()
 
     elif opcao == "Geração de Relatórios":
@@ -350,6 +353,7 @@ def main():
         tela_plano_anual()
 
     elif opcao == "📋 Detalhamento dos Processos":
+        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
         if 'processo_detalhe' in st.session_state:
             tela_detalhe_processo_auditoria()
         elif 'auditoria_selecionada' in st.session_state:

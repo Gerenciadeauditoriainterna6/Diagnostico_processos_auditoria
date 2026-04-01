@@ -104,7 +104,7 @@ def login_screen(local_storage):
             /* Estilo da Logo e Títulos */
             .logo-container {{
                 text-align: center;
-                margin-top: -85px;
+                margin-top: -80px;
                 margin-bottom: 15px;
                 position: relative;
                 z-index: 10;
@@ -246,7 +246,23 @@ def login_screen(local_storage):
                 .floating-logos img {{ 
                     height: 50px;
                 }}
+            }} 
+
+            /* ===== ESCONDE APENAS OS IFRAMES DO LOCALSTORAGE ===== */
+            iframe[title="streamlit_local_storage.st_local_storage"] {{
+                display: none !important;
+                height: 0 !important;
+                width: 0 !important;
+                visibility: hidden !important;
             }}
+            
+            /* Remove apenas os containers específicos dos iframes, não todos */
+            div:has(> iframe[title="streamlit_local_storage.st_local_storage"]) {{
+                height: 0 !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }}
+        
 
         </style>
 
@@ -317,11 +333,11 @@ def login_screen(local_storage):
                     st.session_state["usuario_logado"] = usuario
                     st.session_state['login_timestamp'] = datetime.now()
                     st.session_state.pop('sessao_expirada', None)
-                    st.success("Login realizado com sucesso!")
-                    time_module.sleep(1)
+                    st.toast("Login realizado com sucesso!", icon="✅")
+                    time_module.sleep(1.15)
                     st.rerun()
                 else:
-                    st.error("Usuário ou senha incorretos.")
+                    st.toast("Usuário ou senha incorretos.", icon="❌")
 
         # Logo FUSVE (abaixo do card)
         st.markdown(f'''
@@ -330,35 +346,35 @@ def login_screen(local_storage):
             </div>
         ''', unsafe_allow_html=True)
         
-        # Logo IIA (abaixo da FUSVE)
-        try:
-            bin_logo_iia = get_base64(os.path.join("assets", "logo_iia.png"))
-            st.markdown(f'''
-                <div style="text-align: center; margin-top: 25px; margin-bottom: 15px;">
-                    <img src="data:image/png;base64,{bin_logo_iia}" 
-                         style="height: 50px; width: auto; opacity: 0.9;">
-                </div>
-            ''', unsafe_allow_html=True)
-        except:
-            pass
+        # # Logo IIA (abaixo da FUSVE)
+        # try:
+        #     bin_logo_iia = get_base64(os.path.join("assets", "logo_iia.png"))
+        #     st.markdown(f'''
+        #         <div style="text-align: center; margin-top: 25px; margin-bottom: 15px;">
+        #             <img src="data:image/png;base64,{bin_logo_iia}" 
+        #                  style="height: 50px; width: auto; opacity: 0.9;">
+        #         </div>
+        #     ''', unsafe_allow_html=True)
+        # except:
+        #     pass
 
-    # ===== LOGOS DE CANTO DA TELA =====
-    try:
-        bin_logo_coso = get_base64(os.path.join("assets", "logo_coso.png"))
-        bin_logo_ibgc = get_base64(os.path.join("assets", "logo_ibgc.png"))
-        bin_logo_denasus = get_base64(os.path.join("assets", "logo_denasus.png"))
-        bin_logo_iso31000 = get_base64(os.path.join("assets", "logo_iso31000.png"))
-        st.markdown(f'''
-            <div class="floating-logos">
-                <img src="data:image/png;base64,{bin_logo_coso}" style="height: 40px; width: auto;" title="Committee of Sponsoring Organizations">
-                <img src="data:image/png;base64,{bin_logo_ibgc}" style="height: 50px; width: auto;">
-                <img src="data:image/png;base64,{bin_logo_denasus}" style="height: 40px; width: auto;">
-                <img src="data:image/png;base64,{bin_logo_iso31000}" style="height: 50px; width: auto;">
+    # # ===== LOGOS DE CANTO DA TELA =====
+    # try:
+    #     bin_logo_coso = get_base64(os.path.join("assets", "logo_coso.png"))
+    #     bin_logo_ibgc = get_base64(os.path.join("assets", "logo_ibgc.png"))
+    #     bin_logo_denasus = get_base64(os.path.join("assets", "logo_denasus.png"))
+    #     bin_logo_iso31000 = get_base64(os.path.join("assets", "logo_iso31000.png"))
+    #     st.markdown(f'''
+    #         <div class="floating-logos">
+    #             <img src="data:image/png;base64,{bin_logo_coso}" style="height: 40px; width: auto;" title="Committee of Sponsoring Organizations">
+    #             <img src="data:image/png;base64,{bin_logo_ibgc}" style="height: 50px; width: auto;">
+    #             <img src="data:image/png;base64,{bin_logo_denasus}" style="height: 40px; width: auto;">
+    #             <img src="data:image/png;base64,{bin_logo_iso31000}" style="height: 50px; width: auto;">
     
-            </div>
-        ''', unsafe_allow_html=True)
-    except:
-        pass
+    #         </div>
+    #     ''', unsafe_allow_html=True)
+    # except:
+    #     pass
                     
     return False
 

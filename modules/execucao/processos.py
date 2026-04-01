@@ -927,7 +927,7 @@ def _tela_editar_processo():
                 # Título do expander
                 titulo_risco = risco.get('nome', f'Risco {i+1}')
                 if titulo_risco and titulo_risco != f'Risco {i+1}':
-                    titulo_expander = f"⚠️ {titulo_risco[:50]}"
+                    titulo_expander = f"⚠️ {titulo_risco[:60]}..."
                 else:
                     titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
                 
@@ -1087,72 +1087,67 @@ def tela_diagnostico_processos():
     """Tela principal de diagnóstico de processos (novo e editar)"""
     
     # NOVA ESTRUTURA COM DUAS ABAS
-    # Estilo CSS para fazer o radio parecer tabs
-    st.markdown("""
-    <style>
-        /* Container do radio */
-        div[data-testid="stHorizontalRadio"] {
-            gap: 0px !important;
-            background-color: transparent !important;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 0px;
-            margin-bottom: 1rem;
-        }
+    # # Estilo CSS para fazer o radio parecer tabs
+    # st.markdown("""
+    # <style>
+    #     /* Container do radio */
+    #     div[data-testid="stHorizontalRadio"] {
+    #         gap: 0px !important;
+    #         background-color: transparent !important;
+    #         border-bottom: 1px solid #e0e0e0;
+    #         padding-bottom: 0px;
+    #         margin-bottom: 1rem;
+    #     }
         
-        /* Cada opção do radio */
-        div[data-testid="stHorizontalRadio"] label {
-            background-color: transparent !important;
-            border: none !important;
-            border-radius: 0px !important;
-            padding: 0.5rem 1rem !important;
-            margin: 0px !important;
-            font-size: 1rem;
-            font-weight: 500;
-            color: #6c6c6c;
-            transition: all 0.2s ease;
-        }
+    #     /* Cada opção do radio */
+    #     div[data-testid="stHorizontalRadio"] label {
+    #         background-color: transparent !important;
+    #         border: none !important;
+    #         border-radius: 0px !important;
+    #         padding: 0.5rem 1rem !important;
+    #         margin: 0px !important;
+    #         font-size: 1rem;
+    #         font-weight: 500;
+    #         color: #6c6c6c;
+    #         transition: all 0.2s ease;
+    #     }
         
-        /* Efeito hover */
-        div[data-testid="stHorizontalRadio"] label:hover {
-            color: #153e5a;
-            background-color: rgba(21, 62, 90, 0.05) !important;
-        }
+    #     /* Efeito hover */
+    #     div[data-testid="stHorizontalRadio"] label:hover {
+    #         color: #153e5a;
+    #         background-color: rgba(21, 62, 90, 0.05) !important;
+    #     }
         
-        /* Opção selecionada */
-        div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"]:has(input:checked) {
-            color: #153e5a !important;
-            border-bottom: 2px solid #153e5a !important;
-            background-color: transparent !important;
-        }
+    #     /* Opção selecionada */
+    #     div[data-testid="stHorizontalRadio"] label[data-baseweb="radio"]:has(input:checked) {
+    #         color: #153e5a !important;
+    #         border-bottom: 2px solid #153e5a !important;
+    #         background-color: transparent !important;
+    #     }
         
-        /* Esconder o botão de rádio original */
-        div[data-testid="stHorizontalRadio"] label .st-ae {
-            display: none !important;
-        }
+    #     /* Esconder o botão de rádio original */
+    #     div[data-testid="stHorizontalRadio"] label .st-ae {
+    #         display: none !important;
+    #     }
         
-        /* Ajuste para alinhamento */
-        div[data-testid="stHorizontalRadio"] label .st-bw {
-            display: none !important;
-        }
+    #     /* Ajuste para alinhamento */
+    #     div[data-testid="stHorizontalRadio"] label .st-bw {
+    #         display: none !important;
+    #     }
         
-        /* Espaçamento entre as opções */
-        div[data-testid="stHorizontalRadio"] label:not(:last-child) {
-            margin-right: 0px !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+    #     /* Espaçamento entre as opções */
+    #     div[data-testid="stHorizontalRadio"] label:not(:last-child) {
+    #         margin-right: 0px !important;
+    #     }
+    # </style>
+    # """, unsafe_allow_html=True)
 
-    aba_escolhida = st.radio(
-        "",
-        ["📝 Novo Processo", "✏️ Editar Processo Existente"],
-        key="diagnostico_aba",
-        horizontal=True
-    )
+    tab1, tab2 = st.tabs(["📝 Novo Processo", "✏️ Editar Processo Existente"])
     
     # ===== TAB 1: NOVO PROCESSO =====
-    if aba_escolhida == "📝 Novo Processo":
+    with tab1:
         _tela_novo_processo()
     
     # ===== TAB 2: EDITAR PROCESSO EXISTENTE =====
-    else:
+    with tab2:
         _tela_editar_processo()

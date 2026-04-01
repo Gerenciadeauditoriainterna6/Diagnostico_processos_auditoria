@@ -531,7 +531,7 @@ def tela_detalhe_processo_auditoria():
                                         key=f"doc_{etapa['id']}_{auditoria_id}"  # ← KEY ÚNICA
                                     )
                                     
-                                    if st.form_submit_button("💾 Salvar Risco", type="primary", key='btn_salvar_risco'):
+                                    if st.form_submit_button("💾 Salvar Risco", type="primary", key=f'btn_salvar_risco_{etapa['id']}_{auditoria_id}'):
                                         if not fator or not cons:
                                             st.warning("Preencha fator e consequência.")
                                         else:

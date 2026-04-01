@@ -2,6 +2,7 @@
 Tema global do aplicativo
 Paleta de cores personalizada
 """
+import streamlit as st
 
 # ========== CORES PRINCIPAIS ==========
 PRIMARY_COLOR = "#1848d8"      # Azul principal (botões, destaques)
@@ -11,7 +12,7 @@ ACCENT_COLOR = "#241824"        # Roxo escuro (alertas, destaques especiais)
 # ========== CORES DE FUNDO ==========
 BACKGROUND_COLOR = "#e4e4e4"    # Cinza claro (fundo da página)
 CARD_BACKGROUND = "#ffffff"     # Branco (fundos de cards)
-SIDEBAR_BACKGROUND = "#184848"  # Verde azulado escuro (sidebar)
+SIDEBAR_BACKGROUND = "#184145"  # Verde azulado escuro (sidebar)
 
 # ========== CORES DE TEXTO ==========
 TEXT_COLOR = "#182418"          # Verde muito escuro (texto principal)
@@ -429,5 +430,18 @@ def get_theme_css():
 
 def apply_theme():
     """Aplica o tema global no app"""
-    import streamlit as st
     st.markdown(get_theme_css(), unsafe_allow_html=True)
+
+def set_page_width(width_percent: int=90):
+    """Define a largura máxima do container principal"""
+    st.markdown(f"""
+        <style>
+            .block-container {{
+                max-width: {width_percent}% !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }}
+        </style>
+    """, unsafe_allow_html=True)

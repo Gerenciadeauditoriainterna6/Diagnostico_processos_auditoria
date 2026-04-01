@@ -9,9 +9,37 @@ from logic import (
 )
 from sqlalchemy import text
 from database import engine
+from modules.shared.theme import get_theme_css
 
 def tela_cadastro_area():
     """Tela para cadastro de áreas e seus funcionários"""
+    # CSS com seletores mais diretos
+    st.markdown("""
+        <style>
+            /* Estiliza o container do formulário */
+            .stForm {
+                background-color: var(--card-bg, #ffffff) !important;
+                border-radius: 16px !important;
+                padding: 24px !important;
+                border: 1px solid #e0e0e0 !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+            }
+            
+            /* Estiliza os inputs dentro do formulário */
+            .stForm input,
+            .stForm textarea,
+            .stForm select {
+                background-color: #ffffff !important;
+                border: 1px solid #ced4da !important;
+            }
+            
+            /* Estiliza os labels */
+            .stForm label {
+                color: #495057 !important;
+                font-weight: 500 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
     
     st.title("🏢 Cadastro de Áreas e Funcionários")
     
@@ -22,6 +50,7 @@ def tela_cadastro_area():
         st.subheader("Nova Área")
         
         with st.form("form_nova_area"):
+        
             nome_area = st.text_input("Nome da Área *", help="Ex: Gerência Financeira, Recursos Humanos, etc.")
             
             col1, col2 = st.columns(2)
@@ -32,8 +61,27 @@ def tela_cadastro_area():
             
             gestor = st.text_input("Nome do Gestor *", help="Nome do responsável pela área")
             objetivo = st.text_area("Objetivo da Área", help="Descreva brevemente o propósito da área")
+
+            st.markdown("""
+                <style>
+                    /* Seleciona o selectbox de Status pelo aria-label */
+                    div[aria-label="Selected Ativo. Status"] {
+                        width: 200px !important;
+                    }
+                    
+                    /* Ou se preferir pelo container principal */
+                    div[data-baseweb="select"] {
+                        width: 200px !important;
+                    }
+                    
+                    /* Para afetar apenas dentro do formulário de nova área */
+                    form[data-testid="stForm"] div[data-baseweb="select"] {
+                        width: 200px !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
             
-            status = st.selectbox("Status", ["Ativo", "Inativo"])
+            # status = st.selectbox("Status", ["Ativo", "Inativo"]) Removido por enquanto
             
             if st.form_submit_button("💾 Salvar Área", type="primary", key='btn_salvar_area'):
                 if not nome_area or not gestor:
@@ -42,7 +90,7 @@ def tela_cadastro_area():
                     dados_area = {
                         "nome": nome_area,
                         "objetivo": objetivo,
-                        "status": status,
+                        #"status": status,
                         "email": email,
                         "telefone": telefone,
                         "gestor": gestor

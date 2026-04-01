@@ -54,7 +54,7 @@ def tela_plano_anual():
                 data=f,
                 file_name="Plano_Auditoria_2026.pdf",
                 mime="application/pdf",
-                use_container_width=True
+                use_container_width=False
             )
     else:
         st.warning("⚠️ Arquivo não encontrado na pasta assets.")
