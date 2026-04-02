@@ -195,14 +195,55 @@ def get_theme_css():
                 color: var(--sidebar-text) !important;
             }}
             
-            /* ========== CARDS ========== */
-            div[data-testid="stVerticalBlockBorder"] {{
+            /* ========== CONTAINERS PERSONALIZADOS ========== */
+            /* Container padrão */
+            .custom-container {{
                 background-color: var(--card-bg);
                 border-radius: var(--border-radius-card);
                 box-shadow: var(--shadow-md);
-                padding: {SPACING_LARGE};
-                margin-bottom: {SPACING_MEDIUM};
+                padding: 20px;
+                margin-bottom: 20px;
                 border: 1px solid var(--border-color);
+            }}
+
+            /* Container primário (destaque) */
+            .custom-container-primary {{
+                background-color: #e8f0fe;
+                border-radius: var(--border-radius-card);
+                box-shadow: var(--shadow-md);
+                padding: 20px;
+                margin-bottom: 20px;
+                border: 2px solid var(--primary);
+            }}
+
+            /* Container de perigo/erro */
+            .custom-container-danger {{
+                background-color: #fee8e8;
+                border-radius: var(--border-radius-card);
+                box-shadow: var(--shadow-md);
+                padding: 20px;
+                margin-bottom: 20px;
+                border: 2px solid var(--danger);
+            }}
+
+            /* Título do container */
+            .custom-container-title {{
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--primary);
+                margin-bottom: 15px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid var(--border-color);
+            }}
+
+            /* Campos dentro do container */
+            .custom-container div[data-testid="stTextArea"] textarea,
+            .custom-container div[data-testid="stTextInput"] input,
+            .custom-container-primary div[data-testid="stTextArea"] textarea,
+            .custom-container-primary div[data-testid="stTextInput"] input {{
+                background-color: #ffffff !important;
+                border: 1px solid #ced4da !important;
+                border-radius: 8px !important;
             }}
             
             /* ========== BOTÕES ========== */
@@ -423,31 +464,6 @@ def get_theme_css():
             
             ::-webkit-scrollbar-thumb:hover {{
                 background: var(--hover-color);
-            }}
-
-            /* Containers */
-            .custom-container {{
-                background-color: var(--card-bg);
-                border-radius: var(--border-radius-card);
-                box-shadow: var(--shadow-md);
-                padding: {SPACING_LARGE};
-                margin-bottom: {SPACING_MEDIUM};
-                border: 1px solid var(--border-color);
-            }}
-
-            /* Campos dentro do container */
-            .custom-container div[data-testid="stTextArea"] textarea,
-            .custom-container div[data-testid="stTextInput"] input,
-            .custom-container div[data-testid="stSelectbox"] select {{
-                background-color: #ffffff !important;
-                border: 1px solid #ced4da !important;
-                border-radius: 8px !important;
-            }}
-            
-            /* Labels dentro do container */
-            .custom-container label {{
-                color: #48606c !important;
-                font-weight: 500 !important;
             }}
         </style>
     """

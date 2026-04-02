@@ -11,87 +11,79 @@ from sqlalchemy import text
 from database import engine
 from modules.shared.theme import get_theme_css
 
+# modules/execucao/areas.py
+
 def tela_cadastro_area():
     """Tela para cadastro de áreas e seus funcionários"""
-    # CSS com seletores mais diretos
+    
+    # --- ESTILIZAÇÃO PERSONALIZADA PARA ESTA TELA ---
     st.markdown("""
         <style>
-            /* Estiliza o container do formulário */
-            .stForm {
-                background-color: var(--card-bg, #ffffff) !important;
-                border-radius: 16px !important;
-                padding: 24px !important;
-                border: 1px solid #e0e0e0 !important;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-            }
-            
-            /* Estiliza os inputs de texto dentro do formulário */
-            .stForm input[type="text"],
-            .stForm input[type="password"],
-            .stForm input[type="email"],
-            .stForm input[type="number"] {
-                background-color: var(--background) !important;
+            /* ==== ESTILIZA O CONTAINER PRINCIPAL ==== */
+                
+                div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) {
+                    background-color: var(--card-bg) !important;
+                    border-radius: 16px !important;
+                    border: 1px solid #e0e0e0 !important;
+                    padding: 20px !important;
+                    margin-bottom: 20px !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                }
+
+            /* ===== ESTILIZA OS CAMPOS DENTRO DO CONTAINER ===== */
+
+            /* Estiliza os textareas */
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) textarea {
+                background-color: #ffffff !important;
                 border: 1px solid #ced4da !important;
                 border-radius: 8px !important;
-                padding: 8px 12px !important;
-                color: #182418 !important;
+                padding: 10px !important;
             }
-            
-            /* Estiliza as áreas de texto */
-            .stForm textarea {
-                background-color: var(--background) !important;
-                border: 1px solid #ced4da !important;
-                border-radius: 8px !important;
-                padding: 8px 12px !important;
-                color: #182418 !important;
-            }
-            
-            /* Estiliza os selects (dropdowns) */
-            .stForm select {
+
+            /* Estiliza os inputs (text_input) */
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) input {
                 background-color: #ffffff !important;
                 border: 1px solid #ced4da !important;
                 border-radius: 8px !important;
                 padding: 8px 12px !important;
-                color: #182418 !important;
             }
-            
-            /* Efeito ao focar no campo */
-            .stForm input:focus,
-            .stForm textarea:focus,
-            .stForm select:focus {
-                border-color: #1848d8 !important;
-                outline: none !important;
-                box-shadow: 0 0 0 2px rgba(24, 72, 216, 0.2) !important;
+
+            /* Estiliza os selectboxes (dropdown) */
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) select {
+                background-color: #ffffff !important;
+                border: 1px solid #ced4da !important;
+                border-radius: 8px !important;
+                padding: 8px 12px !important;
             }
-            
-            /* Estiliza os labels */
-            .stForm label {
+
+            /* Estiliza os labels (títulos dos campos) */
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) label {
                 color: #48606c !important;
                 font-weight: 500 !important;
                 margin-bottom: 4px !important;
             }
-            
-            /* Estiliza os containers de funcionário (com borda) */
-            .funcionario-card {
-                background-color: var(--card-bg, #ffffff) !important;
-                border-radius: 16px !important;
-                padding: 24px !important;
-                border: 1px solid #e0e0e0 !important;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-                }
-        </style>
+
+            /* Efeito ao focar nos campos */
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) textarea:focus,
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) input:focus,
+            div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) select:focus {
+                border-color: #1848d8 !important;
+                outline: none !important;
+                box-shadow: 0 0 0 3px rgba(24, 72, 216, 0.1) !important;
+            }
+        </style>  
     """, unsafe_allow_html=True)
-    
+
     st.title("🏢 Cadastro de Áreas e Funcionários")
     
     # Abas para separar as funcionalidades
     tab1, tab2, tab3 = st.tabs(["📌 Cadastrar Nova Área", "👥 Cadastrar Funcionários", "📋 Gerenciar"])
     
     with tab1:
-        st.subheader("Nova Área")
         
-        with st.form("form_nova_area"):
-        
+        with st.container(border=True):
+            st.subheader("Nova Área")
+                
             nome_area = st.text_input("Nome da Área *", help="Ex: Gerência Financeira, Recursos Humanos, etc.")
             
             col1, col2 = st.columns(2)
@@ -102,36 +94,15 @@ def tela_cadastro_area():
             
             gestor = st.text_input("Nome do Gestor *", help="Nome do responsável pela área")
             objetivo = st.text_area("Objetivo da Área", help="Descreva brevemente o propósito da área")
-
-            st.markdown("""
-                <style>
-                    /* Seleciona o selectbox de Status pelo aria-label */
-                    div[aria-label="Selected Ativo. Status"] {
-                        width: 200px !important;
-                    }
-                    
-                    /* Ou se preferir pelo container principal */
-                    div[data-baseweb="select"] {
-                        width: 200px !important;
-                    }
-                    
-                    /* Para afetar apenas dentro do formulário de nova área */
-                    form[data-testid="stForm"] div[data-baseweb="select"] {
-                        width: 200px !important;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
             
-            # status = st.selectbox("Status", ["Ativo", "Inativo"]) Removido por enquanto
-            
-            if st.form_submit_button("💾 Salvar Área", type="primary", key='btn_salvar_area'):
+            if st.button("💾 Salvar Área", type="primary", key='btn_salvar_area'):
                 if not nome_area or not gestor:
                     st.error("Nome da Área e Nome do Gestor são obrigatórios.")
                 else:
                     dados_area = {
                         "nome": nome_area,
                         "objetivo": objetivo,
-                        #"status": status,
+                        "status": "Ativo",
                         "email": email,
                         "telefone": telefone,
                         "gestor": gestor

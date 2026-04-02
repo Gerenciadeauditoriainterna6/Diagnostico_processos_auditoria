@@ -1494,7 +1494,7 @@ def listar_executores_processo_com_nomes(processo_id):
         return [f"{row['nome_funcionario']} ({row['cargo']})" 
                 for _, row in df.iterrows()]
 
-def listar_categorias():
+def listar_categorias(): # ---- SE PRECISAR INCLUIR MAIS RISCOS, INCLUIR VIA BANCO DE DADOS TABELA CATEGORIAS_RISCO
     """Retorna todas as categorias disponíveis"""
     query = text(
         """SELECT id, nome
