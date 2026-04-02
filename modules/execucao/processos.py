@@ -170,6 +170,70 @@ def verificar_e_carregar_processo():
 
 def _tela_novo_processo():
     """Sub-tela de cadastro de novo processo"""
+    st.markdown("""
+        <style>
+            /* Estiliza o formulário de novo processo - usando o container pai */
+            .stForm {
+                background-color: var(--card-bg) !important;
+                border-radius: 16px !important;
+                padding: 24px !important;
+                border: 1px solid #e0e0e0 !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                margin-bottom: 20px !important;
+            }
+            
+            /* Input em foco */
+            .stForm input:focus,
+            .stForm textarea:focus {
+                border-color: #1848d8 !important;
+                outline: none !important;
+                box-shadow: 0 0 0 2px rgba(24, 72, 216, 0.2) !important;
+            }
+            
+            /* Estiliza os labels */
+            .stForm label {
+                color: #48606c !important;
+                font-weight: 500 !important;
+                margin-bottom: 4px !important;
+            }
+            
+            /* Estiliza o campo desabilitado (código do processo) */
+            .stForm input:disabled {
+                background-color: #e9ecef !important;
+                color: #6c757d !important;
+                cursor: not-allowed !important;
+            }
+            
+            /* Botões do formulário */
+            .stForm .stFormSubmitButton button {
+                background-color: #1848d8 !important;
+                color: white !important;
+                border-radius: 8px !important;
+                padding: 8px 16px !important;
+                font-weight: 500 !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .stForm .stFormSubmitButton button:hover {
+                background-color: #0e3ab3 !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            }
+            
+            /* Botão secundário (Limpar) */
+            .stForm .stFormSubmitButton button[kind="secondaryFormSubmit"] {
+                background-color: #f8f9fa !important;
+                color: #6c757d !important;
+                border: 1px solid #dee2e6 !important;
+            }
+            
+            .stForm .stFormSubmitButton button[kind="secondaryFormSubmit"]:hover {
+                background-color: #e9ecef !important;
+                color: #495057 !important;
+            }
+                            
+        </style>
+    """, unsafe_allow_html=True)
 
     # ===== TAB 1: NOVO PROCESSO =====
     
@@ -286,61 +350,75 @@ def _tela_novo_processo():
     nome_processo = st.text_input(
         "Nome do Processo:", 
         key="input_processo", 
-        on_change=processar_codigo_inteligente,
-        help="Digite o nome do processo."
+        help="Digite o nome do processo.",
+        placeholder="Ex: Processo de Fechamento Financeiro, Processo de Recrutamento e Seleção, etc."
     )
 
-    # Código do Processo (gerado automaticamente) - APENAS EXIBIÇÃO, SEM STATE
-    codigo_atual = st.session_state.get('codigo_processo_display', '')
-    st.text_input("Código do Processo:", value=codigo_atual, disabled=True)
+    # Atualiza o código automaticamente sempre que o nome do processo mudar
+    # Usando sessions_state para detectar mudanças
+    if 'ultimo_nome_processo' not in st.session_state:
+        st.session_state['ultimo_nome_processo'] = ''
+    if nome_processo != st.session_state['ultimo_nome_processo']:
+        st.session_state['ultimo_nome_processo'] = nome_processo
+        # Chama a função para gerar o código inteligente
+        processar_codigo_inteligente()
+    col_codigo = st.columns([1, 4])
+    with col_codigo[0]:
+        # Código do Processo (gerado automaticamente) - APENAS EXIBIÇÃO, SEM STATE
+        codigo_atual = st.session_state.get('codigo_processo_display', '')
+        st.text_input("Código do Processo:", value=codigo_atual, disabled=True, help="Código gerado automaticamente com base no nome do processo e na área selecionada. Não é editável.")
+    st.divider()
 
-    # ===== EXECUTORES DO PROCESSO =====
-    st.markdown("**Funcionário(s) que executam o processo:**")
+    with st.form(key="form_novo_processo"):
+        # ===== EXECUTORES DO PROCESSO =====
+        st.markdown("**Funcionário(s) que executam o processo:**")
 
-    # Buscar funcionários da área selecionada
-    id_area_atual = st.session_state.get('id_area_selecionado')
-    funcionarios_lista = []
+        # Buscar funcionários da área selecionada
+        id_area_atual = st.session_state.get('id_area_selecionado')
+        funcionarios_lista = []
 
-    if id_area_atual:
-        funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
+        if id_area_atual:
+            funcionarios_lista = listar_funcionarios_por_area(id_area_atual)
 
-    if not funcionarios_lista:
-        st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas e Funcionários'.")
-        if 'novo_executores_selecionados' not in st.session_state:
-            st.session_state['novo_executores_selecionados'] = []
-    else:
-        funcionarios_ids = [f[0] for f in funcionarios_lista]
-        funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
-        
-        defaults_validos = []
-        if 'novo_executores_selecionados' in st.session_state:
-            for exec_id in st.session_state['executores_selecionados']:
-                if exec_id in funcionarios_dict:
-                    defaults_validos.append(exec_id)
+        if not funcionarios_lista:
+            st.warning("⚠️ Nenhum funcionário cadastrado para esta área. Cadastre funcionários em '🏢 Cadastro de Áreas e Funcionários'.")
+            if 'novo_executores_selecionados' not in st.session_state:
+                st.session_state['novo_executores_selecionados'] = []
+        else:
+            funcionarios_ids = [f[0] for f in funcionarios_lista]
+            funcionarios_dict = {f[0]: f[1] for f in funcionarios_lista}
+            
+            defaults_validos = []
+            if 'novo_executores_selecionados' in st.session_state:
+                for exec_id in st.session_state['executores_selecionados']:
+                    if exec_id in funcionarios_dict:
+                        defaults_validos.append(exec_id)
 
-        selecionados = st.multiselect(
-            "",
-            options=funcionarios_ids,
-            format_func=lambda x: funcionarios_dict[x],
-            default=defaults_validos,
-            key=f"multiselect_executores_{st.session_state.get('multiselect_key_counter', 0)}",
-            help="Você pode selecionar um ou mais funcionários",
-            placeholder="Selecione os funcionários que executam este processo:"
-        )
-        
-        st.session_state['novo_executores_selecionados'] = selecionados
-        
-        if selecionados:
-            nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
-            st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
+            selecionados = st.multiselect(
+                "",
+                options=funcionarios_ids,
+                format_func=lambda x: funcionarios_dict[x],
+                default=defaults_validos,
+                key=f"multiselect_executores_{st.session_state.get('multiselect_key_counter', 0)}",
+                help="Você pode selecionar um ou mais funcionários",
+                placeholder="Selecione os funcionários que executam este processo:"
+            )
+            
+            st.session_state['novo_executores_selecionados'] = selecionados
+            
+            if selecionados:
+                nomes_selecionados = [funcionarios_dict[id] for id in selecionados]
+                st.caption(f"✅ Selecionados: {', '.join(nomes_selecionados)}")
 
-    # Botão para salvar informações básicas
-    col_b1, col_b2 = st.columns(2)
-    with col_b1:
-
-        processo_ja_existe = 'novo_processo_existente_id' in st.session_state
-
-        if st.button("💾 Salvar Informações Básicas", key='btn_salvar_infos_basicas', type="primary", use_container_width=True, disabled=processo_ja_existe):
+        # Botões do formulário
+        col_form1, col_form2 = st.columns([1, 3])
+        with col_form1:
+            submitted_salvar = st.form_submit_button("💾 Salvar Informações Básicas", type="primary", use_container_width=False)  # <-- MUDAR PARA FORM_SUBMIT_BUTTON
+        with col_form2:
+            submitted_limpar = st.form_submit_button("🧹 Limpar Informações do Funcionário", type="secondary", use_container_width=False, key='btn_limpar_form')  # <-- MUDAR PARA FORM_SUBMIT_BUTTON
+            
+        if submitted_salvar:
+            processo_ja_existe = 'novo_processo_existente_id' in st.session_state
             if validar_basicos():
                 with st.spinner("Salvando informações básicas..."):
                     resultado, novo_codigo = salvar_informacoes_basicas()  # Retorna também o código
@@ -349,17 +427,17 @@ def _tela_novo_processo():
                             st.session_state['codigo_processo_display'] = novo_codigo
                         st.session_state['info_basicas_salvas'] = True
                         st.success("✅ Informações básicas salvas com sucesso!")
+                        time_module.sleep(1)
                         st.rerun()
                     else:
                         st.error("❌ Erro ao salvar informações básicas. Tente novamente.")
-    with col_b2:
-        if st.button("🧹 Limpar Informações", type="secondary", use_container_width=True, key='btn_limpar_informacoes'):
-            st.session_state['deve_limpar_diagnostico'] = True
-            st.session_state['info_basicas_salvas'] = False
+            if submitted_limpar:
+                st.session_state['deve_limpar_diagnostico'] = True
+                st.session_state['info_basicas_salvas'] = False
 
-            if 'novo_processo_existente_id' in st.session_state:
-                st.session_state.pop('novo_processo_existente_id')
-            st.rerun()
+                if 'novo_processo_existente_id' in st.session_state:
+                    st.session_state.pop('novo_processo_existente_id')
+                st.rerun()
 
     st.divider()
 
@@ -375,17 +453,51 @@ def _tela_novo_processo():
 
         st.info("ℹ️ Os campos abaixo são opcionais. Você pode preenchê-los agora ou editar depois.")
 
-        st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
-        st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
-                    help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
-        st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
-                    help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
-        st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
-                    help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
-        st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
+        # ==== CONTAINER ESTILIZADO PARA DETALHAMENTO ====
+        # CSS para estilizar o container
+        st.markdown("""
+            <style>
+                /* Estiliza o container de detalhamento */
+                div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) {
+                    background-color: var(--card-bg) !important;
+                    border-radius: 16px !important;
+                    border: 1px solid #e0e0e0 !important;
+                    padding: 20px !important;
+                    margin-bottom: 20px !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                }
+                /* Pelo data-testid do elemento pai (mais estável) */
+                div[data-testid="stTextArea"] textarea {
+                    background-color: #ffffff !important;
+                    border: 1px solid #ced4da !important;
+                    border-radius: 8px !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
 
-        st.write("")
-    
+        # ==== CONTAINER ESTILIZADO ====
+        with st.container():
+            st.markdown("""
+                <div style='margin-bottom: 10px;'>
+                    <strong style='color: var(--text); font-size: 16px;'>📋 Dados do Processo</strong>
+                    <hr style='margin: 8px 0; border-color: #e0e0e0;'>
+                </div>
+            """, unsafe_allow_html=True)
+
+
+            # Dados do Processo
+            st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
+            st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
+                        help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
+            st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
+                        help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
+            st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
+                        help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
+            st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
+
+            st.write("")
+
+        
         # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
         st.markdown("""
         <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
@@ -395,6 +507,89 @@ def _tela_novo_processo():
         st.divider()
         
         st.subheader("3. Riscos Associados")
+
+        # CSS para estilizar os campos de risco
+        st.markdown("""
+            <style>
+                    /* Container dos riscos */
+                    .riscos-container {{
+                        background-color: var(--card-bg) !important;
+                        border-radius: 16px !important;
+                        border: 1px solid #e0e0e0 !important;
+                        padding: 20px !important;
+                        margin-bottom: 20px !important;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                    }}
+
+                    /* Estiliza todos os textareas dentro dos riscos */
+                    .riscos-container textarea,
+                    div[data-testid="st.TextArea"] textarea {{
+                        background-color: #ffffff !important;
+                        border: 1px solid #ced4da !important;
+                        border-radius: 8px !important;
+                        padding: 10px !important;
+                    }}
+
+                    /* Estiliza todos os inputs dentro dos riscos */
+                    .riscos-container input,
+                    div[data-testid="stTextInput"] input {
+                        background-color: #ffffff !important;
+                        border: 1px solid #ced4da !important;
+                        border-radius: 8px !important;
+                        padding: 8px 12px !important;
+                    }
+                    
+                    /* Estiliza os selectboxes dentro dos riscos */
+                    .riscos-container select,
+                    div[data-testid="stSelectbox"] select {
+                        background-color: #ffffff !important;
+                        border: 1px solid #ced4da !important;
+                        border-radius: 8px !important;
+                        padding: 8px 12px !important;
+                    }
+                    
+                    /* Estiliza os multiselect dentro dos riscos */
+                    .riscos-container .stMultiSelect {
+                        background-color: #ffffff !important;
+                        border-radius: 8px !important;
+                    }
+                    
+                    /* Efeito ao focar nos campos */
+                    .riscos-container textarea:focus,
+                    .riscos-container input:focus,
+                    .riscos-container select:focus {
+                        border-color: #1848d8 !important;
+                        outline: none !important;
+                        box-shadow: 0 0 0 3px rgba(24, 72, 216, 0.1) !important;
+                    }
+                    
+                    /* Labels dentro dos riscos */
+                    .riscos-container label {
+                        color: #48606c !important;
+                        font-weight: 500 !important;
+                    }
+
+                    /* Estiliza o expander de critérios de risco */
+                    div[data-testid="stExpander"] details {
+                        background-color: #ffffff !important;
+                        border-radius: 8px !important;
+                        border: 1px solid #e0e0e0 !important;
+                    }
+
+                    /* Estiliza o cabeçalho do expander */
+                    div[data-testid="stExpander"] summary {
+                        background-color: #ffffff !important;
+                        border-radius: 8px !important;
+                        padding: 8px 12px !important;
+                    }
+
+                    /* Estiliza o conteúdo interno do expander */
+                    div[data-testid="stExpander"] .st-emotion-cache-1v0mbdj {
+                        background-color: #ffffff !important;
+                        padding: 15px !important;
+                    }
+            </style>
+        """, unsafe_allow_html=True)
 
         # Lista para armazenar índices a remover - NÃO REMOVA ESTA LINHA!
         indices_para_remover = []

@@ -424,6 +424,31 @@ def get_theme_css():
             ::-webkit-scrollbar-thumb:hover {{
                 background: var(--hover-color);
             }}
+
+            /* Containers */
+            .custom-container {{
+                background-color: var(--card-bg);
+                border-radius: var(--border-radius-card);
+                box-shadow: var(--shadow-md);
+                padding: {SPACING_LARGE};
+                margin-bottom: {SPACING_MEDIUM};
+                border: 1px solid var(--border-color);
+            }}
+
+            /* Campos dentro do container */
+            .custom-container div[data-testid="stTextArea"] textarea,
+            .custom-container div[data-testid="stTextInput"] input,
+            .custom-container div[data-testid="stSelectbox"] select {{
+                background-color: #ffffff !important;
+                border: 1px solid #ced4da !important;
+                border-radius: 8px !important;
+            }}
+            
+            /* Labels dentro do container */
+            .custom-container label {{
+                color: #48606c !important;
+                font-weight: 500 !important;
+            }}
         </style>
     """
 
