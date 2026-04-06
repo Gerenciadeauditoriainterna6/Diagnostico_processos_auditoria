@@ -174,7 +174,7 @@ def _tela_novo_processo():
         <style>
             /* Estiliza o formulário de novo processo - usando o container pai */
             .stForm {
-                background-color: var(--card-bg) !important;
+                background-color: #ffffff !important;
                 border-radius: 16px !important;
                 padding: 24px !important;
                 border: 1px solid #e0e0e0 !important;
@@ -459,7 +459,7 @@ def _tela_novo_processo():
             <style>
                 /* Estiliza o container de detalhamento */
                 div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) {
-                    background-color: var(--card-bg) !important;
+                    background-color: #ffffff !important;
                     border-radius: 16px !important;
                     border: 1px solid #e0e0e0 !important;
                     padding: 20px !important;
@@ -468,7 +468,7 @@ def _tela_novo_processo():
                 }
                 /* Pelo data-testid do elemento pai (mais estável) */
                 div[data-testid="stTextArea"] textarea {
-                    background-color: #ffffff !important;
+                    background-color: var(--card-bg) !important;
                     border: 1px solid #ced4da !important;
                     border-radius: 8px !important;
                 }
@@ -506,7 +506,7 @@ def _tela_novo_processo():
             <style>
                     /* Container dos riscos */
                     .riscos-container {{
-                        background-color: var(--card-bg) !important;
+                        background-color: #ffffff !important;
                         border-radius: 16px !important;
                         border: 1px solid #e0e0e0 !important;
                         padding: 20px !important;
@@ -517,7 +517,7 @@ def _tela_novo_processo():
                     /* Estiliza todos os textareas dentro dos riscos */
                     .riscos-container textarea,
                     div[data-testid="st.TextArea"] textarea {{
-                        background-color: #ffffff !important;
+                        background-color: var(--card-bg) !important;
                         border: 1px solid #ced4da !important;
                         border-radius: 8px !important;
                         padding: 10px !important;
@@ -526,7 +526,7 @@ def _tela_novo_processo():
                     /* Estiliza todos os inputs dentro dos riscos */
                     .riscos-container input,
                     div[data-testid="stTextInput"] input {
-                        background-color: #ffffff !important;
+                        background-color: var(--card-bg) !important;
                         border: 1px solid #ced4da !important;
                         border-radius: 8px !important;
                         padding: 8px 12px !important;
@@ -535,7 +535,7 @@ def _tela_novo_processo():
                     /* Estiliza os selectboxes dentro dos riscos */
                     .riscos-container select,
                     div[data-testid="stSelectbox"] select {
-                        background-color: #ffffff !important;
+                        background-color: var(--card-bg) !important;
                         border: 1px solid #ced4da !important;
                         border-radius: 8px !important;
                         padding: 8px 12px !important;

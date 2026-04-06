@@ -22,7 +22,7 @@ def tela_cadastro_area():
             /* ==== ESTILIZA O CONTAINER PRINCIPAL ==== */
                 
                 div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) {
-                    background-color: var(--card-bg) !important;
+                    background-color: #ffffff !important;
                     border-radius: 16px !important;
                     border: 1px solid #e0e0e0 !important;
                     padding: 20px !important;
@@ -34,7 +34,7 @@ def tela_cadastro_area():
 
             /* Estiliza os textareas */
             div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) textarea {
-                background-color: #ffffff !important;
+                background-color: var(--card-bg) !important;
                 border: 1px solid #ced4da !important;
                 border-radius: 8px !important;
                 padding: 10px !important;
@@ -42,7 +42,7 @@ def tela_cadastro_area():
 
             /* Estiliza os inputs (text_input) */
             div[data-testid="stVerticalBlock"]:has(> div > .stTextArea) input {
-                background-color: #ffffff !important;
+                background-color: var(--card-bg) !important;
                 border: 1px solid #ced4da !important;
                 border-radius: 8px !important;
                 padding: 8px 12px !important;
@@ -150,7 +150,7 @@ def tela_cadastro_area():
                 <style>
                     /* Pega o container principal da lista de funcionários */
                     div[data-testid="stVerticalBlock"].st-emotion-cache-139wymi {
-                        background-color: var(--card-bg) !important;
+                        background-color: #ffffff !important;
                         border-radius: 16px !important;
                         border: 1px solid #e0e0e0 !important;
                         padding: 20px !important;
@@ -160,7 +160,7 @@ def tela_cadastro_area():
                     
                     /* Inputs dentro do container */
                     div[data-testid="stVerticalBlock"].st-emotion-cache-139wymi input {
-                        background-color: #ffffff !important;
+                        background-color: var(--card-bg) !important;
                         border: 1px solid #ced4da !important;
                         border-radius: 8px !important;
                         padding: 8px 12px !important;
