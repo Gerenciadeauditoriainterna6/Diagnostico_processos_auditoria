@@ -13,6 +13,7 @@ from modules.execucao.auditorias import (tela_auditorias_trimestrais, tela_detal
 from modules.auth.login import login_screen, verificar_sessao
 from modules.comunicacaoresultados.relatorios import marcar_relatorio_gerado
 from modules.execucao.processos import tela_diagnostico_processos
+from modules.execucao.checklists import tela_checklist_governanca
 from modules.shared.theme import apply_theme, set_page_width
 
 
@@ -119,6 +120,10 @@ def main():
     # ==== APLICAR TEMA GLOBAL ====
     # Executado depois do login para não interferir na tela de login
     apply_theme()
+
+    if st.session_state.get('tela_checklist', False):
+        tela_checklist_governanca()
+        return
     
     # ==== REDIRECIONAMENTO PARA EDIÇÃO DE PROCESSO ====
     # Se veio da auditoria para editar um processo

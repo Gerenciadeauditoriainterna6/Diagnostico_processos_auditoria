@@ -1795,3 +1795,27 @@ def salvar_edicao_processo_completa(dados):
     except Exception as e:
         print(f"Erro ao salvar edição: {e}")
         return False
+
+def listar_respostas_checklist(processo_id, auditoria_id):
+    """Lista todas as respostas do checklist para um processo"""
+    query = text("""
+        SELECT 
+            cgp.pergunta,
+            cgp.tipo_resposta,
+            cr.resposta,
+            cr.comentario,
+            cr.data_resposta,
+            COUNT(ce.id) as num_evidencias
+        FROM checklist_governanca cg
+        JOIN checklist_respostas cr ON cr.checklist_id = cg.id
+        JOIN checklist_perguntas_padrao cgp ON cgp.id = cr.pergunta_id
+        LEFT JOIN checklist_evidencias ce ON ce.resposta_id = cr.id
+        WHERE cg.processo_id = :processo_id AND cg.auditoria_id = :auditoria_id
+        GROUP BY cgp.id, cr.id
+        ORDER BY cgp.ordem
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={
+            "processo_id": processo_id,
+            "auditoria_id": auditoria_id
+        })
