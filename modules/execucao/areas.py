@@ -145,12 +145,49 @@ def tela_cadastro_area():
             
             st.divider()
             st.markdown("### ➕ Novo Funcionário")
+            # ===== CSS corrigido =====
+            st.markdown("""
+                <style>
+                    /* Pega o container principal da lista de funcionários */
+                    div[data-testid="stVerticalBlock"].st-emotion-cache-139wymi {
+                        background-color: var(--card-bg) !important;
+                        border-radius: 16px !important;
+                        border: 1px solid #e0e0e0 !important;
+                        padding: 20px !important;
+                        margin-bottom: 20px !important;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+                    }
+                    
+                    /* Inputs dentro do container */
+                    div[data-testid="stVerticalBlock"].st-emotion-cache-139wymi input {
+                        background-color: #ffffff !important;
+                        border: 1px solid #ced4da !important;
+                        border-radius: 8px !important;
+                        padding: 8px 12px !important;
+                    }
+                    
+                    /* Labels dentro do container */
+                    div[data-testid="stVerticalBlock"].st-emotion-cache-139wymi label {
+                        color: #48606c !important;
+                        font-weight: 500 !important;
+                        margin-bottom: 4px !important;
+                    }
+                    
+                    /* Efeito ao focar */
+                    div[data-testid="stVerticalBlock"].st-emotion-cache-139wymi input:focus {
+                        border-color: #1848d8 !important;
+                        outline: none !important;
+                        box-shadow: 0 0 0 3px rgba(24, 72, 216, 0.1) !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
             
-            # Inicializar lista de funcionários temporários
-            if 'funcionarios_temp' not in st.session_state:
-                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
-            
-            with st.form(key="form_funcionarios"):
+            with st.container(border=True):
+                    
+                # Inicializar lista de funcionários temporários
+                if 'funcionarios_temp' not in st.session_state:
+                    st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+                
                 # Mostrar funcionários para cadastro
                 for i, func in enumerate(st.session_state['funcionarios_temp']):
                     st.markdown(f"**Funcionário {i+1}**")
@@ -190,18 +227,18 @@ def tela_cadastro_area():
                 # Botões dentro do formulário
                 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
                 with col_btn1:
-                    if st.form_submit_button("➕ Adicionar outro funcionário", use_container_width=True):
+                    if st.button("➕ Adicionar outro funcionário", use_container_width=True):
                         st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
                         st.rerun()
                 
                 with col_btn2:
-                    if st.form_submit_button("❌ Remover último funcionário", use_container_width=True):
+                    if st.button("❌ Remover último funcionário", use_container_width=True):
                         if len(st.session_state['funcionarios_temp']) > 1:
                             st.session_state['funcionarios_temp'].pop()
                             st.rerun()
                 
                 with col_btn3:
-                    if st.form_submit_button("💾 Salvar Funcionários", type="primary", use_container_width=True):
+                    if st.button("💾 Salvar Funcionários", type="primary", use_container_width=True):
                         funcionarios_validos = [f for f in st.session_state['funcionarios_temp'] if f.get('nome', '').strip()]
                         
                         if not funcionarios_validos:

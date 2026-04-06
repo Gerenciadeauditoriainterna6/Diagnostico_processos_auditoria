@@ -477,13 +477,6 @@ def _tela_novo_processo():
 
         # ==== CONTAINER ESTILIZADO ====
         with st.container():
-            st.markdown("""
-                <div style='margin-bottom: 10px;'>
-                    <strong style='color: var(--text); font-size: 16px;'>📋 Dados do Processo</strong>
-                    <hr style='margin: 8px 0; border-color: #e0e0e0;'>
-                </div>
-            """, unsafe_allow_html=True)
-
 
             # Dados do Processo
             st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
