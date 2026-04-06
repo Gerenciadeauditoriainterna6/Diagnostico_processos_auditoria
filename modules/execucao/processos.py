@@ -468,7 +468,7 @@ def _tela_novo_processo():
                 }
                 /* Pelo data-testid do elemento pai (mais estável) */
                 div[data-testid="stTextArea"] textarea {
-                    background-color: var(--card-bg) !important;
+                    background-color: var(--input) !important;
                     border: 1px solid #ced4da !important;
                     border-radius: 8px !important;
                 }
@@ -526,7 +526,7 @@ def _tela_novo_processo():
                     /* Estiliza todos os inputs dentro dos riscos */
                     .riscos-container input,
                     div[data-testid="stTextInput"] input {
-                        background-color: var(--card-bg) !important;
+                        background-color: var(--input) !important;
                         border: 1px solid #ced4da !important;
                         border-radius: 8px !important;
                         padding: 8px 12px !important;

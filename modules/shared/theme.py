@@ -13,6 +13,7 @@ ACCENT_COLOR = "#241824"        # Roxo escuro (alertas, destaques especiais)
 BACKGROUND_COLOR = "#ffffff"    # Cinza claro (fundo da página)
 CARD_BACKGROUND = "#e3e3e3"     # Branco (fundos de cards)
 SIDEBAR_BACKGROUND = "#184145"  # Verde azulado escuro (sidebar)
+COR_ESPACOTEXTO = "#e3e3e3"     # Branco (fundos de cards)
 
 # ========== CORES DE TEXTO ==========
 TEXT_COLOR = "#182418"          # Verde muito escuro (texto principal)
@@ -73,6 +74,7 @@ def get_theme_css():
                 --text-muted: {TEXT_MUTED};
                 --text-light: {TEXT_LIGHT};
                 --sidebar-text: {SIDEBAR_TEXT_COLOR};
+                --input: {COR_ESPACOTEXTO}
                 --border-color: {BORDER_COLOR};
                 --hover-color: {HOVER_COLOR};
                 --active-color: {ACTIVE_COLOR};
@@ -107,9 +109,6 @@ def get_theme_css():
             header .stMarkdown {{
                 color: var(--sidebar-text) !important;
             }}
-
-            /* Se quiser remover completamente o header */
-            /* header {{ display: none !important; }} */
             
             /* ========== SIDEBAR ========== */
             [data-testid="stSidebar"] {{
@@ -276,12 +275,12 @@ def get_theme_css():
                 background-color: rgba(24, 72, 216, 0.1) !important;
             }}
             
-            /* ========== INPUTS ========== */
+            /* ========== INPUTS (GERAL) ========== */
             .stTextInput input, .stTextArea textarea, .stSelectbox select {{
                 border-radius: var(--border-radius);
                 border: 1px solid var(--border-color);
                 transition: all 0.2s ease;
-                background-color: var(--card-bg);
+                background-color: var(--input) !important;
                 color: var(--text);
             }}
             
@@ -357,7 +356,7 @@ def get_theme_css():
                 color: var(--primary);
                 font-weight: 600;
                 font-family: 'helvetica' !important;
-                text-transform: uppercase !important; /* Linha para transformar todos os títulos em maísculos */
+                text-transform: uppercase !important;
             }}
             
             /* ========== LINKS ========== */
@@ -465,6 +464,17 @@ def get_theme_css():
             ::-webkit-scrollbar-thumb:hover {{
                 background: var(--hover-color);
             }}
+
+            /* Container padrão - todos os containers têm este estilo base */
+            div[data-testid="stVerticalBlockBorder"] {{
+                background-color: var(--card-bg);
+                border-radius: var(--border-radius-card);
+                box-shadow: var(--shadow-md);
+                padding: 20px;
+                margin-bottom: 20px;
+                border: 1px solid var(--border-color);
+            }}
+
         </style>
     """
 
@@ -472,6 +482,7 @@ def get_theme_css():
 def apply_theme():
     """Aplica o tema global no app"""
     st.markdown(get_theme_css(), unsafe_allow_html=True)
+
 
 def set_page_width(width_percent: int=90):
     """Define a largura máxima do container principal"""
