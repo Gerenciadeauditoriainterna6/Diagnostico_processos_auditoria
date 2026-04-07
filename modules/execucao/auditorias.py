@@ -125,6 +125,307 @@ def tela_auditorias_trimestrais():
                         
                         st.divider()
 
+def _exibir_checklist_por_tipo(row, auditoria_id, tipo_checklist, checklist_key_principal):
+    """Exibe um checklist específico por tipo (governanca, riscos, controles)"""
+    from modules.execucao.checklists import (
+        criar_checklist_sessao_por_tipo,
+        buscar_perguntas_checklist,
+        buscar_respostas_existentes,
+        salvar_resposta_checklist,
+        salvar_evidencia,
+        listar_evidencias_por_resposta,
+        baixar_evidencia,
+        finalizar_checklist_por_tipo
+    )
+    from sqlalchemy import text
+    from database import engine
+    
+    # Nomes para exibição
+    nomes_tipos = {
+        'governanca': 'Governança',
+        'riscos': 'Riscos',
+        'controles': 'Controles'
+    }
+    nome_exibicao = nomes_tipos.get(tipo_checklist, tipo_checklist)
+    
+    # Criar ou buscar checklist para este tipo
+    checklist_id = criar_checklist_sessao_por_tipo(
+        row['processo_id'],
+        auditoria_id,
+        st.session_state.get('usuario_logado', 'Auditor'),
+        tipo_checklist
+    )
+    
+    # Buscar status atual
+    from modules.execucao.checklists import buscar_status_checklist_por_tipo
+    status_atual, _ = buscar_status_checklist_por_tipo(row['processo_id'], auditoria_id, tipo_checklist)
+    is_finalizado = (status_atual == "Concluído")
+    
+    if is_finalizado:
+        st.info(f"ℹ️ Este checklist já foi finalizado. Visualizando em modo de leitura.")
+    
+    # Buscar perguntas deste tipo
+    df_perguntas = buscar_perguntas_checklist(tipo_checklist)
+    
+    if df_perguntas.empty:
+        st.info(f"📝 Nenhuma pergunta cadastrada para o checklist de {nome_exibicao}.")
+        return
+    
+    # Buscar respostas existentes
+    respostas_existentes = buscar_respostas_existentes(checklist_id)
+    
+    # IDs das perguntas que permitem anexos (apenas para governança)
+    PERGUNTAS_COM_EVIDENCIAS = [1, 2, 3, 4] if tipo_checklist == 'governanca' else []
+    
+    if is_finalizado:
+        # ===== MODO LEITURA =====
+        for _, pergunta in df_perguntas.iterrows():
+            pergunta_id = pergunta['id']
+            pergunta_texto = pergunta['pergunta']
+            recomendacao = pergunta.get('recomendacao', '')
+            
+            valor_existente = None
+            comentario_existente = None
+            
+            if pergunta_id in respostas_existentes:
+                resposta_data = respostas_existentes[pergunta_id]
+                if isinstance(resposta_data, dict):
+                    valor_existente = resposta_data.get('resposta')
+                    comentario_existente = resposta_data.get('comentario')
+                else:
+                    valor_existente = resposta_data
+            
+            with st.container(border=True):
+                st.markdown(f"**{pergunta_texto}**")
+                
+                if recomendacao and recomendacao.strip():
+                    st.info(f"💡 **Recomendação:** {recomendacao}")
+                
+                # Mostrar resposta
+                if valor_existente in ["Sim", "Não", "Não se aplica"]:
+                    if valor_existente == "Sim":
+                        st.success(f"✅ **Resposta:** {valor_existente}")
+                    elif valor_existente == "Não":
+                        st.error(f"❌ **Resposta:** {valor_existente}")
+                    else:
+                        st.info(f"ℹ️ **Resposta:** {valor_existente}")
+                else:
+                    st.warning("⚠️ **Resposta:** Não respondido")
+                
+                # Evidências (apenas para governança)
+                if pergunta_id in PERGUNTAS_COM_EVIDENCIAS:
+                    st.markdown("**📎 Evidências anexadas:**")
+                    
+                    query_resposta = text("""
+                        SELECT id FROM checklist_respostas
+                        WHERE checklist_id = :checklist_id AND pergunta_id = :pergunta_id
+                    """)
+                    with engine.connect() as conn:
+                        resposta_result = conn.execute(query_resposta, {
+                            "checklist_id": checklist_id,
+                            "pergunta_id": pergunta_id
+                        }).fetchone()
+                    
+                    if resposta_result:
+                        resposta_id = resposta_result[0]
+                        df_evidencias = listar_evidencias_por_resposta(resposta_id)
+                        
+                        if not df_evidencias.empty:
+                            for _, ev in df_evidencias.iterrows():
+                                col_ev1, col_ev2 = st.columns([3, 1])
+                                with col_ev1:
+                                    if ev['tamanho_bytes']:
+                                        tamanho_kb = ev['tamanho_bytes'] / 1024
+                                        st.caption(f"📄 {ev['nome_arquivo']} ({tamanho_kb:.1f} KB)")
+                                    else:
+                                        st.caption(f"📄 {ev['nome_arquivo']}")
+                                with col_ev2:
+                                    conteudo, nome, tipo_arq = baixar_evidencia(ev['id'])
+                                    if conteudo:
+                                        st.download_button(
+                                            label="📥 Baixar",
+                                            data=conteudo,
+                                            file_name=nome,
+                                            mime=tipo_arq,
+                                            key=f"download_btn_{ev['id']}_{pergunta_id}"
+                                        )
+                        else:
+                            st.caption("Nenhuma evidência anexada")
+                    else:
+                        st.caption("Nenhuma evidência anexada")
+                
+                if comentario_existente:
+                    st.markdown(f"**Observações:** {comentario_existente}")
+        
+        # Botão de fechar (apenas visualização)
+        if st.button("❌ Fechar", key=f"fechar_{tipo_checklist}_{row['processo_id']}", use_container_width=True):
+            st.session_state[checklist_key_principal] = False
+            st.rerun()
+    
+    else:
+        # ===== MODO EDIÇÃO =====
+        if f'arquivos_temp_{checklist_id}' not in st.session_state:
+            st.session_state[f'arquivos_temp_{checklist_id}'] = {}
+        
+        with st.form(key=f"form_checklist_{tipo_checklist}_{row['processo_id']}_{checklist_id}"):
+            respostas = {}
+            evidencias = {}
+            comentarios = {}
+            
+            for _, pergunta in df_perguntas.iterrows():
+                pergunta_id = pergunta['id']
+                pergunta_texto = pergunta['pergunta']
+                recomendacao = pergunta.get('recomendacao', '')
+                
+                valor_existente = None
+                comentario_existente = None
+                
+                if pergunta_id in respostas_existentes:
+                    resposta_data = respostas_existentes[pergunta_id]
+                    if isinstance(resposta_data, dict):
+                        valor_existente = resposta_data.get('resposta')
+                        comentario_existente = resposta_data.get('comentario')
+                    else:
+                        valor_existente = resposta_data
+                
+                with st.container(border=True):
+                    st.markdown(f"**{pergunta_texto}**")
+                    
+                    if recomendacao and recomendacao.strip():
+                        st.info(f"💡 **Recomendação:** {recomendacao}")
+                    
+                    # Resposta Sim/Não
+                    opcoes = ["Sim", "Não", "Não se aplica"]
+                    idx = opcoes.index(valor_existente) if valor_existente in opcoes else 0
+                    respostas[pergunta_id] = st.radio(
+                        "Resposta:",
+                        opcoes,
+                        index=idx,
+                        key=f"resp_{tipo_checklist}_{row['processo_id']}_{pergunta_id}",
+                        horizontal=True,
+                        label_visibility="collapsed"
+                    )
+                    
+                    # Evidências (apenas para governança)
+                    if pergunta_id in PERGUNTAS_COM_EVIDENCIAS:
+                        st.markdown("**📎 Evidências:**")
+                        
+                        col_add, _ = st.columns([1, 3])
+                        with col_add:
+                            if st.form_submit_button("➕ Adicionar evidência", key=f"add_file_{tipo_checklist}_{row['processo_id']}_{pergunta_id}"):
+                                if pergunta_id not in st.session_state[f'arquivos_temp_{checklist_id}']:
+                                    st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id] = []
+                                st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id].append(None)
+                                st.rerun()
+                        
+                        if pergunta_id not in st.session_state.get(f'arquivos_temp_{checklist_id}', {}):
+                            st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id] = [None]
+                        
+                        arquivos_upload = []
+                        for idx_file, _ in enumerate(st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id]):
+                            col_file, col_remove = st.columns([4, 1])
+                            with col_file:
+                                uploaded_file = st.file_uploader(
+                                    f"Arquivo {idx_file + 1}",
+                                    type=['pdf', 'png', 'jpg', 'jpeg', 'xlsx', 'docx', 'txt'],
+                                    key=f'file_{tipo_checklist}_{row["processo_id"]}_{pergunta_id}_{idx_file}',
+                                    label_visibility="collapsed"
+                                )
+                                arquivos_upload.append(uploaded_file)
+                            with col_remove:
+                                if len(st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id]) > 1:
+                                    if st.form_submit_button("🗑️", key=f"remove_file_{tipo_checklist}_{row['processo_id']}_{pergunta_id}_{idx_file}"):
+                                        st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id].pop(idx_file)
+                                        st.rerun()
+                        
+                        st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id] = arquivos_upload
+                        
+                        if valor_existente and valor_existente != "" and "Arquivos:" in str(valor_existente):
+                            st.info(f"📎 Evidências já anexadas anteriormente: {valor_existente}")
+                        
+                        evidencias[pergunta_id] = {
+                            'arquivos': arquivos_upload,
+                            'existentes': valor_existente
+                        }
+                    
+                    # Campo de observações
+                    comentarios[pergunta_id] = st.text_area(
+                        "Observações:",
+                        value=comentario_existente if comentario_existente else "",
+                        key=f"coment_{tipo_checklist}_{row['processo_id']}_{pergunta_id}",
+                        placeholder="Adicione observações sobre esta avaliação..."
+                    )
+            
+            st.divider()
+            
+            col_c1, col_c2, col_c3 = st.columns([1, 1, 2])
+            with col_c1:
+                submitted = st.form_submit_button("💾 Salvar Respostas", type="primary", use_container_width=True)
+            with col_c2:
+                finalizar = st.form_submit_button("✅ Finalizar Checklist", use_container_width=True)
+            with col_c3:
+                fechar = st.form_submit_button("❌ Fechar", use_container_width=True)
+            
+            if submitted:
+                # Salvar respostas
+                for pergunta_id, resposta in respostas.items():
+                    if resposta:
+                        salvar_resposta_checklist(
+                            checklist_id, 
+                            pergunta_id, 
+                            resposta,
+                            comentario=comentarios.get(pergunta_id)
+                        )
+                
+                # Salvar evidências
+                for pergunta_id, dados_evidencia in evidencias.items():
+                    if dados_evidencia and isinstance(dados_evidencia, dict):
+                        arquivos = dados_evidencia.get('arquivos', [])
+                        arquivos_validos = [a for a in arquivos if a is not None]
+                        
+                        if arquivos_validos:
+                            query_busca_resposta = text("""
+                                SELECT id FROM checklist_respostas
+                                WHERE checklist_id = :checklist_id AND pergunta_id = :pergunta_id
+                            """)
+                            with engine.begin() as conn:
+                                result = conn.execute(query_busca_resposta, {
+                                    "checklist_id": checklist_id,
+                                    "pergunta_id": pergunta_id
+                                }).fetchone()
+                            
+                            if result:
+                                resposta_id = result[0]
+                                for arquivo in arquivos_validos:
+                                    query_check_evidencia = text("""
+                                        SELECT id FROM checklist_evidencias 
+                                        WHERE resposta_id = :resposta_id AND nome_arquivo = :nome_arquivo
+                                    """)
+                                    existe = conn.execute(query_check_evidencia, {
+                                        "resposta_id": resposta_id,
+                                        "nome_arquivo": arquivo.name
+                                    }).fetchone()
+                                    
+                                    if not existe:
+                                        salvar_evidencia(resposta_id, arquivo)
+                                        st.info(f"📎 Evidência anexada: {arquivo.name}")
+                
+                st.session_state.pop(f'arquivos_temp_{checklist_id}', None)
+                st.success("✅ Respostas salvas com sucesso!")
+                st.rerun()
+            
+            if finalizar:
+                finalizar_checklist_por_tipo(checklist_id, row['processo_id'], auditoria_id, tipo_checklist)
+                st.session_state.pop(f'arquivos_temp_{checklist_id}', None)
+                st.success(f"✅ Checklist de {nome_exibicao} finalizado com sucesso!")
+                st.balloons()
+                time_module.sleep(1)
+                st.rerun()
+            
+            if fechar:
+                st.session_state.pop(f'arquivos_temp_{checklist_id}', None)
+                st.session_state[checklist_key_principal] = False
+                st.rerun()
 
 def _exibir_card_processo_auditoria(row, auditoria_id):
     """Exibe o card normal do processo"""
@@ -257,336 +558,57 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 st.session_state[checklist_key] = not st.session_state.get(checklist_key, False)
                 st.rerun()
 
-    # ==== SEÇÃO DO CHECKLIST (exibida condicionalmente) - FORA DO CONTAINER DOS BOTÕES ====
+    # ==== SEÇÃO DO CHECKLIST (exibida condicionalmente) ====
     if st.session_state.get(checklist_key, False):
         st.divider()
-        st.markdown("### 📋 Checklists de Governança")
-        st.info(f"**Processo sendo avaliado:** {row['codigo_processo']} - {row['nome_processo']}")
+        st.markdown(f"### 📋 Checklists - {row['codigo_processo']} - {row['nome_processo']}")
 
-        checklist_id_temp = criar_checklist_sessao(
-            row['processo_id'],
-            auditoria_id,
-            st.session_state.get('usuario_logado', 'Auditor'),
-        )
+        # Buscar resumo dos checklists
+        from modules.execucao.checklists import obter_resumo_checklists
+        resumo_checklists = obter_resumo_checklists(row['processo_id'], auditoria_id)
 
-        query_status = text("""
-            SELECT status FROM checklist_governanca
-            WHERE id = :checklist_id
-        """)
-        with engine.connect() as conn:
-            result = conn.execute(query_status, {"checklist_id": checklist_id_temp}).fetchone()
-            if result:
-                status_atual = result[0]
+        # Exibir resumo dos status
+        col_r1, col_r2, col_r3 = st.columns(3)
+
+        # Mapeamento de status para ícones
+        status_icone = {
+            'Concluído': "✅",
+            'Em Andamento': "🔄",
+            'Não Iniciado': "⭕"
+        }
+
+        with col_r1:
+            icon = status_icone.get(resumo_checklists['governanca']['status'], "⭕")
+            st.caption(f"{icon} Governança: {resumo_checklists['governanca']['status']}")
         
-        is_finalizado = (status_atual == "Concluído")
+        with col_r2:
+            icon = status_icone.get(resumo_checklists['riscos']['status'], "⭕")
+            st.caption(f"{icon} Riscos: {resumo_checklists['riscos']['status']}")
 
-        if is_finalizado:
-            st.warning("⚠️ **Este checklist já foi finalizado.** Você está visualizando as respostas em modo de leitura.")
+        with col_r3:
+            icon = status_icone.get(resumo_checklists['controles']['status'], "⭕")
+            st.caption(f"{icon} Controles: {resumo_checklists['controles']['status']}")
         
         st.markdown("---")
 
-        # Buscar perguntas e respostas (comum para ambos os modos)
-        checklist_id = criar_checklist_sessao(
-            row['processo_id'], 
-            auditoria_id, 
-            st.session_state.get('usuario_logado', 'Auditor')
-        )
-        df_perguntas = buscar_perguntas_checklist()
-        respostas_existentes = buscar_respostas_existentes(checklist_id)
-        
-        # IDs das perguntas que permitem anexos
-        PERGUNTAS_COM_EVIDENCIAS = [1, 2, 3, 4]
+        # Criar abas para os 3 tipos de checklist
+        tab_governanca, tab_riscos, tab_controles = st.tabs([
+            "📋 Governança", 
+            "⚠️ Riscos", 
+            "🎮 Controles"
+        ])
 
-        if is_finalizado:
-            # ===== MODO LEITURA (sem formulário) =====
-            for _, pergunta in df_perguntas.iterrows():
-                pergunta_id = pergunta['id']
-                pergunta_texto = pergunta['pergunta']
-                recomendacao = pergunta.get('recomendacao', '')
-                
-                # Buscar resposta existente
-                valor_existente = None
-                comentario_existente = None
-                
-                if pergunta_id in respostas_existentes:
-                    resposta_data = respostas_existentes[pergunta_id]
-                    if isinstance(resposta_data, dict):
-                        valor_existente = resposta_data.get('resposta')
-                        comentario_existente = resposta_data.get('comentario')
-                    else:
-                        valor_existente = resposta_data
-                
-                with st.container(border=True):
-                    st.markdown(f"**{pergunta_texto}**")
-                    
-                    if recomendacao and recomendacao.strip():
-                        st.info(f"💡 **Recomendação:** {recomendacao}")
-                    
-                    # Mostrar resposta (Sim/Não)
-                    if valor_existente in ["Sim", "Não", "Não se aplica"]:
-                        if valor_existente == "Sim":
-                            st.success(f"✅ **Resposta:** {valor_existente}")
-                        elif valor_existente == "Não":
-                            st.error(f"❌ **Resposta:** {valor_existente}")
-                        else:
-                            st.info(f"ℹ️ **Resposta:** {valor_existente}")
-                    else:
-                        st.warning("⚠️ **Resposta:** Não respondido")
+        with tab_governanca:
+            _exibir_checklist_por_tipo(row, auditoria_id, 'governanca', checklist_key)
 
-                    # Evidências (apenas para perguntas 1-4)
-                    if pergunta_id in PERGUNTAS_COM_EVIDENCIAS:
-                        st.markdown("**📎 Evidências anexadas:**")
-                        
-                        # Buscar resposta_id
-                        query_resposta = text("""
-                            SELECT id FROM checklist_respostas
-                            WHERE checklist_id = :checklist_id AND pergunta_id = :pergunta_id
-                        """)
-                        with engine.connect() as conn:
-                            resposta_result = conn.execute(query_resposta, {
-                                "checklist_id": checklist_id,
-                                "pergunta_id": pergunta_id
-                            }).fetchone()
-                        
-                        if resposta_result:
-                            resposta_id = resposta_result[0]
-                            df_evidencias = listar_evidencias_por_resposta(resposta_id)
-                            
-                            if not df_evidencias.empty:
-                                for _, ev in df_evidencias.iterrows():
-                                    col_ev1, col_ev2 = st.columns([3, 1])
-                                    with col_ev1:
-                                        if ev['tamanho_bytes']:
-                                            tamanho_kb = ev['tamanho_bytes'] / 1024
-                                            st.caption(f"📄 {ev['nome_arquivo']} ({tamanho_kb:.1f} KB) - {ev['data_upload'].strftime('%d/%m/%Y %H:%M')}")
-                                        else:
-                                            st.caption(f"📄 {ev['nome_arquivo']}")
-                                    with col_ev2:
-                                        conteudo, nome, tipo_arq = baixar_evidencia(ev['id'])
-                                        if conteudo:
-                                            st.download_button(
-                                                label="📥 Baixar",
-                                                data=conteudo,
-                                                file_name=nome,
-                                                mime=tipo_arq,
-                                                key=f"download_btn_{ev['id']}_{pergunta_id}"
-                                            )
-                            else:
-                                st.caption("Nenhuma evidência anexada")
-                        else:
-                            st.caption("Nenhuma evidência anexada")
-                    
-                    # Comentário
-                    if comentario_existente:
-                        st.markdown(f"**Observações:** {comentario_existente}")
-            
-            # Botão de fechar
-            st.divider()
-            if st.button("❌ Fechar", key=f"fechar_checklist_{row['processo_id']}", use_container_width=True):
-                st.session_state[checklist_key] = False
-                st.rerun()
-        
-        else:
-            # ===== MODO EDIÇÃO (com formulário) =====
-            # Inicializar estado para armazenar múltiplos arquivos por pergunta
-            if f'arquivos_temp_{checklist_id}' not in st.session_state:
-                st.session_state[f'arquivos_temp_{checklist_id}'] = {}
-            
-            with st.form(key=f"form_checklist_embutido_{row['processo_id']}_{checklist_id}"):
-                respostas = {}
-                evidencias = {}
-                comentarios = {}
-                
-                for _, pergunta in df_perguntas.iterrows():
-                    pergunta_id = pergunta['id']
-                    pergunta_texto = pergunta['pergunta']
-                    recomendacao = pergunta.get('recomendacao', '')
-                    
-                    # Buscar resposta existente
-                    valor_existente = None
-                    comentario_existente = None
-                    
-                    if pergunta_id in respostas_existentes:
-                        resposta_data = respostas_existentes[pergunta_id]
-                        if isinstance(resposta_data, dict):
-                            valor_existente = resposta_data.get('resposta')
-                            comentario_existente = resposta_data.get('comentario')
-                        else:
-                            valor_existente = resposta_data
-                    
-                    with st.container(border=True):
-                        st.markdown(f"**{pergunta_texto}**")
-                        
-                        if recomendacao and recomendacao.strip():
-                            st.info(f"💡 **Recomendação:** {recomendacao}")
-                        
-                        # Resposta Sim/Não
-                        opcoes = ["Sim", "Não", "Não se aplica"]
-                        idx = opcoes.index(valor_existente) if valor_existente in opcoes else 0
-                        respostas[pergunta_id] = st.radio(
-                            "Resposta:",
-                            opcoes,
-                            index=idx,
-                            key=f"resp_emb_{row['processo_id']}_{pergunta_id}",
-                            horizontal=True,
-                            label_visibility="collapsed"
-                        )
-                        
-                        # Evidências (apenas para perguntas 1-4)
-                        if pergunta_id in PERGUNTAS_COM_EVIDENCIAS:
-                            st.markdown("**📎 Evidências:**")
-                            
-                            # Botão para adicionar arquivos
-                            col_add, _ = st.columns([1, 3])
-                            with col_add:
-                                if st.form_submit_button("➕ Adicionar evidência", key=f"add_file_{row['processo_id']}_{pergunta_id}"):
-                                    if pergunta_id not in st.session_state[f'arquivos_temp_{checklist_id}']:
-                                        st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id] = []
-                                    st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id].append(None)
-                                    st.rerun()
-                            
-                            # Inicializar lista de arquivos
-                            if pergunta_id not in st.session_state.get(f'arquivos_temp_{checklist_id}', {}):
-                                st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id] = [None]
-                            
-                            # Exibir uploaders
-                            arquivos_upload = []
-                            for idx_file, _ in enumerate(st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id]):
-                                col_file, col_remove = st.columns([4, 1])
-                                with col_file:
-                                    uploaded_file = st.file_uploader(
-                                        f"Arquivo {idx_file + 1}",
-                                        type=['pdf', 'png', 'jpg', 'jpeg', 'xlsx', 'docx', 'txt'],
-                                        key=f'file_emb_{row["processo_id"]}_{pergunta_id}_{idx_file}',
-                                        label_visibility="collapsed"
-                                    )
-                                    arquivos_upload.append(uploaded_file)
-                                with col_remove:
-                                    if len(st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id]) > 1:
-                                        if st.form_submit_button("🗑️", key=f"remove_file_{row['processo_id']}_{pergunta_id}_{idx_file}"):
-                                            st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id].pop(idx_file)
-                                            st.rerun()
-                            
-                            st.session_state[f'arquivos_temp_{checklist_id}'][pergunta_id] = arquivos_upload
-                            
-                            # Mostrar evidências já existentes
-                            if valor_existente and valor_existente != "" and "Arquivos:" in str(valor_existente):
-                                st.info(f"📎 Evidências já anexadas anteriormente: {valor_existente}")
-                            
-                            evidencias[pergunta_id] = {
-                                'arquivos': arquivos_upload,
-                                'existentes': valor_existente
-                            }
-                        
-                        # Campo de observações
-                        comentarios[pergunta_id] = st.text_area(
-                            "Observações:",
-                            value=comentario_existente if comentario_existente else "",
-                            key=f"coment_emb_{row['processo_id']}_{pergunta_id}",
-                            placeholder="Adicione observações sobre esta avaliação...",
-                            help="Campo para anotações adicionais"
-                        )
-                
-                st.divider()
-                
-                # Botões de ação
-                col_c1, col_c2, col_c3 = st.columns([1, 1, 2])
-                with col_c1:
-                    submitted = st.form_submit_button("💾 Salvar Respostas", type="primary", use_container_width=True)
-                with col_c2:
-                    finalizar = st.form_submit_button("✅ Finalizar Checklist", use_container_width=True)
-                with col_c3:
-                    fechar_checklist = st.form_submit_button("❌ Fechar", use_container_width=True)
-                
-                if submitted:
-                    # 1. SALVAR RESPOSTAS (Sim/Não)
-                    for pergunta_id, resposta in respostas.items():
-                        if resposta:
-                            salvar_resposta_checklist(
-                                checklist_id, 
-                                pergunta_id, 
-                                resposta,
-                                comentario=comentarios.get(pergunta_id)
-                            )
-                    
-                    # 2. SALVAR EVIDÊNCIAS (arquivos anexados)
-                    for pergunta_id, dados_evidencia in evidencias.items():
-                        if dados_evidencia and isinstance(dados_evidencia, dict):
-                            arquivos = dados_evidencia.get('arquivos', [])
-                            arquivos_validos = [a for a in arquivos if a is not None]
-                            
-                            if arquivos_validos:
-                                # Buscar o resposta_id existente para esta pergunta
-                                query_busca_resposta = text("""
-                                    SELECT id FROM checklist_respostas
-                                    WHERE checklist_id = :checklist_id AND pergunta_id = :pergunta_id
-                                """)
-                                with engine.begin() as conn:
-                                    result = conn.execute(query_busca_resposta, {
-                                        "checklist_id": checklist_id,
-                                        "pergunta_id": pergunta_id
-                                    }).fetchone()
-                                    print(f"DEBUG - Buscando resposta_id para pergunta {pergunta_id}: {result}")  # DEBUG
-                                
-                                if result:
-                                    resposta_id = result[0]
-                                    for arquivo in arquivos_validos:
-                                        query_check_evidencia = text("""
-                                            SELECT id FROM checklist_evidencias 
-                                            WHERE resposta_id = :resposta_id AND nome_arquivo = :nome_arquivo
-                                        """)
-                                        with engine.begin() as conn:
-                                            existe = conn.execute(query_check_evidencia, {
-                                                "resposta_id": resposta_id,
-                                                "nome_arquivo": arquivo.name
-                                            }).fetchone()
-                                            
-                                            if not existe:
-                                                salvar_evidencia(resposta_id, arquivo)
-                                                st.info(f"📎 Evidência anexada: {arquivo.name}")
-                                                print(f"DEBUG - Evidência salva: {arquivo.name}")  # DEBUG
-                                            else:
-                                                st.warning(f"⚠️ Evidência {arquivo.name} já existe!")
-                                else:
-                                    st.error(f"❌ Erro: Resposta não encontrada para pergunta {pergunta_id}")
-                    
-                    # Limpar arquivos temporários
-                    st.session_state.pop(f'arquivos_temp_{checklist_id}', None)
-                    st.success("✅ Respostas salvas com sucesso!")
-                    st.rerun()
-                
-                if finalizar:
-                    query = text("""
-                        UPDATE checklist_governanca 
-                        SET status = 'Concluído', data_conclusao = NOW()
-                        WHERE id = :checklist_id
-                    """)
-                    with engine.begin() as conn:
-                        conn.execute(query, {"checklist_id": checklist_id})
-                    
-                    # Atualizar status_avaliacao
-                    query_update_status = text("""
-                        UPDATE auditoria_processos 
-                        SET status_avaliacao = 'Avaliado'
-                        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
-                    """)
-                    with engine.begin() as conn:
-                        conn.execute(query_update_status, {
-                            "processo_id": row['processo_id'],
-                            "auditoria_id": auditoria_id
-                        })
-                    
-                    st.session_state.pop(f'arquivos_temp_{checklist_id}', None)
-                    st.success("✅ Checklist finalizado com sucesso!")
-                    st.balloons()
-                    time_module.sleep(1)
-                    st.session_state[checklist_key] = False
-                    st.rerun()
-                
-                if fechar_checklist:
-                    st.session_state.pop(f'arquivos_temp_{checklist_id}', None)
-                    st.session_state[checklist_key] = False
-                    st.rerun()
+        with tab_riscos:
+            _exibir_checklist_por_tipo(row, auditoria_id, 'riscos', checklist_key)
+            # Enquanto não houver perguntas, mostrar mensagem
+            st.info("📝 As perguntas para avaliação de riscos serão adicionadas em breve.")
+        with tab_controles:
+            _exibir_checklist_por_tipo(row, auditoria_id, 'controles', checklist_key)
+            # Enquanto não houver perguntas, mostrar mensagem
+            st.info("📝 As perguntas para avaliação de controles serão adicionadas em breve.")
 
 
 def tela_detalhe_processo_auditoria():
@@ -1440,7 +1462,7 @@ def tela_detalhe_auditoria():
     st.divider()
     
     # Abas para organizar o conteúdo
-    tab1, tab2, tab3 = st.tabs(["📋 Processos Selecionados", "✅ Checklists", "📊 Parecer Final"])
+    tab1, tab2 = st.tabs(["📋 Processos Selecionados", "📊 Parecer Final"])
     
     # ===== ABA 1: PROCESSOS SELECIONADOS =====
     with tab1:
@@ -1539,15 +1561,15 @@ def tela_detalhe_auditoria():
             #                 st.session_state.pop('mostrar_selecao_processos', None)
             #                 st.rerun() """
     
-    # ===== ABA 2: CHECKLISTS (placeholder) =====
-    with tab2:
-        st.info("📝 A funcionalidade de checklists será implementada no próximo passo.")
-        st.caption("Aqui você poderá avaliar a eficácia da governança, riscos e controles.")
+    # # ===== ABA 2: CHECKLISTS (placeholder) =====
+    # with tab2:
+    #     st.info("📝 A funcionalidade de checklists será implementada no próximo passo.")
+    #     st.caption("Aqui você poderá avaliar a eficácia da governança, riscos e controles.")
     
-    # ===== ABA 3: PARECER FINAL (placeholder) =====
-    with tab3:
-        st.info("📊 A funcionalidade de parecer final será implementada após os checklists.")
-        st.caption("Aqui serão consolidados os resultados e gerado o parecer da auditoria.")
+    # # ===== ABA 3: PARECER FINAL (placeholder) =====
+    # with tab3:
+    #     st.info("📊 A funcionalidade de parecer final será implementada após os checklists.")
+    #     st.caption("Aqui serão consolidados os resultados e gerado o parecer da auditoria.")
     
     # Botão para voltar
     st.divider()

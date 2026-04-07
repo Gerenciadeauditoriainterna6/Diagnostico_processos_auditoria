@@ -9,16 +9,22 @@ from sqlalchemy import text
 from database import engine
 from logic import buscar_auditoria_por_id, buscar_processo_por_codigo
 
-def buscar_perguntas_checklist():
-    """Busca todas as perguntas do checklist padrão"""
+def buscar_perguntas_checklist(tipo_checklist='governanca'):
+    """Busca perguntas do checklist por tipo
+    
+    Tipos disponíveis:
+    - 'governanca': Checklist de Eficácia de Governança (processos mapeados)
+    - 'riscos': Checklist de Avaliação de Riscos
+    - 'controles': Checklist de Avaliação de Controles
+    """
     query = text("""
         SELECT id, pergunta, tipo_resposta, ordem
         FROM checklist_perguntas_padrao
-        WHERE ativo = TRUE
+        WHERE ativo = TRUE AND tipo_checklist = :tipo
         ORDER BY ordem
     """)
     with engine.connect() as conn:
-        return pd.read_sql(query, conn)
+        return pd.read_sql(query, conn, params={"tipo": tipo_checklist})
 
 
 def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, comentario=None):
@@ -368,3 +374,95 @@ def baixar_evidencia(evidencia_id):
                 conteudo = base64.b64decode(conteudo_base64)
                 return conteudo, result[1], result[2]
     return None, None, None
+
+def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, tipo_checklist='governanca'):
+    """Cria um novo checklist para o processo se não existir, por tipo"""
+    # Primeiro, verificar se já existe
+    query_check = text("""
+        SELECT id FROM checklist_governanca
+        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id AND tipo_checklist = :tipo
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query_check, {
+            "processo_id": processo_id,
+            "auditoria_id": auditoria_id,
+            "tipo": tipo_checklist
+        }).fetchone()
+
+    if result:
+        return result[0]
+    
+    # Se não existir, criar
+    query_insert = text("""
+        INSERT INTO checklist_governanca (processo_id, auditoria_id, auditor_nome, tipo_checklist, data_inicio, status)
+        VALUES (:processo_id, :auditoria_id, :auditor_nome, :tipo, NOW(), 'Em Andamento')
+        RETURNING id
+    """)
+    with engine.begin() as conn:
+        result = conn.execute(query_insert, {
+            "processo_id": processo_id,
+            "auditoria_id": auditoria_id,
+            "auditor_nome": auditoria_nome,
+            "tipo": tipo_checklist
+        }).scalar()
+    
+    return result
+
+def buscar_status_checklist_por_tipo(processo_id, auditoria_id, tipo_checklist='governanca'):
+    """Busca o status de um checklist específico por tipo"""
+    query = text("""
+        SELECT status, id FROM checklist_governanca
+        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id AND tipo_checklist = :tipo
+        ORDER BY id DESC LIMIT 1
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {
+            'processo_id': processo_id,
+            'auditoria_id': auditoria_id,
+            'tipo': tipo_checklist
+        }).fetchone()
+
+    if result:
+        return result[0], result[1]
+    return "Não iniciado", None
+
+def finalizar_checklist_por_tipo(checklist_id, processo_id, auditoria_id, tipo_checklist='governanca'):
+    """Finaliza um checklist e atualiza o status da avaliação se for do tipo governanca"""
+    # Marcar checklist como concluído
+    query = text("""
+        UPDATE checklist_governanca
+        SET status = 'Concluído', data_conclusao = NOW()
+        WHERE id = :checklist_id
+    """)
+    with engine.begin() as conn:
+        conn.execute(query, {"checklist_id": checklist_id})
+
+    # Se for checklst de governanca, atualizar status da avaliacao do processo
+
+    if tipo_checklist == 'governanca':
+        query_update_status = text("""
+            UPDATE auditoria_processos
+            SET status_avaliacao = 'Avaliado'
+            WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id                     
+        """)
+        with engine.begin() as conn:
+            conn.execute(query_update_status, {
+                "processo_id": processo_id,
+                "auditoria_id": auditoria_id
+            })
+    
+    return True
+
+def obter_resumo_checklists(processo_id, auditoria_id):
+    """Retorna o status de todos os checklists do processo"""
+    tipos = ['governanca', 'riscos', 'controles']
+    resumo = {}
+
+    for tipo in tipos:
+        status, checklist_id = buscar_status_checklist_por_tipo(processo_id, auditoria_id, tipo)
+        resumo[tipo] = {
+            'status': status,
+            'checklist_id': checklist_id
+        }
+    
+    return resumo
