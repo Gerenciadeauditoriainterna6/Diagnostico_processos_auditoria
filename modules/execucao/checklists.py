@@ -71,19 +71,22 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
 
 
 def salvar_evidencia(resposta_id, arquivo):
-    """Salva uma evidência anexada"""
+    """Salva uma evidência anexada diretamente no banco de dados"""
     if arquivo is not None:
-        # Aqui você pode salvar o arquivo no Supabase Storage
-        # Por enquanto, vamos apenas salvar o nome do arquivo
+        # Ler o conteúdo binário do arquivo
+        conteudo = arquivo.read()
+        
         query = text("""
-            INSERT INTO checklist_evidencias (resposta_id, nome_arquivo, tipo_arquivo, data_upload)
-            VALUES (:resposta_id, :nome_arquivo, :tipo_arquivo, NOW())
+            INSERT INTO checklist_evidencias (resposta_id, nome_arquivo, tipo_arquivo, conteudo, tamanho_bytes, data_upload)
+            VALUES (:resposta_id, :nome_arquivo, :tipo_arquivo, :conteudo, :tamanho_bytes, NOW())
         """)
         with engine.begin() as conn:
             conn.execute(query, {
                 "resposta_id": resposta_id,
                 "nome_arquivo": arquivo.name,
-                "tipo_arquivo": arquivo.type
+                "tipo_arquivo": arquivo.type,
+                "conteudo": conteudo,
+                "tamanho_bytes": len(conteudo)
             })
         return True
     return False
@@ -296,3 +299,31 @@ def tela_checklist_governanca():
             st.session_state.pop('processo_checklist', None)
             st.session_state.pop('tela_checklist', None)
             st.rerun()
+
+def listar_evidencias_por_resposta(resposta_id):
+    """Lista todas as evidências de uma resposta"""
+    query = text("""
+        SELECT id, nome_arquivo, tipo_arquivo, tamanho_bytes, data_upload
+        FROM checklist_evidencias
+        WHERE resposta_id = :resposta_id
+        ORDER BY data_upload DESC
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"resposta_id": resposta_id})
+    
+def baixar_evidencia(evidencia_id):
+    """Recupera o arquivo da evidência para download"""
+    query = text("""
+        SELECT encode(conteudo, 'base64'), nome_arquivo, tipo_arquivo
+        FROM checklist_evidencias
+        WHERE id = :evidencia_id
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"evidencia_id": evidencia_id}).fetchone()
+        if result:
+            import base64
+            conteudo_base64 = result[0]
+            if conteudo_base64:
+                conteudo = base64.b64decode(conteudo_base64)
+                return conteudo, result[1], result[2]
+    return None, None, None
