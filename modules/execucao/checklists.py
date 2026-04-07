@@ -9,7 +9,6 @@ from sqlalchemy import text
 from database import engine
 from logic import buscar_auditoria_por_id, buscar_processo_por_codigo
 
-
 def buscar_perguntas_checklist():
     """Busca todas as perguntas do checklist padrão"""
     query = text("""
@@ -66,6 +65,48 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
                 "nota": nota,
                 "comentario": comentario
             }).scalar()
+    
+    # Após salvar a resposta, atualizar o status da avaliação para "Em Andamento"
+    if result:
+        try:
+            # Buscar o processo_id e auditoria_id pelo checklist_id
+            query_info = text("""
+                SELECT processo_id, auditoria_id 
+                FROM checklist_governanca 
+                WHERE id = :checklist_id
+            """)
+            with engine.begin() as conn:
+                info = conn.execute(query_info, {"checklist_id": checklist_id}).fetchone()
+                
+                if info:
+                    processo_id, auditoria_id = info
+                    
+                    # Verificar se o status atual não é já "Avaliado"
+                    query_check_status = text("""
+                        SELECT status_avaliacao 
+                        FROM auditoria_processos 
+                        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+                    """)
+                    status_atual = conn.execute(query_check_status, {
+                        "processo_id": processo_id,
+                        "auditoria_id": auditoria_id
+                    }).fetchone()
+                    
+                    # Só atualizar se não estiver já "Avaliado"
+                    if status_atual and status_atual[0] != 'Avaliado':
+                        # Atualizar status para "Em Andamento"
+                        query_update_status = text("""
+                            UPDATE auditoria_processos 
+                            SET status_avaliacao = 'Em Andamento'
+                            WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+                        """)
+                        conn.execute(query_update_status, {
+                            "processo_id": processo_id,
+                            "auditoria_id": auditoria_id
+                        })
+        except Exception as e:
+            # Não deixar o erro de status quebrar o salvamento da resposta
+            print(f"Erro ao atualizar status: {e}")
     
     return result
 
