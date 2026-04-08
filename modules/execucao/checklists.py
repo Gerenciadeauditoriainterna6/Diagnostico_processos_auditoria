@@ -466,3 +466,72 @@ def obter_resumo_checklists(processo_id, auditoria_id):
         }
     
     return resumo
+
+def buscar_historico_avaliacoes(processo_id, auditoria_id):
+    """Busca todas as avaliações (checklists) já realizadas para um processo"""
+    query = text("""
+        SELECT
+            cg.id,
+            cg.tipo_checklist,
+            cg.status,
+            cg.data_inicio,
+            cg.data_conclusao,
+            cg.auditor_nome,
+            COUNT(DISTINCT cr.id) as total_respostas,
+            COUNT(DISTINCT ce.id) as total_evidencias
+        FROM checklist_governanca cg
+        LEFT JOIN checklist_respostas cr ON cg.id = cr.checklist_id
+        LEFT JOIN checklist_evidencias ce ON cr.id = ce.resposta_id
+        WHERE cg.processo_id = :processo_id AND cg.auditoria_id = :auditoria_id
+        GROUP BY cg.id
+        ORDER BY
+            CASE cg.tipo_checklist
+                WHEN 'governanca' THEN 1
+                WHEN 'riscos' THEN 2
+                WHEN 'controles' THEN 3
+                ELSE 4
+            END,
+            cg.data_conclusao DESC NULLS LAST,
+            cg.data_inicio DESC
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={
+            'processo_id': processo_id,
+            'auditoria_id': auditoria_id
+        })
+def buscar_detalhes_avaliacao(avaliacao_id):
+    """Busca todos os detalhes de uma avaliação específica (perguntas, respostasa e evidências)"""
+    query = text("""
+        SELECT
+            cr.pergunta_id,
+            cr.resposta,
+            cr.comentario,
+            cr.data_resposta,
+            cp.pergunta,
+            cp.recomendacao,
+            cp.tipo_checklist
+        FROM checklist_respostas cr
+        JOIN checklist_perguntas_padrao cp ON cr.pergunta_id = cp.id
+        WHERE cr.checklist_id = :avaliacao_id
+        ORDER BY cp.ordem
+    """)
+
+    with engine.connect() as conn:
+        df_respostas = pd.read_sql(query, conn, params={"avaliacao_id": avaliacao_id})
+
+        # Buscar evidências para cada resposta
+        for idx, row in df_respostas.iterrows():
+            query_evidencias = text("""
+                SELECT id, nome_arquivo, tamanho_bytes, data_upload
+                FROM checklist_evidencias ce
+                JOIN checklist_respostas cr ON ce.resposta_id = cr.id
+                WHERE cr.checklist_id = :avaliacao_id AND cr.pergunta_id = :pergunta_id
+            """)
+            with engine.connect() as conn:
+                df_evidencias = pd.read_sql(query_evidencias, conn, params={
+                    "avaliacao_id": avaliacao_id,
+                    "pergunta_id": row['pergunta_id'],
+                })
+                df_respostas.at[idx, 'evidencias'] = df_evidencias.to_dict('records')
+        
+        return df_respostas

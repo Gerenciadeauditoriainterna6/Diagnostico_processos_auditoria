@@ -481,24 +481,36 @@ def atualizar_etapa_no_banco(dados):
         print(f"Erro ao atualizar etapa: {e}")
         return False
 
-def listar_etapas_do_processo(processo_id, auditoria_id=None):
-    """
-    Retorna todas as etapas de um processo.
-    Se auditoria_id for fornecido, filtra por auditoria.
-    """
-    if auditoria_id:
-        query = text("""
-            SELECT * FROM etapas_processo 
-            WHERE processo_id = :id AND auditoria_id = :auditoria_id 
-            ORDER BY codigo_etapa
-        """)
-        params = {"id": processo_id, "auditoria_id": auditoria_id}
-    else:
-        query = text("SELECT * FROM etapas_processo WHERE processo_id = :id ORDER BY codigo_etapa")
-        params = {"id": processo_id}
-    
+def listar_etapas_do_processo(processo_id, auditoria_id):
+    """Lista todas as etapas de um processo"""
+    query = text("""
+        SELECT 
+            id,
+            codigo_etapa,
+            descricao_etapa,
+            como_e_feito,
+            objetivo_etapa,
+            realizado_corretamente,
+            status_etapa,
+            criticidade_etapa,
+            oque_faz,
+            manual_processo_link,
+            link_diagrama_etapa,
+            politica_interna,
+            analise_critica,
+            sugestao_melhoria,
+            necessidade_implantacao,
+            ganho_previsto,
+            obrigacoes_regulatorias
+        FROM etapas_processo
+        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+        ORDER BY codigo_etapa
+    """)
     with engine.connect() as conn:
-        return pd.read_sql(query, conn, params=params)
+        return pd.read_sql(query, conn, params={
+            "processo_id": processo_id,
+            "auditoria_id": auditoria_id
+        })
 
 def obter_proximo_codigo_etapa(processo_id, codigo_processo):
     """Gera o código 1.2.1 baseado no número de etapas existentes."""
@@ -535,16 +547,56 @@ def salvar_risco_etapa(dados, auditoria_id=None):
         return True
 
 def listar_riscos_etapa(etapa_id, auditoria_id=None):
-    """Lista riscos de uma etapa, opcionalmente filtrados por auditoria"""
+    """Lista todos os riscos de uma etapa"""
     if auditoria_id:
-        query = text("SELECT * FROM riscos_etapa WHERE etapa_id = :e_id AND auditoria_id = :auditoria_id")
-        params = {"e_id": etapa_id, "auditoria_id": auditoria_id}
+        query = text("""
+            SELECT 
+                id,
+                categoria,
+                fator_risco,
+                consequencia,
+                impacto,
+                probabilidade,
+                magnitude,
+                apetite,
+                tratamento,
+                origem,
+                financeiro,
+                ativo,
+                info_adicional,
+                doc_legal
+            FROM riscos_etapa
+            WHERE etapa_id = :etapa_id AND (auditoria_id = :auditoria_id OR auditoria_id IS NULL)
+            ORDER BY magnitude DESC
+        """)
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn, params={
+                "etapa_id": etapa_id,
+                "auditoria_id": auditoria_id
+            })
     else:
-        query = text("SELECT * FROM riscos_etapa WHERE etapa_id = :e_id")
-        params = {"e_id": etapa_id}
-    
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params=params)
+        query = text("""
+            SELECT 
+                id,
+                categoria,
+                fator_risco,
+                consequencia,
+                impacto,
+                probabilidade,
+                magnitude,
+                apetite,
+                tratamento,
+                origem,
+                financeiro,
+                ativo,
+                info_adicional,
+                doc_legal
+            FROM riscos_etapa
+            WHERE etapa_id = :etapa_id
+            ORDER BY magnitude DESC
+        """)
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn, params={"etapa_id": etapa_id})
 
 def buscar_todos_processos():
     query = text("""
@@ -1813,6 +1865,39 @@ def listar_respostas_checklist(processo_id, auditoria_id):
         WHERE cg.processo_id = :processo_id AND cg.auditoria_id = :auditoria_id
         GROUP BY cgp.id, cr.id
         ORDER BY cgp.ordem
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={
+            "processo_id": processo_id,
+            "auditoria_id": auditoria_id
+        })
+
+def listar_controles_do_processo(processo_id, auditoria_id):
+    """Lista todos os controles de todas as etapas de um processo"""
+    query = text("""
+        SELECT 
+            c.id as controle_id,
+            c.nome_controle,
+            c.natureza,
+            c.forma_execucao,
+            c.status_controle,
+            c.frequencia_evidencia,
+            c.responsaveis_tratamento,
+            c.risco_avaliacao,
+            c.causa_motivo,
+            c.objetivo_controle,
+            e.id as etapa_id,
+            e.codigo_etapa,
+            e.descricao_etapa,
+            r.fator_risco as risco_fator,
+            r.categoria as risco_categoria
+        FROM controles_etapa c
+        JOIN riscos_etapa r ON c.risco_id = r.id
+        JOIN etapas_processo e ON r.etapa_id = e.id
+        WHERE e.processo_id = :processo_id 
+          AND e.auditoria_id = :auditoria_id
+          AND c.status_controle = 'Ativo'
+        ORDER BY e.codigo_etapa, c.nome_controle
     """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={
