@@ -29,6 +29,7 @@ backup_supabase.py
 **/Backups_Supabase/
 **/backup_supabase_*/
 **/Backups_Supabase*/
+**/Backup_database*/
 
 # --- Logs e históricos ---
 *.log
