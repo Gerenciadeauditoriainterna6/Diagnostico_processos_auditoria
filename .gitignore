@@ -19,3 +19,8 @@ Thumbs.db
 
 # --- Arquivos específicos do seu projeto ---
 Acessos Auditoria Interna 6.txt
+
+# ---- Backup do banco de dados
+backup_supabase_*/
+*.csv
+backup_supabase.py

@@ -174,8 +174,13 @@ def _exibir_checklist_por_tipo(row, auditoria_id, tipo_checklist, checklist_key_
     # Buscar respostas existentes
     respostas_existentes = buscar_respostas_existentes(checklist_id)
     
-    # IDs das perguntas que permitem anexos (apenas para governança)
-    PERGUNTAS_COM_EVIDENCIAS = [1, 2, 3, 4] if tipo_checklist == 'governanca' else []
+    # IDs das perguntas que permitem anexos
+    if tipo_checklist == 'governanca':
+        PERGUNTAS_COM_EVIDENCIAS = [1, 2, 3, 4]
+    elif tipo_checklist == 'controles':
+        PERGUNTAS_COM_EVIDENCIAS = [26, 27]  # Perguntas 1 e 2 permitem anexos
+    else:
+        PERGUNTAS_COM_EVIDENCIAS = []
     
     if is_finalizado:
         # ===== MODO LEITURA =====
@@ -786,7 +791,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 # Botão para adicionar controles
                 col_add_ctrl1, col_add_ctrl2 = st.columns([1, 3])
                 with col_add_ctrl1:
-                     if st.button("➕ Adicionar Controle", key=f"add_controle_geral_{row['processo_id']}"):
+                    if st.button("➕ Adicionar Controle", key=f"add_controle_geral_{row['processo_id']}"):
                         st.session_state[f"add_controle_geral_{row['processo_id']}"] = True
                 
                 # Formulário para adicionar controle (expansível)
@@ -851,7 +856,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                     st.session_state[f"add_controle_geral_{row['processo_id']}"] = False
                                     st.rerun()
                 
-                # Buscar controles existentes
+                # Buscar controles existentes (fora do if, no mesmo nível)
                 controles_processo = listar_controles_do_processo(row['processo_id'], auditoria_id)
                 
                 if controles_processo.empty:
@@ -863,7 +868,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                     
                     for _, ctrl in controles_processo.iterrows():
                         with st.container(border=True):
-                            col_ctrl1, col_ctrl2 = st.columns([2, 1])
+                            col_ctrl1, col_ctrl2, col_ctrl3 = st.columns([2, 1, 1])
                             with col_ctrl1:
                                 st.markdown(f"**{ctrl['nome_controle']}**")
                                 st.caption(f"📌 Etapa: {ctrl.get('codigo_etapa', 'N/A')} - {ctrl.get('descricao_etapa', 'N/A')[:50]}")
@@ -878,20 +883,76 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                     st.error(f"Status: {status_ctrl}")
                                 st.caption(f"📅 Frequência: {ctrl.get('frequencia_evidencia', 'N/A')}")
                                 st.caption(f"👤 Responsável: {ctrl.get('responsaveis_tratamento', 'N/A')[:30]}")
-                            
-                            # Botão para excluir controle
-                            col_del1, col_del2 = st.columns([4, 1])
-                            with col_del2:
+                            with col_ctrl3:
+                                if st.button("✏️ Editar", key=f"edit_controle_{ctrl['controle_id']}"):
+                                    st.session_state[f"editando_controle_{ctrl['controle_id']}"] = True
                                 if st.button("🗑️ Excluir", key=f"del_controle_{ctrl['controle_id']}"):
                                     st.session_state[f"confirmar_exclusao_controle_{ctrl['controle_id']}"] = True
-                            
-                            # Confirmação de exclusão
+
+                            # ===== FORMULÁRIO DE EDIÇÃO DE CONTROLE =====
+                            if st.session_state.get(f"editando_controle_{ctrl['controle_id']}", False):
+                                st.markdown("---")
+                                st.markdown("#### ✏️ Editando Controle")
+
+                                with st.form(key=f"form_edit_controle_{ctrl['controle_id']}"):
+                                    nome_edit = st.text_input("Nome do Controle", value=ctrl['nome_controle'])
+                                    
+                                    col_e1, col_e2, col_e3 = st.columns(3)
+                                    with col_e1:
+                                        forma_edit = st.selectbox("Forma", ["Manual", "Automático"], 
+                                            index=0 if ctrl.get('forma_execucao') == 'Manual' else 1)
+                                    with col_e2:
+                                        natureza_edit = st.selectbox("Natureza", ["Preventiva", "Detectiva", "Corretiva"],
+                                            index=["Preventiva", "Detectiva", "Corretiva"].index(ctrl.get('natureza', 'Preventiva')))
+                                    with col_e3:
+                                        status_edit = st.selectbox("Status", ["Ativo", "Inativo"],
+                                            index=0 if ctrl.get('status_controle') == 'Ativo' else 1)
+                                    
+                                    frequencia_edit = st.selectbox("Frequência", ["Diário", "Semanal", "Mensal", "Trimestral", "Anual"],
+                                        index=["Diário", "Semanal", "Mensal", "Trimestral", "Anual"].index(ctrl.get('frequencia_evidencia', 'Mensal')))
+                                    responsavel_edit = st.text_input("Responsável", value=ctrl.get('responsaveis_tratamento', ''))
+                                    avaliacao_edit = st.text_area("Avaliação do Risco", value=ctrl.get('risco_avaliacao', ''))
+                                    
+                                    col_edit1, col_edit2 = st.columns(2)
+                                    with col_edit1:
+                                        if st.form_submit_button("💾 Salvar Alterações", type="primary"):
+                                            query_update = text("""
+                                                UPDATE controles_etapa 
+                                                SET nome_controle = :nome,
+                                                    forma_execucao = :forma,
+                                                    natureza = :natureza,
+                                                    status_controle = :status,
+                                                    frequencia_evidencia = :frequencia,
+                                                    responsaveis_tratamento = :responsavel,
+                                                    risco_avaliacao = :avaliacao,
+                                                    data_atualizacao = NOW()
+                                                WHERE id = :controle_id
+                                            """)
+                                            with engine.begin() as conn:
+                                                conn.execute(query_update, {
+                                                    "nome": nome_edit,
+                                                    "forma": forma_edit,
+                                                    "natureza": natureza_edit,
+                                                    "status": status_edit,
+                                                    "frequencia": frequencia_edit,
+                                                    "responsavel": responsavel_edit,
+                                                    "avaliacao": avaliacao_edit,
+                                                    "controle_id": ctrl['controle_id']
+                                                })
+                                            st.success("Controle atualizado com sucesso!")
+                                            st.session_state.pop(f"editando_controle_{ctrl['controle_id']}", None)
+                                            st.rerun()
+                                    with col_edit2:
+                                        if st.form_submit_button("❌ Cancelar"):
+                                            st.session_state.pop(f"editando_controle_{ctrl['controle_id']}", None)
+                                            st.rerun()
+
+                            # ===== CONFIRMAÇÃO DE EXCLUSÃO =====
                             if st.session_state.get(f"confirmar_exclusao_controle_{ctrl['controle_id']}", False):
                                 st.warning(f"Tem certeza que deseja excluir o controle **{ctrl['nome_controle']}**?")
                                 col_conf1, col_conf2 = st.columns(2)
                                 with col_conf1:
                                     if st.button("✅ Sim", key=f"conf_sim_controle_{ctrl['controle_id']}"):
-                                        # Chamar função de exclusão
                                         query_del = text("DELETE FROM controles_etapa WHERE id = :id")
                                         with engine.begin() as conn:
                                             conn.execute(query_del, {"id": ctrl['controle_id']})
