@@ -878,9 +878,9 @@ def salvar_no_banco():
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                probabilidade, apetite_risco, motivo_risco, score_risco) 
+                probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
                 RETURNING id
             """)
 
@@ -891,6 +891,7 @@ def salvar_no_banco():
                     nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}"
                 else:
                     nome_risco_com_prefixo = ''
+                
                 # === CONCATENAR FATOR DO RISCO NO PYTHON ===
                 fator_raw = st.session_state.get(f"fator_{i}", '').strip()
                 if fator_raw:
@@ -901,6 +902,12 @@ def salvar_no_banco():
                 imp = st.session_state.get(f"imp_{i}")
                 prob = st.session_state.get(f"prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
+                
+                # === PEGAR CATEGORIAS E CONVERTER PARA STRING ===
+                categorias_ids = st.session_state.get(f"categorias_{i}", [])
+                # Se você tem um dicionário de categorias para nomes
+                # Por enquanto, vamos usar o primeiro ID como string
+                categoria_str = ', '.join([str(cat_id) for cat_id in categorias_ids]) if categorias_ids else None
 
                 result = conn.execute(sql_risco, {
                     "pid": processo_id,
@@ -911,19 +918,12 @@ def salvar_no_banco():
                     "prob": prob,
                     "apetite": st.session_state.get(f"apetite_{i}"),
                     "motivo": st.session_state.get(f"motivo_{i}"),
-                    "score": score
+                    "score": score,
+                    "categoria": categoria_str
                 })
 
                 risco_id = result.scalar()
-
-                # === SALVAR CATEGORIAS DO RISCO ===
-                categorias_ids = st.session_state.get(f"categorias_{i}", [])
-                if categorias_ids:
-                    for cat_id in categorias_ids:
-                        conn.execute(
-                            text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
-                            {"rid": risco_id, "cid": cat_id}
-                        )
+                # NOTA: Não precisamos mais inserir em risco_categorias!
 
             st.session_state['ultimo_processo_id'] = processo_id
 
@@ -1396,20 +1396,17 @@ def salvar_informacoes_basicas():
         return False, None
     
 def listar_riscos_do_processo(processo_id):
-    """Retorna todos os riscos de um processo com suas categorias"""
+    """Retorna todos os riscos de um processo com sua categoria"""
     query = text("""
         SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
                r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
-               ARRAY_AGG(c.id) as categorias_ids,
-               ARRAY_AGG(c.nome) as categorias_nomes
+               r.categoria,
+               ARRAY[r.categoria] as categorias_ids,
+               ARRAY[r.categoria] as categorias_nomes
         FROM riscos r
-        LEFT JOIN risco_categorias rc ON r.id = rc.risco_id
-        LEFT JOIN categorias_risco c ON rc.categoria_id = c.id
         WHERE r.processo_id = :pid
-        GROUP BY r.id
         ORDER BY r.id
     """)
-    
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"pid": processo_id})
 
@@ -1556,43 +1553,6 @@ def listar_categorias(): # ---- SE PRECISAR INCLUIR MAIS RISCOS, INCLUIR VIA BAN
         df = pd.read_sql(query, conn)
         return dict(zip(df['id'], df['nome']))
 
-def salvar_categorias_risco(risco_id, categorias_ids):
-    """Salva as categorias de um risco"""
-    try:
-        with engine.connect() as conn:
-            # Remove categorias antigas
-            conn.execute(
-                text("""
-                    DELETE FROM risco_categorias WHERE risco_id = :rid
-                    """),
-                    {'id': risco_id}
-            )
-
-            # Insere novas categorias
-            if categorias_ids:
-                for cat_id in categorias_ids:
-                    conn.execute(
-                        text(
-                            """INSERT INTO risco_categorias (risco_id, categoria_id)
-                                VALUES (:rid, :cid)
-                            """), {'rid': risco_id, "cid": cat_id}
-                    )
-            return True
-    except Exception as e:
-        print(f"Erro ao salvar categorias: {e}")
-        return False
-
-def listar_categorias_do_risco(risco_id):
-    """Retorna os IDs das categorias de um risco"""
-    query = text(
-        """SELECT categoria_id
-            FROM risco_categorias
-            WHERE risco_id = :rid
-        """)
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={'rid': risco_id})
-        return df['categoria_id'].tolist() if not df.empty else []
-    
 def carregar_riscos_processo_para_edicao(processo_id):
     """Carrega os riscos do processo para a session_state de edição"""
     import streamlit as st
@@ -1687,9 +1647,9 @@ def salvar_edicao_processo():
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                probabilidade, apetite_risco, motivo_risco, score_risco) 
+                probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
                 RETURNING id
             """)
             
@@ -1712,27 +1672,24 @@ def salvar_edicao_processo():
                 prob = st.session_state.get(f"edit_prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
+                # === PEGAR CATEGORIAS E CONVERTER PARA STRING ===
+                categorias_ids = st.session_state.get(f"edit_categorias_{i}", [])
+                categoria_str = ', '.join([str(cat_id) for cat_id in categorias_ids]) if categorias_ids else None
+                
                 result = conn.execute(sql_risco, {
                     "pid": processo_id, 
-                    "nome": nome_risco_com_prefixo,   # <-- USAR CONCATENADO
-                    "fator": fator_com_prefixo,       # <-- USAR CONCATENADO
+                    "nome": nome_risco_com_prefixo,
+                    "fator": fator_com_prefixo,
                     "melhoria": st.session_state.get(f"edit_melhoria_{i}"), 
                     "imp": imp, 
                     "prob": prob, 
                     "apetite": st.session_state.get(f"edit_apetite_{i}"), 
                     "motivo": st.session_state.get(f"edit_motivo_{i}"), 
-                    "score": score
+                    "score": score,
+                    "categoria": categoria_str
                 })
                 
-                risco_id = result.scalar()
-                
-                categorias_ids = st.session_state.get(f"edit_categorias_{i}", [])
-                if categorias_ids:
-                    for cat_id in categorias_ids:
-                        conn.execute(
-                            text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
-                            {"rid": risco_id, "cid": cat_id}
-                        )
+                # NOTA: Não precisamos mais inserir em risco_categorias!
             
         return True
     except Exception as e:
@@ -1858,7 +1815,7 @@ def listar_respostas_checklist(processo_id, auditoria_id):
             cr.comentario,
             cr.data_resposta,
             COUNT(ce.id) as num_evidencias
-        FROM checklist_governanca cg
+        FROM checklist_sessoes cg
         JOIN checklist_respostas cr ON cr.checklist_id = cg.id
         JOIN checklist_perguntas_padrao cgp ON cgp.id = cr.pergunta_id
         LEFT JOIN checklist_evidencias ce ON ce.resposta_id = cr.id

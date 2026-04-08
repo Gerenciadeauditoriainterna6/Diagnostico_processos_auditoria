@@ -78,7 +78,7 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
             # Buscar o processo_id e auditoria_id pelo checklist_id
             query_info = text("""
                 SELECT processo_id, auditoria_id 
-                FROM checklist_governanca 
+                FROM checklist_sessoes 
                 WHERE id = :checklist_id
             """)
             with engine.begin() as conn:
@@ -143,7 +143,7 @@ def criar_checklist_sessao(processo_id, auditoria_id, auditor_nome):
     """Cria um novo checklist para o processo se não existir"""
     # Primeiro, verificar se já existe
     query_check = text("""
-        SELECT id FROM checklist_governanca
+        SELECT id FROM checklist_sessoes
         WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
     """)
     with engine.connect() as conn:
@@ -157,7 +157,7 @@ def criar_checklist_sessao(processo_id, auditoria_id, auditor_nome):
     
     # Se não existe, criar
     query_insert = text("""
-        INSERT INTO checklist_governanca (processo_id, auditoria_id, auditor_nome, data_inicio, status)
+        INSERT INTO checklist_sessoes (processo_id, auditoria_id, auditor_nome, data_inicio, status)
         VALUES (:processo_id, :auditoria_id, :auditor_nome, NOW(), 'Em Andamento')
         RETURNING id
     """)
@@ -184,7 +184,7 @@ def buscar_respostas_existentes(checklist_id):
     return {}
 
 
-def tela_checklist_governanca():
+def tela_checklist_sessoes():
     """Tela para preenchimento do checklist de governança"""
     
     # Verificar se veio de um processo
@@ -333,7 +333,7 @@ def tela_checklist_governanca():
         if finalizar:
             # Marcar checklist como concluído
             query = text("""
-                UPDATE checklist_governanca 
+                UPDATE checklist_sessoes 
                 SET status = 'Concluído', data_conclusao = NOW()
                 WHERE id = :checklist_id
             """)
@@ -379,7 +379,7 @@ def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, t
     """Cria um novo checklist para o processo se não existir, por tipo"""
     # Primeiro, verificar se já existe
     query_check = text("""
-        SELECT id FROM checklist_governanca
+        SELECT id FROM checklist_sessoes
         WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id AND tipo_checklist = :tipo
     """)
     with engine.connect() as conn:
@@ -394,7 +394,7 @@ def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, t
     
     # Se não existir, criar
     query_insert = text("""
-        INSERT INTO checklist_governanca (processo_id, auditoria_id, auditor_nome, tipo_checklist, data_inicio, status)
+        INSERT INTO checklist_sessoes (processo_id, auditoria_id, auditor_nome, tipo_checklist, data_inicio, status)
         VALUES (:processo_id, :auditoria_id, :auditor_nome, :tipo, NOW(), 'Em Andamento')
         RETURNING id
     """)
@@ -411,7 +411,7 @@ def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, t
 def buscar_status_checklist_por_tipo(processo_id, auditoria_id, tipo_checklist='governanca'):
     """Busca o status de um checklist específico por tipo"""
     query = text("""
-        SELECT status, id FROM checklist_governanca
+        SELECT status, id FROM checklist_sessoes
         WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id AND tipo_checklist = :tipo
         ORDER BY id DESC LIMIT 1
     """)
@@ -430,7 +430,7 @@ def finalizar_checklist_por_tipo(checklist_id, processo_id, auditoria_id, tipo_c
     """Finaliza um checklist e atualiza o status da avaliação se for do tipo governanca"""
     # Marcar checklist como concluído
     query = text("""
-        UPDATE checklist_governanca
+        UPDATE checklist_sessoes
         SET status = 'Concluído', data_conclusao = NOW()
         WHERE id = :checklist_id
     """)
@@ -454,18 +454,14 @@ def finalizar_checklist_por_tipo(checklist_id, processo_id, auditoria_id, tipo_c
     return True
 
 def obter_resumo_checklists(processo_id, auditoria_id):
-    """Retorna o status de todos os checklists do processo"""
-    tipos = ['governanca', 'riscos', 'controles']
-    resumo = {}
-
-    for tipo in tipos:
-        status, checklist_id = buscar_status_checklist_por_tipo(processo_id, auditoria_id, tipo)
-        resumo[tipo] = {
-            'status': status,
-            'checklist_id': checklist_id
-        }
-    
-    return resumo
+    query = text("""
+        SELECT 
+            cg.id,
+            cg.tipo_checklist,
+            cg.status
+        FROM checklists_sessoes cg
+        WHERE cg.processo_id = :processo_id AND cg.auditoria_id = :auditoria_id
+    """)
 
 def buscar_historico_avaliacoes(processo_id, auditoria_id):
     """Busca todas as avaliações (checklists) já realizadas para um processo"""
@@ -479,7 +475,7 @@ def buscar_historico_avaliacoes(processo_id, auditoria_id):
             cg.auditor_nome,
             COUNT(DISTINCT cr.id) as total_respostas,
             COUNT(DISTINCT ce.id) as total_evidencias
-        FROM checklist_governanca cg
+        FROM checklist_sessoes cg
         LEFT JOIN checklist_respostas cr ON cg.id = cr.checklist_id
         LEFT JOIN checklist_evidencias ce ON cr.id = ce.resposta_id
         WHERE cg.processo_id = :processo_id AND cg.auditoria_id = :auditoria_id

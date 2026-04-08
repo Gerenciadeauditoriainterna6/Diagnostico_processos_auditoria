@@ -452,7 +452,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
 
     # buscar o status do checklist para este processo
     query_status_checklist = text("""
-        SELECT status, id FROM checklist_governanca
+        SELECT status, id FROM checklist_sessoes
         WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
         ORDER BY id DESC LIMIT 1
     """)
