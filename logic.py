@@ -1543,15 +1543,19 @@ def listar_executores_processo_com_nomes(processo_id):
         return [f"{row['nome_funcionario']} ({row['cargo']})" 
                 for _, row in df.iterrows()]
 
-def listar_categorias(): # ---- SE PRECISAR INCLUIR MAIS RISCOS, INCLUIR VIA BANCO DE DADOS TABELA CATEGORIAS_RISCO
-    """Retorna todas as categorias disponíveis"""
-    query = text(
-        """SELECT id, nome
-           FROM categorias_risco ORDER BY id 
-        """)
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-        return dict(zip(df['id'], df['nome']))
+def listar_categorias():
+    """Retorna as categorias de risco pré-definidas"""
+    # Categorias fixas que fazem sentido para seu negócio
+    categorias = {
+        1: "Risco Operacional",
+        2: "Risco Financeiro",
+        3: "Risco de Compliance",
+        4: "Risco de Reputação",
+        5: "Risco de TI",
+        6: "Risco de Fraude",
+        7: "Risco Estratégico"
+    }
+    return categorias
 
 def carregar_riscos_processo_para_edicao(processo_id):
     """Carrega os riscos do processo para a session_state de edição"""
