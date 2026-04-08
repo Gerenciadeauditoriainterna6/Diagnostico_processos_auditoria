@@ -10,8 +10,7 @@ __pycache__/
 *.db
 *.sqlite
 *.xlsx
-# Se você tiver arquivos CSV com dados sensíveis, recomendo incluir também:
-# *.csv 
+*.csv
 
 # --- Arquivos de Sistema (macOS/Windows) ---
 .DS_Store
@@ -20,7 +19,19 @@ Thumbs.db
 # --- Arquivos específicos do seu projeto ---
 Acessos Auditoria Interna 6.txt
 
-# ---- Backup do banco de dados
-backup_supabase_*/
-*.csv
+# --- Backup do banco de dados ---
+backup_banco.py
+executar_backup_agendado.bat
+backup_agendado.py
 backup_supabase.py
+
+# --- Pastas de backup (qualquer local) ---
+**/Backups_Supabase/
+**/backup_supabase_*/
+**/Backups_Supabase*/
+
+# --- Logs e históricos ---
+*.log
+historico_*.csv
+⚠️_VERIFICAR_BACKUP.txt
+⚠️_ERRO_CONEXAO.txt
