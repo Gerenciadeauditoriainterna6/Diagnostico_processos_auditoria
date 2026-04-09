@@ -19,3 +19,26 @@ Thumbs.db
 
 # --- Arquivos específicos do seu projeto ---
 Acessos Auditoria Interna 6.txt
+backup_banco.py
+backup_supabase.py
+Backup_database/historico_manual.csv
+Backup_database/backup_20260408_164425/auditoria_processos.csv
+Backup_database/backup_20260408_164425/auditorias.csv
+Backup_database/backup_20260408_164425/backup_log.txt
+.gitignore
+Backup_database/backup_20260408_164425/checklist_evidencias.csv
+Backup_database/backup_20260408_164425/checklist_perguntas_padrao.csv
+.gitignore
+Backup_database/backup_20260408_164425/checklist_respostas.csv
+.gitignore
+Backup_database/backup_20260408_164425/checklists_sessoes.csv
+Backup_database/backup_20260408_164425/controles_etapa.csv
+Backup_database/backup_20260408_164425/etapas_processo.csv
+Backup_database/backup_20260408_164425/funcionarios_area.csv
+Backup_database/backup_20260408_164425/informacoes_area.csv
+.gitignore
+Backup_database/backup_20260408_164425/processos.csv
+Backup_database/backup_20260408_164425/processo_executores.csv
+Backup_database/backup_20260408_164425/riscos_etapa.csv
+Backup_database/backup_20260408_164425/riscos.csv
+Backup_database/backup_20260408_164425/usuarios.csv
