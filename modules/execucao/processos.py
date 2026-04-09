@@ -486,7 +486,8 @@ def _tela_novo_processo():
                         help="Qual(is) o(s) produto(s) final(is) desse processo? (Ex: Relatório, Planilha, Sistema, Word, etc)")
             st.text_area("Depois de Acabado, para onde envia?:", key="input_etapa_fim", 
                         help="Depois de acabado, para onde envia? (Ex: Área x, Arquivo físico localizado em y, Arquivo Digital localizado no z, etc.) - ETAPA FINAL")
-            st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo")
+            st.text_area("Qual o Objetivo do Processo? e Por que faz?:", key="input_objetivo",
+                         placeholder="Garantir o que exatamente?")
 
             st.write("")
 
@@ -602,16 +603,18 @@ def _tela_novo_processo():
                 with col_titulo:
                     st.markdown(f"**Detalhes do Risco {i+1}**")
                 with col_remove:
-                    if len(st.session_state['riscos']) > 1:
+                    if len(st.session_state['riscos']) != 0:
                         if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True):
                             indices_para_remover.append(i)
+                            st.toast(f"✅ Risco {i+1} removido!")
+                            time_module.sleep(1)
                 st.divider()
 
                 # Campos do risco
                 st.text_input(
                     f"Nome do Risco:",
                     key=f"nome_{i}",
-                    placeholder="Ex: Risco de erro no cadastro, Risco de falha sistêmica...",
+                    placeholder="Risco pela possibilidade de acontecer o que?",
                     help="Descreva o risco de forma clara e objetiva"
                 )
 
@@ -635,7 +638,7 @@ def _tela_novo_processo():
                 st.text_area(
                     f"Fator de Risco",
                     key=f"fator_{i}",
-                    placeholder="O que causa ou contribui para que este risco aconteça?",
+                    placeholder="Pelo motivo de?",
                     help="Fator de risco, causa ou motivo desse risco acontecer."
                 )
 
@@ -1122,7 +1125,7 @@ def _tela_editar_processo():
                 else:
                     titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
                 
-                with st.expander(titulo_expander, expanded=False, key=f"edit_risco_expander_{form_version}_{i}"):
+                with st.expander(titulo_expander, key=f"edit_risco_expander_{form_version}_{i}"):
                     # Cabeçalho com botão de remover
                     col_titulo, col_remove = st.columns([5, 1])
                     with col_titulo:

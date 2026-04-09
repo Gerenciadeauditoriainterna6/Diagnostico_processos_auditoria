@@ -47,10 +47,10 @@ def exibir_criterios_risco():
             
             | Nível | Descrição |
             |-------|-----------|
-            | **Baixo** | Desembolsos de até R$ 150.000,00. (Os riscos possuem consequências reversíveis em curto prazo com custos pouco baixos.) |
-            | **Médio** | Desembolsos de R$ 150.000,01 até R$ 300.000,00. (Os riscos possuem consequências reversíveis em curto e médio prazo com custos médios) |
-            | **Alto** | Desembolso de R$ 300.000,01 até R$ 1.500.000,00. (Os riscos possuem consequências reversíveis em médio e longo prazo com custos altos) |
-            | **Muito Alto** | Desembolso acima de R$ 1.500.000,00. (Os riscos possuem consequências reversíveis em médio e longo prazo com custos muito altos)|
+            | **Baixo** | Desembolsos de até R\\$ 150.000,00. (Os riscos possuem consequências reversíveis em curto prazo com custos pouco baixos.) |
+            | **Médio** | Desembolsos de R\\$ 150.000,01 até R\\$ 300.000,00. (Os riscos possuem consequências reversíveis em curto e médio prazo com custos médios) |
+            | **Alto** | Desembolso de R\\$ 300.000,01 até R\\$ 1.500.000,00. (Os riscos possuem consequências reversíveis em médio e longo prazo com custos altos) |
+            | **Muito Alto** | Desembolso acima de R\\$ 1.500.000,00. (Os riscos possuem consequências reversíveis em médio e longo prazo com custos muito altos)|
             """)
 
 def limpar_campos_por_prefixo(prefixo):

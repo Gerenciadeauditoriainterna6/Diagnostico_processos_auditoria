@@ -7,6 +7,34 @@ from streamlit_local_storage import LocalStorage
 import json
 from logic import (validar_login_no_banco, TEMPO_SESSAO_SEGUNDOS)
 
+# Importante: adicione esta função no início do seu arquivo
+def custom_spinner():
+    """Retorna HTML/CSS para um spinner personalizado"""
+    return """
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px 0;">
+        <div class="custom-spinner"></div>
+        <p style="color: white; margin-top: 15px; font-size: 14px; font-family: sans-serif;">
+            🔐 Verificando credenciais...
+        </p>
+    </div>
+    
+    <style>
+        .custom-spinner {
+            width: 20px;
+            height: 20px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #0b5b99;
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: spin 0.7s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    """
 
 def get_base64(bin_file):
     """Lê um arquivo de imagem e retorna sua versão codificada em Base64."""
@@ -75,30 +103,25 @@ def login_screen(local_storage):
             div[data-testid="stVerticalBlockBorder"], 
             .stVerticalBlockBorder, 
             .st-emotion-cache-139wymi, 
-            .st-emotion-cache-1r6slb0 {{
+            .st-emotion-cache-1r6slb0
+            .st-emotion-cache-18kf3ut {{
                 background: linear-gradient(180deg, #6d8285 0%, #406064 100%) !important;
-                border: none !important;
+                border: 2.3px solid rgba(4, 46, 87, 100) !important;
                 box-shadow: 0px 15px 25px rgba(0,0,0,0.3) !important;
                 border-radius: 20px !important;
-                padding: 15px 50px 30px 50px !important; 
-                display: flex !important;
+                padding: 25px 50px 40px 50px !important; 
+                display: block !important;
                 flex-direction: column !important;
                 width: 85% !important;
+                height: 420px !important;
+                min-height: 100px !important;
                 margin-left: auto !important;
                 margin-right: auto !important;
                 opacity: 1 !important;
+                transition: none !important;
             }}
 
             /* ========== 4. CONTAINER PAI DO CARD ========== */
-
-            /* Ajuste para centralização vertical do card na tela */
-            div[data-testid="stVerticalBlock"]:has(> div > [data-testid="stVerticalBlockBorder"]) {{
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                min-height: auto;      /* Remove altura mínima fixa, deixa fluir */
-                margin: 0 !important;
-            }}
 
             /* ========== 5. LOGO PRINCIPAL ========== */
             /* Estilo da Logo e Títulos */
@@ -119,33 +142,68 @@ def login_screen(local_storage):
             /* ========== 6. TÍTULOS ========== */
             /* Sem alterações */
             div[style*="text-align: center; width: 100%; line-height: 1.2;"] {{
-                margin-bottom: 0 !important;
+                margin-bottom: 15px !important; /* Ajusta o espaçamento entre o acesso restrito e o campo de usuario */
             }}
             .acesso-restrito {{
-                margin-top: 10px !important;
-                margin-bottom: 20px !important;
+                margin-top: 0px !important;
+                margin-bottom: 50px !important;
             }}
 
             /* ========== 7. CAMPOS DE INPUT ========== */
 
             div[data-testid="stTextInput"] {{
-                margin-bottom: 0px !important;
+                margin-bottom: -10px !important;
+                transition: none !important;
             }}
 
-            div[data-testid="stTextInput"]:has(#text_input_2){{
-                margin-top: -25px !important;
+            div[data-testid="stTextInput"] input[type="password"] {{
+                margin-top: 0px !important;
                 margin-bottom: 0px !important;
+                transition: none !important;
             }}
 
             /* ========== 8. BOTÃO DE ENTRAR ========== */
             div.stButton {{
-                margin-top: 15px !important;
+                margin-top: 35px !important;
+                transition: none !important;
             }}
 
             button[kind="primary"] {{
                 background-color: #153e5a !important;
-                border: none !important;
+                border: 2px solid #184145 !important;
                 box-shadow: 0px 4px 10px rgba(0,0,0,0.2) !important;
+            }}
+
+            button[kind="primary"]:hover {{
+                background-color: rgba(11, 91, 153, 0.8) !important;
+                border: 2px solid #0b5b99 !important;
+                cursor: pointer !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0px 6px 12px rgba(0,0,0,0.25) !important;
+            }}
+
+            /* ========== 8.1 SPINNER DE LOGIN ==========
+            /* Seletor mais abrangente para o spinner */
+            .stSpinner {{
+                margin: 30px 0 !important;
+                text-align: center !important;
+            }}
+
+            /* Para o container do spinner */
+            div[class*="stSpinner"] {{
+                margin: 25px auto !important;
+                display: flex !important;
+                justify-content: center !important;
+            }}
+
+            /* ========== SPINNER DE LOGIN - COR DOURADA ========== */
+
+            /* Elemento i do spinner */
+            i[data-testid="stSpinnerIcon"]::before {{
+                color: #ffc107 !important;
+                font-size: 10px !important;
+                width: 20px !important;
+                height: 20px !important;
             }}
 
             /* ========== 9. LOGOS INFERIORES (FUSVE e IIA) ========== */
@@ -320,7 +378,138 @@ def login_screen(local_storage):
             senha = st.text_input("", type="password", placeholder="🔑 Digite sua senha", key="pass_login")
             
             if st.button("Entrar", use_container_width=True, key='btn_entrar_login', type="primary"):
+                # Criar placeholder para o spinner
+                spinner_placeholder = st.empty()
+                
+                # Mostrar spinner customizado
+                spinner_placeholder.markdown(custom_spinner(), unsafe_allow_html=True)
+                
+                # Pequeno delay para mostrar o spinner
+                time_module.sleep(1.3)
+                
                 if validar_login_no_banco(usuario, senha):
+                    # Remove o spinner
+                    spinner_placeholder.empty()
+                    
+                    # ========== MODAL DE SUCESSO ==========
+                    modal_placeholder = st.empty()
+                    
+                    modal_placeholder.markdown("""
+                        <div class="success-modal">
+                            <div class="modal-overlay"></div>
+                            <div class="modal-content">
+                                <div class="checkmark-circle">
+                                    <div class="checkmark"></div>
+                                </div>
+                                <h2>Bem-vindo!</h2>
+                                <p>Login realizado com sucesso</p>
+                                <p>Você está sendo redirecionado!</p>
+                                <div class="loading-dots">
+                                    <span>.</span><span>.</span><span>.</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <style>
+                            @keyframes fadeIn {
+                                from { opacity: 0; }
+                                to { opacity: 1; }
+                            }
+                            
+                            @keyframes checkmark {
+                                0% { transform: scale(0); opacity: 0; }
+                                50% { transform: scale(1.2); }
+                                100% { transform: scale(1); opacity: 1; }
+                            }
+                            
+                            @keyframes dots {
+                                0%, 20% { opacity: 0; }
+                                40% { opacity: 1; }
+                                100% { opacity: 1; }
+                            }
+                            
+                            .success-modal {
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                z-index: 9999;
+                                animation: fadeIn 0.5s ease-out;
+                            }
+                            
+                            .modal-overlay {
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0,0,0,0.5);
+                            }
+                            
+                            .modal-content {
+                                background: linear-gradient(135deg, #184145, #6b8085);
+                                border-radius: 20px;
+                                padding: 40px;
+                                text-align: center;
+                                z-index: 10000;
+                                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                                animation: fadeIn 0.3s ease-out;
+                            }
+                            
+                            .checkmark-circle {
+                                width: 80px;
+                                height: 80px;
+                                background: white;
+                                border-radius: 50%;
+                                margin: 0 auto 20px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                animation: checkmark 0.5s ease-out;
+                            }
+                            
+                            .checkmark {
+                                width: 40px;
+                                height: 20px;
+                                border-left: 4px solid #28a745;
+                                border-bottom: 4px solid #28a745;
+                                transform: rotate(-45deg);
+                                margin-top: -10px;
+                            }
+                            
+                            .modal-content h2 {
+                                color: white;
+                                margin: 0 0 10px;
+                                font-size: 24px;
+                            }
+                            
+                            .modal-content p {
+                                color: rgba(255,255,255,0.95);
+                                margin: 0;
+                            }
+                            
+                            .loading-dots {
+                                margin-top: 15px;
+                            }
+                            
+                            .loading-dots span {
+                                display: inline-block;
+                                font-size: 24px;
+                                color: white;
+                                animation: dots 1.5s infinite;
+                            }
+                            
+                            .loading-dots span:nth-child(2) { animation-delay: 0.3s; }
+                            .loading-dots span:nth-child(3) { animation-delay: 0.6s; }
+                        </style>
+                    """, unsafe_allow_html=True)
+                    
+                    # ========== FIM DO MODAL ==========
+                    
                     local_storage.setItem("usuario_audit", usuario, key='set_usuario_audit')
                     local_storage.setItem("login_timestamp", datetime.now().isoformat(), key='set_login_timestamp')
                     session_data = {
@@ -333,11 +522,18 @@ def login_screen(local_storage):
                     st.session_state["usuario_logado"] = usuario
                     st.session_state['login_timestamp'] = datetime.now()
                     st.session_state.pop('sessao_expirada', None)
-                    st.toast("Login realizado com sucesso!", icon="✅")
-                    time_module.sleep(1.15)
+                    
+                    # Delay para mostrar o modal antes de redirecionar
+                    time_module.sleep(2.5)
+                    
+                    # Remove o modal
+                    modal_placeholder.empty()
+                    
                     st.rerun()
                 else:
-                    st.toast("Usuário ou senha incorretos.", icon="❌")
+                    # Remove o spinner
+                    spinner_placeholder.empty()
+                    st.toast("❌ Usuário ou senha incorretos.")
 
         # Logo FUSVE (abaixo do card)
         st.markdown(f'''
