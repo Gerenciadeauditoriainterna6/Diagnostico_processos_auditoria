@@ -493,7 +493,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
     
         
         with col_p4:
-            st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco: {texto_risco}</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='background-color: {cor}; padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold;'>{emoji} Risco geral: {texto_risco}</span>", unsafe_allow_html=True)
           
         # Expander com riscos do processo
         df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
@@ -1079,12 +1079,13 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                     
                     st.divider()
         # Botões de ação
-        col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
+        col_b1, col_b2, col_b3, col_b4 = st.columns(4)
         
         with col_b1:
-            if st.button("🔍 Ver Detalhes", key=f"ver_{row['processo_id']}"):
-                st.session_state['processo_detalhe'] = row['processo_id']
-                st.session_state['tela_atual'] = 'detalhe_processo'
+            # Botão Ver Detalhes agora abre um expander inline
+            detalhes_key = f"detalhes_processo_{row['processo_id']}"
+            if st.button("🔍 Ver Detalhes do Processo", key=f"ver_{row['processo_id']}"):
+                st.session_state[detalhes_key] = not st.session_state.get(detalhes_key, False)
                 st.rerun()
         
         with col_b2:
@@ -1119,6 +1120,87 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 # Alterna o estado (abre/fecha)
                 st.session_state[checklist_key] = not st.session_state.get(checklist_key, False)
                 st.rerun()
+
+    # ==== DETALHES DO PROCESSO (EXPANDIDO) ====
+    if st.session_state.get(f"detalhes_processo_{row['processo_id']}", False):
+        st.markdown("---")
+        st.markdown("#### Detalhes do Processo")
+        st.markdown(f"Nº Processo: {row['codigo_processo']}")
+
+        # Buscar dados completos do processo
+        processo_completo = buscar_processo_por_codigo(row['codigo_processo'])
+
+        if processo_completo:
+            st.markdown("**📋 Nome do Processo**")
+            st.info(processo_completo.get('nome_processo', 'Não informado'))
+            st.markdown("**📝 Descrição**")
+            st.info(processo_completo.get('descricao', 'Não informada'))
+
+            st.markdown("**🏁 Onde começa (Etapa inicial)**")
+            st.info(processo_completo.get('etapa_ini', 'Não informado'))
+
+            st.markdown("**👥 Executores**")
+            executores = listar_executores_processo(row['processo_id'])
+            if executores:
+                nomes_executores = []
+                for exec_id in executores:
+                   query_nome = text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id")
+                   with engine.connect() as conn:
+                       nome = conn.execute(query_nome, {"id": exec_id}).scalar()
+                       if nome:
+                           nomes_executores.append(nome)
+                st.info(", ".join(nomes_executores) if nomes_executores else "Nenhum executor cadastrado")
+            else:
+               st.info("Nenhum executor cadastrado")
+            
+            st.markdown("**🎯 Objetivo do Processo**")
+            st.info(processo_completo.get('objetivo', 'Não informado'))
+            
+            st.markdown("**🏁 Onde termina (Etapa final)**")
+            st.info(processo_completo.get('etapa_fim', 'Não informado'))
+            
+            st.markdown("**📦 Produto Final**")
+            st.info(processo_completo.get('produto', 'Não informado'))
+            
+            st.markdown("**📅 Status do Processo**")
+            status_proc = processo_completo.get('status', 'Ativo')
+            if status_proc == "Ativo":
+                st.success("🟢 Ativo")
+            else:
+                st.secondary("⚪ Inativo")
+        
+        st.divider()
+        
+        # Exibir também os riscos do processo (resumo)
+        st.markdown("#### ⚠️ Riscos Identificados no Processo")
+        df_riscos = listar_riscos_do_processo(row['processo_id'])
+        if not df_riscos.empty:
+            for _, risco in df_riscos.iterrows():
+                score = risco.get('score_risco', 0)
+                cor_risco, emoji_risco = get_estilo_risco(score)
+                st.markdown(f"""
+                    <div style='margin-bottom: 10px; padding: 8px; border-left: 4px solid {cor_risco}; background-color: #f9f9f9;'>
+                        <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
+                        <span style='font-size: 0.9em; color: #666;'>
+                            <strong>Fator:</strong> {risco['fator_risco']}<br>
+                            <strong> Ponto de melhoria:</strong> {risco['melhoria']}<br>
+                            <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
+                            <strong>Magnitude:</strong> {score}<br>
+                            <strong>Motivo da classificação do risco:</strong> {risco['motivo_risco']}<br>
+                            <strong>Validação da Gerência:</strong> {risco['validacao_gerencia']}<br>
+                            <strong>Validação da Superintendência:</strong> {risco['validacao_superintendencia']}<br>
+                            <strong>Categoria do risco:</strong> {risco['categoria']}<br>
+                        </span>
+                    </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("Nenhum risco cadastrado para este processo.")
+    
+    # Botão para fechar detalhes
+    st.divider()
+    if st.button("🔒 Fechar Detalhes", key=f"fechar_detalhes_{row['processo_id']}"):
+        st.session_state[f"detalhes_processo_{row['processo_id']}"] = False
+        st.rerun()
 
     # ==== SEÇÃO DO CHECKLIST (exibida condicionalmente) ====
     if st.session_state.get(checklist_key, False):

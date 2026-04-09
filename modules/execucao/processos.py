@@ -7,7 +7,7 @@ from database import engine
 import pandas as pd
 import time as time_module
 from modules.execucao.areas import carregar_areas_banco
-from modules.shared.utils import exibir_criterios_risco
+from modules.shared.utils import exibir_criterios_risco, exibir_descricao_categorias
 from modules.shared.validators import validar_formulario
 from logic import (listar_riscos_do_processo, normalizar_valor_risco, buscar_processo_por_codigo, listar_executores_processo,
 listar_funcionarios_area, processar_codigo_inteligente, listar_funcionarios_por_area, validar_basicos, salvar_informacoes_basicas,
@@ -619,6 +619,9 @@ def _tela_novo_processo():
                 categorias_dict = listar_categorias()   
                 ids_categorias = list(categorias_dict.keys())
 
+                # Chama a função que exibe o expander com descrição das categorias
+                exibir_descricao_categorias()
+
                 st.multiselect(
                     f"Categorias do Risco:",
                     options=ids_categorias,
@@ -1144,12 +1147,23 @@ def _tela_editar_processo():
                     # Categorias
                     categorias_dict = listar_categorias()
                     ids_categorias = list(categorias_dict.keys())
+
+                    # Chamar a função que exibe o expander com descrição das categorias
+                    exibir_descricao_categorias()
                     
+                    # Garantir que default seja uma lista válida
+                    categorias_default = risco.get('categorias', [])
+                    if categorias_default is None:
+                        categorias_default = []
+                    # Filtrar apenas IDs que existem (segurança)
+                    categorias_default = [c for c in categorias_default if c in ids_categorias]
+
+
                     categorias_selecionadas = st.multiselect(
                         "Categorias do Risco:", 
                         options=ids_categorias,
                         format_func=lambda x: categorias_dict[x],
-                        default=risco.get('categorias', []),
+                        default=categorias_default,
                         key=f"edit_categorias_{form_version}_{i}",
                         help="Selecione uma ou mais categorias para este risco"
                     )

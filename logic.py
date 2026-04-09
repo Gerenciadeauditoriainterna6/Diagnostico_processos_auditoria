@@ -1401,6 +1401,8 @@ def listar_riscos_do_processo(processo_id):
         SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
                r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
                r.categoria,
+               r.validacao_gerencia,
+               r.validacao_superintendencia,
                ARRAY[r.categoria] as categorias_ids,
                ARRAY[r.categoria] as categorias_nomes
         FROM riscos r
@@ -1547,13 +1549,13 @@ def listar_categorias():
     """Retorna as categorias de risco pré-definidas"""
     # Categorias fixas que fazem sentido para seu negócio
     categorias = {
-        1: "Risco Operacional",
-        2: "Risco Financeiro",
-        3: "Risco de Compliance",
-        4: "Risco de Reputação",
-        5: "Risco de TI",
-        6: "Risco de Fraude",
-        7: "Risco Estratégico"
+        1: "Risco Financeiro",
+        2: "Risco Legal",
+        3: "Risco Inerente",
+        4: "Risco de TI",
+        5: "Risco Reputacional",
+        6: "Risco de Integridade",
+        7: "Risco Ambiental"
     }
     return categorias
 
