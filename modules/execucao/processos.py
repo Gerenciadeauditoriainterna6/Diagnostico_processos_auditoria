@@ -6,6 +6,7 @@ from sqlalchemy import text
 from database import engine
 import pandas as pd
 import time as time_module
+from datetime import datetime, timedelta
 from modules.execucao.areas import carregar_areas_banco
 from modules.shared.utils import exibir_criterios_risco, exibir_descricao_categorias
 from modules.shared.validators import validar_formulario
@@ -18,15 +19,14 @@ areas_dict = carregar_areas_banco()
 # ==== FUNÇÕES AUXILIARES ====
 
 def listar_auditorias_para_area(id_area):
-        query = text("""
-            SELECT id, codigo_auditoria, titulo, trimestre, ano, status
-            FROM auditorias
-            WHERE id_area = :id_area
-            AND status IN ('Planejamento', 'Em Execução')
-            ORDER BY ano DESC, trimestre DESC
-        """)
-        with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={"id_area": id_area})
+    query = text("""
+        SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+        FROM auditorias
+        WHERE id_area = :id_area
+        ORDER BY ano DESC, trimestre DESC
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"id_area": id_area})
 
 def atualizar_id_area():
     areas = carregar_areas_banco()
@@ -34,6 +34,9 @@ def atualizar_id_area():
     st.session_state['id_area_selecionado'] = areas[nome_selecionado]
     st.session_state['codigo_processo'] = ""
     st.session_state['input_processo'] = ""
+    # Limpar auditoria selecionada para forçar recarregamento
+    if 'auditoria_diagnostico' in st.session_state:
+        st.session_state.pop('auditoria_diagnostico', None)
 
 def atualizar_id_area_edit():
         """Atualiza o ID da área selecionada na aba de edição"""
@@ -170,6 +173,23 @@ def verificar_e_carregar_processo():
 
 def _tela_novo_processo():
     """Sub-tela de cadastro de novo processo"""
+    from logic import calcular_tempo
+    from modules.execucao.auditorias import criar_nova_auditoria
+    # ===== INICIALIZAR ESTADOS DO FORMULÁRIO =====
+    if 'mostrar_form_auditoria' not in st.session_state:
+        st.session_state['mostrar_form_auditoria'] = False
+    # ===== RESETAR ESTADO DA ÁREA AO ENTRAR NA TELA =====
+    # Forçar sincronização entre o selectbox e o session_state
+    if 'area_selectbox' in st.session_state and 'id_area_selecionado' in st.session_state:
+        areas_dict = carregar_areas_banco()
+        nome_atual = st.session_state['area_selectbox']
+        if nome_atual in areas_dict:
+            id_correto = areas_dict[nome_atual]
+            if st.session_state['id_area_selecionado'] != id_correto:
+                st.session_state['id_area_selecionado'] = id_correto
+                # Limpar auditoria antiga
+                if 'auditoria_diagnostico' in st.session_state:
+                    st.session_state.pop('auditoria_diagnostico', None)
     st.markdown("""
         <style>
             /* Estiliza o formulário de novo processo - usando o container pai */
@@ -281,11 +301,15 @@ def _tela_novo_processo():
     
     # ===== SEÇÃO 0: VINCULAR À AUDITORIA =====
     st.subheader("1. Vincular à Auditoria")
+
+    # Garantir que o selectbox tenha um valor padrão
+    area_atual = st.session_state.get("area_selectbox", list(areas_dict.keys())[0])
     
     # SEGUNDO: Usar a função no selectbox
     st.selectbox(
         "Selecione a Área:", 
-        list(areas_dict.keys()), 
+        list(areas_dict.keys()),
+        index=list(areas_dict.keys()).index(area_atual) if area_atual in areas_dict else 0,
         key="area_selectbox", 
         on_change=atualizar_id_area
     )
@@ -296,9 +320,11 @@ def _tela_novo_processo():
         if not df_funcionarios.empty:
             with st.expander("👥 Funcionários da Área", expanded=False):
                 for _, func in df_funcionarios.iterrows():
+                    tempo_funcao = calcular_tempo(func.get('data_inicio_funcao'))
+                    tempo_empresa = calcular_tempo(func.get('data_inicio_empresa'))
                     st.markdown(f"""
                     - **{func['nome_funcionario']}**  
-                    *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
+                    *{func['cargo']}* | {tempo_funcao} na função, {tempo_empresa} na empresa
                     """)
 
     if 'id_area_selecionado' not in st.session_state:
@@ -335,14 +361,81 @@ def _tela_novo_processo():
         
         col_btn1, col_btn2 = st.columns([1, 3])
         with col_btn1:
-            if st.button("➕ Criar Auditoria para esta Área", key="btn_criar_auditoria_diagnostico", use_container_width=True):
-                st.session_state['criar_auditoria_area_id'] = id_area_atual
-                st.session_state['criar_auditoria_area_nome'] = st.session_state.get('area_selectbox', '')
-                st.session_state['tela_atual'] = 'detalhe_auditoria'
-                st.rerun()
+            if not st.session_state['mostrar_form_auditoria']:
+                if st.button("➕ Criar Auditoria para esta Área", key="btn_criar_auditoria_diagnostico", use_container_width=True):
+                    st.session_state['mostrar_form_auditoria'] = True
+                    st.rerun()
         
-        if 'auditoria_diagnostico' in st.session_state:
-            st.session_state.pop('auditoria_diagnostico', None)
+        # ===== FORMULÁRIO INLINE PARA CRIAR AUDITORIA =====
+        if st.session_state['mostrar_form_auditoria']:
+            with st.container(border=True):
+                st.markdown("#### 📝 Criar Nova Auditoria")
+                st.caption(f"Área: **{st.session_state.get('area_selectbox', '')}**")
+                
+                with st.form("form_auditoria_inline"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        trimestre = st.selectbox("Trimestre:", [1, 2, 3, 4])
+                    with col2:
+                        ano = st.number_input("Ano:", min_value=2024, max_value=2030, value=datetime.now().year)
+                    
+                    col3, col4 = st.columns(2)
+                    with col3:
+                        data_inicio = st.date_input("Data de início prevista", value=datetime.now().date())
+                    with col4:
+                        data_fim = st.date_input("Data de término prevista", value=datetime.now().date() + timedelta(days=90))
+                    
+                    titulo = st.text_input(
+                        "Título da auditoria", 
+                        value=f"Auditoria {st.session_state.get('area_selectbox', '')} - {ano} {trimestre}º Trimestre"
+                    )
+                    objetivo = st.text_area(
+                        "Objetivo da auditoria", 
+                        value="Avaliar a eficácia dos processos da área"
+                    )
+                    escopo = st.text_area(
+                        "Escopo (o que será avaliado)", 
+                        value="Processos críticos da área"
+                    )
+                    
+                    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+                    with col_btn1:
+                        submitted = st.form_submit_button("✅ Criar", type="primary", use_container_width=True)
+                    with col_btn2:
+                        cancelar = st.form_submit_button("❌ Cancelar", use_container_width=True)
+                    
+                    if submitted:
+                        dados = {
+                            "id_area": id_area_atual,
+                            "titulo": titulo,
+                            "objetivo": objetivo,
+                            "escopo": escopo,
+                            "ano": ano,
+                            "trimestre": trimestre,
+                            "data_inicio": data_inicio,
+                            "data_fim": data_fim,
+                            "status": "Planejamento"
+                        }
+                        
+                        auditoria_id, codigo = criar_nova_auditoria(dados)
+                        
+                        if auditoria_id:
+                            st.success(f"✅ Auditoria criada com sucesso! Código: {codigo}")
+                            st.session_state['auditoria_diagnostico'] = auditoria_id
+                            st.session_state['mostrar_form_auditoria'] = False
+                            time_module.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
+                    
+                    if cancelar:
+                        st.session_state['mostrar_form_auditoria'] = False
+                        st.rerun()
+            
+            # Botão alternativo para cancelar fora do form
+            if st.button("✖️ Fechar", use_container_width=True):
+                st.session_state['mostrar_form_auditoria'] = False
+                st.rerun()
 
     st.divider()
     
@@ -746,6 +839,7 @@ def _tela_novo_processo():
 
 def _tela_editar_processo():
     """Sub-tela de edição de processo existente"""
+    from logic import calcular_tempo
 
     # Atualizar ID da área quando mudar
     def atualizar_id_area_edit():
@@ -799,9 +893,11 @@ def _tela_editar_processo():
         if not df_funcionarios.empty:
             with st.expander("👥 Funcionários da Área", expanded=False):
                 for _, func in df_funcionarios.iterrows():
+                    tempo_funcao = calcular_tempo(func.get('data_inicio_funcao'))
+                    tempo_empresa = calcular_tempo(func.get('data_inicio_empresa'))
                     st.markdown(f"""
                     - **{func['nome_funcionario']}**  
-                    *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
+                    *{func['cargo']}* | {tempo_funcao} na função, {tempo_empresa} na empresa
                     """)
     
     # Buscar auditorias da área selecionada

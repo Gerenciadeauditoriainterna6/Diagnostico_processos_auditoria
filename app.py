@@ -50,6 +50,7 @@ if 'codigo_processo_display' not in st.session_state: st.session_state['codigo_p
 if 'id_area_selecionado' not in st.session_state and areas_dict:
     primeiro_nome = list(areas_dict.keys())[0]
     st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
+    st.session_state['area_selectbox'] = primeiro_nome
 
 
 # --- 5. Execução do app ---
@@ -121,200 +122,216 @@ def main():
     # Executado depois do login para não interferir na tela de login
     apply_theme()
 
-    if st.session_state.get('tela_checklist', False):
-        tela_checklist_sessoes()
+    # ===== VERIFICAÇÃO DE REDIRECIONAMENTO =====
+    if st.session_state.get('tela_atual') == 'criar_auditoria':
+        from modules.execucao.auditorias import tela_criar_auditoria_rapida
+        st.session_state.pop('tela_atual', None)
+        tela_criar_auditoria_rapida()
         return
     
+    if st.session_state.get('tela_atual') == 'detalhe_auditoria':
+        from modules.execucao.auditorias import tela_detalhe_auditoria
+        st.session_state.pop('tela_atual', None)
+        tela_detalhe_auditoria()
+        return
+    
+    if st.session_state.get('tela_atual') == 'diagnostico':
+        st.write("🔍 DEBUG - Vou chamar tela_diagnostico_processos")
+        st.session_state.pop('tela_atual', None)
+        tela_diagnostico_processos()
+        st.write("🔍 DEBUG - Depois de chamar")
+        return
+    
+    if st.session_state.get('tela_atual') == 'detalhe_processo':
+        from modules.execucao.auditorias import tela_detalhe_processo_auditoria
+        st.session_state.pop('tela_atual', None)
+        tela_detalhe_processo_auditoria()
+        return
+    
+    if st.session_state.get('tela_checklist', False):
+        from modules.execucao.checklists import tela_checklist_sessoes
+        tela_checklist_sessoes()
+        return
+
+    # ===== INICIALIZAR VARIÁVEL opcao =====
+    opcao = None
+
     # ==== REDIRECIONAMENTO PARA EDIÇÃO DE PROCESSO ====
     # Se veio da auditoria para editar um processo
     if st.session_state.get('processo_para_editar') and st.session_state.get('opcao_menu'):
         # Forçar a opção do menu para Diagnóstico dos processos
         opcao = st.session_state['opcao_menu']
-        # Limpar após usar
-        # Não limpar ainda, vamos usar depois
-    else:
-        # Menu normal do sidebar
-
-        # --- SIDEBAR ---
-        with st.sidebar:
-            # CSS para controlar a largura do sidebar
-            st.markdown("""
-                <style>
-                        /* Ajsta a largura do sidebar */
-                        [data-testid="stSidebar"] {{
-                            min-width: 250px;
-                            max-width: 350px;
-                            width: 20vw !important;
-                        }}
-
-                        /* Ajusta o conteúdo do sidebar para se adaptar */
-                        [data-testid="stSidebar"] .sidebar-content {{
-                            width: 100%;
-                        }}
-                </style>
-            """, unsafe_allow_html=True)
-
-            caminho_script = os.path.dirname(os.path.abspath(__file__))
-            logo_auditoria_path = os.path.join('assets', 'logo_auditoria.png')
-
-            # CSS para centralizar a imagem usando HTML direto
-            st.markdown("""
+    
+    # ===== SIDEBAR (sempre executado, independente do redirecionamento) =====
+    with st.sidebar:
+        # CSS para controlar a largura do sidebar
+        st.markdown("""
             <style>
-                /* Reduz a altura do header do sidebar */
-                [data-testid="stSidebarHeader"] {
-                    height: 20px !important;
-                    min-height: 20px !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                }
-                
-                /* Ajusta o botão de recolher */
-                [data-testid="stSidebarHeader"] button {
-                    padding: 0 !important;
-                    margin: 0 !important;
-                    margin-top: 25px !important;  /* ← controla a posição do botão */
-                    height: 10px !important;
-                }
-                    
-                /* Ícone do botão recolher (sidebar expandido) */
-                [data-testid="stSidebarHeader"] button svg {
-                    fill: #e4e4e4 !important;
-                    stroke: #e4e4e4 !important;
-                }
-                
-                /* Ícone do botão recolher (sidebar recolhido) */
-                button[kind="icon"] svg {
-                    fill: #e4e4e4 !important;
-                    stroke: #e4e4e4 !important;
-                }
-                
-                /* Ícone do controle recolhido */
-                [data-testid="collapsedControl"] svg {
-                    fill: #e4e4e4 !important;
-                    stroke: #e4e4e4 !important;
-                }
-                    
-                /* Container da imagem no sidebar */
-                .sidebar-logo-container {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    width: 100%;
-                    margin-bottom: 1rem;
-                    margin-top: 8px;  /* ← espaço acima da imagem */
-                }
-                .sidebar-logo-container img {
-                    max-width: 200px;
-                    width: 100%;
-                    height: auto;
-                    transform: translateY(-20px);  /* ← move a imagem para cima */
-                }
-                        
-                /* ... seu CSS existente ... */
-        
-                /* Ícone do botão quando o sidebar está recolhido */
-                span[data-testid="stIconMaterial"] {
-                    color: #e4e4e4 !important;
-                }
-                
-                /* Classe específica do ícone */
-                .st-emotion-cache-1g48ntn {
-                    color: #e4e4e4 !important;
-                }
-                
-                /* Para garantir em qualquer estado */
-                span[data-testid="stIconMaterial"] svg,
-                span[data-testid="stIconMaterial"] {
-                    color: #e4e4e4 !important;
-                    fill: #e4e4e4 !important;
-                }
+                    /* Ajsta a largura do sidebar */
+                    [data-testid="stSidebar"] {{
+                        min-width: 250px;
+                        max-width: 350px;
+                        width: 20vw !important;
+                    }}
+
+                    /* Ajusta o conteúdo do sidebar para se adaptar */
+                    [data-testid="stSidebar"] .sidebar-content {{
+                        width: 100%;
+                    }}
             </style>
         """, unsafe_allow_html=True)
+
+        caminho_script = os.path.dirname(os.path.abspath(__file__))
+        logo_auditoria_path = os.path.join('assets', 'logo_auditoria.png')
+
+        # CSS para centralizar a imagem usando HTML direto
+        st.markdown("""
+        <style>
+            /* Reduz a altura do header do sidebar */
+            [data-testid="stSidebarHeader"] {
+                height: 20px !important;
+                min-height: 20px !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
             
-            if os.path.exists(logo_auditoria_path):
-                # Usa HTML direto em vez de st.image
-                with open(logo_auditoria_path, "rb") as f:
-                    import base64
-                    img_data = base64.b64encode(f.read()).decode()
+            /* Ajusta o botão de recolher */
+            [data-testid="stSidebarHeader"] button {
+                padding: 0 !important;
+                margin: 0 !important;
+                margin-top: 25px !important;
+                height: 10px !important;
+            }
                 
-                st.markdown(f'''
-                    <div class="sidebar-logo-container">
-                        <img src="data:image/png;base64,{img_data}">
-                    </div>
-                ''', unsafe_allow_html=True)
-            else:
-                st.image(logo_auditoria_path, width=200)  # fallback
-
-            # Exibe o nome do usuário logado para confirmação
-            st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
-
+            /* Ícone do botão recolher (sidebar expandido) */
+            [data-testid="stSidebarHeader"] button svg {
+                fill: #e4e4e4 !important;
+                stroke: #e4e4e4 !important;
+            }
             
+            /* Ícone do botão recolher (sidebar recolhido) */
+            button[kind="icon"] svg {
+                fill: #e4e4e4 !important;
+                stroke: #e4e4e4 !important;
+            }
+            
+            /* Ícone do controle recolhido */
+            [data-testid="collapsedControl"] svg {
+                fill: #e4e4e4 !important;
+                stroke: #e4e4e4 !important;
+            }
+                
+            /* Container da imagem no sidebar */
+            .sidebar-logo-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                margin-bottom: 1rem;
+                margin-top: 8px;
+            }
+            .sidebar-logo-container img {
+                max-width: 200px;
+                width: 100%;
+                height: auto;
+                transform: translateY(-20px);
+            }
+                    
+            /* Ícone do botão quando o sidebar está recolhido */
+            span[data-testid="stIconMaterial"] {
+                color: #e4e4e4 !important;
+            }
+            
+            /* Classe específica do ícone */
+            .st-emotion-cache-1g48ntn {
+                color: #e4e4e4 !important;
+            }
+            
+            /* Para garantir em qualquer estado */
+            span[data-testid="stIconMaterial"] svg,
+            span[data-testid="stIconMaterial"] {
+                color: #e4e4e4 !important;
+                fill: #e4e4e4 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+        
+        if os.path.exists(logo_auditoria_path):
+            # Usa HTML direto em vez de st.image
+            with open(logo_auditoria_path, "rb") as f:
+                import base64
+                img_data = base64.b64encode(f.read()).decode()
+            
+            st.markdown(f'''
+                <div class="sidebar-logo-container">
+                    <img src="data:image/png;base64,{img_data}">
+                </div>
+            ''', unsafe_allow_html=True)
+        else:
+            st.image(logo_auditoria_path, width=200)
+
+        # Exibe o nome do usuário logado para confirmação
+        st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
+
+        # Se opcao já foi definida (veio da edição), não mostrar o menu
+        if opcao is None:
             opcao = st.radio(
                 "Menu", 
-                    [
-                        "📅 Plano Anual de Auditoria",
-                        "🏢 Cadastro de Áreas e Funcionários",
-                        "🔍 Diagnóstico dos Processos",
-                        "📋 Detalhamento dos Processos",        
-                        "👁️ Visão Geral do Diagnóstico",
-                        "📣 Comunicação dos Resultados"
-                        #"✅ Checklists de Eficácia",           
-                        #"📊 Resultados e Pareceres",
-                        #"📄 Geração de Relatórios"           
-                    ]
-                )
+                [
+                    "📅 Plano Anual de Auditoria",
+                    "🏢 Cadastro de Áreas e Funcionários",
+                    "🔍 Diagnóstico dos Processos",
+                    "📋 Detalhamento dos Processos",        
+                    "👁️ Visão Geral do Diagnóstico",
+                    "📣 Comunicação dos Resultados"
+                ]
+            )
 
-            st.divider()
+        st.divider()
 
-            if st.session_state.get('autenticado'):
-                login_time = st.session_state.get("login_timestamp")
-                if login_time:
-                    tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                    if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-                        st.error("⚠️ SESSÃO EXPIRADA")
-                
-            if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
-                # 1. Remove a informação do navegador
-                try:
-                    local_storage.deleteItem("session_data")
-                except:
-                    local_storage.setItem('session_data', 'null')
-                
-                # 2. Em vez de .clear(), limpamos apenas o que interessa
-                # Isso evita o KeyError nos widgets (selectbox, etc)
-                st.session_state["autenticado"] = False
-                st.session_state["usuario_logado"] = None
-                
-                # 3. Força o recarregamento
-                st.rerun()
-
-            #if st.session_state.get('autenticado'):
-                #st.markdown(f"<small>⏳ Tempo até o término da sessão: {tempo_restante_sessao()}</small>", unsafe_allow_html=True)
+        if st.session_state.get('autenticado'):
+            login_time = st.session_state.get("login_timestamp")
+            if login_time:
+                tempo_decorrido = (datetime.now() - login_time).total_seconds()
+                if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
+                    st.error("⚠️ SESSÃO EXPIRADA")
             
-            # Botão para renovar sessão
-            if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
-                st.session_state["login_timestamp"] = datetime.now()
+        if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
+            # 1. Remove a informação do navegador
+            try:
+                local_storage.deleteItem("session_data")
+            except:
+                local_storage.setItem('session_data', 'null')
             
-                session_data = {
-                    "usuario": st.session_state.get("usuario_logado"),
-                    "timestamp": datetime.now().isoformat()
-                }
-                local_storage.setItem("session_data", json.dumps(session_data))
-                st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
-                # Não chame st.rerun() aqui - deixa o rerun natural do Streamlit
+            # 2. Em vez de .clear(), limpamos apenas o que interessa
+            st.session_state["autenticado"] = False
+            st.session_state["usuario_logado"] = None
+            
+            # 3. Força o recarregamento
+            st.rerun()
         
+        # Botão para renovar sessão
+        if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
+            st.session_state["login_timestamp"] = datetime.now()
+        
+            session_data = {
+                "usuario": st.session_state.get("usuario_logado"),
+                "timestamp": datetime.now().isoformat()
+            }
+            local_storage.setItem("session_data", json.dumps(session_data))
+            st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
 
-    # --- LÓGICA PRINCIPAL ---
+    # --- LÓGICA PRINCIPAL (continua igual) ---
     if opcao == "🔍 Diagnóstico dos Processos":
-       set_page_width(95) # 95% da tela segundo a função dentro de theme.py
-       tela_diagnostico_processos()
+        set_page_width(95)
+        tela_diagnostico_processos()
 
     elif opcao == "🏢 Cadastro de Áreas e Funcionários":
-        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
+        set_page_width(95)
         tela_cadastro_area()
 
     elif opcao == "👁️ Visão Geral do Diagnóstico":
-        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
+        set_page_width(95)
         tela_visao_geral_processos()
 
     elif opcao == "Geração de Relatórios":
@@ -355,19 +372,19 @@ def main():
             st.info("Nenhum processo pendente para gerar relatório.")
 
     elif opcao == "📅 Plano Anual de Auditoria":
-        
         tela_plano_anual()
 
     elif opcao == "📋 Detalhamento dos Processos":
-        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
+        set_page_width(95)
         if 'processo_detalhe' in st.session_state:
             tela_detalhe_processo_auditoria()
         elif 'auditoria_selecionada' in st.session_state:
             tela_detalhe_auditoria()
         else:
             tela_auditorias_trimestrais()
+            
     elif opcao == "📣 Comunicação dos Resultados":
-        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
+        set_page_width(95)
         from modules.comunicacaoresultados.evolucao import tela_evolucao_auditoria
         tela_evolucao_auditoria()
 
