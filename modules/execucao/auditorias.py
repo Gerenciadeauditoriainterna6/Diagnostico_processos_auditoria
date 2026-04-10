@@ -25,6 +25,80 @@ from modules.execucao.areas import carregar_areas_banco
 
 def tela_auditorias_trimestrais():
     """Gerencia as auditorias organizadas por trimestre"""
+    
+    # ===== VERIFICAR SE VEIO DO DIAGNÓSTICO =====
+    modo_criacao_rapida = st.session_state.get('criar_auditoria_area_id', False)
+    
+    if modo_criacao_rapida:
+        area_id = st.session_state.pop('criar_auditoria_area_id')
+        area_nome = st.session_state.pop('criar_auditoria_area_nome', '')
+        
+        st.title("📋 Detalhamento dos Processos")
+        st.info(f"📝 Criando auditoria para a área: **{area_nome}**")
+        
+        with st.expander("➕ Criar Nova Auditoria", expanded=True):
+            with st.form("form_auditoria_rapida"):
+                st.markdown(f"**Área:** {area_nome}")
+                
+                trimestre = st.selectbox("Trimestre:", [1, 2, 3, 4])
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    data_inicio = st.date_input("Data de início prevista")
+                with col2:
+                    data_fim = st.date_input("Data de término prevista")
+                
+                titulo = st.text_input(
+                    "Título da auditoria", 
+                    value=f"Auditoria {area_nome} - {datetime.now().year} {trimestre}º Trimestre"
+                )
+                objetivo = st.text_area(
+                    "Objetivo da auditoria", 
+                    value="Avaliar a eficácia dos processos da área"
+                )
+                escopo = st.text_area(
+                    "Escopo (o que será avaliado)", 
+                    value="Processos críticos da área"
+                )
+                
+                col_btn1, col_btn2 = st.columns([1, 3])
+                with col_btn1:
+                    if st.form_submit_button("✅ Criar Auditoria", type="primary"):
+                        dados = {
+                            "id_area": area_id,
+                            "titulo": titulo,
+                            "objetivo": objetivo,
+                            "escopo": escopo,
+                            "ano": datetime.now().year,
+                            "trimestre": trimestre,
+                            "data_inicio": data_inicio,
+                            "data_fim": data_fim,
+                            "status": "Planejamento"
+                        }
+                        auditoria_id, codigo = criar_nova_auditoria(dados)
+                        
+                        if auditoria_id:
+                            st.success(f"✅ Auditoria criada com sucesso! Código: {codigo}")
+                            # Salvar a auditoria criada para usar no diagnóstico
+                            st.session_state['auditoria_diagnostico'] = auditoria_id
+                            st.session_state['auditoria_criada_agora'] = True
+                            time_module.sleep(1.5)
+                            # Voltar para o diagnóstico
+                            st.session_state['tela_atual'] = 'diagnostico'
+                            st.rerun()
+                        else:
+                            st.error("Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
+        
+        # Botão para voltar
+        if st.button("← Voltar para Diagnóstico", use_container_width=True):
+            st.session_state.pop('criar_auditoria_area_id', None)
+            st.session_state.pop('criar_auditoria_area_nome', None)
+            st.session_state['tela_atual'] = 'diagnostico'
+            st.rerun()
+        
+        st.stop()  # Impede que o resto da tela seja carregado
+    
+    # ===== FLUXO NORMAL DA TELA =====
     st.title("📋 Detalhamento dos Processos")
 
     # Selecionar ano
@@ -51,12 +125,11 @@ def tela_auditorias_trimestrais():
                 with col2:
                     data_fim = st.date_input("Data de término prevista")
 
-                titulo =st.text_input("Titulo de auditoria", value=f"Auditoria {area_selecionada} - {ano} {trimestre}º Trimestre")
+                titulo = st.text_input("Título de auditoria", value=f"Auditoria {area_selecionada} - {ano} {trimestre}º Trimestre")
                 objetivo = st.text_area("Objetivo da auditoria")
                 escopo = st.text_area("Escopo (o que será avaliado)")
 
                 if st.form_submit_button("Criar Auditoria", type="primary", key='btn_criar_auditoria'):
-                    # Pegar o ID da área selecionada
                     id_area = areas_dict[area_selecionada]
 
                     dados = {
@@ -77,7 +150,7 @@ def tela_auditorias_trimestrais():
                         st.success(f"Auditoria criada com sucesso! Código: {codigo}")
                         st.rerun()
                     else:
-                        st.error("Erro o criar auditoria. Já existe uma auditoria para esta área no trimestre?")
+                        st.error("Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
     else:
         # Mostrar auditorias existentes em cards
         st.subheader(f"Auditorias de {ano}")

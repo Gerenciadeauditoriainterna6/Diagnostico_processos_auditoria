@@ -33,7 +33,7 @@ def atualizar_id_area():
     nome_selecionado = st.session_state['area_selectbox']
     st.session_state['id_area_selecionado'] = areas[nome_selecionado]
     st.session_state['codigo_processo'] = ""
-    st.session_state['input_processo'] = "" 
+    st.session_state['input_processo'] = ""
 
 def atualizar_id_area_edit():
         """Atualiza o ID da área selecionada na aba de edição"""
@@ -263,7 +263,7 @@ def _tela_novo_processo():
         # Limpar código do processo
         st.session_state['codigo_processo_display'] = ""  # <-- ADICIONAR
         
-            # FORÇAR RECRIAÇÃO DO MULTISELECT
+        # FORÇAR RECRIAÇÃO DO MULTISELECT
         st.session_state['multiselect_key_counter'] += 1  # <-- ADICIONAR
 
         st.session_state['riscos'] = []
@@ -271,7 +271,6 @@ def _tela_novo_processo():
         st.session_state['deve_limpar_diagnostico'] = False
         st.rerun()
     
-    st.divider()
     st.title("🔍 Diagnóstico dos Processos")
     st.markdown("""
     <div style='font-family: helvetica==; color: #000000; font-size: 14px; line-height: 1.5;'>
@@ -331,7 +330,17 @@ def _tela_novo_processo():
         st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
         
     else:
-        st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
+        st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área.")
+        st.info("💡 Para diagnosticar processos, é necessário vincular a uma auditoria.")
+        
+        col_btn1, col_btn2 = st.columns([1, 3])
+        with col_btn1:
+            if st.button("➕ Criar Auditoria para esta Área", key="btn_criar_auditoria_diagnostico", use_container_width=True):
+                st.session_state['criar_auditoria_area_id'] = id_area_atual
+                st.session_state['criar_auditoria_area_nome'] = st.session_state.get('area_selectbox', '')
+                st.session_state['tela_atual'] = 'detalhe_auditoria'
+                st.rerun()
+        
         if 'auditoria_diagnostico' in st.session_state:
             st.session_state.pop('auditoria_diagnostico', None)
 
@@ -344,7 +353,6 @@ def _tela_novo_processo():
             <span style='cursor: help; font-size: 1.2rem;' title='Associe o aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
         </div>
     """, unsafe_allow_html=True)
-    st.divider()
 
     # Nome do Processo (obrigatório)
     nome_processo = st.text_input(
@@ -367,7 +375,6 @@ def _tela_novo_processo():
         # Código do Processo (gerado automaticamente) - APENAS EXIBIÇÃO, SEM STATE
         codigo_atual = st.session_state.get('codigo_processo_display', '')
         st.text_input("Código do Processo:", value=codigo_atual, disabled=True, help="Código gerado automaticamente com base no nome do processo e na área selecionada. Não é editável.")
-    st.divider()
 
     with st.form(key="form_novo_processo"):
         # ===== EXECUTORES DO PROCESSO =====
@@ -439,10 +446,9 @@ def _tela_novo_processo():
                     st.session_state.pop('novo_processo_existente_id')
                 st.rerun()
 
-    st.divider()
-
     # ===== SEÇÃO 2: DETALHAMENTO DO PROCESSO (OPCIONAL) =====
     if st.session_state.get('info_basicas_salvas', False):
+        st.divider()
 
         st.markdown("""
             <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
