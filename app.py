@@ -256,7 +256,8 @@ def main():
                         "🏢 Cadastro de Áreas e Funcionários",
                         "🔍 Diagnóstico dos Processos",
                         "📋 Detalhamento dos Processos",        
-                        "👁️ Visão Geral do Diagnóstico"
+                        "👁️ Visão Geral do Diagnóstico",
+                        "📣 Comunicação dos Resultados"
                         #"✅ Checklists de Eficácia",           
                         #"📊 Resultados e Pareceres",
                         #"📄 Geração de Relatórios"           
@@ -365,6 +366,10 @@ def main():
             tela_detalhe_auditoria()
         else:
             tela_auditorias_trimestrais()
+    elif opcao == "📣 Comunicação dos Resultados":
+        set_page_width(95) # 95% da tela segundo a função dentro de theme.py
+        from modules.comunicacaoresultados.evolucao import tela_evolucao_auditoria
+        tela_evolucao_auditoria()
 
 
 # --- DISPARADOR FINAL ---

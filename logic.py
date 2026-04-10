@@ -1448,44 +1448,52 @@ def listar_areas():
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
-def salvar_funcionarios_area(id_area, lista_funcionarios):
-    """Salva a lista de funcionários de uma área"""
+def salvar_funcionarios_area(id_area, funcionarios):
+    """Salva múltiplos funcionários para uma área"""
     try:
         with engine.begin() as conn:
-            # Remove funcionários antigos
-            conn.execute(
-                text("DELETE FROM funcionarios_area WHERE id_area = :id_area"),
-                {"id_area": id_area}
-            )
-            
-            # Insere novos funcionários
-            if lista_funcionarios:
-                sql_insert = text("""
-                    INSERT INTO funcionarios_area 
-                    (id_area, nome_funcionario, cargo, tempo_funcao, tempo_empresa, ativo)
-                    VALUES 
-                    (:id_area, :nome, :cargo, :tempo_funcao, :tempo_empresa, :ativo)
+            for func in funcionarios:
+                # Verificar se funcionário já existe
+                check_query = text("""
+                    SELECT id FROM funcionarios_area 
+                    WHERE id_area = :id_area AND nome_funcionario = :nome
                 """)
+                existing = conn.execute(check_query, {
+                    "id_area": id_area,
+                    "nome": func['nome']
+                }).fetchone()
                 
-                for func in lista_funcionarios:
-                    if func.get('nome', '').strip():
-                        conn.execute(sql_insert, {
-                            "id_area": id_area,
-                            "nome": func['nome'].strip(),
-                            "cargo": func.get('cargo', '').strip(),
-                            "tempo_funcao": func.get('tempo_funcao', '').strip(),
-                            "tempo_empresa": func.get('tempo_empresa', '').strip(),
-                            "ativo": func.get('ativo', True)
-                        })
-            return True
+                if not existing:
+                    insert_query = text("""
+                        INSERT INTO funcionarios_area 
+                        (id_area, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa, ativo, created_at, updated_at)
+                        VALUES (:id_area, :nome, :cargo, :data_funcao, :data_empresa, TRUE, NOW(), NOW())
+                    """)
+                    conn.execute(insert_query, {
+                        "id_area": id_area,
+                        "nome": func['nome'],
+                        "cargo": func.get('cargo', ''),
+                        "data_funcao": func.get('data_inicio_funcao'),
+                        "data_empresa": func.get('data_inicio_empresa')
+                    })
+        return True
     except Exception as e:
         print(f"Erro ao salvar funcionários: {e}")
         return False
 
 def listar_funcionarios_area(id_area):
-    """Retorna os funcionários de uma área"""
+    """Retorna todos os funcionários de uma área com datas"""
     query = text("""
-        SELECT id, nome_funcionario, cargo, tempo_funcao, tempo_empresa, ativo
+        SELECT 
+            id, 
+            id_area, 
+            nome_funcionario, 
+            cargo,
+            data_inicio_funcao,
+            data_inicio_empresa,
+            ativo,
+            created_at,
+            updated_at
         FROM funcionarios_area
         WHERE id_area = :id_area AND ativo = TRUE
         ORDER BY nome_funcionario
@@ -1494,19 +1502,16 @@ def listar_funcionarios_area(id_area):
         return pd.read_sql(query, conn, params={"id_area": id_area})
 
 def listar_funcionarios_por_area(id_area):
-    """Retorna lista de funcionários de uma área para usar em selectbox"""
+    """Retorna lista de funcionários com nome e ID (para selects)"""
     query = text("""
-        SELECT id, nome_funcionario, cargo
+        SELECT id, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa
         FROM funcionarios_area
         WHERE id_area = :id_area AND ativo = TRUE
         ORDER BY nome_funcionario
     """)
     with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={"id_area": id_area})
-        if df.empty:
-            return []
-        return [(row['id'], f"{row['nome_funcionario']} ({row['cargo']})") 
-                for _, row in df.iterrows()]
+        result = conn.execute(query, {"id_area": id_area})
+        return [(row[0], row[1]) for row in result]  # id, nome
 
 def listar_executores_processo(processo_id):
     """Retorna os IDs dos funcionários que executam um processo"""
@@ -1867,3 +1872,54 @@ def listar_controles_do_processo(processo_id, auditoria_id):
             "processo_id": processo_id,
             "auditoria_id": auditoria_id
         })
+
+def calcular_tempo(data_inicio):
+    """Calcula o tempo decorrido desde uma data até hoje"""
+    if not data_inicio:
+        return "Não informado"
+    
+    hoje = datetime.now().date()
+    
+    # Se for string, converter para date
+    if isinstance(data_inicio, str):
+        try:
+            data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        except:
+            return "Data inválida"
+    
+    anos = hoje.year - data_inicio.year
+    meses = hoje.month - data_inicio.month
+    
+    if meses < 0:
+        anos -= 1
+        meses += 12
+    
+    # Construir a string de resultado
+    resultado = []
+    
+    if anos > 0:
+        if anos == 1:
+            resultado.append(f"{anos} ano")
+        else:
+            resultado.append(f"{anos} anos")
+    
+    if meses > 0:
+        if meses == 1:
+            resultado.append(f"{meses} mês")
+        else:
+            resultado.append(f"{meses} meses")
+    
+    # Se não houver anos nem meses, retornar mensagem adequada
+    if not resultado:
+        return "Menos de 1 mês"
+    
+    return " e ".join(resultado) if len(resultado) > 1 else resultado[0]
+
+def formatar_tempo_funcionario(funcionario):
+    """Formata o tempo de função e empresa para exibição"""
+    data_funcao = funcionario.get('data_inicio_funcao')
+    data_empresa = funcionario.get('data_inicio_empresa')
+    tempo_funcao = calcular_tempo(data_funcao) if data_funcao else "Não informado"
+    tempo_empresa = calcular_tempo(data_empresa) if data_empresa else "Não informado"
+
+    return tempo_funcao, tempo_empresa

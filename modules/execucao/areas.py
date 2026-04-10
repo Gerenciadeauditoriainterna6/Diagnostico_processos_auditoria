@@ -3,6 +3,7 @@ Módulo de Cadastro de Áreas e Funcionários
 """
 import streamlit as st
 import pandas as pd
+import time as time_module
 from logic import (
     salvar_area, listar_areas, salvar_funcionarios_area, 
     listar_funcionarios_area, listar_funcionarios_por_area
@@ -118,6 +119,8 @@ def tela_cadastro_area():
     
     with tab2:
         st.subheader("Cadastrar Funcionários")
+        if 'funcionarios_version' not in st.session_state:
+            st.session_state['funcionarios_version'] = 0
         
         # Selecionar a área primeiro
         df_areas = listar_areas()
@@ -138,10 +141,10 @@ def tela_cadastro_area():
             if not df_func_existentes.empty:
                 with st.expander("👥 Funcionários já cadastrados nesta área", expanded=False):
                     for _, func in df_func_existentes.iterrows():
-                        st.markdown(f"""
-                        - **{func['nome_funcionario']}**  
-                          *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
-                        """)
+                        from logic import calcular_tempo
+                        tempo_funcao = calcular_tempo(func.get('data_inicio_funcao'))
+                        tempo_empresa = calcular_tempo(func.get('data_inicio_empresa'))
+                        st.markdown(f"""- **{func['nome_funcionario']}** *{func['cargo']}* | {tempo_funcao} na função, {tempo_empresa} na empresa""")
             
             st.divider()
             st.markdown("### ➕ Novo Funcionário")
@@ -186,7 +189,7 @@ def tela_cadastro_area():
                     
                 # Inicializar lista de funcionários temporários
                 if 'funcionarios_temp' not in st.session_state:
-                    st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+                    st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "data_inicio_funcao": None, "data_inicio_empresa": None}]
                 
                 # Mostrar funcionários para cadastro
                 for i, func in enumerate(st.session_state['funcionarios_temp']):
@@ -194,33 +197,46 @@ def tela_cadastro_area():
                     
                     col_f1, col_f2 = st.columns(2)
                     with col_f1:
-                        func['nome'] = st.text_input(
+                        nome_valor = func.get('nome', '')
+                        st.text_input(
                             "Nome completo *",
-                            value=func.get('nome', ''),
-                            key=f"func_nome_{i}"
+                            value=nome_valor,
+                            key=f"func_nome_{i}_{st.session_state['funcionarios_version']}"
                         )
+                        # Atualizar o valor do dicionário
+                        func['nome'] = st.session_state.get(f"func_nome_{i}_{st.session_state['funcionarios_version']}", '')
+
                     with col_f2:
-                        func['cargo'] = st.text_input(
+                        cargo_valor = func.get('cargo', '')
+                        st.text_input(
                             "Cargo",
-                            value=func.get('cargo', ''),
-                            key=f"func_cargo_{i}"
+                            value=cargo_valor,
+                            key=f"func_cargo_{i}_{st.session_state['funcionarios_version']}"
                         )
+                        func['cargo'] = st.session_state.get(f"func_cargo_{i}_{st.session_state['funcionarios_version']}", '')
+
                     
+                    # ==== NOVOS CAMPOS DE DATA ====
                     col_f3, col_f4 = st.columns(2)
                     with col_f3:
-                        func['tempo_funcao'] = st.text_input(
-                            "Tempo na função",
-                            value=func.get('tempo_funcao', ''),
-                            key=f"func_tempof_{i}",
-                            placeholder="Ex: 2 anos"
+                        data_funcao = st.date_input(
+                            "Data de inicio na função",
+                            value=func.get('data_inicio_funcao'),
+                            format="DD/MM/YYYY",
+                            key=f"func_data_funcao_{i}_{st.session_state['funcionarios_version']}",
+                            help="Quando o funcionário começou nesta função?"
                         )
+                        func['data_inicio_funcao'] = data_funcao
+
                     with col_f4:
-                        func['tempo_empresa'] = st.text_input(
-                            "Tempo na empresa",
-                            value=func.get('tempo_empresa', ''),
-                            key=f"func_tempoe_{i}",
-                            placeholder="Ex: 3 anos"
+                        data_empresa = st.date_input(
+                            "Data de início na empresa",
+                            value=func.get('data_inicio_empresa'),
+                            format="DD/MM/YYYY",
+                            key=f"func_data_empresa_{i}_{st.session_state['funcionarios_version']}",
+                            help="Quando o funcionário entrou na empresa"
                         )
+                        func['data_inicio_empresa'] = data_empresa
                     
                     st.divider()
                 
@@ -228,7 +244,7 @@ def tela_cadastro_area():
                 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
                 with col_btn1:
                     if st.button("➕ Adicionar outro funcionário", use_container_width=True):
-                        st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""})
+                        st.session_state['funcionarios_temp'].append({"nome": "", "cargo": "", "data_inicio_funcao": None, "data_inicio_empresa": None})
                         st.rerun()
                 
                 with col_btn2:
@@ -242,14 +258,21 @@ def tela_cadastro_area():
                         funcionarios_validos = [f for f in st.session_state['funcionarios_temp'] if f.get('nome', '').strip()]
                         
                         if not funcionarios_validos:
-                            st.error("Adicione pelo menos um funcionário com nome.")
+                            st.error("❌ Adicione pelo menos um funcionário com nome.")
                         else:
                             if salvar_funcionarios_area(id_area_selecionada, funcionarios_validos):
-                                st.success(f"✅ {len(funcionarios_validos)} funcionário(s) cadastrado(s) com sucesso!")
-                                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "tempo_funcao": "", "tempo_empresa": ""}]
+                                # ===== LIMPAR TUDO =====
+                                st.session_state['funcionarios_temp'] = [{"nome": "", "cargo": "", "data_inicio_funcao": None, "data_inicio_empresa": None}]
+                                # Incrementar versão para forçar recriação dos widgets
+                                st.session_state['funcionarios_version'] += 1
+                                
+                                # Toast de sucesso
+                                st.toast(f"✅ {len(funcionarios_validos)} funcionário(s) cadastrado(s) com sucesso!", icon="👥")
+                                
+                                time_module.sleep(0.5)
                                 st.rerun()
                             else:
-                                st.error("Erro ao cadastrar funcionários.")
+                                st.error("❌ Erro ao cadastrar funcionários. Tente novamente.")
     
     with tab3:
         st.subheader("Áreas e Funcionários Cadastrados")
@@ -269,10 +292,13 @@ def tela_cadastro_area():
                     
                     if not df_func.empty:
                         st.markdown("**👥 Funcionários:**")
+                        from logic import calcular_tempo
                         for _, func in df_func.iterrows():
+                            tempo_funcao = calcular_tempo(func.get('data_inicio_funcao'))
+                            tempo_empresa = calcular_tempo(func.get('data_inicio_empresa'))
                             st.markdown(f"""
                             - **{func['nome_funcionario']}**  
-                              *{func['cargo']}* | {func['tempo_funcao']} na função, {func['tempo_empresa']} na empresa
+                            *{func['cargo']}* | {tempo_funcao} na função, {tempo_empresa} na empresa
                             """)
                     else:
                         st.info("Nenhum funcionário cadastrado para esta área.")
