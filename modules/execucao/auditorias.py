@@ -193,7 +193,6 @@ def tela_auditorias_trimestrais():
                         with col4:
                             if st.button("🔍 Detalhar", key=f"btn_{row['id']}"):
                                 st.session_state['auditoria_selecionada'] = row['id']
-                                st.session_state['tela_atual'] = 'detalhe_auditoria'
                                 st.rerun()
                         
                         st.divider()
@@ -2011,6 +2010,12 @@ def _exibir_formulario_edicao_processo_auditoria(row, auditoria_id, auditoria):
 
 def tela_detalhe_auditoria():
     """Tela de detalhamento de uma auditoria específica"""
+
+    # ==== CONFIGURAR A LARGURA DA PÁGINA ====
+    from modules.shared.theme import set_page_width
+    set_page_width(90)
+
+    # ====
     
     # CSS para reduzir fonte dos métricas
     st.markdown("""
@@ -2200,91 +2205,3 @@ def tela_detalhe_auditoria():
     if st.button("← Voltar para lista de auditorias", key='btn_voltar_lista_auditorias_2'):
         st.session_state.pop('auditoria_selecionada', None)
         st.rerun()
-
-def criar_nova_auditoria():
-    """Tela para criar auditoria rapidamente a partir do diagnóstico"""
-    st.title("📝 Criar Nova Auditoria")
-    
-    # Recuperar os dados da área
-    area_id = st.session_state.get('criar_auditoria_area_id')
-    area_nome = st.session_state.get('criar_auditoria_area_nome', '')
-    
-    if not area_id:
-        st.error("Área não identificada.")
-        if st.button("← Voltar para Diagnóstico"):
-            st.session_state['tela_atual'] = 'diagnostico'
-            st.rerun()
-        return
-    
-    st.info(f"📌 Criando auditoria para a área: **{area_nome}**")
-    
-    # ===== FORMULÁRIO =====
-    with st.form("form_criar_auditoria_rapida"):
-        trimestre = st.selectbox("Trimestre:", [1, 2, 3, 4])
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            data_inicio = st.date_input("Data de início prevista", value=datetime.now().date())
-        with col2:
-            data_fim = st.date_input("Data de término prevista", value=datetime.now().date() + timedelta(days=90))
-        
-        titulo = st.text_input(
-            "Título da auditoria", 
-            value=f"Auditoria {area_nome} - {datetime.now().year} {trimestre}º Trimestre"
-        )
-        objetivo = st.text_area(
-            "Objetivo da auditoria", 
-            value=f"Avaliar a eficácia dos processos da área de {area_nome}"
-        )
-        escopo = st.text_area(
-            "Escopo (o que será avaliado)", 
-            value=f"Processos críticos da área de {area_nome}"
-        )
-        
-        col_btn1, col_btn2 = st.columns([1, 3])
-        with col_btn1:
-            submitted = st.form_submit_button("✅ Criar Auditoria", type="primary", use_container_width=True)
-        with col_btn2:
-            cancelar = st.form_submit_button("❌ Cancelar", use_container_width=True)
-        
-        if submitted:
-            dados = {
-                "id_area": area_id,
-                "titulo": titulo,
-                "objetivo": objetivo,
-                "escopo": escopo,
-                "ano": datetime.now().year,
-                "trimestre": trimestre,
-                "data_inicio": data_inicio,
-                "data_fim": data_fim,
-                "status": "Planejamento"
-            }
-            
-            from logic import criar_nova_auditoria
-            auditoria_id, codigo = criar_nova_auditoria(dados)
-            
-            if auditoria_id:
-                st.success(f"✅ Auditoria criada com sucesso! Código: {codigo}")
-                st.session_state['auditoria_diagnostico'] = auditoria_id
-                st.session_state['tela_atual'] = 'diagnostico'
-                time_module.sleep(1.5)
-                st.rerun()
-            else:
-                st.error("Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
-    
-    # ===== ESTES BOTÕES PRECISAM ESTAR FORA DO FORMULÁRIO =====
-    # Botão Cancelar (fora do form)
-    if cancelar:
-        st.session_state.pop('criar_auditoria_area_id', None)
-        st.session_state.pop('criar_auditoria_area_nome', None)
-        st.session_state['tela_atual'] = 'diagnostico'
-        st.rerun()
-    
-    # Botão para voltar
-    col_back1, col_back2 = st.columns([1, 3])
-    with col_back1:
-        if st.button("← Voltar para Diagnóstico", use_container_width=True):
-            st.session_state.pop('criar_auditoria_area_id', None)
-            st.session_state.pop('criar_auditoria_area_nome', None)
-            st.session_state['tela_atual'] = 'diagnostico'
-            st.rerun()

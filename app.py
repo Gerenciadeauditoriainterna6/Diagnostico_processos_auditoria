@@ -129,12 +129,6 @@ def main():
         tela_criar_auditoria_rapida()
         return
     
-    if st.session_state.get('tela_atual') == 'detalhe_auditoria':
-        from modules.execucao.auditorias import tela_detalhe_auditoria
-        st.session_state.pop('tela_atual', None)
-        tela_detalhe_auditoria()
-        return
-    
     if st.session_state.get('tela_atual') == 'diagnostico':
         st.write("🔍 DEBUG - Vou chamar tela_diagnostico_processos")
         st.session_state.pop('tela_atual', None)

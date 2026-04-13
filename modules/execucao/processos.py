@@ -169,6 +169,23 @@ def verificar_e_carregar_processo():
         st.session_state.pop('processo_existente_id', None)
     return False
 
+def gerar_codigo_auditoria(area_nome, ano, trimestre):
+    """Gerar o código da auditoria no padrão AUD-SIGLA-ANO-TRIMESTRE"""
+    
+    # Extrair sigla
+    if ' - ' in area_nome:
+        sigla = area_nome.split(' - ')[-1].strip()
+    elif '-' in area_nome:
+        sigla = area_nome.split('-')[-1].strip()
+    else:
+        # Pegar primeiras letras de cada palavra
+        sigla = ''.join([p[0] for p in area_nome.split() if p])[:3].upper()
+    
+    # Garantir que a sigla tenha no máximo 5 caracteres
+    sigla = sigla[:5].upper()
+    
+    return f"AUD-{sigla}-{ano}-{trimestre}"
+
 # ==== FUNÇÕES DAS ABAS DENTRO DE DIAGNÓSTICO DOS PROCESSOS ====
 
 def _tela_novo_processo():
@@ -372,69 +389,105 @@ def _tela_novo_processo():
                 st.markdown("#### 📝 Criar Nova Auditoria")
                 st.caption(f"Área: **{st.session_state.get('area_selectbox', '')}**")
                 
-                with st.form("form_auditoria_inline"):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        trimestre = st.selectbox("Trimestre:", [1, 2, 3, 4])
-                    with col2:
-                        ano = st.number_input("Ano:", min_value=2024, max_value=2030, value=datetime.now().year)
+                # Campos de seleção
+                col1, col2 = st.columns(2)
+                with col1:
+                    trimestre = st.selectbox("Trimestre:", [1, 2, 3, 4], key="trimestre_auditoria")
+                with col2:
+                    ano = st.number_input("Ano:", min_value=2024, max_value=2030, value=datetime.now().year, key="ano_auditoria")
+                
+                # Gerar código automaticamente
+                area_nome = st.session_state.get('area_selectbox', '')
+                codigo_gerado = gerar_codigo_auditoria(area_nome, ano, trimestre)
+                
+                # Mostrar o código que será gerado
+                st.info(f"📌 **Código que será gerado:** `{codigo_gerado}`")
+                
+                col3, col4 = st.columns(2)
+                with col3:
+                    data_inicio = st.date_input("Data de início prevista", value=datetime.now().date())
+                with col4:
+                    data_fim = st.date_input("Data de término prevista", value=datetime.now().date() + timedelta(days=90))
+                
+                titulo = st.text_input(
+                    "Título da auditoria", 
+                    value=f"Auditoria {area_nome} - {ano} {trimestre}º Trimestre"
+                )
+                objetivo = st.text_area(
+                    "Objetivo da auditoria", 
+                    value="Avaliar a eficácia dos processos da área"
+                )
+                escopo = st.text_area(
+                    "Escopo (o que será avaliado)", 
+                    value="Processos críticos da área"
+                )
+                
+                # Botões de ação
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+                with col_btn1:
+                    criar_click = st.button("✅ Criar Auditoria", type="primary", use_container_width=True)
+                with col_btn2:
+                    cancelar = st.button("❌ Cancelar", use_container_width=True)
+                
+                # ===== CONFIRMAÇÃO ANTES DE CRIAR =====
+                if criar_click:
+                    # Inicializar estado de confirmação
+                    st.session_state['confirmar_criacao_auditoria'] = True
+                
+                if st.session_state.get('confirmar_criacao_auditoria', False):
+                    st.markdown("---")
+                    st.warning(f"⚠️ **Confirmação de criação**")
+                    st.markdown(f"O código **`{codigo_gerado}`** será registrado no banco de dados.")
+                    st.markdown("Deseja realmente criar esta auditoria?")
                     
-                    col3, col4 = st.columns(2)
-                    with col3:
-                        data_inicio = st.date_input("Data de início prevista", value=datetime.now().date())
-                    with col4:
-                        data_fim = st.date_input("Data de término prevista", value=datetime.now().date() + timedelta(days=90))
+                    col_conf1, col_conf2, col_conf3 = st.columns([1, 1, 2])
+                    with col_conf1:
+                        if st.button("✅ Sim, Criar", use_container_width=True):
+                            dados = {
+                                "id_area": id_area_atual,
+                                "codigo_auditoria": codigo_gerado,
+                                "titulo": titulo,
+                                "objetivo": objetivo,
+                                "escopo": escopo,
+                                "ano": ano,
+                                "trimestre": trimestre,
+                                "data_inicio": data_inicio,
+                                "data_fim": data_fim,
+                                "status": "Planejamento"
+                            }
+                            
+                            auditoria_id, codigo = criar_nova_auditoria(dados)
+                            
+                            if auditoria_id:
+                                st.success(f"✅ Auditoria criada com sucesso! Código: {codigo}")
+                                st.balloons()
+                                st.session_state['auditoria_diagnostico'] = auditoria_id
+                                st.session_state['mostrar_form_auditoria'] = False
+                                st.session_state['confirmar_criacao_auditoria'] = False
+                                time_module.sleep(1.5)
+                                st.rerun()
+                            else:
+                                st.error("❌ Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
+                                st.session_state['confirmar_criacao_auditoria'] = False
+                                st.rerun()
                     
-                    titulo = st.text_input(
-                        "Título da auditoria", 
-                        value=f"Auditoria {st.session_state.get('area_selectbox', '')} - {ano} {trimestre}º Trimestre"
-                    )
-                    objetivo = st.text_area(
-                        "Objetivo da auditoria", 
-                        value="Avaliar a eficácia dos processos da área"
-                    )
-                    escopo = st.text_area(
-                        "Escopo (o que será avaliado)", 
-                        value="Processos críticos da área"
-                    )
-                    
-                    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
-                    with col_btn1:
-                        submitted = st.form_submit_button("✅ Criar", type="primary", use_container_width=True)
-                    with col_btn2:
-                        cancelar = st.form_submit_button("❌ Cancelar", use_container_width=True)
-                    
-                    if submitted:
-                        dados = {
-                            "id_area": id_area_atual,
-                            "titulo": titulo,
-                            "objetivo": objetivo,
-                            "escopo": escopo,
-                            "ano": ano,
-                            "trimestre": trimestre,
-                            "data_inicio": data_inicio,
-                            "data_fim": data_fim,
-                            "status": "Planejamento"
-                        }
-                        
-                        auditoria_id, codigo = criar_nova_auditoria(dados)
-                        
-                        if auditoria_id:
-                            st.success(f"✅ Auditoria criada com sucesso! Código: {codigo}")
-                            st.session_state['auditoria_diagnostico'] = auditoria_id
-                            st.session_state['mostrar_form_auditoria'] = False
-                            time_module.sleep(1)
+                    with col_conf2:
+                        if st.button("❌ Não, Cancelar", use_container_width=True):
+                            st.toast("❌ Criação cancelada pelo usuário.", icon="❌")
+                            st.session_state['confirmar_criacao_auditoria'] = False
                             st.rerun()
-                        else:
-                            st.error("Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
-                    
-                    if cancelar:
+                
+                if cancelar:
+                    if st.session_state.get('confirmar_criacao_auditoria', False):
+                        st.session_state['confirmar_criacao_auditoria'] = False
+                    else:
                         st.session_state['mostrar_form_auditoria'] = False
                         st.rerun()
             
-            # Botão alternativo para cancelar fora do form
+            # Botão alternativo para fechar
             if st.button("✖️ Fechar", use_container_width=True):
                 st.session_state['mostrar_form_auditoria'] = False
+                st.session_state['confirmar_criacao_auditoria'] = False
                 st.rerun()
 
     st.divider()
@@ -985,7 +1038,7 @@ def _tela_editar_processo():
                             'probabilidade': normalizar_valor_risco(row['probabilidade'])
                         })
                 st.session_state['modo_edicao'] = True
-                st.session_state['edit_forma_version'] = st.session_state.fet('edit_form_version', 0) + 1
+                st.session_state['edit_form_version'] = st.session_state.get('edit_form_version', 0) + 1
 
                 # Limpar a flag para não recarregar novamente
                 st.session_state.pop('processo_para_editar', None)
