@@ -6,9 +6,7 @@ from datetime import datetime
 from streamlit_local_storage import LocalStorage
 import json
 from logic import (validar_login_no_banco, TEMPO_SESSAO_SEGUNDOS)
-
-# teste
-
+#teste
 # Importante: adicione esta função no início do seu arquivo
 def custom_spinner():
     """Retorna HTML/CSS para um spinner personalizado"""
