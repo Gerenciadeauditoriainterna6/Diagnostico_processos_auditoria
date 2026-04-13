@@ -481,36 +481,41 @@ def atualizar_etapa_no_banco(dados):
         print(f"Erro ao atualizar etapa: {e}")
         return False
 
-def listar_etapas_do_processo(processo_id, auditoria_id):
+def listar_etapas_do_processo(processo_id, auditoria_id=None):
     """Lista todas as etapas de um processo"""
-    query = text("""
-        SELECT 
-            id,
-            codigo_etapa,
-            descricao_etapa,
-            como_e_feito,
-            objetivo_etapa,
-            realizado_corretamente,
-            status_etapa,
-            criticidade_etapa,
-            oque_faz,
-            manual_processo_link,
-            link_diagrama_etapa,
-            politica_interna,
-            analise_critica,
-            sugestao_melhoria,
-            necessidade_implantacao,
-            ganho_previsto,
-            obrigacoes_regulatorias
-        FROM etapas_processo
-        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
-        ORDER BY codigo_etapa
-    """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={
-            "processo_id": processo_id,
-            "auditoria_id": auditoria_id
-        })
+    if auditoria_id:
+        query = text("""
+            SELECT 
+                id, processo_id, codigo_etapa, descricao_etapa, oque_faz,
+                como_e_feito, objetivo_etapa, status_etapa, realizado_corretamente,
+                criticidade_etapa, politica_interna, analise_critica, sugestao_melhoria,
+                necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
+                diagrama_bpmn, diagrama_nome, diagrama_tipo,
+                manual_etapa, manual_nome, manual_tipo
+            FROM etapas_processo
+            WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+            ORDER BY codigo_etapa
+        """)
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn, params={
+                "processo_id": processo_id,
+                "auditoria_id": auditoria_id
+            })
+    else:
+        query = text("""
+            SELECT 
+                id, processo_id, codigo_etapa, descricao_etapa, oque_faz,
+                como_e_feito, objetivo_etapa, status_etapa, realizado_corretamente,
+                criticidade_etapa, politica_interna, analise_critica, sugestao_melhoria,
+                necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
+                diagrama_bpmn, diagrama_nome, diagrama_tipo,
+                manual_etapa, manual_nome, manual_tipo
+            FROM etapas_processo
+            WHERE processo_id = :processo_id
+            ORDER BY codigo_etapa
+        """)
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn, params={"processo_id": processo_id})
 
 def obter_proximo_codigo_etapa(processo_id, codigo_processo):
     """Gera o código 1.2.1 baseado no número de etapas existentes."""
@@ -1923,3 +1928,77 @@ def formatar_tempo_funcionario(funcionario):
     tempo_empresa = calcular_tempo(data_empresa) if data_empresa else "Não informado"
 
     return tempo_funcao, tempo_empresa
+
+def salvar_diagrama_etapa(etapa_id, arquivo):
+    """Salva o diagrama BPMN de uma etapa"""
+    if arquivo is not None:
+        conteudo = arquivo.read()
+        query = text("""
+            UPDATE etapas_processo
+            SET diagrama_bpmn = :conteudo,
+                diagrama_nome = :nome,
+                diagrama_tipo = :tipo
+            WHERE id = :etapa_id
+        """)
+        with engine.begin() as conn:
+            conn.execute(query, {
+                "etapa_id": etapa_id,
+                "conteudo": conteudo,
+                "nome": arquivo.name,
+                "tipo": arquivo.type
+            })
+        
+        return True
+    
+def salvar_manual_etapa(etapa_id, arquivo):
+    """Salva o manual da etapa"""
+    if arquivo is not None:
+        conteudo = arquivo.read()
+        query = text("""
+            UPDATE etapas_processo 
+            SET manual_etapa = :conteudo,
+                manual_nome = :nome,
+                manual_tipo = :tipo
+            WHERE id = :etapa_id
+        """)
+        with engine.begin() as conn:
+            conn.execute(query, {
+                "etapa_id": etapa_id,
+                "conteudo": conteudo,
+                "nome": arquivo.name,
+                "tipo": arquivo.type
+            })
+        return True
+    return False
+
+def baixar_diagrama_etapa(etapa_id):
+    """Recupera o diagrama da etapa para download"""
+    query = text("""
+        SELECT diagrama_bpmn, diagrama_nome, diagrama_tipo
+        FROM etapas_processo
+        WHERE id = :etapa_id
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"etapa_id": etapa_id}).fetchone()
+        if result and result[0]:
+            conteudo = result[0]
+            if isinstance(conteudo, memoryview):
+                conteudo = bytes(conteudo)
+            return conteudo, result[1], result[2]
+    return None, None, None
+
+def baixar_manual_etapa(etapa_id):
+    """Recupera o manual da etapa para download"""
+    query = text("""
+        SELECT manual_etapa, manual_nome, manual_tipo
+        FROM etapas_processo
+        WHERE id = :etapa_id
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"etapa_id": etapa_id}).fetchone()
+        if result and result[0]:
+            conteudo = result[0]
+            if isinstance(conteudo, memoryview):
+                conteudo = bytes(conteudo)
+            return conteudo, result[1], result[2]
+    return None, None, None

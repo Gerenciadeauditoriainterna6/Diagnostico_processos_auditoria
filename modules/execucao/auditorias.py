@@ -16,7 +16,9 @@ from logic import (
     listar_funcionarios_por_area, listar_executores_processo,
     listar_categorias, buscar_processo_por_codigo, atualizar_etapa_no_banco,
     listar_etapas_do_processo, listar_riscos_etapa, MAPA_RISCO, salvar_risco_etapa,
-    salvar_controle_no_banco, obter_proximo_codigo_etapa, salvar_etapa_no_banco
+    salvar_controle_no_banco, obter_proximo_codigo_etapa, salvar_etapa_no_banco,
+    baixar_diagrama_etapa, baixar_manual_etapa, salvar_diagrama_etapa,
+    salvar_manual_etapa
 )
 from modules.shared.components import formatar_risco_para_card
 from modules.shared.utils import exibir_criterios_risco
@@ -604,7 +606,8 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
 
                 # Botão para adicionar primeira etapa
                 if st.button("➕ Cadastrar Primeira Etapa", key=f"add_primeira_etapa_{row['processo_id']}"):
-                    st.session_state[f"nova_etapa_{row['processo_id']}"] = True
+                    st.session_state[f"show_nova_etapa_form_{row['processo_id']}"] = True
+                    st.rerun()
             else:
                 for _, etapa in etapas.iterrows():
                     with st.expander(f"📌 {etapa['codigo_etapa']} - {etapa['descricao_etapa']}", expanded=False):
@@ -620,6 +623,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                             st.secondary("⚪ Status: Inativa")
                         
                         st.divider()
+
                         # ==== RISCOS DA ETAPA ====
                         st.markdown("**⚠️ Riscos desta Etapa**")
                         riscos_df = listar_riscos_etapa(etapa['id'], auditoria_id=auditoria_id)
@@ -646,21 +650,82 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                         with col_etapa1:
                             if st.button("✏️ Editar Etapa", key=f"edit_etapa_{etapa['id']}"):
                                 st.session_state[f"editando_etapa_{etapa['id']}"] = True
+                                st.rerun()
                         with col_etapa2:
                             if st.button("⚠️ Adicionar Risco", key=f"add_risco_etapa_{etapa['id']}"):
                                 st.session_state[f"add_risco_{etapa['id']}"] = True
+                                st.rerun()
                         
                         # ===== FORMULÁRIO DE EDIÇÃO DE ETAPA =====
                         if st.session_state.get(f"editando_etapa_{etapa['id']}", False):
                             st.markdown("---")
                             st.markdown("#### ✏️ Editando Etapa")
                             with st.form(key=f"form_edit_etapa_{etapa['id']}"):
+                                # Dados básicos
                                 desc_edit = st.text_input("Descrição", value=etapa['descricao_etapa'])
                                 oque_edit = st.text_area("O que faz?", value=etapa.get('oque_faz', ''))
                                 como_edit = st.text_area("Como faz?", value=etapa.get('como_e_feito', ''))
                                 obj_edit = st.text_area("Objetivo", value=etapa.get('objetivo_etapa', ''))
-                                status_edit = st.selectbox("Status", ["Ativa", "Inativa"], 
-                                                          index=0 if etapa.get('status_etapa') == 'Ativa' else 1)
+                                
+                                col_status1, col_status2 = st.columns(2)
+                                with col_status1:
+                                    status_edit = st.selectbox("Status", ["Ativa", "Inativa"], 
+                                                            index=0 if etapa.get('status_etapa') == 'Ativa' else 1)
+                                with col_status2:
+                                    criticidade_edit = st.selectbox("Criticidade", ["Aprovado", "Em Aprovação"],
+                                                                index=0 if etapa.get('criticidade_etapa') == 'Aprovado' else 1)
+                                
+                                realizado_edit = st.selectbox("Teste de eficácia?", ["Sim", "Não", "Parcial"],
+                                                            index=["Sim", "Não", "Parcial"].index(etapa.get('realizado_corretamente', 'Sim')))
+                                
+                                st.divider()
+                                
+                                # Documentação
+                                st.markdown("### 📄 Documentação da Etapa")
+                                
+                                # Diagrama
+                                st.markdown("**🖼️ Diagrama BPMN**")
+                                if etapa.get('diagrama_bpmn'):
+                                    st.info(f"📎 Diagrama atual: {etapa.get('diagrama_nome', 'Arquivo anexado')}")
+                                
+                                diagrama_edit = st.file_uploader(
+                                    "Substituir diagrama (PDF, PNG, JPG, JPEG)",
+                                    type=['pdf', 'png', 'jpg', 'jpeg'],
+                                    key=f"diagrama_edit_{etapa['id']}"
+                                )
+                                
+                                # Manual
+                                st.markdown("**📖 Manual da Etapa**")
+                                if etapa.get('manual_etapa'):
+                                    st.info(f"📎 Manual atual: {etapa.get('manual_nome', 'Arquivo anexado')}")
+                                
+                                manual_edit = st.file_uploader(
+                                    "Substituir manual (PDF, DOCX, TXT)",
+                                    type=['pdf', 'docx', 'txt'],
+                                    key=f"manual_edit_{etapa['id']}"
+                                )
+                                
+                                st.divider()
+                                
+                                # Políticas e análises
+                                st.markdown("### 📋 Políticas e Análises")
+                                
+                                politica_edit = st.text_area("Política Interna", value=etapa.get('politica_interna', ''))
+                                analise_edit = st.text_area("Análise Crítica", value=etapa.get('analise_critica', ''))
+                                sugestao_edit = st.text_area("Sugestão de Melhoria", value=etapa.get('sugestao_melhoria', ''))
+                                
+                                st.divider()
+                                
+                                # Melhorias e obrigações
+                                st.markdown("### 🔧 Melhorias e Obrigações")
+                                
+                                col_m1, col_m2 = st.columns(2)
+                                with col_m1:
+                                    necessidade_edit = st.text_input("Necessidade para implantação", value=etapa.get('necessidade_implantacao', ''))
+                                with col_m2:
+                                    ganho_edit = st.text_input("Ganho previsto", value=etapa.get('ganho_previsto', ''))
+                                
+                                obrigacoes_edit = st.text_area("Obrigações Regulatórias", value=etapa.get('obrigacoes_regulatorias', ''))
                                 
                                 col_edit1, col_edit2 = st.columns(2)
                                 with col_edit1:
@@ -672,19 +737,26 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                             "como": como_edit,
                                             "obj": obj_edit,
                                             "status": status_edit,
-                                            "real": etapa.get('realizado_corretamente', 'Sim'),
-                                            "crit": etapa.get('criticidade_etapa', 'Aprovado'),
+                                            "real": realizado_edit,
+                                            "crit": criticidade_edit,
                                             "exec": etapa.get('executor', ''),
-                                            "link_d": etapa.get('link_diagrama_etapa', ''),
-                                            "link_m": etapa.get('manual_processo_link', ''),
-                                            "pol": etapa.get('politica_interna', ''),
-                                            "ana": etapa.get('analise_critica', ''),
-                                            "sug": etapa.get('sugestao_melhoria', ''),
-                                            "nec": etapa.get('necessidade_implantacao', ''),
-                                            "gan": etapa.get('ganho_previsto', ''),
-                                            "obri": etapa.get('obrigacoes_regulatorias', '')
+                                            "pol": politica_edit,
+                                            "ana": analise_edit,
+                                            "sug": sugestao_edit,
+                                            "nec": necessidade_edit,
+                                            "gan": ganho_edit,
+                                            "obri": obrigacoes_edit
                                         }
+                                        
                                         if atualizar_etapa_no_banco(dados_update):
+                                            # Atualizar diagrama se foi enviado
+                                            if diagrama_edit:
+                                                salvar_diagrama_etapa(etapa['id'], diagrama_edit)
+                                            
+                                            # Atualizar manual se foi enviado
+                                            if manual_edit:
+                                                salvar_manual_etapa(etapa['id'], manual_edit)
+                                            
                                             st.success("Etapa atualizada!")
                                             st.session_state[f"editando_etapa_{etapa['id']}"] = False
                                             st.rerun()
@@ -794,11 +866,13 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 
                 # Botão para adicionar nova etapa (fora do loop)
                 st.divider()
-                if st.button("➕ Nova Etapa", key=f"nova_etapa_{row['processo_id']}"):
-                    st.session_state[f"nova_etapa_{row['processo_id']}"] = True
+                if st.button("➕ Nova Etapa", key=f"btn_nova_etapa_{row['processo_id']}"):
+                    st.session_state[f"show_nova_etapa_form_{row['processo_id']}"] = True
+                    st.rerun()
+
             
             # ===== FORMULÁRIO PARA NOVA ETAPA =====
-            if st.session_state.get(f"nova_etapa_{row['processo_id']}", False):
+            if st.session_state.get(f"show_nova_etapa_form_{row['processo_id']}", False):
                 st.markdown("---")
                 st.markdown("#### ➕ Cadastrar Nova Etapa")
                 
@@ -811,14 +885,78 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                     with col_c2:
                         desc_etapa = st.text_input("Descrição da Etapa")
                     
-                    oque = st.text_area("O que faz?")
-                    como = st.text_area("Como faz?")
-                    obj_etapa = st.text_area("Objetivo")
-                    status = st.selectbox("Status", ["Ativa", "Inativa"])
+                    # O que faz, Como faz e Objetivo
+                    oque = st.text_area("O que faz?", placeholder="Descreva o que é feito nesta etapa")
+                    como = st.text_area("Como faz?", placeholder="Descreva como a etapa é executada")
+                    obj_etapa = st.text_area("Objetivo", placeholder="Qual o objetivo desta etapa?")
+
+                    # Status e criticidade
+                    col_status1, col_status2 = st.columns(2)
+                    with col_status1:
+                        status = st.selectbox("Status", ["Ativa", "Inativa"])
+                    with col_status2:
+                        criticidade = st.selectbox("Criticidade", ["Aprovado", "Em Aprovação"])
+
+                    # Teste de eficácia
+                    realizado = st.selectbox("Realizado corretamente?", ["Sim", "Não", "Parcial"])
+
+                    st.divider()
+
+                    # Documentação
+                    st.markdown("## 📄 Documentação da Etapa")
+
+                    # Upload do diagrama BPMN
+                    st.markdown("**🖼️ Diagrama BPMN da Etapa**")
+                    diagrama_file = st.file_uploader(
+                        "Anexar diagrama (PDF, PNG, PJG, JPEG)",
+                        type=['pdf', 'png', 'jpg', 'jpeg'],
+                        key=f"diagrama_upload_{row['processo_id']}",
+                        help="Faça o upload do diagrama de fluxo da etapa"
+                    )
+
+                    # Uploado do manual da etapa
+                    st.markdown("**📖 Manual da Etapa**")
+                    manual_file = st.file_uploader(
+                        "Anexar Manual (PDF, DOCX, TXT)",
+                        type=['pdf', 'docx', 'txt'],
+                        key=f"manual_upload_{row['processo_id']}",
+                        help="Faça o uplod do manual da etapa"
+                    )
+
+                    st.divider()
+
+                    # Políticas e análises
+                    st.markdown("### 📋 Políticas e Análises")
                     
+                    politica = st.text_area("Política Interna", placeholder="Descreva as políticas internas aplicáveis", height=100)
+                    analise = st.text_area("Análise Crítica", placeholder="Análise crítica da etapa", height=100)
+                    sugestao = st.text_area("Sugestão de Melhoria", placeholder="Sugestões para melhoria da etapa", height=100)
+                    
+                    st.divider()
+                    
+                    # Melhorias e obrigações
+                    st.markdown("### 🔧 Melhorias e Obrigações")
+                    
+                    col_m1, col_m2 = st.columns(2)
+                    with col_m1:
+                        necessidade = st.text_input("Necessidade para implantação", placeholder="O que é necessário para implantar?")
+                    with col_m2:
+                        ganho = st.text_input("Ganho previsto", placeholder="Qual o ganho esperado?")
+                    
+                    obrigacoes = st.text_area("Obrigações Regulatórias", placeholder="Obrigações legais e regulatórias", height=80)
+                    
+                    # Botões
                     col_n1, col_n2 = st.columns(2)
                     with col_n1:
-                        if st.form_submit_button("💾 Salvar Etapa", type="primary"):
+                        submitted = st.form_submit_button("💾 Salvar Etapa", type="primary", use_container_width=True)
+                    with col_n2:
+                        cancelar = st.form_submit_button("❌ Cancelar", use_container_width=True)
+                    
+                    if submitted:
+                        # Validar campos obrigatórios
+                        if not desc_etapa:
+                            st.error("❌ A descrição da etapa é obrigatória.")
+                        else:
                             dados = {
                                 "p_id": int(row['processo_id']),
                                 "cod": prox_cod,
@@ -827,27 +965,38 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                 "como": como,
                                 "obj": obj_etapa,
                                 "status": status,
-                                "real": "Sim",
-                                "crit": "Aprovado",
-                                "exec": "",
-                                "link_d": "",
-                                "link_m": "",
-                                "pol": "",
-                                "ana": "",
-                                "sug": "",
-                                "nec": "",
-                                "gan": "",
-                                "obri": "",
-                                "man": ""
+                                "real": realizado,
+                                "crit": criticidade,
+                                "exec": "",  # executor (pode ser adicionado depois)
+                                "pol": politica,
+                                "ana": analise,
+                                "sug": sugestao,
+                                "nec": necessidade,
+                                "gan": ganho,
+                                "obri": obrigacoes,
+                                "man": ""  # link do manual (não usado mais)
                             }
-                            if salvar_etapa_no_banco(dados, auditoria_id=auditoria_id):
-                                st.success("Etapa criada com sucesso!")
-                                st.session_state[f"nova_etapa_{row['processo_id']}"] = False
+                            
+                            etapa_id = salvar_etapa_no_banco(dados, auditoria_id=auditoria_id)
+                            
+                            if etapa_id:
+                                # Salvar diagrama se foi enviado
+                                if diagrama_file:
+                                    salvar_diagrama_etapa(etapa_id, diagrama_file)
+                                
+                                # Salvar manual se foi enviado
+                                if manual_file:
+                                    salvar_manual_etapa(etapa_id, manual_file)
+                                
+                                st.success("✅ Etapa criada com sucesso!")
+                                st.session_state[f"show_nova_etapa_form_{row['processo_id']}"] = False
                                 st.rerun()
-                    with col_n2:
-                        if st.form_submit_button("❌ Cancelar"):
-                            st.session_state[f"nova_etapa_{row['processo_id']}"] = False
-                            st.rerun()
+                            else:
+                                st.error("❌ Erro ao salvar etapa. Tente novamente.")
+                    
+                    if cancelar:
+                        st.session_state[f"show_nova_etapa_form_{row['processo_id']}"] = False
+                        st.rerun()
 
         # ===== EXPANDER: CONTROLES DO PROCESSO (VISÃO GERAL) =====
         with st.expander("🎮 Controles do Processo", expanded=False):
@@ -1034,8 +1183,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                 with col_conf2:
                                     if st.button("❌ Não", key=f"conf_nao_controle_{ctrl['controle_id']}"):
                                         st.session_state.pop(f"confirmar_exclusao_controle_{ctrl['controle_id']}", None)
-                                        st.rerun()
-                        
+                                        st.rerun()               
         # ==== EXPANDER: AVALIAÇÕES REALIZADAS ====
         with st.expander("📋 Avaliações Realizadas", expanded=False):
             from modules.execucao.checklists import (buscar_historico_avaliacoes, buscar_detalhes_avaliacao, baixar_evidencia)
@@ -1192,6 +1340,8 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 # Alterna o estado (abre/fecha)
                 st.session_state[checklist_key] = not st.session_state.get(checklist_key, False)
                 st.rerun()
+    
+    st.divider() 
 
     # ==== DETALHES DO PROCESSO (EXPANDIDO) ====
     if st.session_state.get(f"detalhes_processo_{row['processo_id']}", False):
@@ -1268,12 +1418,11 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
         else:
             st.info("Nenhum risco cadastrado para este processo.")
     
-    # Botão para fechar detalhes
-    st.divider()
-    if st.button("🔒 Fechar Detalhes", key=f"fechar_detalhes_{row['processo_id']}"):
-        st.session_state[f"detalhes_processo_{row['processo_id']}"] = False
-        st.rerun()
-
+        # Botão para fechar detalhes
+        if st.button("Fechar Detalhes", key=f"fechar_detalhes_{row['processo_id']}"):
+            st.session_state[f"detalhes_processo_{row['processo_id']}"] = False
+            st.rerun()
+  
     # ==== SEÇÃO DO CHECKLIST (exibida condicionalmente) ====
     if st.session_state.get(checklist_key, False):
         st.divider()
