@@ -103,7 +103,7 @@ def marcar_relatorio_gerencial_gerado(processo_id):
         conn.execute(query, {"processo_id": processo_id})
     return True
 
-def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO"):
+def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO", auditoria_id=None):
     """Gera relatório gerencial da área (para validação do gestor)
     
     Args:
@@ -218,7 +218,9 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Paragraph(f"<b>Data de Geração:</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
-    # ===== BUSCAR PROCESSOS E RISCOS =====
+    # ===== BUSCAR PROCESSOS VINCULADOS À AUDITORIA SELECIONADA =====
+    # Aqui fazemos o JOIN com auditoria_processos para garantir que só apareçam
+    # os processos que foram de fato escalados para esta auditoria específica.
     query = text("""
         SELECT 
             p.id,
@@ -230,15 +232,22 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             r.impacto,
             r.probabilidade
         FROM processos p
+        INNER JOIN auditoria_processos ap ON p.id = ap.processo_id
         LEFT JOIN riscos r ON p.id = r.processo_id
-        WHERE p.id_area = :area_id AND p.status = 'Ativo'
+        WHERE ap.auditoria_id = :auditoria_id 
+          AND p.id_area = :area_id 
+          AND p.status = 'Ativo'
         ORDER BY 
             string_to_array(p.codigo_processo, '.')::int[],
             r.score_risco DESC NULLS LAST
     """)
     
     with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={"area_id": area_id})
+        # Note que agora passamos o auditoria_id nos params
+        df = pd.read_sql(query, conn, params={
+            "area_id": area_id, 
+            "auditoria_id": auditoria_id
+        })
     
     if df.empty:
         story.append(Paragraph("Nenhum processo encontrado para esta área.", normal_style))
@@ -376,38 +385,52 @@ def tela_relatorios():
         else:
             opcoes_area = {row['nome_area']: row['id_area'] for _, row in df_areas.iterrows()}
             area_selecionada = st.selectbox("Selecione a Área", list(opcoes_area.keys()))
-            col_orient1, col_orient2 = st.columns(2)
-            with col_orient1:
-                orientacao = st.radio(
-                    "Orientação do Relatório",
-                    ["RETRATO", "PAISAGEM"],
-                    horizontal=True,
-                    index=0
-                )
             id_area = opcoes_area[area_selecionada]
 
-            # Buscar gestor da área
-            query_gestor = text("SELECT gestor FROM informacoes_area WHERE id_area = :id_area")
+            # --- NOVO: Buscar auditorias desta área ---
+            query_auds = text("""
+                SELECT id, titulo, codigo_auditoria 
+                FROM auditorias 
+                WHERE id_area = :id_area 
+                ORDER BY created_at DESC
+            """)
             with engine.connect() as conn:
-                gestor = conn.execute(query_gestor, {"id_area": id_area}).scalar() or "Gestor não informado"
+                df_auds_area = pd.read_sql(query_auds, conn, params={"id_area": id_area})
 
-            if st.button("Gerar Relatório Gerencial", type="primary", use_container_width=False):
-                with st.spinner("Gerando relatório para validação do gestor..."):
-                    time_module.sleep(1.15)
-                    pdf_bytes = gerar_relatorio_gerencial_area(id_area, area_selecionada, gestor, orientacao)
-                    if pdf_bytes:
-                        st.session_state['pdf_gerencial'] = pdf_bytes
-                        st.success("✅ Relatório gerencial gerado com sucesso!")
-                    else:
-                        st.error("Erro ao gerar relatório.")
-            if 'pdf_gerencial' in st.session_state:
-                st.download_button(
-                    label="📥 Baixar Relatório Gerencial",
-                    data=st.session_state['pdf_gerencial'],
-                    file_name=f"relatorio_gerencial_{area_selecionada}_{datetime.now().strftime('%Y%m%d')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=False
-                )
+            if df_auds_area.empty:
+                st.error(f"⚠️ A área '{area_selecionada}' não possui nenhuma auditoria vinculada. Crie uma auditoria antes de gerar o relatório.")
+            else:
+                opcoes_auditoria = {f"{row['codigo_auditoria']} - {row['titulo']}": row['id'] for _, row in df_auds_area.iterrows()}
+                auditoria_selecionada = st.selectbox("2. Selecione a Auditoria", list(opcoes_auditoria.keys()))
+                id_auditoria = opcoes_auditoria[auditoria_selecionada]
+
+                col_orient1, col_orient2 = st.columns(2)
+                with col_orient1:
+                    orientacao = st.radio("Orientação", ["RETRATO", "PAISAGEM"], horizontal=True)
+
+                # Buscar gestor
+                query_gestor = text("SELECT gestor FROM informacoes_area WHERE id_area = :id_area")
+                with engine.connect() as conn:
+                    gestor = conn.execute(query_gestor, {"id_area": id_area}).scalar() or "Gestor não informado"
+
+                if st.button("Gerar Relatório Gerencial", type="primary"):
+                    with st.spinner("Cruzando dados da auditoria..."):
+                        time_module.sleep(1.15)
+                        # Passamos o id_auditoria agora
+                        pdf_bytes = gerar_relatorio_gerencial_area(id_area, area_selecionada, gestor, orientacao, id_auditoria)
+                        
+                        if pdf_bytes:
+                            st.session_state['pdf_gerencial'] = pdf_bytes
+                            st.success("✅ Relatório gerencial gerado!")
+
+                if 'pdf_gerencial' in st.session_state:
+                    st.download_button(
+                        label="📥 Baixar Relatório Gerencial",
+                        data=st.session_state['pdf_gerencial'],
+                        file_name=f"relatorio_{area_selecionada}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf"
+                    )
+
     # ==== TAB 2: RELATÓRIO TÉCNICO ====
     with tab2:
         st.subheader("Relatório Técnico do Processo")
