@@ -11,7 +11,6 @@ from modules.execucao.visao_geral import tela_visao_geral_processos
 from modules.planejamento.plano_anual import tela_plano_anual
 from modules.execucao.auditorias import (tela_auditorias_trimestrais, tela_detalhe_auditoria, tela_detalhe_processo_auditoria)
 from modules.auth.login import login_screen, verificar_sessao
-from modules.comunicacaoresultados.relatorios import marcar_relatorio_gerado
 from modules.execucao.processos import tela_diagnostico_processos
 from modules.execucao.checklists import tela_checklist_sessoes
 from modules.shared.theme import apply_theme, set_page_width
@@ -277,7 +276,8 @@ def main():
                     "🔍 Diagnóstico dos Processos",
                     "📋 Detalhamento dos Processos",        
                     "👁️ Visão Geral do Diagnóstico",
-                    "📣 Comunicação dos Resultados"
+                    "📣 Comunicação dos Resultados",
+                    "📋 Geração de Relatórios"
                 ]
             )
 
@@ -328,42 +328,10 @@ def main():
         set_page_width(95)
         tela_visao_geral_processos()
 
-    elif opcao == "Geração de Relatórios":
-        st.title("Relatórios - FUSVE")
-        
-        if st.button("Atualizar Lista de Processos", key='btn_atualizar_lista_de_processos'):
-            st.session_state['df_pendentes'] = buscar_processos_pendentes()
-        
-        if not st.session_state['df_pendentes'].empty:
-            df = st.session_state['df_pendentes']
-            st.dataframe(df)
-            
-            codigo_selecionado = st.selectbox(
-                "Selecione o Código do Processo:", 
-                df['codigo_processo'].tolist(),
-                on_change=lambda: st.session_state.pop('pdf_pronto', None)
-            )
-
-            if st.button("Gerar e Marcar como Pronto", key='btn_gerar_e_marcar_pronto'):
-                marcar_relatorio_gerado(codigo_selecionado)
-                pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
-                
-                if pdf_bytes:
-                    st.session_state['pdf_pronto'] = bytes(pdf_bytes)
-                    st.success(f"Processo {codigo_selecionado} concluído! Clique em baixar.")
-                    st.rerun() 
-                else:
-                    st.error("Erro ao gerar PDF.")
-            
-            if 'pdf_pronto' in st.session_state:
-                st.download_button(
-                    label="📥 Baixar Relatório em PDF",
-                    data=st.session_state['pdf_pronto'],
-                    file_name=f"relatorio_processo_{codigo_selecionado}.pdf",
-                    mime="application/pdf"
-                )
-        else:
-            st.info("Nenhum processo pendente para gerar relatório.")
+    elif opcao == "📋 Geração de Relatórios":
+        set_page_width(95)
+        from modules.comunicacaoresultados.relatorios import tela_relatorios
+        tela_relatorios()
 
     elif opcao == "📅 Plano Anual de Auditoria":
         tela_plano_anual()

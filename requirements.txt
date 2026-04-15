@@ -6,3 +6,4 @@ fpdf2==2.8.6
 datetime
 streamlit-local-storage
 streamlit-pdf-viewer
+reportlab==4.2.5
