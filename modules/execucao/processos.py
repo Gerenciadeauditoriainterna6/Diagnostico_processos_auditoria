@@ -186,15 +186,34 @@ def gerar_codigo_auditoria(area_nome, ano, trimestre):
     
     return f"AUD-{sigla}-{ano}-{trimestre}"
 
+# Função auxiliar para manter o expander aberto
+def manter_expander_aberto(indice):
+    """Callback para manter o expander aberto quando houver interação"""
+    if 'expanders_abertos' not in st.session_state:
+        st.session_state['expanders_abertos'] = {}
+    st.session_state['expanders_abertos'][indice] = True
+
+# Função auxiliar para manter o expander aberto na edição
+def manter_expander_aberto_edit(indice):
+    """Callback para manter o expander aberto quando houver interação na edição"""
+    if 'edit_expanders_abertos' not in st.session_state:
+        st.session_state['edit_expanders_abertos'] = {}
+    st.session_state['edit_expanders_abertos'][indice] = True
+
 # ==== FUNÇÕES DAS ABAS DENTRO DE DIAGNÓSTICO DOS PROCESSOS ====
 
 def _tela_novo_processo():
     """Sub-tela de cadastro de novo processo"""
     from logic import calcular_tempo
     from modules.execucao.auditorias import criar_nova_auditoria
+
     # ===== INICIALIZAR ESTADOS DO FORMULÁRIO =====
     if 'mostrar_form_auditoria' not in st.session_state:
         st.session_state['mostrar_form_auditoria'] = False
+    # ==== INICIALIZAR DICIONPARIO PARA CONTROLAR EXPANDERS ABERTOS ====
+    if 'expanders_abertos' not in st.session_state:
+        st.session_state['expanders_abertos'] = {}
+
     # ===== RESETAR ESTADO DA ÁREA AO ENTRAR NA TELA =====
     # Forçar sincronização entre o selectbox e o session_state
     if 'area_selectbox' in st.session_state and 'id_area_selecionado' in st.session_state:
@@ -748,8 +767,18 @@ def _tela_novo_processo():
                 titulo_expander = f"⚠️ {titulo_risco[:50]}"
             else:
                 titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
-            
-            with st.expander(titulo_expander, expanded=False):
+            # ==== CONTROLE DE ESTADO DO EXPANDER ====
+            # Verficar se este expander deve estar aberto
+            expanded_default = st.session_state['expanders_abertos'].get(i, False)
+
+            # Criar o expander com controle de estado            
+            with st.expander(titulo_expander, expanded=expanded_default):
+                # Atualizar estado para aberto quando o usuário interagir
+                # Isso é feito através de um callback que será executado no p´roximo rerun
+                if not expanded_default:
+                    # se estava fechado e agora está aberto, marcar como aberto.
+                    st.session_state['expanders_abertos'][i] = True
+
                 # Cabeçalho com botão de remover
                 col_titulo, col_remove = st.columns([5, 1])
                 with col_titulo:
@@ -759,7 +788,12 @@ def _tela_novo_processo():
                         if st.button("🗑️ Remover Risco", key=f"remove_risco_{i}", use_container_width=True):
                             indices_para_remover.append(i)
                             st.toast(f"✅ Risco {i+1} removido!")
-                            time_module.sleep(1)
+                            # Limpar estado do expander ao remover
+                            if i in st.session_state['expanders_abertos']:
+                                del st.session_state['expanders_abertos'][i]
+                            st.toast(f"✅ Risco {i+1} removido!")
+                            time_module.sleep(0.5)
+                            st.rerun()
                 st.divider()
 
                 # Campos do risco
@@ -767,7 +801,8 @@ def _tela_novo_processo():
                     f"Nome do Risco:",
                     key=f"nome_{i}",
                     placeholder="Risco pela possibilidade de acontecer o que?",
-                    help="Descreva o risco de forma clara e objetiva"
+                    help="Descreva o risco de forma clara e objetiva",
+                    on_change=lambda idx=1: manter_expander_aberto(idx)
                 )
 
                 # Categorias
@@ -783,7 +818,8 @@ def _tela_novo_processo():
                     format_func=lambda x: categorias_dict[x],
                     default=st.session_state.get(f"categorias_{i}", []),
                     key=f"categorias_{i}",
-                    help="Selecione uma ou mais categorias para este risco"
+                    help="Selecione uma ou mais categorias para este risco",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
 
                 # Fator de Risco
@@ -791,7 +827,8 @@ def _tela_novo_processo():
                     f"Fator de Risco",
                     key=f"fator_{i}",
                     placeholder="Pelo motivo de?",
-                    help="Fator de risco, causa ou motivo desse risco acontecer."
+                    help="Fator de risco, causa ou motivo desse risco acontecer.",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
 
                     # Ponto de Melhoria
@@ -799,7 +836,8 @@ def _tela_novo_processo():
                     f"Ponto de Melhoria:", 
                     key=f"melhoria_{i}", 
                     placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
-                    help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
+                    help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
                 
                 # Apetite ao Risco
@@ -807,7 +845,8 @@ def _tela_novo_processo():
                     f"Apetite ao risco:", 
                     key=f"apetite_{i}", 
                     placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
-                    help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco."
+                    help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco.",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
                 )   
 
                 # Critérios
@@ -820,14 +859,16 @@ def _tela_novo_processo():
                         f"Impacto:", 
                         ["Muito Alto", "Alto", "Médio", "Baixo"], 
                         key=f"imp_{i}", 
-                        help="Impacto do risco materializado"
+                        help="Impacto do risco materializado",
+                        on_change=lambda idx=i: manter_expander_aberto(idx)
                     )
                 with col_p:
                     st.selectbox(
                         f"Probabilidade:", 
                         ["Muito Alto", "Alto", "Médio", "Baixo"], 
                         key=f"prob_{i}", 
-                        help="Probabilidade do risco acontecer?"
+                        help="Probabilidade do risco acontecer?",
+                        on_change=lambda idx=i: manter_expander_aberto(idx)
                     )
                 
                 # Cálculo do Risco Bruto
@@ -844,7 +885,8 @@ def _tela_novo_processo():
                     f"Motivo:",
                     key=f"motivo_{i}",
                     placeholder="Justifique a escolha do impacto e probabilidade acima.",
-                    help="Qual o motivo da classificação do nível da probabilidade? - ANÁLISE"
+                    help="Qual o motivo da classificação do nível da probabilidade? - ANÁLISE",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
 
                 st.markdown("---")
@@ -907,6 +949,11 @@ def _tela_editar_processo():
 
     if 'processo_selecionado_para_editar' not in st.session_state:
         st.session_state['processo_selecionado_para_editar'] = None
+
+    # ==== INICIALIZAR UM DICIONÁRIO PARA CONTROLAR EXPANDERS ABERTOS NA EDIÇÃO ====
+    if 'edit_expanders_abertos' not in st.session_state:
+        st.session_state['edit_expanders_abertos'] = {}
+
     st.divider()
     st.title("Edição de processo existente")
     st.markdown("Selecione um processo abaixo para editar suas informações.")
@@ -930,7 +977,7 @@ def _tela_editar_processo():
         "Selecione a Área:", 
         list(areas_dict.keys()), 
         key="area_selectbox_edit",
-        on_change=atualizar_id_area_edit  # <-- AGORA A FUNÇÃO JÁ ESTÁ DEFINIDA
+        on_change=atualizar_id_area_edit
     )
     
     # Garantir que o ID da área esteja inicializado
@@ -1024,19 +1071,24 @@ def _tela_editar_processo():
 
                 # carregar riscos
 
+                # No carregamento automático (quando vem da auditoria):
                 df_riscos = listar_riscos_do_processo(processo['id'])
                 if not df_riscos.empty:
-                    for _, row in df_riscos.iterrows():
+                    for idx, row in df_riscos.iterrows():
                         st.session_state['edit_processo_data']['riscos'].append({
                             'nome': row['nome_risco'] or '',
                             'fator': row['fator_risco'] or '',
                             'melhoria': row['melhoria'] or '',
-                            'apetite': row['apetite'] or '',
+                            'apetite': row['apetite_risco'] or '',
                             'motivo': row['motivo_risco'] or '',
-                            'categorias': row['categorias_ids'] if row['categorias_ids'] else [],
+                            'categorias_ids': row['categorias_ids'] if 'categorias_ids' in row else [],  # Agora vem como lista de IDs
+                            'categorias_string': row['categoria'] if 'categoria' in row else '',  # Guardar a string original
                             'impacto': normalizar_valor_risco(row['impacto']),
                             'probabilidade': normalizar_valor_risco(row['probabilidade'])
                         })
+                        # Inicialiar expander abertos para todos os riscos carregados
+                        st.session_state['edit_expanders_abertos'][idx] = True
+
                 st.session_state['modo_edicao'] = True
                 st.session_state['edit_form_version'] = st.session_state.get('edit_form_version', 0) + 1
 
@@ -1087,7 +1139,7 @@ def _tela_editar_processo():
             
             if processo_escolhido:
                 st.session_state['processo_selecionado_para_editar'] = processo_escolhido
-                if st.button("📂 Carregar Processo", type="primary", use_container_width=True, key='btn_carregar_processo'):
+                if st.button("📂 Carregar Processo", type="primary", use_container_width=False, key='btn_carregar_processo'):
                     if st.session_state.get('processo_selecionado_para_editar'):
                         processo_escolhido = st.session_state['processo_selecionado_para_editar']
                     
@@ -1122,17 +1174,21 @@ def _tela_editar_processo():
                             df_riscos = listar_riscos_do_processo(processo['id'])
                             
                             if not df_riscos.empty:
-                                for _, row in df_riscos.iterrows():
+                                for idx, row in df_riscos.iterrows():
                                     st.session_state['edit_processo_data']['riscos'].append({
                                         'nome': row['nome_risco'] or "",
                                         'fator': row['fator_risco'] or "",
                                         'melhoria': row['melhoria'] or "",
                                         'apetite': row['apetite_risco'] or "",
                                         'motivo': row['motivo_risco'] or "",
-                                        'categorias': row['categorias_ids'] if row['categorias_ids'] else [],
+                                        'categorias_ids': row['categorias_ids'] if 'categorias_ids' in row else [],
+                                        'categorias_string': row['categoria'] if 'categoria' in row else '',
                                         'impacto': normalizar_valor_risco(row['impacto']),
                                         'probabilidade': normalizar_valor_risco(row['probabilidade'])
                                     })
+                                    # Inicializar expander abertos apra todos os riscos
+                                    st.session_state['edit_expanders_abertos'][idx] = True
+
                             st.session_state['modo_edicao'] = True
                             st.session_state['edit_form_version'] = st.session_state.get('edit_form_version', 0) + 1
                             st.rerun()
@@ -1259,8 +1315,10 @@ def _tela_editar_processo():
             if st.button("➕ Adicionar Risco", key=f"edit_add_risco_{form_version}", use_container_width=True):
                 if 'edit_riscos_temp' not in st.session_state:
                     st.session_state['edit_riscos_temp'] = processo_data.get('riscos', []).copy()
-                
+                novo_idx = len(st.session_state['edit_riscos_temp'])
                 st.session_state['edit_riscos_temp'].append({})
+                # Marcar o novo expander como aberto automaticamente
+                st.session_state['edit_expanders_abertos'][novo_idx] = True
                 st.rerun()
         
         st.divider()
@@ -1279,8 +1337,17 @@ def _tela_editar_processo():
                     titulo_expander = f"⚠️ {titulo_risco[:60]}..."
                 else:
                     titulo_expander = f"⚠️ Risco {i+1} (não nomeado)"
+
+
                 
-                with st.expander(titulo_expander, key=f"edit_risco_expander_{form_version}_{i}"):
+                # ===== CONTROLE DE ESTADO DO EXPANDER NA EDIÇÃO =====
+                expanded_default = st.session_state['edit_expanders_abertos'].get(i, True)  # Padrão True para mostrar
+                
+                with st.expander(titulo_expander, expanded=expanded_default):
+                    # Atualizar estado para aberto quando o usuário interagir
+                    if not expanded_default:
+                        st.session_state['edit_expanders_abertos'][i] = True
+                    
                     # Cabeçalho com botão de remover
                     col_titulo, col_remove = st.columns([5, 1])
                     with col_titulo:
@@ -1289,18 +1356,23 @@ def _tela_editar_processo():
                         if len(riscos_lista) > 1:
                             if st.button("🗑️ Remover", key=f"edit_remove_risco_{form_version}_{i}", use_container_width=True):
                                 indices_para_remover.append(i)
+                                # Limpar estado do expander ao remover
+                                if i in st.session_state['edit_expanders_abertos']:
+                                    del st.session_state['edit_expanders_abertos'][i]
                                 st.rerun()
                     
                     st.divider()
                     
-                    # Campos do risco (usando keys como versão)
-                    risco['nome'] = st.text_input(
+                    # Campos do risco com callbacks para manter expander aberto
+                    novo_nome = st.text_input(
                         "Nome do Risco:",
                         value=risco.get('nome', ''), 
                         key=f"edit_nome_{form_version}_{i}", 
                         placeholder="Ex: Risco de erro no cadastro...",
-                        help="Descreva o risco de forma clara e objetiva"
+                        help="Descreva o risco de forma clara e objetiva",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
+                    risco['nome'] = novo_nome
                     
                     # Categorias
                     categorias_dict = listar_categorias()
@@ -1310,66 +1382,74 @@ def _tela_editar_processo():
                     exibir_descricao_categorias()
                     
                     # Garantir que default seja uma lista válida
-                    categorias_default = risco.get('categorias', [])
-                    if categorias_default is None:
-                        categorias_default = []
-                    # Filtrar apenas IDs que existem (segurança)
-                    categorias_default = [c for c in categorias_default if c in ids_categorias]
+                    categorias_default = risco.get('categorias_ids', [])  # Agora vem como lista de IDs
 
-
-                    categorias_selecionadas = st.multiselect(
+                    categorias_selecionadas_ids = st.multiselect(
                         "Categorias do Risco:", 
-                        options=ids_categorias,
-                        format_func=lambda x: categorias_dict[x],
-                        default=categorias_default,
+                        options=list(categorias_dict.keys()),  # IDs [1,2,3,4,5,6,7]
+                        format_func=lambda x: categorias_dict[x],  # Mostra o nome
+                        default=categorias_default,  # IDs pré-selecionados
                         key=f"edit_categorias_{form_version}_{i}",
-                        help="Selecione uma ou mais categorias para este risco"
+                        help="Selecione uma ou mais categorias para este risco",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
-                    risco['categorias'] = categorias_selecionadas
 
-                    risco['fator'] = st.text_area(
+                    # Salvar os IDs para uso futuro
+                    risco['categorias_ids'] = categorias_selecionadas_ids
+
+                    novo_fator = st.text_area(
                         "Fator de Risco:",
                         value=risco.get('fator', ''),
                         key=f"edit_fator_{form_version}_{i}", 
                         placeholder="O que causa ou contribui para que este risco aconteça?",
-                        help="Fator de risco, causa ou motivo desse risco acontecer."
+                        help="Fator de risco, causa ou motivo desse risco acontecer.",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
+                    risco['fator'] = novo_fator
                     
-                    risco['melhoria'] = st.text_area(
+                    nova_melhoria = st.text_area(
                         "Ponto de Melhoria:",
                         value=risco.get('melhoria', ''),
                         key=f"edit_melhoria_{form_version}_{i}", 
                         placeholder="O que poderia ser melhorado para reduzir ou eliminar este risco?",
-                        help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?"
+                        help="O que mais te incomoda nesse processo e pensa que deveria ser melhor?",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
+                    risco['melhoria'] = nova_melhoria
                     
-                    risco['apetite'] = st.text_area(
+                    novo_apetite = st.text_area(
                         "Apetite ao risco:",
                         value=risco.get('apetite', ''),
                         key=f"edit_apetite_{form_version}_{i}", 
                         placeholder="Qual o nível de risco que a organização está disposta a aceitar?",
-                        help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável."
+                        help="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável.",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
+                    risco['apetite'] = novo_apetite
                     
                     exibir_criterios_risco()
                     
                     col_i, col_p = st.columns(2)
                     with col_i:
-                        risco['impacto'] = st.selectbox(
+                        novo_impacto = st.selectbox(
                             "Impacto:", 
                             ["Muito Alto", "Alto", "Médio", "Baixo"], 
                             index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('impacto', 'Médio')),
                             key=f"edit_imp_{form_version}_{i}", 
-                            help="Impacto do risco materializado"
+                            help="Impacto do risco materializado",
+                            on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                         )
+                        risco['impacto'] = novo_impacto
                     with col_p:
-                        risco['probabilidade'] = st.selectbox(
+                        nova_probabilidade = st.selectbox(
                             "Probabilidade:", 
                             ["Muito Alto", "Alto", "Médio", "Baixo"],
                             index=["Muito Alto", "Alto", "Médio", "Baixo"].index(risco.get('probabilidade', 'Médio')),
                             key=f"edit_prob_{form_version}_{i}", 
-                            help="Probabilidade do risco acontecer?"
+                            help="Probabilidade do risco acontecer?",
+                            on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                         )
+                        risco['probabilidade'] = nova_probabilidade
                     
                     score_v = MAPA_RISCO.get((risco.get('impacto', 'Médio'), risco.get('probabilidade', 'Médio')), 0)
                     cor, emoji = get_estilo_risco(score_v)
@@ -1379,19 +1459,27 @@ def _tela_editar_processo():
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    risco['motivo'] = st.text_area(
+                    novo_motivo = st.text_area(
                         "Motivo:",
                         value=risco.get('motivo', ''), 
                         key=f"edit_motivo_{form_version}_{i}", 
                         placeholder="Justifique a escolha do impacto e probabilidade acima.",
-                        help="Qual o motivo da classificação do nível da probabilidade?"
+                        help="Qual o motivo da classificação do nível da probabilidade?",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
+                    risco['motivo'] = novo_motivo
                     
                     st.markdown("---")
             
             # Remover riscos marcados
             for idx in reversed(indices_para_remover):
                 riscos_lista.pop(idx)
+                # Reorganizar os índices dos expanders abertos
+                new_expanders = {}
+                for old_idx, new_idx in enumerate(range(len(riscos_lista))):
+                    if old_idx in st.session_state['edit_expanders_abertos']:
+                        new_expanders[new_idx] = st.session_state['edit_expanders_abertos'][old_idx]
+                st.session_state['edit_expanders_abertos'] = new_expanders
             
             if indices_para_remover:
                 st.session_state['edit_riscos_temp'] = riscos_lista
@@ -1425,6 +1513,7 @@ def _tela_editar_processo():
                     st.session_state.pop('modo_edicao', None)
                     st.session_state.pop('edit_processo_data', None)
                     st.session_state.pop('edit_riscos_temp', None)
+                    st.session_state.pop('edit_expanders_abertos', None)
                     st.rerun()
                 else:
                     st.error("❌ Erro ao salvar alterações.")
@@ -1434,6 +1523,7 @@ def _tela_editar_processo():
                 st.session_state.pop('modo_edicao', None)
                 st.session_state.pop('edit_processo_data', None)
                 st.session_state.pop('edit_riscos_temp', None)
+                st.session_state.pop('edit_expanders_abertos', None)
                 
                 # Se veio da auditoria, voltar pra ela
                 if st.session_state.get('auditoria_origem'):

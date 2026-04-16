@@ -380,6 +380,20 @@ def listar_processos_disponiveis_para_auditoria(auditoria_id, id_area):
 # NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
 # =====================================================
 
+
+def listar_categorias():
+    """Retorna as categorias de risco pré-definidas"""
+    categorias = {
+        1: "Risco Financeiro",
+        2: "Risco Legal",
+        3: "Risco Inerente",
+        4: "Risco de TI",
+        5: "Risco Reputacional",
+        6: "Risco de Integridade",
+        7: "Risco Ambiental"
+    }
+    return categorias
+
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
     query = text("""
@@ -792,28 +806,21 @@ def normalizar_valor_risco(valor):
 
 
 def salvar_no_banco():
+    """Salva novo processo ou atualiza existente, traduzindo categorias para nomes"""
+    from logic import listar_categorias, resetar_timer_sessao # Garanta as importações
     resetar_timer_sessao()
+    
     try:
         with engine.begin() as conn:
             id_area_val = st.session_state.get("id_area_selecionado")
             nome_area_val = st.session_state.get("area_selectbox")
             nome_val = st.session_state.get("input_processo", "").strip()
 
-            # === DEBUG ===
-            objetivo_raw = st.session_state.get('input_objetivo', '')
-            print(f"DEBUG - objetivo_raw: '{objetivo_raw}'")
-            print(f"DEBUG - objetivo_raw: '{objetivo_raw}' - tipo: {type(objetivo_raw)}")
-            print(f"DEBUG - objetivo_raw é None? {objetivo_raw is None}")
-            print(f"DEBUG - objetivo_raw é string vazia? {objetivo_raw == ''}")
-
-            # === CONCATENAR NO PYTHON ===
+            # === CONCATENAR OBJETIVO ===
             objetivo_raw = st.session_state.get('input_objetivo', '').strip()
-            if objetivo_raw:
-                objetivo_com_prefixo = f"Garantir {objetivo_raw}"
-            else:
-                objetivo_com_prefixo = ''
+            objetivo_com_prefixo = f"Garantir {objetivo_raw}" if objetivo_raw else ''
 
-            # === PRIMEIRO: VERIFICAR SE O PROCESSO JÁ EXISTE ===
+            # === 1. VERIFICAR SE O PROCESSO JÁ EXISTE ===
             check_query = text("""
                 SELECT id FROM processos 
                 WHERE id_area = :id_area AND nome_processo = :nome
@@ -845,15 +852,15 @@ def salvar_no_banco():
                 })
 
             else:
-                # === MODO CRIAÇÃO: Inserir novo processo ===
+                # === MODO CRIAÇÃO: Inserir novo processo (SEM coluna categoria aqui) ===
                 codigo_processo = st.session_state.get('codigo_processo_display', '')
 
                 sql_insert = text("""
                     INSERT INTO processos 
                     (id_area, area, codigo_processo, nome_processo, objetivo, 
-                    descricao, etapa_ini, etapa_fim, produto, status, categoria) 
+                    descricao, etapa_ini, etapa_fim, produto, status) 
                     VALUES 
-                    (:id_a, :a, :c, :n, :o, :d, :ei, :ef, :p, :st, :cat) 
+                    (:id_a, :a, :c, :n, :o, :d, :ei, :ef, :p, :st) 
                     RETURNING id
                 """)
 
@@ -867,54 +874,53 @@ def salvar_no_banco():
                     "ei": st.session_state.get('input_etapa_ini', ''),
                     "ef": st.session_state.get('input_etapa_fim', ''),
                     "p": st.session_state.get('input_produto', ''),
-                    "st": "Ativo",
-                    "cat": "Geral"
+                    "st": "Ativo"
                 }
 
                 processo_id = conn.execute(sql_insert, params_insert).scalar()
                 st.session_state['processo_existente_id'] = processo_id
 
-            # ===== RISCOS: REMOVE OS ANTIGOS E INSERE OS NOVOS =====
+            # ===== 2. RISCOS: REMOVE OS ANTIGOS E INSERE OS NOVOS =====
             conn.execute(
                 text("DELETE FROM riscos WHERE processo_id = :pid"),
                 {"pid": processo_id}
             )
 
+            # Query de Risco (Aqui a coluna CATEGORIA é incluída como Texto)
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
                 probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
                 VALUES 
                 (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
-                RETURNING id
             """)
 
+            # Carregar dicionário de tradução das categorias {id: nome}
+            mapa_categorias = listar_categorias()
+
             for i in range(len(st.session_state['riscos'])):
-                # === CONCATENAR NOME DO RISCO NO PYTHON ===
+                # Concatenar Nome do Risco
                 nome_risco_raw = st.session_state.get(f"nome_{i}", '').strip()
-                if nome_risco_raw:
-                    nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}"
-                else:
-                    nome_risco_com_prefixo = ''
+                nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}" if nome_risco_raw else ''
                 
-                # === CONCATENAR FATOR DO RISCO NO PYTHON ===
+                # Concatenar Fator do Risco
                 fator_raw = st.session_state.get(f"fator_{i}", '').strip()
-                if fator_raw:
-                    fator_com_prefixo = f"Pelo motivo {fator_raw}"
-                else:
-                    fator_com_prefixo = ''    
+                fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
 
                 imp = st.session_state.get(f"imp_{i}")
                 prob = st.session_state.get(f"prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
-                # === PEGAR CATEGORIAS E CONVERTER PARA STRING ===
+                # === TRADUÇÃO DAS CATEGORIAS (IDs -> NOMES) ===
                 categorias_ids = st.session_state.get(f"categorias_{i}", [])
-                # Se você tem um dicionário de categorias para nomes
-                # Por enquanto, vamos usar o primeiro ID como string
-                categoria_str = ', '.join([str(cat_id) for cat_id in categorias_ids]) if categorias_ids else None
+                if categorias_ids:
+                    # Busca o nome de cada ID selecionado no dicionário de logic.py
+                    nomes_selecionados = [mapa_categorias.get(cid) for cid in categorias_ids if cid in mapa_categorias]
+                    categoria_str = ', '.join(nomes_selecionados)
+                else:
+                    categoria_str = None
 
-                result = conn.execute(sql_risco, {
+                conn.execute(sql_risco, {
                     "pid": processo_id,
                     "nome": nome_risco_com_prefixo,
                     "fator": fator_com_prefixo,
@@ -926,9 +932,6 @@ def salvar_no_banco():
                     "score": score,
                     "categoria": categoria_str
                 })
-
-                risco_id = result.scalar()
-                # NOTA: Não precisamos mais inserir em risco_categorias!
 
             st.session_state['ultimo_processo_id'] = processo_id
 
@@ -1405,17 +1408,42 @@ def listar_riscos_do_processo(processo_id):
     query = text("""
         SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
                r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
-               r.categoria,
-               r.validacao_gerencia,
-               r.validacao_superintendencia,
-               ARRAY[r.categoria] as categorias_ids,
-               ARRAY[r.categoria] as categorias_nomes
+               r.categoria
         FROM riscos r
         WHERE r.processo_id = :pid
         ORDER BY r.id
     """)
     with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"pid": processo_id})
+        df = pd.read_sql(query, conn, params={"pid": processo_id})
+        
+        # Adicionar função para converter a string de categorias em lista de IDs
+        if not df.empty:
+            categorias_dict = {
+                1: "Risco Financeiro",
+                2: "Risco Legal", 
+                3: "Risco Inerente",
+                4: "Risco de TI",
+                5: "Risco Reputacional",
+                6: "Risco de Integridade",
+                7: "Risco Ambiental"
+            }
+            
+            # Criar dicionário reverso: nome -> id
+            nome_para_id = {v: k for k, v in categorias_dict.items()}
+            
+            def converter_categoria_para_ids(categoria_str):
+                if not categoria_str or pd.isna(categoria_str):
+                    return []
+                # Separar a string por vírgula
+                nomes = [nome.strip() for nome in categoria_str.split(',') if nome.strip()]
+                # Converter nomes para IDs
+                ids = [nome_para_id[nome] for nome in nomes if nome in nome_para_id]
+                return ids
+            
+            # Criar coluna categorias_ids
+            df['categorias_ids'] = df['categoria'].apply(converter_categoria_para_ids)
+        
+        return df
 
 def salvar_area(dados_area):
     """Salva uma nova área no banco de dados"""
@@ -1555,19 +1583,17 @@ def listar_executores_processo_com_nomes(processo_id):
         return [f"{row['nome_funcionario']} ({row['cargo']})" 
                 for _, row in df.iterrows()]
 
-def listar_categorias():
-    """Retorna as categorias de risco pré-definidas"""
-    # Categorias fixas que fazem sentido para seu negócio
-    categorias = {
-        1: "Risco Financeiro",
-        2: "Risco Legal",
-        3: "Risco Inerente",
-        4: "Risco de TI",
-        5: "Risco Reputacional",
-        6: "Risco de Integridade",
-        7: "Risco Ambiental"
-    }
-    return categorias
+def get_categorias_lista():
+    """Retorna apenas a lista de nomes das categorias"""
+    return [
+        "Risco Financeiro",
+        "Risco Legal", 
+        "Risco Inerente",
+        "Risco de TI",
+        "Risco Reputacional",
+        "Risco de Integridade",
+        "Risco Ambiental"
+    ]
 
 def carregar_riscos_processo_para_edicao(processo_id):
     """Carrega os riscos do processo para a session_state de edição"""
