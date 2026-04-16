@@ -1725,21 +1725,19 @@ def tempo_restante_sessao():
     return "00:00"
 
 def salvar_edicao_processo_completa(dados):
-    """Salva as alterações de um processo existente usando os dados preparados"""
+    """Salva as alterações de um processo existente e seus riscos"""
     try:
         with engine.begin() as conn:
             processo_id = dados.get('processo_id')
             if not processo_id:
                 return False
             
-            # === CONCATENAR OBJETIVO ===
+            # 1. Preparar Objetivo
             objetivo_raw = dados.get('objetivo', '').strip()
-            if objetivo_raw:
-                objetivo_com_prefixo = f"Garantir {objetivo_raw}"
-            else:
-                objetivo_com_prefixo = ''
+            objetivo_com_prefixo = f"Garantir {objetivo_raw}" if objetivo_raw else ''
             
-            # Atualizar dados básicos
+            # 2. Atualizar dados básicos da tabela PROCESSOS
+            # Removi qualquer menção à coluna 'categoria' aqui, pois ela sairá desta tabela
             sql_update = text("""
                 UPDATE processos 
                 SET nome_processo=:nome, objetivo=:o, descricao=:d, 
@@ -1757,7 +1755,7 @@ def salvar_edicao_processo_completa(dados):
                 "p": dados.get('produto', '')
             })
             
-            # Atualizar executores
+            # 3. Atualizar executores (Limpa e reinsere)
             conn.execute(
                 text("DELETE FROM processo_executores WHERE processo_id = :pid"),
                 {"pid": processo_id}
@@ -1769,19 +1767,34 @@ def salvar_edicao_processo_completa(dados):
                 for fid in executores_ids:
                     conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
             
-            # Atualizar riscos
+            # 4. Atualizar RISCOS (Limpa e reinsere)
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
             
+            # Adicionei a coluna 'categoria' aqui, conforme sua nova estrutura
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                 probabilidade, apetite_risco, motivo_risco, score_risco) 
+                 probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score)
-                RETURNING id
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :cat)
             """)
             
             for risco in dados.get('riscos', []):
+                # 1. Recuperar o dicionário de categorias para tradução
+                mapa_categorias = listar_categorias()
+                
+                # 2. Pegar o que veio do multiselect (provavelmente uma lista de IDs)
+                categorias_selecionadas = risco.get('categorias', []) # Note o 's' se vier do multiselect
+                
+                # 3. Traduzir IDs para Nomes e juntar em uma string
+                # Ex: [1, 4] vira "Risco Financeiro, Risco de TI"
+                if isinstance(categorias_selecionadas, list):
+                    nomes_cats = [mapa_categorias.get(cid) for cid in categorias_selecionadas if cid in mapa_categorias]
+                    categoria_final = ", ".join(nomes_cats)
+                else:
+                    # Caso venha apenas um ID solto ou já venha o nome
+                    categoria_final = mapa_categorias.get(categorias_selecionadas, str(categorias_selecionadas))
+
                 # Concatenar prefixos
                 nome_raw = risco.get('nome', '').strip()
                 nome_com_prefixo = f"Risco pela possibilidade {nome_raw}" if nome_raw else ''
@@ -1791,9 +1804,10 @@ def salvar_edicao_processo_completa(dados):
                 
                 imp = risco.get('impacto', 'Médio')
                 prob = risco.get('probabilidade', 'Médio')
+                # Certifique-se que MAPA_RISCO está acessível
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
-                result = conn.execute(sql_risco, {
+                conn.execute(sql_risco, {
                     "pid": processo_id,
                     "nome": nome_com_prefixo,
                     "fator": fator_com_prefixo,
@@ -1802,19 +1816,9 @@ def salvar_edicao_processo_completa(dados):
                     "prob": prob,
                     "apetite": risco.get('apetite', ''),
                     "motivo": risco.get('motivo', ''),
-                    "score": score
+                    "score": score,
+                    "cat": categoria_final  # Agora enviamos o texto!
                 })
-                
-                risco_id = result.scalar()
-                
-                # Salvar categorias
-                categorias_ids = risco.get('categorias', [])
-                if categorias_ids:
-                    for cat_id in categorias_ids:
-                        conn.execute(
-                            text("INSERT INTO risco_categorias (risco_id, categoria_id) VALUES (:rid, :cid)"),
-                            {"rid": risco_id, "cid": cat_id}
-                        )
             
         return True
     except Exception as e:

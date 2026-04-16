@@ -13,27 +13,24 @@ from logic import (listar_areas, listar_processos_da_auditoria_com_riscos,
 )
 import time as time_module
 
-def buscar_processos_pendentes_relatorio():
-    """Busca procesos que ainda não tiveram relatório gerencial gerado"""
+def buscar_processos_para_relatorio():
+    """Busca todos os processos ativos, ignorando se já foi gerado ou não"""
     query = text("""
         SELECT
             p.id,
             p.codigo_processo,
             p.nome_processo,
-            p.objetivo,
-            p.status,
             ia.nome_area,
-            CASE
-                WHEN p.relatorio_gerencial_gerado IS NULL OR p.relatorio_gerencial_gerado = FALSE
-                THEN 'Pendente'
-                ELSE 'Gerado'
-            END as status_relatorio
-            FROM processos p
-            JOIN informacoes_area ia ON p.id_area = ia.id_area
-            WHERE p.status = 'Ativo'
-            AND (p.relatorio_gerencial_gerado IS NULL OR p.relatorio_gerencial_gerado = FALSE)
-            ORDER BY ia.nome_area, p.codigo_processo
-        """)
+            -- Mantemos a info apenas para exibição, sem filtrar por ela
+            CASE 
+                WHEN p.relatorio_gerencial_gerado = TRUE THEN 'Revisão Disponível'
+                ELSE 'Novo'
+            END as status_documento
+        FROM processos p
+        JOIN informacoes_area ia ON p.id_area = ia.id_area
+        WHERE p.status = 'Ativo'
+        ORDER BY ia.nome_area, p.codigo_processo
+    """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
@@ -363,13 +360,187 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     buffer.seek(0)
     return buffer.getvalue()
 
+def gerar_relatorio_processo_detalhado(codigo_processo):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from sqlalchemy import text
+    import pandas as pd
+    import io
+    import os
+
+    buffer = io.BytesIO()
+    
+    # Padronização de Margens e Documento igual à Tab 1
+    pagesize = A4
+    doc = SimpleDocTemplate(buffer, pagesize=pagesize, 
+                           topMargin=3*cm, bottomMargin=2*cm,
+                           leftMargin=3*cm, rightMargin=2*cm)
+    
+    styles = getSampleStyleSheet()
+    cor_azul = colors.HexColor('#0b5b99')
+    cor_fundo_celula = colors.HexColor('#e8f4f8')
+    
+    # Estilos de Texto Padronizados
+    titulo_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=16, alignment=1, spaceAfter=20, textColor=cor_azul)
+    secao_style = ParagraphStyle('SectionTitle', parent=styles['Heading2'], fontSize=12, textColor=cor_azul, spaceBefore=15, spaceAfter=10, fontName='Helvetica-Bold')
+    label_style = ParagraphStyle('Label', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
+    texto_style = styles['Normal']
+
+    story = []
+
+    # ===== CABEÇALHO COM LOGOS (Identico à Tab 1) =====
+    logo_fusve_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets", "logo_fusve.png")
+    logo_auditoria_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets", "logo_auditoria-removebg-preview.png")
+    
+    header_data = []
+    tem_logo_esquerda = os.path.exists(logo_fusve_path)
+    tem_logo_direita = os.path.exists(logo_auditoria_path)
+    
+    if tem_logo_esquerda or tem_logo_direita:
+        logos_linha = []
+        if tem_logo_esquerda:
+            logos_linha.append(Image(logo_fusve_path, width=4*cm, height=1.5*cm))
+        else:
+            logos_linha.append(Paragraph("", texto_style))
+        
+        logos_linha.append(Paragraph("", texto_style))
+        
+        if tem_logo_direita:
+            logos_linha.append(Image(logo_auditoria_path, width=5.0*cm, height=1.8*cm))
+        else:
+            logos_linha.append(Paragraph("", texto_style))
+        
+        header_data.append(logos_linha)
+        header_table = Table(header_data, colWidths=[4*cm, 8*cm, 4*cm])
+        header_table.setStyle(TableStyle([('ALIGN', (0,0), (0,0), 'LEFT'), ('ALIGN', (2,0), (2,0), 'RIGHT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
+        story.append(header_table)
+        story.append(Spacer(1, 10))
+
+    # ===== BUSCA DE DADOS (Query Mestra) =====
+    with engine.connect() as conn:
+        df = pd.read_sql(text("""
+            SELECT 
+                p.codigo_processo, p.nome_processo, p.objetivo as processo_objetivo, 
+                p.executor, p.descricao as processo_descricao, p.etapa_ini, p.etapa_fim, 
+                p.produto, p.categoria as processo_categoria, p.url_diagrama,
+                r.nome_risco, r.fator_risco as risco_fator, r.melhoria as risco_melhoria, 
+                r.impacto as risco_impacto, r.probabilidade as risco_probabilidade, 
+                r.score_risco, r.apetite_risco,
+                e.codigo_etapa, e.descricao_etapa, e.como_e_feito, e.objetivo_etapa, 
+                e.realizado_corretamente, e.politica_interna, e.analise_critica, 
+                e.sugestao_melhoria as etapa_melhoria, e.necessidade_implantacao, 
+                e.ganho_previsto, e.obrigacoes_regulatorias, e.criticidade_etapa, 
+                e.oque_faz, e.diagrama_nome, e.manual_nome,
+                c.risco_avaliacao, c.causa_motivo, c.nome_controle, c.como_executado, 
+                c.objetivo_controle, c.periodicidade_execucao, c.evidencia_realizacao, 
+                c.forma_execucao, c.natureza, c.frequencia_evidencia, c.responsaveis_tratamento
+            FROM processos p
+            LEFT JOIN riscos r ON p.id = r.processo_id
+            LEFT JOIN etapas_processo e ON p.id = e.processo_id
+            LEFT JOIN riscos_etapa re ON e.id = re.etapa_id
+            LEFT JOIN controles_etapa c ON re.id = c.risco_id
+            WHERE p.codigo_processo = :codigo_processo
+            ORDER BY e.codigo_etapa, c.nome_controle;
+        """), conn, params={"codigo_processo": codigo_processo})
+
+    if df.empty: return None
+    row = df.iloc[0]
+
+    # TÍTULO
+    story.append(Paragraph(f"Relatório do Processo: {row['codigo_processo']}", titulo_style))
+    story.append(Paragraph(f"<b>Processo:</b> {row['nome_processo']}", texto_style))
+    story.append(Spacer(1, 20))
+
+    # ===== SEÇÃO 1: INFORMAÇÕES DO DIAGNÓSTICO =====
+    story.append(Paragraph("1. Informações do Diagnóstico", secao_style))
+    diag_data = [
+        [Paragraph("Objetivo", label_style), Paragraph(str(row['processo_objetivo'] or ""), texto_style)],
+        [Paragraph("Executor", label_style), Paragraph(str(row['executor'] or ""), texto_style)],
+        [Paragraph("Descrição", label_style), Paragraph(str(row['processo_descricao'] or ""), texto_style)],
+        [Paragraph("Etapa Inicial", label_style), Paragraph(str(row['etapa_ini'] or ""), texto_style)],
+        [Paragraph("Etapa Final", label_style), Paragraph(str(row['etapa_fim'] or ""), texto_style)],
+        [Paragraph("Produto", label_style), Paragraph(str(row['produto'] or ""), texto_style)],
+        [Paragraph("Diagrama", label_style), Paragraph("Sim" if row['url_diagrama'] else "Não", texto_style)]
+    ]
+    t_diag = Table(diag_data, colWidths=[4*cm, 12*cm])
+    t_diag.setStyle(TableStyle([('GRID', (0,0), (-1,-1), 0.5, colors.grey), ('BACKGROUND', (0,0), (0,-1), cor_fundo_celula), ('VALIGN', (0,0), (-1,-1), 'TOP')]))
+    story.append(t_diag)
+
+    # ===== SEÇÃO 2: RISCOS DO PROCESSO (Ordenados e Coloridos) =====
+    story.append(Paragraph("2. Riscos Identificados", secao_style))
+    
+    # 1. Filtrar e ordenar os riscos por score (decrescente)
+    riscos_df = df[['nome_risco', 'risco_fator', 'risco_melhoria', 'score_risco', 'apetite_risco']].drop_duplicates()
+    riscos_df = riscos_df.sort_values(by='score_risco', ascending=False)
+
+    for _, r in riscos_df.iterrows():
+        if r['nome_risco']:
+            # 2. Obter a cor da escala oficial (importada do seu logic.py)
+            # Nota: Pegamos apenas a cor, ignorando o emoji para o PDF
+            cor_magnitude, _ = get_estilo_risco(r['score_risco'])
+            
+            # 3. Preparar o texto da Magnitude com a cor dinâmica
+            score_val = int(r['score_risco']) if r['score_risco'] is not None else 0
+            texto_magnitude = f'Magnitude do Risco: <font color="{cor_magnitude}"><b>{score_val}</b></font>'
+            
+            # 4. Criar a tabela com fundo suave para não brigar com o texto
+            r_data = [
+                [
+                    Paragraph(f"<b>Risco:</b> {r['nome_risco']}", texto_style), 
+                    Paragraph(texto_magnitude, ParagraphStyle('RightAlign', parent=texto_style, alignment=2))
+                ]
+            ]
+            
+            t_r = Table(r_data, colWidths=[11.5*cm, 4.5*cm])
+            t_r.setStyle(TableStyle([
+                ('LINEBELOW', (0,0), (-1,0), 1, cor_azul), # Linha fina azul embaixo para separar
+                ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke), # Fundo cinza bem claro
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('LEFTPADDING', (0,0), (-1,-1), 5),
+                ('RIGHTPADDING', (0,0), (-1,-1), 5),
+            ]))
+            
+            story.append(t_r)
+            
+            # Detalhes do Risco logo abaixo da linha
+            if r['risco_fator']:
+                story.append(Spacer(1, 2))
+                story.append(Paragraph(f"<b>Fator de Risco:</b> {r['risco_fator']}", ParagraphStyle('Small', parent=texto_style, fontSize=8)))
+            
+            story.append(Spacer(1, 8))
+
+    # ===== SEÇÃO 3: ETAPAS E CONTROLES =====
+    story.append(PageBreak())
+    story.append(Paragraph("3. Detalhamento de Etapas e Controles", secao_style))
+    etapas_df = df[['codigo_etapa', 'descricao_etapa', 'como_e_feito']].drop_duplicates()
+    
+    for _, e in etapas_df.iterrows():
+        if e['codigo_etapa']:
+            story.append(Paragraph(f"Etapa {e['codigo_etapa']}: {e['descricao_etapa']}", label_style))
+            story.append(Paragraph(f"<b>Como é feito:</b> {e['como_e_feito']}", texto_style))
+            
+            # Controles desta etapa
+            controles = df[df['codigo_etapa'] == e['codigo_etapa']]
+            for _, c in controles.iterrows():
+                if c['nome_controle']:
+                    story.append(Paragraph(f"   [CONTROLE] {c['nome_controle']} - Natureza: {c['natureza']}", texto_style))
+            story.append(Spacer(1, 10))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def tela_relatorios():
     """Tela de geração de relatórios"""
     st.title("📄 Geração de Relatórios")
 
     tab1, tab2, tab3 = st.tabs([
         "📊 Relatório Gerencial (Validação)", 
-        "📋 Relatório Técnico (Ciência)", 
+        "📋 Relatório de Processos", 
         "📈 Relatório Consolidado"
     ])
 
@@ -431,45 +602,55 @@ def tela_relatorios():
                         mime="application/pdf"
                     )
 
-    # ==== TAB 2: RELATÓRIO TÉCNICO ====
+    # ==== TAB 2: RELATÓRIO DE PROCESSOS ====
     with tab2:
-        st.subheader("Relatório Técnico do Processo")
-        st.info("Relatório detalhado do processo para ciência da equipe.")
+        st.subheader("Relatório de Processos")
+        st.info("Este relatório extrai o diagnóstico completo, incluindo riscos, etapas e controles.")
 
-        # Buscar processos pendentes
-        if st.button("Atualizar Lista de Processos", key='btn_atualizar_lista_de_processos'):
-            st.session_state['df_pendentes'] = buscar_processos_pendentes_relatorio()
-        if 'df_pendentes' not in st.session_state:
-            st.session_state['df_pendentes'] = buscar_processos_pendentes_relatorio()
-        if not st.session_state['df_pendentes'].empty:
-            df = st.session_state['df_pendentes']
-            st.dataframe(df[['codigo_processo', 'nome_processo', 'nome_area', 'status_relatorio']])
+        # 1. Busca os processos para a lista (Usando a função que removemos o filtro de 'pendente')
+        if st.button("Atualizar Lista de Processos", key='btn_atualizar_lista'):
+            st.session_state['df_processos_tec'] = buscar_processos_para_relatorio()
+        
+        if 'df_processos_tec' not in st.session_state:
+            st.session_state['df_processos_tec'] = buscar_processos_para_relatorio()
+
+        if not st.session_state['df_processos_tec'].empty:
+            df = st.session_state['df_processos_tec']
+            
+            # Exibe a tabela simplificada para escolha
+            st.dataframe(df[['codigo_processo', 'nome_processo', 'nome_area']], use_container_width=True)
 
             codigo_selecionado = st.selectbox(
-                "Selecione o Processo:",
+                "Selecione o Processo para detalhamento:",
                 df['codigo_processo'].tolist(),
-                key="select_processo_tecnico"
+                key="select_proc_tec"
             )
 
-            if st.button("Gerar Relatório Técnico", key='btn_gerar_relatorio_tecnico', type="primary"):
-                with st.sipnner("Gerando relatório técnico..."):
+            # 2. Botão que dispara a nova função robusta
+            if st.button("Gerar Relatório Técnico Completo", key='btn_gerar_tec', type="primary"):
+                with st.spinner(f"Compilando diagnóstico do processo {codigo_selecionado}..."):
                     time_module.sleep(1.15)
-                    pdf_bytes = gerar_pdf_em_memoria(codigo_selecionado)
+                    
+                    # Chamada da nova função que criamos com base no seu banco
+                    pdf_bytes = gerar_relatorio_processo_detalhado(codigo_selecionado)
 
                     if pdf_bytes:
-                        st.session_state['pdf_tecnico'] = bytes(pdf_bytes)
-                        st.success(f"✅ Relatório técnico do processo {codigo_selecionado} gerado com sucesso!")
+                        st.session_state['pdf_tecnico_bytes'] = pdf_bytes
+                        st.success(f"✅ Relatório do processo {codigo_selecionado} gerado!")
                     else:
-                        st.error("Erro ao gerar relatório.")
-            if 'pdf_tecnico' in st.session_state:
+                        st.error("Erro ao extrair dados do banco. Verifique se o processo possui etapas cadastradas.")
+
+            # 3. Botão de Download
+            if 'pdf_tecnico_bytes' in st.session_state:
                 st.download_button(
-                    label="📥 Baixar Relatório Técnico",
-                    data=st.session_state['pdf_tecnico'],
+                    label="📥 Baixar Relatório de Processo (PDF)",
+                    data=st.session_state['pdf_tecnico_bytes'],
                     file_name=f"relatorio_tecnico_{codigo_selecionado}.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    use_container_width=False
                 )
-            else:
-                st.info("Nenhum processo pendente para gerar relatório técnico")
+        else:
+            st.warning("Nenhum processo cadastrado para gerar relatório técnico.")
     
     # ==== TAB 3: RELATÓRIO CONSOLIDADO ====
     with tab3:
