@@ -155,7 +155,7 @@ def tela_auditorias_trimestrais():
                         st.error("Erro ao criar auditoria. Já existe uma auditoria para esta área no trimestre?")
     else:
         # Mostrar auditorias existentes em cards
-        st.subheader(f"Auditorias de {ano}")
+        # st.subheader(f"Auditorias de {ano}") -> TEÓFILO RESOLVEU RETIRAR ESSE TÍTULO POR ENQUANTO
 
         # Organizar por trimestre
         for trimestre in range(1, 5):

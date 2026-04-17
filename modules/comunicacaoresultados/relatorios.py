@@ -213,7 +213,6 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Paragraph(f"<b>Área:</b> {area_nome}", normal_style))
     story.append(Paragraph(f"<b>Gestor Responsável:</b> {gestor}", normal_style))
     story.append(Paragraph(f"<b>Data de Geração:</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
-    story.append(Spacer(1, 20))
     
     # ===== BUSCAR PROCESSOS VINCULADOS À AUDITORIA SELECIONADA =====
     # Aqui fazemos o JOIN com auditoria_processos para garantir que só apareçam
@@ -245,10 +244,15 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             "area_id": area_id, 
             "auditoria_id": auditoria_id
         })
-    
+
+    # Contar quantos riscos existem (linhas onde risco_id não é nulo)
+    total_riscos = df['risco_id'].notna().sum()
+
     if df.empty:
         story.append(Paragraph("Nenhum processo encontrado para esta área.", normal_style))
     else:
+        story.append(Paragraph(f"<b>Quantidade de Riscos identificados:</b> {total_riscos}", normal_style))
+        story.append(Spacer(1, 20))
         story.append(Paragraph("<b>Processos e Riscos Identificados</b>", styles['Heading2']))
         story.append(Spacer(1, 10))
         
