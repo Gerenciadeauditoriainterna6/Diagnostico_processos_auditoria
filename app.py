@@ -23,6 +23,7 @@ MAPA_RISCO = {
     ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
 }
 #
+#
 
 TEMPO_SESSAO_SEGUNDOS = 1800
 
