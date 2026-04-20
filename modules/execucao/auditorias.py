@@ -1137,6 +1137,13 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                     col_edit1, col_edit2 = st.columns(2)
                                     with col_edit1:
                                         if st.form_submit_button("💾 Salvar Alterações", type="primary"):
+                                            # ADICIONE ESTE BLOCO ANTES DO UPDATE
+                                            with engine.connect() as conn:
+                                                dados_antigos = conn.execute(
+                                                    text("SELECT * FROM controles_etapa WHERE id = :id"),
+                                                    {"id": ctrl['controle_id']}
+                                                ).mappings().fetchone()
+                                            
                                             query_update = text("""
                                                 UPDATE controles_etapa 
                                                 SET nome_controle = :nome,
@@ -1148,9 +1155,10 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                                     risco_avaliacao = :avaliacao,
                                                     data_atualizacao = NOW()
                                                 WHERE id = :controle_id
+                                                RETURNING id
                                             """)
                                             with engine.begin() as conn:
-                                                conn.execute(query_update, {
+                                                result = conn.execute(query_update, {
                                                     "nome": nome_edit,
                                                     "forma": forma_edit,
                                                     "natureza": natureza_edit,
@@ -1159,7 +1167,28 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                                     "responsavel": responsavel_edit,
                                                     "avaliacao": avaliacao_edit,
                                                     "controle_id": ctrl['controle_id']
-                                                })
+                                                }).scalar()
+                                                
+                                                # ADICIONE ESTE LOG
+                                                from modules.shared.log_sistema import registrar_log
+                                                dados_novos = {
+                                                    'id': ctrl['controle_id'],
+                                                    'nome_controle': nome_edit,
+                                                    'forma_execucao': forma_edit,
+                                                    'natureza': natureza_edit,
+                                                    'status_controle': status_edit,
+                                                    'frequencia_evidencia': frequencia_edit,
+                                                    'responsaveis_tratamento': responsavel_edit,
+                                                    'risco_avaliacao': avaliacao_edit
+                                                }
+                                                registrar_log(
+                                                    tabela='controles_etapa',
+                                                    registro_id=ctrl['controle_id'],
+                                                    operacao='UPDATE',
+                                                    dados_anteriores=dict(dados_antigos) if dados_antigos else None,
+                                                    dados_novos=dados_novos
+                                                )
+                                            
                                             st.success("Controle atualizado com sucesso!")
                                             st.session_state.pop(f"editando_controle_{ctrl['controle_id']}", None)
                                             st.rerun()
@@ -1174,9 +1203,28 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                 col_conf1, col_conf2 = st.columns(2)
                                 with col_conf1:
                                     if st.button("✅ Sim", key=f"conf_sim_controle_{ctrl['controle_id']}"):
+                                        # Buscar dados ANTES de deletar
+                                        with engine.connect() as conn:
+                                            controle_info = conn.execute(
+                                                text("SELECT * FROM controles_etapa WHERE id = :id"),
+                                                {"id": ctrl['controle_id']}
+                                            ).mappings().fetchone()
+                                        
                                         query_del = text("DELETE FROM controles_etapa WHERE id = :id")
                                         with engine.begin() as conn:
                                             conn.execute(query_del, {"id": ctrl['controle_id']})
+                                            
+                                            # ===== LOG DO DELETE =====
+                                            from modules.shared.log_sistema import registrar_log
+                                            registrar_log(
+                                                tabela='controles_etapa',
+                                                registro_id=ctrl['controle_id'],
+                                                operacao='DELETE',
+                                                dados_anteriores=dict(controle_info) if controle_info else None,
+                                                dados_novos=None
+                                            )
+                                            # ===== FIM DO LOG =====
+                                        
                                         st.success("Controle excluído!")
                                         st.session_state.pop(f"confirmar_exclusao_controle_{ctrl['controle_id']}", None)
                                         st.rerun()

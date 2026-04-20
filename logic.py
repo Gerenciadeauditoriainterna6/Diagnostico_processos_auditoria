@@ -6,6 +6,7 @@ from sqlalchemy import text
 from database import engine
 from datetime import datetime
 import streamlit as st
+from modules.shared.log_sistema import registrar_log
 
 #local_storage = LocalStorage()
 # --- CONFIGURAÇÕES ---
@@ -34,26 +35,25 @@ def criar_nova_auditoria(dados_auditoria):
     """
     try:
         # Gera o código automático: AUD-SIGLA-ANO-TRIM
-        # Primeiro busca a sigla da área
-        query_area = text(
-            """
+        query_area = text("""
             SELECT nome_area FROM informacoes_area WHERE id_area = :id
         """)
+        
         with engine.connect() as conn:
             nome_area = conn.execute(query_area, {"id": dados_auditoria['id_area']}).scalar()
 
-        # Extrai sigla (Ex: "Gerência de Gente e Gestão - GGG" -> "GGG")
+        # Extrai sigla
         sigla = nome_area.split('-')[-1].strip() if '-' in nome_area else nome_area[:3]
         codigo = f"AUD-{sigla}-{dados_auditoria['ano']}-{dados_auditoria['trimestre']}T"
 
-        query = text(
-            """
+        # Query de inserção (corrigi os nomes das colunas - verifique se estão corretos)
+        query = text("""
             INSERT INTO auditorias
-            (codigo_auditorias, id_area, titulo, objetivo, scopo, ano, timestre,
-            data_inicio, data_fim, status, responsavel_equipe)
+            (codigo_auditoria, id_area, titulo, objetivo, escopo, ano, trimestre,
+             data_inicio, data_fim, status, responsavel_equipe)
             VALUES
-            (:codigo, :id_area, :titutlo, :objetivo, :escopo, :ano, :trimestre,
-            :data_inicio, :data_fim, :status, :responsavel)
+            (:codigo, :id_area, :titulo, :objetivo, :escopo, :ano, :trimestre,
+             :data_inicio, :data_fim, :status, :responsavel)
             RETURNING id
         """)
 
@@ -71,8 +71,32 @@ def criar_nova_auditoria(dados_auditoria):
                 "status": dados_auditoria.get('status', 'Planejamento'),
                 "responsavel": dados_auditoria.get('responsavel_equipe', [])
             }).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            # Prepara os dados que foram inseridos
+            dados_inseridos = {
+                'id': auditoria_id,
+                'codigo_auditoria': codigo,
+                'id_area': dados_auditoria['id_area'],
+                'titulo': dados_auditoria['titulo'],
+                'objetivo': dados_auditoria.get('objetivo', ''),
+                'escopo': dados_auditoria.get('escopo', ''),
+                'ano': dados_auditoria['ano'],
+                'trimestre': dados_auditoria['trimestre'],
+                'status': dados_auditoria.get('status', 'Planejamento')
+            }
+            
+            registrar_log(
+                tabela='auditorias',
+                registro_id=auditoria_id,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_inseridos
+            )
+            # ===== FIM DO LOG =====
 
         return auditoria_id, codigo
+        
     except Exception as e:
         print(f"Erro ao criar auditoria: {e}")
         return None, None
@@ -123,6 +147,20 @@ def vincular_processo_a_auditoria(auditoria_id, processo_id, motivo=""):
     Vincula um processo a uma auditoria (seleciona para ser auditado)
     """
     try:
+        # Primeiro, vamos buscar informações para o log (ANTES de inserir)
+        with engine.connect() as conn:
+            # Buscar dados da auditoria
+            auditoria_info = conn.execute(
+                text("SELECT codigo_auditoria, titulo FROM auditorias WHERE id = :id"),
+                {"id": auditoria_id}
+            ).mappings().fetchone()
+            
+            # Buscar dados do processo
+            processo_info = conn.execute(
+                text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+                {"id": processo_id}
+            ).mappings().fetchone()
+        
         query = text("""
             INSERT INTO auditoria_processos (auditoria_id, processo_id, motivo_selecao)
             VALUES (:auditoria_id, :processo_id, :motivo)
@@ -136,6 +174,27 @@ def vincular_processo_a_auditoria(auditoria_id, processo_id, motivo=""):
                 "processo_id": processo_id,
                 "motivo": motivo
             }).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            if result is not None:  # Só registra se realmente inseriu (não existia)
+                dados_inseridos = {
+                    'auditoria_id': auditoria_id,
+                    'auditoria_codigo': auditoria_info['codigo_auditoria'] if auditoria_info else None,
+                    'auditoria_titulo': auditoria_info['titulo'] if auditoria_info else None,
+                    'processo_id': processo_id,
+                    'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                    'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                    'motivo_selecao': motivo
+                }
+                
+                registrar_log(
+                    tabela='auditoria_processos',
+                    registro_id=result,
+                    operacao='INSERT',
+                    dados_anteriores=None,
+                    dados_novos=dados_inseridos
+                )
+            # ===== FIM DO LOG =====
             
         return result is not None
     except Exception as e:
@@ -179,6 +238,29 @@ def salvar_checklist_eficacia(dados_checklist):
         
         with engine.begin() as conn:
             checklist_id = conn.execute(query, dados_checklist).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            # Prepara os dados que foram inseridos (sem dados sensíveis)
+            dados_inseridos = {
+                'id': checklist_id,
+                'auditoria_id': dados_checklist.get('auditoria_id'),
+                'processo_id': dados_checklist.get('processo_id'),
+                'pilar': dados_checklist.get('pilar'),
+                'pergunta': dados_checklist.get('pergunta')[:100] if dados_checklist.get('pergunta') else None,  # Limita tamanho
+                'peso': dados_checklist.get('peso'),
+                'resposta': dados_checklist.get('resposta'),
+                'pontuacao': dados_checklist.get('pontuacao'),
+                'conclusao': dados_checklist.get('conclusao')[:200] if dados_checklist.get('conclusao') else None
+            }
+            
+            registrar_log(
+                tabela='checklists_eficacia',
+                registro_id=checklist_id,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_inseridos
+            )
+            # ===== FIM DO LOG =====
             
         return checklist_id
     except Exception as e:
@@ -235,6 +317,20 @@ def salvar_conclusao_auditoria(dados_conclusao):
                                   oportunidades_melhoria, recomendacoes, parecer_final
     """
     try:
+        # Primeiro, verificar se já existe uma conclusão para esta auditoria
+        with engine.connect() as conn:
+            existe = conn.execute(
+                text("SELECT id FROM conclusao_auditoria WHERE auditoria_id = :id"),
+                {"id": dados_conclusao['auditoria_id']}
+            ).scalar()
+            
+            if existe:
+                # Buscar dados ANTIGOS para o log (UPDATE)
+                dados_antigos = conn.execute(
+                    text("SELECT * FROM conclusao_auditoria WHERE auditoria_id = :id"),
+                    {"id": dados_conclusao['auditoria_id']}
+                ).mappings().fetchone()
+        
         query = text("""
             INSERT INTO conclusao_auditoria 
             (auditoria_id, resumo_executivo, pontos_fortes, oportunidades_melhoria,
@@ -264,6 +360,39 @@ def salvar_conclusao_auditoria(dados_conclusao):
                 "data_conclusao": dados_conclusao.get('data_conclusao'),
                 "pdf": dados_conclusao.get('pdf_relatorio')
             }).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            # Prepara os dados para o log (sem PDF que pode ser grande)
+            dados_novos = {
+                'id': conclusao_id,
+                'auditoria_id': dados_conclusao['auditoria_id'],
+                'resumo_executivo': dados_conclusao.get('resumo_executivo', '')[:200] if dados_conclusao.get('resumo_executivo') else None,
+                'pontos_fortes': dados_conclusao.get('pontos_fortes', []),
+                'oportunidades_melhoria': dados_conclusao.get('oportunidades_melhoria', []),
+                'recomendacoes': dados_conclusao.get('recomendacoes', []),
+                'parecer_final': dados_conclusao.get('parecer_final', ''),
+                'data_conclusao': str(dados_conclusao.get('data_conclusao')) if dados_conclusao.get('data_conclusao') else None
+            }
+            
+            if existe:
+                # É um UPDATE
+                registrar_log(
+                    tabela='conclusao_auditoria',
+                    registro_id=conclusao_id,
+                    operacao='UPDATE',
+                    dados_anteriores=dict(dados_antigos) if dados_antigos else None,
+                    dados_novos=dados_novos
+                )
+            else:
+                # É um INSERT
+                registrar_log(
+                    tabela='conclusao_auditoria',
+                    registro_id=conclusao_id,
+                    operacao='INSERT',
+                    dados_anteriores=None,
+                    dados_novos=dados_novos
+                )
+            # ===== FIM DO LOG =====
             
         return conclusao_id
     except Exception as e:
@@ -409,6 +538,13 @@ def buscar_processo_por_codigo(codigo):
 def salvar_etapa_no_banco(dados_etapa, auditoria_id=None):
     """Salva os dados de uma etapa no banco de dados, opcionalmente vinculada a uma auditoria."""
     try:
+        # Buscar informações do processo para o log
+        with engine.connect() as conn:
+            processo_info = conn.execute(
+                text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+                {"id": dados_etapa.get('processo_id')}
+            ).mappings().fetchone()
+        
         if auditoria_id:
             query = text("""
                 INSERT INTO etapas_processo (
@@ -421,6 +557,7 @@ def salvar_etapa_no_banco(dados_etapa, auditoria_id=None):
                     :p_id, :auditoria_id, :cod, :desc, :oque, :status, :como, :obj, 
                     :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
                 )
+                RETURNING id
             """)
             dados_etapa['auditoria_id'] = auditoria_id
         else:
@@ -434,19 +571,52 @@ def salvar_etapa_no_banco(dados_etapa, auditoria_id=None):
                     :p_id, :cod, :desc, :oque, :status, :como, :obj, :real, :link_d, 
                     :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
                 )
+                RETURNING id
             """)
         
         with engine.begin() as conn:
-            conn.execute(query, dados_etapa)
+            result = conn.execute(query, dados_etapa)
+            etapa_id = result.scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            dados_inseridos = {
+                'id': etapa_id,
+                'processo_id': dados_etapa.get('processo_id'),
+                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                'auditoria_id': auditoria_id,
+                'codigo_etapa': dados_etapa.get('codigo_etapa'),
+                'descricao_etapa': dados_etapa.get('descricao_etapa')[:100] if dados_etapa.get('descricao_etapa') else None,
+                'status_etapa': dados_etapa.get('status_etapa'),
+                'criticidade_etapa': dados_etapa.get('criticidade_etapa')
+            }
+            
+            registrar_log(
+                tabela='etapas_processo',
+                registro_id=etapa_id,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_inseridos
+            )
+            # ===== FIM DO LOG =====
             
         return True
     except Exception as e:
         print(f"Erro ao salvar etapa: {e}")
         return False
     
+from modules.shared.log_sistema import registrar_log  # Adicione no topo
+
 def atualizar_etapa_no_banco(dados):
     """Atualiza os dados de uma etapa existente"""
     try:
+        # Buscar dados ANTIGOS da etapa antes de atualizar
+        with engine.connect() as conn:
+            dados_antigos = conn.execute(
+                text("SELECT * FROM etapas_processo WHERE id = :etapa_id"),
+                {"etapa_id": dados['etapa_id']}
+            ).mappings().fetchone()
+        
         query = text("""
             UPDATE etapas_processo SET
                 descricao_etapa = :desc,
@@ -467,28 +637,65 @@ def atualizar_etapa_no_banco(dados):
                 obrigacoes_regulatorias = :obri,
                 updated_at = NOW()
             WHERE id = :etapa_id
+            RETURNING id
         """)
         
         with engine.begin() as conn:
-            conn.execute(query, {
+            result = conn.execute(query, {
                 "etapa_id": dados['etapa_id'],
-                "desc": dados['desc'],
-                "oque": dados['oque'],
-                "como": dados['como'],
-                "obj": dados['obj'],
-                "status": dados['status'],
-                "real": dados['real'],
-                "crit": dados['crit'],
-                "exec": dados['exec'],
-                "link_d": dados['link_d'],
-                "link_m": dados['link_m'],
-                "pol": dados['pol'],
-                "ana": dados['ana'],
-                "sug": dados['sug'],
-                "nec": dados['nec'],
-                "gan": dados['gan'],
-                "obri": dados['obri']
+                "desc": dados.get('desc', ''),
+                "oque": dados.get('oque', ''),
+                "como": dados.get('como', ''),
+                "obj": dados.get('obj', ''),
+                "status": dados.get('status', 'Ativa'),
+                "real": dados.get('real', 'Sim'),
+                "crit": dados.get('crit', 'Em Aprovação'),
+                "exec": dados.get('exec', ''),
+                "link_d": dados.get('link_d', ''),
+                "link_m": dados.get('link_m', ''),
+                "pol": dados.get('pol', ''),
+                "ana": dados.get('ana', ''),
+                "sug": dados.get('sug', ''),
+                "nec": dados.get('nec', ''),
+                "gan": dados.get('gan', ''),
+                "obri": dados.get('obri', '')
             })
+            
+            etapa_id = result.scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            # Preparar dados novos (apenas campos relevantes para o log)
+            dados_novos = {
+                'id': dados['etapa_id'],
+                'descricao_etapa': dados.get('desc', '')[:100],
+                'oque_faz': dados.get('oque', '')[:100],
+                'como_e_feito': dados.get('como', '')[:100],
+                'objetivo_etapa': dados.get('obj', '')[:100],
+                'status_etapa': dados.get('status', 'Ativa'),
+                'realizado_corretamente': dados.get('real', 'Sim'),
+                'criticidade_etapa': dados.get('crit', 'Em Aprovação')
+            }
+            
+            # Preparar dados antigos (apenas campos relevantes)
+            dados_antigos_resumidos = {
+                'id': dados_antigos['id'],
+                'descricao_etapa': dados_antigos.get('descricao_etapa', '')[:100] if dados_antigos else None,
+                'oque_faz': dados_antigos.get('oque_faz', '')[:100] if dados_antigos else None,
+                'como_e_feito': dados_antigos.get('como_e_feito', '')[:100] if dados_antigos else None,
+                'objetivo_etapa': dados_antigos.get('objetivo_etapa', '')[:100] if dados_antigos else None,
+                'status_etapa': dados_antigos.get('status_etapa', '') if dados_antigos else None,
+                'realizado_corretamente': dados_antigos.get('realizado_corretamente', '') if dados_antigos else None,
+                'criticidade_etapa': dados_antigos.get('criticidade_etapa', '') if dados_antigos else None
+            }
+            
+            registrar_log(
+                tabela='etapas_processo',
+                registro_id=dados['etapa_id'],
+                operacao='UPDATE',
+                dados_anteriores=dados_antigos_resumidos if dados_antigos else None,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
             
         return True
     except Exception as e:
@@ -540,6 +747,19 @@ def obter_proximo_codigo_etapa(processo_id, codigo_processo):
 
 def salvar_risco_etapa(dados, auditoria_id=None):
     """Salva risco de etapa, opcionalmente vinculado a uma auditoria"""
+    
+    # Buscar informações da etapa para o log
+    with engine.connect() as conn:
+        etapa_info = conn.execute(
+            text("""
+                SELECT e.codigo_etapa, e.descricao_etapa, p.nome_processo, p.codigo_processo
+                FROM etapas_processo e
+                JOIN processos p ON e.processo_id = p.id
+                WHERE e.id = :id
+            """),
+            {"id": dados.get('etapa_id')}
+        ).mappings().fetchone()
+    
     if auditoria_id:
         query = text("""
             INSERT INTO riscos_etapa 
@@ -549,6 +769,7 @@ def salvar_risco_etapa(dados, auditoria_id=None):
             VALUES 
             (:etapa_id, :auditoria_id, :cat, :fator, :cons, :info, :fin, :ativo, 
              :ori, :doc, :imp, :prob, :mag, :apet, :trat)
+            RETURNING id
         """)
         dados['auditoria_id'] = auditoria_id
     else:
@@ -559,10 +780,39 @@ def salvar_risco_etapa(dados, auditoria_id=None):
             VALUES 
             (:etapa_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, 
              :imp, :prob, :mag, :apet, :trat)
+            RETURNING id
         """)
     
     with engine.begin() as conn:
-        conn.execute(query, dados)
+        result = conn.execute(query, dados)
+        risco_id = result.scalar()
+        
+        # ===== ADICIONAR LOG AQUI =====
+        dados_inseridos = {
+            'id': risco_id,
+            'etapa_id': dados.get('etapa_id'),
+            'etapa_codigo': etapa_info['codigo_etapa'] if etapa_info else None,
+            'etapa_descricao': etapa_info['descricao_etapa'][:100] if etapa_info and etapa_info.get('descricao_etapa') else None,
+            'processo_nome': etapa_info['nome_processo'] if etapa_info else None,
+            'processo_codigo': etapa_info['codigo_processo'] if etapa_info else None,
+            'auditoria_id': auditoria_id,
+            'categoria': dados.get('cat'),
+            'fator_risco': dados.get('fator')[:100] if dados.get('fator') else None,
+            'consequencia': dados.get('cons')[:100] if dados.get('cons') else None,
+            'impacto': dados.get('imp'),
+            'probabilidade': dados.get('prob'),
+            'magnitude': dados.get('mag')
+        }
+        
+        registrar_log(
+            tabela='riscos_etapa',
+            registro_id=risco_id,
+            operacao='INSERT',
+            dados_anteriores=None,
+            dados_novos=dados_inseridos
+        )
+        # ===== FIM DO LOG =====
+        
         return True
 
 def listar_riscos_etapa(etapa_id, auditoria_id=None):
@@ -804,10 +1054,9 @@ def normalizar_valor_risco(valor):
         else:
             return "Baixo"
 
-
 def salvar_no_banco():
     """Salva novo processo ou atualiza existente, traduzindo categorias para nomes"""
-    from logic import listar_categorias, resetar_timer_sessao # Garanta as importações
+    from logic import listar_categorias, resetar_timer_sessao
     resetar_timer_sessao()
     
     try:
@@ -834,6 +1083,12 @@ def salvar_no_banco():
                 # === MODO EDIÇÃO: Atualizar processo existente ===
                 processo_id = existing[0]
                 st.session_state['processo_existente_id'] = processo_id
+                
+                # Buscar dados ANTIGOS do processo para o log
+                dados_antigos_processo = conn.execute(
+                    text("SELECT * FROM processos WHERE id = :pid"),
+                    {"pid": processo_id}
+                ).mappings().fetchone()
 
                 sql_update = text("""
                     UPDATE processos 
@@ -850,9 +1105,25 @@ def salvar_no_banco():
                     "ef": st.session_state.get('input_etapa_fim', ''),
                     "p": st.session_state.get('input_produto', '')
                 })
+                
+                # Buscar dados NOVOS do processo para o log
+                dados_novos_processo = conn.execute(
+                    text("SELECT * FROM processos WHERE id = :pid"),
+                    {"pid": processo_id}
+                ).mappings().fetchone()
+                
+                # ===== LOG DO UPDATE DO PROCESSO =====
+                registrar_log(
+                    tabela='processos',
+                    registro_id=processo_id,
+                    operacao='UPDATE',
+                    dados_anteriores=dict(dados_antigos_processo),
+                    dados_novos=dict(dados_novos_processo)
+                )
+                # ===== FIM DO LOG =====
 
             else:
-                # === MODO CRIAÇÃO: Inserir novo processo (SEM coluna categoria aqui) ===
+                # === MODO CRIAÇÃO: Inserir novo processo ===
                 codigo_processo = st.session_state.get('codigo_processo_display', '')
 
                 sql_insert = text("""
@@ -879,31 +1150,66 @@ def salvar_no_banco():
 
                 processo_id = conn.execute(sql_insert, params_insert).scalar()
                 st.session_state['processo_existente_id'] = processo_id
+                
+                # ===== LOG DO INSERT DO PROCESSO =====
+                dados_novos_processo = {
+                    'id': processo_id,
+                    'id_area': id_area_val,
+                    'area': nome_area_val,
+                    'codigo_processo': codigo_processo,
+                    'nome_processo': nome_val,
+                    'objetivo': objetivo_com_prefixo,
+                    'status': 'Ativo'
+                }
+                
+                registrar_log(
+                    tabela='processos',
+                    registro_id=processo_id,
+                    operacao='INSERT',
+                    dados_anteriores=None,
+                    dados_novos=dados_novos_processo
+                )
+                # ===== FIM DO LOG =====
 
             # ===== 2. RISCOS: REMOVE OS ANTIGOS E INSERE OS NOVOS =====
+            # Buscar riscos ANTIGOS antes de deletar (para o log)
+            riscos_antigos = conn.execute(
+                text("SELECT id, nome_risco, score_risco, categoria FROM riscos WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchall()
+            
+            # Registrar DELETE dos riscos antigos (um por um ou em lote)
+            for risco_antigo in riscos_antigos:
+                registrar_log(
+                    tabela='riscos',
+                    registro_id=risco_antigo['id'],
+                    operacao='DELETE',
+                    dados_anteriores=dict(risco_antigo),
+                    dados_novos=None
+                )
+            
+            # Executar DELETE
             conn.execute(
                 text("DELETE FROM riscos WHERE processo_id = :pid"),
                 {"pid": processo_id}
             )
 
-            # Query de Risco (Aqui a coluna CATEGORIA é incluída como Texto)
+            # Query de Risco
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
                 probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
                 VALUES 
                 (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
+                RETURNING id
             """)
 
-            # Carregar dicionário de tradução das categorias {id: nome}
             mapa_categorias = listar_categorias()
 
             for i in range(len(st.session_state['riscos'])):
-                # Concatenar Nome do Risco
                 nome_risco_raw = st.session_state.get(f"nome_{i}", '').strip()
                 nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}" if nome_risco_raw else ''
                 
-                # Concatenar Fator do Risco
                 fator_raw = st.session_state.get(f"fator_{i}", '').strip()
                 fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
 
@@ -911,16 +1217,14 @@ def salvar_no_banco():
                 prob = st.session_state.get(f"prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
-                # === TRADUÇÃO DAS CATEGORIAS (IDs -> NOMES) ===
                 categorias_ids = st.session_state.get(f"categorias_{i}", [])
                 if categorias_ids:
-                    # Busca o nome de cada ID selecionado no dicionário de logic.py
                     nomes_selecionados = [mapa_categorias.get(cid) for cid in categorias_ids if cid in mapa_categorias]
                     categoria_str = ', '.join(nomes_selecionados)
                 else:
                     categoria_str = None
 
-                conn.execute(sql_risco, {
+                result = conn.execute(sql_risco, {
                     "pid": processo_id,
                     "nome": nome_risco_com_prefixo,
                     "fator": fator_com_prefixo,
@@ -932,6 +1236,28 @@ def salvar_no_banco():
                     "score": score,
                     "categoria": categoria_str
                 })
+                
+                risco_id = result.scalar()
+                
+                # ===== LOG DO INSERT DO RISCO =====
+                dados_novos_risco = {
+                    'id': risco_id,
+                    'processo_id': processo_id,
+                    'nome_risco': nome_risco_com_prefixo,
+                    'impacto': imp,
+                    'probabilidade': prob,
+                    'score_risco': score,
+                    'categoria': categoria_str
+                }
+                
+                registrar_log(
+                    tabela='riscos',
+                    registro_id=risco_id,
+                    operacao='INSERT',
+                    dados_anteriores=None,
+                    dados_novos=dados_novos_risco
+                )
+                # ===== FIM DO LOG =====
 
             st.session_state['ultimo_processo_id'] = processo_id
 
@@ -1190,12 +1516,23 @@ def salvar_controle_no_banco(dados):
             :forma, :natureza, :status, :data_atu, 
             :freq, :resp, :causa
         )
+        RETURNING id
     """)
     
     try:
-        # Importante: converter para os tipos corretos antes de enviar
         with engine.begin() as conn:
-            conn.execute(query, {
+            # Buscar informações do risco para o log
+            risco_info = conn.execute(
+                text("""
+                    SELECT r.id, r.nome_risco, r.categoria, p.nome_processo
+                    FROM riscos r
+                    JOIN processos p ON r.processo_id = p.id
+                    WHERE r.id = :id
+                """),
+                {"id": int(dados.get('risco_id'))}
+            ).mappings().fetchone()
+            
+            result = conn.execute(query, {
                 "risco_id": int(dados.get('risco_id')),
                 "aval": str(dados.get('avaliacao', '')),
                 "nome": str(dados.get('nome', '')),
@@ -1211,6 +1548,31 @@ def salvar_controle_no_banco(dados):
                 "resp": str(dados.get('responsavel', '')),
                 "causa": str(dados.get('causa_motivo', ''))
             })
+            
+            controle_id = result.scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            dados_inseridos = {
+                'id': controle_id,
+                'risco_id': int(dados.get('risco_id')),
+                'risco_nome': risco_info['nome_risco'][:100] if risco_info and risco_info.get('nome_risco') else None,
+                'risco_categoria': risco_info['categoria'] if risco_info else None,
+                'processo_nome': risco_info['nome_processo'] if risco_info else None,
+                'nome_controle': str(dados.get('nome', ''))[:100],
+                'objetivo_controle': str(dados.get('objetivo', ''))[:100],
+                'status_controle': str(dados.get('status', '')),
+                'natureza': str(dados.get('natureza', ''))
+            }
+            
+            registrar_log(
+                tabela='controles_etapa',
+                registro_id=controle_id,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_inseridos
+            )
+            # ===== FIM DO LOG =====
+            
         return True
     except Exception as e:
         print(f"❌ Erro detalhado no banco: {e}") 
@@ -1259,27 +1621,123 @@ def validar_login_no_banco(usuario_digitado, senha_digitada):
 
 def atualizar_status_processo(id_processo, novo_status, coluna):
     """Atualiza link_diagrama ou aprovacao na tabela processos"""
-    query = text(f"UPDATE processos SET {coluna} = :valor WHERE id = :id")
-    with engine.connect() as conn:
-        conn.execute(query, {"valor": novo_status, "id": id_processo})
-        conn.commit()
+    
+    # Validação de segurança: apenas colunas permitidas
+    colunas_permitidas = ['link_diagrama', 'aprovacao', 'status', 'relatorio_gerencial_gerado']
+    if coluna not in colunas_permitidas:
+        print(f"Erro: Coluna '{coluna}' não é permitida para atualização")
+        return False
+    
+    try:
+        # Buscar dados ANTIGOS do processo antes de atualizar
+        with engine.connect() as conn:
+            dados_antigos = conn.execute(
+                text("SELECT id, nome_processo, codigo_processo, link_diagrama, aprovacao, status, relatorio_gerencial_gerado FROM processos WHERE id = :id"),
+                {"id": id_processo}
+            ).mappings().fetchone()
+            
+            if not dados_antigos:
+                print(f"Erro: Processo {id_processo} não encontrado")
+                return False
+        
+        # Query segura com texto puro (sem f-string para valores)
+        query = text(f"UPDATE processos SET {coluna} = :valor WHERE id = :id RETURNING id")
+        
+        with engine.begin() as conn:
+            result = conn.execute(query, {"valor": novo_status, "id": id_processo})
+            resultado_id = result.scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            dados_novos = {
+                'id': id_processo,
+                'nome_processo': dados_antigos['nome_processo'],
+                'codigo_processo': dados_antigos['codigo_processo'],
+                f'{coluna}_anterior': dados_antigos.get(coluna),
+                f'{coluna}_novo': novo_status
+            }
+            
+            # Dados antigos resumidos para o log
+            dados_antigos_resumidos = {
+                'id': id_processo,
+                'nome_processo': dados_antigos['nome_processo'],
+                'codigo_processo': dados_antigos['codigo_processo'],
+                f'{coluna}': dados_antigos.get(coluna)
+            }
+            
+            registrar_log(
+                tabela='processos',
+                registro_id=id_processo,
+                operacao='UPDATE',
+                dados_anteriores=dados_antigos_resumidos,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao atualizar status do processo: {e}")
+        return False
 
 def remover_processo_da_auditoria(auditoria_id, processo_id):
     """
     Remove um processo da lista de selecionados da auditoria
     """
     try:
+        # Buscar informações ANTES de deletar (para o log)
+        with engine.connect() as conn:
+            # Buscar dados da relação que será removida
+            relacao = conn.execute(
+                text("""
+                    SELECT ap.id, ap.auditoria_id, ap.processo_id, ap.motivo_selecao,
+                           a.codigo_auditoria, a.titulo,
+                           p.codigo_processo, p.nome_processo
+                    FROM auditoria_processos ap
+                    JOIN auditorias a ON a.id = ap.auditoria_id
+                    JOIN processos p ON p.id = ap.processo_id
+                    WHERE ap.auditoria_id = :auditoria_id 
+                    AND ap.processo_id = :processo_id
+                """),
+                {
+                    "auditoria_id": auditoria_id,
+                    "processo_id": processo_id
+                }
+            ).mappings().fetchone()
+        
         query = text("""
             DELETE FROM auditoria_processos 
             WHERE auditoria_id = :auditoria_id 
             AND processo_id = :processo_id
+            RETURNING id
         """)
         
         with engine.begin() as conn:
-            conn.execute(query, {
+            result = conn.execute(query, {
                 "auditoria_id": auditoria_id,
                 "processo_id": processo_id
-            })
+            }).fetchone()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            if relacao:
+                dados_antigos = {
+                    'id': relacao['id'],
+                    'auditoria_id': auditoria_id,
+                    'auditoria_codigo': relacao['codigo_auditoria'],
+                    'auditoria_titulo': relacao['titulo'],
+                    'processo_id': processo_id,
+                    'processo_codigo': relacao['codigo_processo'],
+                    'processo_nome': relacao['nome_processo'],
+                    'motivo_selecao': relacao.get('motivo_selecao')
+                }
+                
+                registrar_log(
+                    tabela='auditoria_processos',
+                    registro_id=relacao['id'],
+                    operacao='DELETE',
+                    dados_anteriores=dados_antigos,
+                    dados_novos=None
+                )
+            # ===== FIM DO LOG =====
         
         return True
     except Exception as e:
@@ -1371,7 +1829,43 @@ def salvar_informacoes_basicas():
             processo_id = conn.execute(sql_insert, params).scalar()
             st.session_state['processo_existente_id'] = processo_id
             
+            # ===== LOG DO INSERT DO PROCESSO =====
+            dados_novos_processo = {
+                'id': processo_id,
+                'id_area': id_area_val,
+                'area': nome_area_val,
+                'codigo_processo': codigo_processo,
+                'nome_processo': nome_val,
+                'status': 'Ativo',
+                'aprovacao': 'Em Aprovação'
+            }
+            
+            registrar_log(
+                tabela='processos',
+                registro_id=processo_id,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_novos_processo
+            )
+            # ===== FIM DO LOG =====
+            
             # ===== SALVAR EXECUTORES =====
+            # Buscar executores antigos (se houver)
+            executores_antigos = conn.execute(
+                text("SELECT funcionario_id FROM processo_executores WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            ).fetchall()
+            
+            # Registrar DELETE dos executores antigos
+            for exec_antigo in executores_antigos:
+                registrar_log(
+                    tabela='processo_executores',
+                    registro_id=exec_antigo[0],
+                    operacao='DELETE',
+                    dados_anteriores={'processo_id': processo_id, 'funcionario_id': exec_antigo[0]},
+                    dados_novos=None
+                )
+            
             conn.execute(
                 text("DELETE FROM processo_executores WHERE processo_id = :pid"),
                 {"pid": processo_id}
@@ -1379,12 +1873,41 @@ def salvar_informacoes_basicas():
             
             executores_ids = st.session_state.get('novo_executores_selecionados', [])
             if executores_ids:
+                # Buscar nomes dos funcionários para o log
+                funcionarios_info = {}
+                for fid in executores_ids:
+                    func_info = conn.execute(
+                        text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id"),
+                        {"id": fid}
+                    ).scalar()
+                    funcionarios_info[fid] = func_info
+                
                 sql_exec = text("""
                     INSERT INTO processo_executores (processo_id, funcionario_id)
                     VALUES (:pid, :fid)
+                    RETURNING id
                 """)
+                
                 for fid in executores_ids:
-                    conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+                    result = conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+                    exec_id = result.scalar()
+                    
+                    # ===== LOG DO INSERT DO EXECUTOR =====
+                    dados_novos_executor = {
+                        'id': exec_id,
+                        'processo_id': processo_id,
+                        'funcionario_id': fid,
+                        'funcionario_nome': funcionarios_info.get(fid)
+                    }
+                    
+                    registrar_log(
+                        tabela='processo_executores',
+                        registro_id=exec_id,
+                        operacao='INSERT',
+                        dados_anteriores=None,
+                        dados_novos=dados_novos_executor
+                    )
+                    # ===== FIM DO LOG =====
             
             # Vincular à auditoria
             if 'auditoria_diagnostico' in st.session_state:
@@ -1466,6 +1989,26 @@ def salvar_area(dados_area):
                 "gestor": dados_area.get('gestor', '')
             }).scalar()
             
+            # ===== ADICIONAR LOG AQUI =====
+            dados_inseridos = {
+                'id_area': id_area,
+                'nome_area': dados_area['nome'],
+                'objetivo_area': dados_area.get('objetivo', '')[:100] if dados_area.get('objetivo') else None,
+                'status': dados_area.get('status', 'Ativo'),
+                'email': dados_area.get('email', ''),
+                'telefone': dados_area.get('telefone', ''),
+                'gestor': dados_area.get('gestor', '')
+            }
+            
+            registrar_log(
+                tabela='informacoes_area',
+                registro_id=id_area,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_inseridos
+            )
+            # ===== FIM DO LOG =====
+            
         return id_area
     except Exception as e:
         print(f"Erro ao salvar área: {e}")
@@ -1485,6 +2028,12 @@ def salvar_funcionarios_area(id_area, funcionarios):
     """Salva múltiplos funcionários para uma área"""
     try:
         with engine.begin() as conn:
+            # Buscar nome da área para o log
+            area_info = conn.execute(
+                text("SELECT nome_area FROM informacoes_area WHERE id_area = :id"),
+                {"id": id_area}
+            ).scalar()
+            
             for func in funcionarios:
                 # Verificar se funcionário já existe
                 check_query = text("""
@@ -1501,14 +2050,42 @@ def salvar_funcionarios_area(id_area, funcionarios):
                         INSERT INTO funcionarios_area 
                         (id_area, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa, ativo, created_at, updated_at)
                         VALUES (:id_area, :nome, :cargo, :data_funcao, :data_empresa, TRUE, NOW(), NOW())
+                        RETURNING id
                     """)
-                    conn.execute(insert_query, {
+                    result = conn.execute(insert_query, {
                         "id_area": id_area,
                         "nome": func['nome'],
                         "cargo": func.get('cargo', ''),
                         "data_funcao": func.get('data_inicio_funcao'),
                         "data_empresa": func.get('data_inicio_empresa')
                     })
+                    
+                    funcionario_id = result.scalar()
+                    
+                    # ===== ADICIONAR LOG AQUI =====
+                    dados_inseridos = {
+                        'id': funcionario_id,
+                        'id_area': id_area,
+                        'nome_area': area_info,
+                        'nome_funcionario': func['nome'],
+                        'cargo': func.get('cargo', ''),
+                        'data_inicio_funcao': str(func.get('data_inicio_funcao')) if func.get('data_inicio_funcao') else None,
+                        'data_inicio_empresa': str(func.get('data_inicio_empresa')) if func.get('data_inicio_empresa') else None,
+                        'ativo': True
+                    }
+                    
+                    registrar_log(
+                        tabela='funcionarios_area',
+                        registro_id=funcionario_id,
+                        operacao='INSERT',
+                        dados_anteriores=None,
+                        dados_novos=dados_inseridos
+                    )
+                    # ===== FIM DO LOG =====
+                else:
+                    # Funcionário já existe - não faz nada
+                    pass
+                    
         return True
     except Exception as e:
         print(f"Erro ao salvar funcionários: {e}")
@@ -1646,6 +2223,12 @@ def salvar_edicao_processo():
                 st.error("Processo não identificado.")
                 return False
             
+            # === BUSCAR DADOS ANTIGOS DO PROCESSO ===
+            dados_antigos_processo = conn.execute(
+                text("SELECT * FROM processos WHERE id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchone()
+            
             # === CONCATENAR OBJETIVO ===
             objetivo_raw = st.session_state.get('edit_input_objetivo', '').strip()
             if objetivo_raw:
@@ -1671,7 +2254,38 @@ def salvar_edicao_processo():
                 "p": st.session_state.get('edit_input_produto', '')
             })
             
-            # Atualizar executores
+            # === LOG DO UPDATE DO PROCESSO ===
+            dados_novos_processo = conn.execute(
+                text("SELECT * FROM processos WHERE id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchone()
+            
+            registrar_log(
+                tabela='processos',
+                registro_id=processo_id,
+                operacao='UPDATE',
+                dados_anteriores=dict(dados_antigos_processo),
+                dados_novos=dict(dados_novos_processo)
+            )
+            # ===== FIM DO LOG =====
+            
+            # === ATUALIZAR EXECUTORES ===
+            # Buscar executores antigos
+            executores_antigos = conn.execute(
+                text("SELECT id, funcionario_id FROM processo_executores WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchall()
+            
+            # Registrar DELETE dos executores antigos
+            for exec_antigo in executores_antigos:
+                registrar_log(
+                    tabela='processo_executores',
+                    registro_id=exec_antigo['id'],
+                    operacao='DELETE',
+                    dados_anteriores={'processo_id': processo_id, 'funcionario_id': exec_antigo['funcionario_id']},
+                    dados_novos=None
+                )
+            
             conn.execute(
                 text("DELETE FROM processo_executores WHERE processo_id = :pid"),
                 {"pid": processo_id}
@@ -1679,11 +2293,51 @@ def salvar_edicao_processo():
             
             executores_ids = st.session_state.get('edit_executores_selecionados', [])
             if executores_ids:
-                sql_exec = text("INSERT INTO processo_executores (processo_id, funcionario_id) VALUES (:pid, :fid)")
+                # Buscar nomes dos funcionários
                 for fid in executores_ids:
-                    conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+                    func_nome = conn.execute(
+                        text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id"),
+                        {"id": fid}
+                    ).scalar()
+                    
+                    sql_exec = text("""
+                        INSERT INTO processo_executores (processo_id, funcionario_id)
+                        VALUES (:pid, :fid)
+                        RETURNING id
+                    """)
+                    result = conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+                    exec_id = result.scalar()
+                    
+                    # LOG do INSERT do executor
+                    registrar_log(
+                        tabela='processo_executores',
+                        registro_id=exec_id,
+                        operacao='INSERT',
+                        dados_anteriores=None,
+                        dados_novos={
+                            'processo_id': processo_id,
+                            'funcionario_id': fid,
+                            'funcionario_nome': func_nome
+                        }
+                    )
             
-            # Atualizar riscos (remover antigos e inserir novos)
+            # === ATUALIZAR RISCOS ===
+            # Buscar riscos antigos
+            riscos_antigos = conn.execute(
+                text("SELECT id, nome_risco, score_risco, categoria FROM riscos WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchall()
+            
+            # Registrar DELETE dos riscos antigos
+            for risco_antigo in riscos_antigos:
+                registrar_log(
+                    tabela='riscos',
+                    registro_id=risco_antigo['id'],
+                    operacao='DELETE',
+                    dados_anteriores=dict(risco_antigo),
+                    dados_novos=None
+                )
+            
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
             
             sql_risco = text("""
@@ -1694,6 +2348,10 @@ def salvar_edicao_processo():
                 (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
                 RETURNING id
             """)
+            
+            # Carregar mapa de categorias para conversão
+            from logic import listar_categorias
+            mapa_categorias = listar_categorias()
             
             for i in range(len(st.session_state.get('edit_riscos', []))):
                 # === CONCATENAR NOME DO RISCO ===
@@ -1714,9 +2372,13 @@ def salvar_edicao_processo():
                 prob = st.session_state.get(f"edit_prob_{i}")
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
-                # === PEGAR CATEGORIAS E CONVERTER PARA STRING ===
+                # === CONVERTER CATEGORIAS (IDs -> NOMES) ===
                 categorias_ids = st.session_state.get(f"edit_categorias_{i}", [])
-                categoria_str = ', '.join([str(cat_id) for cat_id in categorias_ids]) if categorias_ids else None
+                if categorias_ids:
+                    nomes_categorias = [mapa_categorias.get(cid) for cid in categorias_ids if cid in mapa_categorias]
+                    categoria_str = ', '.join(nomes_categorias)
+                else:
+                    categoria_str = None
                 
                 result = conn.execute(sql_risco, {
                     "pid": processo_id, 
@@ -1731,7 +2393,23 @@ def salvar_edicao_processo():
                     "categoria": categoria_str
                 })
                 
-                # NOTA: Não precisamos mais inserir em risco_categorias!
+                risco_id = result.scalar()
+                
+                # LOG do INSERT do novo risco
+                registrar_log(
+                    tabela='riscos',
+                    registro_id=risco_id,
+                    operacao='INSERT',
+                    dados_anteriores=None,
+                    dados_novos={
+                        'processo_id': processo_id,
+                        'nome_risco': nome_risco_com_prefixo,
+                        'impacto': imp,
+                        'probabilidade': prob,
+                        'score_risco': score,
+                        'categoria': categoria_str
+                    }
+                )
             
         return True
     except Exception as e:
@@ -1758,12 +2436,17 @@ def salvar_edicao_processo_completa(dados):
             if not processo_id:
                 return False
             
+            # === BUSCAR DADOS ANTIGOS DO PROCESSO ===
+            dados_antigos_processo = conn.execute(
+                text("SELECT * FROM processos WHERE id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchone()
+            
             # 1. Preparar Objetivo
             objetivo_raw = dados.get('objetivo', '').strip()
             objetivo_com_prefixo = f"Garantir {objetivo_raw}" if objetivo_raw else ''
             
             # 2. Atualizar dados básicos da tabela PROCESSOS
-            # Removi qualquer menção à coluna 'categoria' aqui, pois ela sairá desta tabela
             sql_update = text("""
                 UPDATE processos 
                 SET nome_processo=:nome, objetivo=:o, descricao=:d, 
@@ -1781,7 +2464,38 @@ def salvar_edicao_processo_completa(dados):
                 "p": dados.get('produto', '')
             })
             
+            # === LOG DO UPDATE DO PROCESSO ===
+            dados_novos_processo = conn.execute(
+                text("SELECT * FROM processos WHERE id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchone()
+            
+            registrar_log(
+                tabela='processos',
+                registro_id=processo_id,
+                operacao='UPDATE',
+                dados_anteriores=dict(dados_antigos_processo),
+                dados_novos=dict(dados_novos_processo)
+            )
+            # ===== FIM DO LOG =====
+            
             # 3. Atualizar executores (Limpa e reinsere)
+            # Buscar executores antigos
+            executores_antigos = conn.execute(
+                text("SELECT id, funcionario_id FROM processo_executores WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchall()
+            
+            # Registrar DELETE dos executores antigos
+            for exec_antigo in executores_antigos:
+                registrar_log(
+                    tabela='processo_executores',
+                    registro_id=exec_antigo['id'],
+                    operacao='DELETE',
+                    dados_anteriores={'processo_id': processo_id, 'funcionario_id': exec_antigo['funcionario_id']},
+                    dados_novos=None
+                )
+            
             conn.execute(
                 text("DELETE FROM processo_executores WHERE processo_id = :pid"),
                 {"pid": processo_id}
@@ -1789,39 +2503,68 @@ def salvar_edicao_processo_completa(dados):
             
             executores_ids = dados.get('executores', [])
             if executores_ids:
-                sql_exec = text("INSERT INTO processo_executores (processo_id, funcionario_id) VALUES (:pid, :fid)")
+                sql_exec = text("INSERT INTO processo_executores (processo_id, funcionario_id) VALUES (:pid, :fid) RETURNING id")
                 for fid in executores_ids:
-                    conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+                    # Buscar nome do funcionário
+                    func_nome = conn.execute(
+                        text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id"),
+                        {"id": fid}
+                    ).scalar()
+                    
+                    result = conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
+                    exec_id = result.scalar()
+                    
+                    # LOG do INSERT do executor
+                    registrar_log(
+                        tabela='processo_executores',
+                        registro_id=exec_id,
+                        operacao='INSERT',
+                        dados_anteriores=None,
+                        dados_novos={
+                            'processo_id': processo_id,
+                            'funcionario_id': fid,
+                            'funcionario_nome': func_nome
+                        }
+                    )
             
             # 4. Atualizar RISCOS (Limpa e reinsere)
+            # Buscar riscos antigos
+            riscos_antigos = conn.execute(
+                text("SELECT id, nome_risco, score_risco, categoria FROM riscos WHERE processo_id = :pid"),
+                {"pid": processo_id}
+            ).mappings().fetchall()
+            
+            # Registrar DELETE dos riscos antigos
+            for risco_antigo in riscos_antigos:
+                registrar_log(
+                    tabela='riscos',
+                    registro_id=risco_antigo['id'],
+                    operacao='DELETE',
+                    dados_anteriores=dict(risco_antigo),
+                    dados_novos=None
+                )
+            
             conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
             
-            # Adicionei a coluna 'categoria' aqui, conforme sua nova estrutura
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
                  probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
                 VALUES 
                 (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :cat)
+                RETURNING id
             """)
             
             for risco in dados.get('riscos', []):
-                # 1. Recuperar o dicionário de categorias para tradução
                 mapa_categorias = listar_categorias()
+                categorias_selecionadas = risco.get('categorias', [])
                 
-                # 2. Pegar o que veio do multiselect (provavelmente uma lista de IDs)
-                categorias_selecionadas = risco.get('categorias', []) # Note o 's' se vier do multiselect
-                
-                # 3. Traduzir IDs para Nomes e juntar em uma string
-                # Ex: [1, 4] vira "Risco Financeiro, Risco de TI"
                 if isinstance(categorias_selecionadas, list):
                     nomes_cats = [mapa_categorias.get(cid) for cid in categorias_selecionadas if cid in mapa_categorias]
                     categoria_final = ", ".join(nomes_cats)
                 else:
-                    # Caso venha apenas um ID solto ou já venha o nome
                     categoria_final = mapa_categorias.get(categorias_selecionadas, str(categorias_selecionadas))
 
-                # Concatenar prefixos
                 nome_raw = risco.get('nome', '').strip()
                 nome_com_prefixo = f"Risco pela possibilidade {nome_raw}" if nome_raw else ''
                 
@@ -1830,10 +2573,9 @@ def salvar_edicao_processo_completa(dados):
                 
                 imp = risco.get('impacto', 'Médio')
                 prob = risco.get('probabilidade', 'Médio')
-                # Certifique-se que MAPA_RISCO está acessível
                 score = MAPA_RISCO.get((imp, prob), 0)
                 
-                conn.execute(sql_risco, {
+                result = conn.execute(sql_risco, {
                     "pid": processo_id,
                     "nome": nome_com_prefixo,
                     "fator": fator_com_prefixo,
@@ -1843,8 +2585,26 @@ def salvar_edicao_processo_completa(dados):
                     "apetite": risco.get('apetite', ''),
                     "motivo": risco.get('motivo', ''),
                     "score": score,
-                    "cat": categoria_final  # Agora enviamos o texto!
+                    "cat": categoria_final
                 })
+                
+                risco_id = result.scalar()
+                
+                # LOG do INSERT do novo risco
+                registrar_log(
+                    tabela='riscos',
+                    registro_id=risco_id,
+                    operacao='INSERT',
+                    dados_anteriores=None,
+                    dados_novos={
+                        'processo_id': processo_id,
+                        'nome_risco': nome_com_prefixo,
+                        'impacto': imp,
+                        'probabilidade': prob,
+                        'score_risco': score,
+                        'categoria': categoria_final
+                    }
+                )
             
         return True
     except Exception as e:
@@ -1963,41 +2723,159 @@ def salvar_diagrama_etapa(etapa_id, arquivo):
     """Salva o diagrama BPMN de uma etapa"""
     if arquivo is not None:
         conteudo = arquivo.read()
+        
+        # Buscar dados ANTIGOS da etapa antes de atualizar
+        with engine.connect() as conn:
+            dados_antigos = conn.execute(
+                text("""
+                    SELECT id, codigo_etapa, descricao_etapa, 
+                           diagrama_nome, diagrama_tipo, processo_id
+                    FROM etapas_processo 
+                    WHERE id = :etapa_id
+                """),
+                {"etapa_id": etapa_id}
+            ).mappings().fetchone()
+            
+            if not dados_antigos:
+                print(f"Erro: Etapa {etapa_id} não encontrada")
+                return False
+        
         query = text("""
             UPDATE etapas_processo
             SET diagrama_bpmn = :conteudo,
                 diagrama_nome = :nome,
-                diagrama_tipo = :tipo
+                diagrama_tipo = :tipo,
+                updated_at = NOW()
             WHERE id = :etapa_id
+            RETURNING id
         """)
+        
         with engine.begin() as conn:
-            conn.execute(query, {
+            result = conn.execute(query, {
                 "etapa_id": etapa_id,
                 "conteudo": conteudo,
                 "nome": arquivo.name,
                 "tipo": arquivo.type
-            })
+            }).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            # Buscar nome do processo para contexto
+            with engine.connect() as conn:
+                processo_info = conn.execute(
+                    text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+                    {"id": dados_antigos['processo_id']}
+                ).mappings().fetchone()
+            
+            dados_novos = {
+                'id': etapa_id,
+                'codigo_etapa': dados_antigos['codigo_etapa'],
+                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
+                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                'diagrama_nome_anterior': dados_antigos.get('diagrama_nome'),
+                'diagrama_nome_novo': arquivo.name,
+                'diagrama_tipo': arquivo.type
+            }
+            
+            dados_antigos_resumidos = {
+                'id': etapa_id,
+                'codigo_etapa': dados_antigos['codigo_etapa'],
+                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
+                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                'diagrama_nome': dados_antigos.get('diagrama_nome'),
+                'diagrama_tipo': dados_antigos.get('diagrama_tipo')
+            }
+            
+            registrar_log(
+                tabela='etapas_processo',
+                registro_id=etapa_id,
+                operacao='UPDATE',
+                dados_anteriores=dados_antigos_resumidos,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
         
         return True
-    
+    return False
+
 def salvar_manual_etapa(etapa_id, arquivo):
     """Salva o manual da etapa"""
     if arquivo is not None:
         conteudo = arquivo.read()
+        
+        # Buscar dados ANTIGOS da etapa antes de atualizar
+        with engine.connect() as conn:
+            dados_antigos = conn.execute(
+                text("""
+                    SELECT id, codigo_etapa, descricao_etapa, 
+                           manual_nome, manual_tipo, processo_id
+                    FROM etapas_processo 
+                    WHERE id = :etapa_id
+                """),
+                {"etapa_id": etapa_id}
+            ).mappings().fetchone()
+            
+            if not dados_antigos:
+                print(f"Erro: Etapa {etapa_id} não encontrada")
+                return False
+        
         query = text("""
             UPDATE etapas_processo 
             SET manual_etapa = :conteudo,
                 manual_nome = :nome,
-                manual_tipo = :tipo
+                manual_tipo = :tipo,
+                updated_at = NOW()
             WHERE id = :etapa_id
+            RETURNING id
         """)
+        
         with engine.begin() as conn:
-            conn.execute(query, {
+            result = conn.execute(query, {
                 "etapa_id": etapa_id,
                 "conteudo": conteudo,
                 "nome": arquivo.name,
                 "tipo": arquivo.type
-            })
+            }).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            # Buscar nome do processo para contexto
+            with engine.connect() as conn:
+                processo_info = conn.execute(
+                    text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+                    {"id": dados_antigos['processo_id']}
+                ).mappings().fetchone()
+            
+            dados_novos = {
+                'id': etapa_id,
+                'codigo_etapa': dados_antigos['codigo_etapa'],
+                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
+                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                'manual_nome_anterior': dados_antigos.get('manual_nome'),
+                'manual_nome_novo': arquivo.name,
+                'manual_tipo': arquivo.type
+            }
+            
+            dados_antigos_resumidos = {
+                'id': etapa_id,
+                'codigo_etapa': dados_antigos['codigo_etapa'],
+                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
+                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                'manual_nome': dados_antigos.get('manual_nome'),
+                'manual_tipo': dados_antigos.get('manual_tipo')
+            }
+            
+            registrar_log(
+                tabela='etapas_processo',
+                registro_id=etapa_id,
+                operacao='UPDATE',
+                dados_anteriores=dados_antigos_resumidos,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
+        
         return True
     return False
 

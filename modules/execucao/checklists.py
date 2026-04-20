@@ -8,6 +8,7 @@ import time as time_module
 from sqlalchemy import text
 from database import engine
 from logic import buscar_auditoria_por_id, buscar_processo_por_codigo
+from modules.shared.log_sistema import registrar_log
 
 def buscar_perguntas_checklist(tipo_checklist='governanca'):
     """Busca perguntas do checklist por tipo
@@ -26,7 +27,6 @@ def buscar_perguntas_checklist(tipo_checklist='governanca'):
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"tipo": tipo_checklist})
 
-
 def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, comentario=None):
     """Salva ou atualiza uma resposta do checklist"""
     # Primeiro, verificar se já existe
@@ -40,7 +40,21 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
             "pergunta_id": pergunta_id
         }).fetchone()
     
+    # Buscar informações da pergunta para o log
+    with engine.connect() as conn:
+        pergunta_info = conn.execute(
+            text("SELECT pergunta FROM checklist_perguntas_padrao WHERE id = :id"),
+            {"id": pergunta_id}
+        ).scalar()
+    
     if existing:
+        # Buscar dados ANTIGOS antes do UPDATE
+        with engine.connect() as conn:
+            dados_antigos = conn.execute(
+                text("SELECT * FROM checklist_respostas WHERE id = :id"),
+                {"id": existing[0]}
+            ).mappings().fetchone()
+        
         # Atualizar existente
         query_update = text("""
             UPDATE checklist_respostas 
@@ -56,6 +70,26 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
                 "nota": nota,
                 "comentario": comentario
             }).scalar()
+            
+            # ===== LOG DO UPDATE =====
+            dados_novos = {
+                'id': result,
+                'checklist_id': checklist_id,
+                'pergunta_id': pergunta_id,
+                'pergunta': pergunta_info[:100] if pergunta_info else None,
+                'resposta': resposta,
+                'nota': nota,
+                'comentario': comentario[:100] if comentario else None
+            }
+            
+            registrar_log(
+                tabela='checklist_respostas',
+                registro_id=result,
+                operacao='UPDATE',
+                dados_anteriores=dict(dados_antigos) if dados_antigos else None,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
     else:
         # Inserir novo
         query_insert = text("""
@@ -71,6 +105,26 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
                 "nota": nota,
                 "comentario": comentario
             }).scalar()
+            
+            # ===== LOG DO INSERT =====
+            dados_novos = {
+                'id': result,
+                'checklist_id': checklist_id,
+                'pergunta_id': pergunta_id,
+                'pergunta': pergunta_info[:100] if pergunta_info else None,
+                'resposta': resposta,
+                'nota': nota,
+                'comentario': comentario[:100] if comentario else None
+            }
+            
+            registrar_log(
+                tabela='checklist_respostas',
+                registro_id=result,
+                operacao='INSERT',
+                dados_anteriores=None,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
     
     # Após salvar a resposta, atualizar o status da avaliação para "Em Andamento"
     if result:
@@ -100,18 +154,34 @@ def salvar_resposta_checklist(checklist_id, pergunta_id, resposta, nota=None, co
                     
                     # Só atualizar se não estiver já "Avaliado"
                     if status_atual and status_atual[0] != 'Avaliado':
+                        # Buscar dados ANTIGOS do status
+                        dados_antigos_status = conn.execute(
+                            text("SELECT status_avaliacao FROM auditoria_processos WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id"),
+                            {"processo_id": processo_id, "auditoria_id": auditoria_id}
+                        ).mappings().fetchone()
+                        
                         # Atualizar status para "Em Andamento"
                         query_update_status = text("""
                             UPDATE auditoria_processos 
                             SET status_avaliacao = 'Em Andamento'
                             WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+                            RETURNING id
                         """)
-                        conn.execute(query_update_status, {
+                        result_status = conn.execute(query_update_status, {
                             "processo_id": processo_id,
                             "auditoria_id": auditoria_id
-                        })
+                        }).scalar()
+                        
+                        # ===== LOG DO UPDATE DE STATUS =====
+                        registrar_log(
+                            tabela='auditoria_processos',
+                            registro_id=result_status,
+                            operacao='UPDATE',
+                            dados_anteriores=dict(dados_antigos_status) if dados_antigos_status else None,
+                            dados_novos={'status_avaliacao': 'Em Andamento'}
+                        )
+                        # ===== FIM DO LOG =====
         except Exception as e:
-            # Não deixar o erro de status quebrar o salvamento da resposta
             print(f"Erro ao atualizar status: {e}")
     
     return result
@@ -138,7 +208,6 @@ def salvar_evidencia(resposta_id, arquivo):
         return True
     return False
 
-
 def criar_checklist_sessao(processo_id, auditoria_id, auditor_nome):
     """Cria um novo checklist para o processo se não existir"""
     # Primeiro, verificar se já existe
@@ -155,6 +224,18 @@ def criar_checklist_sessao(processo_id, auditoria_id, auditor_nome):
     if result:
         return result[0]
     
+    # Buscar informações do processo e auditoria para o log
+    with engine.connect() as conn:
+        processo_info = conn.execute(
+            text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+            {"id": processo_id}
+        ).mappings().fetchone()
+        
+        auditoria_info = conn.execute(
+            text("SELECT codigo_auditoria, titulo FROM auditorias WHERE id = :id"),
+            {"id": auditoria_id}
+        ).mappings().fetchone()
+    
     # Se não existe, criar
     query_insert = text("""
         INSERT INTO checklist_sessoes (processo_id, auditoria_id, auditor_nome, data_inicio, status)
@@ -167,6 +248,29 @@ def criar_checklist_sessao(processo_id, auditoria_id, auditor_nome):
             "auditoria_id": auditoria_id,
             "auditor_nome": auditor_nome
         }).scalar()
+        
+        # ===== ADICIONAR LOG AQUI =====
+        dados_inseridos = {
+            'id': result,
+            'processo_id': processo_id,
+            'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+            'processo_nome': processo_info['nome_processo'] if processo_info else None,
+            'auditoria_id': auditoria_id,
+            'auditoria_codigo': auditoria_info['codigo_auditoria'] if auditoria_info else None,
+            'auditoria_titulo': auditoria_info['titulo'] if auditoria_info else None,
+            'auditor_nome': auditor_nome,
+            'status': 'Em Andamento'
+        }
+        
+        registrar_log(
+            tabela='checklist_sessoes',
+            registro_id=result,
+            operacao='INSERT',
+            dados_anteriores=None,
+            dados_novos=dados_inseridos
+        )
+        # ===== FIM DO LOG =====
+        
     return result
 
 
@@ -331,14 +435,66 @@ def tela_checklist_sessoes():
             st.rerun()
         
         if finalizar:
+            # Buscar dados ANTIGOS do checklist antes de atualizar
+            with engine.connect() as conn:
+                dados_antigos = conn.execute(
+                    text("""
+                        SELECT id, processo_id, auditoria_id, status, data_conclusao, 
+                               tipo_checklist, auditor_nome
+                        FROM checklist_sessoes 
+                        WHERE id = :checklist_id
+                    """),
+                    {"checklist_id": checklist_id}
+                ).mappings().fetchone()
+                
+                # Buscar informações do processo para contexto
+                processo_info = conn.execute(
+                    text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+                    {"id": dados_antigos['processo_id'] if dados_antigos else None}
+                ).mappings().fetchone()
+            
             # Marcar checklist como concluído
             query = text("""
                 UPDATE checklist_sessoes 
                 SET status = 'Concluído', data_conclusao = NOW()
                 WHERE id = :checklist_id
+                RETURNING id
             """)
+            
             with engine.begin() as conn:
-                conn.execute(query, {"checklist_id": checklist_id})
+                result = conn.execute(query, {"checklist_id": checklist_id}).scalar()
+                
+                # ===== ADICIONAR LOG AQUI =====
+                dados_novos = {
+                    'id': checklist_id,
+                    'processo_id': dados_antigos['processo_id'] if dados_antigos else None,
+                    'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                    'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                    'auditoria_id': dados_antigos['auditoria_id'] if dados_antigos else None,
+                    'tipo_checklist': dados_antigos['tipo_checklist'] if dados_antigos else None,
+                    'auditor_nome': dados_antigos['auditor_nome'] if dados_antigos else None,
+                    'status_anterior': dados_antigos['status'] if dados_antigos else None,
+                    'status_novo': 'Concluído',
+                    'data_conclusao': 'NOW()'
+                }
+                
+                dados_antigos_resumidos = {
+                    'id': checklist_id,
+                    'processo_id': dados_antigos['processo_id'] if dados_antigos else None,
+                    'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                    'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                    'status': dados_antigos['status'] if dados_antigos else None,
+                    'data_conclusao': str(dados_antigos['data_conclusao']) if dados_antigos and dados_antigos['data_conclusao'] else None
+                }
+                
+                registrar_log(
+                    tabela='checklist_sessoes',
+                    registro_id=checklist_id,
+                    operacao='UPDATE',
+                    dados_anteriores=dados_antigos_resumidos,
+                    dados_novos=dados_novos
+                )
+                # ===== FIM DO LOG =====
             
             st.success("✅ Checklist finalizado com sucesso!")
             st.balloons()
@@ -375,6 +531,8 @@ def baixar_evidencia(evidencia_id):
                 return conteudo, result[1], result[2]
     return None, None, None
 
+from modules.shared.log_sistema import registrar_log  # Adicione no topo
+
 def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, tipo_checklist='governanca'):
     """Cria um novo checklist para o processo se não existir, por tipo"""
     # Primeiro, verificar se já existe
@@ -392,6 +550,18 @@ def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, t
     if result:
         return result[0]
     
+    # Buscar informações do processo e auditoria para o log
+    with engine.connect() as conn:
+        processo_info = conn.execute(
+            text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+            {"id": processo_id}
+        ).mappings().fetchone()
+        
+        auditoria_info = conn.execute(
+            text("SELECT codigo_auditoria, titulo FROM auditorias WHERE id = :id"),
+            {"id": auditoria_id}
+        ).mappings().fetchone()
+    
     # Se não existir, criar
     query_insert = text("""
         INSERT INTO checklist_sessoes (processo_id, auditoria_id, auditor_nome, tipo_checklist, data_inicio, status)
@@ -405,6 +575,29 @@ def criar_checklist_sessao_por_tipo(processo_id, auditoria_id, auditoria_nome, t
             "auditor_nome": auditoria_nome,
             "tipo": tipo_checklist
         }).scalar()
+        
+        # ===== ADICIONAR LOG AQUI =====
+        dados_inseridos = {
+            'id': result,
+            'processo_id': processo_id,
+            'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+            'processo_nome': processo_info['nome_processo'] if processo_info else None,
+            'auditoria_id': auditoria_id,
+            'auditoria_codigo': auditoria_info['codigo_auditoria'] if auditoria_info else None,
+            'auditoria_titulo': auditoria_info['titulo'] if auditoria_info else None,
+            'auditor_nome': auditoria_nome,
+            'tipo_checklist': tipo_checklist,
+            'status': 'Em Andamento'
+        }
+        
+        registrar_log(
+            tabela='checklist_sessoes',
+            registro_id=result,
+            operacao='INSERT',
+            dados_anteriores=None,
+            dados_novos=dados_inseridos
+        )
+        # ===== FIM DO LOG =====
     
     return result
 
@@ -428,30 +621,126 @@ def buscar_status_checklist_por_tipo(processo_id, auditoria_id, tipo_checklist='
 
 def finalizar_checklist_por_tipo(checklist_id, processo_id, auditoria_id, tipo_checklist='governanca'):
     """Finaliza um checklist e atualiza o status da avaliação se for do tipo governanca"""
-    # Marcar checklist como concluído
-    query = text("""
-        UPDATE checklist_sessoes
-        SET status = 'Concluído', data_conclusao = NOW()
-        WHERE id = :checklist_id
-    """)
-    with engine.begin() as conn:
-        conn.execute(query, {"checklist_id": checklist_id})
-
-    # Se for checklst de governanca, atualizar status da avaliacao do processo
-
-    if tipo_checklist == 'governanca':
-        query_update_status = text("""
-            UPDATE auditoria_processos
-            SET status_avaliacao = 'Avaliado'
-            WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id                     
-        """)
-        with engine.begin() as conn:
-            conn.execute(query_update_status, {
-                "processo_id": processo_id,
-                "auditoria_id": auditoria_id
-            })
     
-    return True
+    try:
+        # ===== 1. BUSCAR DADOS ANTIGOS DO CHECKLIST =====
+        with engine.connect() as conn:
+            dados_antigos_checklist = conn.execute(
+                text("""
+                    SELECT id, processo_id, auditoria_id, status, data_conclusao, 
+                           tipo_checklist, auditor_nome
+                    FROM checklist_sessoes 
+                    WHERE id = :checklist_id
+                """),
+                {"checklist_id": checklist_id}
+            ).mappings().fetchone()
+            
+            # Buscar informações do processo para contexto
+            processo_info = conn.execute(
+                text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
+                {"id": processo_id}
+            ).mappings().fetchone()
+        
+        # ===== 2. ATUALIZAR CHECKLIST =====
+        query = text("""
+            UPDATE checklist_sessoes
+            SET status = 'Concluído', data_conclusao = NOW()
+            WHERE id = :checklist_id
+            RETURNING id
+        """)
+        
+        with engine.begin() as conn:
+            result = conn.execute(query, {"checklist_id": checklist_id}).scalar()
+            
+            # ===== LOG DO UPDATE DO CHECKLIST =====
+            dados_novos_checklist = {
+                'id': checklist_id,
+                'processo_id': processo_id,
+                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                'auditoria_id': auditoria_id,
+                'tipo_checklist': tipo_checklist,
+                'status_anterior': dados_antigos_checklist['status'] if dados_antigos_checklist else None,
+                'status_novo': 'Concluído',
+                'data_conclusao': 'NOW()'
+            }
+            
+            dados_antigos_resumidos = {
+                'id': checklist_id,
+                'processo_id': processo_id,
+                'status': dados_antigos_checklist['status'] if dados_antigos_checklist else None,
+                'data_conclusao': str(dados_antigos_checklist['data_conclusao']) if dados_antigos_checklist and dados_antigos_checklist['data_conclusao'] else None
+            }
+            
+            registrar_log(
+                tabela='checklist_sessoes',
+                registro_id=checklist_id,
+                operacao='UPDATE',
+                dados_anteriores=dados_antigos_resumidos,
+                dados_novos=dados_novos_checklist
+            )
+            # ===== FIM DO LOG =====
+
+        # ===== 3. SE FOR GOVERNANÇA, ATUALIZAR STATUS DA AVALIAÇÃO =====
+        if tipo_checklist == 'governanca':
+            # Buscar dados ANTIGOS do status da avaliação
+            with engine.connect() as conn:
+                dados_antigos_avaliacao = conn.execute(
+                    text("""
+                        SELECT id, processo_id, auditoria_id, status_avaliacao
+                        FROM auditoria_processos 
+                        WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+                    """),
+                    {
+                        "processo_id": processo_id,
+                        "auditoria_id": auditoria_id
+                    }
+                ).mappings().fetchone()
+            
+            query_update_status = text("""
+                UPDATE auditoria_processos
+                SET status_avaliacao = 'Avaliado'
+                WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
+                RETURNING id
+            """)
+            
+            with engine.begin() as conn:
+                result_status = conn.execute(query_update_status, {
+                    "processo_id": processo_id,
+                    "auditoria_id": auditoria_id
+                }).scalar()
+                
+                # ===== LOG DO UPDATE DO STATUS =====
+                dados_novos_avaliacao = {
+                    'processo_id': processo_id,
+                    'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
+                    'processo_nome': processo_info['nome_processo'] if processo_info else None,
+                    'auditoria_id': auditoria_id,
+                    'status_avaliacao_anterior': dados_antigos_avaliacao['status_avaliacao'] if dados_antigos_avaliacao else None,
+                    'status_avaliacao_novo': 'Avaliado'
+                }
+                
+                dados_antigos_resumidos_avaliacao = {
+                    'id': dados_antigos_avaliacao['id'] if dados_antigos_avaliacao else None,
+                    'processo_id': processo_id,
+                    'auditoria_id': auditoria_id,
+                    'status_avaliacao': dados_antigos_avaliacao['status_avaliacao'] if dados_antigos_avaliacao else None
+                }
+                
+                registrar_log(
+                    tabela='auditoria_processos',
+                    registro_id=dados_antigos_avaliacao['id'] if dados_antigos_avaliacao else None,
+                    operacao='UPDATE',
+                    dados_anteriores=dados_antigos_resumidos_avaliacao,
+                    dados_novos=dados_novos_avaliacao
+                )
+                # ===== FIM DO LOG =====
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao finalizar checklist: {e}")
+        return False
 
 def obter_resumo_checklists(processo_id, auditoria_id):
     query = text("""

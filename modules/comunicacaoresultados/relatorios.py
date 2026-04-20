@@ -12,6 +12,7 @@ from logic import (listar_areas, listar_processos_da_auditoria_com_riscos,
     listar_controles_da_etapa, gerar_pdf_em_memoria, get_estilo_risco
 )
 import time as time_module
+from modules.shared.log_sistema import registrar_log
 
 def buscar_processos_para_relatorio():
     """Busca todos os processos ativos, ignorando se já foi gerado ou não"""
@@ -90,15 +91,68 @@ def buscar_processos_por_area(area_id=None):
         
 def marcar_relatorio_gerencial_gerado(processo_id):
     """Marca que o relatório gerencial foi gerado para um processo"""
-    query = text("""
-        UPDATE processos
-        SET relatorio_gerencial_gerado = TRUE,
-            data_relatorio_gerencial = NOW()
-        WHERE id = :processo_id
-    """)
-    with engine.begin() as conn:
-        conn.execute(query, {"processo_id": processo_id})
-    return True
+    
+    try:
+        # Buscar dados ANTIGOS do processo antes de atualizar
+        with engine.connect() as conn:
+            dados_antigos = conn.execute(
+                text("""
+                    SELECT id, codigo_processo, nome_processo, 
+                           relatorio_gerencial_gerado, data_relatorio_gerencial
+                    FROM processos 
+                    WHERE id = :processo_id
+                """),
+                {"processo_id": processo_id}
+            ).mappings().fetchone()
+            
+            if not dados_antigos:
+                print(f"Erro: Processo {processo_id} não encontrado")
+                return False
+        
+        query = text("""
+            UPDATE processos
+            SET relatorio_gerencial_gerado = TRUE,
+                data_relatorio_gerencial = NOW()
+            WHERE id = :processo_id
+            RETURNING id
+        """)
+        
+        with engine.begin() as conn:
+            result = conn.execute(query, {"processo_id": processo_id}).scalar()
+            
+            # ===== ADICIONAR LOG AQUI =====
+            dados_novos = {
+                'id': processo_id,
+                'codigo_processo': dados_antigos['codigo_processo'],
+                'nome_processo': dados_antigos['nome_processo'],
+                'relatorio_gerencial_gerado_anterior': dados_antigos['relatorio_gerencial_gerado'],
+                'relatorio_gerencial_gerado_novo': True,
+                'data_relatorio_gerencial_anterior': str(dados_antigos['data_relatorio_gerencial']) if dados_antigos['data_relatorio_gerencial'] else None,
+                'data_relatorio_gerencial_novo': 'NOW()'
+            }
+            
+            dados_antigos_resumidos = {
+                'id': processo_id,
+                'codigo_processo': dados_antigos['codigo_processo'],
+                'nome_processo': dados_antigos['nome_processo'],
+                'relatorio_gerencial_gerado': dados_antigos['relatorio_gerencial_gerado'],
+                'data_relatorio_gerencial': str(dados_antigos['data_relatorio_gerencial']) if dados_antigos['data_relatorio_gerencial'] else None
+            }
+            
+            registrar_log(
+                tabela='processos',
+                registro_id=processo_id,
+                operacao='UPDATE',
+                dados_anteriores=dados_antigos_resumidos,
+                dados_novos=dados_novos
+            )
+            # ===== FIM DO LOG =====
+        
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao marcar relatório gerencial: {e}")
+        return False
 
 def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO", auditoria_id=None):
     """Gera relatório gerencial da área (para validação do gestor)
