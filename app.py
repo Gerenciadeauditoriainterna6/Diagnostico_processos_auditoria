@@ -114,7 +114,7 @@ def main():
     if not st.session_state.get('autenticado'):
         login_screen(local_storage)
         st.stop()
-
+    
     # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
     if st.session_state.get('autenticado'):
         st.session_state['login_timestamp'] = datetime.now()
@@ -266,7 +266,7 @@ def main():
             st.image(logo_auditoria_path, width=200)
 
         # Exibe o nome do usuário logado para confirmação
-        st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_logado', 'Audit')}")
+        st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_nome', 'Audit')}")
 
         # Se opcao já foi definida (veio da edição), não mostrar o menu
         if opcao is None:

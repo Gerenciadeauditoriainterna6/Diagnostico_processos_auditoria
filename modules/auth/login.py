@@ -387,7 +387,14 @@ def login_screen(local_storage):
                 # Pequeno delay para mostrar o spinner
                 time_module.sleep(1.3)
                 
-                if validar_login_no_banco(usuario, senha):
+                sucesso, usuario_id, usuario_nome, usuario_perfil = validar_login_no_banco(usuario, senha)
+
+                if sucesso:
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario_logado'] = usuario
+                    st.session_state['usuario_nome'] = usuario_nome
+                    st.session_state['usuario_id'] = usuario_id
+                    st.session_state['usuario_perfil'] = usuario_perfil
                     # Remove o spinner
                     spinner_placeholder.empty()
                     

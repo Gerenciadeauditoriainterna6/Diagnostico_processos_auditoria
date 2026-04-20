@@ -1600,9 +1600,13 @@ def listar_controles_da_etapa(etapa_id, auditoria_id=None):
 
 
 def validar_login_no_banco(usuario_digitado, senha_digitada):
-    """Verifica se as credenciais existem e estão corretas."""
+    """
+    Verifica se as credenciais existem e estão corretas.
+    
+    Retorna: (sucesso, id, nome, perfil)
+    """
     query = text("""
-        SELECT login, senha 
+        SELECT id, login, nome, perfil
         FROM usuarios 
         WHERE login = :u AND senha = :s AND ativo = True
     """)
@@ -1613,11 +1617,17 @@ def validar_login_no_banco(usuario_digitado, senha_digitada):
             
             # Se encontrou um registro, retorna True
             if result:
-                return True
-            return False
+                usuario_id = result[0]
+                usuario_login = result[1]
+                usuario_nome = result[2]
+                usuario_perfil = result[3] if result[3] else 'auditor' # Padrão: auditor
+
+                return True, usuario_id, usuario_nome, usuario_perfil
+            
+            return False, None, None, None
     except Exception as e:
         print(f"Erro ao validar login: {e}")
-        return False
+        return False, None, None, None
 
 def atualizar_status_processo(id_processo, novo_status, coluna):
     """Atualiza link_diagrama ou aprovacao na tabela processos"""
