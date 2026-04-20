@@ -279,7 +279,8 @@ def main():
                     "📋 Detalhamento dos Processos",        
                     "👁️ Visão Geral do Diagnóstico",
                     "📣 Comunicação dos Resultados",
-                    "📋 Geração de Relatórios"
+                    "📋 Geração de Relatórios",
+                    "📜 Histórico"
                 ]
             )
 
@@ -351,6 +352,11 @@ def main():
         set_page_width(95)
         from modules.comunicacaoresultados.evolucao import tela_evolucao_auditoria
         tela_evolucao_auditoria()
+    
+    elif opcao == '📜 Histórico':
+        set_page_width(95)
+        from modules.shared.log_sistema import tela_historico
+        tela_historico()
 
 
 # --- DISPARADOR FINAL ---
