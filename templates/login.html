@@ -202,8 +202,12 @@
         .footer-logo img {
             width: 120px;  /* -> Ajuste conforme o tamanho desejado */
             height: auto;
-            opacity: 0.85;
+            opacity: 0.70;
             transition: opacity 0.2s;
+        }
+
+        .footer-logo img:hover {
+            opacity: 1;
         }
 
         @media (max-width: 520px) {
@@ -230,9 +234,59 @@
                 height: 35px;
             }
         }
+
+        /* ========== SPINNER (funciona em todas as telas) ========== */
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #153e5a;
+            border-radius: 50%;
+            margin: 0 auto;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ========== NOTIFICAÇÕES FLUTUANTES ========== */
+        .notification {
+            background-color: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification.erro {
+            background-color: #dc3545;
+            border-left: 4px solid #ffc107;
+        }
+
+        .notification.sucesso {
+            background-color: #28a745;
+            border-left: 4px solid #ffc107;
+        }
+    
     </style>
 </head>
 <body>
+    <!-- Container para notificações flutuantes (não afeta o layout) -->
+    <div id="notification-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;"></div>
+
     <div class="login-wrapper">
         <div class="login-card">
             <!-- Logo flutuante (metade dentro, metade fora) -->
@@ -246,13 +300,6 @@
             </div>
 
             <div class="acesso-restrito">ACESSO RESTRITO!</div>
-
-            <!-- Exibe mensagem de erro se houver -->
-            {% if erro %}
-            <div class="alert">
-                {{ erro }}
-            </div>
-            {% endif %}
 
             <form method="POST">
                 <!-- Campo de usuário com ícone -->
@@ -271,6 +318,10 @@
                 </div>
 
                 <button type="submit" class="btn-login">ENTRAR</button>
+                <div id="spinner" style="display: none; text-align: center; margin-top: 15px;">
+                    <div class="spinner"></div>
+                    <p style="color: white; margin-top: 8px; font-size: 12px;">Verificando credenciais...</p>
+                </div>
             </form>
         </div>
 
@@ -295,6 +346,64 @@
                 olhoIcon.classList.add('fa-eye');
             }
         }
+
+        // ======== JAVASCRIPT ========
+
+        const form = document.querySelector('form');
+        const btnSubmit = document.querySelector('.btn-login');
+        const notificationContainer = document.getElementById('notification-container');
+        const spinner = document.getElementById('spinner');
+
+        function mostrarNotificacao(mensagem, tipo) {
+            const notif = document.createElement('div');
+            notif.className = `notification ${tipo}`;
+            notif.innerHTML = mensagem;
+            notificationContainer.appendChild(notif);
+
+            setTimeout(() => notif.classList.add('show'), 10);
+
+            setTimeout(() => {
+                notif.classList.remove('show');
+                setTimeout(() => notif.remove(), 300);
+            }, 5000);
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            btnSubmit.style.display = 'none';
+            spinner.style.display = 'block';
+
+            const usuario = document.querySelector('input[name="usuario"]').value;
+            const senha = document.querySelector('input[name="senha"]').value;
+
+            try {
+                const response = await fetch('/login', {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({ usuario, senha })
+                });
+
+                if (response.redirected) {
+                    mostrarNotificacao('✅ Login realizado! Redirecionando...', 'sucesso');
+
+                    setTimeout(() => {
+                        window.location.href = response.url;
+                    }, 2500);
+
+                } else {
+                    mostrarNotificacao('❌ Usuário ou senha incorretos', 'erro');
+                    btnSubmit.style.display = 'block';
+                    spinner.style.display = 'none';
+                }
+            } catch (error) {
+                mostrarNotificacao('❌ Erro de conexão. Verifique sua internet.', 'erro');
+                btnSubmit.style.display = 'block';
+                spinner.style.display =' none';
+            }
+        });
     </script>
 </body>
 </html>
