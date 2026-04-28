@@ -1,365 +1,126 @@
-import streamlit as st
+"""
+Arquivo principal para aplicação Flask
+Sistema de Auditoria Interna - FUSVE
+"""
+
+from flask import Flask, render_template, request, redirect, url_for, session
 import os
-import pandas as pd
-from datetime import datetime
-from streamlit_local_storage import LocalStorage
+from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
-from logic import (gerar_pdf_em_memoria,buscar_processos_pendentes)
+# Carrega variáveis do arquivo .env
+load_dotenv()
 
-from modules.execucao.areas import tela_cadastro_area, carregar_areas_banco
-from modules.execucao.visao_geral import tela_visao_geral_processos
-from modules.planejamento.plano_anual import tela_plano_anual
-from modules.execucao.auditorias import (tela_auditorias_trimestrais, tela_detalhe_auditoria, tela_detalhe_processo_auditoria)
-from modules.auth.login import login_screen, verificar_sessao
-from modules.execucao.processos import tela_diagnostico_processos
-from modules.execucao.checklists import tela_checklist_sessoes
-from modules.shared.theme import apply_theme, set_page_width
+# Importa minha função de validação do login (do sistema streamlit)
+# Assumindo que a função está em logic.py
+from logic import validar_login_no_banco
 
+# Cria a aplicação Flask
+app = Flask(__name__)
 
-MAPA_RISCO = {
-    ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
-    ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
-    ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6, ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
-    ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
-}
-#
-#
+# Configurações da sessão
+app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=int(os.getenv('SESSION_TIMEOUT_SECONDS', 1800)))
+app.config['SESSION_COOKIE_SECURE'] = False # True apenas em produção (HTTPS)
+app.config['SESSION_COOKIE_HITPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-TEMPO_SESSAO_SEGUNDOS = 1800
-
-local_storage = LocalStorage()
-
-# --- 1. CONFIGURAÇÃO INICIAL ---
-st.set_page_config(page_title="SISTEMA GERÊNCIA DE AUDITORIA INTERNA - FUSVE", layout="centered")
-# --- Script que remove o localstorage sempre que a aba do navegador se fecha, impossibilitando vazamento de segurança ---
-st.markdown(
+# Rota de login
+@app.route('/login', methods=["GET", "POST"])
+def login():
     """
-    <script>
-        window.addEventListener('beforeunload', function() {
-        localStorage.removeItem('usuario_audit');
-        });
-        </script>
-    """, unsafe_allow_html=True)
+    Tela de login do sistema
+    GET: Mostra o formulário
+    POST: Processa as credenciais
+    """
+    # Se o usuário já está logado, redireciona para a página inicial
+    if session.get('autenticado'):
+        return redirect(url_for('home'))
+    erro = None
 
-# --- INICIALIZAÇÃO DE ESTADO ---
-areas_dict = carregar_areas_banco()
+    if request.method == 'POST':
+        usuario = request.form.get('usuario')
+        senha = request.form.get('senha')
 
-if 'riscos' not in st.session_state: st.session_state['riscos'] = []
-if 'deve_limpar' not in st.session_state: st.session_state['deve_limpar'] = False
-if 'df_pendentes' not in st.session_state: st.session_state['df_pendentes'] = pd.DataFrame()
-if 'codigo_processo_display' not in st.session_state: st.session_state['codigo_processo_display'] = "" 
-if 'id_area_selecionado' not in st.session_state and areas_dict:
-    primeiro_nome = list(areas_dict.keys())[0]
-    st.session_state['id_area_selecionado'] = areas_dict[primeiro_nome]
-    st.session_state['area_selectbox'] = primeiro_nome
+        # Valida as credenciais usando a função existente
+        sucesso, usuario_id, usuario_nome, usuario_perfil = validar_login_no_banco(usuario, senha)
 
+        if sucesso:
+            # Armazena os dados na sessão
+            session['autenticado'] = True
+            session['usuario_logado'] = usuario
+            session['usuario_nome'] = usuario_nome
+            session['usuario_id'] = usuario_id
+            session['usuario_perfil'] = usuario_perfil
+            session['login_timestamp'] = datetime.now().isoformat()
+            session.permanent = True # Faz a sessão respeitar o timeout
 
-# --- 5. Execução do app ---
-
-def main():
-     # --- LER DO LOCALSTORAGE UMA VEZ ---
-    import json
-    session_data_str = local_storage.getItem("session_data")
-    usuario_cache = None
-    login_timestamp_cache = None
-    if session_data_str and session_data_str not in ["undefined", "null", "None"]:
-        try:
-            data = json.loads(session_data_str)
-            usuario_cache = data.get("usuario")
-            ts_str = data.get("timestamp")
-            if ts_str:
-                login_timestamp_cache = datetime.fromisoformat(ts_str)
-        except Exception:
-            pass
-
-    # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
-    if not verificar_sessao(local_storage=local_storage, login_timestamp_cache=login_timestamp_cache):
-        # Mostrar tela de sessão expirada
-        st.markdown("""
-        <div style='text-align: center; padding: 2rem;'>
-            <h2>⏰ Sua sessão expirou</h2>
-            <p>Por questões de segurança, sua sessão foi encerrada após 30 minutos de inatividade.</p>
-            <p>Clique no botão abaixo para fazer login novamente.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🔐 Fazer Login Novamente", type="primary", use_container_width=True, key='btn_fazer_login_novamente'):
-            st.session_state.pop("sessao_expirada", None)
-            st.rerun()
-        
-        st.stop()
+            # Redireciona para a página principal
+            return redirect(url_for('home'))
+        else:
+            erro = "❌ Usuário ou senha incorretos."
     
-    # --- REAUTENTICAÇÃO ---
-    if not st.session_state.get('autenticado'):
-        if usuario_cache and usuario_cache not in ["undefined", "null", "None"]:
-            if login_timestamp_cache:
-                if (datetime.now() - login_timestamp_cache).total_seconds() <= TEMPO_SESSAO_SEGUNDOS:
-                    st.session_state['autenticado'] = True
-                    st.session_state['usuario_logado'] = usuario_cache
-                    st.session_state['login_timestamp'] = login_timestamp_cache
-                else:
-                    # expirado, limpa localStorage
-                    try:
-                        local_storage.deleteItem("session_data")
-                    except:
-                        local_storage.setItem("session_data", "null")
-            else:
-                # não tem timestamp, limpa cache
-                try:
-                    local_storage.deleteItem("session_data")
-                except:
-                    local_storage.setItem("session_data", "null")
+    return render_template('login.html', erro=erro)
 
-    # --- BLOQUEIO DE ACESSO ---
-    if not st.session_state.get('autenticado'):
-        login_screen(local_storage)
-        st.stop()
+# Rota de logout
+@app.route('/logout')
+def logout():
+    """Remove os dados da sessão e desloga o usuário"""
+    session.clear()
+    return redirect(url_for('login'))
+
+# Rota principal (página inicial / dashboard)
+@app.route('/')
+def home():
+    """Página inicial do sistema (apenas para usuários logados)"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
     
-    # --- SE CHEGOU AQUI, USUÁRIO ESTÁ AUTENTICADO ---
-    if st.session_state.get('autenticado'):
-        st.session_state['login_timestamp'] = datetime.now()
-    
-    # ==== APLICAR TEMA GLOBAL ====
-    # Executado depois do login para não interferir na tela de login
-    apply_theme()
-
-    # ===== VERIFICAÇÃO DE REDIRECIONAMENTO =====
-    if st.session_state.get('tela_atual') == 'criar_auditoria':
-        from modules.execucao.auditorias import tela_criar_auditoria_rapida
-        st.session_state.pop('tela_atual', None)
-        tela_criar_auditoria_rapida()
-        return
-    
-    if st.session_state.get('tela_atual') == 'diagnostico':
-        st.write("🔍 DEBUG - Vou chamar tela_diagnostico_processos")
-        st.session_state.pop('tela_atual', None)
-        tela_diagnostico_processos()
-        st.write("🔍 DEBUG - Depois de chamar")
-        return
-    
-    if st.session_state.get('tela_atual') == 'detalhe_processo':
-        from modules.execucao.auditorias import tela_detalhe_processo_auditoria
-        st.session_state.pop('tela_atual', None)
-        tela_detalhe_processo_auditoria()
-        return
-    
-    if st.session_state.get('tela_checklist', False):
-        from modules.execucao.checklists import tela_checklist_sessoes
-        tela_checklist_sessoes()
-        return
-
-    # ===== INICIALIZAR VARIÁVEL opcao =====
-    opcao = None
-
-    # ==== REDIRECIONAMENTO PARA EDIÇÃO DE PROCESSO ====
-    # Se veio da auditoria para editar um processo
-    if st.session_state.get('processo_para_editar') and st.session_state.get('opcao_menu'):
-        # Forçar a opção do menu para Diagnóstico dos processos
-        opcao = st.session_state['opcao_menu']
-    
-    # ===== SIDEBAR (sempre executado, independente do redirecionamento) =====
-    with st.sidebar:
-        # CSS para controlar a largura do sidebar
-        st.markdown("""
-            <style>
-                    /* Ajsta a largura do sidebar */
-                    [data-testid="stSidebar"] {{
-                        min-width: 250px;
-                        max-width: 350px;
-                        width: 20vw !important;
-                    }}
-
-                    /* Ajusta o conteúdo do sidebar para se adaptar */
-                    [data-testid="stSidebar"] .sidebar-content {{
-                        width: 100%;
-                    }}
-            </style>
-        """, unsafe_allow_html=True)
-
-        caminho_script = os.path.dirname(os.path.abspath(__file__))
-        logo_auditoria_path = os.path.join('assets', 'logo_auditoria.png')
-
-        # CSS para centralizar a imagem usando HTML direto
-        st.markdown("""
+     # Exibe informações do usuário logado
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Dashboard - Auditoria Interna</title>
         <style>
-            /* Reduz a altura do header do sidebar */
-            [data-testid="stSidebarHeader"] {
-                height: 20px !important;
-                min-height: 20px !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            
-            /* Ajusta o botão de recolher */
-            [data-testid="stSidebarHeader"] button {
-                padding: 0 !important;
-                margin: 0 !important;
-                margin-top: 25px !important;
-                height: 10px !important;
-            }
-                
-            /* Ícone do botão recolher (sidebar expandido) */
-            [data-testid="stSidebarHeader"] button svg {
-                fill: #e4e4e4 !important;
-                stroke: #e4e4e4 !important;
-            }
-            
-            /* Ícone do botão recolher (sidebar recolhido) */
-            button[kind="icon"] svg {
-                fill: #e4e4e4 !important;
-                stroke: #e4e4e4 !important;
-            }
-            
-            /* Ícone do controle recolhido */
-            [data-testid="collapsedControl"] svg {
-                fill: #e4e4e4 !important;
-                stroke: #e4e4e4 !important;
-            }
-                
-            /* Container da imagem no sidebar */
-            .sidebar-logo-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                width: 100%;
-                margin-bottom: 1rem;
-                margin-top: 8px;
-            }
-            .sidebar-logo-container img {
-                max-width: 200px;
-                width: 100%;
-                height: auto;
-                transform: translateY(-20px);
-            }
-                    
-            /* Ícone do botão quando o sidebar está recolhido */
-            span[data-testid="stIconMaterial"] {
-                color: #e4e4e4 !important;
-            }
-            
-            /* Classe específica do ícone */
-            .st-emotion-cache-1g48ntn {
-                color: #e4e4e4 !important;
-            }
-            
-            /* Para garantir em qualquer estado */
-            span[data-testid="stIconMaterial"] svg,
-            span[data-testid="stIconMaterial"] {
-                color: #e4e4e4 !important;
-                fill: #e4e4e4 !important;
-            }
+            body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f0f0f0; }}
+            .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
+            h1 {{ color: #184145; }}
+            .user-info {{ background: #e0e0e0; padding: 10px; border-radius: 5px; margin-bottom: 20px; }}
+            .logout-btn {{ color: red; text-decoration: none; }}
         </style>
-    """, unsafe_allow_html=True)
-        
-        if os.path.exists(logo_auditoria_path):
-            # Usa HTML direto em vez de st.image
-            with open(logo_auditoria_path, "rb") as f:
-                import base64
-                img_data = base64.b64encode(f.read()).decode()
-            
-            st.markdown(f'''
-                <div class="sidebar-logo-container">
-                    <img src="data:image/png;base64,{img_data}">
-                </div>
-            ''', unsafe_allow_html=True)
-        else:
-            st.image(logo_auditoria_path, width=200)
+    </head>
+    <body>
+        <div class="container">
+            <h1>🏢 Sistema de Auditoria Interna - FUSVE</h1>
+            <div class="user-info">
+                👤 <strong>{session.get('usuario_nome', session.get('usuario_logado'))}</strong> 
+                (Perfil: {session.get('usuario_perfil', 'auditor')})
+                <br>
+                <a href="{url_for('logout')}" class="logout-btn">Sair</a>
+            </div>
+            <p>✅ Login realizado com sucesso!</p>
+            <p>Migração Flask em andamento. Em breve, todas as 8 páginas estarão disponíveis aqui.</p>
+            <hr>
+            <small>Sessão expira em 30 minutos de inatividade.</small>
+        </div>
+    </body>
+    </html>
+    """
 
-        # Exibe o nome do usuário logado para confirmação
-        st.markdown(f"👤 **Usuário:** {st.session_state.get('usuario_nome', 'Audit')}")
+# Rota de health check (para o UptimeRobot)
+@app.route('/ping')
+def ping():
+    """Mantém o aplicativo ativo no Render (usado com UptimeRobot)"""
+    return "OK", 200
 
-        # Se opcao já foi definida (veio da edição), não mostrar o menu
-        if opcao is None:
-            opcao = st.radio(
-                "Menu", 
-                [
-                    "📅 Plano Anual de Auditoria",
-                    "🏢 Cadastro de Áreas e Funcionários",
-                    "🔍 Diagnóstico dos Processos",
-                    "📋 Detalhamento dos Processos",        
-                    "👁️ Visão Geral do Diagnóstico",
-                    "📣 Comunicação dos Resultados",
-                    "📋 Geração de Relatórios",
-                    "📜 Histórico"
-                ]
-            )
-
-        st.divider()
-
-        if st.session_state.get('autenticado'):
-            login_time = st.session_state.get("login_timestamp")
-            if login_time:
-                tempo_decorrido = (datetime.now() - login_time).total_seconds()
-                if tempo_decorrido > TEMPO_SESSAO_SEGUNDOS:
-                    st.error("⚠️ SESSÃO EXPIRADA")
-            
-        if st.sidebar.button("Sair (Logout)", use_container_width=True, key='btn_logout'):
-            # 1. Remove a informação do navegador
-            try:
-                local_storage.deleteItem("session_data")
-            except:
-                local_storage.setItem('session_data', 'null')
-            
-            # 2. Em vez de .clear(), limpamos apenas o que interessa
-            st.session_state["autenticado"] = False
-            st.session_state["usuario_logado"] = None
-            
-            # 3. Força o recarregamento
-            st.rerun()
-        
-        # Botão para renovar sessão
-        if st.button("🔄 Renovar Sessão", key='btn_renew', use_container_width=True):
-            st.session_state["login_timestamp"] = datetime.now()
-        
-            session_data = {
-                "usuario": st.session_state.get("usuario_logado"),
-                "timestamp": datetime.now().isoformat()
-            }
-            local_storage.setItem("session_data", json.dumps(session_data))
-            st.toast("Sessão renovada por mais 30 minutos!", icon="🔄")
-
-    # --- LÓGICA PRINCIPAL (continua igual) ---
-    if opcao == "🔍 Diagnóstico dos Processos":
-        set_page_width(95)
-        tela_diagnostico_processos()
-
-    elif opcao == "🏢 Cadastro de Áreas e Funcionários":
-        set_page_width(95)
-        tela_cadastro_area()
-
-    elif opcao == "👁️ Visão Geral do Diagnóstico":
-        set_page_width(95)
-        tela_visao_geral_processos()
-
-    elif opcao == "📋 Geração de Relatórios":
-        set_page_width(95)
-        from modules.comunicacaoresultados.relatorios import tela_relatorios
-        tela_relatorios()
-
-    elif opcao == "📅 Plano Anual de Auditoria":
-        tela_plano_anual()
-
-    elif opcao == "📋 Detalhamento dos Processos":
-        set_page_width(95)
-        if 'processo_detalhe' in st.session_state:
-            tela_detalhe_processo_auditoria()
-        elif 'auditoria_selecionada' in st.session_state:
-            tela_detalhe_auditoria()
-        else:
-            tela_auditorias_trimestrais()
-            
-    elif opcao == "📣 Comunicação dos Resultados":
-        set_page_width(95)
-        from modules.comunicacaoresultados.evolucao import tela_evolucao_auditoria
-        tela_evolucao_auditoria()
+# Ponto de entrada da aplicação
+if __name__ == '__main__':
+    print("🚀 Servidor Flask iniciando...")
+    print(f"📁 SECRET_KEY configurada: {'OK' if app.secret_key else 'FALHOU'}")
+    print(f"⏱️ Timeout da sessão: {app.config['PERMANENT_SESSION_LIFETIME']}")
+    print("\n📍 Acesse: http://127.0.0.1:5000/login")
+    print("🔒 Para testar o login, use suas credenciais cadastradas no Supabase")
+    print("\n⚠️ Aperte CTRL+C para parar o servidor\n")
     
-    elif opcao == '📜 Histórico':
-        set_page_width(95)
-        from modules.shared.log_sistema import tela_historico
-        tela_historico()
-
-
-# --- DISPARADOR FINAL ---
-
-if __name__ == "__main__":
-    main()
+    app.run(debug=True, host='0.0.0.0', port=5000)
