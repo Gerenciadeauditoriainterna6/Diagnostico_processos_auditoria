@@ -13,6 +13,7 @@ from logic import (listar_areas, listar_processos_da_auditoria_com_riscos,
 )
 import time as time_module
 from modules.shared.log_sistema import registrar_log
+from modules.shared.permissoes import filtrar_auditorias_por_usuario
 
 def buscar_processos_para_relatorio():
     """Busca todos os processos ativos, ignorando se já foi gerado ou não"""
@@ -616,9 +617,9 @@ def tela_relatorios():
             area_selecionada = st.selectbox("Selecione a Área", list(opcoes_area.keys()))
             id_area = opcoes_area[area_selecionada]
 
-            # --- NOVO: Buscar auditorias desta área ---
+            # Buscar auditorias desta área (com responsavel_equipe)
             query_auds = text("""
-                SELECT id, titulo, codigo_auditoria 
+                SELECT id, titulo, codigo_auditoria, responsavel_equipe
                 FROM auditorias 
                 WHERE id_area = :id_area 
                 ORDER BY created_at DESC
@@ -626,11 +627,14 @@ def tela_relatorios():
             with engine.connect() as conn:
                 df_auds_area = pd.read_sql(query_auds, conn, params={"id_area": id_area})
 
+            # ===== FILTRAR AUDITORIAS POR USUÁRIO =====
+            df_auds_area = filtrar_auditorias_por_usuario(df_auds_area)
+
             if df_auds_area.empty:
-                st.error(f"⚠️ A área '{area_selecionada}' não possui nenhuma auditoria vinculada. Crie uma auditoria antes de gerar o relatório.")
+                st.error(f"⚠️ Você não tem acesso a nenhuma auditoria para a área '{area_selecionada}'.")
             else:
                 opcoes_auditoria = {f"{row['codigo_auditoria']} - {row['titulo']}": row['id'] for _, row in df_auds_area.iterrows()}
-                auditoria_selecionada = st.selectbox("2. Selecione a Auditoria", list(opcoes_auditoria.keys()))
+                auditoria_selecionada = st.selectbox("Selecione a Auditoria", list(opcoes_auditoria.keys()))
                 id_auditoria = opcoes_auditoria[auditoria_selecionada]
 
                 col_orient1, col_orient2 = st.columns(2)
@@ -645,7 +649,6 @@ def tela_relatorios():
                 if st.button("Gerar Relatório Gerencial", type="primary"):
                     with st.spinner("Cruzando dados da auditoria..."):
                         time_module.sleep(1.15)
-                        # Passamos o id_auditoria agora
                         pdf_bytes = gerar_relatorio_gerencial_area(id_area, area_selecionada, gestor, orientacao, id_auditoria)
                         
                         if pdf_bytes:

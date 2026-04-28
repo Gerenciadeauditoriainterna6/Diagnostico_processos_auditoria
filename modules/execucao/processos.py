@@ -13,6 +13,8 @@ from modules.shared.validators import validar_formulario
 from logic import (listar_riscos_do_processo, normalizar_valor_risco, buscar_processo_por_codigo, listar_executores_processo,
 listar_funcionarios_area, processar_codigo_inteligente, listar_funcionarios_por_area, validar_basicos, salvar_informacoes_basicas,
 listar_categorias, MAPA_RISCO, get_estilo_risco, salvar_no_banco, vincular_processo_a_auditoria, salvar_edicao_processo_completa, listar_categorias_causas)
+from modules.shared.permissoes import usuario_tem_acesso_auditoria, filtrar_auditorias_por_usuario
+
 
 areas_dict = carregar_areas_banco()
 
@@ -20,7 +22,7 @@ areas_dict = carregar_areas_banco()
 
 def listar_auditorias_para_area(id_area):
     query = text("""
-        SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, responsavel_equipe
         FROM auditorias
         WHERE id_area = :id_area
         ORDER BY ano DESC, trimestre DESC
@@ -369,6 +371,11 @@ def _tela_novo_processo():
     id_area_atual = st.session_state['id_area_selecionado']
     df_auditorias_area = listar_auditorias_para_area(id_area_atual)
 
+    # ===== ADICIONAR FILTRO POR USUÁRIO =====
+    if not df_auditorias_area.empty:
+        df_auditorias_area = filtrar_auditorias_por_usuario(df_auditorias_area)
+    # ========================================
+
     if not df_auditorias_area.empty:
         opcoes_auditoria = []
         for _, row in df_auditorias_area.iterrows():
@@ -386,13 +393,20 @@ def _tela_novo_processo():
             options=display_list,
             help="Selecione a auditoria à qual este processo pertence."
         )
-        
-        st.session_state['auditoria_diagnostico'] = id_map[auditoria_escolhida]
-        auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == id_map[auditoria_escolhida]].iloc[0]
-        st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
-        
+
+        # ===== VERIFICAR ACESSO ANTES DE PERMITIR VINCULAÇÃO =====
+        auditoria_id = id_map[auditoria_escolhida]
+        if not usuario_tem_acesso_auditoria(auditoria_id):
+            st.error("⛔ Você não tem permissão para vincular processos a esta auditoria.")
+            st.session_state['auditoria_diagnostico'] = None
+        else:
+            st.session_state['auditoria_diagnostico'] = auditoria_id
+            auditoria_selecionada = df_auditorias_area[df_auditorias_area['id'] == auditoria_id].iloc[0]
+            st.success(f"✅ Processo será vinculado à auditoria: **{auditoria_selecionada['codigo_auditoria']}**")
+        # ==========================================================
+    
     else:
-        st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área.")
+        st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área ou você não tem acesso.")
         st.info("💡 Para diagnosticar processos, é necessário vincular a uma auditoria.")
         
         col_btn1, col_btn2 = st.columns([1, 3])
@@ -1070,28 +1084,37 @@ def _tela_editar_processo():
     
     # Buscar auditorias da área selecionada
     df_auditorias_area = listar_auditorias_para_area(id_area_atual_edit)
-    
+
     if not df_auditorias_area.empty:
-        opcoes_auditoria = []
-        for _, row in df_auditorias_area.iterrows():
-            status_emoji = "🟡" if row['status'] == 'Planejamento' else "🟢"
-            opcoes_auditoria.append({
-                "id": row['id'],
-                "display": f"{status_emoji} {row['codigo_auditoria']} - {row['titulo']} ({row['ano']} {row['trimestre']}º trim)"
-            })
+        # ===== ADICIONAR FILTRO POR USUÁRIO =====
+        from modules.shared.permissoes import filtrar_auditorias_por_usuario
+        df_auditorias_area = filtrar_auditorias_por_usuario(df_auditorias_area)
+        # ========================================
         
-        display_list = [item["display"] for item in opcoes_auditoria]
-        id_map_auditoria = {item["display"]: item["id"] for item in opcoes_auditoria}
-                        
-        auditoria_escolhida = st.selectbox(
-            "Escolha a auditoria para filtrar os processos:",
-            options=display_list,
-            key="auditoria_select_edit",
-            help="Selecione a auditoria à qual o processo pertence."
-        )
-        
-        st.session_state['auditoria_edit'] = id_map_auditoria[auditoria_escolhida]
-        st.success(f"Filtrando processos da auditoria: **{auditoria_escolhida.split(' - ')[0]}**")
+        if df_auditorias_area.empty:
+            st.warning("⚠️ Você não tem acesso a nenhuma auditoria nesta área.")
+            st.session_state['auditoria_edit'] = None
+        else:
+            opcoes_auditoria = []
+            for _, row in df_auditorias_area.iterrows():
+                status_emoji = "🟡" if row['status'] == 'Planejamento' else "🟢"
+                opcoes_auditoria.append({
+                    "id": row['id'],
+                    "display": f"{status_emoji} {row['codigo_auditoria']} - {row['titulo']} ({row['ano']} {row['trimestre']}º trim)"
+                })
+            
+            display_list = [item["display"] for item in opcoes_auditoria]
+            id_map_auditoria = {item["display"]: item["id"] for item in opcoes_auditoria}
+                            
+            auditoria_escolhida = st.selectbox(
+                "Escolha a auditoria para filtrar os processos:",
+                options=display_list,
+                key="auditoria_select_edit",
+                help="Selecione a auditoria à qual o processo pertence."
+            )
+            
+            st.session_state['auditoria_edit'] = id_map_auditoria[auditoria_escolhida]
+            st.success(f"Filtrando processos da auditoria: **{auditoria_escolhida.split(' - ')[0]}**")
     else:
         st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
         st.session_state['auditoria_edit'] = None
@@ -1173,6 +1196,12 @@ def _tela_editar_processo():
     
     # ===== BUSCAR PROCESSOS DA ÁREA E AUDITORIA SELECIONADAS =====
     if id_area_atual_edit and st.session_state.get('auditoria_edit'):
+
+        # ===== VERIFICAR ACESSO DO USUÁRIO À AUDITORIA =====
+        if not usuario_tem_acesso_auditoria(st.session_state['auditoria_edit']):
+            st.error("⛔ Você não tem permissão para acessar os processos desta auditoria.")
+            st.stop()  # Interrompe a execução da tela
+        # ========================================================
         
         query = text("""
             SELECT p.id, p.codigo_processo, p.nome_processo
