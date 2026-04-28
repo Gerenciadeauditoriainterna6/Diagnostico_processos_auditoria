@@ -2,6 +2,7 @@
 Funções utilitárias compartilhadas
 """
 import streamlit as st
+from datetime import datetime
 
 
 def exibir_descricao_categorias():
@@ -15,7 +16,8 @@ def exibir_descricao_categorias():
                 <li><strong>Risco Legal:</strong> - Engloba todas as ameaças as quais a FUSVE esteja vulnerável em decorrência do descumprimento das legislações vigentes.</li>
                 <li><strong>Risco Inerente:</strong> - É o nível de risco natural de uma atividade ou processo antes de qualquer ação de controle ou mitigação ser aplicada.</li>
                 <li><strong>Risco de TI:</strong> - A possibilidade de ocorrência de deficiência ou inadequação de quaisquer processos que envolvem sistemas ou tecnologia.</li>
-                <li><strong>Risco Integridade:</strong> - O potencial de qualquer evento, controlável ou não, de prejudicar negativamente a reputação de uma organização.</li>
+                <li><strong>Risco Integridade:</strong> - Engloba as atividades divergentes aos valores, princípios e normas éticas da FUSVE, geralmente, àquelas ligadas a fraudes e atos de corrupção</li>
+                <li><strong>Risco Reputacional:</strong> - O potencial de qualquer evento, controlável ou não, de prejudicar negativamente a reputação de uma organização.</li>
                 <li><strong>Risco Ambiental:</strong> - Qualquer ameaça causada por agentes físicos, químicos ou biológicos que possam acarretar em descumprimento das normas, podendo comprometer a saúde e a segurança dos envolvidos ao ecossistema.</li>
             </ul>
             <p style='margin-top: 10px; font-size: 0.85em; color: #6c757d;'>
@@ -61,3 +63,9 @@ def limpar_campos_por_prefixo(prefixo):
 def limpar_todos_campos():
     """Limpa todos os campos da tela de diagnóstico - usa reset de formulário"""
     st.session_state['deve_limpar_diagnostico'] = True
+
+def validar_data(data_str):
+    try:
+        return datetime.strptime(data_str, '%d/%m/%Y').date()
+    except ValueError:
+        return None

@@ -523,6 +523,18 @@ def listar_categorias():
     }
     return categorias
 
+def listar_categorias_causas():
+    """Retorna as categorias de causas pré-definidas"""
+    categorias_causa = {
+        1: "Falha Operacional",
+        2: "Falta de Controle",
+        3: "Não Conformidade",
+        4: "Problemas Financeiros",
+        5: "Fenômeno Natural",
+        6: "Fraude"
+    }
+    return categorias_causa
+
 def buscar_processo_por_codigo(codigo):
     """Busca todos os detalhes de um processo e o nome do gestor da área."""
     query = text("""
@@ -1198,9 +1210,11 @@ def salvar_no_banco():
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
+                probabilidade, apetite_risco, motivo_risco, score_risco, categoria, causas,
+                tratamento_risco, descricao_tratamento, prazo_implantacao) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria, :causas,
+                :tratamento, :descricao_tratamento, :prazo_implantacao)
                 RETURNING id
             """)
 
@@ -1224,6 +1238,14 @@ def salvar_no_banco():
                 else:
                     categoria_str = None
 
+                causas_ids = st.session_state.get(f"causas_{i}", [])
+                mapa_causas = listar_categorias_causas()
+                if causas_ids:
+                    causas_selecionadas = [mapa_causas.get(cid) for cid in causas_ids if cid in mapa_causas]
+                    causas_str = ', '.join(causas_selecionadas)
+                else:
+                    causas_str = None
+
                 result = conn.execute(sql_risco, {
                     "pid": processo_id,
                     "nome": nome_risco_com_prefixo,
@@ -1234,7 +1256,11 @@ def salvar_no_banco():
                     "apetite": st.session_state.get(f"apetite_{i}"),
                     "motivo": st.session_state.get(f"motivo_{i}"),
                     "score": score,
-                    "categoria": categoria_str
+                    "categoria": categoria_str,
+                    "causas": causas_str,
+                    "tratamento": st.session_state.get(f"tratamento_{i}", None),
+                    "descricao_tratamento": st.session_state.get(f"descricao_tratamento_{i}", None),
+                    "prazo_implantacao": st.session_state.get(f"prazo_implantacao_{i}", None)
                 })
                 
                 risco_id = result.scalar()
@@ -1247,7 +1273,8 @@ def salvar_no_banco():
                     'impacto': imp,
                     'probabilidade': prob,
                     'score_risco': score,
-                    'categoria': categoria_str
+                    'categoria': categoria_str,
+                    'causas': causas_str
                 }
                 
                 registrar_log(
@@ -1940,8 +1967,8 @@ def listar_riscos_do_processo(processo_id):
     """Retorna todos os riscos de um processo com sua categoria"""
     query = text("""
         SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
-               r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
-               r.categoria
+            r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
+            r.categoria, r.causas, r.tratamento_risco, r.descricao_tratamento, r.prazo_implantacao
         FROM riscos r
         WHERE r.processo_id = :pid
         ORDER BY r.id
@@ -2353,9 +2380,9 @@ def salvar_edicao_processo():
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
+                probabilidade, apetite_risco, motivo_risco, score_risco, categoria, causas) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria, :causas)
                 RETURNING id
             """)
             
@@ -2559,21 +2586,31 @@ def salvar_edicao_processo_completa(dados):
             sql_risco = text("""
                 INSERT INTO riscos 
                 (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                 probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
+                 probabilidade, apetite_risco, motivo_risco, score_risco, categoria, causas,
+                 tratamento_risco, descricao_tratamento, prazo_implantacao) 
                 VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :cat)
+                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :cat, :causas,
+                 :tratamento, :descricao_tratamento, :prazo_implantacao)
                 RETURNING id
             """)
             
             for risco in dados.get('riscos', []):
                 mapa_categorias = listar_categorias()
-                categorias_selecionadas = risco.get('categorias', [])
-                
+                mapa_causas = listar_categorias_causas()
+
+                categorias_selecionadas = risco.get('categorias_ids', [])
                 if isinstance(categorias_selecionadas, list):
                     nomes_cats = [mapa_categorias.get(cid) for cid in categorias_selecionadas if cid in mapa_categorias]
                     categoria_final = ", ".join(nomes_cats)
                 else:
                     categoria_final = mapa_categorias.get(categorias_selecionadas, str(categorias_selecionadas))
+
+                causas_selecionadas = risco.get('causas_ids', risco.get('causas', []))
+                if isinstance(causas_selecionadas, list) and causas_selecionadas:
+                    nomes_causas = [mapa_causas.get(cid) for cid in causas_selecionadas if cid in mapa_causas]
+                    causas_final = ', '.join(nomes_causas) if nomes_causas else None
+                else:
+                    causas_final = None
 
                 nome_raw = risco.get('nome', '').strip()
                 nome_com_prefixo = f"Risco pela possibilidade {nome_raw}" if nome_raw else ''
@@ -2595,7 +2632,11 @@ def salvar_edicao_processo_completa(dados):
                     "apetite": risco.get('apetite', ''),
                     "motivo": risco.get('motivo', ''),
                     "score": score,
-                    "cat": categoria_final
+                    "cat": categoria_final,
+                    "causas": causas_final,
+                    "tratamento": risco.get('tratamento_risco', None),
+                    "descricao_tratamento": risco.get('descricao_tratamento', None),
+                    "prazo_implantacao": risco.get('prazo_implantacao', None)
                 })
                 
                 risco_id = result.scalar()
@@ -2612,7 +2653,11 @@ def salvar_edicao_processo_completa(dados):
                         'impacto': imp,
                         'probabilidade': prob,
                         'score_risco': score,
-                        'categoria': categoria_final
+                        'categoria': categoria_final,
+                        'causas': causas_final,
+                        'tratamento_risco': risco.get('tratamento_risco', None),
+                        'descricao_tratamento': risco.get('descricao_tratamento', None)[:100] if risco.get('descricao_tratamento') else None,
+                        'prazo_implantacao': str(risco.get('prazo_implantacao')) if risco.get('prazo_implantacao') else None
                     }
                 )
             

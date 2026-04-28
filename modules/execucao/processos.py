@@ -8,11 +8,11 @@ import pandas as pd
 import time as time_module
 from datetime import datetime, timedelta
 from modules.execucao.areas import carregar_areas_banco
-from modules.shared.utils import exibir_criterios_risco, exibir_descricao_categorias
+from modules.shared.utils import exibir_criterios_risco, exibir_descricao_categorias, validar_data
 from modules.shared.validators import validar_formulario
 from logic import (listar_riscos_do_processo, normalizar_valor_risco, buscar_processo_por_codigo, listar_executores_processo,
 listar_funcionarios_area, processar_codigo_inteligente, listar_funcionarios_por_area, validar_basicos, salvar_informacoes_basicas,
-listar_categorias, MAPA_RISCO, get_estilo_risco, salvar_no_banco, vincular_processo_a_auditoria, salvar_edicao_processo_completa)
+listar_categorias, MAPA_RISCO, get_estilo_risco, salvar_no_banco, vincular_processo_a_auditoria, salvar_edicao_processo_completa, listar_categorias_causas)
 
 areas_dict = carregar_areas_banco()
 
@@ -515,7 +515,7 @@ def _tela_novo_processo():
     st.markdown("""
         <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
             <h3 style='margin: 0; padding: 0;'>2. Informações Iniciais do Processo</h3>
-            <span style='cursor: help; font-size: 1.2rem;' title='Associe o aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
+            <span style='cursor: help; font-size: 1.2rem;' title='Associe aos processos ou atividades, os funcionários que executam os mesmos. Em seguida, preencha os demais campos do diagnóstico conforme solicitado.'>ⓘ</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -523,7 +523,7 @@ def _tela_novo_processo():
     nome_processo = st.text_input(
         "Nome do Processo:", 
         key="input_processo", 
-        help="Digite o nome do processo.",
+        help="PROCESSOS OU ATIVIDADES REALIZADOS: São todas as atividades realizadas pela área. (Existem fluxos distintos dentro desse processo? Se sim é preciso criar um processo para cada fluxo).",
         placeholder="Ex: Processo de Fechamento Financeiro, Processo de Recrutamento e Seleção, etc."
     )
 
@@ -650,7 +650,7 @@ def _tela_novo_processo():
         with st.container():
 
             # Dados do Processo
-            st.text_area("O que é o processo?:", key="input_descricao", help="Gestor diz com as suas palavras o que entende ser o processo.")
+            st.text_area("O que é o processo?:", key="input_descricao", help="Pergunta-chave: O que acontece aqui dentro no dia a dia? Exemplo (Processo de Contratação): É o conjunto de etapas que inclui a abertura da vaga, a triagem de currículos, as entrevistas e a coleta de documentos do candidato.")
             st.text_area("Onde Começa o Processo?:", key="input_etapa_ini", 
                         help="Onde começa o processo? (Ex: Do envio do relatório x pela área y) - ETAPA INICIAL")
             st.text_area("Qual (is) o Produto (s) Final Desse Processo?:", key="input_produto", 
@@ -665,13 +665,18 @@ def _tela_novo_processo():
         
         # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
         st.markdown("""
-        <div style='font-family: helvetica; color: #ff0000; font-size: 20px; line-height: 1;'>
-            <p><strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
+        <div style='font-family: helvetica; color: #000000; font-size: 20px; line-height: 1;'>
+            <p><strong>⚠️ AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
         </div>
         """, unsafe_allow_html=True)
         st.divider()
         
-        st.subheader("3. Riscos Associados")
+        st.markdown("""
+            <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
+                <h3 style='margin: 0; padding: 0;'>3. RISCOS ASSOCIADOS</h3>
+                <span style='cursor: help; font-size: 1.2rem;' title=' Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente?'>ⓘ</span>
+            </div>
+        """, unsafe_allow_html=True)
 
         # CSS para estilizar os campos de risco
         st.markdown("""
@@ -831,6 +836,18 @@ def _tela_novo_processo():
                     on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
 
+                # Categoria de causa
+                causas_dict = listar_categorias_causas()
+                causas_selecionadas = st.multiselect(
+                    "Motivo do Risco:",
+                    options=list(causas_dict.keys()),
+                    format_func=lambda x: causas_dict[x],
+                    default=st.session_state.get(f"causas_{i}", []),
+                    key=f"causas_{i}",
+                    help="CATEGORIA de CAUSAS (MOTIVO DO RISCO): , Falha Operacional, Falta de Controle, Não Conformidade, Problemas Financeiro, Fenômeno Natural e Fraude.",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
+                )
+
                     # Ponto de Melhoria
                 st.text_area(
                     f"Ponto de Melhoria:", 
@@ -882,12 +899,63 @@ def _tela_novo_processo():
 
                 # Motivo da classificação
                 st.text_area(
-                    f"Motivo:",
+                    f"Motivo da classificação da probabilidade:",
                     key=f"motivo_{i}",
-                    placeholder="Justifique a escolha do impacto e probabilidade acima.",
                     help="Qual o motivo da classificação do nível da probabilidade? - ANÁLISE",
                     on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
+
+                # ==== CAMPOS PARA TRATAMENTO DO RISCO (NOVO PROCESSO) ====
+                st.markdown("### 🛠️ Tratamento do Risco")
+
+                # Campo 1: Como tratar o risco (Selectbox com opções)
+                tratamento_opcoes = [
+                    "Aceitar",
+                    "Mitigar",
+                    "Compartilhar",
+                    "Evitar",
+                ]
+
+                tratamento_selecionado = st.selectbox(
+                    "Como tratar o risco?",
+                    options=tratamento_opcoes,
+                    key=f"tratamento_{i}",
+                    help="COMO TRATAR O RISCO? 1) EVITAR? (isso quer dizer deixar de fazer o processo); 2) MITIGAR? (isso quer dizer incluir um controle interno para mitigar a probabilidade do evento acontecer, mesmo sabendo que o sistema de controle interno não é absoluto e que o evento possui chances de ocorrer); 3) COMPARTILHAR? (isso quer dizer quando a responsabilidade pela mitigação do risco é terceirizada ou dividida com agentes terceiros, por exemplo uma outra área ou um seguro de veículo. 4) ACEITAR? (isso quer dizer quando a magnitude do risco já foi medida e ela esta dentro do meu apetite a risco ou quando o custo para mitigar for maior que o custo de ter o risco)",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
+                )
+
+                # Campo 2: Descrição do tratamento
+                descricao_tratamento = st.text_area(
+                    "Descrição do Tratamento:",
+                    key=f"descricao_tratamento_{i}",
+                    placeholder="Descreva detalhadamento como o risco será tratado...",
+                    help="DESCRIÇÃO DO TRATAMENTO - MOTIVO E PRAZO DE IMPLANTAÇÃO (Iniciar a implantação ao término da auditoria)",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
+                )
+
+                # Campo 3: Prazo para implantação
+                prazo_text = st.text_input(
+                    "Prazo de Implantação (DD/MM/AAAA):",
+                    key=f"prazo_implantacao_{i}",
+                    placeholder="Ex: 31/12/2026",
+                    help="Informe a data no formato DD/MM/AAAA",
+                    on_change=lambda idx=i: manter_expander_aberto(idx)
+                )
+
+                # Depois de validar a data
+                if prazo_text:
+                    try:
+                        prazo_implantacao = datetime.strptime(prazo_text, '%d/%m/%Y').date()
+                    except ValueError:
+                        st.error(f"⚠️ Data inválida: '{prazo_text}'. Use o formato DD/MM/AAAA")
+                        prazo_implantacao = None
+                else:
+                    prazo_implantacao = None
+
+                # Salvar no session_state para uso no salvar_no_banco
+                st.session_state[f"tratamento_{i}"] = tratamento_selecionado
+                st.session_state[f"descricao_tratamento_{i}"] = descricao_tratamento
+                st.session_state[f"prazo_implantacao_{i}"] = prazo_implantacao
 
                 st.markdown("---")
         # Remover os riscos marcados
@@ -1083,8 +1151,12 @@ def _tela_editar_processo():
                             'motivo': row['motivo_risco'] or '',
                             'categorias_ids': row['categorias_ids'] if 'categorias_ids' in row else [],  # Agora vem como lista de IDs
                             'categorias_string': row['categoria'] if 'categoria' in row else '',  # Guardar a string original
+                            'causas': row.get('causas', ''),
                             'impacto': normalizar_valor_risco(row['impacto']),
-                            'probabilidade': normalizar_valor_risco(row['probabilidade'])
+                            'probabilidade': normalizar_valor_risco(row['probabilidade']),
+                            'tratamento_risco': row.get('tratamento_risco', ''),
+                            'descricao_tratamento': row.get('descricao_tratamento', ''),
+                            'prazo_implantacao': row.get('prazo_implantacao', None),
                         })
                         # Inicialiar expander abertos para todos os riscos carregados
                         st.session_state['edit_expanders_abertos'][idx] = True
@@ -1183,8 +1255,12 @@ def _tela_editar_processo():
                                         'motivo': row['motivo_risco'] or "",
                                         'categorias_ids': row['categorias_ids'] if 'categorias_ids' in row else [],
                                         'categorias_string': row['categoria'] if 'categoria' in row else '',
+                                        'causas': row.get('causas', ''),
                                         'impacto': normalizar_valor_risco(row['impacto']),
-                                        'probabilidade': normalizar_valor_risco(row['probabilidade'])
+                                        'probabilidade': normalizar_valor_risco(row['probabilidade']),
+                                        'tratamento_risco': row.get('tratamento_risco', ''),
+                                        'descricao_tratamento': row.get('descricao_tratamento', ''),
+                                        'prazo_implantacao': row.get('prazo_implantacao', None),
                                     })
                                     # Inicializar expander abertos apra todos os riscos
                                     st.session_state['edit_expanders_abertos'][idx] = True
@@ -1301,7 +1377,8 @@ def _tela_editar_processo():
         st.text_area(
             "Qual o Objetivo do Processo? e Por que faz?:", 
             value=processo_data.get('objetivo', ''),
-            key=f"edit_input_objetivo_{form_version}"
+            key=f"edit_input_objetivo_{form_version}",
+            help="QUAL O OBJETIVO DO PROCESSO? Porque faz? Exemplo (Objetivo da Contratação): Garantir que a empresa tenha o talento certo, na cadeira certa, no tempo necessário para não perder produtividade."
         )
         
         st.write("")
@@ -1328,7 +1405,6 @@ def _tela_editar_processo():
         
         if riscos_lista:
             indices_para_remover = []
-            
             
             for i, risco in enumerate(riscos_lista):
                 # Título do expander
@@ -1397,6 +1473,9 @@ def _tela_editar_processo():
                     # Salvar os IDs para uso futuro
                     risco['categorias_ids'] = categorias_selecionadas_ids
 
+
+                    # Campo fator de risco
+
                     novo_fator = st.text_area(
                         "Fator de Risco:",
                         value=risco.get('fator', ''),
@@ -1406,6 +1485,32 @@ def _tela_editar_processo():
                         on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
                     risco['fator'] = novo_fator
+
+                    # Campo de causas
+                    causas_dict = listar_categorias_causas()
+
+                    # Converter string salva para lista
+                    causas_string = risco.get('causas', '')
+                    if causas_string:
+                        causas_default = [c.strip() for c in causas_string.split(',') if c.strip()]
+                    else:
+                        causas_default = []
+                    
+                    causas_selecionadas_ids = st.multiselect(
+                        "Motivo do Risco:",
+                        options=list(causas_dict.keys()),
+                        format_func=lambda x: causas_dict[x],
+                        default=causas_default,
+                        key=f"edit_causas_{form_version}_{i}",
+                        help="CATEGORIA de CAUSAS (MOTIVO DO RISCO): , Falha Operacional, Falta de Controle, Não Conformidade, Problemas Financeiro, Fenômeno Natural e Fraude.",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
+                    )
+
+                    # Salvar os IDS para uso futuro no salvamento
+                    risco['causas_ids'] = causas_selecionadas_ids
+
+                    
+                    # Campo ponto de melhoria
                     
                     nova_melhoria = st.text_area(
                         "Ponto de Melhoria:",
@@ -1460,14 +1565,72 @@ def _tela_editar_processo():
                     """, unsafe_allow_html=True)
                     
                     novo_motivo = st.text_area(
-                        "Motivo:",
+                        "Motivo da classificação da probabilidade:",
                         value=risco.get('motivo', ''), 
                         key=f"edit_motivo_{form_version}_{i}", 
-                        placeholder="Justifique a escolha do impacto e probabilidade acima.",
                         help="Qual o motivo da classificação do nível da probabilidade?",
                         on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
                     risco['motivo'] = novo_motivo
+
+                    # ===== CAMPOS PARA TRATAMENTO (EDIÇÃO DO PROCESSO) =====
+                    st.markdown("### 🛠️ Tratamento do Risco")
+
+                    tratamento_opcoes = [
+                        "Aceitar o risco",
+                        "Mitigar o risco",
+                        "Transferir o risco",
+                        "Evitar o risco",
+                        "Explorar o risco"
+                    ]
+
+                    # Valor atual do tratamento
+                    tratamento_atual = risco.get('tratamento_risco', '')
+                    tratamento_index = 0 if tratamento_atual else 0
+                    if tratamento_atual in tratamento_opcoes:
+                        tratamento_index = tratamento_opcoes.index(tratamento_atual) + 1
+
+                    tratamento_selecionado = st.selectbox(
+                        "Como tratar o risco:",
+                        options=[""] + tratamento_opcoes,
+                        index=tratamento_index,
+                        key=f"edit_tratamento_{form_version}_{i}",
+                        help="Selecione a estratégia de tratamento para este risco",
+                        placeholder="Selecione um método para tratar o risco.",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
+                    )
+                    risco['tratamento_risco'] = tratamento_selecionado if tratamento_selecionado else None
+
+                    descricao_tratamento = st.text_area(
+                        "Descrição do Tratamento:",
+                        value=risco.get('descricao_tratamento', ''),
+                        key=f"edit_descricao_tratamento_{form_version}_{i}",
+                        placeholder="Descreva detalhadamente como o risco será tratado...",
+                        help="Explique as ações que serão tomadas para tratar este risco",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
+                    )
+                    risco['descricao_tratamento'] = descricao_tratamento if descricao_tratamento else None
+
+                    prazo_valor_atual = risco.get('prazo_implantacao', None)
+                    prazo_str_atual = prazo_valor_atual.strftime('%d/%m/%Y') if prazo_valor_atual else ''
+                    prazo_text = st.text_input(
+                        "Prazo de Implantação (DD/MM/AAAA):",
+                        value=prazo_str_atual,
+                        key=f"edit_prazo_text_{form_version}_{i}",
+                        placeholder="Ex: 31/12/2026",
+                        help="Informe a data no formato DD/MM/AAAA",
+                        on_change=lambda idx=i: manter_expander_aberto_edit(idx)
+                    )
+
+                    # Validar e converter
+                    if prazo_text:
+                        prazo_implantacao = validar_data(prazo_text)
+                        if prazo_implantacao is None and prazo_text:
+                            st.error(f"⚠️ Data inválida: '{prazo_text}'. Use o formato DD/MM/AAAA")
+                    else:
+                        prazo_implantacao = None
+
+                    risco['prazo_implantacao'] = prazo_implantacao
                     
                     st.markdown("---")
             
