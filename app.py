@@ -61,15 +61,19 @@ def main():
     import json
     session_data_str = local_storage.getItem("session_data")
     usuario_cache = None
+    usuario_nome_cache = None
     login_timestamp_cache = None
+
     if session_data_str and session_data_str not in ["undefined", "null", "None"]:
         try:
             data = json.loads(session_data_str)
             usuario_cache = data.get("usuario")
-            ts_str = data.get("timestamp")
-            if ts_str:
-                login_timestamp_cache = datetime.fromisoformat(ts_str)
-        except Exception:
+            usuario_nome_cache = data.get("usuario_nome")
+            login_timestamp_cache = data.get("timestamp")
+            if login_timestamp_cache:
+                login_timestamp_cache = datetime.fromisoformat(login_timestamp_cache)
+        except Exception as e:
+            print(f"Erro ao ler session_data: {e}")
             pass
 
     # --- VERIFICAR EXPIRAÇÃO DA SESSÃO ---
@@ -96,6 +100,7 @@ def main():
                 if (datetime.now() - login_timestamp_cache).total_seconds() <= TEMPO_SESSAO_SEGUNDOS:
                     st.session_state['autenticado'] = True
                     st.session_state['usuario_logado'] = usuario_cache
+                    st.session_state["usuario_nome"] = usuario_nome_cache
                     st.session_state['login_timestamp'] = login_timestamp_cache
                 else:
                     # expirado, limpa localStorage

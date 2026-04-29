@@ -680,7 +680,7 @@ def _tela_novo_processo():
         # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
         st.markdown("""
         <div style='font-family: helvetica; color: #000000; font-size: 20px; line-height: 1;'>
-            <p><strong>⚠️ AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
+            <p>⚠️<strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
         </div>
         """, unsafe_allow_html=True)
         st.divider()
@@ -1412,8 +1412,20 @@ def _tela_editar_processo():
         
         st.write("")
         
-        # ===== RISCOS ASSOCIADOS =====
-        st.markdown("### Riscos Associados")
+        st.divider()
+        # ===== SEÇÃO 3: RISCOS ASSOCIADOS =====
+        st.markdown("""
+        <div style='font-family: helvetica; color: #000000; font-size: 28px; line-height: 1;'>
+            <p>⚠️<strong>AVALIAÇÃO DA MAGNITUDE DO RISCO</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+                
+        st.markdown("""
+            <div style='display: flex; align-items: center; gap: -2px; margin: 10px 0 5px 0;'>
+                <h3 style='margin: 0; padding: 0;'>3. RISCOS ASSOCIADOS</h3>
+                <span style='cursor: help; font-size: 1.2rem;' title=' Existem Incertezas ou Riscos do OBJETIVO DO PROCESSO não ser cumprido corretamente?'>ⓘ</span>
+            </div>
+        """, unsafe_allow_html=True)
         
         # Botão para adicionar risco
         col_add_risco, col_spacer = st.columns([1, 4])

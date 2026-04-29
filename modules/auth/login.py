@@ -521,6 +521,9 @@ def login_screen(local_storage):
                     local_storage.setItem("login_timestamp", datetime.now().isoformat(), key='set_login_timestamp')
                     session_data = {
                         'usuario': usuario,
+                        'usuario_nome': usuario_nome,
+                        'usuario_id': usuario_id,
+                        'usuario_perfil': usuario_perfil,
                         'timestamp': datetime.now().isoformat()
                     }
                     local_storage.setItem('session_data', json.dumps(session_data))
