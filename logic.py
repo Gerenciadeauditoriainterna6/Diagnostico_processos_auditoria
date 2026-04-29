@@ -8,6 +8,7 @@ from datetime import datetime
 import streamlit as st
 from modules.shared.log_sistema import registrar_log
 
+
 #local_storage = LocalStorage()
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1066,6 +1067,37 @@ def normalizar_valor_risco(valor):
         else:
             return "Baixo"
 
+def adicionar_prefixo_risco(texto):
+    """Adiciona prefixo 'Risco pela possibilidade' se não existir"""
+    if not texto:
+        return ''
+    texto = texto.strip()
+    prefixo = "Risco pela possibilidade"
+    if not texto.startswith(prefixo):
+        return f"{prefixo} {texto}"
+    return texto
+
+def adicionar_prefixo_fator(texto):
+    """Adiciona o prefixo 'Pelo motivo' se não existir"""
+    if not texto:
+        return ''
+    
+    texto = texto.strip()
+    prefixo = "Pelo motivo"
+    if not text.startswith(prefixo):
+        return f"{prefixo} {texto}"
+    return texto
+
+def adicionar_prefixo_objetivo(texto):
+    """Adicionar 'Garantir' se não existir"""
+    if not text:
+        return ''
+    texto = texto.strip()
+    prefixo = "Garantir"
+    if not text.startswith(prefixo):
+        return f"{prefixo} {texto}"
+    return texto
+
 def salvar_no_banco():
     """Salva novo processo ou atualiza existente, traduzindo categorias para nomes"""
     from logic import listar_categorias, resetar_timer_sessao
@@ -1222,10 +1254,10 @@ def salvar_no_banco():
 
             for i in range(len(st.session_state['riscos'])):
                 nome_risco_raw = st.session_state.get(f"nome_{i}", '').strip()
-                nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}" if nome_risco_raw else ''
+                nome_risco_com_prefixo = adicionar_prefixo_risco(nome_risco_raw)
                 
                 fator_raw = st.session_state.get(f"fator_{i}", '').strip()
-                fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
+                fator_com_prefixo = adicionar_prefixo_fator(fator_raw)
 
                 imp = st.session_state.get(f"imp_{i}")
                 prob = st.session_state.get(f"prob_{i}")
@@ -2613,10 +2645,10 @@ def salvar_edicao_processo_completa(dados):
                     causas_final = None
 
                 nome_raw = risco.get('nome', '').strip()
-                nome_com_prefixo = f"Risco pela possibilidade {nome_raw}" if nome_raw else ''
+                nome_com_prefixo = adicionar_prefixo_risco(nome_raw)
                 
                 fator_raw = risco.get('fator', '').strip()
-                fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
+                fator_com_prefixo = adicionar_prefixo_fator(fator_raw)
                 
                 imp = risco.get('impacto', 'Médio')
                 prob = risco.get('probabilidade', 'Médio')

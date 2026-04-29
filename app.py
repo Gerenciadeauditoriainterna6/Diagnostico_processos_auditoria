@@ -103,7 +103,7 @@ def main():
                     st.session_state['autenticado'] = True
                     st.session_state['usuario_logado'] = usuario_cache
                     st.session_state["usuario_nome"] = usuario_nome_cache
-                    st.sessioon_state["usuario_perfil"] = usuario_perfil_cache
+                    st.session_state["usuario_perfil"] = usuario_perfil_cache
                     st.session_state['login_timestamp'] = login_timestamp_cache
                 else:
                     # expirado, limpa localStorage

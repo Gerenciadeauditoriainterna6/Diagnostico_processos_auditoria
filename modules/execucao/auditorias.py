@@ -573,36 +573,36 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
         # Conta quantos riscos o processo tem
         quantidade_riscos = len(df_riscos_processo) if not df_riscos_processo.empty else 0
 
-        # Título no expander com quantidade
-        with st.expander(f"⚠️ Riscos deste Processo ({quantidade_riscos})", expanded=False):
-            df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
+        # # Título no expander com quantidade
+        # with st.expander(f"⚠️ Riscos deste Processo ({quantidade_riscos})", expanded=False):
+        #     df_riscos_processo = listar_riscos_do_processo(row['processo_id'])
             
-            if not df_riscos_processo.empty:
-                df_riscos_ordenados = df_riscos_processo.sort_values('score_risco', ascending=False)
-                for _, risco in df_riscos_ordenados.iterrows():
-                    score = risco.get('score_risco', 0)
-                    cor_risco, emoji_risco = get_estilo_risco(score)
+        #     if not df_riscos_processo.empty:
+        #         df_riscos_ordenados = df_riscos_processo.sort_values('score_risco', ascending=False)
+        #         for _, risco in df_riscos_ordenados.iterrows():
+        #             score = risco.get('score_risco', 0)
+        #             cor_risco, emoji_risco = get_estilo_risco(score)
                     
-                    st.markdown(f"""
-                        <div style='margin-bottom: 10px; padding: 8px; border-left: 4px solid {cor_risco}; background-color: #f9f9f9;'>
-                            <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
-                            <span style='font-size: 0.9em; color: #666;'>
-                                <strong>Fator:</strong> {risco['fator_risco']}<br>
-                                <strong>Ponto de melhoria:</strong> {risco['melhoria']}<br>
-                                <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
-                                <strong>Apetite a risco:</strong> {risco['apetite_risco']}<br>
-                                <strong>Motivo do risco:</strong> {risco['motivo_risco']}<br>
-                                <strong>Status Validação da gerência:</strong> {risco['validacao_gerencia']}<br>
-                                <strong>Categoria do risco:</strong> {risco['categoria']}<br>
-                                <strong>Causas:</strong> {risco['causas']}<br>
-                                <strong>Opção de tratamento do risco:</strong> {risco['tratamento_risco']}<br>
-                                <strong>Descrição do tratamento do risco:</strong> {risco['descricao_tratamento']}<br>
-                                <strong>Prazo para implementação:</strong> {risco['prazo_implantacao']}<br>
-                                <strong>Magnitude:</strong> {score}
-                            </span>
-                        </div>""", unsafe_allow_html=True)
-            else:
-                st.caption("Nenhum risco mapeado para este processo.")
+        #             st.markdown(f"""
+        #                 <div style='margin-bottom: 10px; padding: 8px; border-left: 4px solid {cor_risco}; background-color: #f9f9f9;'>
+        #                     <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
+        #                     <span style='font-size: 0.9em; color: #666;'>
+        #                         <strong>Fator:</strong> {risco['fator_risco']}<br>
+        #                         <strong>Ponto de melhoria:</strong> {risco['melhoria']}<br>
+        #                         <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
+        #                         <strong>Apetite a risco:</strong> {risco['apetite_risco']}<br>
+        #                         <strong>Motivo do risco:</strong> {risco['motivo_risco']}<br>
+        #                         <strong>Status Validação da gerência:</strong> {risco['validacao_gerencia']}<br>
+        #                         <strong>Categoria do risco:</strong> {risco['categoria']}<br>
+        #                         <strong>Causas:</strong> {risco['causas']}<br>
+        #                         <strong>Opção de tratamento do risco:</strong> {risco['tratamento_risco']}<br>
+        #                         <strong>Descrição do tratamento do risco:</strong> {risco['descricao_tratamento']}<br>
+        #                         <strong>Prazo para implementação:</strong> {risco['prazo_implantacao']}<br>
+        #                         <strong>Magnitude:</strong> {score}
+        #                     </span>
+        #                 </div>""", unsafe_allow_html=True)
+        #     else:
+        #         st.caption("Nenhum risco mapeado para este processo.")
         # ==== EXPANDER: ETAPAS DO PROCESSO ====
         with st.expander("📊 Etapas do Processo", expanded=False):
             from logic import listar_etapas_do_processo, listar_riscos_etapa, listar_controles_da_etapa
@@ -891,12 +891,16 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                     with col_c1:
                         st.text_input("Código", value=prox_cod, disabled=True)
                     with col_c2:
-                        desc_etapa = st.text_input("Descrição da Etapa")
+                        oque = st.text_input("Nome da etapa:")
+                        
                     
                     # O que faz, Como faz e Objetivo
-                    oque = st.text_area("O que faz?", placeholder="Descreva o que é feito nesta etapa")
-                    como = st.text_area("Como faz?", placeholder="Descreva como a etapa é executada")
-                    obj_etapa = st.text_area("Objetivo", placeholder="Qual o objetivo desta etapa?")
+                    desc_etapa = st.text_area("Descrição da Etapa:", help='DESCRIÇÃO DA ETAPA DO PROCESSO - O QUE VOCÊ FAZ? (Gestor descreve o que é feito na etapa desde o inicio até o final seguindo para a próxima etapa, processo ou área)')
+                    como = st.text_area("Como faz?", placeholder="Descreva como a etapa é executada", help='ESSA ETAPA SERÁ AVALIADO PELO AUDITOR, A NECESSIDADE DE DESCRIÇÃO DA ETAPA DO PROCESSO - COMO VOCÊ FAZ? (Gestor descreve como é feito na etapa desde o inicio até o final seguindo para a próxima etapa, processo ou área)')
+                    obj_etapa = st.text_area("Objetivo", placeholder="Qual o objetivo desta etapa?", help='Qual o OBJETIVO da Etapa? (Gestor contextualiza o porque a etapa é realizada)')
+
+                    # # Teste de eficácia
+                    # realizado = st.selectbox("Teste de eficácia: Está sendo realizado corretamente?", ["Sim", "Não", "Parcial"], help='TESTE DE EFICÁCIA - O OBJETIVO DA ETAPA ESTA SENDO REALIZADO DE MANEIRA CORRETA  E ALCANÇANDO O OBJETIVO?')
 
                     # Status e criticidade
                     col_status1, col_status2 = st.columns(2)
@@ -904,9 +908,6 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                         status = st.selectbox("Status", ["Ativa", "Inativa"])
                     with col_status2:
                         criticidade = st.selectbox("Criticidade", ["Aprovado", "Em Aprovação"])
-
-                    # Teste de eficácia
-                    realizado = st.selectbox("Realizado corretamente?", ["Sim", "Não", "Parcial"])
 
                     st.divider()
 
@@ -973,7 +974,6 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                                 "como": como,
                                 "obj": obj_etapa,
                                 "status": status,
-                                "real": realizado,
                                 "crit": criticidade,
                                 "exec": "",  # executor (pode ser adicionado depois)
                                 "pol": politica,
@@ -1020,11 +1020,11 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                 # Botão para adicionar controles
                 col_add_ctrl1, col_add_ctrl2 = st.columns([1, 3])
                 with col_add_ctrl1:
-                    if st.button("➕ Adicionar Controle", key=f"add_controle_geral_{row['processo_id']}"):
-                        st.session_state[f"add_controle_geral_{row['processo_id']}"] = True
+                    if st.button("➕ Adicionar Controle", key=f"btn_add_controle_geral_{row['processo_id']}"):
+                        st.session_state[f"show_controle_form_{row['processo_id']}"] = True
                 
                 # Formulário para adicionar controle (expansível)
-                if st.session_state.get(f"add_controle_geral_{row['processo_id']}", False):
+                if st.session_state.get(f"show_controle_form_{row['processo_id']}", False):
                     st.markdown("---")
                     st.markdown("#### 🎮 Adicionar Novo Controle")
                     
@@ -1360,7 +1360,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
         with col_b1:
             # Botão Ver Detalhes agora abre um expander inline
             detalhes_key = f"detalhes_processo_{row['processo_id']}"
-            if st.button("🔍 Ver Detalhes do Processo", key=f"ver_{row['processo_id']}"):
+            if st.button("🔍 Ver Diagnóstico do Processo", key=f"ver_{row['processo_id']}"):
                 st.session_state[detalhes_key] = not st.session_state.get(detalhes_key, False)
                 st.rerun()
         
@@ -1402,7 +1402,7 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
     # ==== DETALHES DO PROCESSO (EXPANDIDO) ====
     if st.session_state.get(f"detalhes_processo_{row['processo_id']}", False):
         st.markdown("---")
-        st.markdown("#### Detalhes do Processo")
+        st.markdown("#### Diagnóstico do Processo")
         st.markdown(f"Nº Processo: {row['codigo_processo']}")
 
         # Buscar dados completos do processo
@@ -1461,13 +1461,17 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
                         <strong>{emoji_risco} {risco['nome_risco']}</strong><br>
                         <span style='font-size: 0.9em; color: #666;'>
                             <strong>Fator:</strong> {risco['fator_risco']}<br>
-                            <strong> Ponto de melhoria:</strong> {risco['melhoria']}<br>
-                            <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
-                            <strong>Magnitude:</strong> {score}<br>
-                            <strong>Motivo da classificação do risco:</strong> {risco['motivo_risco']}<br>
-                            <strong>Validação da Gerência:</strong> {risco['validacao_gerencia']}<br>
-                            <strong>Validação da Superintendência:</strong> {risco['validacao_superintendencia']}<br>
-                            <strong>Categoria do risco:</strong> {risco['categoria']}<br>
+                                 <strong>Ponto de melhoria:</strong> {risco['melhoria']}<br>
+                                 <strong>Impacto:</strong> {risco['impacto']} | <strong>Probabilidade:</strong> {risco['probabilidade']}<br>
+                                 <strong>Apetite a risco:</strong> {risco['apetite_risco']}<br>
+                                 <strong>Motivo do risco:</strong> {risco['motivo_risco']}<br>
+                                 <strong>Status Validação da gerência:</strong> {risco['validacao_gerencia']}<br>
+                                 <strong>Categoria do risco:</strong> {risco['categoria']}<br>
+                                 <strong>Causas:</strong> {risco['causas']}<br>
+                                 <strong>Opção de tratamento do risco:</strong> {risco['tratamento_risco']}<br>
+                                 <strong>Descrição do tratamento do risco:</strong> {risco['descricao_tratamento']}<br>
+                                 <strong>Prazo para implementação:</strong> {risco['prazo_implantacao']}<br>
+                                 <strong>Magnitude:</strong> {score}
                         </span>
                     </div>
                 """, unsafe_allow_html=True)
@@ -1487,6 +1491,21 @@ def _exibir_card_processo_auditoria(row, auditoria_id):
         # Buscar resumo dos checklists
         from modules.execucao.checklists import obter_resumo_checklists
         resumo_checklists = obter_resumo_checklists(row['processo_id'], auditoria_id)
+
+        # ===== VERIFICAÇÃO DE SEGURANÇA =====
+
+        if resumo_checklists is None:
+            resumo_checklists = {
+                'governanca': {'status': 'Não Iniciado'},
+                'riscos': {'status': 'Não Iniciado'},
+                'controles': {'status': 'Nâo Iniciado'}
+            }
+
+        # Garantir que as chaves existem
+        governanca_status = resumo_checklists.get('governanca', {}).get('status', 'Não Iniciado')
+        riscos_status = resumo_checklists.get('riscos', {}).get('status', 'Não Iniciado')
+        controles_status = resumo_checklists.get('controles', {}).get('status', 'Não Iniciado')
+        # =====================================
 
         # Exibir resumo dos status
         col_r1, col_r2, col_r3 = st.columns(3)

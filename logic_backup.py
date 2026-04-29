@@ -744,7 +744,6 @@ def normalizar_valor_risco(valor):
         else:
             return "Baixo"
 
-
 def salvar_no_banco():
     resetar_timer_sessao()
     try:
