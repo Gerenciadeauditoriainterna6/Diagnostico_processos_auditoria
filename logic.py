@@ -1968,7 +1968,7 @@ def listar_riscos_do_processo(processo_id):
     query = text("""
         SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
             r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
-            r.categoria, r.causas, r.tratamento_risco, r.descricao_tratamento, r.prazo_implantacao
+            r.categoria, r.causas, r.validacao_gerencia, r.validacao_superintendencia, r.tratamento_risco, r.descricao_tratamento, r.prazo_implantacao
         FROM riscos r
         WHERE r.processo_id = :pid
         ORDER BY r.id

@@ -62,6 +62,7 @@ def main():
     session_data_str = local_storage.getItem("session_data")
     usuario_cache = None
     usuario_nome_cache = None
+    usuario_perfil_cache = None
     login_timestamp_cache = None
 
     if session_data_str and session_data_str not in ["undefined", "null", "None"]:
@@ -69,6 +70,7 @@ def main():
             data = json.loads(session_data_str)
             usuario_cache = data.get("usuario")
             usuario_nome_cache = data.get("usuario_nome")
+            usuario_perfil_cache = data.get('usuario_perfil')
             login_timestamp_cache = data.get("timestamp")
             if login_timestamp_cache:
                 login_timestamp_cache = datetime.fromisoformat(login_timestamp_cache)
@@ -101,6 +103,7 @@ def main():
                     st.session_state['autenticado'] = True
                     st.session_state['usuario_logado'] = usuario_cache
                     st.session_state["usuario_nome"] = usuario_nome_cache
+                    st.sessioon_state["usuario_perfil"] = usuario_perfil_cache
                     st.session_state['login_timestamp'] = login_timestamp_cache
                 else:
                     # expirado, limpa localStorage

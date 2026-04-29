@@ -853,7 +853,7 @@ def _tela_novo_processo():
                 # Categoria de causa
                 causas_dict = listar_categorias_causas()
                 causas_selecionadas = st.multiselect(
-                    "Motivo do Risco:",
+                    "Categoria de Causa:",
                     options=list(causas_dict.keys()),
                     format_func=lambda x: causas_dict[x],
                     default=st.session_state.get(f"causas_{i}", []),
@@ -952,7 +952,7 @@ def _tela_novo_processo():
                     "Prazo de Implantação (DD/MM/AAAA):",
                     key=f"prazo_implantacao_{i}",
                     placeholder="Ex: 31/12/2026",
-                    help="Informe a data no formato DD/MM/AAAA",
+                    help=" PRAZO DE IMPLANTAÇÃO DO TRATAMENTO DO MOTIVO (INICIAR A IMPLEMENTAÇÃO AO TÉRMINO DA AUDITORIA)",
                     on_change=lambda idx=i: manter_expander_aberto(idx)
                 )
 
@@ -1045,7 +1045,7 @@ def _tela_editar_processo():
     
     def listar_auditorias_para_area(id_area):
         query = text("""
-            SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+            SELECT id, codigo_auditoria, titulo, trimestre, ano, status, responsavel_equipe
             FROM auditorias
             WHERE id_area = :id_area
             AND status IN ('Planejamento', 'Em Execução')
@@ -1383,7 +1383,7 @@ def _tela_editar_processo():
             "O que é o processo?:", 
             value=processo_data.get('descricao', ''),
             key=f"edit_input_descricao_{form_version}",
-            help="Gestor diz com as suas palavras o que entende ser o processo."
+            help="O QUE É ESSE PROCESSO? Pergunta-chave: O que acontece aqui dentro no dia a dia? Exemplo (Processo de Contratação): É o conjunto de etapas que inclui a abertura da vaga, a triagem de currículos, as entrevistas e a coleta de documentos do candidato."
         )
         st.text_area(
             "Onde Começa o Processo?:", 
@@ -1538,7 +1538,7 @@ def _tela_editar_processo():
                         causas_default = []
                     
                     causas_selecionadas_ids = st.multiselect(
-                        "Motivo do Risco:",
+                        "Categoria de Causa",
                         options=list(causas_dict.keys()),
                         format_func=lambda x: causas_dict[x],
                         default=causas_default,
@@ -1618,11 +1618,10 @@ def _tela_editar_processo():
                     st.markdown("### 🛠️ Tratamento do Risco")
 
                     tratamento_opcoes = [
-                        "Aceitar o risco",
-                        "Mitigar o risco",
-                        "Transferir o risco",
-                        "Evitar o risco",
-                        "Explorar o risco"
+                    "Aceitar",
+                    "Mitigar",
+                    "Compartilhar",
+                    "Evitar",
                     ]
 
                     # Valor atual do tratamento
@@ -1636,7 +1635,7 @@ def _tela_editar_processo():
                         options=[""] + tratamento_opcoes,
                         index=tratamento_index,
                         key=f"edit_tratamento_{form_version}_{i}",
-                        help="Selecione a estratégia de tratamento para este risco",
+                        help="COMO TRATAR O RISCO? 1) EVITAR? (isso quer dizer deixar de fazer o processo); 2) MITIGAR? (isso quer dizer incluir um controle interno para mitigar a probabilidade do evento acontecer, mesmo sabendo que o sistema de controle interno não é absoluto e que o evento possui chances de ocorrer); 3) COMPARTILHAR? (isso quer dizer quando a responsabilidade pela mitigação do risco é terceirizada ou dividida com agentes terceiros, por exemplo uma outra área ou um seguro de veículo. 4) ACEITAR? (isso quer dizer quando a magnitude do risco já foi medida e ela esta dentro do meu apetite a risco ou quando o custo para mitigar for maior que o custo de ter o risco)",
                         placeholder="Selecione um método para tratar o risco.",
                         on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
@@ -1647,7 +1646,7 @@ def _tela_editar_processo():
                         value=risco.get('descricao_tratamento', ''),
                         key=f"edit_descricao_tratamento_{form_version}_{i}",
                         placeholder="Descreva detalhadamente como o risco será tratado...",
-                        help="Explique as ações que serão tomadas para tratar este risco",
+                        help="DESCRIÇÃO DO TRATAMENTO - MOTIVO E PRAZO DE IMPLANTAÇÃO (Iniciar a implantação ao término da auditoria)",
                         on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
                     risco['descricao_tratamento'] = descricao_tratamento if descricao_tratamento else None
@@ -1659,7 +1658,7 @@ def _tela_editar_processo():
                         value=prazo_str_atual,
                         key=f"edit_prazo_text_{form_version}_{i}",
                         placeholder="Ex: 31/12/2026",
-                        help="Informe a data no formato DD/MM/AAAA",
+                        help=" PRAZO DE IMPLANTAÇÃO DO TRATAMENTO DO MOTIVO (INICIAR A IMPLEMENTAÇÃO AO TÉRMINO DA AUDITORIA)",
                         on_change=lambda idx=i: manter_expander_aberto_edit(idx)
                     )
 
