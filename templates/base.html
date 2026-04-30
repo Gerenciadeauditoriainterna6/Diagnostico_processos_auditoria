@@ -32,7 +32,7 @@
             }
 
             .sidebar {
-                width: 200px;
+                width: 240px;
                 background: linear-gradient(180deg, #184145 0%, #0a2a2e 100%);
                 color: #e4e4e4;
                 display: flex;
@@ -64,12 +64,14 @@
             /* ====== CONTEÚDO PRINCIPAL ====== */
 
             .main-content {
-                opacity: 1;
-                margin-left: 200px; /* Mesma largura do sidebar */
+                flex: 1;
+                margin-left: 240px; /* mesmo valor do sidebar */
+                width: calc(100% - 240px);  /* mesmo valor do sidebar */
                 padding: 20px;
                 overflow-y: auto;
+                overflow-x: hidden;          /* ← ADICIONE PARA EVITAR SCROLL HORIZONTAL */
                 height: 100vh;
-                background-color: #f0f2f5;
+                background-color: #f5f5f5;
             }
 
             /* Scroll do conteúdo */
@@ -176,7 +178,7 @@
                 color: #e4e4e4;
                 text-decoration: none;
                 transition: all 0.2s ease;
-                border-left: 3px solid transparent;
+                border-left: 5px solid transparent;
             }
 
             .nav-item i {
@@ -191,12 +193,12 @@
 
             .nav-item:hover {
                 background: rgba(255,255,255,0.08);
-                border-left-color: #184145;
+                border-left-color: #0b5b99;
             }
 
             .active {
                 background: rgba(255,255,255,0.1);
-                border-left-color: #184145;
+                border-left-color: #0b5b99;
             }
 
             /* ====== BOTÃO SAIR ====== */
@@ -243,7 +245,9 @@
             <!-- SIDEBAR (MENU LATERAL) -->
             <aside class="sidebar">
                 <div class="sidebar-logo">
-                    <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
+                    <a href="{{ url_for('dashboard') }}" title="Retornar para Home">
+                        <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
+                    </a>
                     <h3>GERÊNCIA DE AUDITORIA INTERNA</h3>
                 </div>
                 

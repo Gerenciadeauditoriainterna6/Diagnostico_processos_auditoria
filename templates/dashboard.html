@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Auditoria Interna{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="page-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+        <p>Bem-vindo ao Sistema de Auditoria Interna</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Processos</h3>
+                <p>Em andamento</p>
+                <span class="stat-number">0</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Auditorias</h3>
+                <p>Concluídas</p>
+                <span class="stat-number">0</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Riscos</h3>
+                <p>Identificados</p>
+                <span class="stat-number">0</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Plano Anual</h3>
+                <p>2026</p>
+                <span class="stat-number">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="welcome-card">
+        <h2><i class="fas fa-info-circle"></i> Sobre o Sistema</h2>
+        <p>Este sistema foi desenvolvido para gerenciar o processo de auditoria interna da FUSVE.</p>
+        <p>Utilize o menu lateral para navegar entre as funcionalidades:</p>
+        <ul>
+            <li><strong>Planejamento:</strong> Plano Anual de Auditoria</li>
+            <li><strong>Execução:</strong> Diagnóstico, Detalhamento e Visão Geral</li>
+            <li><strong>Comunicação:</strong> Resultados e Relatórios</li>
+            <li><strong>Administração:</strong> Cadastro de Áreas e Histórico</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    /* ====== ESTILOS DO DASHBOARD ====== */
+    .dashboard-container {
+        width: 100%;
+        padding: 20px 25px 20px 25px;  /* ← só um respiro interno */
+        margin: 0;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+        color: #184145;
+        font-size: 28px;
+        margin-bottom: 5px;
+    }
+
+    .page-header h1 i {
+        color: #0b5b99;
+        margin-right: 10px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    /* Grid de cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+    }
+
+    .stat-icon {
+        width: 55px;
+        height: 55px;
+        background: linear-gradient(135deg, #184145 0%, #0a2a2e 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-icon i {
+        font-size: 28px;
+        color: white;
+    }
+
+    .stat-info {
+        flex: 1;
+    }
+
+    .stat-info h3 {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 2px;
+    }
+
+    .stat-info p {
+        font-size: 11px;
+        color: #999;
+        margin-bottom: 5px;
+    }
+
+    .stat-number {
+        font-size: 28px;
+        font-weight: bold;
+        color: #184145;
+    }
+
+    /* Card de boas-vindas */
+    .welcome-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .welcome-card h2 {
+        color: #184145;
+        font-size: 18px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .welcome-card h2 i {
+        color: #0b5b99;
+        margin-right: 10px;
+    }
+
+    .welcome-card p {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+
+    .welcome-card ul {
+        margin-left: 20px;
+        color: #555;
+    }
+
+    .welcome-card li {
+        margin: 8px 0;
+    }
+
+    .welcome-card strong {
+        color: #184145;
+    }
+</style>
+{% endblock %}
