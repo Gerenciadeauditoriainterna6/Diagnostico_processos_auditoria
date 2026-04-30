@@ -284,7 +284,7 @@ def main():
                     "📅 Plano Anual de Auditoria",
                     "🏢 Cadastro de Áreas e Funcionários",
                     "🔍 Diagnóstico dos Processos",
-                    "📋 Detalhamento dos Processos",        
+                    "📋 Detalhamento das Etapas",        
                     "👁️ Visão Geral do Diagnóstico",
                     "📣 Comunicação dos Resultados",
                     "📋 Geração de Relatórios",
@@ -347,7 +347,7 @@ def main():
     elif opcao == "📅 Plano Anual de Auditoria":
         tela_plano_anual()
 
-    elif opcao == "📋 Detalhamento dos Processos":
+    elif opcao == "📋 Detalhamento das Etapas":
         set_page_width(95)
         if 'processo_detalhe' in st.session_state:
             tela_detalhe_processo_auditoria()

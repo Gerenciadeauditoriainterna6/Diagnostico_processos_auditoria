@@ -484,7 +484,7 @@ def gerar_relatorio_processo_detalhado(codigo_processo):
             SELECT 
                 p.codigo_processo, p.nome_processo, p.objetivo as processo_objetivo, 
                 p.executor, p.descricao as processo_descricao, p.etapa_ini, p.etapa_fim, 
-                p.produto, p.categoria as processo_categoria, p.url_diagrama,
+                p.produto, p.url_diagrama,
                 r.nome_risco, r.fator_risco as risco_fator, r.melhoria as risco_melhoria, 
                 r.impacto as risco_impacto, r.probabilidade as risco_probabilidade, 
                 r.score_risco, r.apetite_risco,

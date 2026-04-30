@@ -1116,7 +1116,7 @@ def _tela_editar_processo():
             st.session_state['auditoria_edit'] = id_map_auditoria[auditoria_escolhida]
             st.success(f"Filtrando processos da auditoria: **{auditoria_escolhida.split(' - ')[0]}**")
     else:
-        st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento dos Processos' primeiro.")
+        st.warning(f"⚠️ Nenhuma auditoria encontrada para esta área. Crie uma em '📋 Detalhamento das Etapas' primeiro.")
         st.session_state['auditoria_edit'] = None
     
     st.divider()
@@ -1376,7 +1376,7 @@ def _tela_editar_processo():
         st.divider()
         
         # ===== DETALHAMENTO DO PROCESSO FORMULÁRIO DE EDIÇÃO =====
-        st.markdown("### Detalhamento do Processo")
+        st.markdown("### Diagnóstico do Processo")
         st.info("ℹ️ Os campos abaixo são opcionais.")
         
         st.text_area(
