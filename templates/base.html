@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{%block title%}Sistema de Auditoria Interna - FUSVE{%endblock%}</title>
+
+        <!-- Font Awesome -->
+         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+         <style>
+            /* ====== RESET E CONFIGURAÇÕES GLOBAIS ======*/
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+                background-color: #f5f5f5;
+                height: 100vh;
+                overflow: hidden; /* Remove o scroll da página inteira */
+            }
+
+            /* ====== LAYOUT PRINCIPAL ====== */
+
+            .app-container {
+                display: flex;
+                height: 100vh;
+                width: 100%;
+            }
+
+            .sidebar {
+                width: 200px;
+                background: linear-gradient(180deg, #184145 0%, #0a2a2e 100%);
+                color: #e4e4e4;
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                overflow-y: auto;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+                z-index: 100;
+            }
+
+            /* Scrollbar do sidebar */
+
+            .sidebar::-webkit-scrollbar {
+                width: 5px;
+            }
+
+            .sidebar::-webkit-scrollbar-track {
+                background: rgba(255,255,255,0.1);
+            }
+
+            .sidebar::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.3);
+                border-radius: 5px;
+            }
+
+            /* ====== CONTEÚDO PRINCIPAL ====== */
+
+            .main-content {
+                opacity: 1;
+                margin-left: 200px; /* Mesma largura do sidebar */
+                padding: 20px;
+                overflow-y: auto;
+                height: 100vh;
+                background-color: #f0f2f5;
+            }
+
+            /* Scroll do conteúdo */
+
+            .main-content::webkit-scrollbar {
+                width: 8px;
+            }
+
+            .main-content::-webkit-scrollbar-track {
+                background: #e0e0e0;
+                border-radius: 10px;
+            }
+
+            .main-content::-webkit-scrollbar-thumb {
+                background: #184145;
+                border-radius: 10px;
+            }
+
+            /* ====== LOGO NO SIDEBAR ====== */
+
+            .sidebar-logo {
+                text-align: center;
+                padding: 25px 20px 15px 20px;
+                border-bottom: 1px solid rgba(228,228,228,0.2);
+                margin-bottom: 20px;
+            }
+
+            .sidebar-logo img {
+                width: 80px;
+                height: auto;
+            }
+
+            .sidebar-logo h3 {
+                color: white;
+                font-size: 14px;
+                margin-top: 10px;
+                font-weight: normal;
+            }
+
+            /* ====== INFORMAÇÕES DO USUÁRIO ====== */
+
+            .user-info {
+                padding: 15px 20px;
+                background: rgba(255,255,255,0.05);
+                margin: 0 15px 20px 15px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .user-avatar {
+                width: 40px;
+                height: 40px;
+                background: #0b5b99;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+            }
+
+            .user-details {
+                flex: 1;
+            }
+
+            .user-name {
+                font-weight: bold;
+                font-size: 14px;
+                color: white;
+            }
+
+            .user-role {
+                font-size: 11px;
+                color: rgba(228,228,228,0.7);
+            }
+
+            /* ====== MENU ====== */
+
+            .nav-menu {
+                flex: 1;
+                padding: 0 15px;
+            }
+
+            .nav-section {
+                margin-bottom: 25px;
+            }
+
+            .nav-section-title {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                color: rgba(228,228,228,0.5);
+                padding: 10px 15px 5px 15px;
+            }
+
+            .nav-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 15px;
+                margin: 2px 0;
+                border-radius: 10px;
+                color: #e4e4e4;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                border-left: 3px solid transparent;
+            }
+
+            .nav-item i {
+                width: 20px;
+                font-size: 16px;
+                text-align: center;
+            }
+
+            .nav-item span {
+                font-size: 14px;
+            }
+
+            .nav-item:hover {
+                background: rgba(255,255,255,0.08);
+                border-left-color: #184145;
+            }
+
+            .active {
+                background: rgba(255,255,255,0.1);
+                border-left-color: #184145;
+            }
+
+            /* ====== BOTÃO SAIR ====== */
+
+            .logout-btn {
+                margin: 20px 15px 25px 15px;
+                padding: 10px 15px;
+                background: rgba(220,53,69,0.15);
+                border: 1px solid rgba(220,53,69,0.3);
+                border-radius: 10px;
+                color: #ff6b6b;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                transition: all 0.2s ease;
+            }
+            .logout-btn:hover {
+                background: rgba(220,53,69,0.25);
+                border-color: #dc3545;
+            }
+
+            .logout-btn i {
+                width: 20px;
+            }
+
+            /* ====== RESPONSIVIDADE ====== */
+
+            @media (max-width: 768px) {
+                .sidebar {
+                    width: 240px;
+                }
+                .main-content {
+                    margin-left: 240px;
+                }
+                .nav-item span {
+                    font-size: 12px;
+                }
+            }
+         </style>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- SIDEBAR (MENU LATERAL) -->
+            <aside class="sidebar">
+                <div class="sidebar-logo">
+                    <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
+                    <h3>GERÊNCIA DE AUDITORIA INTERNA</h3>
+                </div>
+                
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">{{ session.get('usuario_nome', session.get('usuario_logado', 'Usuário')) }}</div>
+                        <div class="user-role">{{ session.get('usuario_perfil', 'Auditor') }}</div>
+                    </div>
+                </div>
+
+                <nav class="nav-menu">
+                    <!--SEÇÃO 1: PLANEJAMENTO-->
+                    <div class="nav-section">
+                        <div class="nav-section-title">PLANEJAMENTO</div>
+                        <a href="{{ url_for('plano_anual') }}" class="nav-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Plano Anual de Auditoria</span>
+                        </a>
+                    </div>
+                    <!--SEÇÃO 2: EXECUÇÃO-->
+                    <div class="nav-section">
+                        <div class="nav-section-title">EXECUÇÃO</div>
+                        <a href="{{ url_for('diagnostico') }}" class="nav-item">
+                            <i class="fas fa-search"></i>
+                            <span>Diagnóstico dos Processos</span>
+                        </a>
+                        <a href="{{ url_for('detalhamento') }}" class="nav-item">
+                            <i class="fas fa-list"></i>
+                            <span>Detalhamento das Etapas</span>
+                        </a>
+                        <a href="{{ url_for('visao_geral') }}" class="nav-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Visão Geral do Diagnóstico</span>
+                        </a>
+                    </div>
+                    <!--SEÇÃO 3: COMUNICAÇÃO-->
+                    <div class="nv-section">
+                        <div class="nav-section-title">COMUNICAÇÃO</div>
+                        <a href="{{ url_for('comunicacao') }}" class="nav-item">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Comunicação dos Resultados</span>
+                        </a>
+                        <a href="{{ url_for('relatorios') }}" class="nav-item">
+                            <i class="fa fa-file-alt"></i>
+                            <span>Geração de Relatórios</span>
+                        </a>
+                    </div>
+                    <!--SEÇÃO 4: ADMINISTRAÇÃO-->
+                    <div class="nav-section">
+                        <div class="nav-section-title">ADMINISTRAÇÃO</div>
+                        <a href="{{ url_for('areas') }}" class="nav-item">
+                            <i class="fas fa-building"></i>
+                            <span>Cadastro de Áreas e Funcionários</span>
+                        </a>
+                    </div>
+                </nav>
+
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </a>
+
+            </aside>
+
+            <!--CONTEUDO PRINCIPAL-->
+            <main class="main-content">
+                <!--O conteúdo de cada página vai entrar AQUI-->
+                {%block content%}
+                <!--O ocnteúdo de cada página será inserido aqui-->
+                {%endblock%}
+            </main>
+        </div>
+    </body>
+</html>

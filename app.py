@@ -56,7 +56,7 @@ def login():
             session.permanent = True # Faz a sessão respeitar o timeout
 
             # Redireciona para a página principal
-            return redirect(url_for('home'))
+            return redirect(url_for('dashboard'))
         else:
             erro = "❌ Usuário ou senha incorretos."
     
@@ -68,6 +68,61 @@ def logout():
     """Remove os dados da sessão e desloga o usuário"""
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
+    """Página inicial / Dashboard após login"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('dashboard.html')
+
+@app.route('/plano-anual')
+def plano_anual():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('plano_anual.html')
+
+@app.route('/diagnostico')
+def diagnostico():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('diagnostico.html')
+
+@app.route('/detalhamento')
+def detalhamento():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('detalhamento.html')
+
+@app.route('/visao-geral')
+def visao_geral():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('visao_geral.html')
+
+@app.route('/comunicacao')
+def comunicacao():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('comunicacao.html')
+
+@app.route('/relatorios')
+def relatorios():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('relatorios.html')
+
+@app.route('/areas')
+def areas():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('areas.html')
+
+@app.route('/historico')
+def historico():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('historico.html')
 
 # Rota principal (página inicial / dashboard)
 @app.route('/')
