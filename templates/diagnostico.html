@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Diagnóstico dos Processos - Auditoria Interna{% endblock %}
+
+{% block content %}
+<div class="diagnostico-container">
+    <div class="page-header">
+        <h1><i class="fas fa-search"></i> Diagnóstico dos Processos</h1>
+        <p>Preencha as informações abaixo para diagnosticar um processo da área selecionada.</p>
+    </div>
+
+    <!-- PASSO 1: VINCULAR À AUDITORIA -->
+    <div class="form-section">
+        <h3>1. Vincular à Auditoria</h3>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="area_select">Área:</label>
+                <select id="area_select" name="area_id" class="form-control">
+                    <option value="">Selecione uma área...</option>
+                    {% for nome, id in areas.items() %}
+                    <option value="{{ id }}">{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div id="auditoria-section" style="display: none;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="auditoria_select">Auditoria:</label>
+                    <select id="auditoria_select" name="auditoria_id" class="form-control">
+                        <option value="">Selecione uma auditoria...</option>
+                    </select>
+                </div>
+            </div>
+            <div id="nova-auditoria-btn" class="mt-2">
+                <button type="button" class="btn-secondary" id="btn-criar-auditoria">
+                    <i class="fas fa-plus"></i> Criar Nova Auditoria
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASSO 2: INFORMAÇÕES BÁSICAS (INICIALMENTE ESCONDIDO) -->
+    <div id="info-basicas-section" class="form-section" style="display: none;">
+        <h3>2. Informações Iniciais do Processo</h3>
+        <!-- Aqui vamos colocar o formulário -->
+        <p class="text-muted">Após selecionar a auditoria, as informações do processo serão carregadas.</p>
+    </div>
+</div>
+
+<style>
+    .diagnostico-container {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        margin-bottom: 25px;
+    }
+
+    .page-header h1 {
+        color: #184145;
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+
+    .page-header h1 i {
+        color: #0b5b99;
+        margin-right: 10px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .form-section h3 {
+        color: #184145;
+        font-size: 18px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        flex: 1;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #48606c;
+        font-size: 13px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .mt-2 {
+        margin-top: 10px;
+    }
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+        color: #856404;
+        font-size: 14px;
+    }
+
+    .alert-warning i {
+        margin-right: 8px;
+        font-size: 18px;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 10px 0;
+        color: #0c5460;
+        font-size: 13px;
+    }
+
+    .alert-info i {
+        margin-right: 8px;
+    }
+
+
+</style>
+
+<script>
+    // ====== JAVASCRIPT PARA DIAGNÓSTICO ======
+    
+    const areaSelect = document.getElementById('area_select');
+    const auditoriaSection = document.getElementById('auditoria-section');
+    const auditoriaSelect = document.getElementById('auditoria_select');
+    const novaAuditoriaBtn = document.getElementById('nova-auditoria-btn');
+    
+    // Recebe o perfil do usuário do Flask (via data attribute)
+    const usuarioPerfil = '{{ usuario_perfil }}';
+    const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
+    
+    // Função para limpar avisos anteriores
+    function limparAvisos() {
+        const aviso = document.getElementById('aviso-sem-auditorias');
+        const msgPermissao = document.getElementById('msg-permissao');
+        
+        if (aviso) aviso.remove();
+        if (msgPermissao) msgPermissao.remove();
+    }
+    
+    areaSelect.addEventListener('change', async function() {
+        const areaId = this.value;
+        const areaNome = this.options[this.selectedIndex]?.text || '';
+        
+        // LIMPAR AVISOS ANTERIORES ao mudar de área
+        limparAvisos();
+        
+        if (!areaId) {
+            auditoriaSection.style.display = 'none';
+            return;
+        }
+        
+        // Mostrar a seção de auditoria (inicialmente com loading)
+        auditoriaSection.style.display = 'block';
+        auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
+        auditoriaSelect.style.display = 'block';
+        
+        // Esconder o botão de criar auditoria inicialmente
+        if (novaAuditoriaBtn) {
+            novaAuditoriaBtn.style.display = 'none';
+        }
+        
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+            
+            console.log('Auditorias recebidas:', data);
+            
+            if (data.auditorias && data.auditorias.length > 0) {
+                // CASO 1: Tem auditorias - mostra o selectbox
+                auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    auditoriaSelect.appendChild(option);
+                });
+                
+                // Garantir que o select esteja visível
+                auditoriaSelect.style.display = 'block';
+                
+                // Esconder botão de criar (já tem auditorias)
+                if (novaAuditoriaBtn) {
+                    novaAuditoriaBtn.style.display = 'none';
+                }
+                
+            } else {
+                // CASO 2: Não tem auditorias - mostra aviso
+                auditoriaSelect.innerHTML = '';
+                auditoriaSelect.style.display = 'none';
+                
+                // Criar elemento de aviso
+                const aviso = document.createElement('div');
+                aviso.id = 'aviso-sem-auditorias';
+                aviso.className = 'alert-warning';
+                aviso.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Nenhuma auditoria encontrada</strong><br>
+                    A área "${areaNome}" não possui auditorias cadastradas para esta área.
+                `;
+                auditoriaSection.appendChild(aviso);
+                
+                // Mostrar botão de criar auditoria APENAS para administradores
+                if (isAdmin && novaAuditoriaBtn) {
+                    novaAuditoriaBtn.style.display = 'block';
+                } else if (!isAdmin && novaAuditoriaBtn) {
+                    novaAuditoriaBtn.style.display = 'none';
+                    
+                    // Mostrar mensagem de permissão negada (apenas se não existir)
+                    if (!document.getElementById('msg-permissao')) {
+                        const msgPermissao = document.createElement('div');
+                        msgPermissao.id = 'msg-permissao';
+                        msgPermissao.className = 'alert-info';
+                        msgPermissao.innerHTML = `
+                            <i class="fas fa-lock"></i> 
+                            Apenas administradores podem criar novas auditorias.
+                        `;
+                        auditoriaSection.appendChild(msgPermissao);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar auditorias:', error);
+            auditoriaSelect.innerHTML = '<option value="">Erro ao carregar auditorias</option>';
+        }
+    });
+</script>
+{% endblock %}

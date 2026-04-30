@@ -3,7 +3,7 @@ Arquivo principal para aplicação Flask
 Sistema de Auditoria Interna - FUSVE
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -86,7 +86,14 @@ def plano_anual():
 def diagnostico():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('diagnostico.html')
+    
+    from modules.execucao.areas import carregar_areas_banco
+    areas = carregar_areas_banco()
+    
+    # Pega o perfil do usuário logado
+    usuario_perfil = session.get('usuario_perfil', 'auditor')
+    
+    return render_template('diagnostico.html', areas=areas, usuario_perfil=usuario_perfil)
 
 @app.route('/detalhamento')
 def detalhamento():
@@ -168,6 +175,29 @@ def home():
 def ping():
     """Mantém o aplicativo ativo no Render (usado com UptimeRobot)"""
     return "OK", 200
+
+@app.route('/api/auditorias-por-area')
+def api_auditorias_por_area():
+    """Retorna as auditorias de uma área (para uso via fetch)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    area_id = request.args.get('area_id')
+    if not area_id:
+        return jsonify({'error': 'area_id é obrigatório'}), 400
+    
+    query = text("""
+        SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+        FROM auditorias
+        WHERE id_area = :area_id
+        ORDER BY ano DESC, trimestre DESC
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {"area_id": area_id})
+        auditorias = [dict(row._mapping) for row in result]
+    
+    return jsonify({'auditorias': auditorias})
 
 # Ponto de entrada da aplicação
 if __name__ == '__main__':
