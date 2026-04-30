@@ -276,7 +276,7 @@ def main():
                     "📅 Plano Anual de Auditoria",
                     "🏢 Cadastro de Áreas e Funcionários",
                     "🔍 Diagnóstico dos Processos",
-                    "📋 Detalhamento dos Processos",        
+                    "📋 Detalhamento das Etapas",        
                     "👁️ Visão Geral do Diagnóstico",
                     "📣 Comunicação dos Resultados",
                     "📋 Geração de Relatórios",
