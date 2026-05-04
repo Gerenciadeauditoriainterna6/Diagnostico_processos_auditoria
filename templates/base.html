@@ -269,7 +269,72 @@
                 transition: none;
             }
 
-            
+            /* ====== SUBMENU ====== */
+            .nav-item-parent {
+                display: flex;
+                align-items: center;
+                position: relative;
+            }
+
+            .nav-item-parent .nav-item {
+                flex: 1;
+            }
+
+            .submenu-toggle {
+                background: transparent;
+                border: none;
+                color: #e4e4e4;
+                cursor: pointer;
+                padding: 10px 10px 10px 5px;
+                font-size: 12px;
+                transition: transform 0.2s ease;
+                border-radius: 8px;
+            }
+
+            .submenu-toggle:hover {
+                background: rgba(255,255,255,0.08);
+            }
+
+            .submenu-toggle.open {
+                transform: rotate(180deg);
+            }
+
+            .submenu {
+                margin-left: 35px;
+                padding-left: 15px;
+                border-left: 1px solid rgba(228,228,228,0.2);
+                display: none;
+            }
+
+            .submenu.show {
+                display: block;
+            }
+
+            .submenu-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 15px;
+                margin: 2px 0;
+                border-radius: 10px;
+                color: #e4e4e4;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                font-size: 13px;
+            }
+
+            .submenu-item i {
+                width: 20px;
+                font-size: 14px;
+                text-align: center;
+            }
+
+            .submenu-item:hover {
+                background: rgba(255,255,255,0.1);
+                border-left: 5px solid #0b5b99;
+            }
+
+
          </style>
     </head>
     <body>
@@ -305,18 +370,31 @@
                     <!--SEÇÃO 2: EXECUÇÃO-->
                     <div class="nav-section">
                         <div class="nav-section-title">EXECUÇÃO</div>
-                        <a href="{{ url_for('diagnostico') }}" class="nav-item">
-                            <i class="fas fa-search"></i>
-                            <span>Diagnóstico dos Processos</span>
-                        </a>
+
+                        <!-- Item principal com Submenu -->
+                        <div class="nav-item-parent">
+                            <a href="{{ url_for('diagnostico') }}" class="nav-item">
+                                <i class="fas fa-search"></i>
+                                <span>Diagnóstico dos Processos</span>
+                            </a>
+                            <button class="submenu-toggle" id="toggleDiagnosticoSubmenu">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+
+                        <!-- Submenu (escondido por padrão) -->
+                        <div class="submenu" id="diagnosticoSubmenu">
+                            <a href="{{ url_for('visao_geral') }}" class="submenu-item">
+                                <i class="fa-solid fa-eye"></i>
+                                <span>Visão Geral do Diagnóstico</span>
+                            </a>
+                        </div>
+                
                         <a href="{{ url_for('detalhamento') }}" class="nav-item">
                             <i class="fas fa-list"></i>
                             <span>Detalhamento das Etapas</span>
                         </a>
-                        <a href="{{ url_for('visao_geral') }}" class="nav-item">
-                            <i class="fa-solid fa-eye"></i>
-                            <span>Visão Geral do Diagnóstico</span>
-                        </a>
+                        
                     </div>
                     <!--SEÇÃO 3: COMUNICAÇÃO-->
                     <div class="nav-section">
@@ -450,6 +528,32 @@
 
                 // Carregar largura salva ao iniciar
                 loadSavedWidth();
+            })();
+
+            // ====== CONTROLE DO SUBMENU ======
+            (function() {
+                const toggleBtn = document.getElementById('toggleDiagnosticoSubmenu');
+                const submenu = document.getElementById('diagnosticoSubmenu');
+
+                if (toggleBtn && submenu) {
+                    // Verificar se deve manter abert baseado na URL atual
+                    const currentUrl = window.location.pathname;
+                    const isVisaoGeral = currentUrl.includes('/visao-geral');
+                    const isDiagnostico = currentUrl.includes('/diagnostico');
+
+                    // se estiver em Visão Geral ou Diagnostico, manter submenu aberto
+                    if (isVisaoGeral || isDiagnostico) {
+                        submenu.classList.add('show');
+                        toggleBtn.classList.add('open');
+                    }
+
+                    // Alternar ao clicar
+                    toggleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        submenu.classList.toggle('show');
+                        toggleBtn.classList.toggle('open');
+                    });
+                }
             })();
         </script>
     </body>
