@@ -2024,13 +2024,25 @@ def salvar_area(dados_area):
         print(f"Erro ao salvar área: {e}")
         return None
 
-def listar_areas():
-    """Retorna todas as áreas cadastradas"""
-    query = text("""
-        SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
-        FROM informacoes_area
-        ORDER BY nome_area
-    """)
+def listar_areas(apenas_ativas=True):
+    """Lista áreas (por padrão, apenas as ativas)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    if apenas_ativas:
+        query = text("""
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
+            FROM informacoes_area
+            WHERE status = 'Ativo'
+            ORDER BY nome_area
+        """)
+    else:
+        query = text("""
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
+            FROM informacoes_area
+            ORDER BY nome_area
+        """)
+    
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
@@ -2122,50 +2134,65 @@ def listar_funcionarios_area(id_area):
         return pd.read_sql(query, conn, params={"id_area": id_area})
 
 def excluir_funcionario(funcionario_id):
-    """Exclui um funcionário do banco de dados"""
+    """Desativa um funcionário (soft delete) - mantém o histórico"""
     from database import engine
     from sqlalchemy import text
     
-    print("=" * 50)
-    print(f"🔍 excluir_funcionario chamado")
-    print(f"📌 ID recebido: {funcionario_id}")
-    print(f"📌 Tipo do ID: {type(funcionario_id)}")
+    print(f"🔍 Desativando funcionário ID: {funcionario_id}")
     
     try:
         with engine.connect() as conn:
-            # Primeiro, testar a conexão
-            print("✅ Conexão com banco estabelecida")
-            
-            # Verificar se a tabela existe
-            table_check = text("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'funcionarios_area')")
-            table_exists = conn.execute(table_check).scalar()
-            print(f"📌 Tabela funcionarios_area existe? {table_exists}")
-            
             # Verificar se o funcionário existe
             check_query = text("SELECT id FROM funcionarios_area WHERE id = :id")
             result_check = conn.execute(check_query, {"id": funcionario_id})
             existe = result_check.fetchone()
-            print(f"📌 Funcionário existe? {existe is not None}")
             
             if not existe:
-                print("❌ Funcionário não encontrado!")
+                print(f"❌ Funcionário com ID {funcionario_id} não encontrado!")
                 return False
             
-            # Executar a exclusão
-            delete_query = text("DELETE FROM funcionarios_area WHERE id = :id")
-            result = conn.execute(delete_query, {"id": funcionario_id})
+            # Soft delete: atualizar ativo para false
+            update_query = text("UPDATE funcionarios_area SET ativo = false WHERE id = :id")
+            result = conn.execute(update_query, {"id": funcionario_id})
             conn.commit()
             
-            print(f"📌 Linhas afetadas: {result.rowcount}")
-            print("✅ Exclusão realizada com sucesso!")
-            print("=" * 50)
-            
+            print(f"✅ Funcionário desativado. Linhas afetadas: {result.rowcount}")
             return result.rowcount > 0
             
     except Exception as e:
-        print(f"❌ ERRO na exclusão: {type(e).__name__}: {e}")
-        print("=" * 50)
+        print(f"❌ Erro ao desativar funcionário: {e}")
         return False
+
+def excluir_area(area_id):
+    """Desativa uma área (soft delete) - atualiza status para 'Inativo'"""
+    from database import engine
+    from sqlalchemy import text
+    
+    print(f"🔍 Desativando área ID: {area_id}")
+    
+    try:
+        with engine.connect() as conn:
+            # Verificar se a área existe
+            check_query = text("SELECT id_area FROM informacoes_area WHERE id_area = :id")
+            result_check = conn.execute(check_query, {"id": area_id})
+            existe = result_check.fetchone()
+            
+            if not existe:
+                print(f"❌ Área com ID {area_id} não encontrada!")
+                return False
+            
+            # Soft delete: atualizar status para 'Inativo'
+            update_query = text("UPDATE informacoes_area SET status = 'Inativo' WHERE id_area = :id")
+            result = conn.execute(update_query, {"id": area_id})
+            conn.commit()
+            
+            print(f"✅ Área desativada. Linhas afetadas: {result.rowcount}")
+            return result.rowcount > 0
+            
+    except Exception as e:
+        print(f"❌ Erro ao desativar área: {e}")
+        return False
+
 
 def listar_funcionarios_por_area(id_area):
     """Retorna lista de funcionários com nome e ID (para selects)"""

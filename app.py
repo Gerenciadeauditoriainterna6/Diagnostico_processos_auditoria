@@ -288,6 +288,22 @@ def api_area_funcionarios(area_id):
     
     return jsonify(funcionarios)
 
+@app.route('/api/area/<int:area_id>', methods=['DELETE'])
+def api_excluir_area(area_id):
+    """Desativa uma área (soft delete) - apenas administradores"""
+    from logic import excluir_area
+    
+    perfil = session.get('usuario_perfil')
+    
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    resultado = excluir_area(area_id)
+    
+    if resultado:
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Falha ao desativar área'}), 400
+
 @app.route('/api/salvar-area', methods=['POST'])
 def api_salvar_area():
     """Salva uma nova área"""
