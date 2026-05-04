@@ -42,6 +42,7 @@
                 left: 0;
                 height: 100vh;
                 overflow-y: auto;
+                overflow-x: hidden;
                 box-shadow: 2px 0 10px rgba(0,0,0,0.1);
                 z-index: 100;
             }
@@ -238,6 +239,37 @@
                     font-size: 12px;
                 }
             }
+
+            /* ====== SIDEBAR REDIMENSIONÁVEL ====== */
+            
+            .resize-handle {
+                position: absolute;
+                top: 0;
+                right: -5px;
+                width: 10px;
+                height: 100%;
+                cursor: ew-resize;
+                background-color: transparent;
+                z-index: 1000;
+                transition: background-color 0.2s;
+            }
+
+            .resize-handle:hover {
+                background-color: #0b5b99;
+            }
+
+            /* Transição suave durante o redimensionamento */
+
+            .sidebar,
+            .main-content {
+                transition: width 0.05s ease, margin-left 0.05s ease;
+            }
+
+            .sidebar.resizing {
+                transition: none;
+            }
+
+            
          </style>
     </head>
     <body>
@@ -287,7 +319,7 @@
                         </a>
                     </div>
                     <!--SEÇÃO 3: COMUNICAÇÃO-->
-                    <div class="nv-section">
+                    <div class="nav-section">
                         <div class="nav-section-title">COMUNICAÇÃO</div>
                         <a href="{{ url_for('comunicacao') }}" class="nav-item">
                             <i class="fas fa-bullhorn"></i>
@@ -312,7 +344,8 @@
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Sair</span>
                 </a>
-
+                
+                <div class="resize-handle"></div>
             </aside>
 
             <!--CONTEUDO PRINCIPAL-->
@@ -323,5 +356,101 @@
                 {%endblock%}
             </main>
         </div>
+
+        <!-- ====== JAVASCRIPT PARA REDIMENSIONAR O SIDEBAR ====== -->
+        <script>
+            (function() {
+                // Elementos do DOM
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                const resizeHandle = document.querySelector('.resize-handle');
+
+                // Configurações
+                let isResizing = false;
+                let startX;
+                let startWidth;
+
+                // Limites de largura (em pixels)
+                const MIN_WIDTH = 200;
+                const MAX_WIDTH = 400;
+
+                // Carregar largura salva no localStorage
+                function loadSavedWidth() {
+                    const saveWidth = localStorage.getItem('sidebar_width');
+                    if (saveWidth) {
+                        let width = parseInt(saveWidth, 10);
+                        if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
+                            setSidebarWidth(width);
+                        }
+                    }
+                }
+
+                // Aplicar nova largura ao sidebar e main-content
+                function setSidebarWidth(width) {
+                    sidebar.style.width = width + 'px';
+                    mainContent.style.marginLeft = width + 'px';
+                    mainContent.style.width = 'calc(100% - ' + width + 'px)';
+
+                    // Salvar no localStorage
+                    localStorage.setItem('sidebar_width', width);
+                }
+
+                // Iniciar redimensionamento
+                function startResize(e) {
+                    isResizing = true;
+                    startX = e.clientX;
+                    startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+
+                    // Adicionar classe para remover transição durante o arrasto
+                    sidebar.classList.add('resizing');
+                    mainContent.classList.add('resizing');
+
+                    // Mudar cursor globalmente
+                    document.body.style.cursor = 'ew-resize';
+                    document.body.style.userSelect = 'none';
+
+                    e.preventDefault();
+                }
+
+                // Durante o redimensionamento
+                function doResize(e) {
+                    if (!isResizing) return;
+
+                    const delta= e.clientX - startX;
+                    let newWidth = startWidth + delta;
+
+                    // Aplicar limites
+                    if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
+                    if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
+
+                    setSidebarWidth(newWidth);
+                }
+
+                // Finalizar redimensionamento
+                function stopResize() {
+                    if (!isResizing) return;
+
+                    isResizing = false;
+
+                    // Remover classe de transição
+                    sidebar.classList.remove('resizing');
+                    mainContent.classList.remove('resizing');
+
+                    // Restaurar cursor
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+
+                // Adicionar eventos
+                if (resizeHandle) {
+                    resizeHandle.addEventListener('mousedown', startResize);
+                    window.addEventListener('mousemove', doResize);
+                    window.addEventListener('mouseup', stopResize);
+                }
+
+                // Carregar largura salva ao iniciar
+                loadSavedWidth();
+            })();
+        </script>
     </body>
 </html>
