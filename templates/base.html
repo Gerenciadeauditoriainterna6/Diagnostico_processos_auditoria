@@ -1,597 +1,529 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{%block title%}Sistema de Auditoria Interna - FUSVE{%endblock%}</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Auditoria Interna - FUSVE{% endblock %}</title>
 
-        <!-- Font Awesome -->
-         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-         <style>
-            /* ====== RESET E CONFIGURAÇÕES GLOBAIS ======*/
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
-                background-color: #f5f5f5;
-                height: 100vh;
-                overflow: hidden; /* Remove o scroll da página inteira */
-            }
+    <style>
+        /* ====== RESET E CONFIGURAÇÕES GLOBAIS ======*/
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-            /* ====== LAYOUT PRINCIPAL ====== */
+        /* ====== LAYOUT PRINCIPAL ====== */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
 
-            .app-container {
-                display: flex;
-                height: 100vh;
-                width: 100%;
-            }
+        /* ====== SIDEBAR ====== */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #184145 0%, #0a2a2e 100%);
+            color: #e4e4e4;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
 
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 5px;
+        }
+
+        /* ====== CONTEÚDO PRINCIPAL ====== */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .main-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main-content::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        .main-content::-webkit-scrollbar-thumb {
+            background: #184145;
+            border-radius: 10px;
+        }
+
+        /* ====== LOGO NO SIDEBAR ====== */
+        .sidebar-logo {
+            text-align: center;
+            padding: 25px 20px 15px 20px;
+            border-bottom: 1px solid rgba(228,228,228,0.2);
+            margin-bottom: 20px;
+        }
+        .sidebar-logo a {
+            display: inline-block;
+            text-decoration: none;
+        }
+        .sidebar-logo img {
+            width: 80px;
+            height: auto;
+            transition: opacity 0.2s;
+        }
+        .sidebar-logo a:hover img {
+            opacity: 0.85;
+        }
+        .sidebar-logo h3 {
+            color: white;
+            font-size: 14px;
+            margin-top: 10px;
+            font-weight: normal;
+        }
+
+        /* ====== INFORMAÇÕES DO USUÁRIO ====== */
+        .user-info {
+            padding: 15px 20px;
+            background: rgba(255,255,255,0.05);
+            margin: 0 15px 20px 15px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: #0b5b99;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .user-details {
+            flex: 1;
+        }
+        .user-name {
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+        }
+        .user-role {
+            font-size: 11px;
+            color: rgba(228,228,228,0.7);
+        }
+
+        /* ====== MENU ====== */
+        .nav-menu {
+            flex: 1;
+            padding: 0 15px;
+        }
+        .nav-section {
+            margin-bottom: 25px;
+        }
+        .nav-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(228,228,228,0.5);
+            padding: 10px 15px 5px 15px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 15px;
+            margin: 2px 0;
+            border-radius: 10px;
+            color: #e4e4e4;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+        .nav-item i {
+            width: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .nav-item span {
+            font-size: 14px;
+        }
+        .nav-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-left-color: #0b5b99;
+        }
+        .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: #0b5b99;
+        }
+
+        /* ====== ITEM COM SUBMENU ====== */
+        .nav-item-parent {
+            position: relative;
+        }
+        .nav-item-parent .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .nav-item-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .submenu-arrow {
+            font-size: 12px;
+            transition: transform 0.2s ease;
+            color: rgba(228,228,228,0.7);
+            padding: 5px;
+        }
+        .submenu-arrow:hover {
+            color: white;
+        }
+        .submenu-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        /* ====== SUBMENU ====== */
+        .submenu {
+            margin-left: 35px;
+            padding-left: 15px;
+            border-left: 1px solid rgba(228,228,228,0.2);
+            display: none;
+        }
+        .submenu.show {
+            display: block;
+        }
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 15px;
+            margin: 2px 0;
+            border-radius: 10px;
+            color: #e4e4e4;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+        .submenu-item i {
+            width: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .submenu-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-left-color: #0b5b99;
+        }
+        .submenu-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: #0b5b99;
+        }
+
+        /* ====== BOTÃO SAIR ====== */
+        .logout-btn {
+            margin: 20px 15px 25px 15px;
+            padding: 10px 15px;
+            background: rgba(220,53,69,0.15);
+            border: 1px solid rgba(220,53,69,0.3);
+            border-radius: 10px;
+            color: #ff6b6b;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+        .logout-btn:hover {
+            background: rgba(220,53,69,0.25);
+            border-color: #dc3545;
+        }
+        .logout-btn i {
+            width: 20px;
+        }
+
+        /* ====== SIDEBAR REDIMENSIONÁVEL ====== */
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: -5px;
+            width: 8px;
+            height: 100%;
+            cursor: ew-resize;
+            background-color: transparent;
+            z-index: 1000;
+            transition: background-color 0.2s;
+        }
+        .resize-handle:hover {
+            background-color: rgba(11, 91, 153, 0.5);
+        }
+        .resize-handle:active {
+            background-color: #0b5b99;
+        }
+        .sidebar, .main-content {
+            transition: width 0.1s ease, margin-left 0.1s ease;
+        }
+        .sidebar.resizing, .main-content.resizing {
+            transition: none;
+        }
+
+        /* ====== RESPONSIVIDADE ====== */
+        @media (max-width: 768px) {
             .sidebar {
                 width: 240px;
-                background: linear-gradient(180deg, #184145 0%, #0a2a2e 100%);
-                color: #e4e4e4;
-                display: flex;
-                flex-direction: column;
-                position: fixed;
-                top: 0;
-                left: 0;
-                height: 100vh;
-                overflow-y: auto;
-                overflow-x: hidden;
-                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-                z-index: 100;
             }
-
-            /* Scrollbar do sidebar */
-
-            .sidebar::-webkit-scrollbar {
-                width: 5px;
-            }
-
-            .sidebar::-webkit-scrollbar-track {
-                background: rgba(255,255,255,0.1);
-            }
-
-            .sidebar::-webkit-scrollbar-thumb {
-                background: rgba(255,255,255,0.3);
-                border-radius: 5px;
-            }
-
-            /* ====== CONTEÚDO PRINCIPAL ====== */
-
             .main-content {
-                flex: 1;
-                margin-left: 240px; /* mesmo valor do sidebar */
-                width: calc(100% - 240px);  /* mesmo valor do sidebar */
-                padding: 20px;
-                overflow-y: auto;
-                overflow-x: hidden;          /* ← ADICIONE PARA EVITAR SCROLL HORIZONTAL */
-                height: 100vh;
-                background-color: #f5f5f5;
+                margin-left: 240px;
+                width: calc(100% - 240px);
             }
-
-            /* Scroll do conteúdo */
-
-            .main-content::webkit-scrollbar {
-                width: 8px;
-            }
-
-            .main-content::-webkit-scrollbar-track {
-                background: #e0e0e0;
-                border-radius: 10px;
-            }
-
-            .main-content::-webkit-scrollbar-thumb {
-                background: #184145;
-                border-radius: 10px;
-            }
-
-            /* ====== LOGO NO SIDEBAR ====== */
-
-            .sidebar-logo {
-                text-align: center;
-                padding: 25px 20px 15px 20px;
-                border-bottom: 1px solid rgba(228,228,228,0.2);
-                margin-bottom: 20px;
-            }
-
-            .sidebar-logo img {
-                width: 80px;
-                height: auto;
-            }
-
-            .sidebar-logo h3 {
-                color: white;
-                font-size: 14px;
-                margin-top: 10px;
-                font-weight: normal;
-            }
-
-            /* ====== INFORMAÇÕES DO USUÁRIO ====== */
-
-            .user-info {
-                padding: 15px 20px;
-                background: rgba(255,255,255,0.05);
-                margin: 0 15px 20px 15px;
-                border-radius: 12px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            }
-            
-            .user-avatar {
-                width: 40px;
-                height: 40px;
-                background: #0b5b99;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-            }
-
-            .user-details {
-                flex: 1;
-            }
-
-            .user-name {
-                font-weight: bold;
-                font-size: 14px;
-                color: white;
-            }
-
-            .user-role {
-                font-size: 11px;
-                color: rgba(228,228,228,0.7);
-            }
-
-            /* ====== MENU ====== */
-
-            .nav-menu {
-                flex: 1;
-                padding: 0 15px;
-            }
-
-            .nav-section {
-                margin-bottom: 25px;
-            }
-
-            .nav-section-title {
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                color: rgba(228,228,228,0.5);
-                padding: 10px 15px 5px 15px;
-            }
-
-            .nav-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 10px 15px;
-                margin: 2px 0;
-                border-radius: 10px;
-                color: #e4e4e4;
-                text-decoration: none;
-                transition: all 0.2s ease;
-                border-left: 5px solid transparent;
-            }
-
-            .nav-item i {
-                width: 20px;
-                font-size: 16px;
-                text-align: center;
-            }
-
             .nav-item span {
-                font-size: 14px;
-            }
-
-            .nav-item:hover {
-                background: rgba(255,255,255,0.08);
-                border-left-color: #0b5b99;
-            }
-
-            .active {
-                background: rgba(255,255,255,0.1);
-                border-left-color: #0b5b99;
-            }
-
-            /* ====== BOTÃO SAIR ====== */
-
-            .logout-btn {
-                margin: 20px 15px 25px 15px;
-                padding: 10px 15px;
-                background: rgba(220,53,69,0.15);
-                border: 1px solid rgba(220,53,69,0.3);
-                border-radius: 10px;
-                color: #ff6b6b;
-                text-decoration: none;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                transition: all 0.2s ease;
-            }
-            .logout-btn:hover {
-                background: rgba(220,53,69,0.25);
-                border-color: #dc3545;
-            }
-
-            .logout-btn i {
-                width: 20px;
-            }
-
-            /* ====== RESPONSIVIDADE ====== */
-
-            @media (max-width: 768px) {
-                .sidebar {
-                    width: 240px;
-                }
-                .main-content {
-                    margin-left: 240px;
-                }
-                .nav-item span {
-                    font-size: 12px;
-                }
-            }
-
-            /* ====== SIDEBAR REDIMENSIONÁVEL ====== */
-            
-            .resize-handle {
-                position: absolute;
-                top: 0;
-                right: -5px;
-                width: 10px;
-                height: 100%;
-                cursor: ew-resize;
-                background-color: transparent;
-                z-index: 1000;
-                transition: background-color 0.2s;
-            }
-
-            .resize-handle:hover {
-                background-color: #0b5b99;
-            }
-
-            /* Transição suave durante o redimensionamento */
-
-            .sidebar,
-            .main-content {
-                transition: width 0.05s ease, margin-left 0.05s ease;
-            }
-
-            .sidebar.resizing {
-                transition: none;
-            }
-
-            /* ====== SUBMENU ====== */
-            .nav-item-parent {
-                display: flex;
-                align-items: center;
-                position: relative;
-            }
-
-            .nav-item-parent .nav-item {
-                flex: 1;
-            }
-
-            .submenu-toggle {
-                background: transparent;
-                border: none;
-                color: #e4e4e4;
-                cursor: pointer;
-                padding: 10px 10px 10px 5px;
                 font-size: 12px;
-                transition: transform 0.2s ease;
-                border-radius: 8px;
             }
-
-            .submenu-toggle:hover {
-                background: rgba(255,255,255,0.08);
-            }
-
-            .submenu-toggle.open {
-                transform: rotate(180deg);
-            }
-
-            .submenu {
-                margin-left: 35px;
-                padding-left: 15px;
-                border-left: 1px solid rgba(228,228,228,0.2);
-                display: none;
-            }
-
-            .submenu.show {
-                display: block;
-            }
-
-            .submenu-item {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 8px 15px;
-                margin: 2px 0;
-                border-radius: 10px;
-                color: #e4e4e4;
-                text-decoration: none;
-                font-size: 13px;
-            }
-
-            .submenu-item i {
-                width: 20px;
-                font-size: 14px;
-                text-align: center;
-            }
-
-            .submenu-item:hover {
-                background: rgba(255,255,255,0.1);
-                border-left: 5px solid #0b5b99;
-            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- SIDEBAR (MENU LATERAL) -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <a href="{{ url_for('dashboard') }}" title="Retornar para Home">
+                    <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
+                </a>
+                <h3>GERÊNCIA DE AUDITORIA INTERNA</h3>
+            </div>
             
-            .nav-item.active {
-                background: rgba(255,255,255,0.1);
-                border-left-color: #0b5b99;
-            }
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <div class="user-name">{{ session.get('usuario_nome', session.get('usuario_logado', 'Usuário')) }}</div>
+                    <div class="user-role">{{ session.get('usuario_perfil', 'Auditor') }}</div>
+                </div>
+            </div>
 
-            .submenu-item.active {
-                background: rgba(255,255,255,0.1);
-                border-left: 5px solid #0b5b99;
-            }
-
-         </style>
-    </head>
-    <body>
-        <div class="app-container">
-            <!-- SIDEBAR (MENU LATERAL) -->
-            <aside class="sidebar">
-                <div class="sidebar-logo">
-                    <a href="{{ url_for('dashboard') }}" title="Retornar para Home">
-                        <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
+            <nav class="nav-menu">
+                <!-- SEÇÃO 1: PLANEJAMENTO -->
+                <div class="nav-section">
+                    <div class="nav-section-title">PLANEJAMENTO</div>
+                    <a href="{{ url_for('plano_anual') }}" class="nav-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Plano Anual de Auditoria</span>
                     </a>
-                    <h3>GERÊNCIA DE AUDITORIA INTERNA</h3>
-                </div>
-                
-                <div class="user-info">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-details">
-                        <div class="user-name">{{ session.get('usuario_nome', session.get('usuario_logado', 'Usuário')) }}</div>
-                        <div class="user-role">{{ session.get('usuario_perfil', 'Auditor') }}</div>
-                    </div>
                 </div>
 
-                <nav class="nav-menu">
-                    <!--SEÇÃO 1: PLANEJAMENTO-->
-                    <div class="nav-section">
-                        <div class="nav-section-title">PLANEJAMENTO</div>
-                        <a href="{{ url_for('plano_anual') }}" class="nav-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Plano Anual de Auditoria</span>
-                        </a>
-                    </div>
-                    <!--SEÇÃO 2: EXECUÇÃO-->
-                    <div class="nav-section">
-                        <div class="nav-section-title">EXECUÇÃO</div>
+                <!-- SEÇÃO 2: EXECUÇÃO -->
+                <div class="nav-section">
+                    <div class="nav-section-title">EXECUÇÃO</div>
 
-                        <!-- Item principal com Submenu -->
-                        <div class="nav-item-parent">
-                            <a href="{{ url_for('diagnostico') }}" class="nav-item">
+                    <!-- Item principal com Submenu (seta dentro do link) -->
+                    <div class="nav-item-parent">
+                        <a href="{{ url_for('diagnostico') }}" class="nav-item" id="toggleDiagnosticoSubmenu">
+                            <span class="nav-item-content">
                                 <i class="fas fa-search"></i>
                                 <span>Diagnóstico dos Processos</span>
-                            </a>
-                            <button class="submenu-toggle" id="toggleDiagnosticoSubmenu">
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                        </div>
-
-                        <!-- Submenu (escondido por padrão) -->
-                        <div class="submenu" id="diagnosticoSubmenu">
-                            <a href="{{ url_for('visao_geral') }}" class="submenu-item">
-                                <i class="fa-solid fa-eye"></i>
-                                <span>Visão Geral do Diagnóstico</span>
-                            </a>
-                        </div>
-                
-                        <a href="{{ url_for('detalhamento') }}" class="nav-item">
-                            <i class="fas fa-list"></i>
-                            <span>Detalhamento das Etapas</span>
-                        </a>
-                        
-                    </div>
-                    <!--SEÇÃO 3: COMUNICAÇÃO-->
-                    <div class="nav-section">
-                        <div class="nav-section-title">COMUNICAÇÃO</div>
-                        <a href="{{ url_for('comunicacao') }}" class="nav-item">
-                            <i class="fas fa-bullhorn"></i>
-                            <span>Comunicação dos Resultados</span>
-                        </a>
-                        <a href="{{ url_for('relatorios') }}" class="nav-item">
-                            <i class="fa fa-file-alt"></i>
-                            <span>Geração de Relatórios</span>
+                            </span>
+                            <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
                     </div>
-                    <!--SEÇÃO 4: ADMINISTRAÇÃO-->
-                    <div class="nav-section">
-                        <div class="nav-section-title">ADMINISTRAÇÃO</div>
-                        <a href="{{ url_for('areas') }}" class="nav-item">
-                            <i class="fas fa-building"></i>
-                            <span>Cadastro de Áreas e Funcionários</span>
+
+                    <!-- Submenu (escondido por padrão) -->
+                    <div class="submenu" id="diagnosticoSubmenu">
+                        <a href="{{ url_for('visao_geral') }}" class="submenu-item">
+                            <i class="fas fa-eye"></i>
+                            <span>Visão Geral do Diagnóstico</span>
                         </a>
                     </div>
-                </nav>
 
-                <a href="{{ url_for('logout') }}" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </a>
-                
-                <div class="resize-handle"></div>
-            </aside>
+                    <a href="{{ url_for('detalhamento') }}" class="nav-item">
+                        <i class="fas fa-list"></i>
+                        <span>Detalhamento das Etapas</span>
+                    </a>
+                </div>
 
-            <!--CONTEUDO PRINCIPAL-->
-            <main class="main-content">
-                <!--O conteúdo de cada página vai entrar AQUI-->
-                {%block content%}
-                <!--O ocnteúdo de cada página será inserido aqui-->
-                {%endblock%}
-            </main>
-        </div>
+                <!-- SEÇÃO 3: COMUNICAÇÃO -->
+                <div class="nav-section">
+                    <div class="nav-section-title">COMUNICAÇÃO</div>
+                    <a href="{{ url_for('comunicacao') }}" class="nav-item">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Comunicação dos Resultados</span>
+                    </a>
+                    <a href="{{ url_for('relatorios') }}" class="nav-item">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Geração de Relatórios</span>
+                    </a>
+                </div>
 
-        
-        <script>
+                <!-- SEÇÃO 4: ADMINISTRAÇÃO -->
+                <div class="nav-section">
+                    <div class="nav-section-title">ADMINISTRAÇÃO</div>
+                    <a href="{{ url_for('areas') }}" class="nav-item">
+                        <i class="fas fa-building"></i>
+                        <span>Cadastro de Áreas e Funcionários</span>
+                    </a>
+                    <a href="{{ url_for('historico') }}" class="nav-item">
+                        <i class="fas fa-history"></i>
+                        <span>Histórico de Alterações</span>
+                    </a>
+                </div>
+            </nav>
+
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Sair</span>
+            </a>
+
+            <div class="resize-handle"></div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+            {% block content %}
+            <!-- O conteúdo de cada página será inserido aqui -->
+            {% endblock %}
+        </main>
+    </div>
+
+    <script>
+        // ====== DESTACAR ITEM ATIVO DO MENU ======
+        (function() {
+            const currentUrl = window.location.pathname;
+            const allLinks = document.querySelectorAll('.nav-item, .submenu-item');
+
+            allLinks.forEach(link => {
+                const linkUrl = link.getAttribute('href');
+                if (linkUrl && linkUrl !== '#' && currentUrl.includes(linkUrl)) {
+                    link.classList.add('active');
+                }
+            });
+        })();
+
+        // ====== REDIMENSIONAR O SIDEBAR ======
+        (function() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const resizeHandle = document.querySelector('.resize-handle');
+
+            let isResizing = false;
+            let startX;
+            let startWidth;
+
+            const MIN_WIDTH = 200;
+            const MAX_WIDTH = 400;
+
+            function loadSavedWidth() {
+                const savedWidth = localStorage.getItem('sidebar_width');
+                if (savedWidth) {
+                    let width = parseInt(savedWidth, 10);
+                    if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
+                        setSidebarWidth(width);
+                    }
+                }
+            }
+
+            function setSidebarWidth(width) {
+                sidebar.style.width = width + 'px';
+                mainContent.style.marginLeft = width + 'px';
+                mainContent.style.width = 'calc(100% - ' + width + 'px)';
+                localStorage.setItem('sidebar_width', width);
+            }
+
+            function startResize(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+                sidebar.classList.add('resizing');
+                mainContent.classList.add('resizing');
+                document.body.style.cursor = 'ew-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            }
+
+            function doResize(e) {
+                if (!isResizing) return;
+                const delta = e.clientX - startX;
+                let newWidth = startWidth + delta;
+                if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
+                if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
+                setSidebarWidth(newWidth);
+            }
+
+            function stopResize() {
+                if (!isResizing) return;
+                isResizing = false;
+                sidebar.classList.remove('resizing');
+                mainContent.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+
+            if (resizeHandle) {
+                resizeHandle.addEventListener('mousedown', startResize);
+                window.addEventListener('mousemove', doResize);
+                window.addEventListener('mouseup', stopResize);
+            }
+            loadSavedWidth();
+        })();
+
+        // ====== CONTROLE DO SUBMENU ======
+        (function() {
+            const menuItem = document.getElementById('toggleDiagnosticoSubmenu');
+            const submenu = document.getElementById('diagnosticoSubmenu');
             
-            // ======= DESTACAR ITEM ATIVO DO MENU =======
-            (function() {
+            if (menuItem && submenu) {
+                const arrow = menuItem.querySelector('.submenu-arrow');
                 const currentUrl = window.location.pathname;
-
-                // Seleciona todos os links do menu
-                const allLinks = document.querySelectorAll('.nav-item, .submenu-item');
-
-                allLinks.forEach(link => {
-                    const linkUrl = link.getAttribute('href');
-
-                    // Verificar se o href do link corresponde à URL atual
-                    if (linkUrl && linkUrl !== '#' && currentUrl.includes(linkUrl)) {
-                        link.classList.add('active');
-
-                        // Se for um submenu-item, também abre o submenu pai
-                        if (link.classList.contains('submenu-item')) {
-                            const submenu = link.closest('.submenu');
-                            const toggleBtn = submenu ? document.querySelector('.submenu-toggle'): null;
-                            if (submenu && toggleBtn) {
-                                submenu.classList.add('show');
-                                toggleBtn.classList.add('open');
-                            }
-                        }
-                    }
-                });
-            })();
-
-            // JAVASCRIPT PARA REDIMENSIONAR O SIDEBAR
-            (function() {
-                // Elementos do DOM
-                const sidebar = document.querySelector('.sidebar');
-                const mainContent = document.querySelector('.main-content');
-                const resizeHandle = document.querySelector('.resize-handle');
-
-                // Configurações
-                let isResizing = false;
-                let startX;
-                let startWidth;
-
-                // Limites de largura (em pixels)
-                const MIN_WIDTH = 200;
-                const MAX_WIDTH = 400;
-
-                // Carregar largura salva no localStorage
-                function loadSavedWidth() {
-                    const saveWidth = localStorage.getItem('sidebar_width');
-                    if (saveWidth) {
-                        let width = parseInt(saveWidth, 10);
-                        if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
-                            setSidebarWidth(width);
-                        }
-                    }
+                const isVisaoGeral = currentUrl.includes('/visao-geral');
+                const isDiagnostico = currentUrl.includes('/diagnostico');
+                
+                if (isVisaoGeral || isDiagnostico) {
+                    submenu.classList.add('show');
+                    if (arrow) arrow.classList.add('open');
                 }
-
-                // Aplicar nova largura ao sidebar e main-content
-                function setSidebarWidth(width) {
-                    sidebar.style.width = width + 'px';
-                    mainContent.style.marginLeft = width + 'px';
-                    mainContent.style.width = 'calc(100% - ' + width + 'px)';
-
-                    // Salvar no localStorage
-                    localStorage.setItem('sidebar_width', width);
-                }
-
-                // Iniciar redimensionamento
-                function startResize(e) {
-                    isResizing = true;
-                    startX = e.clientX;
-                    startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
-
-                    // Adicionar classe para remover transição durante o arrasto
-                    sidebar.classList.add('resizing');
-                    mainContent.classList.add('resizing');
-
-                    // Mudar cursor globalmente
-                    document.body.style.cursor = 'ew-resize';
-                    document.body.style.userSelect = 'none';
-
-                    e.preventDefault();
-                }
-
-                // Durante o redimensionamento
-                function doResize(e) {
-                    if (!isResizing) return;
-
-                    const delta= e.clientX - startX;
-                    let newWidth = startWidth + delta;
-
-                    // Aplicar limites
-                    if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
-                    if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
-
-                    setSidebarWidth(newWidth);
-                }
-
-                // Finalizar redimensionamento
-                function stopResize() {
-                    if (!isResizing) return;
-
-                    isResizing = false;
-
-                    // Remover classe de transição
-                    sidebar.classList.remove('resizing');
-                    mainContent.classList.remove('resizing');
-
-                    // Restaurar cursor
-                    document.body.style.cursor = '';
-                    document.body.style.userSelect = '';
-                }
-
-                // Adicionar eventos
-                if (resizeHandle) {
-                    resizeHandle.addEventListener('mousedown', startResize);
-                    window.addEventListener('mousemove', doResize);
-                    window.addEventListener('mouseup', stopResize);
-                }
-
-                // Carregar largura salva ao iniciar
-                loadSavedWidth();
-            })();
-
-            // ====== CONTROLE DO SUBMENU ======
-            (function() {
-                const toggleBtn = document.getElementById('toggleDiagnosticoSubmenu');
-                const submenu = document.getElementById('diagnosticoSubmenu');
-
-                if (toggleBtn && submenu) {
-                    // Verificar se deve manter abert baseado na URL atual
-                    const currentUrl = window.location.pathname;
-                    const isVisaoGeral = currentUrl.includes('/visao-geral');
-                    const isDiagnostico = currentUrl.includes('/diagnostico');
-
-                    // se estiver em Visão Geral ou Diagnostico, manter submenu aberto
-                    if (isVisaoGeral || isDiagnostico) {
-                        submenu.classList.add('show');
-                        toggleBtn.classList.add('open');
-                    }
-
-                    // Alternar ao clicar
-                    toggleBtn.addEventListener('click', function(e) {
+                
+                menuItem.addEventListener('click', function(e) {
+                    // Verificar se o clique foi na seta
+                    const isArrow = e.target === arrow || (e.target.parentElement === arrow);
+                    
+                    if (isArrow) {
                         e.preventDefault();
                         submenu.classList.toggle('show');
-                        toggleBtn.classList.toggle('open');
-                    });
-                }
-            })();
-        </script>
-    </body>
+                        if (arrow) arrow.classList.toggle('open');
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
 </html>
