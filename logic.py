@@ -2121,6 +2121,52 @@ def listar_funcionarios_area(id_area):
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"id_area": id_area})
 
+def excluir_funcionario(funcionario_id):
+    """Exclui um funcionário do banco de dados"""
+    from database import engine
+    from sqlalchemy import text
+    
+    print("=" * 50)
+    print(f"🔍 excluir_funcionario chamado")
+    print(f"📌 ID recebido: {funcionario_id}")
+    print(f"📌 Tipo do ID: {type(funcionario_id)}")
+    
+    try:
+        with engine.connect() as conn:
+            # Primeiro, testar a conexão
+            print("✅ Conexão com banco estabelecida")
+            
+            # Verificar se a tabela existe
+            table_check = text("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'funcionarios_area')")
+            table_exists = conn.execute(table_check).scalar()
+            print(f"📌 Tabela funcionarios_area existe? {table_exists}")
+            
+            # Verificar se o funcionário existe
+            check_query = text("SELECT id FROM funcionarios_area WHERE id = :id")
+            result_check = conn.execute(check_query, {"id": funcionario_id})
+            existe = result_check.fetchone()
+            print(f"📌 Funcionário existe? {existe is not None}")
+            
+            if not existe:
+                print("❌ Funcionário não encontrado!")
+                return False
+            
+            # Executar a exclusão
+            delete_query = text("DELETE FROM funcionarios_area WHERE id = :id")
+            result = conn.execute(delete_query, {"id": funcionario_id})
+            conn.commit()
+            
+            print(f"📌 Linhas afetadas: {result.rowcount}")
+            print("✅ Exclusão realizada com sucesso!")
+            print("=" * 50)
+            
+            return result.rowcount > 0
+            
+    except Exception as e:
+        print(f"❌ ERRO na exclusão: {type(e).__name__}: {e}")
+        print("=" * 50)
+        return False
+
 def listar_funcionarios_por_area(id_area):
     """Retorna lista de funcionários com nome e ID (para selects)"""
     query = text("""

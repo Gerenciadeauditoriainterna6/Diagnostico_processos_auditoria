@@ -11,7 +11,7 @@
     <!--Visualizador do PDF-->
     <div class="pdf-viewer">
         <iframe
-            src="{{ url_for('plano_anual_pdf') }}"
+            src="{{ url_for('api_plano_anual_pdf') }}"
             width="100%"
             height="800px"
             style="border: 1px solid #ddd; border-radius: 8px;">
@@ -19,7 +19,7 @@
     </div>
 
     <div class="download-section">
-        <a href="{{ url_for('plano_anual_pdf') }}" class="btn-download" download>
+        <a href="{{ url_for('api_plano_anual_pdf') }}" class="btn-download" download>
             <i class="fas fa-download"></i> Baixar Plano anual (PDF)
         </a>
     </div>
@@ -90,6 +90,7 @@
     .btn-download:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: #0b5b99 solid 2px;
     }
 
     .btn-download i {

@@ -1,0 +1,905 @@
+{% extends "base.html" %}
+
+{% block title %}Áreas e Funcionários - Auditoria Interna{% endblock %}
+
+{% block content %}
+<div class="areas-dashboard">
+    <!-- HEADER -->
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-building"></i> Áreas e Funcionários</h1>
+            <p>Gerencie as áreas da organização e seus respectivos funcionários</p>
+        </div>
+        <button id="btnNovaArea" class="btn-primary">
+            <i class="fas fa-plus-circle"></i> Nova Área
+        </button>
+    </div>
+
+    <!-- MÉTRICAS (cards de totais) -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon"><i class="fas fa-city"></i></div>
+            <div class="metric-info">
+                <span class="metric-value">0</span>
+                <span class="metric-label">Áreas</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon"><i class="fas fa-users"></i></div>
+            <div class="metric-info">
+                <span class="metric-value">0</span>
+                <span class="metric-label">Funcionários</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="metric-info">
+                <span class="metric-value">0</span>
+                <span class="metric-label">Total Geral</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYOUT DUAS COLUNAS -->
+    <div class="two-columns">
+        <!-- COLUNA ESQUERDA: Lista de áreas -->
+        <div class="areas-list">
+            <h3><i class="fas fa-list"></i> Áreas Cadastradas</h3>
+            <div id="areasContainer" class="areas-cards">
+                <!-- Cards serão carregados via JavaScript -->
+                <p class="text-muted">Carregando áreas...</p>
+            </div>
+        </div>
+
+        <!-- COLUNA DIREITA: Detalhes da área selecionada -->
+        <div class="area-details">
+            <div class="details-placeholder">
+                <i class="fas fa-building fa-3x"></i>
+                <p>Selecione uma área para ver os detalhes</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Áreas Dashboard */
+    .areas-dashboard {
+        padding: 0 20px;
+    }
+
+    /* Header */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+
+    .dashboard-header h1 {
+        color: #184145;
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+
+    .dashboard-header h1 i {
+        color: #0b5b99;
+        margin-right: 10px;
+    }
+
+    .dashboard-header p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    /* Métricas */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #184145 20%, #0b5b99 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .metric-icon i {
+        font-size: 24px;
+        color: white;
+    }
+
+    .metric-info {
+        flex: 1;
+    }
+
+    .metric-value {
+        display: block;
+        font-size: 28px;
+        font-weight: bold;
+        color: #184145;
+    }
+
+    .metric-label {
+        font-size: 12px;
+        color: #666;
+    }
+
+    /* Duas colunas */
+    .two-columns {
+        display: flex;
+        gap: 25px;
+    }
+
+    .areas-list {
+        flex: 1;
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .areas-list h3 {
+        color: #184145;
+        font-size: 16px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .area-details {
+        flex: 1;
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        min-height: 400px;
+    }
+
+    .details-placeholder {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .details-placeholder i {
+        color: #ddd;
+        margin-bottom: 15px;
+    }
+
+    /* Cards de áreas (serão gerados por JS) */
+    .areas-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .area-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+
+    .area-card:hover {
+        transform: translateX(3px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .area-card.selected {
+        border-left-color: #184145;
+        background: #eef2f3;
+    }
+
+    .area-card h4 {
+        color: #184145;
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .area-card p {
+        color: #666;
+        font-size: 12px;
+        margin: 4px 0;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #184145 0%, #0a2a2e 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .text-muted {
+        color: #999;
+        text-align: center;
+        padding: 20px;
+    }
+
+    /* ====== MODAL ====== */
+    .modal {
+        display: none;  /* Escondido por padrão */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);  /* Fundo escuro */
+        backdrop-filter: blur(3px);  /* Efeito de desfoque */
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background: white;
+        width: 90%;
+        max-width: 550px;
+        margin: 50px auto;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-header h2 {
+        color: #184145;
+        font-size: 20px;
+        margin: 0;
+    }
+
+    .modal-header h2 i {
+        color: #0b5b99;
+        margin-right: 10px;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+        color: #dc3545;
+    }
+
+    .modal-body {
+        padding: 25px;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    .btn-cancelar {
+        background: #f8f9fa;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancelar:hover {
+        background: #e9ecef;
+    }
+
+    /* ====== ESTILOS DOS DETALHES DA ÁREA ====== */
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .detail-header h2 {
+        color: #184145;
+        font-size: 20px;
+        margin: 0;
+    }
+
+    .detail-header h2 i {
+        color: #0b5b99;
+        margin-right: 10px;
+    }
+
+    .detail-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-ativo {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-inativo {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .info-group {
+        margin-bottom: 15px;
+    }
+
+    .info-group label {
+        display: block;
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 3px;
+    }
+
+    .info-group label i {
+        margin-right: 5px;
+    }
+
+    .info-group p {
+        font-size: 14px;
+        color: #333;
+    }
+
+    .funcionarios-section {
+        margin-top: 25px;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .funcionarios-section h3 {
+        color: #184145;
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+
+    .funcionarios-section h3 i {
+        color: #0b5b99;
+        margin-right: 8px;
+    }
+
+    .funcionario-item {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+    }
+
+    .funcionario-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .funcionario-info strong {
+        color: #184145;
+        font-size: 14px;
+    }
+
+    .funcionario-cargo {
+        font-size: 12px;
+        color: #666;
+        background: #e9ecef;
+        padding: 2px 10px;
+        border-radius: 15px;
+    }
+
+    .funcionario-datas {
+        display: flex;
+        gap: 20px;
+    }
+
+    .funcionario-datas small {
+        font-size: 11px;
+        color: #888;
+    }
+
+    .funcionario-datas small i {
+        margin-right: 5px;
+    }
+
+    /* Botão secundário */
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        margin-top: 15px;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+
+    /* Form row */
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        flex: 1;
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #48606c;
+        font-size: 13px;
+    }
+
+    .form-group label i {
+        margin-right: 5px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    .funcionario-actions {
+        margin-top: 10px;
+        text-align: right;
+    }
+
+    .btn-excluir-func {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        padding: 5px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    .btn-excluir-func:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-excluir-func i {
+        margin-right: 5px;
+    }
+</style>
+
+<script>
+    // ====== PERFIL DO USUÁRIO ======
+    const usuarioPerfil = '{{ usuario_perfil }}';
+    const isAdmin = (usuarioPerfil === 'administrador' || usuarioPErfil === 'admin');
+    console.log('Perfil do usuário:', usuarioPerfil, 'é admin?', isAdmin);
+    // ====== CARREGAR ÁREAS ======
+    async function carregarAreas() {
+        try {
+            const response = await fetch('/api/areas');
+            const areas = await response.json();
+            const container = document.getElementById('areasContainer');
+            
+            console.log('Dados recebidos:', areas);
+            
+            if (!areas || areas.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nenhuma área cadastrada</p>';
+                return;
+            }
+            
+            // Renderizar cards
+            container.innerHTML = areas.map(area => {
+                const nome = area.nome_area || 'Sem nome';
+                const gestor = area.gestor || 'Não informado';
+                const id = area.id_area;
+                
+                return `
+                    <div class="area-card" data-id="${id}">
+                        <h4><i class="fas fa-building"></i> ${nome}</h4>
+                        <p><i class="fas fa-user-tie"></i> Gestor: ${gestor}</p>
+                        <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
+                        <p><i class="fas fa-phone"></i> ${area.telefone || 'Sem telefone'}</p>
+                    </div>
+                `;
+            }).join('');
+            
+            // Adicionar evento de clique nos cards
+            document.querySelectorAll('.area-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const areaId = card.getAttribute('data-id');
+                    console.log('Card clicado, ID:', areaId);
+                    
+                    // Remover classe 'selected' de todos os cards
+                    document.querySelectorAll('.area-card').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    
+                    // Adicionar classe 'selected' ao card clicado
+                    card.classList.add('selected');
+                    
+                    // Carregar detalhes da área no painel direito
+                    carregarDetalhesArea(areaId);
+                });
+            });
+            
+        } catch (error) {
+            console.error('Erro ao carregar áreas:', error);
+            document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Erro ao carregar áreas</p>';
+        }
+    }
+    
+    // ====== CARREGAR DETALHES DA ÁREA ======
+    async function carregarDetalhesArea(areaId) {
+        try {
+            const response = await fetch(`/api/area/${areaId}`);
+            const area = await response.json();
+            
+            const container = document.querySelector('.area-details');
+            
+            if (!area) {
+                container.innerHTML = '<p class="text-muted">Área não encontrada</p>';
+                return;
+            }
+            
+            // Renderizar detalhes da área
+            container.innerHTML = `
+                <div class="area-detail-content">
+                    <div class="detail-header">
+                        <h2><i class="fas fa-building"></i> ${area.nome_area}</h2>
+                        <p class="detail-status ${area.status === 'Ativo' ? 'status-ativo' : 'status-inativo'}">${area.status}</p>
+                    </div>
+                    
+                    <div class="detail-info">
+                        <div class="info-group">
+                            <label><i class="fas fa-user-tie"></i> Gestor</label>
+                            <p>${area.gestor || 'Não informado'}</p>
+                        </div>
+                        <div class="info-group">
+                            <label><i class="fas fa-envelope"></i> E-mail</label>
+                            <p>${area.email || 'Não informado'}</p>
+                        </div>
+                        <div class="info-group">
+                            <label><i class="fas fa-phone"></i> Telefone</label>
+                            <p>${area.telefone || 'Não informado'}</p>
+                        </div>
+                        <div class="info-group">
+                            <label><i class="fas fa-bullseye"></i> Objetivo</label>
+                            <p>${area.objetivo_area || 'Não informado'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="funcionarios-section">
+                        <h3><i class="fas fa-users"></i> Funcionários</h3>
+                        <div id="funcionariosList">
+                            <p class="text-muted">Carregando funcionários...</p>
+                        </div>
+                        <button class="btn-secondary" id="btnAddFuncionario">
+                            <i class="fas fa-user-plus"></i> Adicionar Funcionário
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Carregar funcionários da área
+            carregarFuncionariosArea(areaId);
+            
+        } catch (error) {
+            console.error('Erro ao carregar detalhes:', error);
+            document.querySelector('.area-details').innerHTML = '<p class="text-muted">Erro ao carregar detalhes</p>';
+        }
+    }
+    
+    // ====== CARREGAR FUNCIONÁRIOS DA ÁREA ======
+    async function carregarFuncionariosArea(areaId) {
+        try {
+            const response = await fetch(`/api/area/${areaId}/funcionarios`);
+            const funcionarios = await response.json();
+            
+            const container = document.getElementById('funcionariosList');
+            
+            if (!container) return;
+            
+            if (!funcionarios || funcionarios.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nenhum funcionário cadastrado nesta área</p>';
+                return;
+            }
+
+            console.log('Primeiro funcionário - TODOS OS CAMPOS:', funcionarios[0]);
+            console.log('Keys disponíveis:', Object.keys(funcionarios[0]));
+                        
+            container.innerHTML = funcionarios.map(func => {
+                // Agora o campo correto é 'id'
+                const funcId = func.id;  // ← CORRETO
+                
+                return `
+                    <div class="funcionario-item" data-func-id="${funcId}">
+                        <div class="funcionario-info">
+                            <strong><i class="fas fa-user"></i> ${func.nome_funcionario}</strong>
+                            <span class="funcionario-cargo">${func.cargo || 'Cargo não informado'}</span>
+                        </div>
+                        <div class="funcionario-datas">
+                            <small><i class="fas fa-clock"></i> Na função: ${func.tempo_funcao || 'Não informado'}</small>
+                            <small><i class="fas fa-building"></i> Na empresa: ${func.tempo_empresa || 'Não informado'}</small>
+                        </div>
+                        ${isAdmin ? `
+                        <div class="funcionario-actions">
+                            <button class="btn-excluir-func" data-id="${funcId}" data-nome="${func.nome_funcionario}">
+                                <i class="fas fa-trash-alt"></i> Excluir
+                            </button>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            // ====== ADICIONAR EVENTO DE EXCLUSÃO (apenas se for admin) ======
+            if (isAdmin) {
+                document.querySelectorAll('.btn-excluir-func').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const funcId = btn.getAttribute('data-id');
+                        const funcNome = btn.getAttribute('data-nome');
+                        
+                        if (confirm(`Tem certeza que deseja excluir o funcionário "${funcNome}"?`)) {
+                            await excluirFuncionario(funcId, areaId);
+                        }
+                    });
+                });
+            }
+            
+        } catch (error) {
+            console.error('Erro ao carregar funcionários:', error);
+            const container = document.getElementById('funcionariosList');
+            if (container) {
+                container.innerHTML = '<p class="text-muted">Erro ao carregar funcionários</p>';
+            }
+        }
+    }
+
+    async function excluirFuncionario(funcionarioId, areaId) {
+        try {
+            const response = await fetch(`/api/funcionario/${funcionarioId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                alert('✅ Funcionário excluído com sucesso!');
+                // Recarregar detalhes da área e métricas
+                await carregarDetalhesArea(areaId);
+                await atualizarMetricas();
+            } else {
+                alert('❌ Erro ao excluir funcionário. Tente novamente.');
+            }
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            alert('❌ Erro de conexão. Verifique sua internet.');
+        }
+    }
+    
+    // ====== ATUALIZAR MÉTRICAS ======
+    async function atualizarMetricas() {
+        try {
+            const response = await fetch('/api/totais');
+            const dados = await response.json();
+            
+            document.querySelector('.metric-card:first-child .metric-value').textContent = dados.areas;
+            document.querySelector('.metric-card:nth-child(2) .metric-value').textContent = dados.funcionarios;
+            document.querySelector('.metric-card:nth-child(3) .metric-value').textContent = dados.total_geral;
+        } catch (error) {
+            console.error('Erro ao carregar métricas:', error);
+        }
+    }
+    
+    // ====== CARREGAR DADOS INICIAIS ======
+    async function carregarDados() {
+        await carregarAreas();
+        await atualizarMetricas();
+    }
+    
+    carregarDados();
+    
+    // ====== CONTROLE DO MODAL ======
+    const modal = document.getElementById('modalNovaArea');
+    const btnNovaArea = document.getElementById('btnNovaArea');
+    const btnFecharModal = document.getElementById('btnFecharModal');
+    const btnCancelarModal = document.getElementById('btnCancelarModal');
+    
+    // Abrir modal
+    btnNovaArea.addEventListener('click', () => {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    });
+    
+    // Fechar modal
+    function fecharModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    
+    btnFecharModal.addEventListener('click', fecharModal);
+    btnCancelarModal.addEventListener('click', fecharModal);
+    
+    // Clicar fora do modal também fecha
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            fecharModal();
+        }
+    });
+    
+    // Tecla ESC fecha modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            fecharModal();
+        }
+    });
+    
+    // ====== SALVAR NOVA ÁREA ======
+    const formNovaArea = document.getElementById('formNovaArea');
+    
+    formNovaArea.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const dados = {
+            nome: document.getElementById('nome_area').value,
+            email: document.getElementById('email').value,
+            telefone: document.getElementById('telefone').value,
+            gestor: document.getElementById('gestor').value,
+            objetivo: document.getElementById('objetivo').value,
+            status: 'Ativo'
+        };
+        
+        if (!dados.nome || !dados.gestor) {
+            alert('Preencha os campos obrigatórios: Nome da Área e Gestor');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/salvar-area', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                fecharModal();
+                formNovaArea.reset();
+                await carregarDados();
+                alert('✅ Área cadastrada com sucesso!');
+            } else {
+                alert('❌ Erro ao cadastrar área. Tente novamente.');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('❌ Erro de conexão. Verifique sua internet.');
+        }
+    });
+</script>
+
+    <div id="modalNovaArea" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-building"></i> Nova Área</h2>
+                <button class="modal-close" id="btnFecharModal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <form id="formNovaArea">
+                    <div class="form-group">
+                        <label for="nome_area"><i class="fas fa-tag"></i> Nome da Área *</label>
+                        <input type="text" id="nome_area" name="nome_area" class="form-control" required placeholder="Ex: Gerência Financeira, Gerência de RH">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="email@dominio.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="telefone"><i class="fas fa-phone"></i> Telefone</label>
+                            <input type="text" id="telefone" name="telefone" class="form-control" placeholder="(XX) XXXX-XXXX">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gestor"><i class="fas fa-user-tie"></i> Nome do Gestor *</label>
+                        <input type="text" id="gestor" name="gestor" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="objetivo"><i class="fas fa-bullseye"></i> Objetivo da Área</label>
+                        <textarea id="objetivo" name="objetivo" class="form-control" rows="3" placeholder="Descreva brevemente o propósito da área"></textarea>
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button type="button" class="btn-cancelar" id="btnCancelarModal">Cancelar</button>
+                        <button type="submit" class="btn-primary">💾 Salvar Área</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

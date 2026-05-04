@@ -3,75 +3,125 @@ Arquivo principal para aplicação Flask
 Sistema de Auditoria Interna - FUSVE
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 import os
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
-# Carrega variáveis do arquivo .env
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+from dotenv import load_dotenv
+
+# ============================================================
+# CARREGAR CONFIGURAÇÕES
+# ============================================================
+
 load_dotenv()
 
-# Importa minha função de validação do login (do sistema streamlit)
-# Assumindo que a função está em logic.py
+# ============================================================
+# IMPORTAR FUNÇÕES AUXILIARES
+# ============================================================
+
 from logic import validar_login_no_banco
 
-# Cria a aplicação Flask
+# ============================================================
+# FUNÇÕES DE UTILIDADE
+# ============================================================
+
+def calcular_tempo(data_inicio):
+    """Calcula tempo decorrido desde a data de início até hoje"""
+    if not data_inicio:
+        return "Não informado"
+    
+    if isinstance(data_inicio, str):
+        try:
+            data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        except:
+            return "Data inválida"
+    
+    hoje = date.today()
+    anos = hoje.year - data_inicio.year
+    meses = hoje.month - data_inicio.month
+    
+    if meses < 0:
+        anos -= 1
+        meses += 12
+    
+    if anos == 0 and meses == 0:
+        return "Menos de 1 mês"
+    elif anos == 0:
+        return f"{meses} {'mês' if meses == 1 else 'meses'}"
+    elif meses == 0:
+        return f"{anos} {'ano' if anos == 1 else 'anos'}"
+    else:
+        return f"{anos} {'ano' if anos == 1 else 'anos'} e {meses} {'mês' if meses == 1 else 'meses'}"
+
+# ============================================================
+# CRIAÇÃO DA APLICAÇÃO FLASK
+# ============================================================
+
 app = Flask(__name__)
 
 # Configurações da sessão
 app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=int(os.getenv('SESSION_TIMEOUT_SECONDS', 1800)))
-app.config['SESSION_COOKIE_SECURE'] = False # True apenas em produção (HTTPS)
-app.config['SESSION_COOKIE_HITPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Rota de login
+# ============================================================
+# ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
+# ============================================================
+
 @app.route('/login', methods=["GET", "POST"])
 def login():
-    """
-    Tela de login do sistema
-    GET: Mostra o formulário
-    POST: Processa as credenciais
-    """
-    # Se o usuário já está logado, redireciona para a página inicial
+    """Tela de login do sistema"""
     if session.get('autenticado'):
-        return redirect(url_for('home'))
+        return redirect(url_for('dashboard'))
+    
     erro = None
-
     if request.method == 'POST':
         usuario = request.form.get('usuario')
         senha = request.form.get('senha')
-
-        # Valida as credenciais usando a função existente
+        
         sucesso, usuario_id, usuario_nome, usuario_perfil = validar_login_no_banco(usuario, senha)
-
+        
         if sucesso:
-            # Armazena os dados na sessão
             session['autenticado'] = True
             session['usuario_logado'] = usuario
             session['usuario_nome'] = usuario_nome
             session['usuario_id'] = usuario_id
             session['usuario_perfil'] = usuario_perfil
             session['login_timestamp'] = datetime.now().isoformat()
-            session.permanent = True # Faz a sessão respeitar o timeout
-
-            # Redireciona para a página principal
+            session.permanent = True
             return redirect(url_for('dashboard'))
         else:
             erro = "❌ Usuário ou senha incorretos."
     
     return render_template('login.html', erro=erro)
 
-# Rota de logout
 @app.route('/logout')
 def logout():
     """Remove os dados da sessão e desloga o usuário"""
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/ping')
+def ping():
+    """Health check para o UptimeRobot"""
+    return "OK", 200
+
+# ============================================================
+# ROTAS PRINCIPAIS (PÁGINAS)
+# ============================================================
+
+@app.route('/')
+def home():
+    """Redireciona para dashboard"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return redirect(url_for('dashboard'))
+
 @app.route('/dashboard')
 def dashboard():
-    """Página inicial / Dashboard após login"""
+    """Dashboard principal"""
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     return render_template('dashboard.html')
@@ -82,20 +132,6 @@ def plano_anual():
         return redirect(url_for('login'))
     return render_template('plano_anual.html')
 
-@app.route('/api/plano-anual-pdf')
-def plano_anual_pdf():
-    """Serve o arquivo PDF do Plano Anual"""
-    if not session.get('autenticado'):
-        return redirect(url_for('login'))
-    
-    # Caminho do PDF
-    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', 'plano_auditoria_2026.pdf')
-
-    if os.path.exists(pdf_path):
-        return send_file(pdf_path, mimetype='application/pdf')
-    else:
-        return "Arquivo não encontrado", 404
-
 @app.route('/diagnostico')
 def diagnostico():
     if not session.get('autenticado'):
@@ -103,8 +139,6 @@ def diagnostico():
     
     from modules.execucao.areas import carregar_areas_banco
     areas = carregar_areas_banco()
-    
-    # Pega o perfil do usuário logado
     usuario_perfil = session.get('usuario_perfil', 'auditor')
     
     return render_template('diagnostico.html', areas=areas, usuario_perfil=usuario_perfil)
@@ -137,7 +171,9 @@ def relatorios():
 def areas():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('areas.html')
+    
+    usuario_perfil = session.get('usuario_perfil', 'auditor')
+    return render_template('areas.html', usuario_perfil=usuario_perfil)
 
 @app.route('/historico')
 def historico():
@@ -145,54 +181,25 @@ def historico():
         return redirect(url_for('login'))
     return render_template('historico.html')
 
-# Rota principal (página inicial / dashboard)
-@app.route('/')
-def home():
-    """Página inicial do sistema (apenas para usuários logados)"""
+# ============================================================
+# ROTAS DE API (BACKEND)
+# ============================================================
+
+@app.route('/api/plano-anual-pdf')
+def api_plano_anual_pdf():
+    """Serve o arquivo PDF do Plano Anual"""
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     
-     # Exibe informações do usuário logado
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Dashboard - Auditoria Interna</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f0f0f0; }}
-            .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
-            h1 {{ color: #184145; }}
-            .user-info {{ background: #e0e0e0; padding: 10px; border-radius: 5px; margin-bottom: 20px; }}
-            .logout-btn {{ color: red; text-decoration: none; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🏢 Sistema de Auditoria Interna - FUSVE</h1>
-            <div class="user-info">
-                👤 <strong>{session.get('usuario_nome', session.get('usuario_logado'))}</strong> 
-                (Perfil: {session.get('usuario_perfil', 'auditor')})
-                <br>
-                <a href="{url_for('logout')}" class="logout-btn">Sair</a>
-            </div>
-            <p>✅ Login realizado com sucesso!</p>
-            <p>Migração Flask em andamento. Em breve, todas as 8 páginas estarão disponíveis aqui.</p>
-            <hr>
-            <small>Sessão expira em 30 minutos de inatividade.</small>
-        </div>
-    </body>
-    </html>
-    """
-
-# Rota de health check (para o UptimeRobot)
-@app.route('/ping')
-def ping():
-    """Mantém o aplicativo ativo no Render (usado com UptimeRobot)"""
-    return "OK", 200
+    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', 'plano_auditoria_2026.pdf')
+    
+    if os.path.exists(pdf_path):
+        return send_file(pdf_path, mimetype='application/pdf')
+    return "Arquivo não encontrado", 404
 
 @app.route('/api/auditorias-por-area')
 def api_auditorias_por_area():
-    """Retorna as auditorias de uma área (para uso via fetch)"""
+    """Retorna as auditorias de uma área"""
     from database import engine
     from sqlalchemy import text
     
@@ -213,13 +220,114 @@ def api_auditorias_por_area():
     
     return jsonify({'auditorias': auditorias})
 
-# Ponto de entrada da aplicação
+# ============================================================
+# API - ÁREAS E FUNCIONÁRIOS
+# ============================================================
+
+@app.route('/api/areas')
+def api_areas():
+    """Retorna todas as áreas"""
+    from modules.execucao.areas import listar_areas
+    
+    df = listar_areas()
+    
+    if df.empty:
+        return jsonify([])
+    
+    return jsonify(df.to_dict(orient='records'))
+
+@app.route('/api/totais')
+def api_totais():
+    """Retorna totais de áreas e funcionários"""
+    from modules.execucao.areas import listar_areas, listar_funcionarios_area
+    
+    df_areas = listar_areas()
+    total_areas = len(df_areas) if not df_areas.empty else 0
+    
+    total_funcionarios = 0
+    if not df_areas.empty:
+        for _, area in df_areas.iterrows():
+            df_func = listar_funcionarios_area(area['id_area'])
+            if not df_func.empty:
+                total_funcionarios += len(df_func)
+    
+    return jsonify({
+        'areas': total_areas,
+        'funcionarios': total_funcionarios,
+        'total_geral': total_areas + total_funcionarios
+    })
+
+@app.route('/api/area/<int:area_id>')
+def api_area_detalhes(area_id):
+    """Retorna detalhes de uma área específica"""
+    from modules.execucao.areas import listar_areas
+    
+    df = listar_areas()
+    area = df[df['id_area'] == area_id]
+    
+    if area.empty:
+        return jsonify({}), 404
+    
+    return jsonify(area.iloc[0].to_dict())
+
+@app.route('/api/area/<int:area_id>/funcionarios')
+def api_area_funcionarios(area_id):
+    """Retorna todos os funcionários de uma área com tempo calculado"""
+    from modules.execucao.areas import listar_funcionarios_area
+    
+    df = listar_funcionarios_area(area_id)
+    
+    if df.empty:
+        return jsonify([])
+    
+    funcionarios = df.to_dict(orient='records')
+    
+    for func in funcionarios:
+        func['tempo_funcao'] = calcular_tempo(func.get('data_inicio_funcao'))
+        func['tempo_empresa'] = calcular_tempo(func.get('data_inicio_empresa'))
+    
+    return jsonify(funcionarios)
+
+@app.route('/api/salvar-area', methods=['POST'])
+def api_salvar_area():
+    """Salva uma nova área"""
+    from modules.execucao.areas import salvar_area
+    
+    dados = request.json
+    area_id = salvar_area(dados)
+    
+    if area_id:
+        return jsonify({'success': True, 'id': area_id})
+    return jsonify({'success': False}), 400
+
+@app.route('/api/funcionario/<int:funcionario_id>', methods=['DELETE'])
+def api_excluir_funcionario(funcionario_id):
+    """Exclui um funcionário (apenas administradores)"""
+    from logic import excluir_funcionario
+    
+    perfil = session.get('usuario_perfil')
+    
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    resultado = excluir_funcionario(funcionario_id)
+    
+    if resultado:
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Falha ao excluir'}), 400
+
+# ============================================================
+# PONTO DE ENTRADA
+# ============================================================
+
 if __name__ == '__main__':
+    print("=" * 50)
     print("🚀 Servidor Flask iniciando...")
-    print(f"📁 SECRET_KEY configurada: {'OK' if app.secret_key else 'FALHOU'}")
+    print(f"📁 SECRET_KEY configurada: {'✅ OK' if app.secret_key else '❌ FALHOU'}")
     print(f"⏱️ Timeout da sessão: {app.config['PERMANENT_SESSION_LIFETIME']}")
+    print("=" * 50)
     print("\n📍 Acesse: http://127.0.0.1:5000/login")
-    print("🔒 Para testar o login, use suas credenciais cadastradas no Supabase")
+    print("🔒 Use suas credenciais cadastradas no Supabase")
     print("\n⚠️ Aperte CTRL+C para parar o servidor\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
