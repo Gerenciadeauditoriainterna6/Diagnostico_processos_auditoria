@@ -319,7 +319,6 @@
                 border-radius: 10px;
                 color: #e4e4e4;
                 text-decoration: none;
-                transition: all 0.2s ease;
                 font-size: 13px;
             }
 
@@ -333,7 +332,16 @@
                 background: rgba(255,255,255,0.1);
                 border-left: 5px solid #0b5b99;
             }
+            
+            .nav-item.active {
+                background: rgba(255,255,255,0.1);
+                border-left-color: #0b5b99;
+            }
 
+            .submenu-item.active {
+                background: rgba(255,255,255,0.1);
+                border-left: 5px solid #0b5b99;
+            }
 
          </style>
     </head>
@@ -435,8 +443,37 @@
             </main>
         </div>
 
-        <!-- ====== JAVASCRIPT PARA REDIMENSIONAR O SIDEBAR ====== -->
+        
         <script>
+            
+            // ======= DESTACAR ITEM ATIVO DO MENU =======
+            (function() {
+                const currentUrl = window.location.pathname;
+
+                // Seleciona todos os links do menu
+                const allLinks = document.querySelectorAll('.nav-item, .submenu-item');
+
+                allLinks.forEach(link => {
+                    const linkUrl = link.getAttribute('href');
+
+                    // Verificar se o href do link corresponde à URL atual
+                    if (linkUrl && linkUrl !== '#' && currentUrl.includes(linkUrl)) {
+                        link.classList.add('active');
+
+                        // Se for um submenu-item, também abre o submenu pai
+                        if (link.classList.contains('submenu-item')) {
+                            const submenu = link.closest('.submenu');
+                            const toggleBtn = submenu ? document.querySelector('.submenu-toggle'): null;
+                            if (submenu && toggleBtn) {
+                                submenu.classList.add('show');
+                                toggleBtn.classList.add('open');
+                            }
+                        }
+                    }
+                });
+            })();
+
+            // JAVASCRIPT PARA REDIMENSIONAR O SIDEBAR
             (function() {
                 // Elementos do DOM
                 const sidebar = document.querySelector('.sidebar');
