@@ -3,7 +3,7 @@ Arquivo principal para aplicação Flask
 Sistema de Auditoria Interna - FUSVE
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -81,6 +81,20 @@ def plano_anual():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     return render_template('plano_anual.html')
+
+@app.route('/api/plano-anual-pdf')
+def plano_anual_pdf():
+    """Serve o arquivo PDF do Plano Anual"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    # Caminho do PDF
+    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', 'plano_auditoria_2026.pdf')
+
+    if os.path.exists(pdf_path):
+        return send_file(pdf_path, mimetype='application/pdf')
+    else:
+        return "Arquivo não encontrado", 404
 
 @app.route('/diagnostico')
 def diagnostico():
