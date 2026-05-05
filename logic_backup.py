@@ -1823,3 +1823,32 @@ def salvar_edicao_processo_completa(dados):
     except Exception as e:
         print(f"Erro ao salvar edição: {e}")
         return False
+
+def salvar_funcionario(dados):
+    """Salva um novo funcionário no banco de dados"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        query = text("""
+            INSERT INTO funcionarios_area 
+            (id_area, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa, ativo)
+            VALUES 
+            (:id_area, :nome, :cargo, :data_inicio_funcao, :data_inicio_empresa, true)
+            RETURNING id
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {
+                "id_area": dados['id_area'],
+                "nome": dados['nome'],
+                "cargo": dados.get('cargo', ''),
+                "data_inicio_funcao": dados.get('data_inicio_funcao'),
+                "data_inicio_empresa": dados.get('data_inicio_empresa')
+            })
+            conn.commit()
+            novo_id = result.scalar()
+            return novo_id
+    except Exception as e:
+        print(f"Erro ao salvar funcionário: {e}")
+        return None

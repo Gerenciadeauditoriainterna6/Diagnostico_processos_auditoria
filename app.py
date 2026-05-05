@@ -332,6 +332,18 @@ def api_excluir_funcionario(funcionario_id):
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Falha ao excluir'}), 400
 
+@app.route('/api/salvar-funcionario', methods=['POST'])
+def api_salvar_funcionario():
+    """Salva um novo funcionário no banco de dados"""
+    from logic import salvar_funcionario
+    
+    dados = request.json
+    resultado = salvar_funcionario(dados)
+    
+    if resultado:
+        return jsonify({'success': True, 'id': resultado})
+    return jsonify({'success': False}), 400
+
 # ============================================================
 # PONTO DE ENTRADA
 # ============================================================
