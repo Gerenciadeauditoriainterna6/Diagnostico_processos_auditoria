@@ -865,7 +865,7 @@
             const resultado = await response.json();
             
             if (resultado.success) {
-                alert('✅ Funcionário excluído com sucesso!');
+                mostrarToast('✅ Funcionário excluído com sucesso!', 'success');
                 // Recarregar APENAS a lista de funcionários
                 await carregarFuncionariosArea(areaId);
                 
@@ -877,11 +877,11 @@
                     }
                 });
             } else {
-                alert('❌ Erro ao excluir funcionário. Tente novamente.');
+                mostrarToast('❌ Erro ao excluir funcionário. Tente novamente.', 'error');
             }
         } catch (error) {
             console.error('Erro ao excluir:', error);
-            alert('❌ Erro de conexão. Verifique sua internet.');
+            mostrarToast('❌ Erro de conexão. Verifique sua internet.', 'error');
         }
     }
 
@@ -896,7 +896,7 @@
             const resultado = await response.json();
             
             if (resultado.success) {
-                alert(`✅ Área "${areaNome}" desativada com sucesso!`);
+                mostrarToast(`✅ Área "${areaNome}" desativada com sucesso!`, 'success');
                 await carregarDados();  // Recarregar lista e métricas
                 // Limpar painel direito
                 document.querySelector('.area-details').innerHTML = `
@@ -906,11 +906,11 @@
                     </div>
                 `;
             } else {
-                alert('❌ Erro ao desativar área. Tente novamente.');
+                mostrarToast('❌ Erro ao desativar área. Tente novamente.', 'error');
             }
         } catch (error) {
             console.error('Erro:', error);
-            alert('❌ Erro de conexão.');
+            mostrarToast('❌ Erro de conexão.', 'error');
         }
     }
     
@@ -988,7 +988,7 @@
                 };
                 
                 if (!dados.nome || !dados.gestor) {
-                    alert('Preencha os campos obrigatórios: Nome da Área e Gestor');
+                    mostrarToast('Preencha os campos obrigatórios: Nome da Área e Gestor', 'error');
                     return;
                 }
                 
@@ -1007,13 +1007,13 @@
                         fecharModal();
                         formNovaArea.reset();
                         await carregarDados();
-                        alert('✅ Área cadastrada com sucesso!');
+                        mostrarToast('✅ Área cadastrada com sucesso!', 'success');
                     } else {
-                        alert('❌ Erro ao cadastrar área. Tente novamente.');
+                        mostrarToast('❌ Erro ao cadastrar área. Tente novamente.', 'error');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('❌ Erro de conexão. Verifique sua internet.');
+                    mostrarToast('❌ Erro de conexão. Verifique sua internet.', 'error');
                 }
             });
         }
@@ -1089,7 +1089,7 @@
                 };
                 
                 if (!dados.nome) {
-                    alert('❌ O nome do funcionário é obrigatório.');
+                    mostrarToast('❌ O nome do funcionário é obrigatório.', 'error');
                     return;
                 }
                 
@@ -1106,7 +1106,7 @@
                     const resultado = await response.json();
                     
                     if (resultado.success) {
-                        alert('✅ Funcionário cadastrado com sucesso!');
+                        mostrarToast('Funcionário cadastrado com sucesso!', 'success');
                         
                         // Fechar o modal (isso vai definir areaIdAtual = null)
                         fecharModalFunc();
@@ -1128,11 +1128,11 @@
                             location.reload();
                         }
                     } else {
-                        alert('❌ Erro ao cadastrar funcionário. Tente novamente.');
+                        mostrarToast('❌ Erro ao cadastrar funcionário. Tente novamente.', 'error');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('❌ Erro de conexão. Verifique sua internet.');
+                    mostrarToast('❌ Erro de conexão. Verifique sua internet.', 'error');
                 }
             });
         }
