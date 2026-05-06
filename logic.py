@@ -2164,33 +2164,38 @@ def excluir_funcionario(funcionario_id):
         return False
 
 def excluir_area(area_id):
-    """Desativa uma área (soft delete) - atualiza status para 'Inativo'"""
+    """Desativa uma área e todos os seus funcionários (soft delete em cascata)"""
     from database import engine
     from sqlalchemy import text
     
-    print(f"🔍 Desativando área ID: {area_id}")
+    print(f"🔍 Desativando área ID: {area_id} e seus funcionários")
     
     try:
         with engine.connect() as conn:
-            # Verificar se a área existe
-            check_query = text("SELECT id_area FROM informacoes_area WHERE id_area = :id")
-            result_check = conn.execute(check_query, {"id": area_id})
-            existe = result_check.fetchone()
-            
-            if not existe:
-                print(f"❌ Área com ID {area_id} não encontrada!")
-                return False
-            
-            # Soft delete: atualizar status para 'Inativo'
-            update_query = text("UPDATE informacoes_area SET status = 'Inativo' WHERE id_area = :id")
-            result = conn.execute(update_query, {"id": area_id})
-            conn.commit()
-            
-            print(f"✅ Área desativada. Linhas afetadas: {result.rowcount}")
-            return result.rowcount > 0
-            
+            # Iniciar transação
+            with conn.begin():
+                # 1. Desativar todos os funcionários da área
+                update_funcionarios = text("""
+                    UPDATE funcionarios_area 
+                    SET ativo = false 
+                    WHERE id_area = :id
+                """)
+                result_func = conn.execute(update_funcionarios, {"id": area_id})
+                print(f"✅ Funcionários desativados: {result_func.rowcount}")
+                
+                # 2. Desativar a área
+                update_area = text("""
+                    UPDATE informacoes_area 
+                    SET status = 'Inativo' 
+                    WHERE id_area = :id
+                """)
+                result_area = conn.execute(update_area, {"id": area_id})
+                print(f"✅ Área desativada: {result_area.rowcount}")
+                
+                return result_area.rowcount > 0
+                
     except Exception as e:
-        print(f"❌ Erro ao desativar área: {e}")
+        print(f"❌ Erro ao desativar área em cascata: {e}")
         return False
 
 
