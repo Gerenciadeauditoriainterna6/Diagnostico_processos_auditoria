@@ -38,6 +38,24 @@
     </div>
 </div>
 
+<!--MODAL DE CONFIRMAÇÃO PERSONALIZADO-->
+<div id="modalConfirmacao" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2><i class="fas fa-question-circle"></i> Confirmar Ação</h2>
+            <button class="modal-close" id="btnFecharConfirmacao">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="mensagemConfirmacao">Tem certeza que deseja realizar esta ação?</p>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">Esta ação não poderá ser desfeita.</p>
+            <div class="modal-buttons" style="margin-top: 25px;">
+                <button type="button" class="btn-cancelar-modal" id="btnCancelarConfirmacao">Cancelar</button>
+                <button type="button" class="btn-salvar-area" id="btnConfirmarAcao">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     /* Áreas Dashboard */
     .areas-dashboard {
@@ -627,6 +645,44 @@
 </style>
 
 <script>
+    // ====== MODAL DE CONFIRMAÇÃO PERSONALIZADO ======
+    let confirmacaoResolve = null;
+
+    function mostrarConfirmacao(mensagem) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('modalConfirmacao');
+            const mensagemEl = document.getElementById('mensagemConfirmacao');
+            const btnConfirmar = document.getElementById('btnConfirmarAcao');
+            const btnCancelar = document.getElementById('btnCancelarConfirmacao');
+            const btnFechar = document.getElementById('btnFecharConfirmacao');
+            
+            mensagemEl.textContent = mensagem;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            function resolver(valor) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                confirmacaoResolve = null;
+                resolve(valor);
+            }
+            
+            const handleConfirmar = () => resolver(true);
+            const handleCancelar = () => resolver(false);
+            
+            btnConfirmar.addEventListener('click', handleConfirmar, { once: true });
+            btnCancelar.addEventListener('click', handleCancelar, { once: true });
+            btnFechar.addEventListener('click', handleCancelar, { once: true });
+            
+            // Clicar fora do modal também cancela
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) resolver(false);
+            }, { once: true });
+            
+            confirmacaoResolve = resolver;
+        });
+    }
+
     // ====== FORMATAR TELEFONE PARA EXIBIÇÃO ======
     function formatarTelefoneExibicao(telefone) {
         if (!telefone) return 'Não informado';
@@ -714,7 +770,8 @@
                         const areaId = btn.getAttribute('data-id');
                         const areaNome = btn.getAttribute('data-nome');
                         
-                        if (confirm(`Tem certeza que deseja desativar a área "${areaNome}"?`)) {
+                        const confirmado = await mostrarConfirmacao(`Tem certeza que deseja desativar a área "${areaNome}"?`);
+                        if (confirmado) {
                             await excluirArea(areaId, areaNome, btn);
                         }
                     });
@@ -870,7 +927,8 @@
                         e.stopPropagation();
                         const funcId = btn.getAttribute('data-id');
                         const funcNome = btn.getAttribute('data-nome');
-                        if (confirm(`Tem certeza que deseja excluir o funcionário "${funcNome}"?`)) {
+                        const confirmado = await mostrarConfirmacao(`Tem certeza que deseja excluir o funcionário "${funcNome}"?`);
+                        if (confirmado) {
                             await excluirFuncionario(funcId, areaId, btn);
                         }
                     };
