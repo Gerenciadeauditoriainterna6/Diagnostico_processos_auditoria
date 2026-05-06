@@ -694,6 +694,13 @@
     // ====== CARREGAR DETALHES DA ÁREA ======
 
     async function carregarDetalhesArea(areaId) {
+        console.log('carregarDetalhesArea chamado com areaId:', areaId);
+
+        if (!areaId) {
+            console.error('areaId é undefined!');
+            return;
+        }
+
         try {
             const response = await fetch(`/api/area/${areaId}`);
             const area = await response.json();
@@ -765,9 +772,24 @@
     
     // ====== CARREGAR FUNCIONÁRIOS DA ÁREA ======
     async function carregarFuncionariosArea(areaId) {
+        console.log('carregarFuncionariosArea chamado com areaId:', areaId);
+
         try {
             const response = await fetch(`/api/area/${areaId}/funcionarios`);
+            
+            console.log('Resposta da API:', response.status);
+
+            if (!response.ok) {
+                console.error('Erro na API:', response.status);
+                const container = document.getElementById('funcionariosList');
+                if (container) {
+                    container.innerHTML = '<p class="text-muted">Erro ao carregar funcionários</p>';
+                }
+                return;
+            }
+
             const funcionarios = await response.json();
+            console.log('Funcionários recebidos:', funcionarios);
             
             const container = document.getElementById('funcionariosList');
             
@@ -777,14 +799,10 @@
                 container.innerHTML = '<p class="text-muted">Nenhum funcionário cadastrado nesta área</p>';
                 return;
             }
-
-            console.log('Primeiro funcionário - TODOS OS CAMPOS:', funcionarios[0]);
-            console.log('Keys disponíveis:', Object.keys(funcionarios[0]));
-                        
+            
+            // Sem setTimeout, direto
             container.innerHTML = funcionarios.map(func => {
-                // Agora o campo correto é 'id'
-                const funcId = func.id;  // ← CORRETO
-                
+                const funcId = func.id;
                 return `
                     <div class="funcionario-item" data-func-id="${funcId}">
                         <div class="funcionario-info">
@@ -792,8 +810,8 @@
                             <span class="funcionario-cargo">${func.cargo || 'Cargo não informado'}</span>
                         </div>
                         <div class="funcionario-datas">
-                            <small><i class="fas fa-clock"></i> Na função: ${func.tempo_funcao || 'Não informado'}</small>
-                            <small><i class="fas fa-building"></i> Na empresa: ${func.tempo_empresa || 'Não informado'}</small>
+                            <small><i class="fas fa-clock"></i> Tempo na função: ${func.tempo_funcao || 'Não informado'}</small>
+                            <small><i class="fas fa-building"></i> Tempo na empresa: ${func.tempo_empresa || 'Não informado'}</small>
                         </div>
                         ${isAdmin ? `
                         <div class="funcionario-actions">
@@ -809,20 +827,25 @@
             // ====== ADICIONAR EVENTO DE EXCLUSÃO (apenas se for admin) ======
             if (isAdmin) {
                 document.querySelectorAll('.btn-excluir-func').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
+                    // Remover eventos antigos para evitar duplicação
+                    btn.removeEventListener('click', btn.clickHandler);
+                    // Criar novo evento
+                    btn.clickHandler = async (e) => {
                         e.stopPropagation();
                         const funcId = btn.getAttribute('data-id');
                         const funcNome = btn.getAttribute('data-nome');
-                        
                         if (confirm(`Tem certeza que deseja excluir o funcionário "${funcNome}"?`)) {
                             await excluirFuncionario(funcId, areaId);
                         }
-                    });
+                    };
+                    btn.addEventListener('click', btn.clickHandler);
                 });
             }
             
+            console.log('✅ Lista de funcionários atualizada com sucesso!');
+            
         } catch (error) {
-            console.error('Erro ao carregar funcionários:', error);
+            console.error('Erro detalhado ao carregar funcionários:', error);
             const container = document.getElementById('funcionariosList');
             if (container) {
                 container.innerHTML = '<p class="text-muted">Erro ao carregar funcionários</p>';
@@ -843,9 +866,16 @@
             
             if (resultado.success) {
                 alert('✅ Funcionário excluído com sucesso!');
-                // Recarregar detalhes da área e métricas
-                await carregarDetalhesArea(areaId);
-
+                // Recarregar APENAS a lista de funcionários
+                await carregarFuncionariosArea(areaId);
+                
+                // Garantir que o card da área continue selecionado
+                document.querySelectorAll('.area-card').forEach(card => {
+                    const cardId = card.getAttribute('data-id');
+                    if (cardId == areaId) {
+                        card.classList.add('selected');
+                    }
+                });
             } else {
                 alert('❌ Erro ao excluir funcionário. Tente novamente.');
             }
@@ -1030,6 +1060,25 @@
         if (formAddFuncionario) {
             formAddFuncionario.addEventListener('submit', async (e) => {
                 e.preventDefault();
+
+                // ====== VALIDAÇÃO DE DATAS ======
+                const dataFuncao = document.getElementById('func_data_funcao').value;
+                const dataEmpresa = document.getElementById('func_data_empresa').value;
+                const erroDataDiv = document.getElementById('erroData');
+
+                if (dataFuncao && dataEmpresa) {
+                    const dataFuncaoObj = new Date(dataFuncao);
+                    const dataEmpresaObj = new Date(dataEmpresa);
+
+                    if (dataFuncaoObj < dataEmpresaObj) {
+                        erroDataDiv.style.display = 'block';
+                        return;
+                    } else {
+                        erroDataDiv.style.display = 'none';
+                    }
+                } else {
+                    erroDataDiv.style.display = 'none';
+                }
                 
                 const dados = {
                     id_area: document.getElementById('func_area_id').value,
@@ -1044,6 +1093,9 @@
                     return;
                 }
                 
+                // SALVAR O ID DA ÁREA EM UMA VARIÁVEL TEMPORÁRIA ANTES DE FECHAR
+                const areaIdParaRecarregar = areaIdAtual;
+                
                 try {
                     const response = await fetch('/api/salvar-funcionario', {
                         method: 'POST',
@@ -1055,9 +1107,26 @@
                     
                     if (resultado.success) {
                         alert('✅ Funcionário cadastrado com sucesso!');
+                        
+                        // Fechar o modal (isso vai definir areaIdAtual = null)
                         fecharModalFunc();
-                        // Recarregar detalhes da área
-                        await carregarDetalhesArea(areaIdAtual);
+                        
+                        // USAR A VARIÁVEL TEMPORÁRIA PARA RECARREGAR
+                        if (areaIdParaRecarregar) {
+                            console.log('Recarregando funcionários para área:', areaIdParaRecarregar);
+                            await carregarFuncionariosArea(areaIdParaRecarregar);
+                            
+                            // Garantir que o card da área continue selecionado
+                            document.querySelectorAll('.area-card').forEach(card => {
+                                const cardId = card.getAttribute('data-id');
+                                if (cardId == areaIdParaRecarregar) {
+                                    card.classList.add('selected');
+                                }
+                            });
+                        } else {
+                            console.error('areaIdParaRecarregar está null!');
+                            location.reload();
+                        }
                     } else {
                         alert('❌ Erro ao cadastrar funcionário. Tente novamente.');
                     }
@@ -1068,6 +1137,7 @@
             });
         }
     });
+
 </script>
 
     <div id="modalNovaArea" class="modal">
@@ -1145,6 +1215,10 @@
                             <label for="func_data_empresa"><i class="fas fa-calendar-alt"></i> Data início na empresa</label>
                             <input type="date" id="func_data_empresa" name="data_inicio_empresa" class="form-control">
                         </div>
+                    </div>
+
+                    <div id="erroData" style="color: #dc3545; font-size: 12px; margin-top: -10px; margin-bottom: 10px; display: none;">
+                        <i class="fas fa-exclamation-triangle"></i> A data na função não pode ser anterior à data na empresa.
                     </div>
 
                     <div class="modal-buttons">
