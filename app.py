@@ -316,6 +316,21 @@ def api_salvar_area():
         return jsonify({'success': True, 'id': area_id})
     return jsonify({'success': False}), 400
 
+@app.route('/api/area/<int:area_id>', methods=['PUT'])
+def api_atualizar_area(area_id):
+    from logic import atualizar_area
+    
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    dados = request.json
+    resultado = atualizar_area(area_id, dados)
+    
+    if resultado:
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 400
+
 @app.route('/api/funcionario/<int:funcionario_id>', methods=['DELETE'])
 def api_excluir_funcionario(funcionario_id):
     """Exclui um funcionário (apenas administradores)"""
@@ -331,6 +346,32 @@ def api_excluir_funcionario(funcionario_id):
     if resultado:
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Falha ao excluir'}), 400
+
+@app.route('/api/funcionario/<int:funcionario_id>', methods=['PUT'])
+def api_atualizar_funcionario(funcionario_id):
+    from logic import atualizar_funcionario
+
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    dados = request.json
+    resultado = atualizar_funcionario(funcionario_id, dados)
+
+    if resultado:
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 400
+
+@app.route('/api/funcionario/<int:funcionario_id>')
+def api_funcionario_detalhes(funcionario_id):
+    """Retorna os dados de um funcionário específico"""
+    from logic import buscar_funcionario_por_id
+
+    funcionario = buscar_funcionario_por_id(funcionario_id)
+
+    if funcionario:
+        return jsonify(funcionario)
+    return jsonify({}), 404
 
 @app.route('/api/salvar-funcionario', methods=['POST'])
 def api_salvar_funcionario():

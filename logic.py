@@ -3027,3 +3027,83 @@ def salvar_funcionario(dados):
     except Exception as e:
         print(f"Erro ao salvar funcionário: {e}")
         return None
+
+def atualizar_area(area_id, dados):
+    """Atualiza uma área existente"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        query = text("""
+            UPDATE informacoes_area 
+            SET nome_area = :nome,
+                email = :email,
+                telefone = :telefone,
+                gestor = :gestor,
+                objetivo_area = :objetivo
+            WHERE id_area = :id
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {
+                "id": area_id,
+                "nome": dados['nome'],
+                "email": dados.get('email', ''),
+                "telefone": dados.get('telefone', ''),
+                "gestor": dados.get('gestor', ''),
+                "objetivo": dados.get('objetivo', '')
+            })
+            conn.commit()
+            return result.rowcount > 0
+    except Exception as e:
+        print(f"Erro ao atualizar área: {e}")
+        return False
+
+def atualizar_funcionario(funcionario_id, dados):
+    """Atualiza um funcionário existente"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        query = text("""
+            UPDATE funcionarios_area
+            SET nome_funcionario = :nome,
+                cargo = :cargo,
+                data_inicio_funcao = :data_inicio_funcao,
+                data_inicio_empresa = :data_inicio_empresa
+            WHERE id = :id
+        """)
+
+        with engine.connect() as conn:
+            result = conn.execute(query, {
+                "id": funcionario_id,
+                "nome": dados['nome'],
+                "cargo": dados.get('cargo', ''),
+                "data_inicio_funcao": dados.get('data_inicio_funcao'),
+                "data_inicio_empresa": dados.get('data_inicio_empresa')
+            })
+
+            conn.commit()
+            return result.rowcount > 0 
+    except Exception as e:
+        print(f"Erro ao atualizar funcionário: {e}")
+        return False
+    
+def buscar_funcionario_por_id(funcionario_id):
+    """Busca um funcionario pelo ID"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        query = text("""
+            SELECT id, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa
+            FROM funcionarios_area
+            WHERE id = :id
+        """)
+
+        with engine.connect() as conn:
+            result = conn.execute(query, {"id": funcionario_id}).mappings().first()
+            return dict(result) if result else None
+    except Exception as e:
+        print(f"Erro ao buscar funcionário: {e}")
+        return None

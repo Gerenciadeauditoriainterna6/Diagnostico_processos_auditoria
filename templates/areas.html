@@ -38,6 +38,8 @@
     </div>
 </div>
 
+
+
 <!--MODAL DE CONFIRMAÇÃO PERSONALIZADO-->
 <div id="modalConfirmacao" class="modal">
     <div class="modal-content" style="max-width: 400px;">
@@ -52,6 +54,94 @@
                 <button type="button" class="btn-cancelar-modal" id="btnCancelarConfirmacao">Cancelar</button>
                 <button type="button" class="btn-salvar-area" id="btnConfirmarAcao">Confirmar</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMAÇÃO DE EDIÇÃO-->
+<div id="modalEditarArea" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-edit"></i> Edição de Área</h2>
+            <button class="modal-close" id="btnFecharEditarArea">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="formEditarArea">
+                <input type="hidden" id="edit_area_id" name="area_id">
+                
+                <div class="form-group">
+                    <label for="edit_nome_area"><i class="fas fa-tag"></i> Nome da Área *</label>
+                    <input type="text" id="edit_nome_area" name="nome" class="form-control" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_email"><i class="fas fa-envelope"></i> E-mail</label>
+                        <input type="email" id="edit_email" name="email" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_telefone"><i class="fas fa-phone"></i> Telefone</label>
+                        <input type="text" id="edit_telefone" name="telefone" class="form-control" oninput="aplicarMascaraTelefone(this)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_gestor"><i class="fas fa-user-tie"></i> Nome do Gestor *</label>
+                    <input type="text" id="edit_gestor" name="gestor" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_objetivo"><i class="fas fa-bullseye"></i> Objetivo da Área</label>
+                    <textarea id="edit_objetivo" name="objetivo" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancelar-modal" id="btnCancelarEditarArea">Cancelar</button>
+                    <button type="submit" class="btn-salvar-area">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!--MODAL CONFIRMAÇÃO EDIÇÃO FUNCIONÁRIO-->
+<div id="modalEditarFuncionario" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-edit"></i> Edição de Funcionário</h2>
+            <button class="modal-close" id="btnFecharEditarFuncionario">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="formEditarFuncionario">
+                <input type="hidden" id="edit_func_id" name="funcionario_id">
+                <input type="hidden" id="edit_func_area_id" name="area_id">
+
+                <div class="form-group">
+                    <label for="edit_func_nome"><i class="fas fa-user"></i> Nome Completo *</label>
+                    <input type="text" id="edit_func_nome" name="nome" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit_func_cargo"><i class="fas fa-briefcase"></i> Cargo</label>
+                    <input type="text" id="edit_func_cargo" name="cargo" class="form-control">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_func_data_funcao"><i class="fas fa-calendar-alt"></i> Data início na função</label>
+                        <input type="date" id="edit_func_data_funcao" name="data_inicio_funcao" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_func_data_empresa"><i class="fas fa-calendar-alt"></i> Data início na empresa</label>
+                        <input type="date" id="edit_func_data_empresa" name="data_inicio_empresa" class="form-control">
+                    </div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancelar-modal" id="btnCancelarEditarFuncionario">Cancelar</button>
+                    <button type="submit" class="btn-salvar-area"> Salvar Alterações</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -641,6 +731,54 @@
         to { transform: rotate(360deg); }
     }
 
+    .btn-editar-area {
+        background: rgba(255, 248, 153, 0.25);
+        border: 1px solid #fff119;
+        color: #fff119;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-right: 5px;
+    }
+
+    .btn-editar-area:hover {
+        background: #fff119;
+        color: white;
+    }
+
+    .btn-editar-area i {
+        font-size: 11px;
+    }
+
+    .btn-editar-func {
+        background: rgba(255, 241, 153, 0.25);
+        border: 1px solid #fff119;
+        color: #fff119;
+        padding: 5px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-right: 5px;
+    }
+
+    .btn-editar-func:hover {
+        background: #fff119;
+        color: white;
+    }
+
+    .btn-editar-func i{
+        font-size: 12px;
+    }
+
 
 </style>
 
@@ -734,6 +872,9 @@
                         <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
                         ${isAdmin ? `
                         <div class="area-actions">
+                            <button class="btn-editar-area" data-id="${id}" data-nome="${nome}">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
                             <button class="btn-excluir-area" data-id="${id}" data-nome="${nome}">
                                 <i class="fas fa-trash-alt"></i> Desativar
                             </button>
@@ -762,11 +903,11 @@
                 });
             });
 
-            // Adicionar evento de clique para os botões de desativar área (apenas admin)
+            // Adicionar evento de clique para os botões de desativar e editar área (apenas admin)
             if (isAdmin) {
                 document.querySelectorAll('.btn-excluir-area').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
-                        e.stopPropagation();  // Impede que o clique no botão também clique no card
+                        e.stopPropagation();
                         const areaId = btn.getAttribute('data-id');
                         const areaNome = btn.getAttribute('data-nome');
                         
@@ -776,7 +917,15 @@
                         }
                     });
                 });
-}
+                
+                document.querySelectorAll('.btn-editar-area').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const areaId = btn.getAttribute('data-id');
+                        await abrirModalEditarArea(areaId);
+                    });
+                });
+            }
             
         } catch (error) {
             console.error('Erro ao carregar áreas:', error);
@@ -908,6 +1057,9 @@
                         </div>
                         ${isAdmin ? `
                         <div class="funcionario-actions">
+                            <button class="btn-editar-func" data-id="${funcId}" data-nome="${func.nome_funcionario}">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
                             <button class="btn-excluir-func" data-id="${funcId}" data-nome="${func.nome_funcionario}">
                                 <i class="fas fa-trash-alt"></i> Excluir
                             </button>
@@ -933,6 +1085,13 @@
                         }
                     };
                     btn.addEventListener('click', btn.clickHandler);
+                });
+                document.querySelectorAll('.btn-editar-func').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const funcId = btn.getAttribute('data-id');
+                        await abrirModalEditarFuncionario(funcId, areaId);
+                    });
                 });
             }
             
@@ -1318,6 +1477,207 @@
         input.value = valor;
     }
 
+    // ====== EDITAR ÁREA ======
+    const modalEditarArea = document.getElementById('modalEditarArea');
+    const btnFecharEditarArea = document.getElementById('btnFecharEditarArea');
+    const btnCancelarEditarArea = document.getElementById('btnCancelarEditarArea');
+    const formEditarArea = document.getElementById('formEditarArea');
+
+    function fecharModalEditarArea() {
+        modalEditarArea.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    if (btnFecharEditarArea) btnFecharEditarArea.addEventListener('click', fecharModalEditarArea);
+    if (btnCancelarEditarArea) btnCancelarEditarArea.addEventListener('click', fecharModalEditarArea);
+
+    if (modalEditarArea) {
+        modalEditarArea.addEventListener('click', (e) => {
+            if (e.target === modalEditarArea) fecharModalEditarArea();
+        });
+    }
+
+    async function abrirModalEditarArea(areaId) {
+        try {
+            const response = await fetch(`/api/area/${areaId}`);
+            const area = await response.json();
+            
+            document.getElementById('edit_area_id').value = area.id_area;
+            document.getElementById('edit_nome_area').value = area.nome_area || '';
+            document.getElementById('edit_email').value = area.email || '';
+            document.getElementById('edit_telefone').value = area.telefone || '';
+            document.getElementById('edit_gestor').value = area.gestor || '';
+            document.getElementById('edit_objetivo').value = area.objetivo_area || '';
+            
+            modalEditarArea.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        } catch (error) {
+            console.error('Erro ao carregar área:', error);
+            mostrarToast('❌ Erro ao carregar dados da área.', 'error');
+        }
+    }
+
+    // Salvar edição da área
+    if (formEditarArea) {
+        formEditarArea.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnSubmit = formEditarArea.querySelector('button[type="submit"]');
+            const textoOriginal = btnSubmit.innerHTML;
+            
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('btn-loading');
+            btnSubmit.innerHTML = '<i class="fas fa-spinner"></i> Salvando...';
+            
+            const areaId = document.getElementById('edit_area_id').value;
+            const dados = {
+                nome: document.getElementById('edit_nome_area').value,
+                email: document.getElementById('edit_email').value,
+                telefone: limparMascaraTelefone(document.getElementById('edit_telefone').value),
+                gestor: document.getElementById('edit_gestor').value,
+                objetivo: document.getElementById('edit_objetivo').value,
+                status: 'Ativo'
+            };
+            
+            try {
+                const response = await fetch(`/api/area/${areaId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    mostrarToast('Área atualizada com sucesso!', 'success');
+
+                    const areaIdEditada = document.getElementById('edit_area_id').value;
+
+                    fecharModalEditarArea();
+                    
+                    // Recarregar a lista de áreas
+                    await carregarAreas();
+                    
+                    // Recarregar os detalhes da área editada
+                    await carregarDetalhesArea(areaIdEditada);
+                    
+                    // Garantir que o card da área editada fique selecionado
+                    document.querySelectorAll('.area-card').forEach(card => {
+                        if (card.getAttribute('data-id') == areaIdEditada) {
+                            card.classList.add('selected');
+                        }
+                    });
+                } else {
+                    mostrarToast('❌ Erro ao atualizar área.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarToast('❌ Erro de conexão.', 'error');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('btn-loading');
+                btnSubmit.innerHTML = textoOriginal;
+            }
+        });
+    }
+
+    // ====== EDITAR FUNCIONÁRIO ======
+    const modalEditarFuncionario = document.getElementById('modalEditarFuncionario');
+    const btnFecharEditarFuncionario = document.getElementById('btnFecharEditarFuncionario');
+    const btnCancelarEditarFuncionario = document.getElementById('btnCancelarEditarFuncionario');
+    const formEditarFuncionario = document.getElementById('formEditarFuncionario');
+
+    function fecharModalEditarFuncionario() {
+        modalEditarFuncionario.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    if (btnFecharEditarFuncionario) btnFecharEditarFuncionario.addEventListener('click', fecharModalEditarFuncionario);
+    if (btnCancelarEditarFuncionario) btnCancelarEditarFuncionario.addEventListener('click', fecharModalEditarFuncionario);
+
+    if (modalEditarFuncionario) {
+        modalEditarFuncionario.addEventListener('click', (e) => {
+            if (e.target === modalEditarFuncionario) fecharModalEditarFuncionario();
+        });
+    }
+
+    async function abrirModalEditarFuncionario(funcionarioId, areaIdAtual) {
+        try {
+            const response = await fetch(`/api/funcionario/${funcionarioId}`);
+            const func = await response.json();
+
+            document.getElementById('edit_func_id').value = func.id;
+            document.getElementById('edit_func_area_id').value = areaIdAtual;
+            document.getElementById('edit_func_nome').value = func.nome_funcionario || '';
+            document.getElementById('edit_func_cargo').value = func.cargo || '';
+            document.getElementById('edit_func_data_funcao').value = func.data_inicio_funcao || '';
+            document.getElementById('edit_func_data_empresa').value = func.data_inicio_empresa || '';
+
+            modalEditarFuncionario.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        } catch (error) {
+            console.error('Erro ao carregar funcionário:', error);
+            mostrarToast('Erro ao carregar dados do funcionário', 'error');
+        }
+    }
+
+    // Salvar edição do funcionário
+    if (formEditarFuncionario) {
+        formEditarFuncionario.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btnSubmit = formEditarFuncionario.querySelector('button[type="submit"]');
+            const textoOriginal = btnSubmit.innerHTML;
+
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('btn-loading');
+            btnSubmit.innerHTML = '<i class="fas fa-spinner"></i> Salvando...';
+
+            const funcionarioId = document.getElementById('edit_func_id').value;
+            const areaId = document.getElementById('edit_func_area_id').value;
+            const dados = {
+                nome: document.getElementById('edit_func_nome').value,
+                cargo: document.getElementById('edit_func_cargo').value,
+                data_inicio_funcao: document.getElementById('edit_func_data_funcao').value || null,
+                data_inicio_empresa: document.getElementById('edit_func_data_empresa').value || null
+            };
+
+            try {
+                const response = await fetch(`/api/funcionario/${funcionarioId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const resultado = await response.json();
+
+                if (resultado.success) {
+                    mostrarToast('Funcionário atualizado com sucesso!', 'success');
+
+                    fecharModalEditarFuncionario();
+
+                    // Recarregar a lista de funcionários da área
+                    await carregarFuncionariosArea(areaId);
+
+                    // Garantir que o card da área continue selecionado
+                    document.querySelectorAll('.area-card').forEach(card => {
+                        if (card.getAttribute('data-id') == areaId) {
+                            card.classList.add('selected');
+                        }
+                    });
+                } else {
+                    mostrarToast('Erro ao atualizar funcionário.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                mostrarToast('Erro de conexão.', 'error');
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('btn-loading');
+                btnSubmit.innerHTML = textoOriginal;
+            }
+        });
+    }
 
 </script>
 
