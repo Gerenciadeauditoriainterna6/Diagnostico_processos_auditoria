@@ -307,7 +307,7 @@ def api_excluir_area(area_id):
 @app.route('/api/salvar-area', methods=['POST'])
 def api_salvar_area():
     """Salva uma nova área"""
-    from modules.execucao.areas import salvar_area
+    from logic import salvar_area
     
     dados = request.json
     area_id = salvar_area(dados)

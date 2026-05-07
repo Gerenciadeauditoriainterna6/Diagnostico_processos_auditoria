@@ -9,23 +9,20 @@ from sqlalchemy import text
 from database import engine
 import streamlit as st
 import pandas as pd
+from flask import session, request
 
-def registrar_log(tabela, registro_id, operacao, dados_anteriores=None, dados_novos=None):
+def registrar_log(tabela, registro_id, operacao, dados_anteriores=None, dados_novos=None, query_sql=None):
     """
-    Registra uma ação do usuário na tabela de log
-    
-    Parâmetros:
-    - tabela: nome da tabela afetada
-    - registro_id: ID do registro afetado
-    - operacao: 'INSERT', 'UPDATE', 'DELETE'
-    - dados_anteriores: dicionário com dados antes da alteração
-    - dados_novos: dicionário com dados depois da alteração
+    Registra uma ação do usuário na tabela de log (adaptado para Flask)
     """
     try:
         with engine.begin() as conn:
-            # Pega informações do usuário logado (se existir)
-            usuario_id = st.session_state.get('usuario_id', None)
-            usuario_nome = st.session_state.get('usuario_logado', 'Sistema')
+            # Pega informações do usuário logado (agora do Flask session)
+            usuario_id = session.get('usuario_id', None)
+            usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Sistema'))
+
+            # Pega o IP do cliente (Flask request)
+            ip_origem = request.remote_addr if request else '0.0.0.0'
 
             # Converte dicionários para JSON (STRING)
             dados_anteriores_json = json.dumps(dados_anteriores, default=str) if dados_anteriores else None
@@ -34,24 +31,29 @@ def registrar_log(tabela, registro_id, operacao, dados_anteriores=None, dados_no
             conn.execute(text("""
                 INSERT INTO log_auditoria
                     (tabela_afetada, registro_id, operacao, dados_anteriores, dados_novos,
-                     usuario_id, usuario_nome, data_hora)
+                     usuario_id, usuario_nome, ip_origem, query_sql, data_hora)
                 VALUES
                     (:tabela, :registro_id, :operacao, :dados_anteriores, :dados_novos,
-                     :usuario_id, :usuario_nome, :data_hora)
+                     :usuario_id, :usuario_nome, :ip_origem, :query_sql, :data_hora)
             """), {
                 'tabela': tabela,
                 'registro_id': registro_id,
                 'operacao': operacao,
-                'dados_anteriores': dados_anteriores_json,  # ← USAR A VARIÁVEL JSON
-                'dados_novos': dados_novos_json,            # ← USAR A VARIÁVEL JSON
+                'dados_anteriores': dados_anteriores_json,
+                'dados_novos': dados_novos_json,
                 'usuario_id': usuario_id,
                 'usuario_nome': usuario_nome,
+                'ip_origem': ip_origem,
+                'query_sql': query_sql,
                 'data_hora': datetime.now()
             })
 
+            print(f"✅ Log registrado: {tabela} - {operacao} - ID: {registro_id}")
             return True
     except Exception as e:
-        print(f"Erro ao registrar log: {e}")
+        print(f"❌ Erro ao registrar log: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def consultar_log(tabela=None, registro_id=None, usuario_id=None, operacao=None, limite=100):

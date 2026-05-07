@@ -1979,7 +1979,6 @@ def listar_riscos_do_processo(processo_id):
         return df
 
 def salvar_area(dados_area):
-    """Salva uma nova área no banco de dados"""
     try:
         query = text("""
             INSERT INTO informacoes_area 
@@ -1999,25 +1998,16 @@ def salvar_area(dados_area):
                 "gestor": dados_area.get('gestor', '')
             }).scalar()
             
-            # ===== ADICIONAR LOG AQUI =====
-            dados_inseridos = {
-                'id_area': id_area,
-                'nome_area': dados_area['nome'],
-                'objetivo_area': dados_area.get('objetivo', '')[:100] if dados_area.get('objetivo') else None,
-                'status': dados_area.get('status', 'Ativo'),
-                'email': dados_area.get('email', ''),
-                'telefone': dados_area.get('telefone', ''),
-                'gestor': dados_area.get('gestor', '')
-            }
-            
+            # ====== REGISTRAR LOG ======
+            from modules.shared.log_sistema import registrar_log
             registrar_log(
                 tabela='informacoes_area',
                 registro_id=id_area,
                 operacao='INSERT',
-                dados_anteriores=None,
-                dados_novos=dados_inseridos
+                dados_novos=dados_area,
+                query_sql="INSERT INTO informacoes_area (nome_area, objetivo_area, status, email, telefone, gestor)"
             )
-            # ===== FIM DO LOG =====
+            # ====== FIM DO LOG ======
             
         return id_area
     except Exception as e:
@@ -3028,12 +3018,37 @@ def salvar_funcionario(dados):
         print(f"Erro ao salvar funcionário: {e}")
         return None
 
+def buscar_area_por_id(area_id):
+    """Buscar uma área pelo ID (retorna dicionário para log)"""
+    from database import engine
+    from sqlalchemy import text
+
+    query = text("""
+        SELECT id_area, nome_area, email, telefone, gestor, objetivo_area, status
+        FROM informacoes_area
+        WHERE id_area = :id
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {"id": area_id}).mappings().first()
+        return dict(result) if result else None
+    
+
 def atualizar_area(area_id, dados):
     """Atualiza uma área existente"""
     from database import engine
     from sqlalchemy import text
     
     try:
+
+        # 1. Buscar dados ANTES da alteração
+        dados_anteriores = buscar_area_por_id(area_id)
+
+        if not dados_anteriores:
+            print(f"❌ Área ID {area_id} não encontrada para atualização")
+            return False
+        
+        # 2. Executar o UPDATE
         query = text("""
             UPDATE informacoes_area 
             SET nome_area = :nome,
@@ -3054,6 +3069,17 @@ def atualizar_area(area_id, dados):
                 "objetivo": dados.get('objetivo', '')
             })
             conn.commit()
+
+            # 3. Registrar log se a atualização foi bem-sucedida
+            if result.rowcount > 0:
+                registrar_log(
+                    tabela='informacoes_area',
+                    registro_id=area_id,
+                    operacao='UPDATE',
+                    dados_anteriores=dados_anteriores,
+                    dados_novos=dados,
+                    query_sql="UPDATE informacoes_area SET nome_area, email, telefone, gestor, objetivo_area"
+                )
             return result.rowcount > 0
     except Exception as e:
         print(f"Erro ao atualizar área: {e}")
