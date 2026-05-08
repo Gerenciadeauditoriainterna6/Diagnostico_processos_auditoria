@@ -24,6 +24,17 @@
                         <input type="text" id="searchAreaInput" placeholder="Buscar área por nome, gestor ou e-mail..." class="search-input">
                         <button id="clearSearchBtn" class="clear-search" style="display: none;">&times;</button>
                     </div>
+                    <div class="order-by-box">
+                        <label for="orderBySelect"><i class="fas fa-sort"></i> Ordenar por:</label>
+                        <select id="orderBySelect" class="order-select">
+                            <option value="nome_asc">Nome (A-Z)</option>
+                            <option value="nome_desc">Nome (Z-A)</option>
+                            <option value="status_asc">Status (Ativos primeiro)</option>
+                            <option value="status_dsc">Status (Inativos primeiro)</option>
+                            <option value="data_asc">Data (mais antigos primeiro)</option>
+                            <option value="data_desc">Data (mais recentes primeiro)</option>
+                        </select>
+                    </div>
                 </div>
                 <button id="btnNovaArea" class="btn-primary btn-nova-area">
                     <i class="fas fa-plus-circle"></i> Nova Área
@@ -32,6 +43,12 @@
             <div id="areasContainer" class="areas-cards">
                 <!-- Cards serão carregados via JavaScript -->
                 <p class="text-muted">Carregando áreas...</p>
+            </div>
+
+            <!--PAGINAÇÃO-->
+            <div id="pagination-container" class="pagination-container" style="display: none;">
+                <div class="pagination-info" id="pagination-info"></div>
+                <div class="pagination-buttons" id="pagination-buttons"></div>
             </div>
         </div>
 
@@ -911,9 +928,131 @@
         color: white;
     }
 
+    /* ====== PAGINAÇÃO ====== */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .pagination-info {
+        font-size: 13px;
+        color: #666;
+    }
+
+    .pagination-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .pagination-btn {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: #184145;
+        color: white;
+        border-color: #184145;
+    }
+
+    .pagination-btn.active {
+        background: #184145;
+        color: white;
+        border-color: #184145;
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* ====== ORDENAÇÃO ====== */
+    .order-by-box {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .order-by-box label {
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .order-select {
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 12px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .order-select:hover {
+        border-color: #184145;
+    }
+
+    .order-select:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 2px rgba(24,65,69,0.1);
+    }
 </style>
 
 <script>
+    // ====== ORDENAÇÃO ======
+    let ordemAtual = 'nome_asc';  // Valor padrão
+
+    // ====== PAGINAÇÃO ======
+    let paginaAtual = 1;
+    let itensPorPagina = 3;
+    let todasAreasLista = [];
+
+    function ordenarAreas(areas, criterio) {
+        const areasCopy = [...areas]; // Criar cópia para não modificar original
+        
+        switch(criterio) {
+            case 'nome_asc':
+                return areasCopy.sort((a, b) => (a.nome_area || '').localeCompare(b.nome_area || ''));
+            case 'nome_desc':
+                return areasCopy.sort((a, b) => (b.nome_area || '').localeCompare(a.nome_area || ''));
+            case 'status_asc':
+                // Ativos primeiro
+                return areasCopy.sort((a, b) => {
+                    const statusA = (a.status || 'Ativo') === 'Ativo' ? 0 : 1;
+                    const statusB = (b.status || 'Ativo') === 'Ativo' ? 0 : 1;
+                    return statusA - statusB;
+                });
+            case 'status_desc':
+                // Inativos primeiro
+                return areasCopy.sort((a, b) => {
+                    const statusA = (a.status || 'Ativo') === 'Ativo' ? 0 : 1;
+                    const statusB = (b.status || 'Ativo') === 'Ativo' ? 0 : 1;
+                    return statusB - statusA;
+                });
+            case 'data_asc':
+                // Mais antigos primeiro (por id_area, que é sequencial)
+                return areasCopy.sort((a, b) => (a.id_area || 0) - (b.id_area || 0));
+            case 'data_desc':
+                // Mais recentes primeiro (por id_area, que é sequencial)
+                return areasCopy.sort((a, b) => (b.id_area || 0) - (a.id_area || 0));
+            default:
+                return areasCopy;
+        }
+    }
+
     // ====== MODAL DE CONFIRMAÇÃO PERSONALIZADO ======
     let confirmacaoResolve = null;
 
@@ -1251,6 +1390,15 @@
         const btnNovaArea = document.getElementById('btnNovaArea');
         const btnFecharModal = document.getElementById('btnFecharModal');
         const btnCancelarModal = document.getElementById('btnCancelarModal');
+        // Evento de ordenação
+        const orderBySelect = document.getElementById('orderBySelect');
+        if (orderBySelect) {
+            orderBySelect.addEventListener('change', () => {
+                ordemAtual = orderBySelect.value;
+                paginaAtual = 1;  // Resetar para primeira página
+                aplicarFiltroOuPagina();
+            });
+        }
         
         // Verificar se os elementos existem
         console.log('Modal:', modal);
@@ -1734,32 +1882,145 @@
         try {
             const response = await fetch('/api/areas');
             const areas = await response.json();
-            const container = document.getElementById('areasContainer');
-
-            //Salvar todas as áreas para uso no filtro
+            
             todasAreas = areas;
-
-            console.log('Dados recebidos', areas);
-
+            
+            console.log('Dados recebidos:', areas);
+            
             if (!areas || areas.length === 0) {
-                container.innerHTML = '<p class="text-muted">Nenhuma área cadastrada</p>';
+                document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Nenhuma área cadastrada</p>';
+                document.getElementById('pagination-container').style.display = 'none';
                 return;
             }
+            
+            paginaAtual = 1;  // Resetar para primeira página
 
-            // Renderizar cards (sem mudanças)
-            renderizarCards(areas);
+            // Aplicar ordenação
+            const areasOrdenadas = ordenarAreas(areas, ordemAtual);
+            todasAreas = areasOrdenadas;
 
+            renderizarCards(areasOrdenadas);
+            
         } catch (error) {
             console.error('Erro ao carregar áreas:', error);
             document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Erro ao carregar áreas</p>';
         }
     }
 
+    function aplicarFiltroOuPagina() {
+        const termo = searchInput?.value.toLowerCase() || '';
+        
+        let areasBase = todasAreas;
+        
+        // Aplicar filtro se houver termo
+        if (termo) {
+            areasBase = todasAreas.filter(area => {
+                return (
+                    (area.nome_area && area.nome_area.toLowerCase().includes(termo)) ||
+                    (area.gestor && area.gestor.toLowerCase().includes(termo)) ||
+                    (area.email && area.email.toLowerCase().includes(termo))
+                );
+            });
+        }
+        
+        // Ordenar as áreas
+        const areasOrdenadas = ordenarAreas(areasBase, ordemAtual);
+        renderizarCards(areasOrdenadas);
+    }
+
+
+    function renderizarPaginacao(totalItens, totalPaginas) {
+        const pagContainer = document.getElementById('pagination-container');
+        const pagInfo = document.getElementById('pagination-info');
+        const pagButtons = document.getElementById('pagination-buttons');
+        
+        if (!pagContainer || totalPaginas <= 1) {
+            if (pagContainer) pagContainer.style.display = 'none';
+            return;
+        }
+        
+        pagContainer.style.display = 'flex';
+        
+        // Informação: Mostrando X a Y de Z áreas
+        const inicio = (paginaAtual - 1) * itensPorPagina + 1;
+        const fim = Math.min(paginaAtual * itensPorPagina, totalItens);
+        pagInfo.innerHTML = `Mostrando ${inicio} a ${fim} de ${totalItens} áreas`;
+        
+        // Botões de paginação
+        let botoesHtml = '';
+        
+        // Botão Anterior
+        botoesHtml += `<button class="pagination-btn" id="btn-pagina-anterior" ${paginaAtual === 1 ? 'disabled' : ''}>◀ Anterior</button>`;
+        
+        // Números das páginas
+        const maxBotoes = 5;
+        let inicioPaginas = Math.max(1, paginaAtual - Math.floor(maxBotoes / 2));
+        let fimPaginas = Math.min(totalPaginas, inicioPaginas + maxBotoes - 1);
+        
+        if (fimPaginas - inicioPaginas + 1 < maxBotoes) {
+            inicioPaginas = Math.max(1, fimPaginas - maxBotoes + 1);
+        }
+        
+        for (let i = inicioPaginas; i <= fimPaginas; i++) {
+            botoesHtml += `<button class="pagination-btn ${i === paginaAtual ? 'active' : ''}" data-pagina="${i}">${i}</button>`;
+        }
+        
+        // Botão Próximo
+        botoesHtml += `<button class="pagination-btn" id="btn-pagina-proxima" ${paginaAtual === totalPaginas ? 'disabled' : ''}>Próximo ▶</button>`;
+        
+        pagButtons.innerHTML = botoesHtml;
+        
+        // Adicionar eventos
+        document.getElementById('btn-pagina-anterior')?.addEventListener('click', () => {
+            if (paginaAtual > 1) {
+                paginaAtual--;
+                aplicarFiltroOuPagina();
+            }
+        });
+        
+        document.getElementById('btn-pagina-proxima')?.addEventListener('click', () => {
+            if (paginaAtual < totalPaginas) {
+                paginaAtual++;
+                aplicarFiltroOuPagina();
+            }
+        });
+        
+        document.querySelectorAll('.pagination-btn[data-pagina]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                paginaAtual = parseInt(btn.getAttribute('data-pagina'));
+                aplicarFiltroOuPagina();
+            });
+        });
+    }
+
     // Função para renderizar os cards (extraída da carregarAreas)
     function renderizarCards(areas) {
     const container = document.getElementById('areasContainer');
+    const pagContainer = document.getElementById('pagination-container');
 
-    container.innerHTML = areas.map(area => {
+    if (!areas || areas.length === 0) {
+        container.innerHTML = '<p class="text-muted">Nenhuma área cadastrada</p>';
+        if (pagContainer) pagContainer.style.display = 'none';
+        return;
+    }
+
+    // Salvar todas as áreas para paginação
+    todasAreasLista = areas;
+
+    // Calcular total de páginas
+    const totalPaginas = Math.ceil(areas.length / itensPorPagina);
+
+    // Garantir que página atual seja válida
+    if (paginaAtual > totalPaginas) paginaAtual = totalPaginas; 
+    if (paginaAtual < 1) paginaAtual = 1;
+    
+    // Pegar apenas as áreas da página atual
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+    const areasPagina = areas.slice(inicio, fim);
+    
+    // Renderizar cards da página atual
+    container.innerHTML = areasPagina.map(area => {
         const nome = area.nome_area || 'Sem nome';
         const gestor = area.gestor || 'Não informado';
         const id = area.id_area;
@@ -1795,16 +2056,21 @@
         `;
     }).join('');
 
+    // Renderizar controles de paginação
+    renderizarPaginacao(areas.length, totalPaginas);
+    
+    // Adicionar eventos após renderizar
     adicionarEventosCards();
+
 }
 
     // Função para filtrar áreas
     function filtrarAreas() {
         const termo = searchInput.value.toLowerCase();
+        paginaAtual = 1;  // Resetar para primeira página
         
         if (!termo) {
             renderizarCards(todasAreas);
-            clearSearchBtn.style.display = 'none';
             return;
         }
         
@@ -1812,9 +2078,9 @@
         
         const areasFiltradas = todasAreas.filter(area => {
             return (
-                area.nome_area?.toLowerCase().includes(termo) ||
-                area.gestor?.toLowerCase().includes(termo) ||
-                area.email?.toLowerCase().includes(termo)
+                (area.nome_area && area.nome_area.toLowerCase().includes(termo)) ||
+                (area.gestor && area.gestor.toLowerCase().includes(termo)) ||
+                (area.email && area.email.toLowerCase().includes(termo))
             );
         });
         
@@ -1822,6 +2088,7 @@
         
         if (areasFiltradas.length === 0) {
             document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Nenhuma área encontrada para "<strong>' + termo + '</strong>"</p>';
+            document.getElementById('pagination-container').style.display = 'none';
         }
     }
 
