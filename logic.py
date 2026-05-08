@@ -2124,6 +2124,21 @@ def listar_funcionarios_area(id_area):
     """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"id_area": id_area})
+    
+def listar_funcionarios_area_todos(area_id):
+    """Retorna TODOS os funcionários de uma área (ativos e inativos)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT id, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa, ativo
+        FROM funcionarios_area
+        WHERE id_area = :area_id
+        ORDER BY nome_funcionario
+    """)
+    
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn, params={"area_id": area_id})
 
 def excluir_funcionario(funcionario_id):
     """Desativa um funcionário (soft delete) - mantém o histórico"""

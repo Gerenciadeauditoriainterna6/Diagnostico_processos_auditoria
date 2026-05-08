@@ -348,6 +348,25 @@ def api_reativar_area(area_id):  # ← NOME DIFERENTE!
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Falha ao reativar'}), 400
 
+@app.route('/api/area/<int:area_id>/todos-funcionarios')
+def api_area_todos_funcionarios(area_id):
+    """Retorna TODOS os funcionários de uma área (ativos e inativos) com tempo calculado"""
+    from logic import listar_funcionarios_area_todos
+    
+    df = listar_funcionarios_area_todos(area_id)
+    
+    if df.empty:
+        return jsonify([])
+    
+    funcionarios = df.to_dict(orient='records')
+    
+    # Adicionar tempo calculado para cada funcionário
+    for func in funcionarios:
+        func['tempo_funcao'] = calcular_tempo(func.get('data_inicio_funcao'))
+        func['tempo_empresa'] = calcular_tempo(func.get('data_inicio_empresa'))
+    
+    return jsonify(funcionarios)
+
 @app.route('/api/funcionario/<int:funcionario_id>', methods=['DELETE'])
 def api_excluir_funcionario(funcionario_id):
     """Exclui um funcionário (apenas administradores)"""

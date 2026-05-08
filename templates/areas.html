@@ -771,8 +771,8 @@
 
     .btn-editar-area {
         background: rgba(255, 248, 153, 0.25);
-        border: 1px solid #FFDD00;
-        color: #FFDD00;
+        border: 1px solid #FFCF66;
+        color: #FFCF66;
         padding: 4px 10px;
         border-radius: 6px;
         cursor: pointer;
@@ -785,7 +785,7 @@
     }
 
     .btn-editar-area:hover {
-        background: #FFDD00;
+        background: #FFCF66;
         color: white;
     }
 
@@ -795,8 +795,8 @@
 
     .btn-editar-func {
         background: rgba(255, 248, 153, 0.25);
-        border: 1px solid #FFDD00;
-        color: #FFDD00;
+        border: 1px solid #FFCF66;
+        color: #FFCF66;
         padding: 5px 12px;
         border-radius: 6px;
         cursor: pointer;
@@ -809,7 +809,7 @@
     }
 
     .btn-editar-func:hover {
-        background: #FFDD00;
+        background: #FFCF66;
         color: white;
     }
 
@@ -1009,9 +1009,88 @@
         border-color: #184145;
         box-shadow: 0 0 0 2px rgba(24,65,69,0.1);
     }
+
+    /* ====== CONTADOR DE FUNCIONÁRIO ======*/
+    .area-card .funcionarios-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        float: right;
+        font-size: 12px;
+        color: #0b5b99;
+        background: rgba(11,91,153,0.1);
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+
+    .area-card.inativa .funcionarios-count {
+        color: #6c757d;
+        background: rgba(108,117,125,0.1);
+    }
+
+    /* ====== ÁREA INATIVA - ALERTA ====== */
+    .area-inativa-alert {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #856404;
+        margin-top: 15px;
+        text-align: center;
+    }
+
+    .area-inativa-alert i {
+        margin-right: 5px;
+    }
+
+    /* ====== BADGE FUNCIONÁRIO INATIVO ====== */
+
+    .badge-func-inativo {
+        display: inline-block !important;
+        background-color: #dc3545 !important;
+        color: white !important;
+        font-size: 9px !important;
+        font-weight: bold !important;
+        padding: 2px 6px !important;
+        border-radius: 10px !important;
+        margin-left: 8px !important;
+        vertical-align: middle !important;
+        line-height: 1.2 !important;
+        text-transform: uppercase !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .funcionario-inativo {
+        opacity: 0.7;
+        background: #f8f9fa;
+    }
+
+    .funcionario-inativo .funcionario-info strong {
+        color: #6c757d;
+    }
+
 </style>
 
 <script>
+
+    // ====== ATUALIZAR CONTADOR DE FUNCIONÁRIOS DE UMA ÁREA ======
+    async function atualizarContadorArea(areaId) {
+        try {
+            const response = await fetch(`/api/area/${areaId}/funcionarios`);
+            const funcionarios = await response.json();
+            const count = funcionarios.length;
+            
+            const countSpan = document.querySelector(`#func-count-${areaId} .count-number`);
+            if (countSpan) {
+                countSpan.textContent = count;
+            }
+        } catch (error) {
+            console.error(`Erro ao atualizar contador da área ${areaId}:`, error);
+        }
+    }
+
     // ====== ORDENAÇÃO ======
     let ordemAtual = 'nome_asc';  // Valor padrão
 
@@ -1110,7 +1189,17 @@
         }
     }
 
-
+    // ====== BUSCAR CONTAGEM DE FUNCIONÁRIOS ======
+    async function buscarContagemFuncionarios(areaId) {
+        try {
+            const response = await fetch(`/api/area/${areaId}/funcionarios`);
+            const funcionarios = await response.json();
+            return funcionarios.length;
+        } catch (error) {
+            console.error('Erro ao buscar funcionários da área ${areaId}:', error);
+            return 0;
+        }
+    }
 
     // ====== PERFIL DO USUÁRIO ======
     const usuarioPerfil = '{{ usuario_perfil }}';
@@ -1170,15 +1259,22 @@
                         <div id="funcionariosList">
                             <p class="text-muted">Carregando funcionários...</p>
                         </div>
+                        ${area.status === 'Ativo' ? `
                         <button class="btn-secondary" id="btnAddFuncionario">
                             <i class="fas fa-user-plus"></i> Adicionar Funcionário
                         </button>
+                        ` : `
+                        <div class="area-inativa-alert">
+                            <i class="fas fa-info-circle"></i> Área inativa. Não é possível adicionar funcionários.
+                        </div>
+                        `}
                     </div>
                 </div>
             `;
             
             // Carregar funcionários da área
-            carregarFuncionariosArea(areaId);
+            
+            carregarFuncionariosArea(areaId, area.status === 'Ativo');
             
             // ====== ADICIONAR EVENTO AO BOTÃO ADICIONAR FUNCIONÁRIO ======
             const btnAdd = document.getElementById('btnAddFuncionario');
@@ -1197,11 +1293,13 @@
     }
     
     // ====== CARREGAR FUNCIONÁRIOS DA ÁREA ======
-    async function carregarFuncionariosArea(areaId) {
-        console.log('carregarFuncionariosArea chamado com areaId:', areaId);
+    async function carregarFuncionariosArea(areaId, isAreaAtiva) {
+        console.log('carregarFuncionariosArea chamado com areaId:', areaId, 'isAreaAtiva:', isAreaAtiva);
 
         try {
-            const response = await fetch(`/api/area/${areaId}/funcionarios`);
+            // SEMPRE buscar TODOS os funcionários (ativos e inativos)
+            const endpoint = `/api/area/${areaId}/todos-funcionarios`;
+            const response = await fetch(endpoint);
             
             console.log('Resposta da API:', response.status);
 
@@ -1225,21 +1323,24 @@
                 container.innerHTML = '<p class="text-muted">Nenhum funcionário cadastrado nesta área</p>';
                 return;
             }
-            
-            // Sem setTimeout, direto
+
+            // Renderizar funcionários
             container.innerHTML = funcionarios.map(func => {
                 const funcId = func.id;
+                const isFuncAtivo = func.ativo !== false;
+                const statusBadge = !isFuncAtivo ? '<span class="badge-func-inativo">INATIVO</span>' : '';
+
                 return `
-                    <div class="funcionario-item" data-func-id="${funcId}">
+                    <div class="funcionario-item ${!isFuncAtivo ? 'funcionario-inativo' : ''}" data-func-id="${funcId}">
                         <div class="funcionario-info">
-                            <strong><i class="fas fa-user"></i> ${func.nome_funcionario}</strong>
+                            <strong><i class="fas fa-user"></i> ${func.nome_funcionario} ${statusBadge}</strong>
                             <span class="funcionario-cargo">${func.cargo || 'Cargo não informado'}</span>
                         </div>
                         <div class="funcionario-datas">
                             <small><i class="fas fa-clock"></i> Tempo na função: ${func.tempo_funcao || 'Não informado'}</small>
                             <small><i class="fas fa-building"></i> Tempo na empresa: ${func.tempo_empresa || 'Não informado'}</small>
                         </div>
-                        ${isAdmin ? `
+                        ${isAdmin && isAreaAtiva && isFuncAtivo ? `
                         <div class="funcionario-actions">
                             <button class="btn-editar-func" data-id="${funcId}" data-nome="${func.nome_funcionario}">
                                 <i class="fas fa-edit"></i> Editar
@@ -1253,12 +1354,10 @@
                 `;
             }).join('');
             
-            // ====== ADICIONAR EVENTO DE EXCLUSÃO (apenas se for admin) ======
-            if (isAdmin) {
+            // ====== ADICIONAR EVENTO DE EXCLUSÃO (apenas se for admin e área ativa) ======
+            if (isAdmin && isAreaAtiva) {
                 document.querySelectorAll('.btn-excluir-func').forEach(btn => {
-                    // Remover eventos antigos para evitar duplicação
                     btn.removeEventListener('click', btn.clickHandler);
-                    // Criar novo evento
                     btn.clickHandler = async (e) => {
                         e.stopPropagation();
                         const funcId = btn.getAttribute('data-id');
@@ -1270,6 +1369,7 @@
                     };
                     btn.addEventListener('click', btn.clickHandler);
                 });
+                
                 document.querySelectorAll('.btn-editar-func').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         e.stopPropagation();
@@ -1311,11 +1411,13 @@
                 mostrarToast('Funcionário excluído com sucesso!', 'success');
                 // Recarregar APENAS a lista de funcionários
                 await carregarFuncionariosArea(areaId);
+
+                // ====== ATUALIZAR CONTADOR DA ÁREA ======
+                await atualizarContadorArea(areaId);
                 
                 // Garantir que o card da área continue selecionado
                 document.querySelectorAll('.area-card').forEach(card => {
-                    const cardId = card.getAttribute('data-id');
-                    if (cardId == areaId) {
+                    if (card.getAttribute('data-id') == areaId) {
                         card.classList.add('selected');
                     }
                 });
@@ -1613,7 +1715,7 @@
                     
                     if (resultado.success) {
                         mostrarToast('Funcionário cadastrado com sucesso!', 'success');
-                        
+    
                         // Fechar o modal (isso vai definir areaIdAtual = null)
                         fecharModalFunc();
                         
@@ -1621,6 +1723,9 @@
                         if (areaIdParaRecarregar) {
                             console.log('Recarregando funcionários para área:', areaIdParaRecarregar);
                             await carregarFuncionariosArea(areaIdParaRecarregar);
+                            
+                            // ====== ATUALIZAR CONTADOR DA ÁREA ======
+                            await atualizarContadorArea(areaIdParaRecarregar);
                             
                             // Garantir que o card da área continue selecionado
                             document.querySelectorAll('.area-card').forEach(card => {
@@ -1634,7 +1739,9 @@
                             location.reload();
                         }
                     } else {
+                        console.error('areaIdParaRecarregar está null!');
                         mostrarToast('❌ Erro ao cadastrar funcionário. Tente novamente.', 'error');
+                        location.reload();
                     }
                 } catch (error) {
                     console.error('Erro:', error);
@@ -1852,11 +1959,14 @@
                     // Recarregar a lista de funcionários da área
                     await carregarFuncionariosArea(areaId);
 
+                    // ====== ATUALIZAR CONTADOR DA ÁREA ======
+                    await atualizarContadorArea(areaId);
+
                     // Garantir que o card da área continue selecionado
                     document.querySelectorAll('.area-card').forEach(card => {
-                        if (card.getAttribute('data-id') == areaId) {
-                            card.classList.add('selected');
-                        }
+                    if (card.getAttribute('data-id') == areaId) {
+                        card.classList.add('selected');
+                    }
                     });
                 } else {
                     mostrarToast('Erro ao atualizar funcionário.', 'error');
@@ -2032,6 +2142,9 @@
                 <h4>
                     <i class="fas fa-building"></i> ${nome}
                     ${!isAtivo ? '<span class="badge-inativa">INATIVA</span>' : ''}
+                    <span class="funcionarios-count" id="func-count-${id}">
+                        <i class="fas fa-users"></i> <span class="count-number">...</span>
+                    </span>
                 </h4>
                 <p><i class="fas fa-user-tie"></i> Gestor: ${gestor}</p>
                 <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
@@ -2055,6 +2168,15 @@
             </div>
         `;
     }).join('');
+
+    // Buscar contagem de funcionários para cada área
+    areasPagina.forEach(async (area) => {
+        const count = await buscarContagemFuncionarios(area.id_area);
+        const countSpan = document.querySelector(`#func-count-${area.id_area} .count-number`);
+        if (countSpan) {
+            countSpan.textContent = count;
+        }
+    });
 
     // Renderizar controles de paginação
     renderizarPaginacao(areas.length, totalPaginas);
@@ -2159,9 +2281,6 @@
 
     // ====== REATIVAR ÁREA ======
     async function reativarArea(areaId, areaNome, btnElement) {
-        // A verificação de perfil já é feita pelo backend, mas o botão
-        // só aparece para admin (isAdmin), então está seguro
-        
         try {
             const textoOriginal = btnElement.innerHTML;
             btnElement.disabled = true;
@@ -2177,13 +2296,19 @@
             
             if (resultado.success) {
                 mostrarToast(`✅ Área "${areaNome}" reativada com sucesso!`, 'success');
-                await carregarDados();
-                document.querySelector('.area-details').innerHTML = `
-                    <div class="details-placeholder">
-                        <i class="fas fa-building fa-3x"></i>
-                        <p>Selecione uma área para ver os detalhes</p>
-                    </div>
-                `;
+                
+                // Recarregar a lista de áreas
+                await carregarAreas();
+                
+                // Recarregar os detalhes da área reativada
+                await carregarDetalhesArea(areaId);
+                
+                // Garantir que o card da área reativada fique selecionado
+                document.querySelectorAll('.area-card').forEach(card => {
+                    if (card.getAttribute('data-id') == areaId) {
+                        card.classList.add('selected');
+                    }
+                });
             } else if (resultado.error === 'Permissão negada') {
                 mostrarToast('❌ Você não tem permissão para reativar áreas.', 'error');
             } else {
