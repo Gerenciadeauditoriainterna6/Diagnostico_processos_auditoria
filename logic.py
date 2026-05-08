@@ -2131,6 +2131,13 @@ def excluir_funcionario(funcionario_id):
     print(f"🔍 Desativando funcionário ID: {funcionario_id}")
     
     try:
+        # 1. Buscar dados ANTES da desativação (para o log)
+        dados_anteriores = buscar_funcionario_por_id(funcionario_id)
+        
+        if not dados_anteriores:
+            print(f"❌ Funcionário com ID {funcionario_id} não encontrado!")
+            return False
+        
         with engine.connect() as conn:
             # Verificar se o funcionário existe
             check_query = text("SELECT id FROM funcionarios_area WHERE id = :id")
@@ -2147,6 +2154,17 @@ def excluir_funcionario(funcionario_id):
             conn.commit()
             
             print(f"✅ Funcionário desativado. Linhas afetadas: {result.rowcount}")
+
+            # 2. Registrar log se a exclusão foi bem-sucedida
+            if result.rowcount > 0:
+                registrar_log(
+                    tabela='funcionarios_area',
+                    registro_id=funcionario_id,
+                    operacao='DELETE',
+                    dados_anteriores=dados_anteriores,
+                    query_sql="UPDATE funcionarios_area SET ativo = false"
+                )
+                
             return result.rowcount > 0
             
     except Exception as e:
@@ -2157,10 +2175,18 @@ def excluir_area(area_id):
     """Desativa uma área e todos os seus funcionários (soft delete em cascata)"""
     from database import engine
     from sqlalchemy import text
+    from modules.shared.log_sistema import registrar_log
     
     print(f"🔍 Desativando área ID: {area_id} e seus funcionários")
     
     try:
+        # 1. Buscar dados ANTES da desativação (para o log)
+        dados_anteriores = buscar_area_por_id(area_id)
+
+        if not dados_anteriores:
+            print(f"❌ Área ID {area_id} não encontrada")
+            return False
+        
         with engine.connect() as conn:
             # Iniciar transação
             with conn.begin():
@@ -2181,6 +2207,16 @@ def excluir_area(area_id):
                 """)
                 result_area = conn.execute(update_area, {"id": area_id})
                 print(f"✅ Área desativada: {result_area.rowcount}")
+
+                # 3. Registrar log da área desativada
+                if result_area.rowcount > 0:
+                    registrar_log (
+                        tabela='informacoes_area',
+                        registro_id=area_id,
+                        operacao='DELETE',
+                        dados_anteriores=dados_anteriores,
+                        query_sql="UPDATE informacoes_area SET status = 'Inativo' + UPDATE funcionarios_area SET ativo = false"
+                    )
                 
                 return result_area.rowcount > 0
                 
@@ -3013,6 +3049,19 @@ def salvar_funcionario(dados):
             })
             conn.commit()
             novo_id = result.scalar()
+
+            # ====== REGISTRAR LOG ======
+            if novo_id:
+                registrar_log(
+                    tabela='funcionarios_area',
+                    registro_id=novo_id,
+                    operacao='INSERT',
+                    dados_novos=dados,
+                    query_sql='INSERT INTO funcionarios_area (id_area, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa, ativo)'
+                )
+
+            # ====== FIM DO LOG ======
+
             return novo_id
     except Exception as e:
         print(f"Erro ao salvar funcionário: {e}")
@@ -3091,6 +3140,14 @@ def atualizar_funcionario(funcionario_id, dados):
     from sqlalchemy import text
     
     try:
+        # 1. Bscar dados ANTES da alteração
+        dados_anteriores = buscar_funcionario_por_id(funcionario_id)
+
+        if not dados_anteriores:
+            print(f"❌ Funcionário ID {funcionario_id} não encontrado")
+            return False
+        
+        # 2. Executar o UPDATE
         query = text("""
             UPDATE funcionarios_area
             SET nome_funcionario = :nome,
@@ -3110,6 +3167,18 @@ def atualizar_funcionario(funcionario_id, dados):
             })
 
             conn.commit()
+
+            # 3. Registrar log se a atualização foi bem-sucedida
+            if result.rowcount > 0:
+                registrar_log(
+                    tabela='funcionarios_area',
+                    registro_id=funcionario_id,
+                    operacao='UPDATE',
+                    dados_anteriores=dados_anteriores,
+                    dados_novos=dados,
+                    query_sql="UPDATE funcionarios_area SET nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa"
+                )
+
             return result.rowcount > 0 
     except Exception as e:
         print(f"Erro ao atualizar funcionário: {e}")
