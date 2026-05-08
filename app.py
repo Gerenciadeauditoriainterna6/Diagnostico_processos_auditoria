@@ -226,10 +226,11 @@ def api_auditorias_por_area():
 
 @app.route('/api/areas')
 def api_areas():
-    """Retorna todas as áreas"""
+    """Retorna todas as áreas (ativas e inativas)"""
     from modules.execucao.areas import listar_areas
     
-    df = listar_areas()
+    # Passar apenas_ativas=False para buscar TODAS as áreas
+    df = listar_areas(apenas_ativas=False)
     
     if df.empty:
         return jsonify([])
@@ -260,9 +261,10 @@ def api_totais():
 @app.route('/api/area/<int:area_id>')
 def api_area_detalhes(area_id):
     """Retorna detalhes de uma área específica"""
-    from modules.execucao.areas import listar_areas
+    from logic import listar_areas
     
-    df = listar_areas()
+    # Buscar TODAS as áreas (ativas e inativas)
+    df = listar_areas(apenas_ativas=False)
     area = df[df['id_area'] == area_id]
     
     if area.empty:
@@ -330,6 +332,21 @@ def api_atualizar_area(area_id):
     if resultado:
         return jsonify({'success': True})
     return jsonify({'success': False}), 400
+
+@app.route('/api/area/<int:area_id>/reativar', methods=['PUT'])
+def api_reativar_area(area_id):  # ← NOME DIFERENTE!
+    """Reativa uma área (apenas administradores)"""
+    from logic import reativar_area
+    
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    resultado = reativar_area(area_id)
+    
+    if resultado:
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Falha ao reativar'}), 400
 
 @app.route('/api/funcionario/<int:funcionario_id>', methods=['DELETE'])
 def api_excluir_funcionario(funcionario_id):

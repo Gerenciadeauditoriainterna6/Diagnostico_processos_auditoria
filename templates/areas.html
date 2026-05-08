@@ -17,7 +17,14 @@
         <!-- COLUNA ESQUERDA: Lista de áreas -->
         <div class="areas-list">
             <div class="areas-header">
-                <h3><i class="fas fa-list"></i> Áreas Cadastradas</h3>
+                <div>
+                    <h3><i class="fas fa-list"></i> Áreas Cadastradas</h3>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchAreaInput" placeholder="Buscar área por nome, gestor ou e-mail..." class="search-input">
+                        <button id="clearSearchBtn" class="clear-search" style="display: none;">&times;</button>
+                    </div>
+                </div>
                 <button id="btnNovaArea" class="btn-primary btn-nova-area">
                     <i class="fas fa-plus-circle"></i> Nova Área
                 </button>
@@ -130,7 +137,7 @@
                     <div class="form-group">
                         <label for="edit_func_data_funcao"><i class="fas fa-calendar-alt"></i> Data início na função</label>
                         <input type="date" id="edit_func_data_funcao" name="data_inicio_funcao" class="form-control">
-                        <small style="color: #666; font-size: 10px;">⚠️ Deixe em branco para manter a data já cadastada.</small>
+                        <small style="color: #bd1425; font-size: 10px;">⚠️ Deixe em branco para manter a data já cadastada.</small>
                     </div>
                     <div class="form-group">
                         <label for="edit_func_data_empresa"><i class="fas fa-calendar-alt"></i> Data início na empresa</label>
@@ -287,6 +294,19 @@
         cursor: pointer;
         transition: all 0.2s ease;
         border-left: 3px solid transparent;
+    }
+
+    /* Card inativo (não selecionado) */
+    .area-card.inativa {
+        background: #FFE5E5;
+        opacity: 0.85;
+    }
+
+    /* ====== Card INATIVO quando SELECIONADO ====== */
+    .area-card.inativa.selected {
+        border-left-color: #dc3545;  /* Borda vermelha */
+        background: #fce4e4;         /* Fundo vermelho mais claro */
+        opacity: 1;                  /* Remove a opacidade para melhor legibilidade */
     }
 
     .area-card:hover {
@@ -780,6 +800,116 @@
         font-size: 12px;
     }
 
+    /* ======BUSCA DE ÁREAS ====== */
+    .search-box {
+        position: relative;
+        margin-top: 10px;
+        width: 100%;
+        min-width: 300px;
+        max-width: 500px;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        font-size: 14px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 8px 12px 8px 35px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #451f18;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    .clear-search {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #999;
+        padding: 0 5px;
+    }
+
+    .clear-search:hover {
+        color: #dc3545;
+    }
+
+    /* ====== ÁREA INATIVA (DESATIVADA) ====== */
+    .area-card.inativa {
+        background: #FFE5E5B3;
+    }
+
+    .area-card.inativa:hover {
+        background: #FFE5E5ff;
+        transform: translateX(3px);
+    }
+
+    .area-card.inativa h4 {
+        color: #495057;
+    }
+
+    .area-card.inativa p {
+        color: #6c757d;
+    }
+
+    .area-card.inativa .btn-editar-area,
+    .area-card.inativa .btn-excluir-area {
+        display: none;  /* Esconde botões de editar/desativar */
+    }
+
+    .area-card.inativa .btn-reativar-area {
+        display: inline-flex;  /* Mostra botão reativar */
+    }
+
+    .badge-inativa {
+        display: inline-block;
+        background: #dc3545;
+        color: white;
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .area-card.inativa .area-actions {
+        text-align: right;
+    }
+
+    .btn-reativar-area {
+        background: rgba(40, 167, 69, 0.1);
+        border: 1px solid #28a745;
+        color: #28a745;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-reativar-area:hover {
+        background: #28a745;
+        color: white;
+    }
 
 </style>
 
@@ -841,98 +971,12 @@
         }
     }
 
+
+
     // ====== PERFIL DO USUÁRIO ======
     const usuarioPerfil = '{{ usuario_perfil }}';
     const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
     console.log('Perfil do usuário:', usuarioPerfil, 'é admin?', isAdmin);
-    // ====== CARREGAR ÁREAS ======
-    async function carregarAreas() {
-        try {
-            const response = await fetch('/api/areas');
-            const areas = await response.json();
-            const container = document.getElementById('areasContainer');
-            
-            console.log('Dados recebidos:', areas);
-            
-            if (!areas || areas.length === 0) {
-                container.innerHTML = '<p class="text-muted">Nenhuma área cadastrada</p>';
-                return;
-            }
-            
-            // Renderizar cards
-            container.innerHTML = areas.map(area => {
-                const nome = area.nome_area || 'Sem nome';
-                const gestor = area.gestor || 'Não informado';
-                const id = area.id_area;
-                
-                return `
-                    <div class="area-card" data-id="${id}">
-                        <h4><i class="fas fa-building"></i> ${nome}</h4>
-                        <p><i class="fas fa-user-tie"></i> Gestor: ${gestor}</p>
-                        <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
-                        <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
-                        ${isAdmin ? `
-                        <div class="area-actions">
-                            <button class="btn-editar-area" data-id="${id}" data-nome="${nome}">
-                                <i class="fas fa-edit"></i> Editar
-                            </button>
-                            <button class="btn-excluir-area" data-id="${id}" data-nome="${nome}">
-                                <i class="fas fa-trash-alt"></i> Desativar
-                            </button>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-            
-            // Adicionar evento de clique nos cards
-            document.querySelectorAll('.area-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const areaId = card.getAttribute('data-id');
-                    console.log('Card clicado, ID:', areaId);
-                    
-                    // Remover classe 'selected' de todos os cards
-                    document.querySelectorAll('.area-card').forEach(c => {
-                        c.classList.remove('selected');
-                    });
-                    
-                    // Adicionar classe 'selected' ao card clicado
-                    card.classList.add('selected');
-                    
-                    // Carregar detalhes da área no painel direito
-                    carregarDetalhesArea(areaId);
-                });
-            });
-
-            // Adicionar evento de clique para os botões de desativar e editar área (apenas admin)
-            if (isAdmin) {
-                document.querySelectorAll('.btn-excluir-area').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        const areaId = btn.getAttribute('data-id');
-                        const areaNome = btn.getAttribute('data-nome');
-                        
-                        const confirmado = await mostrarConfirmacao(`Tem certeza que deseja desativar a área "${areaNome}"?`);
-                        if (confirmado) {
-                            await excluirArea(areaId, areaNome, btn);
-                        }
-                    });
-                });
-                
-                document.querySelectorAll('.btn-editar-area').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        const areaId = btn.getAttribute('data-id');
-                        await abrirModalEditarArea(areaId);
-                    });
-                });
-            }
-            
-        } catch (error) {
-            console.error('Erro ao carregar áreas:', error);
-            document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Erro ao carregar áreas</p>';
-        }
-    }
     
     // ====== CARREGAR DETALHES DA ÁREA ======
 
@@ -1678,6 +1722,214 @@
                 btnSubmit.innerHTML = textoOriginal;
             }
         });
+    }
+
+    // ====== BUSCA DE ÁREAS ======
+    const searchInput = document.getElementById('searchAreaInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    let todasAreas = []; // Armazenar todas as áreas para filtro
+
+    // Modificar a função carregarAreas para salvar os dados originais
+    async function carregarAreas() {
+        try {
+            const response = await fetch('/api/areas');
+            const areas = await response.json();
+            const container = document.getElementById('areasContainer');
+
+            //Salvar todas as áreas para uso no filtro
+            todasAreas = areas;
+
+            console.log('Dados recebidos', areas);
+
+            if (!areas || areas.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nenhuma área cadastrada</p>';
+                return;
+            }
+
+            // Renderizar cards (sem mudanças)
+            renderizarCards(areas);
+
+        } catch (error) {
+            console.error('Erro ao carregar áreas:', error);
+            document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Erro ao carregar áreas</p>';
+        }
+    }
+
+    // Função para renderizar os cards (extraída da carregarAreas)
+    function renderizarCards(areas) {
+    const container = document.getElementById('areasContainer');
+
+    container.innerHTML = areas.map(area => {
+        const nome = area.nome_area || 'Sem nome';
+        const gestor = area.gestor || 'Não informado';
+        const id = area.id_area;
+        const status = area.status || 'Ativo';
+        const isAtivo = status === 'Ativo';
+        
+        return `
+            <div class="area-card ${!isAtivo ? 'inativa' : ''}" data-id="${id}">
+                <h4>
+                    <i class="fas fa-building"></i> ${nome}
+                    ${!isAtivo ? '<span class="badge-inativa">INATIVA</span>' : ''}
+                </h4>
+                <p><i class="fas fa-user-tie"></i> Gestor: ${gestor}</p>
+                <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
+                <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
+                ${isAdmin ? `
+                <div class="area-actions">
+                    ${isAtivo ? `
+                        <button class="btn-editar-area" data-id="${id}" data-nome="${nome}">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn-excluir-area" data-id="${id}" data-nome="${nome}">
+                            <i class="fas fa-trash-alt"></i> Desativar
+                        </button>
+                    ` : `
+                        <button class="btn-reativar-area" data-id="${id}" data-nome="${nome}">
+                            <i class="fas fa-sync-alt"></i> Reativar
+                        </button>
+                    `}
+                </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    adicionarEventosCards();
+}
+
+    // Função para filtrar áreas
+    function filtrarAreas() {
+        const termo = searchInput.value.toLowerCase();
+        
+        if (!termo) {
+            renderizarCards(todasAreas);
+            clearSearchBtn.style.display = 'none';
+            return;
+        }
+        
+        clearSearchBtn.style.display = 'block';
+        
+        const areasFiltradas = todasAreas.filter(area => {
+            return (
+                area.nome_area?.toLowerCase().includes(termo) ||
+                area.gestor?.toLowerCase().includes(termo) ||
+                area.email?.toLowerCase().includes(termo)
+            );
+        });
+        
+        renderizarCards(areasFiltradas);
+        
+        if (areasFiltradas.length === 0) {
+            document.getElementById('areasContainer').innerHTML = '<p class="text-muted">Nenhuma área encontrada para "<strong>' + termo + '</strong>"</p>';
+        }
+    }
+
+    // Função para adicionar eventos aos cards (extraída)
+    function adicionarEventosCards() {
+        document.querySelectorAll('.area-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const areaId = card.getAttribute('data-id');
+                console.log('Card clicado, ID:', areaId);
+                
+                document.querySelectorAll('.area-card').forEach(c => {
+                    c.classList.remove('selected');
+                });
+                card.classList.add('selected');
+                carregarDetalhesArea(areaId);
+            });
+        });
+
+        if (isAdmin) {
+            document.querySelectorAll('.btn-excluir-area').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const areaId = btn.getAttribute('data-id');
+                    const areaNome = btn.getAttribute('data-nome');
+                    
+                    const confirmado = await mostrarConfirmacao(`Tem certeza que deseja desativar a área "${areaNome}"?`);
+                    if (confirmado) {
+                        await excluirArea(areaId, areaNome, btn);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.btn-editar-area').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const areaId = btn.getAttribute('data-id');
+                    await abrirModalEditarArea(areaId);
+                });
+            });
+
+            document.querySelectorAll('.btn-reativar-area').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const areaId = btn.getAttribute('data-id');
+                    const areaNome = btn.getAttribute('data-nome');
+                    
+                    const confirmado = await mostrarConfirmacao(`Tem certeza que deseja reativar a área "${areaNome}"?`);
+                    if (confirmado) {
+                        await reativarArea(areaId, areaNome, btn);
+                    }
+                });
+            });
+        }
+    }
+
+    // Eventos da busca
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarAreas);
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            filtrarAreas();
+            searchInput.focus();
+        });
+    }
+
+    // ====== REATIVAR ÁREA ======
+    async function reativarArea(areaId, areaNome, btnElement) {
+        // A verificação de perfil já é feita pelo backend, mas o botão
+        // só aparece para admin (isAdmin), então está seguro
+        
+        try {
+            const textoOriginal = btnElement.innerHTML;
+            btnElement.disabled = true;
+            btnElement.classList.add('btn-loading');
+            btnElement.innerHTML = '<i class="fas fa-spinner"></i> Reativando...';
+
+            const response = await fetch(`/api/area/${areaId}/reativar`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                mostrarToast(`✅ Área "${areaNome}" reativada com sucesso!`, 'success');
+                await carregarDados();
+                document.querySelector('.area-details').innerHTML = `
+                    <div class="details-placeholder">
+                        <i class="fas fa-building fa-3x"></i>
+                        <p>Selecione uma área para ver os detalhes</p>
+                    </div>
+                `;
+            } else if (resultado.error === 'Permissão negada') {
+                mostrarToast('❌ Você não tem permissão para reativar áreas.', 'error');
+            } else {
+                mostrarToast('❌ Erro ao reativar área. Tente novamente.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro de conexão.', 'error');
+        } finally {
+            btnElement.disabled = false;
+            btnElement.classList.remove('btn-loading');
+            btnElement.innerHTML = textoOriginal;
+        }
     }
 
 </script>

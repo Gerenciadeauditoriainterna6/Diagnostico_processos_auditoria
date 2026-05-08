@@ -2030,7 +2030,9 @@ def listar_areas(apenas_ativas=True):
         query = text("""
             SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
             FROM informacoes_area
-            ORDER BY nome_area
+            ORDER BY 
+                CASE WHEN status = 'Ativo' THEN 0 ELSE 1 END,
+                nome_area
         """)
     
     with engine.connect() as conn:
@@ -2164,7 +2166,7 @@ def excluir_funcionario(funcionario_id):
                     dados_anteriores=dados_anteriores,
                     query_sql="UPDATE funcionarios_area SET ativo = false"
                 )
-                
+
             return result.rowcount > 0
             
     except Exception as e:
@@ -3202,3 +3204,18 @@ def buscar_funcionario_por_id(funcionario_id):
     except Exception as e:
         print(f"Erro ao buscar funcionário: {e}")
         return None
+    
+def reativar_area(area_id):
+    """Reativa uma área (soft delete reverso)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("UPDATE informacoes_area SET status = 'Ativo' WHERE id_area = :id")
+            result = conn.execute(query, {"id": area_id})
+            conn.commit()
+            return result.rowcount > 0
+    except Exception as e:
+        print(f"Erro ao reativar área: {e}")
+        return False
