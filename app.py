@@ -220,6 +220,105 @@ def api_auditorias_por_area():
     
     return jsonify({'auditorias': auditorias})
 
+@app.route('/api/auditoria/<int:auditoria_id>/responsavel')
+def api_auditoria_responsavel(auditoria_id):
+    """Verifica se o usuário logado é responsável pela auditoria ou é administrador"""
+    from database import engine
+    from sqlalchemy import text
+
+    usuario_nome = session.get('usuario_nome')
+    usuario_perfil = session.get('usuario_perfil')
+
+    if not usuario_nome:
+        return jsonify({'autorizado': False, 'error': 'Usuário não logado'}), 401
+    
+    # ADMINISTRADOR tem acesso total
+    if usuario_perfil == 'administrador' or usuario_perfil == 'admin':
+        return jsonify({
+            'autorizado': True,
+            'usuario': usuario_nome,
+            'perfil': usuario_perfil,
+            'motivo': 'Administrador tem acesso total'
+        })
+    
+    query = text("""
+        SELECT responsavel_equipe FROM auditorias WHERE id = :id
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {'id': auditoria_id}).fetchone()
+
+        if not result:
+            return jsonify({'autorizado': False, 'error': 'Auditoria não encontrada'}), 404
+        
+        responsaveis = result[0] or []
+
+        autorizado = usuario_nome in responsaveis if responsaveis else False
+
+        return jsonify({
+            'autorizado': autorizado,
+            'usuario': usuario_nome,
+            'perfil': usuario_perfil,
+            'responsaveis': responsaveis
+        })
+
+# ============================================================
+# API - DIAGNÓSTICO DOS PROCESSOS
+# ============================================================
+@app.route('/api/processo/verificar')
+def api_verificar_processo():
+    """Verifica se um processo co o mesmo nome já existe na área"""
+    nome_processo = request.args.get('nome')
+    id_area = request.args.get('id_area')
+
+    if not nome_processo or not id_area:
+        return jsonify({'existe': False})
+    
+    from logic import buscar_processo_por_nome_e_area
+    processo = buscar_processo_por_nome_e_area(nome_processo, id_area)
+
+    if processo:
+        return jsonify({
+            'existe': True,
+            'processo_id': processo['id'],
+            'codigo': processo['codigo_processo']
+        })
+    return jsonify({'existe': False})
+
+@app.route('/api/processo/gerar-codigo')
+def api_gerar_codigo_processo():
+    """Gera o próximo código sequencial para uma área"""
+    from logic import gerar_codigo_processo
+    
+    id_area = request.args.get('id_area')
+    if not id_area:
+        return jsonify({'error': 'id_area é obrigatório'}), 400
+    
+    try:
+        id_area = int(id_area)
+    except ValueError:
+        return jsonify({'error': 'id_area deve ser um número'}), 400
+    
+    codigo = gerar_codigo_processo(id_area)
+    
+    return jsonify({'codigo': codigo})
+
+@app.route('/api/area/<int:area_id>/funcionarios-para-select')
+def api_area_funcionarios_para_select(area_id):
+    """Retorna funcionários da área formatados para select/multiselect"""
+    from logic import listar_funcionarios_por_area
+
+    funcionarios = listar_funcionarios_por_area(area_id)
+
+    # Formato: [{"id": 1, "nome": "João Silva", "cargo": "Analista"}, ...]
+    resultado = [
+        {'id': func[0], 'nome': func[1], 'cargo': func[2] if len(func) > 2 else ''}
+        for func in funcionarios
+    ]
+
+    return jsonify(resultado)
+
+
 # ============================================================
 # API - ÁREAS E FUNCIONÁRIOS
 # ============================================================

@@ -3234,3 +3234,49 @@ def reativar_area(area_id):
     except Exception as e:
         print(f"Erro ao reativar área: {e}")
         return False
+
+def buscar_processo_por_nome_e_area(nome_processo, id_area):
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT id, codigo_processo, nome_processo
+        FROM processos
+        WHERE nome_processo = :nome AND id_area = :id_area
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {
+            "nome": nome_processo,
+            "id_area": id_area
+        }).mappings().first()
+        
+        return dict(result) if result else None
+
+def gerar_codigo_processo(id_area):
+    """
+    Gera o próximo código sequencial para um processo de uma área.
+    Busca o MAIOR número existente, independente da ordem de inserção.
+    """
+    from database import engine
+    from sqlalchemy import text
+    
+    # Solução usando expressão regular e conversão para inteiro
+    query = text("""
+        SELECT MAX(
+            CAST(SUBSTRING(codigo_processo FROM '\.([0-9]+)$') AS INTEGER)
+        ) as max_sequencial
+        FROM processos 
+        WHERE id_area = :id_area
+        AND codigo_processo ~ '^[0-9]+\.[0-9]+$'
+    """)
+    
+    with engine.connect() as conn:
+        resultado = conn.execute(query, {"id_area": id_area}).fetchone()
+        max_sequencial = resultado[0] if resultado and resultado[0] else 0
+        
+        novo_numero = max_sequencial + 1
+    
+    codigo = f"{id_area}.{novo_numero}"
+    
+    return codigo

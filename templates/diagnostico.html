@@ -9,6 +9,32 @@
         <p>Preencha as informações abaixo para diagnosticar um processo da área selecionada.</p>
     </div>
 
+    <!-- Adicionar após o page-header -->
+    <div id="wizard-progress" class="wizard-progress" style="margin-bottom: 25px;">
+        <div class="progress-steps">
+            <div class="step active" data-step="1">
+                <div class="step-circle">1</div>
+                <div class="step-label">Auditoria</div>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-circle">2</div>
+                <div class="step-label">Básico</div>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-circle">3</div>
+                <div class="step-label">Detalhes</div>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-circle">4</div>
+                <div class="step-label">Riscos</div>
+            </div>
+            <div class="step" data-step="5">
+                <div class="step-circle">5</div>
+                <div class="step-label">Finalizar</div>
+            </div>
+        </div>
+    </div>
+
     <!-- PASSO 1: VINCULAR À AUDITORIA -->
     <div class="form-section">
         <h3>1. Vincular à Auditoria</h3>
@@ -42,11 +68,83 @@
         </div>
     </div>
 
-    <!-- PASSO 2: INFORMAÇÕES BÁSICAS (INICIALMENTE ESCONDIDO) -->
+    <!-- PASSO 2: INFORMAÇÕES BÁSICAS (NOME + EXECUTORES) -->
     <div id="info-basicas-section" class="form-section" style="display: none;">
-        <h3>2. Informações Iniciais do Processo</h3>
-        <!-- Aqui vamos colocar o formulário -->
-        <p class="text-muted">Após selecionar a auditoria, as informações do processo serão carregadas.</p>
+        <input type="hidden" id="id_area_selecionado" name="id_area_selecionado">
+        <h3>2. Informações Básicas do Processo</h3>
+        
+        <div class="form-group">
+            <label for="nome_processo"><i class="fas fa-tag"></i> Nome do Processo *</label>
+            <input type="text" id="nome_processo" name="nome_processo" class="form-control" required 
+                placeholder="Ex: Processo de Fechamento Financeiro">
+        </div>
+
+        <div class="form-group">
+            <label for="codigo_processo"><i class="fas fa-barcode"></i> Código do Processo</label>
+            <input type="text" id="codigo_processo" name="codigo_processo" class="form-control" disabled 
+                placeholder="Será gerado automaticamente">
+        </div>
+
+        <!-- SEÇÃO DE EXECUTORES -->
+        <div class="form-group executores-group">
+            <label>
+                <i class="fas fa-users"></i> Quem executa o processo? *
+                <span class="help-icon" data-tooltip="Selecione os funcionários que executam este processo.">
+                    <i class="fas fa-question-circle"></i>
+                </span>
+            </label>
+            
+            <div class="executores-container">
+                <!-- Campo de busca para filtrar -->
+                <div class="search-wrapper">
+                    <input type="text" 
+                        id="buscar-executor" 
+                        placeholder="Filtrar funcionários por nome..."
+                        class="form-control search-input"
+                        autocomplete="off">
+                </div>
+                
+                <!-- Lista de funcionários disponíveis (cards) -->
+                <div class="funcionarios-disponiveis">
+                    <div class="section-title">
+                        <i class="fas fa-list"></i> Funcionários da Área
+                        <span id="total-funcionarios" class="contador">0</span>
+                    </div>
+                    <div id="lista-funcionarios" class="funcionarios-grid">
+                        <div class="loading-message">Carregando funcionários...</div>
+                    </div>
+                </div>
+                
+                <!-- Área dos selecionados -->
+                <div class="executores-selecionados-area">
+                    <div class="section-title">
+                        <i class="fas fa-check-circle"></i> Selecionados
+                        <span id="contador-executores" class="contador">0</span>
+                    </div>
+                    <div id="executores-selecionados" class="selected-badges-container">
+                        <div class="empty-message">📌 Nenhum executor selecionado</div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="executores_ids" name="executores_ids">
+            </div>
+            
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i> 
+                Clique em "Adicionar" para selecionar os funcionários que executam este processo.
+            </small>
+        </div>
+
+        <!-- Botões de navegação -->
+        <div class="wizard-buttons">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa1">
+                ← Voltar
+            </button>
+            <button type="button" class="btn-primary" id="btn-proximo-etapa3" disabled>
+                Próximo: Informações Básicas do Processo →
+            </button>
+        </div>
+    </div>
     </div>
 </div>
 
@@ -178,6 +276,499 @@
         margin-right: 8px;
     }
 
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 15px 0;
+        color: #721c24;
+        font-size: 14px;
+    }
+
+    .alert-error i {
+        margin-right: 8px;
+    }
+
+    .wizard-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .btn-primary {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #0d2e31;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .wizard-progress {
+        background: white;
+        border-radius: 15px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .step:not(:last-child):before {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background: #e0e0e0;
+        z-index: 1;
+    }
+
+    .step.active:not(:last-child):before,
+    .step.completed:not(:last-child):before {
+        background: #184145;
+    }
+
+    .step-circle {
+        width: 30px;
+        height: 30px;
+        background: #e0e0e0;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #666;
+        position: relative;
+        z-index: 2;
+        background: white;
+        border: 2px solid #e0e0e0;
+    }
+
+    .step.active .step-circle {
+        border-color: #0b5b99;
+        background: #0b5b99;
+        color: white;
+    }
+
+    .step.completed .step-circle {
+        border-color: #184145;
+        background: #184145;
+        color: white;
+    }
+
+    .step-label {
+        font-size: 11px;
+        margin-top: 8px;
+        color: #666;
+    }
+
+    .step.active .step-label {
+        color: #184145;
+        font-weight: 500;
+    }
+
+    /* ===== ESTILOS PARA EXECUTORES ===== */
+    .executores-group {
+        margin-top: 20px;
+    }
+
+    .executores-container {
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    /* Campo de busca */
+    .search-wrapper {
+        position: relative;
+        padding: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    /* Lista de sugestões (autocomplete) */
+    .sugestoes-lista {
+        position: absolute;
+        top: 100%;
+        left: 12px;
+        right: 12px;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .sugestao-item {
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f5f5f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sugestao-item:hover {
+        background: #f8f9fa;
+    }
+
+    .sugestao-item .info {
+        flex: 1;
+    }
+
+    .sugestao-item .nome {
+        font-weight: 500;
+        color: #184145;
+        font-size: 14px;
+    }
+
+    .sugestao-item .cargo {
+        font-size: 12px;
+        color: #6c757d;
+        margin-left: 8px;
+    }
+
+    .sugestao-item .btn-adicionar {
+        background: #184145;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .sugestao-item .btn-adicionar:hover {
+        background: #0d2e31;
+    }
+
+    /* Área dos selecionados */
+    .executores-selecionados-area {
+        padding: 12px;
+    }
+
+    .selected-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #48606c;
+    }
+
+    .contador {
+        background: #e8f4f8;
+        color: #184145;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    .selected-badges-container {
+        min-height: 80px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .empty-message {
+        text-align: center;
+        color: #999;
+        padding: 20px;
+        font-size: 13px;
+    }
+
+    /* Badges dos selecionados */
+    .executor-badge {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #e8f4f8;
+        border: 1px solid #184145;
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        transition: all 0.2s;
+    }
+
+    .executor-badge:hover {
+        background: #d0e8f0;
+        transform: translateX(2px);
+    }
+
+    .executor-badge .info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .executor-badge .avatar {
+        width: 32px;
+        height: 32px;
+        background: #184145;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+    }
+
+    .executor-badge .details {
+        flex: 1;
+    }
+
+    .executor-badge .nome {
+        font-weight: 500;
+        color: #184145;
+        font-size: 14px;
+    }
+
+    .executor-badge .cargo {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    .executor-badge .btn-remover {
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .executor-badge .btn-remover:hover {
+        color: #dc3545;
+        background: rgba(220,53,69,0.1);
+    }
+
+    /* ===== ESTILOS PARA LISTA DE FUNCIONÁRIOS ===== */
+    .funcionarios-disponiveis {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 12px;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #48606c;
+    }
+
+    .section-title i {
+        color: #184145;
+    }
+
+    .funcionarios-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 10px;
+        max-height: 250px;
+        overflow-y: auto;
+        padding: 4px;
+    }
+
+    .funcionario-card {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.2s;
+    }
+
+    .funcionario-card:hover {
+        background: #fff;
+        border-color: #184145;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .funcionario-card .info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .funcionario-card .avatar-small {
+        width: 36px;
+        height: 36px;
+        background: #184145;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+    }
+
+    .funcionario-card .details {
+        flex: 1;
+    }
+
+    .funcionario-card .nome {
+        font-weight: 500;
+        color: #184145;
+        font-size: 13px;
+    }
+
+    .funcionario-card .cargo {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    .funcionario-card .btn-adicionar-card {
+        background: #184145;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .funcionario-card .btn-adicionar-card:hover {
+        background: #0d2e31;
+        transform: scale(1.02);
+    }
+
+    .funcionario-card.adicionado {
+        opacity: 0.5;
+        background: #e9ecef;
+        pointer-events: none;
+    }
+
+    .loading-message, .empty-funcionarios {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+        font-size: 13px;
+        grid-column: 1 / -1;
+    }
+
+    /* Help icon - versão simples */
+    .help-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        color: #0b5b99;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: help;
+        margin-left: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .help-icon:hover {
+        transform: scale(1.1);
+    }
+
+    /* Tooltip */
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        margin-top: 20px;
+        margin-left: -10px;
+    }
+
+    /* Seta do tooltip */
+    .help-icon:hover::before {
+        content: '';
+        position: absolute;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent #333 transparent;
+        margin-top: 8px;
+        margin-left: 4px;
+        z-index: 1000;
+    }
 
 </style>
 
@@ -192,37 +783,488 @@
     // Recebe o perfil do usuário do Flask (via data attribute)
     const usuarioPerfil = '{{ usuario_perfil }}';
     const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
-    
-    // Função para limpar avisos anteriores
+
+    // ===== GERENCIAR NOME DO PROCESSO E CÓDIGO =====
+    let timeoutId = null;
+    let ultimoNomeVerificado = '';
+    let ultimoCodigoGerado = '';
+
+    const nomeProcessoInput = document.getElementById('nome_processo');
+    const codigoProcessoInput = document.getElementById('codigo_processo');
+    const idAreaSelecionado = document.getElementById('id_area_selecionado');
+
+    // ===== MULTISELECT DE EXECUTORES COM LISTA VISÍVEL =====
+    let funcionariosDisponiveis = [];
+    let executoresSelecionados = [];
+
+    // Carregar funcionários da área e exibir na grid
+    async function carregarFuncionariosArea(areaId) {
+        if (!areaId) {
+            console.log('❌ Nenhum areaId fornecido');
+            return;
+        }
+        
+        console.log(`🔄 Carregando funcionários da área ${areaId}...`);
+        
+        try {
+            const response = await fetch(`/api/area/${areaId}/funcionarios-para-select`);
+            
+            if (!response.ok) {
+                console.error(`❌ Erro HTTP: ${response.status}`);
+                return;
+            }
+            
+            const data = await response.json();
+            funcionariosDisponiveis = data;
+            
+            // Atualizar contador total
+            const totalSpan = document.getElementById('total-funcionarios');
+            if (totalSpan) {
+                totalSpan.textContent = funcionariosDisponiveis.length;
+            }
+            
+            console.log(`✅ ${funcionariosDisponiveis.length} funcionários carregados`);
+            
+            // Exibir lista de funcionários
+            exibirListaFuncionarios();
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar funcionários:', error);
+            funcionariosDisponiveis = [];
+            const listaDiv = document.getElementById('lista-funcionarios');
+            if (listaDiv) {
+                listaDiv.innerHTML = '<div class="empty-funcionarios">❌ Erro ao carregar funcionários</div>';
+            }
+        }
+    }
+
+    // Exibir todos os funcionários disponíveis
+    function exibirListaFuncionarios() {
+        const listaDiv = document.getElementById('lista-funcionarios');
+        if (!listaDiv) return;
+        
+        if (funcionariosDisponiveis.length === 0) {
+            listaDiv.innerHTML = '<div class="empty-funcionarios">📌 Nenhum funcionário cadastrado para esta área</div>';
+            return;
+        }
+        
+        // Filtrar pelo termo de busca (se houver)
+        const buscaInput = document.getElementById('buscar-executor');
+        const termo = buscaInput ? buscaInput.value.toLowerCase().trim() : '';
+        
+        let funcionariosFiltrados = funcionariosDisponiveis;
+        if (termo) {
+            funcionariosFiltrados = funcionariosDisponiveis.filter(f => 
+                f.nome.toLowerCase().includes(termo)
+            );
+        }
+        
+        if (funcionariosFiltrados.length === 0) {
+            listaDiv.innerHTML = '<div class="empty-funcionarios">🔍 Nenhum funcionário encontrado com esse nome</div>';
+            return;
+        }
+        
+        // Exibir cards
+        listaDiv.innerHTML = funcionariosFiltrados.map(f => {
+            const jaSelecionado = executoresSelecionados.some(exec => exec.id === f.id);
+            const classeAdicionado = jaSelecionado ? 'adicionado' : '';
+            const botaoTexto = jaSelecionado ? '✓ Selecionado' : '+ Adicionar';
+            const botaoDisabled = jaSelecionado ? 'disabled' : '';
+            
+            return `
+                <div class="funcionario-card ${classeAdicionado}" data-id="${f.id}">
+                    <div class="info">
+                        <div class="avatar-small">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="details">
+                            <div class="nome">${f.nome}</div>
+                            <div class="cargo">${f.cargo || 'Sem cargo'}</div>
+                        </div>
+                    </div>
+                    <button class="btn-adicionar-card" 
+                            onclick="adicionarExecutor(${f.id}, '${f.nome.replace(/'/g, "\\'")}', '${(f.cargo || '').replace(/'/g, "\\'")}')"
+                            ${botaoDisabled}>
+                        ${botaoTexto}
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Filtrar lista quando o usuário digitar
+    function filtrarListaFuncionarios() {
+        exibirListaFuncionarios();
+    }
+
+    // Adicionar executor
+    function adicionarExecutor(id, nome, cargo) {
+        // Verificar se já está selecionado
+        if (executoresSelecionados.some(e => e.id === id)) {
+            mostrarToast('Este funcionário já foi selecionado', 'warning');
+            return;
+        }
+        
+        executoresSelecionados.push({ id, nome, cargo: cargo || 'Sem cargo' });
+        atualizarBadges();
+        
+        // Re-exibir lista para atualizar o botão
+        exibirListaFuncionarios();
+        
+        // Habilitar botão próximo se tiver pelo menos um executor
+        const btnProximo = document.getElementById('btn-proximo-etapa3');
+        if (btnProximo && executoresSelecionados.length > 0) {
+            btnProximo.disabled = false;
+        }
+        
+        mostrarToast(`✅ ${nome} adicionado como executor`, 'success');
+    }
+
+    // Remover executor
+    function removerExecutor(id, nome) {
+        executoresSelecionados = executoresSelecionados.filter(e => e.id !== id);
+        atualizarBadges();
+        
+        // Re-exibir lista para atualizar o botão
+        exibirListaFuncionarios();
+        
+        // Desabilitar botão se não tiver executores
+        const btnProximo = document.getElementById('btn-proximo-etapa3');
+        if (btnProximo && executoresSelecionados.length === 0) {
+            btnProximo.disabled = true;
+        }
+        
+        mostrarToast(`⚠️ ${nome} removido dos executores`, 'info');
+    }
+
+    // Atualizar visual dos badges selecionados
+    function atualizarBadges() {
+        const container = document.getElementById('executores-selecionados');
+        const contadorSpan = document.getElementById('contador-executores');
+        const hiddenInput = document.getElementById('executores_ids');
+        
+        if (!container) return;
+        
+        // Atualizar contador
+        if (contadorSpan) {
+            contadorSpan.textContent = executoresSelecionados.length;
+        }
+        
+        // Atualizar hidden input
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(executoresSelecionados.map(e => e.id));
+        }
+        
+        // Mostrar mensagem ou badges
+        if (executoresSelecionados.length === 0) {
+            container.innerHTML = '<div class="empty-message">📌 Nenhum executor selecionado</div>';
+            return;
+        }
+        
+        container.innerHTML = executoresSelecionados.map(exec => `
+            <div class="executor-badge">
+                <div class="info">
+                    <div class="avatar">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="details">
+                        <div class="nome">${exec.nome}</div>
+                        <div class="cargo">${exec.cargo}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-remover" onclick="removerExecutor(${exec.id}, '${exec.nome.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-trash-alt"></i> Remover
+                </button>
+            </div>
+        `).join('');
+    }
+
+    // ===== EVENT LISTENERS =====
+    const buscaExecutor = document.getElementById('buscar-executor');
+    if (buscaExecutor) {
+        buscaExecutor.addEventListener('input', filtrarListaFuncionarios);
+    }
+
+    // Carregar funcionários quando a área for selecionada
+    // Chamar esta função dentro do change da área
+
+    // Função principal que verifica e gera o código
+    async function verificarEGerarCodigo() {
+        const nomeProcesso = nomeProcessoInput?.value.trim();
+        const areaId = idAreaSelecionado?.value || areaSelect?.value;
+        
+        // Se não tem nome ou área, limpa o código
+        if (!nomeProcesso || !areaId) {
+            if (codigoProcessoInput) {
+                codigoProcessoInput.value = '';
+                codigoProcessoInput.style.backgroundColor = '#e9ecef';
+            }
+            return;
+        }
+        
+        // Se o nome não mudou desde a última verificação, não faz nada
+        if (nomeProcesso === ultimoNomeVerificado) {
+            return;
+        }
+        
+        // Debounce: espera o usuário parar de digitar (500ms)
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        timeoutId = setTimeout(async () => {
+            try {
+                // 1. PRIMEIRO: Verificar se o processo já existe
+                const response = await fetch(`/api/processo/verificar?nome=${encodeURIComponent(nomeProcesso)}&id_area=${areaId}`);
+                const data = await response.json();
+                
+                if (data.existe) {
+                    // ===== CASO 1: PROCESSO JÁ EXISTE =====
+                    if (codigoProcessoInput) {
+                        codigoProcessoInput.value = data.codigo;
+                        codigoProcessoInput.style.backgroundColor = '#fff3cd';
+                        codigoProcessoInput.style.border = '1px solid #ffc107';
+                        codigoProcessoInput.style.color = '#856404';
+                    }
+                    
+                    mostrarAvisoProcessoExistente(nomeProcesso, data.codigo);
+                    ultimoNomeVerificado = nomeProcesso;
+                    ultimoCodigoGerado = data.codigo;
+                    desabilitarProximoStep(true, "Este processo já existe. Utilize a aba de edição para modificá-lo.");
+                    mostrarToast(`⚠️ Processo "${nomeProcesso}" já existe! Use a aba "Editar Processo" para modificá-lo.`, 'warning');
+                    
+                } else {
+                    // ===== CASO 2: PROCESSO NOVO - GERAR CÓDIGO =====
+                    const codigoResponse = await fetch(`/api/processo/gerar-codigo?id_area=${areaId}`);
+                    const codigoData = await codigoResponse.json();
+                    
+                    if (codigoResponse.ok && codigoData.codigo) {
+                        if (codigoProcessoInput) {
+                            codigoProcessoInput.value = codigoData.codigo;
+                            codigoProcessoInput.style.backgroundColor = '#e8f4f8';
+                            codigoProcessoInput.style.border = '1px solid #184145';
+                            codigoProcessoInput.style.color = '#184145';
+                        }
+                        
+                        removerAvisoProcessoExistente();
+                        ultimoNomeVerificado = nomeProcesso;
+                        ultimoCodigoGerado = codigoData.codigo;
+                        desabilitarProximoStep(false, "");
+                        console.log(`✅ Código gerado para novo processo: ${codigoData.codigo}`);
+                    } else {
+                        console.error('Erro ao gerar código:', codigoData);
+                        mostrarToast('❌ Erro ao gerar código do processo', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao verificar processo:', error);
+                mostrarToast('❌ Erro ao verificar processo. Tente novamente.', 'error');
+            }
+        }, 500);
+    }
+
+    // Função para mostrar aviso de processo existente
+    function mostrarAvisoProcessoExistente(nomeProcesso, codigoExistente) {
+        removerAvisoProcessoExistente();
+        
+        const avisoDiv = document.createElement('div');
+        avisoDiv.id = 'aviso-processo-existente';
+        avisoDiv.className = 'alert-warning';
+        avisoDiv.style.marginTop = '10px';
+        avisoDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Processo já cadastrado!</strong><br>
+            O processo "${nomeProcesso}" já existe com o código <strong>${codigoExistente}</strong>.
+            <br><br>
+            <small>💡 Para modificar este processo, utilize a aba <strong>"✏️ Editar Processo Existente"</strong>.</small>
+        `;
+        
+        if (codigoProcessoInput && codigoProcessoInput.parentNode) {
+            codigoProcessoInput.parentNode.insertAdjacentElement('afterend', avisoDiv);
+        }
+    }
+
+    // Função para remover aviso de processo existente
+    function removerAvisoProcessoExistente() {
+        const avisoExistente = document.getElementById('aviso-processo-existente');
+        if (avisoExistente) {
+            avisoExistente.remove();
+        }
+    }
+
+    // Função para habilitar/desabilitar o botão de próximo step
+    function desabilitarProximoStep(desabilitar, mensagem) {
+        const btnProximo = document.getElementById('btn-proximo-etapa3');
+        if (btnProximo) {
+            btnProximo.disabled = desabilitar;
+            if (desabilitar && mensagem) {
+                btnProximo.title = mensagem;
+            } else {
+                btnProximo.title = '';
+            }
+        }
+    }
+
+    // ===== QUANDO A ÁREA É ALTERADA, RESETAR A VERIFICAÇÃO =====
+    function resetarVerificacaoProcesso() {
+        ultimoNomeVerificado = '';
+        ultimoCodigoGerado = '';
+        
+        if (codigoProcessoInput) {
+            codigoProcessoInput.value = '';
+            codigoProcessoInput.style.backgroundColor = '#e9ecef';
+        }
+        
+        removerAvisoProcessoExistente();
+        
+        const nomeProcesso = nomeProcessoInput?.value.trim();
+        if (nomeProcesso && (idAreaSelecionado?.value || areaSelect?.value)) {
+            verificarEGerarCodigo();
+        }
+    }
+
+    // ===== EVENT LISTENERS =====
+    if (nomeProcessoInput) {
+        nomeProcessoInput.addEventListener('input', verificarEGerarCodigo);  // ← SÓ UMA VEZ!
+    }
+
+    if (areaSelect) {
+        areaSelect.addEventListener('change', resetarVerificacaoProcesso);
+    }
+
+    if (idAreaSelecionado) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'value') {
+                    resetarVerificacaoProcesso();
+                }
+            });
+        });
+        observer.observe(idAreaSelecionado, { attributes: true });
+    }
+
+    // ===== TOAST DE NOTIFICAÇÃO =====
+    function mostrarToast(mensagem, tipo = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+            `;
+            document.body.appendChild(toastContainer);
+        }
+        
+        const cores = {
+            success: { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '✅' },
+            error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '❌' },
+            warning: { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '⚠️' },
+            info: { bg: '#d1ecf1', border: '#17a2b8', text: '#0c5460', icon: 'ℹ️' }
+        };
+        
+        const cor = cores[tipo] || cores.info;
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.style.cssText = `
+            background: ${cor.bg};
+            border-left: 4px solid ${cor.border};
+            color: ${cor.text};
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
+        
+        toast.innerHTML = `
+            <span style="font-size: 18px;">${cor.icon}</span>
+            <span>${mensagem}</span>
+            <span style="margin-left: auto; cursor: pointer; opacity: 0.7;" onclick="this.parentElement.remove()">✕</span>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast && toast.parentElement) {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
+
+    // Adicionar CSS para animações
+    if (!document.getElementById('toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // ===== LIMPAR AVISOS =====
     function limparAvisos() {
         const aviso = document.getElementById('aviso-sem-auditorias');
         const msgPermissao = document.getElementById('msg-permissao');
+        const msgNaoAutorizado = document.getElementById('msg-nao-autorizado');
         
         if (aviso) aviso.remove();
         if (msgPermissao) msgPermissao.remove();
+        if (msgNaoAutorizado) msgNaoAutorizado.remove();
     }
     
+    // ===== EVENTO DE MUDANÇA DE ÁREA =====
     areaSelect.addEventListener('change', async function() {
         const areaId = this.value;
         const areaNome = this.options[this.selectedIndex]?.text || '';
+
+        // ATUALIZAR O HIDDEN INPUT
+        if (areaId) {
+            document.getElementById('id_area_selecionado').value = areaId;
+        }
+
+        // Carregar funcionários da área selecionada
+        if (areaId) {
+            await carregarFuncionariosArea(parseInt(areaId));
+        }
         
-        // LIMPAR AVISOS ANTERIORES ao mudar de área
         limparAvisos();
+        auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
+        auditoriaSelect.value = '';
+
+        const infoBasicasSection = document.getElementById('info-basicas-section');
+        if (infoBasicasSection) {
+            infoBasicasSection.style.display = 'none';
+        }
         
         if (!areaId) {
             auditoriaSection.style.display = 'none';
             return;
         }
         
-        // Mostrar a seção de auditoria (inicialmente com loading)
         auditoriaSection.style.display = 'block';
         auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
         auditoriaSelect.style.display = 'block';
         
-        // Esconder o botão de criar auditoria inicialmente
         if (novaAuditoriaBtn) {
             novaAuditoriaBtn.style.display = 'none';
         }
+        
+        // Carregar funcionários da área selecionada
+        await carregarFuncionariosArea(areaId);
         
         try {
             const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
@@ -231,7 +1273,6 @@
             console.log('Auditorias recebidas:', data);
             
             if (data.auditorias && data.auditorias.length > 0) {
-                // CASO 1: Tem auditorias - mostra o selectbox
                 auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
                 
                 data.auditorias.forEach(aud => {
@@ -241,20 +1282,16 @@
                     auditoriaSelect.appendChild(option);
                 });
                 
-                // Garantir que o select esteja visível
                 auditoriaSelect.style.display = 'block';
                 
-                // Esconder botão de criar (já tem auditorias)
                 if (novaAuditoriaBtn) {
                     novaAuditoriaBtn.style.display = 'none';
                 }
                 
             } else {
-                // CASO 2: Não tem auditorias - mostra aviso
                 auditoriaSelect.innerHTML = '';
                 auditoriaSelect.style.display = 'none';
                 
-                // Criar elemento de aviso
                 const aviso = document.createElement('div');
                 aviso.id = 'aviso-sem-auditorias';
                 aviso.className = 'alert-warning';
@@ -265,13 +1302,11 @@
                 `;
                 auditoriaSection.appendChild(aviso);
                 
-                // Mostrar botão de criar auditoria APENAS para administradores
                 if (isAdmin && novaAuditoriaBtn) {
                     novaAuditoriaBtn.style.display = 'block';
                 } else if (!isAdmin && novaAuditoriaBtn) {
                     novaAuditoriaBtn.style.display = 'none';
                     
-                    // Mostrar mensagem de permissão negada (apenas se não existir)
                     if (!document.getElementById('msg-permissao')) {
                         const msgPermissao = document.createElement('div');
                         msgPermissao.id = 'msg-permissao';
@@ -289,5 +1324,190 @@
             auditoriaSelect.innerHTML = '<option value="">Erro ao carregar auditorias</option>';
         }
     });
+
+    // ===== VERIFICAR RESPONSÁVEL PELA AUDITORIA =====
+    auditoriaSelect.addEventListener('change', async function() {
+        const auditoriaId = this.value;
+        const hasOptions = this.options.length > 1;
+        
+        if (!hasOptions || !auditoriaId) {
+            return;
+        }
+        
+        const infoBasicasSection = document.getElementById('info-basicas-section');
+        if (infoBasicasSection) {
+            infoBasicasSection.style.display = 'none';
+        }
+        
+        const msgNaoAutorizado = document.getElementById('msg-nao-autorizado');
+        if (msgNaoAutorizado) {
+            msgNaoAutorizado.remove();
+        }
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const data = await response.json();
+            
+            console.log('Verificação de responsável:', data);
+            
+            if (data.autorizado) {
+                if (infoBasicasSection) {
+                    infoBasicasSection.style.display = 'block';
+                }
+                
+                // Avançar para etapa 2 do wizard
+                irParaEtapa(2);
+                
+                if (data.perfil === 'administrador' || data.perfil === 'admin') {
+                    mostrarToast('Acesso concedido (Administrador). Você tem permissão total.', 'success');
+                } else {
+                    mostrarToast('Você está autorizado a diagnosticar processos nesta auditoria.', 'success');
+                }
+            } else {
+                if (infoBasicasSection) {
+                    infoBasicasSection.style.display = 'none';
+                }
+                
+                const msgDiv = document.createElement('div');
+                msgDiv.id = 'msg-nao-autorizado';
+                msgDiv.className = 'alert-error';
+                msgDiv.innerHTML = `
+                    <i class="fas fa-lock"></i> 
+                    <strong>Acesso negado!</strong><br>
+                    Você não está autorizado a diagnosticar processos nesta auditoria.
+                    ${data.responsaveis?.length ? `<br>Responsáveis: ${data.responsaveis.join(', ')}` : '<br>Nenhum responsável definido para esta auditoria.'}
+                `;
+                
+                const auditoriaSectionElem = document.getElementById('auditoria-section');
+                if (auditoriaSectionElem) {
+                    auditoriaSectionElem.parentNode.insertBefore(msgDiv, auditoriaSectionElem.nextSibling);
+                }
+                
+                mostrarToast('Você não tem permissão para esta auditoria.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao verificar responsável:', error);
+            mostrarToast('Erro ao verificar permissão.', 'error');
+        }
+    });
+
+    // ===== CONTROLE DO WIZARD =====
+    let etapaWizard = 1;
+
+    function irParaEtapa(etapa) {
+        const etapa1 = document.getElementById('auditoria-section');
+        const etapa2 = document.getElementById('info-basicas-section');
+        const etapa3 = document.getElementById('detalhes-section');
+        const etapa4 = document.getElementById('riscos-section');
+        const etapa5 = document.getElementById('visualizar-section');
+        
+        if (etapa1) etapa1.style.display = 'none';
+        if (etapa2) etapa2.style.display = 'none';
+        if (etapa3) etapa3.style.display = 'none';
+        if (etapa4) etapa4.style.display = 'none';
+        if (etapa5) etapa5.style.display = 'none';
+        
+        if (etapa === 1 && etapa1) etapa1.style.display = 'block';
+        if (etapa === 2 && etapa2) etapa2.style.display = 'block';
+        if (etapa === 3 && etapa3) etapa3.style.display = 'block';
+        if (etapa === 4 && etapa4) etapa4.style.display = 'block';
+        if (etapa === 5 && etapa5) etapa5.style.display = 'block';
+        
+        atualizarProgressoWizard(etapa);
+        etapaWizard = etapa;
+    }
+
+    function atualizarProgressoWizard(etapa) {
+        for (let i = 1; i <= 5; i++) {
+            const stepElement = document.querySelector(`.step[data-step="${i}"]`);
+            if (stepElement) {
+                if (i < etapa) {
+                    stepElement.classList.add('completed');
+                    stepElement.classList.remove('active');
+                } else if (i === etapa) {
+                    stepElement.classList.add('active');
+                    stepElement.classList.remove('completed');
+                } else {
+                    stepElement.classList.remove('active', 'completed');
+                }
+            }
+        }
+    }
+
+    // ===== NAVEGAÇÃO (SÓ EXECUTA SE OS ELEMENTOS EXISTIREM) =====
+    const btnVoltar = document.getElementById('btn-voltar-etapa1');
+    if (btnVoltar) {
+        btnVoltar.addEventListener('click', () => {
+            irParaEtapa(1);
+        });
+    }
+
+    const btnProximo = document.getElementById('btn-proximo-etapa3');
+    if (btnProximo) {
+        btnProximo.addEventListener('click', async () => {
+            const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+            if (!nomeProcesso) {
+                mostrarToast('⚠️ Por favor, informe o nome do processo', 'warning');
+                return;
+            }
+            
+            if (executoresSelecionados.length === 0) {
+                mostrarToast('⚠️ Selecione pelo menos um executor para o processo', 'warning');
+                return;
+            }
+            
+            const areaId = document.getElementById('id_area_selecionado')?.value || areaSelect.value;
+            const codigoProcesso = document.getElementById('codigo_processo')?.value;
+            const auditoriaId = auditoriaSelect.value;
+            
+            try {
+                const response = await fetch('/api/processo/salvar-basico', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome_processo: nomeProcesso,
+                        codigo_processo: codigoProcesso,
+                        id_area: parseInt(areaId),
+                        executores_ids: executoresSelecionados.map(e => e.id),
+                        auditoria_id: parseInt(auditoriaId)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessionStorage.setItem('processo_id', data.processo_id);
+                    sessionStorage.setItem('auditoria_id', auditoriaId);
+                    
+                    mostrarToast('✅ Informações básicas salvas!', 'success');
+                    irParaEtapa(3);
+                } else {
+                    mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Tente novamente'), 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar:', error);
+                mostrarToast('❌ Erro ao salvar informações básicas', 'error');
+            }
+        });
+    }
+
+    // ===== ATUALIZAR ID DA ÁREA QUANDO SELECIONADA =====
+    function atualizarIdArea() {
+        const areaSelect = document.getElementById('area_select');
+        const selectedOption = areaSelect.options[areaSelect.selectedIndex];
+        const areaNome = selectedOption?.text || '';
+        
+        // Buscar o ID da área pelo nome (já que o value é o ID)
+        const areaId = areaSelect.value;
+        
+        if (areaId) {
+            document.getElementById('id_area_selecionado').value = areaId;
+            console.log(`Área selecionada: ID=${areaId}, Nome=${areaNome}`);
+            
+            // Carregar funcionários da área selecionada
+            carregarFuncionariosArea(parseInt(areaId));
+        }
+    }
+
 </script>
 {% endblock %}
