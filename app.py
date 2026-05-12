@@ -486,8 +486,7 @@ def api_salvar_processo_detalhes():
                     etapa_ini = :etapa_ini,
                     etapa_fim = :etapa_fim,
                     produto = :produto,
-                    objetivo = :objetivo,
-                    updated_at = NOW()
+                    objetivo = :objetivo
                 WHERE id = :processo_id
             """)
             
@@ -509,15 +508,15 @@ def api_salvar_processo_detalhes():
 
 @app.route('/api/processo/<int:processo_id>/dados')
 def api_processo_dados(processo_id):
-    """Busca os dados de um processo para rascunho/edição"""
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            # Buscar dados básicos
+            # Buscar dados básicos + detalhes
             query = text("""
-                SELECT id, nome_processo, codigo_processo, id_area
+                SELECT id, nome_processo, codigo_processo, id_area,
+                       descricao, etapa_ini, etapa_fim, produto, objetivo
                 FROM processos 
                 WHERE id = :processo_id
             """)
@@ -526,7 +525,7 @@ def api_processo_dados(processo_id):
             if not processo:
                 return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404
             
-            # Buscar executores - usando funcionarios_area (correto)
+            # Buscar executores
             query_exec = text("""
                 SELECT f.id, f.nome_funcionario, f.cargo
                 FROM processo_executores pe
@@ -535,13 +534,16 @@ def api_processo_dados(processo_id):
             """)
             executores = conn.execute(query_exec, {'processo_id': processo_id}).fetchall()
             
-            print(f"📋 Buscando executores para processo {processo_id}: {len(executores)} encontrados")
-            
             return jsonify({
                 'success': True,
                 'nome_processo': processo[1],
                 'codigo_processo': processo[2],
                 'id_area': processo[3],
+                'descricao': processo[4] or '',
+                'etapa_ini': processo[5] or '',
+                'etapa_fim': processo[6] or '',
+                'produto': processo[7] or '',
+                'objetivo': processo[8] or '',
                 'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores]
             })
             

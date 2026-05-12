@@ -66,6 +66,13 @@
                 </button>
             </div>
         </div>
+
+        <!-- Botão Próximo da Seção 1 -->
+        <div class="wizard-buttons" style="margin-top: 20px;">
+            <button type="button" class="btn-primary" id="btn-proximo-etapa2" disabled>
+                Próximo: Informações Básicas →
+            </button>
+        </div>
     </div>
 
     <!-- PASSO 2: INFORMAÇÕES BÁSICAS (NOME + EXECUTORES) -->
@@ -146,30 +153,56 @@
         </div>
     </div>
 
-    <!-- PASSO 3: INFORMAÇÕES DO PROCESSO (DETALHES) - EM DESENVOLVIMENTO -->
+    <!-- PASSO 3: INFORMAÇÕES DO PROCESSO (DETALHES)-->
     <div id="detalhes-section" class="form-section" style="display: none;">
         <h3>3. Informações do Processo</h3>
         
-        <!-- Card de desenvolvimento -->
-        <div class="dev-card">
-            <div class="dev-icon">
-                <i class="fas fa-tools"></i>
+        <div class="alert-info" style="margin-bottom: 20px; padding: 12px;">
+            <i class="fas fa-info-circle"></i> Os campos abaixo são para as demais informações do processo.
+        </div>
+
+        <div class="detalhes-container">
+            <div class="form-group">
+                <label for="descricao_processo">
+                    <i class="fas fa-align-left"></i> O que é o processo?
+                </label>
+                <textarea id="descricao_processo" name="descricao" class="form-control" 
+                    rows="3" placeholder="Descreva o processo com as palavras do gestor..."></textarea>
+                <small class="text-muted">Gestor diz com as suas palavras o que entende ser o processo.</small>
             </div>
-            <h4>Em Desenvolvimento</h4>
-            <p>Estamos trabalhando nas próximas etapas do diagnóstico.</p>
-            <div class="dev-features">
-                <p><strong>📋 Próximas funcionalidades:</strong></p>
-                <ul>
-                    <li>📝 O que é o processo? (descrição detalhada)</li>
-                    <li>🚀 Onde começa o processo? (etapa inicial)</li>
-                    <li>🎯 Qual o produto final?</li>
-                    <li>📤 Depois de acabado, para onde envia? (etapa final)</li>
-                    <li>❓ Qual o objetivo do processo? (por que faz)</li>
-                </ul>
+
+            <div class="form-group">
+                <label for="etapa_ini_processo">
+                    <i class="fas fa-play-circle"></i> Onde começa o processo?
+                </label>
+                <textarea id="etapa_ini_processo" name="etapa_ini" class="form-control" rows="2" placeholder="Ex: Do envio do relatório X pela área Y..."></textarea>
+                <small class="text-muted">Onde começa o processo? - ETAPA INICIAL</small>
             </div>
-            <div class="dev-warning">
-                <i class="fas fa-info-circle"></i>
-                As informações que você salvou até agora foram registradas no banco de dados.
+
+            <div class="form-group">
+                <label for="produto_processo">
+                    <i class="fas fa-cube"></i> Qual(is) o(s) produto(s) final(is) desse processo?
+                </label>
+                <textarea id="produto_processo" name="produto" class="form-control" rows="2" placeholder="Ex: Relatório, Planilha, Sistema..."></textarea>
+                <small class="text-muted">Qual(is) o(s) produto(s) final(is) desse processo?</small>
+            </div>
+
+            <div class="form-group">
+                <label for="etapa_fim_processo">
+                    <i class="fas fa-stop-circle"></i> Depois de acabado, para onde envia?
+                </label>
+                <textarea id="etapa_fim_processo" name="etapa_fim" class="form-control" 
+                    rows="2" placeholder="Ex: Área X, Arquivo físico localizado em Y..."></textarea>
+                <small class="text-muted">Depois de acabado, para onde envia? - ETAPA FINAL</small>
+            </div>
+
+            <div class="form-group">
+                <label for="objetivo_processo">
+                    <i class="fas fa-bullseye"></i> Qual o objetivo do processo? E por que faz?
+                </label>
+                <textarea id="objetivo_processo" name="objetivo" class="form-control" 
+                    rows="2" placeholder="Garantir o que exatamente?"></textarea>
+                <small class="text-muted">Qual o objetivo do processo e por que ele é realizado?</small>
             </div>
         </div>
 
@@ -178,8 +211,44 @@
             <button type="button" class="btn-secondary" id="btn-voltar-etapa2">
                 ← Voltar para Informações Básicas
             </button>
-            <button type="button" class="btn-primary" id="btn-proximo-etapa4" disabled>
-                Próximo: Riscos (em breve) →
+            <button type="button" class="btn-primary" id="btn-salvar-detalhes">
+                Próximo: Riscos →
+            </button>
+        </div>
+    </div>
+
+    <!-- PASSO 4: RISCOS IDENTIFICADOS (EM DESENVOLVIMENTO) -->
+    <div id="riscos-section" class="form-section" style="display: none;">
+        <h3>4. Riscos Identificados</h3>
+        
+        <div class="dev-card">
+            <div class="dev-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h4>Em Desenvolvimento</h4>
+            <p>Estamos trabalhando na etapa de riscos.</p>
+            <div class="dev-features">
+                <p><strong>📋 Próximas funcionalidades:</strong></p>
+                <ul>
+                    <li>⚠️ Adicionar/remover riscos</li>
+                    <li>📊 Avaliar impacto e probabilidade</li>
+                    <li>🏷️ Categorias de risco</li>
+                    <li>📈 Cálculo do risco bruto</li>
+                </ul>
+            </div>
+            <div class="dev-warning">
+                <i class="fas fa-info-circle"></i>
+                As informações da seção 3 foram salvas com sucesso.
+            </div>
+        </div>
+
+        <!-- Botões de navegação -->
+        <div class="wizard-buttons">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa3">
+                ← Voltar para Informações do Processo
+            </button>
+            <button type="button" class="btn-primary" id="btn-proximo-etapa5" disabled>
+                Próximo: Finalizar (em breve) →
             </button>
         </div>
     </div>
@@ -807,9 +876,120 @@
         z-index: 1000;
     }
 
+    /* ===== ESTILOS PARA DETALHES DO PROCESSO ===== */
+    .detalhes-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .detalhes-container textarea {
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #0c5460;
+        font-size: 14px;
+    }
+
+    .alert-info i {
+        margin-right: 8px;
+    }
+
+    /* ===== ESTILOS PARA CARD DE DESENVOLVIMENTO ===== */
+    .dev-card {
+        text-align: center;
+        padding: 40px 30px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 16px;
+        margin-bottom: 25px;
+        border: 1px solid #dee2e6;
+    }
+
+    .dev-icon {
+        font-size: 64px;
+        color: #0b5b99;
+        margin-bottom: 20px;
+    }
+
+    .dev-card h4 {
+        color: #184145;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .dev-card p {
+        color: #6c757d;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .dev-features {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        text-align: left;
+        display: inline-block;
+        min-width: 300px;
+    }
+
+    .dev-features p {
+        color: #184145;
+        font-weight: 500;
+        margin-bottom: 10px;
+    }
+
+    .dev-features ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .dev-features li {
+        color: #495057;
+        font-size: 13px;
+        margin: 8px 0;
+        text-align: left;
+    }
+
+    .dev-warning {
+        background: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-top: 20px;
+        font-size: 13px;
+        color: #0c5460;
+        text-align: left;
+    }
+
+    .dev-warning i {
+        margin-right: 8px;
+    }
 </style>
 
 <script>
+
+    // ===== BOTÃO PRÓXIMO DA SEÇÃO 1 =====
+    const btnProximoEtapa2 = document.getElementById('btn-proximo-etapa2');
+
+    function habilitarProximoEtapa1(habilitar) {
+        if (btnProximoEtapa2) {
+            btnProximoEtapa2.disabled = !habilitar;
+        }
+    }
+
+    // Evento de clique do botão próximo da etapa 1
+    if (btnProximoEtapa2) {
+        btnProximoEtapa2.addEventListener('click', () => {
+            irParaEtapa(2);
+        });
+    }
 
     // ====== JAVASCRIPT PARA DIAGNÓSTICO ======
     
@@ -821,6 +1001,21 @@
     // Recebe o perfil do usuário do Flask (via data attribute)
     const usuarioPerfil = '{{ usuario_perfil }}';
     const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
+
+    // ===== RESETAR CAMPOS DA SEÇÃO 3 =====
+    function resetarCamposDetalhes() {
+        const descricao = document.getElementById('descricao_processo');
+        const etapaIni = document.getElementById('etapa_ini_processo');
+        const produto = document.getElementById('produto_processo');
+        const etapaFim = document.getElementById('etapa_fim_processo');
+        const objetivo = document.getElementById('objetivo_processo');
+        
+        if (descricao) descricao.value = '';
+        if (etapaIni) etapaIni.value = '';
+        if (produto) produto.value = '';
+        if (etapaFim) etapaFim.value = '';
+        if (objetivo) objetivo.value = '';
+    }
 
     // ===== GERENCIAR NOME DO PROCESSO E CÓDIGO =====
     let timeoutId = null;
@@ -1028,13 +1223,6 @@
 
     // Função principal que verifica e gera o código
     async function verificarEGerarCodigo() {
-        const modoEdicao = sessionStorage.getItem('modo_edicao');
-    
-        // Se estiver em modo de continuação, NÃO verificar existência
-        if (modoEdicao === 'true') {
-            console.log('📝 Modo continuação ativo - pulando verificação de existência');
-            return;
-        }
         const nomeProcesso = nomeProcessoInput?.value.trim();
         const areaId = idAreaSelecionado?.value || areaSelect?.value;
         
@@ -1047,17 +1235,12 @@
             return;
         }
         
-        // Se o nome não mudou desde a última verificação, não faz nada
-        if (nomeProcesso === ultimoNomeVerificado) {
-            return;
-        }
-        
         // Debounce: espera o usuário parar de digitar (500ms)
         if (timeoutId) clearTimeout(timeoutId);
         
         timeoutId = setTimeout(async () => {
             try {
-                // 1. PRIMEIRO: Verificar se o processo já existe
+                // Verificar se o processo já existe com este nome
                 const response = await fetch(`/api/processo/verificar?nome=${encodeURIComponent(nomeProcesso)}&id_area=${areaId}`);
                 const data = await response.json();
                 
@@ -1072,12 +1255,15 @@
                     
                     mostrarAvisoProcessoExistente(nomeProcesso, data.codigo);
                     ultimoNomeVerificado = nomeProcesso;
-                    ultimoCodigoGerado = data.codigo;
                     desabilitarProximoStep(true, "Este processo já existe. Utilize a aba de edição para modificá-lo.");
                     mostrarToast(`⚠️ Processo "${nomeProcesso}" já existe! Use a aba "Editar Processo" para modificá-lo.`, 'warning');
                     
+                    // Limpar sessionStorage para não tentar salvar como novo
+                    sessionStorage.removeItem('processo_id');
+                    sessionStorage.removeItem('modo_edicao');
+                    
                 } else {
-                    // ===== CASO 2: PROCESSO NOVO - GERAR CÓDIGO =====
+                    // ===== CASO 2: PROCESSO NOVO - GERAR NOVO CÓDIGO =====
                     const codigoResponse = await fetch(`/api/processo/gerar-codigo?id_area=${areaId}`);
                     const codigoData = await codigoResponse.json();
                     
@@ -1093,6 +1279,19 @@
                         ultimoNomeVerificado = nomeProcesso;
                         ultimoCodigoGerado = codigoData.codigo;
                         desabilitarProximoStep(false, "");
+                        
+                        // RESETAR DADOS ANTERIORES (pois é um novo processo)
+                        executoresSelecionados = [];
+                        atualizarBadges();
+                        exibirListaFuncionarios();
+                        resetarCamposDetalhes();
+                        
+                        // Limpar sessionStorage para começar novo processo
+                        sessionStorage.removeItem('processo_id');
+                        sessionStorage.removeItem('auditoria_id');
+                        sessionStorage.removeItem('modo_edicao');
+                        sessionStorage.removeItem('detalhes_temp');
+                        
                         console.log(`✅ Código gerado para novo processo: ${codigoData.codigo}`);
                     } else {
                         console.error('Erro ao gerar código:', codigoData);
@@ -1273,6 +1472,12 @@
     
     // ===== EVENTO DE MUDANÇA DE ÁREA =====
     areaSelect.addEventListener('change', async function() {
+
+         // Verificar se é um novo processo (não está em modo edição)
+        const modoEdicaoAtivo = sessionStorage.getItem('modo_edicao');
+        if (modoEdicaoAtivo !== 'true') {
+            resetarCamposDetalhes();  // Só limpa se for novo processo
+        }
         // Resetar modo de edição ao mudar de área
         sessionStorage.removeItem('modo_edicao');
         sessionStorage.removeItem('processo_id');
@@ -1392,6 +1597,8 @@
         const hasOptions = this.options.length > 1;
         
         if (!hasOptions || !auditoriaId) {
+            // DESABILITAR O BOTÃO SE NÃO TIVER AUDITORIA SELECIONADA
+            habilitarProximoEtapa1(false);
             return;
         }
         
@@ -1412,6 +1619,9 @@
             console.log('Verificação de responsável:', data);
             
             if (data.autorizado) {
+                // HABILITAR O BOTÃO PRÓXIMO DA SEÇÃO 1
+                habilitarProximoEtapa1(true);
+                
                 if (infoBasicasSection) {
                     infoBasicasSection.style.display = 'block';
                 }
@@ -1425,6 +1635,9 @@
                     mostrarToast('Você está autorizado a diagnosticar processos nesta auditoria.', 'success');
                 }
             } else {
+                // DESABILITAR O BOTÃO SE NÃO FOR AUTORIZADO
+                habilitarProximoEtapa1(false);
+                
                 if (infoBasicasSection) {
                     infoBasicasSection.style.display = 'none';
                 }
@@ -1449,6 +1662,132 @@
         } catch (error) {
             console.error('Erro ao verificar responsável:', error);
             mostrarToast('Erro ao verificar permissão.', 'error');
+        }
+    });
+
+    // ===== EVENTO DE MUDANÇA DE ÁREA =====
+    areaSelect.addEventListener('change', async function() {
+
+        // Verificar se é um novo processo (não está em modo edição)
+        const modoEdicaoAtivo = sessionStorage.getItem('modo_edicao');
+        if (modoEdicaoAtivo !== 'true') {
+            resetarCamposDetalhes();  // Só limpa se for novo processo
+        }
+        
+        // Resetar modo de edição ao mudar de área
+        sessionStorage.removeItem('modo_edicao');
+        sessionStorage.removeItem('processo_id');
+        sessionStorage.removeItem('auditoria_id');
+        
+        // DESABILITAR O BOTÃO PRÓXIMO DA SEÇÃO 1 (NOVO)
+        if (btnProximoEtapa2) {
+            btnProximoEtapa2.disabled = true;
+        }
+        
+        const areaId = this.value;
+        const areaNome = this.options[this.selectedIndex]?.text || '';
+
+        // ATUALIZAR O HIDDEN INPUT
+        if (areaId) {
+            document.getElementById('id_area_selecionado').value = areaId;
+        }
+
+        // Carregar funcionários da área selecionada
+        if (areaId) {
+            await carregarFuncionariosArea(parseInt(areaId));
+        }
+        
+        limparAvisos();
+
+        // Resetar o select de auditoria
+        auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
+        auditoriaSelect.value = '';
+        
+        // Esconder seção de informações básicas
+        const infoBasicasSection = document.getElementById('info-basicas-section');
+        if (infoBasicasSection) {
+            infoBasicasSection.style.display = 'none';
+        }
+
+        // Esconder o inner da auditoria inicialmente
+        const auditoriaInner = document.getElementById('auditoria-inner');
+        if (auditoriaInner) {
+            auditoriaInner.style.display = 'none';
+        }
+
+        if (!areaId) {
+            return;
+        }
+        
+        if (novaAuditoriaBtn) {
+            novaAuditoriaBtn.style.display = 'none';
+        }
+        
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+            
+            console.log('Auditorias recebidas:', data);
+            
+            if (data.auditorias && data.auditorias.length > 0) {
+                // Mostrar o inner da auditoria
+                if (auditoriaInner) {
+                    auditoriaInner.style.display = 'block';
+                }
+
+                auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    auditoriaSelect.appendChild(option);
+                });
+                
+                auditoriaSelect.style.display = 'block';
+                
+                if (novaAuditoriaBtn) {
+                    novaAuditoriaBtn.style.display = 'none';
+                }
+                
+            } else {
+                if (auditoriaInner) {
+                    auditoriaInner.style.display = 'block';
+                }
+
+                auditoriaSelect.innerHTML = '';
+                auditoriaSelect.style.display = 'none';
+                
+                const aviso = document.createElement('div');
+                aviso.id = 'aviso-sem-auditorias';
+                aviso.className = 'alert-warning';
+                aviso.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Nenhuma auditoria encontrada</strong><br>
+                    A área "${areaNome}" não possui auditorias cadastradas para esta área.
+                `;
+                auditoriaInner?.appendChild(aviso);
+                
+                if (isAdmin && novaAuditoriaBtn) {
+                    novaAuditoriaBtn.style.display = 'block';
+                } else if (!isAdmin && novaAuditoriaBtn) {
+                    novaAuditoriaBtn.style.display = 'none';
+                    
+                    if (!document.getElementById('msg-permissao')) {
+                        const msgPermissao = document.createElement('div');
+                        msgPermissao.id = 'msg-permissao';
+                        msgPermissao.className = 'alert-info';
+                        msgPermissao.innerHTML = `
+                            <i class="fas fa-lock"></i> 
+                            Apenas administradores podem criar novas auditorias.
+                        `;
+                        auditoriaInner?.appendChild(msgPermissao);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar auditorias:', error);
+            auditoriaSelect.innerHTML = '<option value="">Erro ao carregar auditorias</option>';
         }
     });
 
@@ -1672,6 +2011,17 @@
                                     atualizarBadges();
                                     exibirListaFuncionarios();
                                 }
+
+                                if (data.descricao || data.etapa_ini || data.produto || data.etapa_fim || data.objetivo) {
+                                    // Salvar os detalhes no sessionStorage para uso futuro
+                                    sessionStorage.setItem('detalhes_temp', JSON.stringify({
+                                        descricao: data.descricao || '',
+                                        etapa_ini: data.etapa_ini || '',
+                                        produto: data.produto || '',
+                                        etapa_fim: data.etapa_fim || '',
+                                        objetivo: data.objetivo || ''
+                                    }));
+                                }
                                 
                                 // Forçar habilitação do botão próximo
                                 const btnProximo = document.getElementById('btn-proximo-etapa3');
@@ -1695,6 +2045,118 @@
                 sessionStorage.removeItem('modo_edicao');
             }
         }
+    }
+
+    // ====== ETAPA 3: INFORMAÇÕES DO PROCESSO ======
+    let detalhesCarregados = false;
+
+    // Carregar detalhes salvos ao entrar na etapa 3
+    async function carregarDetalhesProcesso() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) return;
+        
+        // Primeiro, verificar se há dados temporários do rascunho
+        const detalhesTemp = sessionStorage.getItem('detalhes_temp');
+        if (detalhesTemp) {
+            const dados = JSON.parse(detalhesTemp);
+            document.getElementById('descricao_processo').value = dados.descricao || '';
+            document.getElementById('etapa_ini_processo').value = dados.etapa_ini || '';
+            document.getElementById('produto_processo').value = dados.produto || '';
+            document.getElementById('etapa_fim_processo').value = dados.etapa_fim || '';
+            document.getElementById('objetivo_processo').value = dados.objetivo || '';
+            sessionStorage.removeItem('detalhes_temp');
+            return;
+        }
+        
+        // Se não houver dados temporários, buscar do banco
+        try {
+            const response = await fetch(`/api/processo/${processoId}/dados`);
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('descricao_processo').value = data.descricao || '';
+                document.getElementById('etapa_ini_processo').value = data.etapa_ini || '';
+                document.getElementById('produto_processo').value = data.produto || '';
+                document.getElementById('etapa_fim_processo').value = data.etapa_fim || '';
+                document.getElementById('objetivo_processo').value = data.objetivo || '';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar detalhes:', error);
+        }
+    }
+
+    // Salvar detlahes do processo
+    async function salvarDetalhesProcesso() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) {
+            mostrarToast('❌ Nenhum processo em andamento', 'error');
+            return false;
+        }
+        
+        const descricao = document.getElementById('descricao_processo')?.value || '';
+        const etapaIni = document.getElementById('etapa_ini_processo')?.value || '';
+        const produto = document.getElementById('produto_processo')?.value || '';
+        const etapaFim = document.getElementById('etapa_fim_processo')?.value || '';
+        const objetivo = document.getElementById('objetivo_processo')?.value || '';
+        
+        try {
+            const response = await fetch('/api/processo/salvar-detalhes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'  // ← VERIFIQUE ESTA LINHA
+                },
+                body: JSON.stringify({
+                    processo_id: parseInt(processoId),
+                    descricao: descricao,
+                    etapa_ini: etapaIni,
+                    etapa_fim: etapaFim,
+                    produto: produto,
+                    objetivo: objetivo
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Detalhes do processo salvos!', 'success');
+                return true;
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Tente novamente'), 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao salvar detalhes:', error);
+            mostrarToast('❌ Erro ao salvar detalhes do processo', 'error');
+            return false;
+        }
+    }
+
+    // Event listener para o botão salvar detalhes
+    const btnSalvarDetalhes = document.getElementById('btn-salvar-detalhes');
+    if (btnSalvarDetalhes) {
+        btnSalvarDetalhes.addEventListener('click', async () => {
+            const success = await salvarDetalhesProcesso();
+            if (success) {
+                irParaEtapa(4); // Avançar para etapa 4 (Riscos)
+            }
+        });
+    }
+
+    // Modificar a função irParaEtapa para carregar detalhes ao entrar na etapa 3
+    const irParaEtapaOriginal = irParaEtapa;
+    window.irParaEtapa = function(etapa) {
+        irParaEtapaOriginal(etapa);
+        if (etapa === 3) {
+            carregarDetalhesProcesso();
+        }
+    };
+
+    // Botão voltar da etapa 4 para etapa 3
+    const btnVoltarEtapa3 = document.getElementById('btn-voltar-etapa3');
+    if (btnVoltarEtapa3) {
+        btnVoltarEtapa3.addEventListener('click', () => {
+            irParaEtapa(3);
+        });
     }
 
     // Chamar ao carregar a página

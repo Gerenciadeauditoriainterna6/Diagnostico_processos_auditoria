@@ -3261,19 +3261,21 @@ def gerar_codigo_processo(id_area):
     from database import engine
     from sqlalchemy import text
     
-    # Solução usando expressão regular e conversão para inteiro
+    # Solução usando SPLIT_PART (mais legível)
     query = text("""
-        SELECT MAX(
-            CAST(SUBSTRING(codigo_processo FROM '\.([0-9]+)$') AS INTEGER)
+        SELECT COALESCE(
+            MAX(CAST(SPLIT_PART(codigo_processo, '.', 2) AS INTEGER)), 
+            0
         ) as max_sequencial
         FROM processos 
         WHERE id_area = :id_area
+        AND codigo_processo LIKE '%.%'
         AND codigo_processo ~ '^[0-9]+\.[0-9]+$'
     """)
     
     with engine.connect() as conn:
         resultado = conn.execute(query, {"id_area": id_area}).fetchone()
-        max_sequencial = resultado[0] if resultado and resultado[0] else 0
+        max_sequencial = resultado[0] if resultado else 0
         
         novo_numero = max_sequencial + 1
     
