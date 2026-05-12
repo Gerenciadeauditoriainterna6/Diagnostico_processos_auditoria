@@ -217,28 +217,59 @@
         </div>
     </div>
 
-    <!-- PASSO 4: RISCOS IDENTIFICADOS (EM DESENVOLVIMENTO) -->
+    <!-- PASSO 4: RISCOS IDENTIFICADOS - KANBAN -->
     <div id="riscos-section" class="form-section" style="display: none;">
-        <h3>4. Riscos Identificados</h3>
-        
-        <div class="dev-card">
-            <div class="dev-icon">
-                <i class="fas fa-chart-line"></i>
+        <div class="riscos-header">
+            <h3>4. Riscos Identificados</h3>
+            <button type="button" id="btn-adicionar-risco" class="btn-primary">
+                <i class="fas fa-plus"></i> Novo Risco
+            </button>
+        </div>
+
+        <!-- Kanban Board -->
+        <div class="kanban-board">
+            <!-- Coluna Baixo -->
+            <div class="kanban-col" data-score-level="baixo">
+                <div class="kanban-col-header low">
+                    <i class="fas fa-circle"></i>
+                    <span>BAIXO</span>
+                    <span class="score-range">0 - 3</span>
+                    <span class="risk-count" id="count-baixo">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-baixo"></div>
             </div>
-            <h4>Em Desenvolvimento</h4>
-            <p>Estamos trabalhando na etapa de riscos.</p>
-            <div class="dev-features">
-                <p><strong>📋 Próximas funcionalidades:</strong></p>
-                <ul>
-                    <li>⚠️ Adicionar/remover riscos</li>
-                    <li>📊 Avaliar impacto e probabilidade</li>
-                    <li>🏷️ Categorias de risco</li>
-                    <li>📈 Cálculo do risco bruto</li>
-                </ul>
+
+            <!-- Coluna Médio -->
+            <div class="kanban-col" data-score-level="medio">
+                <div class="kanban-col-header medium">
+                    <i class="fas fa-circle"></i>
+                    <span>MÉDIO</span>
+                    <span class="score-range">4 - 7</span>
+                    <span class="risk-count" id="count-medio">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-medio"></div>
             </div>
-            <div class="dev-warning">
-                <i class="fas fa-info-circle"></i>
-                As informações da seção 3 foram salvas com sucesso.
+
+            <!-- Coluna Alto -->
+            <div class="kanban-col" data-score-level="alto">
+                <div class="kanban-col-header high">
+                    <i class="fas fa-circle"></i>
+                    <span>ALTO</span>
+                    <span class="score-range">8 - 11</span>
+                    <span class="risk-count" id="count-alto">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-alto"></div>
+            </div>
+
+            <!-- Coluna Crítico -->
+            <div class="kanban-col" data-score-level="critico">
+                <div class="kanban-col-header critical">
+                    <i class="fas fa-circle"></i>
+                    <span>CRÍTICO</span>
+                    <span class="score-range">12+</span>
+                    <span class="risk-count" id="count-critico">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-critico"></div>
             </div>
         </div>
 
@@ -247,9 +278,90 @@
             <button type="button" class="btn-secondary" id="btn-voltar-etapa3">
                 ← Voltar para Informações do Processo
             </button>
-            <button type="button" class="btn-primary" id="btn-proximo-etapa5" disabled>
-                Próximo: Finalizar (em breve) →
+            <button type="button" class="btn-primary" id="btn-salvar-riscos">
+                Próximo: Visualizar e finalizar →
             </button>
+        </div>
+    </div>
+
+    <!-- MODAL PARA RISCOS -->
+    <div id="modal-risco" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Novo Risco</h3>
+                <button type="button" class="modal-close" id="btn-fechar-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modal-risco-idx">
+                
+                <div class="form-group">
+                    <label>Nome do Risco *</label>
+                    <input type="text" id="modal-nome_risco" class="form-control" placeholder="Ex: Risco de erro no fechamento">
+                </div>
+
+                <div class="form-group">
+                    <label>Fator de Risco (causa)</label>
+                    <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="O que causa este risco?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Ponto de Melhoria</label>
+                    <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="O que poderia ser melhorado?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Apetite ao Risco</label>
+                    <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Nível de risco aceitável"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoria(s)</label>
+                    <select id="modal-categorias" class="form-control" multiple size="3">
+                        <option value="Risco Financeiro">Risco Financeiro</option>
+                        <option value="Risco Legal">Risco Legal</option>
+                        <option value="Risco Inerente">Risco Inerente</option>
+                        <option value="Risco de TI">Risco de TI</option>
+                        <option value="Risco Reputacional">Risco Reputacional</option>
+                        <option value="Risco de Integridade">Risco de Integridade</option>
+                        <option value="Risco Ambiental">Risco Ambiental</option>
+                    </select>
+                    <small class="text-muted">Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplas</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Impacto *</label>
+                        <select id="modal-impacto" class="form-control">
+                            <option value="Baixo">Baixo</option>
+                            <option value="Médio">Médio</option>
+                            <option value="Alto">Alto</option>
+                            <option value="Muito Alto">Muito Alto</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Probabilidade *</label>
+                        <select id="modal-probabilidade" class="form-control">
+                            <option value="Baixo">Baixo</option>
+                            <option value="Médio">Médio</option>
+                            <option value="Alto">Alto</option>
+                            <option value="Muito Alto">Muito Alto</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="modal-score-preview" class="score-preview">
+                    Score: 0 (Baixo)
+                </div>
+
+                <div class="form-group">
+                    <label>Motivo da Classificação</label>
+                    <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique a escolha do impacto e probabilidade"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
+                <button type="button" class="btn-primary" id="btn-salvar-modal">Salvar Risco</button>
+            </div>
         </div>
     </div>
 </div>
@@ -901,75 +1013,313 @@
         margin-right: 8px;
     }
 
-    /* ===== ESTILOS PARA CARD DE DESENVOLVIMENTO ===== */
-    .dev-card {
-        text-align: center;
-        padding: 40px 30px;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 16px;
-        margin-bottom: 25px;
-        border: 1px solid #dee2e6;
-    }
-
-    .dev-icon {
-        font-size: 64px;
-        color: #0b5b99;
+    /* ===== KANBAN BOARD - RISCOS ===== */
+    .riscos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
     }
 
-    .dev-card h4 {
-        color: #184145;
-        font-size: 24px;
-        margin-bottom: 10px;
-    }
-
-    .dev-card p {
-        color: #6c757d;
-        font-size: 14px;
-        margin-bottom: 20px;
-    }
-
-    .dev-features {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin: 20px 0;
-        text-align: left;
-        display: inline-block;
-        min-width: 300px;
-    }
-
-    .dev-features p {
-        color: #184145;
-        font-weight: 500;
-        margin-bottom: 10px;
-    }
-
-    .dev-features ul {
+    .riscos-header h3 {
         margin: 0;
-        padding-left: 20px;
+        padding: 0;
+        border: none;
     }
 
-    .dev-features li {
-        color: #495057;
-        font-size: 13px;
-        margin: 8px 0;
-        text-align: left;
+    .kanban-board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+        overflow-x: auto;
+        min-height: 400px;
     }
 
-    .dev-warning {
-        background: #d1ecf1;
-        border-left: 4px solid #17a2b8;
+    @media (max-width: 1000px) {
+        .kanban-board {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .kanban-board {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .kanban-col {
+        background: #f8f9fa;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        min-height: 400px;
+    }
+
+    .kanban-col-header {
         padding: 12px 16px;
-        border-radius: 8px;
-        margin-top: 20px;
-        font-size: 13px;
-        color: #0c5460;
-        text-align: left;
+        border-radius: 12px 12px 0 0;
+        font-weight: 600;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
-    .dev-warning i {
-        margin-right: 8px;
+    .kanban-col-header i {
+        font-size: 10px;
+    }
+
+    .kanban-col-header.low {
+        background: #d4edda;
+        color: #5cb85c;
+        border-bottom: 2px solid #28a745;
+    }
+
+    .kanban-col-header.medium {
+        background: #fff3cd;
+        color: #ffc107;
+        border-bottom: 2px solid #ffc107;
+    }
+
+    .kanban-col-header.high {
+        background: #ffe5d0;
+        color: #f0ad4e;
+        border-bottom: 2px solid #fd7e14;
+    }
+
+    .kanban-col-header.critical {
+        background: #f8d7da;
+        color: #ff0000;
+        border-bottom: 2px solid #dc3545;
+    }
+
+    .score-range {
+        font-size: 11px;
+        font-weight: normal;
+        opacity: 0.8;
+        margin-left: auto;
+    }
+
+    .risk-count {
+        background: rgba(0,0,0,0.1);
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    .kanban-col-body {
+        padding: 12px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    /* Card de Risco */
+    .kanban-card {
+        background: white;
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+        border-left: 4px solid;
+        cursor: pointer;
+    }
+
+    .kanban-card.low {
+        border-left-color: #28a745;
+    }
+    .kanban-card.medium {
+        border-left-color: #ffc107;
+    }
+    .kanban-card.high {
+        border-left-color: #fd7e14;
+    }
+    .kanban-card.critical {
+        border-left-color: #dc3545;
+    }
+
+    .kanban-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .kanban-card-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #184145;
+        margin-bottom: 8px;
+        word-break: break-word;
+    }
+
+    .kanban-card-score {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .kanban-card-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+    }
+
+    .kanban-card-badge.impact {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .kanban-card-badge.prob {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .kanban-card-categorias {
+        font-size: 11px;
+        color: #6c757d;
+        margin-bottom: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .kanban-card-categoria-tag {
+        background: #e8f4f8;
+        color: #184145;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+    }
+
+    .kanban-card-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        border-top: 1px solid #eee;
+        padding-top: 8px;
+        margin-top: 4px;
+    }
+
+    .kanban-card-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-view-risk {
+        color: #17a2b8;
+    }
+    .btn-view-risk:hover {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .btn-edit-risk {
+        color: #ffc107;
+    }
+    .btn-edit-risk:hover {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .empty-col-message {
+        text-align: center;
+        color: #999;
+        font-size: 12px;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px dashed #ddd;
+    }
+
+    /* ===== MODAL ===== */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #184145;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+    }
+
+    .modal-close:hover {
+        color: #dc3545;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        background: #f8f9fa;
+        border-radius: 0 0 16px 16px;
+    }
+
+    .score-preview {
+        background: #f0f2f5;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        margin: 15px 0;
+        font-weight: 500;
     }
 </style>
 
@@ -1001,6 +1351,20 @@
     // Recebe o perfil do usuário do Flask (via data attribute)
     const usuarioPerfil = '{{ usuario_perfil }}';
     const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
+
+    // Função para escapar HTML e prevenir XSS
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Flag para controlar carregamento da página
+    let isLoadingPage = true;
 
     // ===== RESETAR CAMPOS DA SEÇÃO 3 =====
     function resetarCamposDetalhes() {
@@ -1149,8 +1513,7 @@
         if (btnProximo && executoresSelecionados.length > 0) {
             btnProximo.disabled = false;
         }
-        
-        mostrarToast(`✅ ${nome} adicionado como executor`, 'success');
+
     }
 
     // Remover executor
@@ -1256,7 +1619,7 @@
                     mostrarAvisoProcessoExistente(nomeProcesso, data.codigo);
                     ultimoNomeVerificado = nomeProcesso;
                     desabilitarProximoStep(true, "Este processo já existe. Utilize a aba de edição para modificá-lo.");
-                    mostrarToast(`⚠️ Processo "${nomeProcesso}" já existe! Use a aba "Editar Processo" para modificá-lo.`, 'warning');
+                    mostrarToast(`⚠️ Processo "${nomeProcesso}" já existe!`, 'warning');
                     
                     // Limpar sessionStorage para não tentar salvar como novo
                     sessionStorage.removeItem('processo_id');
@@ -1318,7 +1681,7 @@
             <strong>Processo já cadastrado!</strong><br>
             O processo "${nomeProcesso}" já existe com o código <strong>${codigoExistente}</strong>.
             <br><br>
-            <small>💡 Para modificar este processo, utilize a aba <strong>"✏️ Editar Processo Existente"</strong>.</small>
+            <small>💡 Para modificar este processo, utilize a aba <strong>"Edição"</strong>.</small>
         `;
         
         if (codigoProcessoInput && codigoProcessoInput.parentNode) {
@@ -1473,16 +1836,30 @@
     // ===== EVENTO DE MUDANÇA DE ÁREA =====
     areaSelect.addEventListener('change', async function() {
 
-         // Verificar se é um novo processo (não está em modo edição)
-        const modoEdicaoAtivo = sessionStorage.getItem('modo_edicao');
-        if (modoEdicaoAtivo !== 'true') {
-            resetarCamposDetalhes();  // Só limpa se for novo processo
+        // VERIFICAR SE ESTÁ CARREGANDO A PÁGINA (NÃO LIMPAR STORAGE NESSE CASO)
+        const isLoading = document.readyState !== 'complete';
+        if (!isLoading) {
+            // Verificar se é um novo processo (não está em modo edição)
+            const modoEdicaoAtivo = sessionStorage.getItem('modo_edicao');
+            if (modoEdicaoAtivo !== 'true') {
+                resetarCamposDetalhes();  // Só limpa se for novo processo
+            }
+            // Resetar modo de edição ao mudar de área
+            sessionStorage.removeItem('modo_edicao');
+            sessionStorage.removeItem('processo_id');
+            sessionStorage.removeItem('auditoria_id');
+
+            // Limpar riscos ao mudar de área (novo processo)
+            riscosLista = [];
+            sessionStorage.removeItem('riscos_temp');
+            sessionStorage.removeItem('etapa_atual');
         }
-        // Resetar modo de edição ao mudar de área
-        sessionStorage.removeItem('modo_edicao');
-        sessionStorage.removeItem('processo_id');
-        sessionStorage.removeItem('auditoria_id');
+        
         const areaId = this.value;
+        // Salvar área selecionada no sessionStorage
+        if (areaId) {
+            sessionStorage.setItem('area_id_selecionada', areaId);
+        }
         const areaNome = this.options[this.selectedIndex]?.text || '';
 
         // ATUALIZAR O HIDDEN INPUT
@@ -1589,6 +1966,7 @@
             console.error('Erro ao carregar auditorias:', error);
             auditoriaSelect.innerHTML = '<option value="">Erro ao carregar auditorias</option>';
         }
+        
     });
 
     // ===== VERIFICAR RESPONSÁVEL PELA AUDITORIA =====
@@ -1622,12 +2000,7 @@
                 // HABILITAR O BOTÃO PRÓXIMO DA SEÇÃO 1
                 habilitarProximoEtapa1(true);
                 
-                if (infoBasicasSection) {
-                    infoBasicasSection.style.display = 'block';
-                }
-                
-                // Avançar para etapa 2 do wizard
-                irParaEtapa(2);
+                // NÃO AVANÇAR AUTOMATICAMENTE - deixar o usuário clicar no botão
                 
                 if (data.perfil === 'administrador' || data.perfil === 'admin') {
                     mostrarToast('Acesso concedido (Administrador). Você tem permissão total.', 'success');
@@ -1665,136 +2038,15 @@
         }
     });
 
-    // ===== EVENTO DE MUDANÇA DE ÁREA =====
-    areaSelect.addEventListener('change', async function() {
-
-        // Verificar se é um novo processo (não está em modo edição)
-        const modoEdicaoAtivo = sessionStorage.getItem('modo_edicao');
-        if (modoEdicaoAtivo !== 'true') {
-            resetarCamposDetalhes();  // Só limpa se for novo processo
-        }
-        
-        // Resetar modo de edição ao mudar de área
-        sessionStorage.removeItem('modo_edicao');
-        sessionStorage.removeItem('processo_id');
-        sessionStorage.removeItem('auditoria_id');
-        
-        // DESABILITAR O BOTÃO PRÓXIMO DA SEÇÃO 1 (NOVO)
-        if (btnProximoEtapa2) {
-            btnProximoEtapa2.disabled = true;
-        }
-        
-        const areaId = this.value;
-        const areaNome = this.options[this.selectedIndex]?.text || '';
-
-        // ATUALIZAR O HIDDEN INPUT
-        if (areaId) {
-            document.getElementById('id_area_selecionado').value = areaId;
-        }
-
-        // Carregar funcionários da área selecionada
-        if (areaId) {
-            await carregarFuncionariosArea(parseInt(areaId));
-        }
-        
-        limparAvisos();
-
-        // Resetar o select de auditoria
-        auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
-        auditoriaSelect.value = '';
-        
-        // Esconder seção de informações básicas
-        const infoBasicasSection = document.getElementById('info-basicas-section');
-        if (infoBasicasSection) {
-            infoBasicasSection.style.display = 'none';
-        }
-
-        // Esconder o inner da auditoria inicialmente
-        const auditoriaInner = document.getElementById('auditoria-inner');
-        if (auditoriaInner) {
-            auditoriaInner.style.display = 'none';
-        }
-
-        if (!areaId) {
-            return;
-        }
-        
-        if (novaAuditoriaBtn) {
-            novaAuditoriaBtn.style.display = 'none';
-        }
-        
-        try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
-            const data = await response.json();
-            
-            console.log('Auditorias recebidas:', data);
-            
-            if (data.auditorias && data.auditorias.length > 0) {
-                // Mostrar o inner da auditoria
-                if (auditoriaInner) {
-                    auditoriaInner.style.display = 'block';
-                }
-
-                auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
-                
-                data.auditorias.forEach(aud => {
-                    const option = document.createElement('option');
-                    option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
-                    auditoriaSelect.appendChild(option);
-                });
-                
-                auditoriaSelect.style.display = 'block';
-                
-                if (novaAuditoriaBtn) {
-                    novaAuditoriaBtn.style.display = 'none';
-                }
-                
-            } else {
-                if (auditoriaInner) {
-                    auditoriaInner.style.display = 'block';
-                }
-
-                auditoriaSelect.innerHTML = '';
-                auditoriaSelect.style.display = 'none';
-                
-                const aviso = document.createElement('div');
-                aviso.id = 'aviso-sem-auditorias';
-                aviso.className = 'alert-warning';
-                aviso.innerHTML = `
-                    <i class="fas fa-exclamation-triangle"></i> 
-                    <strong>Nenhuma auditoria encontrada</strong><br>
-                    A área "${areaNome}" não possui auditorias cadastradas para esta área.
-                `;
-                auditoriaInner?.appendChild(aviso);
-                
-                if (isAdmin && novaAuditoriaBtn) {
-                    novaAuditoriaBtn.style.display = 'block';
-                } else if (!isAdmin && novaAuditoriaBtn) {
-                    novaAuditoriaBtn.style.display = 'none';
-                    
-                    if (!document.getElementById('msg-permissao')) {
-                        const msgPermissao = document.createElement('div');
-                        msgPermissao.id = 'msg-permissao';
-                        msgPermissao.className = 'alert-info';
-                        msgPermissao.innerHTML = `
-                            <i class="fas fa-lock"></i> 
-                            Apenas administradores podem criar novas auditorias.
-                        `;
-                        auditoriaInner?.appendChild(msgPermissao);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao carregar auditorias:', error);
-            auditoriaSelect.innerHTML = '<option value="">Erro ao carregar auditorias</option>';
-        }
-    });
-
     // ===== CONTROLE DO WIZARD =====
     let etapaWizard = 1;
 
     function irParaEtapa(etapa) {
+        console.log(`📍 irParaEtapa: mudando para etapa ${etapa}`);
+
+        /// SALVAR ETAPA ATUAL (FAZER ISSO PRIMEIRO)
+        sessionStorage.setItem('etapa_atual', etapa.toString());
+
         const etapa1 = document.getElementById('auditoria-section');
         const etapa2 = document.getElementById('info-basicas-section');
         const etapa3 = document.getElementById('detalhes-section');
@@ -1814,6 +2066,9 @@
         if (etapa === 3 && etapa3) etapa3.style.display = 'block';
         if (etapa === 4 && etapa4) etapa4.style.display = 'block';
         if (etapa === 5 && etapa5) etapa5.style.display = 'block';
+
+        // SALVAR ETAPA ATUAL NO SESSIONSTORAGE
+        sessionStorage.setItem('etapa_atual', etapa.toString());
         
         atualizarProgressoWizard(etapa);
         etapaWizard = etapa;
@@ -1840,6 +2095,20 @@
     const btnVoltar = document.getElementById('btn-voltar-etapa1');
     if (btnVoltar) {
         btnVoltar.addEventListener('click', () => {
+            // Restaurar área e auditoria dos valores salvos
+            const areaSalva = sessionStorage.getItem('area_id_selecionada');
+            const auditoriaSalva = sessionStorage.getItem('auditoria_id');
+
+            if (areaSalva) {
+                const areaSelectEl = document.getElementById('area_select');
+                if (areaSelectEl) areaSelectEl.value = areaSalva;
+            }
+
+            if (auditoriaSalva) {
+                const auditoriaSelectEl = document.getElementById('auditoria_select');
+                if (auditoriaSelectEl) auditoriaSelectEl.value = auditoriaSalva;
+            }
+            
             irParaEtapa(1);
         });
     }
@@ -1889,6 +2158,17 @@
                 const data = await response.json();
                 
                 if (data.success) {
+                     console.log('=' .repeat(50));
+                    console.log('📝 SALVAMENTO ETAPA 2 (Informações Básicas)');
+                    console.log(`   Processo ID: ${data.processo_id}`);
+                    console.log(`   Código do Processo: ${data.codigo_processo}`);
+                    console.log(`   Nome: ${nomeProcesso}`);
+                    console.log(`   Área ID: ${areaId}`);
+                    console.log(`   Área Nome: ${nomeArea}`);
+                    console.log(`   Executores IDs: ${executoresSelecionados.map(e => e.id).join(', ')}`);
+                    console.log(`   Executores Nomes: ${executoresSelecionados.map(e => e.nome).join(', ')}`);
+                    console.log(`   Auditoria ID: ${auditoriaId}`);
+                    console.log('=' .repeat(50));
                     sessionStorage.setItem('processo_id', data.processo_id);
                     sessionStorage.setItem('auditoria_id', auditoriaId);
                     sessionStorage.setItem('modo_edicao', 'true');
@@ -1950,101 +2230,157 @@
         const processoId = sessionStorage.getItem('processo_id');
         const auditoriaId = sessionStorage.getItem('auditoria_id');
         const modoEdicao = sessionStorage.getItem('modo_edicao');
+        const etapaSalva = sessionStorage.getItem('etapa_atual');
+        const areaSalva = sessionStorage.getItem('area_id_selecionada');
         
-        if (processoId && auditoriaId && modoEdicao === 'true') {
-            console.log(`📝 Continuando sessão: Processo ${processoId}`);
+        console.log(`🔍 Verificando rascunho: processoId=${processoId}, etapaSalva=${etapaSalva}, areaSalva=${areaSalva}`);
+        
+        // ===== RESTAURAR ETAPA VISUAL MESMO SEM PROCESSO (apenas navegação) =====
+        if (etapaSalva && etapaSalva > 1 && (!processoId || !auditoriaId || modoEdicao !== 'true')) {
+            console.log(`🔄 Restaurando apenas etapa visual: ${etapaSalva}`);
             
-            try {
-                const response = await fetch(`/api/processo/${processoId}/dados`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    // 1. Preencher área e forçar carregamento das auditorias
-                    if (data.id_area) {
-                        const areaSelect = document.getElementById('area_select');
-                        if (areaSelect) {
-                            areaSelect.value = data.id_area;
-                            // Disparar evento change para carregar auditorias
-                            const changeEvent = new Event('change');
-                            areaSelect.dispatchEvent(changeEvent);
-                        }
-                    }
-                    
-                    // 2. Aguardar o carregamento das auditorias e selecionar
-                    const checkAuditoriaLoaded = setInterval(() => {
-                        const auditoriaSelect = document.getElementById('auditoria_select');
-                        if (auditoriaSelect && auditoriaSelect.options.length > 1) {
-                            clearInterval(checkAuditoriaLoaded);
-                            
-                            // Selecionar a auditoria
-                            auditoriaSelect.value = auditoriaId;
-                            // Disparar evento change para verificar responsável
-                            const auditEvent = new Event('change');
-                            auditoriaSelect.dispatchEvent(auditEvent);
-                            
-                            // 3. Aguardar autorização e preencher dados
-                            setTimeout(() => {
-                                // Preencher nome do processo
-                                if (data.nome_processo) {
-                                    const nomeInput = document.getElementById('nome_processo');
-                                    if (nomeInput) {
-                                        nomeInput.value = data.nome_processo;
-                                        ultimoNomeVerificado = data.nome_processo;
-                                        // NÃO chamar verificarEGerarCodigo() aqui!
-                                    }
-                                }
-
-                                // ====== Preencher código do processo ======
-                                if (data.codigo_processo) {
-                                    const codigoInput = document.getElementById('codigo_processo');
-                                    if (codigoInput) {
-                                        codigoInput.value = data.codigo_processo;
-                                        codigoInput.style.backgroundColor = '#e8f4f8';
-                                        codigoInput.style.border = '1px solid #184145';
-                                        codigoInput.style.color = '#184145';
-                                    }
-                                }
-
-                                // Carregar executores
-                                if (data.executores && data.executores.length > 0) {
-                                    executoresSelecionados = data.executores;
-                                    atualizarBadges();
-                                    exibirListaFuncionarios();
-                                }
-
-                                if (data.descricao || data.etapa_ini || data.produto || data.etapa_fim || data.objetivo) {
-                                    // Salvar os detalhes no sessionStorage para uso futuro
-                                    sessionStorage.setItem('detalhes_temp', JSON.stringify({
-                                        descricao: data.descricao || '',
-                                        etapa_ini: data.etapa_ini || '',
-                                        produto: data.produto || '',
-                                        etapa_fim: data.etapa_fim || '',
-                                        objetivo: data.objetivo || ''
-                                    }));
-                                }
-                                
-                                // Forçar habilitação do botão próximo
-                                const btnProximo = document.getElementById('btn-proximo-etapa3');
-                                if (btnProximo && data.executores && data.executores.length > 0) {
-                                    btnProximo.disabled = false;
-                                }
-                                
-                                // Ir para etapa 2
-                                setTimeout(() => {
-                                    irParaEtapa(2);
-                                }, 500);
-                            }, 500);
-                        }
-                    }, 200);
+            // Restaurar área se disponível
+            if (areaSalva) {
+                const areaSelectEl = document.getElementById('area_select');
+                if (areaSelectEl) {
+                    areaSelectEl.value = areaSalva;
+                    const changeEvent = new Event('change');
+                    areaSelectEl.dispatchEvent(changeEvent);
+                    await carregarFuncionariosArea(parseInt(areaSalva));
                 }
-            } catch (error) {
-                console.error('Erro ao carregar rascunho:', error);
-                // Se erro, limpar sessionStorage para não tentar novamente
-                sessionStorage.removeItem('processo_id');
-                sessionStorage.removeItem('auditoria_id');
-                sessionStorage.removeItem('modo_edicao');
+            }
+
+             // Restaurar auditoria se disponível
+            const auditoriaSalva = sessionStorage.getItem('auditoria_id');
+            if (auditoriaSalva) {
+                // Aguardar um pouco para o select de auditoria ser populado
+                setTimeout(() => {
+                    const auditoriaSelectEl = document.getElementById('auditoria_select');
+                    if (auditoriaSelectEl && auditoriaSelectEl.options.length > 0) {
+                        auditoriaSelectEl.value = auditoriaSalva;
+                        console.log(`🔄 Auditoria restaurada visualmente: ${auditoriaSalva}`);
+                    }
+                }, 500);
+            }
+            
+            irParaEtapa(parseInt(etapaSalva));
+            return;
+        }
+        
+        // Se não há processo salvo, NÃO fazer nada - manter o que o usuário já tinha
+        if (!processoId || !auditoriaId || modoEdicao !== 'true') {
+            console.log(`📌 Nenhum processo em andamento. Não restaurando nada.`);
+            return;
+        }
+        
+        // ===== A PARTIR DAQUI: RESTAURAÇÃO COMPLETA COM DADOS DO BANCO =====
+        console.log(`📝 Continuando sessão: Processo ${processoId}, etapa ${etapaSalva}`);
+        
+        // ===== PASSO 1: Restaurar a área selecionada =====
+        if (areaSalva) {
+            const areaSelectEl = document.getElementById('area_select');
+            if (areaSelectEl) {
+                areaSelectEl.value = areaSalva;
+                // Disparar evento 'change' para carregar as auditorias da área
+                const changeEvent = new Event('change');
+                areaSelectEl.dispatchEvent(changeEvent);
+                console.log(`🔄 Área restaurada: ${areaSalva}`);
+                
+                // ===== CARREGAR FUNCIONÁRIOS DA ÁREA RESTAURADA =====
+                await carregarFuncionariosArea(parseInt(areaSalva));
             }
         }
+        
+        // ===== PASSO 2: Aguardar as auditorias carregarem e restaurar a auditoria =====
+        const waitForAuditoria = setInterval(async () => {
+            const auditoriaSelectEl = document.getElementById('auditoria_select');
+            
+            // Verificar se as auditorias já foram carregadas (options > 1)
+            if (auditoriaSelectEl && auditoriaSelectEl.options.length > 1) {
+                clearInterval(waitForAuditoria);
+                
+                // Restaurar auditoria
+                auditoriaSelectEl.value = auditoriaId;
+                console.log(`🔄 Auditoria restaurada: ${auditoriaId}`);
+                
+                // Disparar evento 'change' para verificar responsável e habilitar botão
+                const auditEvent = new Event('change');
+                auditoriaSelectEl.dispatchEvent(auditEvent);
+                
+                // ===== PASSO 3: Aguardar a autorização e depois ir para a etapa =====
+                setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/api/processo/${processoId}/dados`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Preencher nome do processo
+                            if (data.nome_processo) {
+                                const nomeInput = document.getElementById('nome_processo');
+                                if (nomeInput) nomeInput.value = data.nome_processo;
+                            }
+                            
+                            // Preencher código
+                            if (data.codigo_processo) {
+                                const codigoInput = document.getElementById('codigo_processo');
+                                if (codigoInput) {
+                                    codigoInput.value = data.codigo_processo;
+                                    codigoInput.style.backgroundColor = '#e8f4f8';
+                                }
+                            }
+                            
+                            // Preencher executores
+                            if (data.executores && data.executores.length > 0) {
+                                executoresSelecionados = data.executores;
+                                atualizarBadges();
+                                exibirListaFuncionarios();
+                            }
+                            
+                            // Salvar detalhes temporários (seção 3)
+                            if (data.descricao || data.etapa_ini || data.produto || data.etapa_fim || data.objetivo) {
+                                sessionStorage.setItem('detalhes_temp', JSON.stringify({
+                                    descricao: data.descricao || '',
+                                    etapa_ini: data.etapa_ini || '',
+                                    produto: data.produto || '',
+                                    etapa_fim: data.etapa_fim || '',
+                                    objetivo: data.objetivo || ''
+                                }));
+                            }
+                            
+                            // Carregar riscos (seção 4)
+                            if (data.riscos && data.riscos.length > 0) {
+                                riscosLista = data.riscos;
+                                renderizarKanban();
+                                salvarRiscosNoStorage();
+                            }
+                            
+                            // Habilitar botão próximo
+                            const btnProximo = document.getElementById('btn-proximo-etapa3');
+                            if (btnProximo && data.executores && data.executores.length > 0) {
+                                btnProximo.disabled = false;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar dados do processo:', error);
+                    }
+                    
+                    // ===== PASSO 4: Ir para a etapa salva =====
+                    const etapaParaIr = etapaSalva ? parseInt(etapaSalva) : 2;
+                    console.log(`🔄 Restaurando etapa ${etapaParaIr}`);
+                    irParaEtapa(etapaParaIr);
+                    
+                }, 800);
+            }
+        }, 200);
+        
+        // Timeout para não ficar esperando infinitamente
+        setTimeout(() => {
+            const auditoriaSelectEl = document.getElementById('auditoria_select');
+            if (!auditoriaSelectEl || auditoriaSelectEl.options.length <= 1) {
+                console.warn('⚠️ Timeout: não foi possível carregar as auditorias');
+                irParaEtapa(1);
+            }
+        }, 10000);
     }
 
     // ====== ETAPA 3: INFORMAÇÕES DO PROCESSO ======
@@ -2118,6 +2454,16 @@
             const data = await response.json();
             
             if (data.success) {
+                console.log('=' .repeat(50));
+                console.log('📝 SALVAMENTO ETAPA 3 (Detalhes do Processo)');
+                console.log(`   Processo ID: ${processoId}`);
+                console.log(`   Descrição: "${descricao.substring(0, 50)}${descricao.length > 50 ? '...' : ''}"`);
+                console.log(`   Etapa Inicial: "${etapaIni.substring(0, 50)}${etapaIni.length > 50 ? '...' : ''}"`);
+                console.log(`   Produto: "${produto.substring(0, 50)}${produto.length > 50 ? '...' : ''}"`);
+                console.log(`   Etapa Final: "${etapaFim.substring(0, 50)}${etapaFim.length > 50 ? '...' : ''}"`);
+                console.log(`   Objetivo: "${objetivo.substring(0, 50)}${objetivo.length > 50 ? '...' : ''}"`);
+                console.log('=' .repeat(50));
+                
                 mostrarToast('✅ Detalhes do processo salvos!', 'success');
                 return true;
             } else {
@@ -2142,13 +2488,21 @@
         });
     }
 
-    // Modificar a função irParaEtapa para carregar detalhes ao entrar na etapa 3
+    // Modificar a função irParaEtapa para carregar detalhes ao entrar na etapa 3 e riscos na etapa 4
     const irParaEtapaOriginal = irParaEtapa;
     window.irParaEtapa = function(etapa) {
+        console.log(`🎯 window.irParaEtapa chamado com etapa ${etapa}`);
         irParaEtapaOriginal(etapa);
-        if (etapa === 3) {
-            carregarDetalhesProcesso();
-        }
+        
+        // Pequeno delay para garantir que o DOM foi atualizado
+        setTimeout(() => {
+            if (etapa === 3) {
+                carregarDetalhesProcesso();
+            }
+            if (etapa === 4) {
+                carregarRiscosProcesso();
+            }
+        }, 100);
     };
 
     // Botão voltar da etapa 4 para etapa 3
@@ -2159,10 +2513,527 @@
         });
     }
 
-    // Chamar ao carregar a página
-    document.addEventListener('DOMContentLoaded', () => {
-        verificarRascunho();
+    // ====== SEÇÃO 4: RISCOS - KANBAN ======
+    let riscosLista = [];
+
+    // ===== FUNÇÃO PARA SALVAR RISCOS NO STORAGE =====
+    function salvarRiscosNoStorage() {
+        sessionStorage.setItem('riscos_temp', JSON.stringify(riscosLista));
+    }
+
+    // ===== MAPA DE RISCO - Versão correta para JavaScript =====
+    const MAPA_RISCO = {
+        // Impacto Muito Alto
+        "Muito Alto_Muito Alto": 15,
+        "Alto_Muito Alto": 14,
+        "Médio_Muito Alto": 13,
+        "Baixo_Muito Alto": 12,
+        // Impacto Alto
+        "Muito Alto_Alto": 11,
+        "Alto_Alto": 10,
+        "Médio_Alto": 9,
+        "Baixo_Alto": 8,
+        // Impacto Médio
+        "Muito Alto_Médio": 7,
+        "Alto_Médio": 6,
+        "Médio_Médio": 5,
+        "Baixo_Médio": 4,
+        // Impacto Baixo
+        "Muito Alto_Baixo": 3,
+        "Alto_Baixo": 2,
+        "Médio_Baixo": 1,
+        "Baixo_Baixo": 0
+    };
+
+    function calcularScoreRisco(impacto, probabilidade) {
+        const chave = `${impacto}_${probabilidade}`;
+        const score = MAPA_RISCO[chave];
+        
+        if (score === undefined) {
+            console.warn(`⚠️ Combinação não encontrada no mapa: ${impacto} x ${probabilidade}`);
+            return 0;
+        }
+        
+        return score;
+    }
+
+    // Determinar nível baseado no score
+    function getScoreLevel(score) {
+        if (score <= 4) return 'low';
+        if (score <= 9) return 'medium';
+        if (score <= 12) return 'high';
+        return 'critical';
+    }
+
+    // Obter texto do nível
+    function getScoreLevelText(score) {
+        if (score <= 4) return 'BAIXO';
+        if (score <= 9) return 'MÉDIO';
+        if (score <= 12) return 'ALTO';
+        return 'CRÍTICO';
+    }
+
+    // Renderizar Kanban
+    function renderizarKanban() {
+        // Limpar colunas
+        document.getElementById('col-baixo').innerHTML = '';
+        document.getElementById('col-medio').innerHTML = '';
+        document.getElementById('col-alto').innerHTML = '';
+        document.getElementById('col-critico').innerHTML = '';
+        
+        let countBaixo = 0, countMedio = 0, countAlto = 0, countCritico = 0;
+        
+        riscosLista.forEach((risco, idx) => {
+            const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+            const level = getScoreLevel(score);
+            const levelText = getScoreLevelText(score);
+            
+            // Criar card
+            const card = document.createElement('div');
+            card.className = `kanban-card ${level}`;
+            card.setAttribute('data-risco-idx', idx);
+            
+            // Categorias formatadas
+            const categoriasHtml = (risco.categorias || []).map(cat => 
+                `<span class="kanban-card-categoria-tag">${escapeHtml(cat)}</span>`
+            ).join('');
+            
+            card.innerHTML = `
+                <div class="kanban-card-title">${escapeHtml(risco.nome_risco || 'Risco sem nome')}</div>
+                <div class="kanban-card-score">
+                    <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
+                    <span class="kanban-card-badge prob">Prob: ${risco.probabilidade || 'Médio'}</span>
+                    <span><strong>Score: ${score}</strong> (${levelText})</span>
+                </div>
+                <div class="kanban-card-categorias">
+                    ${categoriasHtml || '<span class="text-muted">Sem categorias</span>'}
+                </div>
+                <div class="kanban-card-actions">
+                    <button class="btn-view-risk" onclick="visualizarRisco(${idx})" title="Visualizar">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-edit-risk" onclick="editarRisco(${idx})" title="Editar">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Adicionar à coluna correta
+            if (level === 'low') {
+                document.getElementById('col-baixo').appendChild(card);
+                countBaixo++;
+            } else if (level === 'medium') {
+                document.getElementById('col-medio').appendChild(card);
+                countMedio++;
+            } else if (level === 'high') {
+                document.getElementById('col-alto').appendChild(card);
+                countAlto++;
+            } else {
+                document.getElementById('col-critico').appendChild(card);
+                countCritico++;
+            }
+        });
+        
+        // Atualizar contadores
+        document.getElementById('count-baixo').textContent = countBaixo;
+        document.getElementById('count-medio').textContent = countMedio;
+        document.getElementById('count-alto').textContent = countAlto;
+        document.getElementById('count-critico').textContent = countCritico;
+        
+        // Mostrar mensagem de vazio nas colunas
+        if (countBaixo === 0) document.getElementById('col-baixo').innerHTML = '<div class="empty-col-message">Nenhum risco</div>';
+        if (countMedio === 0) document.getElementById('col-medio').innerHTML = '<div class="empty-col-message">Nenhum risco</div>';
+        if (countAlto === 0) document.getElementById('col-alto').innerHTML = '<div class="empty-col-message">Nenhum risco</div>';
+        if (countCritico === 0) document.getElementById('col-critico').innerHTML = '<div class="empty-col-message">Nenhum risco</div>';
+    }
+
+    // Modal control
+    let modalModo = 'novo'; // novo, editar, visualizar
+    let modalEditandoIdx = null;
+
+    function abrirModal(modo, idx = null) {
+        modalModo = modo;
+        modalEditandoIdx = idx;
+        const modal = document.getElementById('modal-risco');
+        const title = document.getElementById('modal-title');
+        
+        if (modo === 'novo') {
+            title.textContent = '➕ Novo Risco';
+            limparModal();
+            // Reativar campos
+            document.querySelectorAll('#modal-risco input, #modal-risco textarea, #modal-risco select').forEach(el => {
+                el.disabled = false;
+            });
+        } else if (modo === 'editar' && idx !== null) {
+            title.textContent = '✏️ Editar Risco';
+            carregarRiscoNoModal(riscosLista[idx]);
+            document.querySelectorAll('#modal-risco input, #modal-risco textarea, #modal-risco select').forEach(el => {
+                el.disabled = false;
+            });
+        } else if (modo === 'visualizar' && idx !== null) {
+            title.textContent = '👁️ Visualizar Risco';
+            carregarRiscoNoModal(riscosLista[idx]);
+            // Desabilitar campos para só visualização
+            document.querySelectorAll('#modal-risco input, #modal-risco textarea, #modal-risco select').forEach(el => {
+                el.disabled = true;
+            });
+        }
+        
+        atualizarPreviewScore();
+        modal.style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('modal-risco').style.display = 'none';
+    }
+
+    function limparModal() {
+        document.getElementById('modal-nome_risco').value = '';
+        document.getElementById('modal-fator_risco').value = '';
+        document.getElementById('modal-melhoria').value = '';
+        document.getElementById('modal-apetite_risco').value = '';
+        document.getElementById('modal-categorias').value = [];
+        document.getElementById('modal-impacto').value = 'Médio';
+        document.getElementById('modal-probabilidade').value = 'Médio';
+        document.getElementById('modal-motivo_risco').value = '';
+    }
+
+    function carregarRiscoNoModal(risco) {
+        document.getElementById('modal-nome_risco').value = risco.nome_risco || '';
+        document.getElementById('modal-fator_risco').value = risco.fator_risco || '';
+        document.getElementById('modal-melhoria').value = risco.melhoria || '';
+        document.getElementById('modal-apetite_risco').value = risco.apetite_risco || '';
+        
+        // Selecionar categorias
+        const categoriasSelect = document.getElementById('modal-categorias');
+        const categoriasSelecionadas = risco.categorias || [];
+        Array.from(categoriasSelect.options).forEach(opt => {
+            opt.selected = categoriasSelecionadas.includes(opt.value);
+        });
+        
+        document.getElementById('modal-impacto').value = risco.impacto || 'Médio';
+        document.getElementById('modal-probabilidade').value = risco.probabilidade || 'Médio';
+        document.getElementById('modal-motivo_risco').value = risco.motivo_risco || '';
+    }
+
+    function salvarDoModal() {
+        const nome = document.getElementById('modal-nome_risco').value.trim();
+        if (!nome) {
+            mostrarToast('⚠️ Nome do risco é obrigatório', 'warning');
+            return;
+        }
+        
+        const impacto = document.getElementById('modal-impacto').value;
+        const probabilidade = document.getElementById('modal-probabilidade').value;
+        
+        // Selecionar categorias
+        const categoriasSelect = document.getElementById('modal-categorias');
+        const categorias = Array.from(categoriasSelect.selectedOptions).map(opt => opt.value);
+        
+        const novoRisco = {
+            nome_risco: nome,
+            fator_risco: document.getElementById('modal-fator_risco').value,
+            melhoria: document.getElementById('modal-melhoria').value,
+            apetite_risco: document.getElementById('modal-apetite_risco').value,
+            categorias: categorias,
+            impacto: impacto,
+            probabilidade: probabilidade,
+            motivo_risco: document.getElementById('modal-motivo_risco').value
+        };
+        
+        if (modalModo === 'novo') {
+            riscosLista.push(novoRisco);
+            mostrarToast('✅ Risco adicionado!', 'success');
+        } else if (modalModo === 'editar' && modalEditandoIdx !== null) {
+            // Preservar o id se existir
+            if (riscosLista[modalEditandoIdx].id) {
+                novoRisco.id = riscosLista[modalEditandoIdx].id;
+            }
+            riscosLista[modalEditandoIdx] = novoRisco;
+            mostrarToast('✅ Risco atualizado!', 'success');
+        }
+        
+        // SALVAR RISCOS NO STORAGE
+        salvarRiscosNoStorage();
+        autoSaveRiscosDebounced();
+        
+        renderizarKanban();
+        fecharModal();
+    } 
+
+    function visualizarRisco(idx) {
+        abrirModal('visualizar', idx);
+    }
+
+    function editarRisco(idx) {
+        abrirModal('editar', idx);
+    }
+
+    function adicionarRisco() {
+        abrirModal('novo');
+    }
+
+    function atualizarPreviewScore() {
+        const impacto = document.getElementById('modal-impacto').value;
+        const probabilidade = document.getElementById('modal-probabilidade').value;
+        const score = calcularScoreRisco(impacto, probabilidade);
+        const levelText = getScoreLevelText(score);
+        
+        let corPreview = '';
+        if (score <= 4) corPreview = '#d4edda';
+        else if (score <= 9) corPreview = '#fff3cd';
+        else if (score <= 15) corPreview = '#ffe5d0';
+        else corPreview = '#f8d7da';
+        
+        const previewDiv = document.getElementById('modal-score-preview');
+        previewDiv.style.backgroundColor = corPreview;
+        previewDiv.innerHTML = `<strong>Score: ${score}</strong> (${levelText})`;
+    }
+
+    // Recuperar riscos salvos ao carregar a seção 4
+    function carregarRiscosProcesso() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) return;
+        
+        // Verificar se já temos riscos carregados
+        if (riscosLista.length > 0) {
+            renderizarKanban();
+            return;
+        }
+        
+        // Verificar se há riscos temporários no storage
+        const riscosTemp = sessionStorage.getItem('riscos_temp');
+        if (riscosTemp) {
+            riscosLista = JSON.parse(riscosTemp);
+            renderizarKanban();
+            return;
+        }
+        
+        renderizarKanban();
+    }
+
+    // Event listeners
+    const btnAdicionarRiscoModal = document.getElementById('btn-adicionar-risco');
+    if (btnAdicionarRiscoModal) {
+        btnAdicionarRiscoModal.addEventListener('click', adicionarRisco);
+    }
+
+    const btnFecharModal = document.getElementById('btn-fechar-modal');
+    const btnCancelarModal = document.getElementById('btn-cancelar-modal');
+    if (btnFecharModal) btnFecharModal.addEventListener('click', fecharModal);
+    if (btnCancelarModal) btnCancelarModal.addEventListener('click', fecharModal);
+
+    const btnSalvarModal = document.getElementById('btn-salvar-modal');
+    if (btnSalvarModal) {
+        btnSalvarModal.addEventListener('click', salvarDoModal);
+    }
+
+    // Prevenir fechamento ao clicar dentro do modal
+    document.getElementById('modal-risco')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('modal-risco')) {
+            fecharModal();
+        }
     });
+
+    // Atualizar preview de score quando impacto ou probabilidade mudarem
+    document.getElementById('modal-impacto')?.addEventListener('change', atualizarPreviewScore);
+    document.getElementById('modal-probabilidade')?.addEventListener('change', atualizarPreviewScore);
+
+    // Botão salvar todos os riscos (backup)
+    const btnSalvarTodosRiscos = document.getElementById('btn-salvar-riscos');
+    if (btnSalvarTodosRiscos) {
+        btnSalvarTodosRiscos.addEventListener('click', async () => {
+            if (riscosLista.length === 0) {
+                mostrarToast('ℹ️ Nenhum risco para salvar', 'info');
+                return;
+            }
+            
+            // Validar campos obrigatórios
+            let temErro = false;
+            riscosLista.forEach((risco, idx) => {
+                if (!risco.nome_risco?.trim()) {
+                    mostrarToast(`⚠️ Risco ${idx + 1}: Nome é obrigatório`, 'warning');
+                    temErro = true;
+                }
+            });
+            
+            if (temErro) return;
+            
+            console.log('Riscos a serem salvos:', riscosLista);
+            mostrarToast('✅ Riscos validados! (backend em desenvolvimento)', 'success');
+        });
+    }
+
+    function removerRisco(idx) {
+        if (confirm(`Tem certeza que deseja remover este risco?`)) {
+            riscosLista.splice(idx, 1);
+            salvarRiscosNoStorage();
+            autoSaveRiscosDebounced();
+            renderizarKanban();
+            mostrarToast('Risco removido', 'info');
+        }
+    }
+    // ===== AUTO-SAVE ETAPA 2 (Nome + Executores) =====
+    let autoSaveTimeout = null;
+
+    async function autoSaveEtapa2() {
+        const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+        const executores = executoresSelecionados;
+        
+        if (!nomeProcesso || executores.length === 0) return;
+        
+        const areaId = document.getElementById('id_area_selecionado')?.value || areaSelect.value;
+        const auditoriaId = auditoriaSelect.value;
+        const codigoProcesso = document.getElementById('codigo_processo')?.value;
+        const areaSelectElement = document.getElementById('area_select');
+        const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
+        
+        try {
+            const response = await fetch('/api/processo/salvar-basico', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome_processo: nomeProcesso,
+                    codigo_processo: codigoProcesso,
+                    id_area: parseInt(areaId),
+                    nome_area: nomeArea,
+                    executores_ids: executores.map(e => e.id),
+                    auditoria_id: parseInt(auditoriaId)
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                sessionStorage.setItem('processo_id', data.processo_id);
+                sessionStorage.setItem('auditoria_id', auditoriaId);
+                sessionStorage.setItem('modo_edicao', 'true');
+                console.log('💾 Auto-save etapa 2 realizado');
+            }
+        } catch (error) {
+            console.error('Erro auto-save etapa 2:', error);
+            sessionStorage.setItem('rascunho_etapa2', JSON.stringify({
+                nome_processo: nomeProcesso,
+                executores_ids: executores.map(e => e.id),
+                codigo_processo: codigoProcesso
+            }));
+        }
+    }
+
+    // Disparar auto-save no nome do processo
+    if (nomeProcessoInput) {
+        nomeProcessoInput.addEventListener('input', () => {
+            if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(autoSaveEtapa2, 1000);
+        });
+    }
+
+    // ===== AUTO-SAVE ETAPA 3 (Detalhes) =====
+    let autoSaveDetalhesTimeout = null;
+
+    async function autoSaveEtapa3() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) return;
+        
+        const descricao = document.getElementById('descricao_processo')?.value || '';
+        const etapaIni = document.getElementById('etapa_ini_processo')?.value || '';
+        const produto = document.getElementById('produto_processo')?.value || '';
+        const etapaFim = document.getElementById('etapa_fim_processo')?.value || '';
+        const objetivo = document.getElementById('objetivo_processo')?.value || '';
+        
+        try {
+            const response = await fetch('/api/processo/salvar-detalhes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    processo_id: parseInt(processoId),
+                    descricao: descricao,
+                    etapa_ini: etapaIni,
+                    etapa_fim: etapaFim,
+                    produto: produto,
+                    objetivo: objetivo
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log('💾 Auto-save etapa 3 realizado');
+            }
+        } catch (error) {
+            console.error('Erro auto-save etapa 3:', error);
+            sessionStorage.setItem('rascunho_etapa3', JSON.stringify({
+                descricao, etapaIni, produto, etapaFim, objetivo
+            }));
+        }
+    }
+
+    // Adicionar listeners para os campos da etapa 3
+    const camposEtapa3 = ['descricao_processo', 'etapa_ini_processo', 'produto_processo', 'etapa_fim_processo', 'objetivo_processo'];
+    camposEtapa3.forEach(campoId => {
+        const campo = document.getElementById(campoId);
+        if (campo) {
+            campo.addEventListener('input', () => {
+                if (autoSaveDetalhesTimeout) clearTimeout(autoSaveDetalhesTimeout);
+                autoSaveDetalhesTimeout = setTimeout(autoSaveEtapa3, 1000);
+            });
+        }
+    });
+
+    // ===== AUTO-SAVE ETAPA 4 (Riscos) =====
+    let autoSaveRiscosTimeout = null;
+
+    async function autoSaveEtapa4() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId || riscosLista.length === 0) return;
+        
+        console.log('=' .repeat(50));
+        console.log('📝 AUTO-SAVE ETAPA 4 (Riscos)');
+        console.log(`   Processo ID: ${processoId}`);
+        console.log(`   Total de riscos: ${riscosLista.length}`);
+        
+        // Detalhar cada risco
+        riscosLista.forEach((risco, idx) => {
+            console.log(`   Risco ${idx + 1}:`);
+            console.log(`      - ID: ${risco.id || 'novo'}`);
+            console.log(`      - Nome: ${risco.nome_risco || '(não informado)'}`);
+            console.log(`      - Impacto: ${risco.impacto}`);
+            console.log(`      - Probabilidade: ${risco.probabilidade}`);
+            console.log(`      - Categorias: ${(risco.categorias || []).join(', ') || '(nenhuma)'}`);
+        });
+
+        try {
+            const response = await fetch('/api/processo/salvar-riscos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    processo_id: parseInt(processoId),
+                    riscos: riscosLista
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log(`   ✅ ${riscosLista.length} riscos salvos com sucesso!`);
+                console.log('=' .repeat(50));
+                salvarRiscosNoStorage();
+            }
+        } catch (error) {
+            console.error(`   ❌ Erro ao salvar riscos: ${error}`);
+            console.log('=' .repeat(50));
+            salvarRiscosNoStorage();
+        }
+    }
+
+    function autoSaveRiscosDebounced() {
+        if (autoSaveRiscosTimeout) clearTimeout(autoSaveRiscosTimeout);
+        autoSaveRiscosTimeout = setTimeout(autoSaveEtapa4, 1000);
+    }
+
+    // Chamar auto-save quando riscos forem alterados (dentro de salvarDoModal e removerRisco)
+    // Adicione autoSaveRiscosDebounced() dentro de salvarDoModal e removerRisco
+
+    // Chamar ao carregar a página para restaurar sessão
+    verificarRascunho();
 
 </script>
 {% endblock %}

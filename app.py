@@ -534,6 +534,33 @@ def api_processo_dados(processo_id):
             """)
             executores = conn.execute(query_exec, {'processo_id': processo_id}).fetchall()
             
+            # ===== NOVO: Buscar riscos do processo =====
+            query_riscos = text("""
+                SELECT id, nome_risco, fator_risco, melhoria, apetite_risco,
+                       impacto, probabilidade, motivo_risco, categoria
+                FROM riscos
+                WHERE processo_id = :processo_id
+            """)
+            riscos_result = conn.execute(query_riscos, {'processo_id': processo_id}).fetchall()
+            
+            riscos = []
+            for r in riscos_result:
+                # Converter categoria (string separada por vírgula) para lista
+                categorias = r[8].split(',') if r[8] else []
+                riscos.append({
+                    'id': r[0],
+                    'nome_risco': r[1] or '',
+                    'fator_risco': r[2] or '',
+                    'melhoria': r[3] or '',
+                    'apetite_risco': r[4] or '',
+                    'impacto': r[5] or 'Médio',
+                    'probabilidade': r[6] or 'Médio',
+                    'motivo_risco': r[7] or '',
+                    'categorias': [c.strip() for c in categorias if c.strip()]
+                })
+            
+            print(f"📋 Buscando riscos para processo {processo_id}: {len(riscos)} riscos encontrados")
+            
             return jsonify({
                 'success': True,
                 'nome_processo': processo[1],
@@ -544,12 +571,86 @@ def api_processo_dados(processo_id):
                 'etapa_fim': processo[6] or '',
                 'produto': processo[7] or '',
                 'objetivo': processo[8] or '',
-                'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores]
+                'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores],
+                'riscos': riscos
             })
             
     except Exception as e:
         print(f"❌ Erro ao buscar dados do processo: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/processo/salvar-riscos', methods=['POST'])
+def api_salvar_processo_riscos():
+    from database import engine
+    from sqlalchemy import text
+    
+    data = request.json
+    processo_id = data.get('processo_id')
+    riscos = data.get('riscos', [])
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
+    
+    # Mapa de risco para calcular score
+    MAPA_RISCO = {
+        ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14,
+        ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
+        ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10,
+        ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
+        ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6,
+        ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
+        ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2,
+        ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
+    }
+    
+    def calcular_score(impacto, probabilidade):
+        return MAPA_RISCO.get((impacto, probabilidade), 0)
+    
+    try:
+        with engine.connect() as conn:
+            # Remover riscos existentes
+            delete_query = text("DELETE FROM riscos WHERE processo_id = :processo_id")
+            conn.execute(delete_query, {'processo_id': processo_id})
+            
+            # Inserir novos riscos com score
+            insert_query = text("""
+                INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, 
+                                    apetite_risco, impacto, probabilidade, motivo_risco, 
+                                    categoria, score_risco)
+                VALUES (:processo_id, :nome_risco, :fator_risco, :melhoria, 
+                        :apetite_risco, :impacto, :probabilidade, :motivo_risco, 
+                        :categoria, :score_risco)
+            """)
+            
+            for risco in riscos:
+                impacto = risco.get('impacto', 'Médio')
+                probabilidade = risco.get('probabilidade', 'Médio')
+                score = calcular_score(impacto, probabilidade)
+                
+                categorias = risco.get('categorias', [])
+                categoria_str = ', '.join(categorias) if categorias else None
+                
+                conn.execute(insert_query, {
+                    'processo_id': processo_id,
+                    'nome_risco': risco.get('nome_risco', ''),
+                    'fator_risco': risco.get('fator_risco', ''),
+                    'melhoria': risco.get('melhoria', ''),
+                    'apetite_risco': risco.get('apetite_risco', ''),
+                    'impacto': impacto,
+                    'probabilidade': probabilidade,
+                    'motivo_risco': risco.get('motivo_risco', ''),
+                    'categoria': categoria_str,
+                    'score_risco': score
+                })
+            
+            conn.commit()
+            print(f"✅ {len(riscos)} riscos salvos para o processo {processo_id}")
+            return jsonify({'success': True, 'message': f'{len(riscos)} riscos salvos'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar riscos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+                           
 
 # ============================================================
 # API - ÁREAS E FUNCIONÁRIOS
