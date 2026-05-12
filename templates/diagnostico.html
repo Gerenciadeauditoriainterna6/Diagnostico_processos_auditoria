@@ -14,19 +14,19 @@
         <div class="progress-steps">
             <div class="step active" data-step="1">
                 <div class="step-circle">1</div>
-                <div class="step-label">Auditoria</div>
+                <div class="step-label">Vincular à Auditoria</div>
             </div>
             <div class="step" data-step="2">
                 <div class="step-circle">2</div>
-                <div class="step-label">Básico</div>
+                <div class="step-label">Informações Básicas</div>
             </div>
             <div class="step" data-step="3">
                 <div class="step-circle">3</div>
-                <div class="step-label">Detalhes</div>
+                <div class="step-label">Informações do Processo</div>
             </div>
             <div class="step" data-step="4">
                 <div class="step-circle">4</div>
-                <div class="step-label">Riscos</div>
+                <div class="step-label">Riscos Identificados</div>
             </div>
             <div class="step" data-step="5">
                 <div class="step-circle">5</div>
@@ -36,7 +36,7 @@
     </div>
 
     <!-- PASSO 1: VINCULAR À AUDITORIA -->
-    <div class="form-section">
+    <div id="auditoria-section" class="form-section">
         <h3>1. Vincular à Auditoria</h3>
         
         <div class="form-row">
@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        <div id="auditoria-section" style="display: none;">
+        <div id="auditoria-inner" style="display: none;">
             <div class="form-row">
                 <div class="form-group">
                     <label for="auditoria_select">Auditoria:</label>
@@ -145,6 +145,43 @@
             </button>
         </div>
     </div>
+
+    <!-- PASSO 3: INFORMAÇÕES DO PROCESSO (DETALHES) - EM DESENVOLVIMENTO -->
+    <div id="detalhes-section" class="form-section" style="display: none;">
+        <h3>3. Informações do Processo</h3>
+        
+        <!-- Card de desenvolvimento -->
+        <div class="dev-card">
+            <div class="dev-icon">
+                <i class="fas fa-tools"></i>
+            </div>
+            <h4>Em Desenvolvimento</h4>
+            <p>Estamos trabalhando nas próximas etapas do diagnóstico.</p>
+            <div class="dev-features">
+                <p><strong>📋 Próximas funcionalidades:</strong></p>
+                <ul>
+                    <li>📝 O que é o processo? (descrição detalhada)</li>
+                    <li>🚀 Onde começa o processo? (etapa inicial)</li>
+                    <li>🎯 Qual o produto final?</li>
+                    <li>📤 Depois de acabado, para onde envia? (etapa final)</li>
+                    <li>❓ Qual o objetivo do processo? (por que faz)</li>
+                </ul>
+            </div>
+            <div class="dev-warning">
+                <i class="fas fa-info-circle"></i>
+                As informações que você salvou até agora foram registradas no banco de dados.
+            </div>
+        </div>
+
+        <!-- Botões de navegação -->
+        <div class="wizard-buttons">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa2">
+                ← Voltar para Informações Básicas
+            </button>
+            <button type="button" class="btn-primary" id="btn-proximo-etapa4" disabled>
+                Próximo: Riscos (em breve) →
+            </button>
+        </div>
     </div>
 </div>
 
@@ -368,7 +405,7 @@
 
     .step.active:not(:last-child):before,
     .step.completed:not(:last-child):before {
-        background: #184145;
+        background: #0b5b99;
     }
 
     .step-circle {
@@ -773,6 +810,7 @@
 </style>
 
 <script>
+
     // ====== JAVASCRIPT PARA DIAGNÓSTICO ======
     
     const areaSelect = document.getElementById('area_select');
@@ -990,6 +1028,13 @@
 
     // Função principal que verifica e gera o código
     async function verificarEGerarCodigo() {
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+    
+        // Se estiver em modo de continuação, NÃO verificar existência
+        if (modoEdicao === 'true') {
+            console.log('📝 Modo continuação ativo - pulando verificação de existência');
+            return;
+        }
         const nomeProcesso = nomeProcessoInput?.value.trim();
         const areaId = idAreaSelecionado?.value || areaSelect?.value;
         
@@ -1228,6 +1273,10 @@
     
     // ===== EVENTO DE MUDANÇA DE ÁREA =====
     areaSelect.addEventListener('change', async function() {
+        // Resetar modo de edição ao mudar de área
+        sessionStorage.removeItem('modo_edicao');
+        sessionStorage.removeItem('processo_id');
+        sessionStorage.removeItem('auditoria_id');
         const areaId = this.value;
         const areaNome = this.options[this.selectedIndex]?.text || '';
 
@@ -1242,29 +1291,32 @@
         }
         
         limparAvisos();
+
+        // Resetar o select de auditoria
         auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
         auditoriaSelect.value = '';
+        
 
+        // Esconder seção de informações básicas
         const infoBasicasSection = document.getElementById('info-basicas-section');
         if (infoBasicasSection) {
             infoBasicasSection.style.display = 'none';
         }
-        
+
+        // Esconder o inner da auditoria inicialmente
+        const auditoriaInner = document.getElementById('auditoria-inner');
+        if (auditoriaInner) {
+            auditoriaInner.style.display = 'none';
+        }
+
         if (!areaId) {
-            auditoriaSection.style.display = 'none';
             return;
         }
         
-        auditoriaSection.style.display = 'block';
-        auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
-        auditoriaSelect.style.display = 'block';
         
         if (novaAuditoriaBtn) {
             novaAuditoriaBtn.style.display = 'none';
         }
-        
-        // Carregar funcionários da área selecionada
-        await carregarFuncionariosArea(areaId);
         
         try {
             const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
@@ -1273,6 +1325,11 @@
             console.log('Auditorias recebidas:', data);
             
             if (data.auditorias && data.auditorias.length > 0) {
+                // Mostrar o inner da auditoria
+                if (auditoriaInner) {
+                    auditoriaInner.style.display = 'block';
+                }
+
                 auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
                 
                 data.auditorias.forEach(aud => {
@@ -1289,6 +1346,10 @@
                 }
                 
             } else {
+                if (auditoriaInner) {
+                    auditoriaInner.style.display = 'block';
+                }
+
                 auditoriaSelect.innerHTML = '';
                 auditoriaSelect.style.display = 'none';
                 
@@ -1300,7 +1361,7 @@
                     <strong>Nenhuma auditoria encontrada</strong><br>
                     A área "${areaNome}" não possui auditorias cadastradas para esta área.
                 `;
-                auditoriaSection.appendChild(aviso);
+                auditoriaInner?.appendChild(aviso);
                 
                 if (isAdmin && novaAuditoriaBtn) {
                     novaAuditoriaBtn.style.display = 'block';
@@ -1315,7 +1376,7 @@
                             <i class="fas fa-lock"></i> 
                             Apenas administradores podem criar novas auditorias.
                         `;
-                        auditoriaSection.appendChild(msgPermissao);
+                        auditoriaInner?.appendChild(msgPermissao);
                     }
                 }
             }
@@ -1401,12 +1462,14 @@
         const etapa4 = document.getElementById('riscos-section');
         const etapa5 = document.getElementById('visualizar-section');
         
+        // Esconder todas
         if (etapa1) etapa1.style.display = 'none';
         if (etapa2) etapa2.style.display = 'none';
         if (etapa3) etapa3.style.display = 'none';
         if (etapa4) etapa4.style.display = 'none';
         if (etapa5) etapa5.style.display = 'none';
         
+        // Mostrar etapa selecionada
         if (etapa === 1 && etapa1) etapa1.style.display = 'block';
         if (etapa === 2 && etapa2) etapa2.style.display = 'block';
         if (etapa === 3 && etapa3) etapa3.style.display = 'block';
@@ -1442,6 +1505,14 @@
         });
     }
 
+    // ===== NOVO: Botão voltar da etapa 3 para etapa 2 =====
+    const btnVoltarEtapa2 = document.getElementById('btn-voltar-etapa2');
+    if (btnVoltarEtapa2) {
+        btnVoltarEtapa2.addEventListener('click', () => {
+            irParaEtapa(2);
+        });
+    }
+
     const btnProximo = document.getElementById('btn-proximo-etapa3');
     if (btnProximo) {
         btnProximo.addEventListener('click', async () => {
@@ -1459,6 +1530,8 @@
             const areaId = document.getElementById('id_area_selecionado')?.value || areaSelect.value;
             const codigoProcesso = document.getElementById('codigo_processo')?.value;
             const auditoriaId = auditoriaSelect.value;
+            const areaSelectElement = document.getElementById('area_select');
+            const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
             
             try {
                 const response = await fetch('/api/processo/salvar-basico', {
@@ -1468,6 +1541,7 @@
                         nome_processo: nomeProcesso,
                         codigo_processo: codigoProcesso,
                         id_area: parseInt(areaId),
+                        nome_area: nomeArea,
                         executores_ids: executoresSelecionados.map(e => e.id),
                         auditoria_id: parseInt(auditoriaId)
                     })
@@ -1478,6 +1552,7 @@
                 if (data.success) {
                     sessionStorage.setItem('processo_id', data.processo_id);
                     sessionStorage.setItem('auditoria_id', auditoriaId);
+                    sessionStorage.setItem('modo_edicao', 'true');
                     
                     mostrarToast('✅ Informações básicas salvas!', 'success');
                     irParaEtapa(3);
@@ -1508,6 +1583,124 @@
             carregarFuncionariosArea(parseInt(areaId));
         }
     }
+
+    async function carregarAuditoriasPorArea(areaId) {
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+            
+            if (data.auditorias && data.auditorias.length > 0) {
+                const auditoriaInner = document.getElementById('auditoria-inner');
+                if (auditoriaInner) auditoriaInner.style.display = 'block';
+                
+                auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    auditoriaSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar auditorias:', error);
+        }
+    }
+
+    // ===== VERIFICAR RASCUNHO SALVO AO CARREGAR PÁGINA =====
+    async function verificarRascunho() {
+        const processoId = sessionStorage.getItem('processo_id');
+        const auditoriaId = sessionStorage.getItem('auditoria_id');
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+        
+        if (processoId && auditoriaId && modoEdicao === 'true') {
+            console.log(`📝 Continuando sessão: Processo ${processoId}`);
+            
+            try {
+                const response = await fetch(`/api/processo/${processoId}/dados`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 1. Preencher área e forçar carregamento das auditorias
+                    if (data.id_area) {
+                        const areaSelect = document.getElementById('area_select');
+                        if (areaSelect) {
+                            areaSelect.value = data.id_area;
+                            // Disparar evento change para carregar auditorias
+                            const changeEvent = new Event('change');
+                            areaSelect.dispatchEvent(changeEvent);
+                        }
+                    }
+                    
+                    // 2. Aguardar o carregamento das auditorias e selecionar
+                    const checkAuditoriaLoaded = setInterval(() => {
+                        const auditoriaSelect = document.getElementById('auditoria_select');
+                        if (auditoriaSelect && auditoriaSelect.options.length > 1) {
+                            clearInterval(checkAuditoriaLoaded);
+                            
+                            // Selecionar a auditoria
+                            auditoriaSelect.value = auditoriaId;
+                            // Disparar evento change para verificar responsável
+                            const auditEvent = new Event('change');
+                            auditoriaSelect.dispatchEvent(auditEvent);
+                            
+                            // 3. Aguardar autorização e preencher dados
+                            setTimeout(() => {
+                                // Preencher nome do processo
+                                if (data.nome_processo) {
+                                    const nomeInput = document.getElementById('nome_processo');
+                                    if (nomeInput) {
+                                        nomeInput.value = data.nome_processo;
+                                        ultimoNomeVerificado = data.nome_processo;
+                                        // NÃO chamar verificarEGerarCodigo() aqui!
+                                    }
+                                }
+
+                                // ====== Preencher código do processo ======
+                                if (data.codigo_processo) {
+                                    const codigoInput = document.getElementById('codigo_processo');
+                                    if (codigoInput) {
+                                        codigoInput.value = data.codigo_processo;
+                                        codigoInput.style.backgroundColor = '#e8f4f8';
+                                        codigoInput.style.border = '1px solid #184145';
+                                        codigoInput.style.color = '#184145';
+                                    }
+                                }
+
+                                // Carregar executores
+                                if (data.executores && data.executores.length > 0) {
+                                    executoresSelecionados = data.executores;
+                                    atualizarBadges();
+                                    exibirListaFuncionarios();
+                                }
+                                
+                                // Forçar habilitação do botão próximo
+                                const btnProximo = document.getElementById('btn-proximo-etapa3');
+                                if (btnProximo && data.executores && data.executores.length > 0) {
+                                    btnProximo.disabled = false;
+                                }
+                                
+                                // Ir para etapa 2
+                                setTimeout(() => {
+                                    irParaEtapa(2);
+                                }, 500);
+                            }, 500);
+                        }
+                    }, 200);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar rascunho:', error);
+                // Se erro, limpar sessionStorage para não tentar novamente
+                sessionStorage.removeItem('processo_id');
+                sessionStorage.removeItem('auditoria_id');
+                sessionStorage.removeItem('modo_edicao');
+            }
+        }
+    }
+
+    // Chamar ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+        verificarRascunho();
+    });
 
 </script>
 {% endblock %}
