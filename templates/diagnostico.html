@@ -6,367 +6,549 @@
 <div class="diagnostico-container">
     <div class="page-header">
         <h1><i class="fas fa-search"></i> Diagnóstico dos Processos</h1>
-        <p>Preencha as informações abaixo para diagnosticar um processo da área selecionada.</p>
+        <p>Gerencia os processos da área e auditoria selecionada.</p>
     </div>
 
-    <!-- Adicionar após o page-header -->
-    <div id="wizard-progress" class="wizard-progress" style="margin-bottom: 25px;">
-        <div class="progress-steps">
-            <div class="step active" data-step="1">
-                <div class="step-circle">1</div>
-                <div class="step-label">Vincular à Auditoria</div>
-            </div>
-            <div class="step" data-step="2">
-                <div class="step-circle">2</div>
-                <div class="step-label">Informações Básicas</div>
-            </div>
-            <div class="step" data-step="3">
-                <div class="step-circle">3</div>
-                <div class="step-label">Informações do Processo</div>
-            </div>
-            <div class="step" data-step="4">
-                <div class="step-circle">4</div>
-                <div class="step-label">Riscos Identificados</div>
-            </div>
-            <div class="step" data-step="5">
-                <div class="step-circle">5</div>
-                <div class="step-label">Finalizar</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- PASSO 1: VINCULAR À AUDITORIA -->
-    <div id="auditoria-section" class="form-section">
-        <h3>1. Vincular à Auditoria</h3>
-        
+    <!--FILTROS-->
+    <div class="form-section filtros-section">
         <div class="form-row">
             <div class="form-group">
-                <label for="area_select">Área:</label>
-                <select id="area_select" name="area_id" class="form-control">
+                <label for="filtro_area_select">Área:</label>
+                <select id="filtro_area_select" class="form-control">
                     <option value="">Selecione uma área...</option>
                     {% for nome, id in areas.items() %}
                     <option value="{{ id }}">{{ nome }}</option>
                     {% endfor %}
                 </select>
             </div>
-        </div>
-
-        <div id="auditoria-inner" style="display: none;">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="auditoria_select">Auditoria:</label>
-                    <select id="auditoria_select" name="auditoria_id" class="form-control">
-                        <option value="">Selecione uma auditoria...</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label for="filtro_auditoria_select">Auditoria:</label>
+                <select id="filtro_auditoria_select" class="form-control" disabled>
+                    <option value="">Selecione uma área primeiro...</option>
+                </select>
             </div>
-            <div id="nova-auditoria-btn" class="mt-2">
-                <button type="button" class="btn-secondary" id="btn-criar-auditoria">
-                    <i class="fas fa-plus"></i> Criar Nova Auditoria
-                </button>
-            </div>
-        </div>
-
-        <!-- Botão Próximo da Seção 1 -->
-        <div class="wizard-buttons" style="margin-top: 20px;">
-            <button type="button" class="btn-primary" id="btn-proximo-etapa2" disabled>
-                Próximo: Informações Básicas →
-            </button>
         </div>
     </div>
 
-    <!-- PASSO 2: INFORMAÇÕES BÁSICAS (NOME + EXECUTORES) -->
-    <div id="info-basicas-section" class="form-section" style="display: none;">
-        <input type="hidden" id="id_area_selecionado" name="id_area_selecionado">
-        <h3>2. Informações Básicas do Processo</h3>
-        
-        <div class="form-group">
-            <label for="nome_processo"><i class="fas fa-tag"></i> Nome do Processo *</label>
-            <input type="text" id="nome_processo" name="nome_processo" class="form-control" required 
-                placeholder="Ex: Processo de Fechamento Financeiro">
+    <!--TABELA DE PROCESSOS-->
+    <div class="form-section tabela-section">
+        <div class="tabela-header">
+            <h3>Processos da Auditoria</h3>
+            <button type="button" id="btn-novo-processo" class="btn-primary" style="display: none;">
+                <i class="fas fa-plus" style="margin-right: 8px;"></i> Novo Processo
+            </button>
         </div>
-
-        <div class="form-group">
-            <label for="codigo_processo"><i class="fas fa-barcode"></i> Código do Processo</label>
-            <input type="text" id="codigo_processo" name="codigo_processo" class="form-control" disabled 
-                placeholder="Será gerado automaticamente">
-        </div>
-
-        <!-- SEÇÃO DE EXECUTORES -->
-        <div class="form-group executores-group">
-            <label>
-                <i class="fas fa-users"></i> Quem executa o processo? *
-                <span class="help-icon" data-tooltip="Selecione os funcionários que executam este processo.">
-                    <i class="fas fa-question-circle"></i>
-                </span>
-            </label>
-            
-            <div class="executores-container">
-                <!-- Campo de busca para filtrar -->
-                <div class="search-wrapper">
-                    <input type="text" 
-                        id="buscar-executor" 
-                        placeholder="Filtrar funcionários por nome..."
-                        class="form-control search-input"
-                        autocomplete="off">
-                </div>
-                
-                <!-- Lista de funcionários disponíveis (cards) -->
-                <div class="funcionarios-disponiveis">
-                    <div class="section-title">
-                        <i class="fas fa-list"></i> Funcionários da Área
-                        <span id="total-funcionarios" class="contador">0</span>
-                    </div>
-                    <div id="lista-funcionarios" class="funcionarios-grid">
-                        <div class="loading-message">Carregando funcionários...</div>
-                    </div>
-                </div>
-                
-                <!-- Área dos selecionados -->
-                <div class="executores-selecionados-area">
-                    <div class="section-title">
-                        <i class="fas fa-check-circle"></i> Selecionados
-                        <span id="contador-executores" class="contador">0</span>
-                    </div>
-                    <div id="executores-selecionados" class="selected-badges-container">
-                        <div class="empty-message">📌 Nenhum executor selecionado</div>
-                    </div>
-                </div>
-                
-                <input type="hidden" id="executores_ids" name="executores_ids">
+        <div id="tabela-processos-container">
+            <div class="alert-info" style="text-align: center; padding: 40px;">
+                <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.
             </div>
-            
-            <small class="text-muted">
-                <i class="fas fa-info-circle"></i> 
-                Clique em "Adicionar" para selecionar os funcionários que executam este processo.
-            </small>
-        </div>
-
-        <!-- Botões de navegação -->
-        <div class="wizard-buttons">
-            <button type="button" class="btn-secondary" id="btn-voltar-etapa1">
-                ← Voltar
-            </button>
-            <button type="button" class="btn-primary" id="btn-proximo-etapa3" disabled>
-                Próximo: Informações Básicas do Processo →
-            </button>
         </div>
     </div>
-
-    <!-- PASSO 3: INFORMAÇÕES DO PROCESSO (DETALHES)-->
-    <div id="detalhes-section" class="form-section" style="display: none;">
-        <h3>3. Informações do Processo</h3>
-        
-        <div class="alert-info" style="margin-bottom: 20px; padding: 12px;">
-            <i class="fas fa-info-circle"></i> Os campos abaixo são para as demais informações do processo.
-        </div>
-
-        <div class="detalhes-container">
-            <div class="form-group">
-                <label for="descricao_processo">
-                    <i class="fas fa-align-left"></i> O que é o processo?
-                </label>
-                <textarea id="descricao_processo" name="descricao" class="form-control" 
-                    rows="3" placeholder="Descreva o processo com as palavras do gestor..."></textarea>
-                <small class="text-muted">Gestor diz com as suas palavras o que entende ser o processo.</small>
-            </div>
-
-            <div class="form-group">
-                <label for="etapa_ini_processo">
-                    <i class="fas fa-play-circle"></i> Onde começa o processo?
-                </label>
-                <textarea id="etapa_ini_processo" name="etapa_ini" class="form-control" rows="2" placeholder="Ex: Do envio do relatório X pela área Y..."></textarea>
-                <small class="text-muted">Onde começa o processo? - ETAPA INICIAL</small>
-            </div>
-
-            <div class="form-group">
-                <label for="produto_processo">
-                    <i class="fas fa-cube"></i> Qual(is) o(s) produto(s) final(is) desse processo?
-                </label>
-                <textarea id="produto_processo" name="produto" class="form-control" rows="2" placeholder="Ex: Relatório, Planilha, Sistema..."></textarea>
-                <small class="text-muted">Qual(is) o(s) produto(s) final(is) desse processo?</small>
-            </div>
-
-            <div class="form-group">
-                <label for="etapa_fim_processo">
-                    <i class="fas fa-stop-circle"></i> Depois de acabado, para onde envia?
-                </label>
-                <textarea id="etapa_fim_processo" name="etapa_fim" class="form-control" 
-                    rows="2" placeholder="Ex: Área X, Arquivo físico localizado em Y..."></textarea>
-                <small class="text-muted">Depois de acabado, para onde envia? - ETAPA FINAL</small>
-            </div>
-
-            <div class="form-group">
-                <label for="objetivo_processo">
-                    <i class="fas fa-bullseye"></i> Qual o objetivo do processo? E por que faz?
-                </label>
-                <textarea id="objetivo_processo" name="objetivo" class="form-control" 
-                    rows="2" placeholder="Garantir o que exatamente?"></textarea>
-                <small class="text-muted">Qual o objetivo do processo e por que ele é realizado?</small>
-            </div>
-        </div>
-
-        <!-- Botões de navegação -->
-        <div class="wizard-buttons">
-            <button type="button" class="btn-secondary" id="btn-voltar-etapa2">
-                ← Voltar para Informações Básicas
-            </button>
-            <button type="button" class="btn-primary" id="btn-salvar-detalhes">
-                Próximo: Riscos →
-            </button>
-        </div>
-    </div>
-
-    <!-- PASSO 4: RISCOS IDENTIFICADOS - KANBAN -->
-    <div id="riscos-section" class="form-section" style="display: none;">
-        <div class="riscos-header">
-            <h3>4. Riscos Identificados</h3>
-            <button type="button" id="btn-adicionar-risco" class="btn-primary">
-                <i class="fas fa-plus"></i> Novo Risco
-            </button>
-        </div>
-
-        <!-- Kanban Board -->
-        <div class="kanban-board">
-            <!-- Coluna Baixo -->
-            <div class="kanban-col" data-score-level="baixo">
-                <div class="kanban-col-header low">
-                    <i class="fas fa-circle"></i>
-                    <span>BAIXO</span>
-                    <span class="score-range">0 - 3</span>
-                    <span class="risk-count" id="count-baixo">0</span>
-                </div>
-                <div class="kanban-col-body" id="col-baixo"></div>
-            </div>
-
-            <!-- Coluna Médio -->
-            <div class="kanban-col" data-score-level="medio">
-                <div class="kanban-col-header medium">
-                    <i class="fas fa-circle"></i>
-                    <span>MÉDIO</span>
-                    <span class="score-range">4 - 7</span>
-                    <span class="risk-count" id="count-medio">0</span>
-                </div>
-                <div class="kanban-col-body" id="col-medio"></div>
-            </div>
-
-            <!-- Coluna Alto -->
-            <div class="kanban-col" data-score-level="alto">
-                <div class="kanban-col-header high">
-                    <i class="fas fa-circle"></i>
-                    <span>ALTO</span>
-                    <span class="score-range">8 - 11</span>
-                    <span class="risk-count" id="count-alto">0</span>
-                </div>
-                <div class="kanban-col-body" id="col-alto"></div>
-            </div>
-
-            <!-- Coluna Crítico -->
-            <div class="kanban-col" data-score-level="critico">
-                <div class="kanban-col-header critical">
-                    <i class="fas fa-circle"></i>
-                    <span>CRÍTICO</span>
-                    <span class="score-range">12+</span>
-                    <span class="risk-count" id="count-critico">0</span>
-                </div>
-                <div class="kanban-col-body" id="col-critico"></div>
-            </div>
-        </div>
-
-        <!-- Botões de navegação -->
-        <div class="wizard-buttons">
-            <button type="button" class="btn-secondary" id="btn-voltar-etapa3">
-                ← Voltar para Informações do Processo
-            </button>
-            <button type="button" class="btn-primary" id="btn-salvar-riscos">
-                Próximo: Visualizar e finalizar →
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL PARA RISCOS -->
-    <div id="modal-risco" class="modal" style="display: none;">
-        <div class="modal-content">
+    <!--MODAL DE VISUALIZAÇÃO COMPLETO DO PROCESSO-->
+    <div id="modal-visualizar-processo" class="modal" style="display: none;">
+        <div class="modal-content modal-visualizar-processo-content">
             <div class="modal-header">
-                <h3 id="modal-title">Novo Risco</h3>
-                <button type="button" class="modal-close" id="btn-fechar-modal">&times;</button>
+                <h3><i class="fas fa-eye"></i> Visualizar Processo</h3>
+                <button type="button" class="modal-close" id="btn-fechar-visualizar-processo">&times;</button>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="modal-risco-idx">
-                
-                <div class="form-group">
-                    <label>Nome do Risco *</label>
-                    <input type="text" id="modal-nome_risco" class="form-control" placeholder="Ex: Risco de erro no fechamento">
-                </div>
-
-                <div class="form-group">
-                    <label>Fator de Risco (causa)</label>
-                    <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="O que causa este risco?"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Ponto de Melhoria</label>
-                    <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="O que poderia ser melhorado?"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Apetite ao Risco</label>
-                    <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Nível de risco aceitável"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>Categoria(s)</label>
-                    <select id="modal-categorias" class="form-control" multiple size="3">
-                        <option value="Risco Financeiro">Risco Financeiro</option>
-                        <option value="Risco Legal">Risco Legal</option>
-                        <option value="Risco Inerente">Risco Inerente</option>
-                        <option value="Risco de TI">Risco de TI</option>
-                        <option value="Risco Reputacional">Risco Reputacional</option>
-                        <option value="Risco de Integridade">Risco de Integridade</option>
-                        <option value="Risco Ambiental">Risco Ambiental</option>
-                    </select>
-                    <small class="text-muted">Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplas</small>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Impacto *</label>
-                        <select id="modal-impacto" class="form-control">
-                            <option value="Baixo">Baixo</option>
-                            <option value="Médio">Médio</option>
-                            <option value="Alto">Alto</option>
-                            <option value="Muito Alto">Muito Alto</option>
-                        </select>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div id="visualizar-processo-conteudo">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin"></i> Carregando...
                     </div>
-                    <div class="form-group">
-                        <label>Probabilidade *</label>
-                        <select id="modal-probabilidade" class="form-control">
-                            <option value="Baixo">Baixo</option>
-                            <option value="Médio">Médio</option>
-                            <option value="Alto">Alto</option>
-                            <option value="Muito Alto">Muito Alto</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="modal-score-preview" class="score-preview">
-                    Score: 0 (Baixo)
-                </div>
-
-                <div class="form-group">
-                    <label>Motivo da Classificação</label>
-                    <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique a escolha do impacto e probabilidade"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
-                <button type="button" class="btn-primary" id="btn-salvar-modal">Salvar Risco</button>
+                <button type="button" class="btn-secondary" id="btn-fechar-visualizar-processo-footer">Fechar</button>
             </div>
         </div>
     </div>
 </div>
 
+<!--MODAL DO WIZARD -->
+<div id="modal-wizard" class="modal-wizard" style="display: none";>
+    <div class="modal-wizard-content">
+        <div class="modal-wizard-header">
+            <h2><i class="fas fa-clipboard-list"></i> Diagnóstico do processo</h2>
+            <button type="button" class="modal-wizard-close" id="btn-fechar-wizard">&times;</button>
+        </div>
+        <div class="modal-wizard-body">
+            <!-- Adicionar após o page-header -->
+            <div id="wizard-progress" class="wizard-progress" style="margin-bottom: 25px;">
+                <div class="progress-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">Vincular à Auditoria</div>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">Informações Básicas</div>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Informações do Processo</div>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-circle">4</div>
+                        <div class="step-label">Riscos Identificados</div>
+                    </div>
+                    <div class="step" data-step="5">
+                        <div class="step-circle">5</div>
+                        <div class="step-label">Finalizar</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASSO 1: VINCULAR À AUDITORIA -->
+            <div id="auditoria-section" class="form-section">
+                <h3>1. Vincular à Auditoria</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="area_select">Área:</label>
+                        <select id="area_select" name="area_id" class="form-control">
+                            <option value="">Selecione uma área...</option>
+                            {% for nome, id in areas.items() %}
+                            <option value="{{ id }}">{{ nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="auditoria-inner" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="auditoria_select">Auditoria:</label>
+                            <select id="auditoria_select" name="auditoria_id" class="form-control">
+                                <option value="">Selecione uma auditoria...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="nova-auditoria-btn" class="mt-2">
+                        <button type="button" class="btn-secondary" id="btn-criar-auditoria">
+                            <i class="fas fa-plus"></i> Criar Nova Auditoria
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botão Próximo da Seção 1 -->
+                <div class="wizard-buttons" style="margin-top: 20px;">
+                    <button type="button" class="btn-primary" id="btn-proximo-etapa2" disabled>
+                        Próximo: Informações Básicas →
+                    </button>
+                </div>
+            </div>
+
+            <!-- PASSO 2: INFORMAÇÕES BÁSICAS (NOME + EXECUTORES) -->
+            <div id="info-basicas-section" class="form-section" style="display: none;">
+                <input type="hidden" id="id_area_selecionado" name="id_area_selecionado">
+                <h3>2. Informações Básicas do Processo</h3>
+                
+                <div class="form-group">
+                    <label for="nome_processo"><i class="fas fa-tag"></i> Nome do Processo *</label>
+                    <input type="text" id="nome_processo" name="nome_processo" class="form-control" required 
+                        placeholder="Ex: Processo de Fechamento Financeiro">
+                </div>
+
+                <div class="form-group">
+                    <label for="codigo_processo"><i class="fas fa-barcode"></i> Código do Processo</label>
+                    <input type="text" id="codigo_processo" name="codigo_processo" class="form-control" disabled 
+                        placeholder="Será gerado automaticamente">
+                </div>
+
+                <!-- SEÇÃO DE EXECUTORES -->
+                <div class="form-group executores-group">
+                    <label>
+                        <i class="fas fa-users"></i> Quem executa o processo? *
+                        <span class="help-icon" data-tooltip="Selecione os funcionários que executam este processo.">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    
+                    <div class="executores-container">
+                        <!-- Campo de busca para filtrar -->
+                        <div class="search-wrapper">
+                            <input type="text" 
+                                id="buscar-executor" 
+                                placeholder="Filtrar funcionários por nome..."
+                                class="form-control search-input"
+                                autocomplete="off">
+                        </div>
+                        
+                        <!-- Lista de funcionários disponíveis (cards) -->
+                        <div class="funcionarios-disponiveis">
+                            <div class="section-title">
+                                <i class="fas fa-list"></i> Funcionários da Área
+                                <span id="total-funcionarios" class="contador">0</span>
+                            </div>
+                            <div id="lista-funcionarios" class="funcionarios-grid">
+                                <div class="loading-message">Carregando funcionários...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Área dos selecionados -->
+                        <div class="executores-selecionados-area">
+                            <div class="section-title">
+                                <i class="fas fa-check-circle"></i> Selecionados
+                                <span id="contador-executores" class="contador">0</span>
+                            </div>
+                            <div id="executores-selecionados" class="selected-badges-container">
+                                <div class="empty-message">📌 Nenhum executor selecionado</div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="executores_ids" name="executores_ids">
+                    </div>
+                    
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Clique em "Adicionar" para selecionar os funcionários que executam este processo.
+                    </small>
+                </div>
+
+                <!-- Botões de navegação -->
+                <div class="wizard-buttons">
+                    <button type="button" class="btn-secondary" id="btn-voltar-etapa1">
+                        ← Voltar
+                    </button>
+                    <button type="button" class="btn-primary" id="btn-proximo-etapa3" disabled>
+                        Próximo: Informações Básicas do Processo →
+                    </button>
+                </div>
+            </div>
+
+            <!-- PASSO 3: INFORMAÇÕES DO PROCESSO (DETALHES)-->
+            <div id="detalhes-section" class="form-section" style="display: none;">
+                <h3>3. Informações do Processo</h3>
+                
+                <div class="alert-info" style="margin-bottom: 20px; padding: 12px;">
+                    <i class="fas fa-info-circle"></i> Os campos abaixo são para as demais informações do processo.
+                </div>
+
+                <div class="detalhes-container">
+                    <div class="form-group">
+                        <label for="descricao_processo">
+                            <i class="fas fa-align-left"></i> O que é o processo?
+                        </label>
+                        <textarea id="descricao_processo" name="descricao" class="form-control" 
+                            rows="3" placeholder="Descreva o processo com as palavras do gestor..."></textarea>
+                        <small class="text-muted">Gestor diz com as suas palavras o que entende ser o processo.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="etapa_ini_processo">
+                            <i class="fas fa-play-circle"></i> Onde começa o processo?
+                        </label>
+                        <textarea id="etapa_ini_processo" name="etapa_ini" class="form-control" rows="2" placeholder="Ex: Do envio do relatório X pela área Y..."></textarea>
+                        <small class="text-muted">Onde começa o processo? - ETAPA INICIAL</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="produto_processo">
+                            <i class="fas fa-cube"></i> Qual(is) o(s) produto(s) final(is) desse processo?
+                        </label>
+                        <textarea id="produto_processo" name="produto" class="form-control" rows="2" placeholder="Ex: Relatório, Planilha, Sistema..."></textarea>
+                        <small class="text-muted">Qual(is) o(s) produto(s) final(is) desse processo?</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="etapa_fim_processo">
+                            <i class="fas fa-stop-circle"></i> Depois de acabado, para onde envia?
+                        </label>
+                        <textarea id="etapa_fim_processo" name="etapa_fim" class="form-control" 
+                            rows="2" placeholder="Ex: Área X, Arquivo físico localizado em Y..."></textarea>
+                        <small class="text-muted">Depois de acabado, para onde envia? - ETAPA FINAL</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="objetivo_processo">
+                            <i class="fas fa-bullseye"></i> Qual o objetivo do processo? E por que faz?
+                        </label>
+                        <textarea id="objetivo_processo" name="objetivo" class="form-control" 
+                            rows="2" placeholder="Garantir o que exatamente?"></textarea>
+                        <small class="text-muted">Qual o objetivo do processo e por que ele é realizado?</small>
+                    </div>
+                </div>
+
+                <!-- Botões de navegação -->
+                <div class="wizard-buttons">
+                    <button type="button" class="btn-secondary" id="btn-voltar-etapa2">
+                        ← Voltar para Informações Básicas
+                    </button>
+                    <button type="button" class="btn-primary" id="btn-salvar-detalhes">
+                        Próximo: Riscos →
+                    </button>
+                </div>
+            </div>
+
+            <!-- PASSO 4: RISCOS IDENTIFICADOS - KANBAN -->
+            <div id="riscos-section" class="form-section" style="display: none;">
+                <div class="riscos-header">
+                    <h3>4. Riscos Identificados</h3>
+                    <button type="button" id="btn-adicionar-risco" class="btn-primary">
+                        <i class="fas fa-plus"></i> Novo Risco
+                    </button>
+                </div>
+
+                <!-- Kanban Board -->
+                <div class="kanban-board">
+                    <!-- Coluna Baixo -->
+                    <div class="kanban-col" data-score-level="baixo">
+                        <div class="kanban-col-header low">
+                            <i class="fas fa-circle"></i>
+                            <span>BAIXO</span>
+                            <span class="score-range">0 - 3</span>
+                            <span class="risk-count" id="count-baixo">0</span>
+                        </div>
+                        <div class="kanban-col-body" id="col-baixo"></div>
+                    </div>
+
+                    <!-- Coluna Médio -->
+                    <div class="kanban-col" data-score-level="medio">
+                        <div class="kanban-col-header medium">
+                            <i class="fas fa-circle"></i>
+                            <span>MÉDIO</span>
+                            <span class="score-range">4 - 7</span>
+                            <span class="risk-count" id="count-medio">0</span>
+                        </div>
+                        <div class="kanban-col-body" id="col-medio"></div>
+                    </div>
+
+                    <!-- Coluna Alto -->
+                    <div class="kanban-col" data-score-level="alto">
+                        <div class="kanban-col-header high">
+                            <i class="fas fa-circle"></i>
+                            <span>ALTO</span>
+                            <span class="score-range">8 - 11</span>
+                            <span class="risk-count" id="count-alto">0</span>
+                        </div>
+                        <div class="kanban-col-body" id="col-alto"></div>
+                    </div>
+
+                    <!-- Coluna Crítico -->
+                    <div class="kanban-col" data-score-level="critico">
+                        <div class="kanban-col-header critical">
+                            <i class="fas fa-circle"></i>
+                            <span>CRÍTICO</span>
+                            <span class="score-range">12+</span>
+                            <span class="risk-count" id="count-critico">0</span>
+                        </div>
+                        <div class="kanban-col-body" id="col-critico"></div>
+                    </div>
+                </div>
+
+                <!-- Botões de navegação -->
+                <div class="wizard-buttons">
+                    <button type="button" class="btn-secondary" id="btn-voltar-etapa3">
+                        ← Voltar para Informações do Processo
+                    </button>
+                    <button type="button" class="btn-primary" id="btn-salvar-riscos">
+                        Próximo: Visualizar e finalizar →
+                    </button>
+                </div>
+            </div>
+
+            <!-- MODAL PARA RISCOS -->
+            <div id="modal-risco" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-title">Novo Risco</h3>
+                        <button type="button" class="modal-close" id="btn-fechar-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="modal-risco-idx">
+                        
+                        <div class="form-group">
+                            <label>Nome do Risco *</label>
+                            <input type="text" id="modal-nome_risco" class="form-control" placeholder="Ex: Risco de erro no fechamento">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fator de Risco (causa)</label>
+                            <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="O que causa este risco?"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ponto de Melhoria</label>
+                            <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="O que poderia ser melhorado?"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Apetite ao Risco</label>
+                            <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Nível de risco aceitável"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Categoria(s)</label>
+                            <select id="modal-categorias" class="form-control" multiple size="3">
+                                <option value="Risco Financeiro">Risco Financeiro</option>
+                                <option value="Risco Legal">Risco Legal</option>
+                                <option value="Risco Inerente">Risco Inerente</option>
+                                <option value="Risco de TI">Risco de TI</option>
+                                <option value="Risco Reputacional">Risco Reputacional</option>
+                                <option value="Risco de Integridade">Risco de Integridade</option>
+                                <option value="Risco Ambiental">Risco Ambiental</option>
+                            </select>
+                            <small class="text-muted">Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplas</small>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Impacto *</label>
+                                <select id="modal-impacto" class="form-control">
+                                    <option value="Baixo">Baixo</option>
+                                    <option value="Médio">Médio</option>
+                                    <option value="Alto">Alto</option>
+                                    <option value="Muito Alto">Muito Alto</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Probabilidade *</label>
+                                <select id="modal-probabilidade" class="form-control">
+                                    <option value="Baixo">Baixo</option>
+                                    <option value="Médio">Médio</option>
+                                    <option value="Alto">Alto</option>
+                                    <option value="Muito Alto">Muito Alto</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="modal-score-preview" class="score-preview">
+                            Score: 0 (Baixo)
+                        </div>
+
+                        <div class="form-group">
+                            <label>Motivo da Classificação</label>
+                            <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique a escolha do impacto e probabilidade"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
+                        <button type="button" class="btn-primary" id="btn-salvar-modal">Salvar Risco</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- MODAL DE VISUALIZAÇÃO DE RISCO (movido para fora do wizard) -->
+    <div id="modal-visualizar-risco" class="modal" style="display: none; z-index: 100001;">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> Visualizar Risco</h3>
+                <button type="button" class="modal-close" id="btn-fechar-visualizar-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="visualizar-risco-content">
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-tag"></i> Nome do Risco</div>
+                        <div class="vis-value" id="vis-nome_risco">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</div>
+                        <div class="vis-value" id="vis-fator_risco">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-lightbulb"></i> Ponto de Melhoria</div>
+                        <div class="vis-value" id="vis-melhoria">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite ao Risco</div>
+                        <div class="vis-value" id="vis-apetite_risco">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-tags"></i> Categoria(s)</div>
+                        <div class="vis-value" id="vis-categorias">-</div>
+                    </div>
+                    <div class="vis-row">
+                        <div class="vis-item half">
+                            <div class="vis-label"><i class="fas fa-chart-line"></i> Impacto</div>
+                            <div class="vis-value" id="vis-impacto">-</div>
+                        </div>
+                        <div class="vis-item half">
+                            <div class="vis-label"><i class="fas fa-chart-simple"></i> Probabilidade</div>
+                            <div class="vis-value" id="vis-probabilidade">-</div>
+                        </div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-calculator"></i> Score</div>
+                        <div class="vis-value" id="vis-score">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-comment"></i> Motivo da Classificação</div>
+                        <div class="vis-value" id="vis-motivo_risco">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btn-fechar-visualizar">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+
 <style>
+    /*====== MODAL WIZARD ======*/
+    .modal-wizard {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+    }
+
+    .modal-wizard-content {
+        background: #f5f7fa;
+        width: 90vw;
+        max-width: 1400px;
+        height: 90vh;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .modal-wizard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        background: white;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-wizard-header h2 {
+        margin: 0;
+        color: #184145;
+        font-size: 20px;
+    }
+
+    .modal-wizard-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        transition: all 0.2s;
+    }
+
+    .modal-wizard-close:hover {
+        color: #dc3545;
+    }
+
+    .modal-wizard-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 25px;
+    }
+
     .diagnostico-container {
         max-width: 100%;
         padding: 0 20px;
@@ -523,7 +705,7 @@
         padding: 10px 24px;
         border-radius: 8px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 500;
         transition: all 0.2s;
     }
@@ -1321,9 +1503,1163 @@
         margin: 15px 0;
         font-weight: 500;
     }
+
+    /* ===== TABELA DE PROCESSOS ===== */
+    .tabela-processos {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .tabela-processos th,
+    .tabela-processos td {
+        padding: 30px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .tabela-processos th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #184145;
+    }
+
+    .tabela-processos tr:hover {
+        background: #f8f9fa;
+    }
+
+    /* Definir largura mínima para a coluna de ações */
+    .tabela-processos th:last-child,
+    .tabela-processos td:last-child {
+        min-width: 160px;
+        white-space: nowrap;
+    }
+
+    /* Largura específica para coluna de código */
+    .tabela-processos th:first-child,
+    .tabela-processos td:first-child {
+        min-width: 120px;
+        width: 120px;
+    }
+
+
+    .btn-editar-processo {
+        background: rgba(255, 248, 153, 0.25);
+        border: 1px solid #FFCF66;
+        color: #FFCF66;
+        padding: 5px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-right: 12px;
+    }
+
+    .btn-editar-processo:hover {
+        background: #FFCF66;
+        color: white;
+    }
+
+    .btn-editar-processo i {
+        font-size: 12px;
+    }
+
+    .btn-excluir-processo {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        padding: 5px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-excluir-processo:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-excluir-processo i {
+        font-size: 12px;
+    }
+
+    /* Badges de Score */
+    .score-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .score-badge.baixo {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .score-badge.médio {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .score-badge.alto {
+        background: #ffe5d0;
+        color: #dc851a;
+    }
+
+    .score-badge.crítico {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .tabela-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .tabela-header h3 {
+        margin: 0;
+        padding: 0;
+        border: none;
+    }
+
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.2s;
+    }
+
+    .sortable:hover {
+        background: #e9ecef;
+    }
+
+    /* ===== MODAL DE VISUALIZAÇÃO DE RISCO ===== */
+    .visualizar-risco-content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .vis-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .vis-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .vis-item.half {
+        flex: 1;
+    }
+
+    .vis-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .vis-label i {
+        margin-right: 5px;
+        color: #0b5b99;
+    }
+
+    .vis-value {
+        font-size: 14px;
+        color: #333;
+        background: #f8f9fa;
+        padding: 8px 12px;
+        border-radius: 8px;
+        word-break: break-word;
+    }
+
+    /* Botão visualizar processo */
+    .btn-visualizar-processo {
+        background: none;
+        border: none;
+        color: #17a2b8;
+        cursor: pointer;
+        font-size: 14px;
+        margin-left: 8px;
+        transition: all 0.2s;
+        padding: 2px 5px;
+        border-radius: 50%;
+    }
+
+    .btn-visualizar-processo:hover {
+        color: #0c5460;
+        transform: scale(1.1);
+        background: rgba(23, 162, 184, 0.1);
+    }
+
+    /* ===== KANBAN DE VISUALIZAÇÃO ===== */
+    .kanban-board-vis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    @media (max-width: 800px) {
+        .kanban-board-vis {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .kanban-col-vis {
+        background: #f8f9fa;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .kanban-col-header-vis {
+        padding: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    .kanban-col-vis.low .kanban-col-header-vis { background: #d4edda; color: #155724; }
+    .kanban-col-vis.medium .kanban-col-header-vis { background: #fff3cd; color: #856404; }
+    .kanban-col-vis.high .kanban-col-header-vis { background: #ffe5d0; color: #dc851a; }
+    .kanban-col-vis.critical .kanban-col-header-vis { background: #f8d7da; color: #721c24; }
+
+    .kanban-col-body-vis {
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .kanban-card-vis {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        border-left: 3px solid;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .kanban-col-vis.low .kanban-card-vis { border-left-color: #28a745; }
+    .kanban-col-vis.medium .kanban-card-vis { border-left-color: #ffc107; }
+    .kanban-col-vis.high .kanban-card-vis { border-left-color: #fd7e14; }
+    .kanban-col-vis.critical .kanban-card-vis { border-left-color: #dc3545; }
+
+    .kanban-card-title-vis {
+        font-weight: 600;
+        font-size: 13px;
+        color: #184145;
+        margin-bottom: 5px;
+    }
+
+    .kanban-card-score-vis {
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .kanban-card-categoria-vis {
+        font-size: 10px;
+        color: #6c757d;
+    }
+
+    /* Estilos para a visualização do processo */
+    .vis-processo-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .vis-secao {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px;
+    }
+
+    .vis-secao h4 {
+        color: #184145;
+        font-size: 15px;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .vis-secao h4 i {
+        margin-right: 8px;
+        color: #0b5b99;
+    }
+
+    .vis-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .vis-item {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .vis-item.full-width {
+        flex: 100%;
+    }
+
+    .vis-item.half {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .vis-item label {
+        display: block;
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
+
+    .vis-item span {
+        font-size: 13px;
+        color: #333;
+        background: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        display: block;
+        word-break: break-word;
+    }
+
+    /* Modal de visualização do processo - mais largo */
+    .modal-visualizar-processo-content {
+        max-width: 1200px;
+        width: 95%;
+    }
+
 </style>
 
 <script>
+    let usuarioAutorizado = false;
+
+    // ====== ELEMENTOS DA PÁGINA PRINCIPAL ======
+    const filtroAreaSelect = document.getElementById('filtro_area_select');
+    const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
+    const btnNovoProcesso = document.getElementById('btn-novo-processo');
+    const modalWizard = document.getElementById('modal-wizard');
+    const btnFecharWizard = document.getElementById('btn-fechar-wizard')
+    const tabelaProcessosContainer = document.getElementById('tabela-processos-container');
+
+    if (btnNovoProcesso) {
+        btnNovoProcesso.addEventListener('click', abrirModalNovoProcesso);
+        console.log('✅ Evento do botão Novo Processo conectado');
+    }
+
+    // ===== ABRIR MODAL PARA NOVO PROCESSO =====
+    function abrirModalNovoProcesso() {
+        console.log('abrirModalNovoProcesso foi chamado!')
+
+        // Resetar sessionStorage para não restaurar dados antigos
+        sessionStorage.removeItem('processo_id');
+        sessionStorage.removeItem('auditoria_id');
+        sessionStorage.removeItem('modo_edicao');
+        sessionStorage.removeItem('etapa_atual');
+        sessionStorage.removeItem('detalhes_temp');
+        sessionStorage.removeItem('riscos_temp');
+        
+        // Resetar variáveis globais
+        riscosLista = [];
+        executoresSelecionados = [];
+        
+        // Resetar campos da etapa 3
+        resetarCamposDetalhes();
+
+        // Resetar campo nome do processo
+        if (nomeProcessoInput) {
+            nomeProcessoInput.value = '';
+        }
+
+        // Resetar campo do código do processo
+        if(codigoProcessoInput) {
+            codigoProcessoInput.value = '';
+        }
+        
+        // Resetar badges e lista de funcionários
+        atualizarBadges();
+        
+        // ===== HERDAR OS VALORES DO FILTRO =====
+        const areaFiltro = filtroAreaSelect.value;
+        const auditoriaFiltro = filtroAuditoriaSelect.value;
+        const areaNomeFiltro = filtroAreaSelect.options[filtroAreaSelect.selectedIndex]?.text || '';
+        
+        // Preencher área no modal
+        if (areaSelect && areaFiltro) {
+            areaSelect.value = areaFiltro;
+            // Disparar evento change para carregar funcionários e auditorias
+            const changeEvent = new Event('change');
+            areaSelect.dispatchEvent(changeEvent);
+        }
+        
+        // Aguardar o carregamento das auditorias e preencher
+        setTimeout(() => {
+            if (auditoriaSelect && auditoriaFiltro) {
+                // Verificar se a opção existe no select
+                let optionExists = false;
+                for (let i = 0; i < auditoriaSelect.options.length; i++) {
+                    if (auditoriaSelect.options[i].value == auditoriaFiltro) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                if (optionExists) {
+                    auditoriaSelect.value = auditoriaFiltro;
+                    // Disparar evento change para validar responsável
+                    const auditEvent = new Event('change');
+                    auditoriaSelect.dispatchEvent(auditEvent);
+                }
+            }
+        }, 500); // Aguardar as auditorias carregarem
+        
+        // Garantir que estamos na etapa 1
+        irParaEtapa(1);
+        
+        // Mostrar o modal
+        if (modalWizard) modalWizard.style.display = 'flex';
+    }
+
+    // ===== FECHAR MODAL WIZARD =====
+    function fecharModalWizard() {
+        if (modalWizard) {
+            modalWizard.style.display = 'none';
+        }
+    }
+
+    // Evento para fechar o modal
+    if (btnFecharWizard) {
+        btnFecharWizard.addEventListener('click', fecharModalWizard);
+    }
+
+    // Fechar ao clicar fora do modal
+    if (modalWizard) {
+        modalWizard.addEventListener('click', (e) => {
+            if (e.target === modalWizard) {
+                fecharModalWizard();
+            }
+        });
+    }
+
+    // ===== ABRIR MODAL DE VISUALIZAÇÃO DO PROCESSO =====
+    async function abrirModalVisualizarProcesso(processoId) {
+        const modal = document.getElementById('modal-visualizar-processo');
+        const conteudo = document.getElementById('visualizar-processo-conteudo');
+        
+        modal.style.display = 'flex';
+        conteudo.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando informações do processo...</div>';
+        
+        try {
+            // Buscar dados do processo
+            const response = await fetch(`/api/processo/${processoId}/dados`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Buscar riscos do processo
+                const riscosResponse = await fetch(`/api/processo/${processoId}/riscos`);
+                const riscosData = await riscosResponse.json();
+                console.log('Riscos recebidos do backend (RAW):', riscosData);
+
+                // Tentar encontrar o array de riscos
+                let riscosArray = riscosData.riscos || riscosData;
+                if (!Array.isArray(riscosArray)) {
+                    riscosArray = [];
+                }
+                console.log('Riscos array após normalização:', riscosArray);
+
+                let riscosHtml = '';
+                if (riscosArray.length > 0) {
+                    // Verificar o primeiro risco
+                    console.log('Primeiro risco:', riscosArray[0]);
+                    console.log('Propriedades:', Object.keys(riscosArray[0]));
+                    
+                    // Mapear corretamente
+                    const riscosFormatados = riscosArray.map(risco => ({
+                        nome_risco: risco.nome_risco || risco.nome || 'Risco sem nome',
+                        impacto: risco.impacto || risco.impact || 'Médio',
+                        probabilidade: risco.probabilidade || risco.probability || 'Médio',
+                        fator_risco: risco.fator_risco || '',
+                        melhoria: risco.melhoria || '',
+                        apetite_risco: risco.apetite_risco || '',
+                        motivo_risco: risco.motivo_risco || '',
+                        categorias: risco.categorias || (risco.categoria ? risco.categoria.split(',') : [])
+                    }));
+                    console.log('Riscos formatados:', riscosFormatados);
+                    riscosHtml = gerarKanbanVisualizacao(riscosFormatados);
+                } else {
+                    riscosHtml = '<div class="alert-info" style="text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> Nenhum risco identificado para este processo.</div>';
+                }
+                
+                conteudo.innerHTML = `
+                    <div class="vis-processo-container">
+                        <!-- Informações Básicas -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-tag"></i> Informações Básicas</h4>
+                            <div class="vis-grid">
+                                <div class="vis-item">
+                                    <label>Código do Processo</label>
+                                    <span>${escapeHtml(data.codigo_processo)}</span>
+                                </div>
+                                <div class="vis-item">
+                                    <label>Nome do Processo</label>
+                                    <span>${escapeHtml(data.nome_processo)}</span>
+                                </div>
+                                <div class="vis-item full-width">
+                                    <label>Executores</label>
+                                    <span>${data.executores.map(e => escapeHtml(e.nome)).join(', ') || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detalhes do Processo -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-clipboard-list"></i> Detalhes do Processo</h4>
+                            <div class="vis-grid">
+                                <div class="vis-item full-width">
+                                    <label>O que é o processo?</label>
+                                    <span>${escapeHtml(data.descricao) || '-'}</span>
+                                </div>
+                                <div class="vis-item half">
+                                    <label>Onde começa?</label>
+                                    <span>${escapeHtml(data.etapa_ini) || '-'}</span>
+                                </div>
+                                <div class="vis-item half">
+                                    <label>Produto final</label>
+                                    <span>${escapeHtml(data.produto) || '-'}</span>
+                                </div>
+                                <div class="vis-item half">
+                                    <label>Para onde envia?</label>
+                                    <span>${escapeHtml(data.etapa_fim) || '-'}</span>
+                                </div>
+                                <div class="vis-item half">
+                                    <label>Objetivo</label>
+                                    <span>${escapeHtml(data.objetivo) || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Riscos Identificados -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-chart-line"></i> Riscos Identificados</h4>
+                            ${riscosHtml}
+                        </div>
+                    </div>
+                `;
+            } else {
+                conteudo.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar dados do processo.</div>';
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            conteudo.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar dados.</div>';
+        }
+    }
+
+    // Função para gerar o Kanban na visualização
+    function gerarKanbanVisualizacao(riscos) {
+        if (!riscos || riscos.length === 0) {
+            return '<div class="alert-info" style="text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> Nenhum risco identificado para este processo.</div>';
+        }
+        
+        // Processar riscos com score e nível
+        const riscosProcessados = riscos.map((risco, idx) => {
+            const impacto = risco.impacto || 'Médio';
+            const probabilidade = risco.probabilidade || 'Médio';
+            const score = calcularScoreRisco(impacto, probabilidade);
+            let nivel = '';
+            let nivelTexto = '';
+            
+            if (score <= 4) { nivel = 'low'; nivelTexto = 'BAIXO'; }
+            else if (score <= 9) { nivel = 'medium'; nivelTexto = 'MÉDIO'; }
+            else if (score <= 12) { nivel = 'high'; nivelTexto = 'ALTO'; }
+            else { nivel = 'critical'; nivelTexto = 'CRÍTICO'; }
+            
+            // Garantir que categorias seja um array
+            let categorias = risco.categorias || [];
+            if (typeof categorias === 'string') {
+                categorias = categorias.split(',').map(c => c.trim());
+            }
+            
+            return { 
+                ...risco, 
+                nome_risco: risco.nome_risco || 'Risco sem nome',
+                score, 
+                nivel, 
+                nivelTexto,
+                categorias: categorias
+            };
+        });
+        
+        // Separar por nível
+        const baixo = riscosProcessados.filter(r => r.nivel === 'low');
+        const medio = riscosProcessados.filter(r => r.nivel === 'medium');
+        const alto = riscosProcessados.filter(r => r.nivel === 'high');
+        const critico = riscosProcessados.filter(r => r.nivel === 'critical');
+        
+        // Armazenar riscos globalmente para visualização
+        window.riscosVisualizacao = riscosProcessados;
+        
+        
+        // Gerar cards
+        const gerarCards = (riscosLista, nivelClasse) => {
+            if (riscosLista.length === 0) {
+                return '<div class="empty-col-message">Nenhum risco</div>';
+            }
+            return riscosLista.map((risco, cardIdx) => {
+                const categoriasHtml = (risco.categorias || []).map(cat => 
+                    `<span class="kanban-card-categoria-tag">${escapeHtml(cat)}</span>`
+                ).join('');
+                
+                // Usar índice do risco original
+                const originalIdx = riscosProcessados.findIndex(r => r === risco);
+                
+                return `
+                    <div class="kanban-card ${nivelClasse}">
+                        <div class="kanban-card-title">${escapeHtml(risco.nome_risco)}</div>
+                        <div class="kanban-card-score">
+                            <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
+                            <span class="kanban-card-badge prob">Prob: ${risco.probabilidade || 'Médio'}</span>
+                            <span><strong>Score: ${risco.score}</strong> (${risco.nivelTexto})</span>
+                        </div>
+                        <div class="kanban-card-categorias">
+                            ${categoriasHtml || '<span class="text-muted">Sem categorias</span>'}
+                        </div>
+                        <div class="kanban-card-actions">
+                            <button class="btn-view-risk" onclick="visualizarRiscoVisualizacao(${originalIdx})" title="Visualizar detalhes do risco">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+        
+        return `
+            <div class="kanban-board">
+                <div class="kanban-col">
+                    <div class="kanban-col-header low">
+                        <i class="fas fa-circle"></i> <span>BAIXO</span>
+                        <span class="score-range">0 - 3</span>
+                        <span class="risk-count">${baixo.length}</span>
+                    </div>
+                    <div class="kanban-col-body">
+                        ${gerarCards(baixo, 'low')}
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-header medium">
+                        <i class="fas fa-circle"></i> <span>MÉDIO</span>
+                        <span class="score-range">4 - 7</span>
+                        <span class="risk-count">${medio.length}</span>
+                    </div>
+                    <div class="kanban-col-body">
+                        ${gerarCards(medio, 'medium')}
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-header high">
+                        <i class="fas fa-circle"></i> <span>ALTO</span>
+                        <span class="score-range">8 - 11</span>
+                        <span class="risk-count">${alto.length}</span>
+                    </div>
+                    <div class="kanban-col-body">
+                        ${gerarCards(alto, 'high')}
+                    </div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-col-header critical">
+                        <i class="fas fa-circle"></i> <span>CRÍTICO</span>
+                        <span class="score-range">12+</span>
+                        <span class="risk-count">${critico.length}</span>
+                    </div>
+                    <div class="kanban-col-body">
+                        ${gerarCards(critico, 'critical')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Função global para visualizar risco no modal de visualização do processo
+    window.visualizarRiscoVisualizacaoGlobal = function(idx) {
+        console.log('🟢 visualizarRiscoVisualizacaoGlobal chamado com índice:', idx);
+        const risco = window.riscosVisualizacao ? window.riscosVisualizacao[idx] : null;
+        console.log('Risco encontrado:', risco);
+        
+        if (!risco) {
+            console.error('Risco não encontrado para índice:', idx);
+            return;
+        }
+        
+        // Preencher modal de visualização
+        document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
+        document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
+        document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
+        document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
+        document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
+        document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
+        document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
+        document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+        
+        let corScore = '';
+        if (risco.score <= 4) corScore = '🟢';
+        else if (risco.score <= 9) corScore = '🟡';
+        else if (risco.score <= 12) corScore = '🟠';
+        else corScore = '🔴';
+        
+        document.getElementById('vis-score').innerHTML = `${corScore} ${risco.score} (${risco.nivelTexto})`;
+        
+        // Abrir modal
+        const modalRisco = document.getElementById('modal-visualizar-risco');
+        if (modalRisco) {
+            modalRisco.style.display = 'flex';
+            console.log('Modal aberto');
+        } else {
+            console.error('Modal não encontrado!');
+        }
+    };
+
+    // Função global para visualizar risco
+        window.visualizarRiscoVisualizacao = function(idx) {
+            console.log('🟢 visualizarRiscoVisualizacao chamado com índice:', idx);
+            const risco = window.riscosVisualizacao[idx];
+            console.log('Risco encontrado:', risco);
+            
+            if (!risco) {
+                console.error('Risco não encontrado para índice:', idx);
+                return;
+            }
+            
+            // Verificar se os elementos existem
+            const visNomeRisco = document.getElementById('vis-nome_risco');
+            console.log('Elemento vis-nome_risco:', visNomeRisco);
+            
+            // Preencher modal de visualização
+            document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
+            document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
+            document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
+            document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
+            document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
+            document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
+            document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
+            document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+            
+            let corScore = '';
+            if (risco.score <= 4) corScore = '🟢';
+            else if (risco.score <= 9) corScore = '🟡';
+            else if (risco.score <= 12) corScore = '🟠';
+            else corScore = '🔴';
+            
+            document.getElementById('vis-score').innerHTML = `${corScore} ${risco.score} (${risco.nivelTexto})`;
+            
+            document.getElementById('modal-visualizar-risco').style.display = 'flex';
+        };
+
+
+    // ===== DESATIVAR PROCESSO (soft delete) =====
+    async function desativarProcesso(processoId) {
+        try {
+            const response = await fetch(`/api/processo/${processoId}/desativar`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                mostrarToast('✅ Processo desativado com sucesso!', 'success');
+                
+                // Recarregar a tabela de processos
+                const auditoriaId = filtroAuditoriaSelect.value;
+                if (auditoriaId) {
+                    await carregarTabelaProcessos(auditoriaId);
+                }
+            } else {
+                mostrarToast('❌ Erro ao desativar processo. Tente novamente.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao desativar processo:', error);
+            mostrarToast('❌ Erro de conexão.', 'error');
+        }
+    }
+
+    // ===== MODAL DE CONFIRMAÇÃO PERSONALIZADO =====
+    let confirmacaoResolve = null;
+
+    function mostrarConfirmacao(mensagem) {
+        return new Promise((resolve) => {
+            // Verificar se o modal já existe, se não, criar
+            let modal = document.getElementById('modalConfirmacao');
+            
+            if (!modal) {
+                // Criar modal dinamicamente
+                modal = document.createElement('div');
+                modal.id = 'modalConfirmacao';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 400px;">
+                        <div class="modal-header">
+                            <h2><i class="fas fa-question-circle"></i> Confirmar Ação</h2>
+                            <button class="modal-close" id="btnFecharConfirmacao">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="mensagemConfirmacao">Tem certeza que deseja realizar esta ação?</p>
+                            <p style="font-size: 12px; color: #666; margin-top: 10px;">Esta ação não poderá ser desfeita.</p>
+                            <div class="modal-buttons" style="margin-top: 25px;">
+                                <button type="button" class="btn-cancelar-modal" id="btnCancelarConfirmacao">Cancelar</button>
+                                <button type="button" class="btn-salvar-area" id="btnConfirmarAcao">Confirmar</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            const modalEl = document.getElementById('modalConfirmacao');
+            const mensagemEl = document.getElementById('mensagemConfirmacao');
+            const btnConfirmar = document.getElementById('btnConfirmarAcao');
+            const btnCancelar = document.getElementById('btnCancelarConfirmacao');
+            const btnFechar = document.getElementById('btnFecharConfirmacao');
+            
+            mensagemEl.textContent = mensagem;
+            modalEl.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            function resolver(valor) {
+                modalEl.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                resolve(valor);
+            }
+            
+            const handleConfirmar = () => resolver(true);
+            const handleCancelar = () => resolver(false);
+            
+            btnConfirmar.onclick = handleConfirmar;
+            btnCancelar.onclick = handleCancelar;
+            btnFechar.onclick = handleCancelar;
+            
+            modalEl.onclick = (e) => {
+                if (e.target === modalEl) resolver(false);
+            };
+        });
+    }
+
+    // ====== FILTROS DA PÁGINA PRINCIPAL ======
+    async function carregarAuditoriasFiltro(areaId) {
+        if (!areaId) {
+            filtroAuditoriaSelect.innerHTML = '<option value=""> Selecione uma área primeiro...</option>';
+            filtroAuditoriaSelect.disabled = true;
+            return;
+        }
+
+        filtroAuditoriaSelect.innerHTML = '<option value="">carregando auditorias...</option>';
+        filtroAuditoriaSelect.disabled = true;
+
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`)
+            const data = await response.json();
+
+            if (data.auditorias && data.auditorias.length > 0) {
+                filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim)`;
+                    filtroAuditoriaSelect.appendChild(option);
+                });
+                filtroAuditoriaSelect.disabled = false;
+            } else {
+                filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
+                filtroAuditoriaSelect.disabled = true;
+            }
+        } catch (error) {
+            console.error('Erro o carregar auditorias:', error);
+            filtroAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+    }
+
+        // ===== CARREGAR TABELA DE PROCESSOS COM ORDENAÇÃO =====
+        let processosData = [];
+        let ordenacaoAtual = { coluna: 'nenhuma', direcao: 'asc' };
+
+        async function carregarTabelaProcessos(auditoriaId) {
+            if (!auditoriaId) {
+                if (tabelaProcessosContainer) {
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+                }
+                return;
+            }
+            
+            tabelaProcessosContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando processos...</div>';
+            
+            try {
+                const response = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+                const data = await response.json();
+                
+                if (!data.success || !data.processos || data.processos.length === 0) {
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Nenhum processo encontrado para esta auditoria.</div>';
+                    return;
+                }
+                
+                // Buscar riscos para cada processo
+                for (const processo of data.processos) {
+                    const riscosResponse = await fetch(`/api/processo/${processo.id}/riscos`);
+                    const riscosData = await riscosResponse.json();
+                    
+                    let scoreMaximo = 0;
+                    let corScore = '';
+                    let textoScore = '';
+                    
+                    if (riscosData.riscos && riscosData.riscos.length > 0) {
+                        scoreMaximo = Math.max(...riscosData.riscos.map(r => r.score_risco || 0));
+                        
+                        if (scoreMaximo <= 4) {
+                            corScore = '🟢';
+                            textoScore = 'baixo';
+                        } else if (scoreMaximo <= 9) {
+                            corScore = '🟡';
+                            textoScore = 'médio';
+                        } else if (scoreMaximo <= 12) {
+                            corScore = '🟠';
+                            textoScore = 'alto';
+                        } else {
+                            corScore = '🔴';
+                            textoScore = 'crítico';
+                        }
+                    } else {
+                        corScore = '⚪';
+                        textoScore = 'sem-risco';
+                    }
+                    
+                    processo.scoreMaximo = scoreMaximo;
+                    processo.corScore = corScore;
+                    processo.textoScore = textoScore;
+                    processo.qtdRiscos = riscosData.riscos ? riscosData.riscos.length : 0;
+                }
+                
+                // Manter a ordem original do backend (já ordenada corretamente)
+                processosData = data.processos;
+                
+                // Resetar a ordenação (mostrar na ordem do backend)
+                ordenacaoAtual = { coluna: 'nenhuma', direcao: 'asc' };
+                
+                renderizarTabela();
+                
+            } catch (error) {
+                console.error('Erro ao carregar processos:', error);
+                tabelaProcessosContainer.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar processos. Tente novamente.</div>';
+            }
+        }
+
+        function ordenarProcessos(coluna) {
+            if (ordenacaoAtual.coluna === coluna) {
+                ordenacaoAtual.direcao = ordenacaoAtual.direcao === 'asc' ? 'desc' : 'asc';
+            } else {
+                ordenacaoAtual.coluna = coluna;
+                ordenacaoAtual.direcao = 'asc';
+            }
+            
+            processosData.sort((a, b) => {
+                let valorA, valorB;
+                
+                switch(coluna) {
+                    case 'codigo':
+                        // Extrair a parte depois do ponto e converter para número
+                        const numA = parseInt(a.codigo_processo.split('.')[1], 10);
+                        const numB = parseInt(b.codigo_processo.split('.')[1], 10);
+                        valorA = numA;
+                        valorB = numB;
+                        break;
+                    case 'nome':
+                        valorA = a.nome_processo.toLowerCase();
+                        valorB = b.nome_processo.toLowerCase();
+                        break;
+                    case 'score':
+                        valorA = a.scoreMaximo;
+                        valorB = b.scoreMaximo;
+                        break;
+                    case 'riscos':
+                        valorA = a.qtdRiscos;
+                        valorB = b.qtdRiscos;
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (valorA < valorB) return ordenacaoAtual.direcao === 'asc' ? -1 : 1;
+                if (valorA > valorB) return ordenacaoAtual.direcao === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderizarTabela();
+        }
+
+        function renderizarTabela() {
+            let html = `
+                <div style="overflow-x: auto;">
+                    <table class="tabela-processos">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-coluna="codigo">Código ${ordenacaoAtual.coluna === 'codigo' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
+                                <th class="sortable" data-coluna="nome">Nome do Processo ${ordenacaoAtual.coluna === 'nome' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
+                                <th>Objetivo</th>
+                                <th class="sortable" data-coluna="score">Score Máximo ${ordenacaoAtual.coluna === 'score' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
+                                <th class="sortable" data-coluna="riscos">Riscos ${ordenacaoAtual.coluna === 'riscos' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            for (const processo of processosData) {
+                const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
+                
+                let botoesHtml = '';
+                
+                if (isAdmin) {
+                    botoesHtml = `
+                        <button class="btn-editar-processo" data-processo-id="${processo.id}" data-processo-codigo="${processo.codigo_processo}">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn-excluir-processo" data-processo-id="${processo.id}" data-processo-nome="${escapeHtml(processo.nome_processo)}">
+                            <i class="fas fa-trash-alt"></i> Excluir
+                        </button>
+                    `;
+                } else {
+                    if (usuarioAutorizado) {
+                        botoesHtml = `
+                            <button class="btn-editar-processo" data-processo-id="${processo.id}" data-processo-codigo="${processo.codigo_processo}">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                        `;
+                    } else {
+                        botoesHtml = `<span class="text-muted">-</span>`;
+                    }
+                }
+                
+                html += `
+                    <tr>
+                        <td>
+                            <strong>${escapeHtml(processo.codigo_processo)}</strong>
+                            <button class="btn-visualizar-processo" data-processo-id="${processo.id}" title="Clique para visualizar todas as informações do processo">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                        <td>${escapeHtml(processo.nome_processo)}</td>
+                        <td>${escapeHtml(processo.objetivo || '-')}</td>
+                        <td><span class="score-badge ${processo.textoScore}">${processo.corScore} ${processo.scoreMaximo}</span></td>
+                        <td>${processo.qtdRiscos}</td>
+                        <td>${botoesHtml}</td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            tabelaProcessosContainer.innerHTML = html;
+            
+            // Adicionar eventos de ordenação
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const coluna = th.getAttribute('data-coluna');
+                    ordenarProcessos(coluna);
+                });
+            });
+            
+            // Adicionar eventos aos botões de editar
+            document.querySelectorAll('.btn-editar-processo').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const processoId = btn.getAttribute('data-processo-id');
+                    const processoCodigo = btn.getAttribute('data-processo-codigo');
+                    abrirModalEdicao(processoId, processoCodigo);
+                });
+            });
+
+            // Adicionar eventos aos botões de excluir
+            document.querySelectorAll('.btn-excluir-processo').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const processoId = btn.getAttribute('data-processo-id');
+                    const processoNome = btn.getAttribute('data-processo-nome');
+                    
+                    const confirmado = await mostrarConfirmacao(`Tem certeza que deseja desativar o processo "${processoNome}"?`);
+                    if (confirmado) {
+                        await desativarProcesso(processoId);
+                    }
+                });
+            });
+            
+            // Adicionar eventos aos botões de visualizar processo
+            document.querySelectorAll('.btn-visualizar-processo').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const processoId = btn.getAttribute('data-processo-id');
+                    abrirModalVisualizarProcesso(processoId);
+                });
+            });
+        }
+
+    // Evento de filtro da área
+    if (filtroAreaSelect) {
+        filtroAreaSelect.addEventListener('change', () => {
+            const areaId = filtroAreaSelect.value;
+            carregarAuditoriasFiltro(areaId);
+            // Limpar tabela quando mudar de área
+            if (tabelaProcessosContainer) {
+                tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.</div>'
+            }
+        });
+    }
+
+    // Evento do filtro de auditoria
+    if (filtroAuditoriaSelect) {
+        filtroAuditoriaSelect.addEventListener('change', () => {
+            const auditoriaId = filtroAuditoriaSelect.value;
+            const btnNovoProcesso = document.getElementById('btn-novo-processo');
+            
+            if (auditoriaId) {
+                // Verificar responsável antes de mostrar o botão
+                verificarResponsavelEAcao(auditoriaId, () => {
+                    usuarioAutorizado = true;
+                    if (btnNovoProcesso) btnNovoProcesso.style.display = 'flex';
+                    carregarTabelaProcessos(auditoriaId);
+                }, () => {
+                    usuarioAutorizado = false
+                    if (btnNovoProcesso) btnNovoProcesso.style.display = 'none';
+                    if (tabelaProcessosContainer) {
+                        tabelaProcessosContainer.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-lock"></i> Você não tem permissão para visualizar processos desta auditoria.</div>';
+                    }
+                });
+            } else {
+                if (btnNovoProcesso) btnNovoProcesso.style.display = 'none';
+                if (tabelaProcessosContainer) {
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+                }
+            }
+        });
+    }
 
     // ===== BOTÃO PRÓXIMO DA SEÇÃO 1 =====
     const btnProximoEtapa2 = document.getElementById('btn-proximo-etapa2');
@@ -1362,9 +2698,6 @@
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
     }
-
-    // Flag para controlar carregamento da página
-    let isLoadingPage = true;
 
     // ===== RESETAR CAMPOS DA SEÇÃO 3 =====
     function resetarCamposDetalhes() {
@@ -2225,164 +3558,6 @@
         }
     }
 
-    // ===== VERIFICAR RASCUNHO SALVO AO CARREGAR PÁGINA =====
-    async function verificarRascunho() {
-        const processoId = sessionStorage.getItem('processo_id');
-        const auditoriaId = sessionStorage.getItem('auditoria_id');
-        const modoEdicao = sessionStorage.getItem('modo_edicao');
-        const etapaSalva = sessionStorage.getItem('etapa_atual');
-        const areaSalva = sessionStorage.getItem('area_id_selecionada');
-        
-        console.log(`🔍 Verificando rascunho: processoId=${processoId}, etapaSalva=${etapaSalva}, areaSalva=${areaSalva}`);
-        
-        // ===== RESTAURAR ETAPA VISUAL MESMO SEM PROCESSO (apenas navegação) =====
-        if (etapaSalva && etapaSalva > 1 && (!processoId || !auditoriaId || modoEdicao !== 'true')) {
-            console.log(`🔄 Restaurando apenas etapa visual: ${etapaSalva}`);
-            
-            // Restaurar área se disponível
-            if (areaSalva) {
-                const areaSelectEl = document.getElementById('area_select');
-                if (areaSelectEl) {
-                    areaSelectEl.value = areaSalva;
-                    const changeEvent = new Event('change');
-                    areaSelectEl.dispatchEvent(changeEvent);
-                    await carregarFuncionariosArea(parseInt(areaSalva));
-                }
-            }
-
-             // Restaurar auditoria se disponível
-            const auditoriaSalva = sessionStorage.getItem('auditoria_id');
-            if (auditoriaSalva) {
-                // Aguardar um pouco para o select de auditoria ser populado
-                setTimeout(() => {
-                    const auditoriaSelectEl = document.getElementById('auditoria_select');
-                    if (auditoriaSelectEl && auditoriaSelectEl.options.length > 0) {
-                        auditoriaSelectEl.value = auditoriaSalva;
-                        console.log(`🔄 Auditoria restaurada visualmente: ${auditoriaSalva}`);
-                    }
-                }, 500);
-            }
-            
-            irParaEtapa(parseInt(etapaSalva));
-            return;
-        }
-        
-        // Se não há processo salvo, NÃO fazer nada - manter o que o usuário já tinha
-        if (!processoId || !auditoriaId || modoEdicao !== 'true') {
-            console.log(`📌 Nenhum processo em andamento. Não restaurando nada.`);
-            return;
-        }
-        
-        // ===== A PARTIR DAQUI: RESTAURAÇÃO COMPLETA COM DADOS DO BANCO =====
-        console.log(`📝 Continuando sessão: Processo ${processoId}, etapa ${etapaSalva}`);
-        
-        // ===== PASSO 1: Restaurar a área selecionada =====
-        if (areaSalva) {
-            const areaSelectEl = document.getElementById('area_select');
-            if (areaSelectEl) {
-                areaSelectEl.value = areaSalva;
-                // Disparar evento 'change' para carregar as auditorias da área
-                const changeEvent = new Event('change');
-                areaSelectEl.dispatchEvent(changeEvent);
-                console.log(`🔄 Área restaurada: ${areaSalva}`);
-                
-                // ===== CARREGAR FUNCIONÁRIOS DA ÁREA RESTAURADA =====
-                await carregarFuncionariosArea(parseInt(areaSalva));
-            }
-        }
-        
-        // ===== PASSO 2: Aguardar as auditorias carregarem e restaurar a auditoria =====
-        const waitForAuditoria = setInterval(async () => {
-            const auditoriaSelectEl = document.getElementById('auditoria_select');
-            
-            // Verificar se as auditorias já foram carregadas (options > 1)
-            if (auditoriaSelectEl && auditoriaSelectEl.options.length > 1) {
-                clearInterval(waitForAuditoria);
-                
-                // Restaurar auditoria
-                auditoriaSelectEl.value = auditoriaId;
-                console.log(`🔄 Auditoria restaurada: ${auditoriaId}`);
-                
-                // Disparar evento 'change' para verificar responsável e habilitar botão
-                const auditEvent = new Event('change');
-                auditoriaSelectEl.dispatchEvent(auditEvent);
-                
-                // ===== PASSO 3: Aguardar a autorização e depois ir para a etapa =====
-                setTimeout(async () => {
-                    try {
-                        const response = await fetch(`/api/processo/${processoId}/dados`);
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                            // Preencher nome do processo
-                            if (data.nome_processo) {
-                                const nomeInput = document.getElementById('nome_processo');
-                                if (nomeInput) nomeInput.value = data.nome_processo;
-                            }
-                            
-                            // Preencher código
-                            if (data.codigo_processo) {
-                                const codigoInput = document.getElementById('codigo_processo');
-                                if (codigoInput) {
-                                    codigoInput.value = data.codigo_processo;
-                                    codigoInput.style.backgroundColor = '#e8f4f8';
-                                }
-                            }
-                            
-                            // Preencher executores
-                            if (data.executores && data.executores.length > 0) {
-                                executoresSelecionados = data.executores;
-                                atualizarBadges();
-                                exibirListaFuncionarios();
-                            }
-                            
-                            // Salvar detalhes temporários (seção 3)
-                            if (data.descricao || data.etapa_ini || data.produto || data.etapa_fim || data.objetivo) {
-                                sessionStorage.setItem('detalhes_temp', JSON.stringify({
-                                    descricao: data.descricao || '',
-                                    etapa_ini: data.etapa_ini || '',
-                                    produto: data.produto || '',
-                                    etapa_fim: data.etapa_fim || '',
-                                    objetivo: data.objetivo || ''
-                                }));
-                            }
-                            
-                            // Carregar riscos (seção 4)
-                            if (data.riscos && data.riscos.length > 0) {
-                                riscosLista = data.riscos;
-                                renderizarKanban();
-                                salvarRiscosNoStorage();
-                            }
-                            
-                            // Habilitar botão próximo
-                            const btnProximo = document.getElementById('btn-proximo-etapa3');
-                            if (btnProximo && data.executores && data.executores.length > 0) {
-                                btnProximo.disabled = false;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Erro ao carregar dados do processo:', error);
-                    }
-                    
-                    // ===== PASSO 4: Ir para a etapa salva =====
-                    const etapaParaIr = etapaSalva ? parseInt(etapaSalva) : 2;
-                    console.log(`🔄 Restaurando etapa ${etapaParaIr}`);
-                    irParaEtapa(etapaParaIr);
-                    
-                }, 800);
-            }
-        }, 200);
-        
-        // Timeout para não ficar esperando infinitamente
-        setTimeout(() => {
-            const auditoriaSelectEl = document.getElementById('auditoria_select');
-            if (!auditoriaSelectEl || auditoriaSelectEl.options.length <= 1) {
-                console.warn('⚠️ Timeout: não foi possível carregar as auditorias');
-                irParaEtapa(1);
-            }
-        }, 10000);
-    }
-
     // ====== ETAPA 3: INFORMAÇÕES DO PROCESSO ======
     let detalhesCarregados = false;
 
@@ -2762,7 +3937,32 @@
     } 
 
     function visualizarRisco(idx) {
-        abrirModal('visualizar', idx);
+        const risco = riscosLista[idx];
+        if (!risco) return;
+        
+        // Preencher os campos do modal de visualização
+        document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
+        document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
+        document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
+        document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
+        document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
+        document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
+        document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
+        document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+        
+        // Calcular score
+        const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+        const levelText = getScoreLevelText(score);
+        let corScore = '';
+        if (score <= 4) corScore = '🟢';
+        else if (score <= 9) corScore = '🟡';
+        else if (score <= 12) corScore = '🟠';
+        else corScore = '🔴';
+        
+        document.getElementById('vis-score').innerHTML = `${corScore} ${score} (${levelText})`;
+        
+        // Mostrar modal
+        document.getElementById('modal-visualizar-risco').style.display = 'flex';
     }
 
     function editarRisco(idx) {
@@ -3032,8 +4232,62 @@
     // Chamar auto-save quando riscos forem alterados (dentro de salvarDoModal e removerRisco)
     // Adicione autoSaveRiscosDebounced() dentro de salvarDoModal e removerRisco
 
-    // Chamar ao carregar a página para restaurar sessão
-    verificarRascunho();
+    // ===== VERIFICAR RESPONSÁVEL PELA AUDITORIA (para o filtro) =====
+    async function verificarResponsavelEAcao(auditoriaId, onAutorizado, onNaoAutorizado) {
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const data = await response.json();
+            
+            if (data.autorizado) {
+                if (onAutorizado) onAutorizado();
+            } else {
+                if (onNaoAutorizado) onNaoAutorizado();
+                mostrarToast('Você não tem permissão para acessar esta auditoria.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao verificar responsável:', error);
+            if (onNaoAutorizado) onNaoAutorizado();
+            mostrarToast('Erro ao verificar permissão.', 'error');
+        }
+    }
+
+    // Eventos para fechar modal de visualização
+    const btnFecharVisualizar = document.getElementById('btn-fechar-visualizar');
+    const btnFecharVisualizarModal = document.getElementById('btn-fechar-visualizar-modal');
+    const modalVisualizar = document.getElementById('modal-visualizar-risco');
+
+    function fecharModalVisualizar() {
+        if (modalVisualizar) modalVisualizar.style.display = 'none';
+    }
+
+    if (btnFecharVisualizar) {
+        btnFecharVisualizar.addEventListener('click', fecharModalVisualizar);
+    }
+    if (btnFecharVisualizarModal) {
+        btnFecharVisualizarModal.addEventListener('click', fecharModalVisualizar);
+    }
+    if (modalVisualizar) {
+        modalVisualizar.addEventListener('click', (e) => {
+            if (e.target === modalVisualizar) fecharModalVisualizar();
+        });
+    }
+
+    // Eventos do modal de visualização do processo
+    const modalVisProcesso = document.getElementById('modal-visualizar-processo');
+    const btnFecharVisProcesso = document.getElementById('btn-fechar-visualizar-processo');
+    const btnFecharVisProcessoFooter = document.getElementById('btn-fechar-visualizar-processo-footer');
+
+    function fecharModalVisualizarProcesso() {
+        if (modalVisProcesso) modalVisProcesso.style.display = 'none';
+    }
+
+    if (btnFecharVisProcesso) btnFecharVisProcesso.addEventListener('click', fecharModalVisualizarProcesso);
+    if (btnFecharVisProcessoFooter) btnFecharVisProcessoFooter.addEventListener('click', fecharModalVisualizarProcesso);
+    if (modalVisProcesso) {
+        modalVisProcesso.addEventListener('click', (e) => {
+            if (e.target === modalVisProcesso) fecharModalVisualizarProcesso();
+        });
+    }
 
 </script>
 {% endblock %}

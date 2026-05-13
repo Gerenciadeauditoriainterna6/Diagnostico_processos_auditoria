@@ -506,6 +506,69 @@ def api_salvar_processo_detalhes():
         print(f"❌ Erro ao salvar detalhes: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/processo/<int:processo_id>/desativar', methods=['PUT'])
+def api_desativar_processo(processo_id):
+    """Desativa um processo (soft delete)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE processos 
+                SET status = 'Inativo'
+                WHERE id = :processo_id
+            """)
+            conn.execute(query, {'processo_id': processo_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Processo desativado'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao desativar processo: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/processo/<int:processo_id>/riscos')
+def api_processo_riscos(processo_id):
+    """Retorna os riscos de um processo para cálculo do score máximo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Retornar TODOS os campos do risco, não apenas id e score_risco
+            query = text("""
+                SELECT id, nome_risco, fator_risco, melhoria, apetite_risco,
+                       impacto, probabilidade, motivo_risco, categoria,
+                       score_risco
+                FROM riscos
+                WHERE processo_id = :processo_id
+            """)
+            result = conn.execute(query, {'processo_id': processo_id}).fetchall()
+            
+            riscos = []
+            for row in result:
+                # Converter categoria (string separada por vírgula) para lista
+                categorias = row[8].split(',') if row[8] else []
+                riscos.append({
+                    'id': row[0],
+                    'nome_risco': row[1] or '',
+                    'fator_risco': row[2] or '',
+                    'melhoria': row[3] or '',
+                    'apetite_risco': row[4] or '',
+                    'impacto': row[5] or 'Médio',
+                    'probabilidade': row[6] or 'Médio',
+                    'motivo_risco': row[7] or '',
+                    'categorias': [c.strip() for c in categorias if c.strip()],
+                    'score_risco': row[9] or 0
+                })
+            
+            return jsonify({'success': True, 'riscos': riscos})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/processo/<int:processo_id>/dados')
 def api_processo_dados(processo_id):
     from database import engine
@@ -649,6 +712,37 @@ def api_salvar_processo_riscos():
             
     except Exception as e:
         print(f"❌ Erro ao salvar riscos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/processos-por-auditoria')
+def api_processos_por_auditoria():
+    """Retorna todos os processos de uma auditoria"""
+    from database import engine
+    from sqlalchemy import text
+
+    auditoria_id = request.args.get('auditoria_id')
+    if not auditoria_id:
+        return jsonify({'success': False, 'error': 'auditoria_id é obrigatório'}), 400
+    
+    try:
+        with engine.connect() as conn:
+            # Ordenação correta: converte a parte após o ponto para inteiro
+            query = text("""
+                SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo
+                FROM processos p
+                JOIN auditoria_processos ap ON p.id = ap.processo_id
+                WHERE ap.auditoria_id = :auditoria_id
+                ORDER BY 
+                    CAST(SUBSTRING(p.codigo_processo FROM '^[0-9]+') AS INTEGER),
+                    CAST(SUBSTRING(p.codigo_processo FROM '[0-9]+$') AS INTEGER)
+            """)
+            result = conn.execute(query, {'auditoria_id': auditoria_id})
+            processos = [dict(row._mapping) for row in result]
+
+            return jsonify({'success': True, 'processos': processos})
+    
+    except Exception as e:
+        print(f"❌ Erro ao buscar processos: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
                            
 
