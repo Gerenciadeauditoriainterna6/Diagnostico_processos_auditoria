@@ -1430,6 +1430,15 @@
         border: 1px dashed #ddd;
     }
 
+    /* Toast container - sempre acima de tudo */
+    #toast-container {
+        z-index: 200000 !important;
+    }
+
+    .toast-notification {
+        z-index: 200001 !important;
+    }
+
     /* ===== MODAL ===== */
     .modal {
         position: fixed;
@@ -1848,6 +1857,25 @@
         max-width: 1200px;
         width: 95%;
     }
+
+    /* Apenas o container principal dos toasts (onde eles são empilhados) */
+    .toast-container,
+    #toastContainer,
+    #toast-container {
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        z-index: 2147483647 !important;
+    }
+
+    /* Apenas o toast individual (o card em si) */
+    .toast,
+    .toast-notification {
+        position: relative !important;  /* ou manter o que já tem, sem fixed */
+        z-index: 2147483648 !important;
+    }
+
+/* Nada mais! Não force position fixed em elementos internos */
 
 </style>
 
@@ -3091,7 +3119,7 @@
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                z-index: 9999;
+                z-index: 100000000 !important;
             `;
             document.body.appendChild(toastContainer);
         }
