@@ -350,6 +350,98 @@
                 </div>
             </div>
 
+            <!--PASSO 5: VISUALIZAR E FINALIZAR-->
+            <div id="visualizar-section" class="form-section" style="display:none;">
+                <h3><i class="fas fa-clipboard-check"></i>5. Visualização</h3>
+                <p class="text-muted" style="margin-bottom: 20px;">Revise todas as informações do processo antes de finalizar.</p>
+
+                <!--===== RESUMO DO PROCESSO ===== -->
+                <div class="resumo-container">
+
+                    <!-- Card: Informações Básicas -->
+                    <div class="resumo-card">
+                        <div class="resumo-card-header">
+                            <i class="fas fa-tag"></i>
+                            <h4>Informações Básicas</h4>
+                        </div>
+                        <div class="resumo-card-body">
+                            <div class="resumo-grid">
+                                <div class=resumo-item>
+                                    <label>Código do Processo</label>
+                                    <span id="resumo-codigo">-</span>
+                                </div>
+                                <div class="resumo-item">
+                                    <label>Nome do Processo</label>
+                                    <span id="resumo-nome">-</span>
+                                </div>
+                                <div class="resumo-item full-width">
+                                    <label>Executores</label>
+                                    <span id="resumo-executores">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card: Detalhes do Processo -->
+                    <div class="resumo-card">
+                        <div class="resumo-card-header">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h4>Detalhes do Processo</h4>
+                        </div>
+                        <div class="resumo-card-body">
+                            <div class="resumo-grid">
+                                <div class="resumo-item full width">
+                                    <label>O que é o processo?</label>
+                                    <span id="resumo-descricao">-</span>
+                                </div>
+                                <div class="resumo-item half">
+                                    <label>Onde começa?</label>
+                                    <span id="resumo-etapa-ini">-</span>
+                                </div>
+                                <div class="resumo-item half">
+                                    <label>Produto final</label>
+                                    <span id="resumo-produto">-</span>
+                                </div>
+                                <div class="resumo-item half">
+                                    <label>Para onde envia?</label>
+                                    <span id="resumo-etapa-fim">-</span>
+                                </div>
+                                <div class="resumo-item half">
+                                    <label>Objetivo</label>
+                                    <span id="resumo-objetivo">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card:: Riscos Identificados -->
+                     <div class="resumo-card">
+                        <div class="resumo-card-header">
+                            <i class="fas fa-chart-line"></i>
+                            <h4>Riscos Identificados</h4>
+                            <span id="resumo-qtd-riscos" class="resumo-badge">0 riscos</span>
+                        </div>
+                        <div class="resumo-card-body">
+                            <div id="resumo-riscos-container" class="riscos-resumo-container">
+                                <div class="empty-message">Nenhum risco cadastrado</div>
+                            </div>
+                        </div>
+                     </div>
+
+                </div>
+
+                <!-- Botões de navegação -->
+                <div class="wizard-buttons">
+                    <button type="button" class="btn-secondary" id="btn-voltar-etapa4">
+                        ← Voltar para Riscos
+                    </button>
+                    <button type="button" class="btn-finalizar" id="btn-finalizar-processo">
+                        <i class="fas fa-check-circle"></i> Finalizar Cadastro de Processo
+                    </button>
+                </div>
+            </div>
+
+
             <!-- MODAL PARA RISCOS -->
             <div id="modal-risco" class="modal" style="display: none;">
                 <div class="modal-content">
@@ -2179,6 +2271,205 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
+    /* ===== ESTILOS PARA ETAPA 5 - VISUALIZAÇÃO ===== */
+    .resumo-container {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+        margin-bottom: 25px;
+    }
+
+    .resumo-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .resumo-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .resumo-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .resumo-card-header i {
+        font-size: 20px;
+        color: #0b5b99;
+    }
+
+    .resumo-card-header h4 {
+        margin: 0;
+        font-size: 16px;
+        color: #184145;
+        font-weight: 600;
+    }
+
+    .resumo-badge {
+        margin-left: auto;
+        background: #e8f4f8;
+        color: #0b5b99;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .resumo-card-body {
+        padding: 20px;
+    }
+
+    .resumo-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .resumo-item {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .resumo-item.full-width {
+        flex: 100%;
+    }
+
+    .resumo-item.half {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .resumo-item label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px
+    }
+
+    .resumo-item span {
+        display: block;
+        font-size: 14px;
+        color: #333;
+        background: #f8f9fa;
+        padding: 8px 12px;
+        border-radius: 8px;
+        word-break: break-word;
+        border-left: 3px solid #0b5b99;
+    }
+
+    /* Riscos dentro do resumo */
+    .riscos-resumo-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .resumo-risco-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border-left: 4px solid;
+        transition: all 0.2s;
+    }
+
+    .resumo-risco-card:hover {
+        transform: translateX(3px);
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .resumo-risco-card.low {border-left-color: #28a745; }
+    .resumo-risco-card.medium { border-left-color: #ffc107; }
+    .resumo-risco-card.high { border-left-color: #fd7e14; }
+    .resumo-risco-card-critical { border-left-color: #dc3545; }
+
+    .resumo-risco-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .resumo-risco-nome {
+        font-weight: 600;
+        font-size: 15px;
+        color: #184145;
+    }
+
+    .resumo-risco-score {
+        background: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .resumo-risco-detalhes {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+        font-size: 13px
+    }
+
+    .resumo-risco-detalhes .detalhe {
+        display: flex;
+        flex-direction: columns;
+        gap: 2px;
+    }
+
+    .resumo-risco-detalhes .detalhe-label {
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+    }
+
+    .resumo-risco-detalhes .detalhe-value {
+        color: #333;
+    }
+
+    /* Botão Finalizar */
+    .btn-finalizar {
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        color: white;
+        border: none;
+        padding: 10px 28px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px
+    }
+
+    .btn-finalizar:hover {
+        transform: translateU(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    .empty-message {
+        text-align: center;
+        color: #999;
+        padding: 30px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        font-size: 14px;
+    }
+
 
 </style>
 
@@ -3859,6 +4150,9 @@
             if (etapa === 4) {
                 carregarRiscosProcesso();
             }
+            if (etapa === 5) {
+                carregarResumoProcesso();
+            }
         }, 50);
     }
 
@@ -4473,6 +4767,24 @@
         }
 
         habilitarNavegacaoEtapas();
+        
+        // ===== NOVOS EVENT LISTENERS PARA ETAPA 5 =====
+        
+        // Botão voltar da etapa 5 para etapa 4
+        const btnVoltarEtapa4 = document.getElementById('btn-voltar-etapa4');
+        if (btnVoltarEtapa4) {
+            btnVoltarEtapa4.addEventListener('click', () => {
+                irParaEtapa(4);
+            });
+        }
+        
+        // Botão finalizar processo
+        const btnFinalizar = document.getElementById('btn-finalizar-processo');
+        if (btnFinalizar) {
+            btnFinalizar.addEventListener('click', () => {
+                finalizarWizard();
+            });
+        }
     });
 
     function visualizarRisco(idx) {
@@ -5163,6 +5475,129 @@
         } catch (error) {
             console.error('Erro ao salvar detalhes:', error);
         }
+    }
+
+    // ===== CARREGAR RESUMO DO PROCESSO NA ETAPA 5 =====
+    function carregarResumoProcesso() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) {
+            console.log('❌ Nenhum processo_id encontrado')
+            return;
+        }
+
+        // Buscar dados do backend para garantir dados atualizados
+        fetch(`/api/processo/${processoId}/dados`)
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                // Informações Básicas
+                document.getElementById('resumo-codigo').textContent = data.codigo_processo || '-';
+                document.getElementById('resumo-nome').textContent = data.nome_processo || '-';
+                
+                const executoresNomes = data.executores.map(e => e.nome).join(', ');
+                document.getElementById('resumo-executores').textContent = executoresNomes || '-';
+
+                // Detalhes do Processo
+                document.getElementById('resumo-descricao').textContent = data.descricao || '-';
+                document.getElementById('resumo-etapa-ini').textContent = data.etapa_ini || '-';
+                document.getElementById('resumo-produto').textContent = data.produto || '-';
+                document.getElementById('resumo-etapa-fim').textContent = data.etapa_fim || '-';
+                document.getElementById('resumo-objetivo').textContent = data.objetivo || '-';
+
+                // Riscos
+                const riscos = data.riscos || [];
+                document.getElementById('resumo-qtd-riscos').textContent = `${riscos.length} ${riscos.length === 1 ? 'risco': 'riscos'}`;
+
+                const container = document.getElementById('resumo-riscos-container');
+                if (riscos.length === 0) {
+                    container.innerHTML = '<div class="empty-message">📌 Nenhum risco cadastrado para este processo.</div>';
+                } else {
+                    container.innerHTML = riscos.map(risco => {
+                        // Calcular score e nível
+                        const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+                        let nivel = 'low';
+                        let nivelTexto = 'BAIXO';
+                        if (score <= 4) { nivel ='low'; nivelTexto = 'BAIXO'; }
+                        else if (score <= 9) { nivel = 'medium'; nivelTexto = "MÉDIO"; }
+                        else if (score <= 12) { nivel = 'high'; nivelTexto = "ALTO"; }
+                        else { nivel = 'critical'; nivelTexto = 'CRÍTICO'; }
+
+                        let corScore = '';
+                        if (score <= 4) corScore = '🟢';
+                        else if (score <= 9) corScore = '🟡';
+                        else if (score <= 12) corScore = '🟠';
+                        else corScore = '🔴';
+
+                        return `
+                            <div class="resumo-risco-card ${nivel}">
+                                <div class="resumo-risco-header">
+                                    <span class="resumo-risco-nome">${escapeHtml(risco.nome_risco)}</span>
+                                    <span class="resumo-risco-score">${corScore} ${score} (${nivelTexto})</span>
+                                </div>
+                                <div class="resumo-risco-detalhes">
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Impacto</span>
+                                        <span class="detalhe-value">${risco.impacto || 'Médio'}</span>
+                                    </div>
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Probabilidade</span>
+                                        <span class="detalhe-value">${risco.probabilidade || 'Médio'}</span>
+                                    </div>
+                                    ${risco.categorias && risco.categorias.length ? `
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Categorias</span>
+                                        <span class="detalhe-value">${risco.categorias.join(', ')}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${risco.como_tratar ? `
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Tratamento</span>
+                                        <span class="detalhe-value">${escapeHtml(risco.como_tratar)}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${risco.prazo_implantacao ? `
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Prazo</span>
+                                        <span class="detalhe-value">${formatarDataParaExibicao(risco.prazo_implantacao)}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('❌ Erro ao carregar resumo:', error);
+        });
+    }
+
+    // ===== FINALIZAR PROCESSO (fecha wizard e recarrega a tabela) =====
+    function finalizarWizard() {
+        // Fechar o modal
+        if (modalWizard) {
+            modalWizard.style.display = 'none';
+        }
+
+        // Recarregar a tabela de processos (mantendo área e auditoria selecionadas)
+        const auditoriaId = filtroAuditoriaSelect.value;
+        if (auditoriaId) {
+            carregarTabelaProcessos(auditoriaId);
+            mostrarToast('✅ Processo salvo com sucesso!', 'success');
+        } else {
+            // Se não tiver auditoria selecionada, apenas limpar
+            if (tabelaProcessosContainer) {
+                tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.</div>';
+            }
+        }
+
+        // Limpar sessionStorage (opcional, para nã interferir em próximos processos)
+        sessionStorage.removeItem('processo_id');
+        sessionStorage.removeItem('modo_edicao');
+        sessionStorage.removeItem('riscos_temp');
+        sessionStorage.removeItem('detalhes_temp');
+        sessionStorage.removeItem('etapa_atual');
     }
 </script>
 {% endblock %}
