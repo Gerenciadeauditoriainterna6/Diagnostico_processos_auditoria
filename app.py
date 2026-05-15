@@ -326,12 +326,16 @@ def api_area_funcionarios_para_select(area_id):
 # ====== API - SALVAR INFORMAÇÕES BÁSICAS DO PROCESSO ======
 @app.route('/api/processo/salvar-basico', methods=['POST'])
 def api_salvar_processo_basico():
-    """Salva as informações básicas do processo (nome, código, executores)"""
+    """Salva ou atualiza as informações básicas do processo"""
     from database import engine
     from sqlalchemy import text
     from logic import gerar_codigo_processo
     
     data = request.json
+    print(f"📥 Dados recebidos em salvar-basico: {data}")
+    
+    # ===== DADOS RECEBIDOS DO FRONTEND =====
+    processo_id = data.get('processo_id')           # ← Se veio, é edição
     nome_processo = data.get('nome_processo')
     codigo_processo = data.get('codigo_processo')
     id_area = data.get('id_area')
@@ -339,35 +343,29 @@ def api_salvar_processo_basico():
     executores_ids = data.get('executores_ids', [])
     auditoria_id = data.get('auditoria_id')
     
+    # ===== VALIDAÇÕES BÁSICAS =====
     if not nome_processo or not id_area:
         return jsonify({'success': False, 'error': 'Nome do processo e área são obrigatórios'}), 400
     
     try:
         with engine.connect() as conn:
-            # Se não veio nome_area, buscar do banco
+            # ===== BUSCAR NOME DA ÁREA SE NÃO VEIO =====
             if not nome_area:
                 busca_area = text("SELECT nome_area FROM informacoes_area WHERE id_area = :id_area")
                 result_area = conn.execute(busca_area, {'id_area': id_area}).fetchone()
                 nome_area = result_area[0] if result_area else ''
             
-            # Verificar se o processo já existe
-            check_query = text("""
-                SELECT id FROM processos 
-                WHERE nome_processo = :nome AND id_area = :id_area
-            """)
-            existing = conn.execute(check_query, {
-                'nome': nome_processo,
-                'id_area': id_area
-            }).fetchone()
-            
-            if existing:
-                # Atualizar processo existente
-                processo_id = existing[0]
+            # ===== DECIDIR ENTRE UPDATE (EDIÇÃO) OU INSERT (NOVO) =====
+            if processo_id:
+                # ===== CASO 1: EDIÇÃO - Processo já existe, vamos ATUALIZAR =====
+                print(f"✏️ Editando processo existente ID: {processo_id}")
+                
                 update_query = text("""
                     UPDATE processos 
                     SET nome_processo = :nome, 
                         codigo_processo = :codigo,
-                        area = :area
+                        area = :area,
+                        updated_at = NOW()
                     WHERE id = :id
                     RETURNING id
                 """)
@@ -378,55 +376,87 @@ def api_salvar_processo_basico():
                     'id': processo_id
                 })
                 processo_id = result.fetchone()[0]
+                print(f"✅ Processo {processo_id} atualizado com sucesso!")
+                
             else:
-                # Criar novo processo
-                if not codigo_processo:
-                    codigo_processo = gerar_codigo_processo(id_area)
+                # ===== CASO 2: NOVO PROCESSO - Vamos CRIAR =====
+                print(f"➕ Criando novo processo: {nome_processo}")
                 
-                insert_query = text("""
-                    INSERT INTO processos (nome_processo, codigo_processo, id_area, area)
-                    VALUES (:nome, :codigo, :id_area, :area)
-                    RETURNING id
+                # Verificar se já existe outro com mesmo nome na área
+                check_query = text("""
+                    SELECT id FROM processos 
+                    WHERE nome_processo = :nome AND id_area = :id_area
                 """)
-                result = conn.execute(insert_query, {
+                existing = conn.execute(check_query, {
                     'nome': nome_processo,
-                    'codigo': codigo_processo,
-                    'id_area': id_area,
-                    'area': nome_area
-                })
-                processo_id = result.fetchone()[0]
+                    'id_area': id_area
+                }).fetchone()
+                
+                if existing:
+                    # Se já existe, usar o ID existente (edição implícita)
+                    processo_id = existing[0]
+                    print(f"⚠️ Processo já existe! Reutilizando ID: {processo_id}")
+                    
+                    # Atualizar mesmo assim
+                    update_query = text("""
+                        UPDATE processos 
+                        SET nome_processo = :nome, 
+                            codigo_processo = :codigo,
+                            area = :area,
+                            updated_at = NOW()
+                        WHERE id = :id
+                    """)
+                    conn.execute(update_query, {
+                        'nome': nome_processo,
+                        'codigo': codigo_processo,
+                        'area': nome_area,
+                        'id': processo_id
+                    })
+                else:
+                    # Realmente novo: gerar código e inserir
+                    if not codigo_processo:
+                        codigo_processo = gerar_codigo_processo(id_area)
+                    
+                    insert_query = text("""
+                        INSERT INTO processos (nome_processo, codigo_processo, id_area, area, created_at, updated_at)
+                        VALUES (:nome, :codigo, :id_area, :area, NOW(), NOW())
+                        RETURNING id
+                    """)
+                    result = conn.execute(insert_query, {
+                        'nome': nome_processo,
+                        'codigo': codigo_processo,
+                        'id_area': id_area,
+                        'area': nome_area
+                    })
+                    processo_id = result.fetchone()[0]
+                    print(f"✅ Novo processo criado com ID: {processo_id}")
             
-            # ===== SALVAR EXECUTORES (APENAS UM BLOCO, COM LOGS) =====
+            # ===== SALVAR EXECUTORES (funcionários que executam o processo) =====
             if executores_ids:
-                print(f"🔍 Executores recebidos: {executores_ids}")
-                print(f"🔍 Tipo do primeiro ID: {type(executores_ids[0]) if executores_ids else 'Nenhum'}")
+                print(f"👥 Salvando {len(executores_ids)} executores para o processo {processo_id}")
                 
-                # Remover executores antigos
+                # Remover executores antigos (para não duplicar)
                 delete_executors = text("DELETE FROM processo_executores WHERE processo_id = :processo_id")
-                result_del = conn.execute(delete_executors, {'processo_id': processo_id})
-                print(f"🗑️ Removidos {result_del.rowcount} executores antigos")
+                conn.execute(delete_executors, {'processo_id': processo_id})
                 
-                # Inserir novos executores
+                # Inserir os novos executores
                 insert_executor = text("""
-                    INSERT INTO processo_executores (processo_id, funcionario_id)
-                    VALUES (:processo_id, :funcionario_id)
+                    INSERT INTO processo_executores (processo_id, funcionario_id, created_at, updated_at)
+                    VALUES (:processo_id, :funcionario_id, NOW(), NOW())
                 """)
                 for func_id in executores_ids:
-                    try:
-                        conn.execute(insert_executor, {
-                            'processo_id': processo_id,
-                            'funcionario_id': func_id
-                        })
-                        print(f"✅ Inserido funcionário {func_id} para processo {processo_id}")
-                    except Exception as e:
-                        print(f"❌ Erro ao inserir {func_id}: {e}")
-                
-                print(f"💾 {len(executores_ids)} executores salvos com sucesso!")
+                    conn.execute(insert_executor, {
+                        'processo_id': processo_id,
+                        'funcionario_id': func_id
+                    })
+                print(f"✅ {len(executores_ids)} executores salvos!")
             else:
                 print(f"⚠️ Nenhum executor para salvar no processo {processo_id}")
             
             # ===== VINCULAR À AUDITORIA =====
             if auditoria_id:
+                print(f"🔗 Vinculando processo {processo_id} à auditoria {auditoria_id}")
+                
                 # Verificar se já está vinculado
                 check_link = text("""
                     SELECT id FROM auditoria_processos 
@@ -446,10 +476,14 @@ def api_salvar_processo_basico():
                         'auditoria_id': auditoria_id,
                         'processo_id': processo_id
                     })
-                    print(f"✅ Processo {processo_id} vinculado à auditoria {auditoria_id}")
+                    print(f"✅ Vinculado com sucesso!")
+                else:
+                    print(f"ℹ️ Processo já vinculado a esta auditoria")
             
+            # ===== CONFIRMAR TRANSAÇÃO =====
             conn.commit()
             
+            # ===== RETORNAR SUCESSO =====
             return jsonify({
                 'success': True,
                 'processo_id': processo_id,
@@ -533,14 +567,16 @@ def api_processo_riscos(processo_id):
     """Retorna os riscos de um processo para cálculo do score máximo"""
     from database import engine
     from sqlalchemy import text
+    from datetime import datetime
     
     try:
         with engine.connect() as conn:
-            # Retornar TODOS os campos do risco, não apenas id e score_risco
             query = text("""
-                SELECT id, nome_risco, fator_risco, melhoria, apetite_risco,
-                       impacto, probabilidade, motivo_risco, categoria,
-                       score_risco
+                SELECT id, processo_id, nome_risco, fator_risco, melhoria,
+                    impacto, probabilidade, apetite_risco, motivo_risco,
+                    validacao_gerencia, validacao_superintendencia, relatorio_gerado,
+                    created_at, score_risco, categoria, causas,
+                    tratamento_risco, descricao_tratamento, prazo_implantacao
                 FROM riscos
                 WHERE processo_id = :processo_id
             """)
@@ -548,19 +584,24 @@ def api_processo_riscos(processo_id):
             
             riscos = []
             for row in result:
-                # Converter categoria (string separada por vírgula) para lista
-                categorias = row[8].split(',') if row[8] else []
+                categorias = row[14].split(',') if row[14] else []      # categoria
+                causas = row[15].split(',') if row[15] else []          # causas
+                
                 riscos.append({
                     'id': row[0],
-                    'nome_risco': row[1] or '',
-                    'fator_risco': row[2] or '',
-                    'melhoria': row[3] or '',
-                    'apetite_risco': row[4] or '',
+                    'nome_risco': row[2] or '',                         # ← índice 2
+                    'fator_risco': row[3] or '',
+                    'melhoria': row[4] or '',
+                    'apetite_risco': row[7] or '',
                     'impacto': row[5] or 'Médio',
                     'probabilidade': row[6] or 'Médio',
-                    'motivo_risco': row[7] or '',
+                    'motivo_risco': row[8] or '',
                     'categorias': [c.strip() for c in categorias if c.strip()],
-                    'score_risco': row[9] or 0
+                    'categoria_causa': [c.strip() for c in causas if c.strip()],
+                    'score_risco': row[13] or 0,
+                    'como_tratar': row[16] or '',                       # tratamento_risco
+                    'desc_tratamento': row[17] or '',                   # descricao_tratamento
+                    'prazo_implantacao': row[18].strftime('%Y-%m-%d') if row[18] else ''  # ← índice 18
                 })
             
             return jsonify({'success': True, 'riscos': riscos})
@@ -573,22 +614,35 @@ def api_processo_riscos(processo_id):
 def api_processo_dados(processo_id):
     from database import engine
     from sqlalchemy import text
+    from datetime import datetime
     
     try:
         with engine.connect() as conn:
-            # Buscar dados básicos + detalhes
+            # ===== 1. BUSCAR DADOS BÁSICOS DO PROCESSO =====
             query = text("""
-                SELECT id, nome_processo, codigo_processo, id_area,
-                       descricao, etapa_ini, etapa_fim, produto, objetivo
-                FROM processos 
-                WHERE id = :processo_id
+                SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area,
+                       p.descricao, p.etapa_ini, p.etapa_fim, p.produto, p.objetivo,
+                       i.nome_area
+                FROM processos p
+                JOIN informacoes_area i ON p.id_area = i.id_area
+                WHERE p.id = :processo_id
             """)
             processo = conn.execute(query, {'processo_id': processo_id}).fetchone()
             
             if not processo:
                 return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404
             
-            # Buscar executores
+            # ===== 2. BUSCAR A AUDITORIA VINCULADA AO PROCESSO =====
+            query_auditoria = text("""
+                SELECT ap.auditoria_id
+                FROM auditoria_processos ap
+                WHERE ap.processo_id = :processo_id
+                LIMIT 1
+            """)
+            auditoria_result = conn.execute(query_auditoria, {'processo_id': processo_id}).fetchone()
+            auditoria_id = auditoria_result[0] if auditoria_result else None
+            
+            # ===== 3. BUSCAR EXECUTORES =====
             query_exec = text("""
                 SELECT f.id, f.nome_funcionario, f.cargo
                 FROM processo_executores pe
@@ -597,10 +651,11 @@ def api_processo_dados(processo_id):
             """)
             executores = conn.execute(query_exec, {'processo_id': processo_id}).fetchall()
             
-            # ===== NOVO: Buscar riscos do processo =====
+            # ===== 4. BUSCAR RISCOS =====
             query_riscos = text("""
                 SELECT id, nome_risco, fator_risco, melhoria, apetite_risco,
-                       impacto, probabilidade, motivo_risco, categoria
+                       impacto, probabilidade, motivo_risco, categoria, causas,
+                       tratamento_risco, descricao_tratamento, prazo_implantacao
                 FROM riscos
                 WHERE processo_id = :processo_id
             """)
@@ -608,8 +663,23 @@ def api_processo_dados(processo_id):
             
             riscos = []
             for r in riscos_result:
-                # Converter categoria (string separada por vírgula) para lista
+                # Índices baseados na ordem do SELECT acima
+                # 0=id, 1=nome_risco, 2=fator_risco, 3=melhoria, 4=apetite_risco
+                # 5=impacto, 6=probabilidade, 7=motivo_risco, 8=categoria, 9=causas
+                # 10=tratamento_risco, 11=descricao_tratamento, 12=prazo_implantacao
+                
                 categorias = r[8].split(',') if r[8] else []
+                categoria_causa = r[9].split(',') if r[9] else []
+                
+                # Converter data
+                prazo = r[12]
+                prazo_str = ''
+                if prazo:
+                    if hasattr(prazo, 'strftime'):
+                        prazo_str = prazo.strftime('%Y-%m-%d')
+                    elif isinstance(prazo, str):
+                        prazo_str = prazo
+                
                 riscos.append({
                     'id': r[0],
                     'nome_risco': r[1] or '',
@@ -619,16 +689,21 @@ def api_processo_dados(processo_id):
                     'impacto': r[5] or 'Médio',
                     'probabilidade': r[6] or 'Médio',
                     'motivo_risco': r[7] or '',
-                    'categorias': [c.strip() for c in categorias if c.strip()]
+                    'categorias': [c.strip() for c in categorias if c.strip()],
+                    'categoria_causa': [c.strip() for c in categoria_causa if c.strip()],
+                    'como_tratar': r[10] or '',
+                    'desc_tratamento': r[11] or '',
+                    'prazo_implantacao': prazo_str
                 })
             
-            print(f"📋 Buscando riscos para processo {processo_id}: {len(riscos)} riscos encontrados")
-            
+            # ===== 5. RETORNAR TODOS OS DADOS =====
             return jsonify({
                 'success': True,
                 'nome_processo': processo[1],
                 'codigo_processo': processo[2],
                 'id_area': processo[3],
+                'nome_area': processo[9],
+                'auditoria_id': auditoria_id,
                 'descricao': processo[4] or '',
                 'etapa_ini': processo[5] or '',
                 'etapa_fim': processo[6] or '',
@@ -675,14 +750,20 @@ def api_salvar_processo_riscos():
             delete_query = text("DELETE FROM riscos WHERE processo_id = :processo_id")
             conn.execute(delete_query, {'processo_id': processo_id})
             
-            # Inserir novos riscos com score
+            # Inserir novos riscos
             insert_query = text("""
-                INSERT INTO riscos (processo_id, nome_risco, fator_risco, melhoria, 
-                                    apetite_risco, impacto, probabilidade, motivo_risco, 
-                                    categoria, score_risco)
-                VALUES (:processo_id, :nome_risco, :fator_risco, :melhoria, 
-                        :apetite_risco, :impacto, :probabilidade, :motivo_risco, 
-                        :categoria, :score_risco)
+                INSERT INTO riscos (
+                    processo_id, nome_risco, fator_risco, melhoria, 
+                    apetite_risco, impacto, probabilidade, motivo_risco, 
+                    categoria, causas, score_risco,
+                    tratamento_risco, descricao_tratamento, prazo_implantacao
+                )
+                VALUES (
+                    :processo_id, :nome_risco, :fator_risco, :melhoria, 
+                    :apetite_risco, :impacto, :probabilidade, :motivo_risco, 
+                    :categoria, :causas, :score_risco,
+                    :tratamento_risco, :descricao_tratamento, :prazo_implantacao
+                )
             """)
             
             for risco in riscos:
@@ -690,8 +771,13 @@ def api_salvar_processo_riscos():
                 probabilidade = risco.get('probabilidade', 'Médio')
                 score = calcular_score(impacto, probabilidade)
                 
+                # Converter arrays para strings separadas por vírgula
                 categorias = risco.get('categorias', [])
                 categoria_str = ', '.join(categorias) if categorias else None
+                
+                # IMPORTANTE: frontend envia "categoria_causa", banco chama "causas"
+                categoria_causa = risco.get('categoria_causa', [])
+                causas_str = ', '.join(categoria_causa) if categoria_causa else None
                 
                 conn.execute(insert_query, {
                     'processo_id': processo_id,
@@ -703,7 +789,11 @@ def api_salvar_processo_riscos():
                     'probabilidade': probabilidade,
                     'motivo_risco': risco.get('motivo_risco', ''),
                     'categoria': categoria_str,
-                    'score_risco': score
+                    'causas': causas_str,                              # ← corrigido
+                    'score_risco': score,
+                    'tratamento_risco': risco.get('como_tratar', ''),   # ← frontend → banco
+                    'descricao_tratamento': risco.get('desc_tratamento', ''),
+                    'prazo_implantacao': risco.get('prazo_implantacao', '')
                 })
             
             conn.commit()

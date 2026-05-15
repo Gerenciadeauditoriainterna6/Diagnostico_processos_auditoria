@@ -418,6 +418,157 @@
             }
         }
 
+        /* ============================== PADRÃO DE BOTÕES GLOBAL ============================== */
+
+        /* Botão Primário (Salvar, Confirmar, Próximo) - Verde */
+        .btn-primary {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Botão Secundário (Voltar, Cancelar) - Vermelho */
+        .btn-secondary {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Botão Neutro (Ações que não são principais) - Cinza */
+        .btn-neutral {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-neutral:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        /* Botão Outline (Ações secundárias, como Editar) */
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #184145;
+            color: #184145;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-outline:hover {
+            background: #184145;
+            color: white;
+        }
+
+        /* Botão Danger (Excluir, Desativar) */
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        /* Botão Success (Confirmar, Ativar) */
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        /* Tamanhos de botões */
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-lg {
+            padding: 12px 28px;
+            font-size: 16px;
+        }
+
+        /* Botão que ocupa largura total */
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* ============================== FIM PADRÃO DE BOTÕES GLOBAL ============================== */
+        
     </style>
 </head>
 <body>

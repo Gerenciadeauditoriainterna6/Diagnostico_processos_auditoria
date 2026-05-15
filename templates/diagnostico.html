@@ -73,6 +73,8 @@
             <button type="button" class="modal-wizard-close" id="btn-fechar-wizard">&times;</button>
         </div>
         <div class="modal-wizard-body">
+            <!-- ==== CONTAINER FIXO PARA AVISOS GLOBAIS ====-->
+             <div id="global-avisos-container" style="margin-bottom: 15px;"></div>
             <!-- Adicionar após o page-header -->
             <div id="wizard-progress" class="wizard-progress" style="margin-bottom: 25px;">
                 <div class="progress-steps">
@@ -142,7 +144,7 @@
             <!-- PASSO 2: INFORMAÇÕES BÁSICAS (NOME + EXECUTORES) -->
             <div id="info-basicas-section" class="form-section" style="display: none;">
                 <input type="hidden" id="id_area_selecionado" name="id_area_selecionado">
-                <h3>2. Informações Básicas do Processo</h3>
+                <h3>2. Informações do Processo</h3>
                 
                 <div class="form-group">
                     <label for="nome_processo"><i class="fas fa-tag"></i> Nome do Processo *</label>
@@ -352,79 +354,204 @@
             <div id="modal-risco" class="modal" style="display: none;">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3 id="modal-title">Novo Risco</h3>
+                        <h3 id="modal-title"><i class="fas fa-shield-alt"></i> Novo Risco</h3>
                         <button type="button" class="modal-close" id="btn-fechar-modal">&times;</button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="modal-risco-idx">
-                        
-                        <div class="form-group">
-                            <label>Nome do Risco *</label>
-                            <input type="text" id="modal-nome_risco" class="form-control" placeholder="Ex: Risco de erro no fechamento">
-                        </div>
 
-                        <div class="form-group">
-                            <label>Fator de Risco (causa)</label>
-                            <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="O que causa este risco?"></textarea>
-                        </div>
+                        <!-- ===== SEÇÃO 1: IDENTIFICAÇÃO DO RISCO ===== -->
+                        <div class="form-section-inline" style="margin-bottom: 20px;">
+                            <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #0b5b99; padding-left: 10px;">
+                                <i class="fas fa-tag"></i> Identificação do Risco
+                            </h4>
 
-                        <div class="form-group">
-                            <label>Ponto de Melhoria</label>
-                            <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="O que poderia ser melhorado?"></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Apetite ao Risco</label>
-                            <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Nível de risco aceitável"></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Categoria(s)</label>
-                            <select id="modal-categorias" class="form-control" multiple size="3">
-                                <option value="Risco Financeiro">Risco Financeiro</option>
-                                <option value="Risco Legal">Risco Legal</option>
-                                <option value="Risco Inerente">Risco Inerente</option>
-                                <option value="Risco de TI">Risco de TI</option>
-                                <option value="Risco Reputacional">Risco Reputacional</option>
-                                <option value="Risco de Integridade">Risco de Integridade</option>
-                                <option value="Risco Ambiental">Risco Ambiental</option>
-                            </select>
-                            <small class="text-muted">Segure Ctrl (Windows) ou Cmd (Mac) para selecionar múltiplas</small>
-                        </div>
-
-                        <div class="form-row">
+                            <!-- Nome do Risco -->
                             <div class="form-group">
-                                <label>Impacto *</label>
-                                <select id="modal-impacto" class="form-control">
-                                    <option value="Baixo">Baixo</option>
-                                    <option value="Médio">Médio</option>
-                                    <option value="Alto">Alto</option>
-                                    <option value="Muito Alto">Muito Alto</option>
-                                </select>
+                                <label><i class="fas fa-font"></i> Nome do Risco *</label>
+                                <input type="text" id="modal-nome_risco" class="form-control" placeholder="Risco pela possibilidade de...">
                             </div>
+
+
+                            <!-- Categorias do Risco -->
                             <div class="form-group">
-                                <label>Probabilidade *</label>
-                                <select id="modal-probabilidade" class="form-control">
-                                    <option value="Baixo">Baixo</option>
-                                    <option value="Médio">Médio</option>
-                                    <option value="Alto">Alto</option>
-                                    <option value="Muito Alto">Muito Alto</option>
-                                </select>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <label><i class="fas fa-tags"></i> Categoria(s) do Risco</label>
+                                    <span id="help-categorias-icon" class="help-icon-categorias" style="cursor: pointer;">?</span>
+                                </div>
+                                <!-- Card descritivo das categorias -->
+                                <div id="info-categorias" class="info-card" style="display: none; margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <strong><i class="fas fa-info-circle"></i> Descrição das Categorias</strong>
+                                        <button type="button" id="fechar-info-categorias" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+                                    </div>
+                                    <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                                        <li><strong>Risco Financeiro:</strong> Qualquer atividade que envolva incerteza e, portanto, possa resultar em consequências financeiras negativas para a FUSVE.</li>
+                                        <li><strong>Risco Legal:</strong> Engloba todas as ameaças as quais a FUSVE esteja vulnerável em decorrência do descumprimento das legislações vigentes.</li>
+                                        <li><strong>Risco Inerente:</strong> É o nível de risco natural de uma atividade ou processo antes de qualquer ação de controle ou mitigação ser aplicada.</li>
+                                        <li><strong>Risco de TI:</strong> A possibilidade de ocorrência de deficiência ou inadequação de quaisquer processos que envolvem sistemas ou tecnologia.</li>
+                                        <li><strong>Risco de Integridade:</strong> Engloba as atividades divergentes aos valores, princípios e normas éticas da FUSVE, geralmente àquelas ligadas a fraudes e atos de corrupção.</li>
+                                        <li><strong>Risco Reputacional:</strong> O potencial de qualquer evento, controlável ou não, de prejudicar negativamente a reputação de uma organização.</li>
+                                        <li><strong>Risco Ambiental:</strong> Qualquer ameaça causada por agentes físicos, químicos ou biológicos que possam acarretar em descumprimento das normas, podendo comprometer a saúde e a segurança dos envolvidos ao ecossistema.</li>
+                                    </ul>
+                                </div>
+                                <div id="categorias-checkboxes" class="checkbox-grid">
+                                    <label><input type="checkbox" value="Risco Financeiro"> Risco Financeiro</label>
+                                    <label><input type="checkbox" value="Risco Legal"> Risco Legal</label>
+                                    <label><input type="checkbox" value="Risco Inerente"> Risco Inerente</label>
+                                    <label><input type="checkbox" value="Risco de TI"> Risco de TI</label>
+                                    <label><input type="checkbox" value="Risco Reputacional"> Risco Reputacional</label>
+                                    <label><input type="checkbox" value="Risco de Integridade"> Risco de Integridade</label>
+                                    <label><input type="checkbox" value="Risco Ambiental"> Risco Ambiental</label>
+                                </div>
                             </div>
                         </div>
 
-                        <div id="modal-score-preview" class="score-preview">
-                            Score: 0 (Baixo)
+                        <!-- ===== SEÇÃO 2: CAUSA E ANÁLISE ===== -->
+                        <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                            <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #17a2b8; padding-left: 10px;">
+                                <i class="fas fa-search"></i> Causa e Análise
+                            </h4>
+
+                            <!-- Categoria de Causa -->
+                            <div class="form-group">
+                                <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
+                                <div id="causa-checkboxes" class="checkbox-grid">
+                                    <label><input type="checkbox" value="Falha Operacional"> Falha Operacional</label>
+                                    <label><input type="checkbox" value="Falta de Controle"> Falta de Controle</label>
+                                    <label><input type="checkbox" value="Não Conformidade"> Não Conformidade</label>
+                                    <label><input type="checkbox" value="Problemas Financeiros"> Problemas Financeiros</label>
+                                    <label><input type="checkbox" value="Fenômeno natural"> Fenômeno natural</label>
+                                    <label><input type="checkbox" value="Fraude"> Fraude</label>
+                                </div>
+                                <small class="text-muted">Selecione uma ou mais causas</small>
+                            </div>
+
+                            <!-- Fator de Risco -->
+                            <div class="form-group">
+                                <label><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</label>
+                                <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="Pelo motivo de..."></textarea>
+                            </div>
+
+                            <!-- Ponto de Melhoria -->
+                            <div class="form-group">
+                                <label><i class="fas fa-lightbulb"></i> Ponto de Melhoria</label>
+                                <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="O que poderia ser melhorado?"></textarea>
+                            </div>
+
+                            <!-- Apetite ao Risco -->
+                            <div class="form-group">
+                                <label><i class="fas fa-bullseye"></i> Apetite ao Risco</label>
+                                <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Nível de risco aceitável"></textarea>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Motivo da Classificação</label>
-                            <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique a escolha do impacto e probabilidade"></textarea>
+                        <!-- ===== SEÇÃO 3: AVALIAÇÃO DO RISCO ===== -->
+                        <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                            <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #ffc107; padding-left: 10px;">
+                                <i class="fas fa-chart-line"></i> Avaliação do Risco
+                            </h4>
+
+                            <!-- Critérios de avaliação -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <label><i class="fas fa-info-circle"></i> Critérios de avaliação</label>
+                                    <span id="help-criterios-icon" class="help-icon-categorias" style="cursor: pointer;">?</span>
+                                </div>
+                                <div id="info-criterios" class="info-card" style="display: none;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <strong><i class="fas fa-info-circle"></i> Critérios de Avaliação</strong>
+                                        <button type="button" id="fechar-info-criterios" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+                                    </div>
+                                    <div style="margin-top: 8px;">
+                                        <strong>PROBABILIDADE</strong>
+                                        <ul>
+                                            <li><strong>Baixa:</strong> Pode ser que ocorra uma vez dentro de um ano.</li>
+                                            <li><strong>Média:</strong> Pode ser que ocorra mais de uma vez dentro de um ano.</li>
+                                            <li><strong>Alta:</strong> Pode ser que ocorra mensalmente.</li>
+                                            <li><strong>Muito Alta:</strong> Pode ser que ocorra diariamente.</li>
+                                        </ul>
+                                        <strong>IMPACTO</strong>
+                                        <ul>
+                                            <li><strong>Baixo:</strong> Desembolsos de até R$ 150.000,00.</li>
+                                            <li><strong>Médio:</strong> Desembolsos de R$ 150.000,01 até R$ 300.000,00.</li>
+                                            <li><strong>Alto:</strong> Desembolso de R$ 300.000,01 até R$ 1.500.000,00.</li>
+                                            <li><strong>Muito Alto:</strong> Desembolso acima de R$ 1.500.000,00.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Impacto e Probabilidade -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label><i class="fas fa-chart-line"></i> Impacto *</label>
+                                    <select id="modal-impacto" class="form-control">
+                                        <option value="Baixo">Baixo</option>
+                                        <option value="Médio">Médio</option>
+                                        <option value="Alto">Alto</option>
+                                        <option value="Muito Alto">Muito Alto</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-chart-simple"></i> Probabilidade *</label>
+                                    <select id="modal-probabilidade" class="form-control">
+                                        <option value="Baixo">Baixo</option>
+                                        <option value="Médio">Médio</option>
+                                        <option value="Alto">Alto</option>
+                                        <option value="Muito Alto">Muito Alto</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Score Preview -->
+                            <div id="modal-score-preview" class="score-preview" style="margin: 15px 0;">
+                                                <strong>Score calculado:</strong> 0 (Baixo)
+                            </div>
+
+                            <!-- Motivo da Classificação -->
+                            <div class="form-group">
+                                <label><i class="fas fa-comment"></i> Motivo da Classificação</label>
+                                <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique a escolha do impacto e probabilidade"></textarea>
+                            </div>
                         </div>
+
+                        <!-- ===== SEÇÃO 4: TRATAMENTO DO RISCO ===== -->
+                        <div class="form-section-inline" style="margin-bottom: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                            <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #28a745; padding-left: 10px;">
+                                <i class="fas fa-shield-alt"></i> Tratamento do Risco
+                            </h4>
+
+                            <!-- Como tratar -->
+                            <div class="form-group">
+                                <label><i class="fas fa-handshake"></i> Como tratar o risco? *</label>
+                                <select id="modal-como-tratar" class="form-control">
+                                    <option value="">Selecione uma opção...</option>
+                                    <option value="Aceitar">Aceitar</option>
+                                    <option value="Mitigar">Mitigar</option>
+                                    <option value="Compartilhar">Compartilhar (Transferir)</option>
+                                    <option value="Evitar">Evitar</option>
+                                </select>
+                            </div>
+
+                            <!-- Descrição do tratamento -->
+                            <div class="form-group">
+                                <label><i class="fas fa-file-alt"></i> Descrição do tratamento</label>
+                                <textarea id="modal-desc-tratamento" class="form-control" rows="2" placeholder="Descreva como o tratamento será aplicado..."></textarea>
+                            </div>
+
+                            <!-- Prazo de implantação -->
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar-alt"></i> Prazo de implantação</label>
+                                <input type="date" id="modal-prazo-implantacao" class="form-control">
+                                <small class="text-muted">Data prevista para implantação do tratamento</small>
+                            </div>
+                        </div>
+
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn-secondary" id="btn-cancelar-modal">Cancelar</button>
-                        <button type="button" class="btn-primary" id="btn-salvar-modal">Salvar Risco</button>
+                        <button type="button" class="btn-cancelar-modal" id="btn-cancelar-modal"><i class="fas fa-times"></i> Cancelar</button>
+                        <button type="button" class="btn-salvar-risco" id="btn-salvar-modal"><i class="fas fa-save"></i> Salvar Risco</button>
                     </div>
                 </div>
             </div>
@@ -448,6 +575,11 @@
                     <div class="vis-item">
                         <div class="vis-label"><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</div>
                         <div class="vis-value" id="vis-fator_risco">-</div>
+                    </div>
+                    <!-- Categoria de causas -->
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</div>
+                        <div class="vis-value" id="vis-categoria-causa"></div>
                     </div>
                     <div class="vis-item">
                         <div class="vis-label"><i class="fas fa-lightbulb"></i> Ponto de Melhoria</div>
@@ -479,6 +611,21 @@
                         <div class="vis-label"><i class="fas fa-comment"></i> Motivo da Classificação</div>
                         <div class="vis-value" id="vis-motivo_risco">-</div>
                     </div>
+                    <!-- NOVOS CAMPOS - VISUALIZAÇÃO -->
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-shield-alt"></i> Como tratar o risco?</div>
+                        <div class="vis-value" id="vis-como-tratar">-</div>
+                    </div>
+
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-file-alt"></i> Descrição do tratamento</div>
+                        <div class="vis-value" id="vis-desc-tratamento">-</div>
+                    </div>
+
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-calendar-alt"></i> Prazo de implantação</div>
+                        <div class="vis-value" id="vis-prazo-implantacao">-</div>
+                    </div> 
                 </div>
             </div>
             <div class="modal-footer">
@@ -1128,15 +1275,23 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 18px;
-        height: 18px;
+        width: 10px;
+        height: 10px;
         color: #0b5b99;
         border-radius: 50%;
-        font-size: 11px;
+        font-size: 8px;
         font-weight: bold;
         cursor: help;
         margin-left: 6px;
         transition: all 0.2s ease;
+    }
+
+    /* Reduz o tamanho do ícone de ajuda dos critérios */
+    #help-criterios-icon {
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 10px !important;
+        line-height: 14px !important;
     }
 
     .help-icon:hover {
@@ -1701,7 +1856,7 @@
     .btn-visualizar-processo {
         background: none;
         border: none;
-        color: #17a2b8;
+        color: #0b5b99;
         cursor: pointer;
         font-size: 14px;
         margin-left: 8px;
@@ -1875,11 +2030,168 @@
         z-index: 2147483648 !important;
     }
 
-/* Nada mais! Não force position fixed em elementos internos */
+    /* Grid para checkboxes */
+    .checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px 16px;
+        margin-top: 5px;
+    }
+    .checkbox-grid label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: normal;
+        cursor: pointer;
+    }
+    .checkbox-grid input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    /* Card informativo */
+    .info-card ul {
+        margin: 8px 0 0 0;
+        padding-left: 20px;
+    }
+    .info-card li {
+        margin-bottom: 8px;          /* espaço entre os itens da lista */
+        line-height: 1.4;
+    }
+
+    /* Garantir que os bullets não fiquem sobre a borda esquerda */
+    .info-card {
+        padding-left: 16px;          /* espaço interno para não colidir com a borda */
+        overflow-x: auto;            /* evita quebra por causa do padding */
+    }
+    .info-card ul, .info-card ol {
+        margin-left: 0;
+        padding-left: 20px;          /* recuo suficiente para os bullets */
+    }
+    .info-card li {
+        margin-left: 0;
+    }
+
+    .help-icon-categorias {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        background: #0b5b99;
+        color: white;
+        border-radius: 50%;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    /* Garantir o visual do card de critérios (azul clarinho, borda azul) */
+    #info-criterios {
+        background: #e8f4f8 !important;        /* fundo azul bem clarinho */
+        border-left: 4px solid #0b5b99 !important;  /* borda azul à esquerda */
+        border-radius: 8px;
+        padding: 12px 12px 12px 16px;          /* espaço interno para não esmagar o conteúdo */
+        margin: 10px 0 15px 0;
+    }
+
+    /* Ajuste fino para listas dentro do card */
+    #info-criterios ul {
+        margin: 8px 0 0 0;
+        padding-left: 20px;                   /* recuo para os bullets não encostarem na borda */
+    }
+    #info-criterios li {
+        margin-bottom: 8px;                   /* espaçamento entre os itens */
+        line-height: 1.4;
+    }
+
+    /* Ícones de ajuda reduzidos */
+    #help-categorias-icon,
+    #help-criterios-icon {
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 10px !important;
+        line-height: 14px !important;
+    }
+
+    /* Cards informativos com fundo azul claro e borda azul */
+    #info-categorias,
+    #info-criterios {
+        background: #e8f4f8 !important;
+        border-left: 4px solid #0b5b99 !important;
+        border-radius: 8px;
+        padding: 12px 12px 12px 16px;
+        margin: 10px 0 15px 0;
+    }
+
+    /* Ajuste das listas dentro dos cards */
+    #info-categorias ul,
+    #info-criterios ul {
+        margin: 8px 0 0 0;
+        padding-left: 20px;
+    }
+    #info-categorias li,
+    #info-criterios li {
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+
+    /* Checkboxes personalizados */
+    .checkbox-grid input[type="checkbox"] {
+        accent-color: #0b5b99;  /* Cor principal do sistema (azul) */
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    /* Botão Cancelar (vermelho) - mesmo padrão do areas.html */
+    .btn-cancelar-modal {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-cancelar-modal:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Botão Salvar Risco (verde) - mesmo padrão do areas.html */
+    .btn-salvar-risco {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-salvar-risco:hover {
+        background: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
 
 </style>
 
 <script>
+    // MONITOR DE REMOÇÃO DO sessionStorage
+    const originalRemoveItem = sessionStorage.removeItem;
+    sessionStorage.removeItem = function(key) {
+        if (key === 'processo_id') {
+            console.trace('🔴 sessionStorage.removeItem("processo_id") foi chamado!');
+            console.log('Stack trace da remoção:');
+        }
+        return originalRemoveItem.apply(this, arguments);
+    };
     let usuarioAutorizado = false;
 
     // ====== ELEMENTOS DA PÁGINA PRINCIPAL ======
@@ -2241,12 +2553,14 @@
         // Preencher modal de visualização
         document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
         document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
+        document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
         document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
         document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
         document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
         document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
         document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
         document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+        document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
         
         let corScore = '';
         if (risco.score <= 4) corScore = '🟢';
@@ -2284,12 +2598,14 @@
             // Preencher modal de visualização
             document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
             document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
+            document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
             document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
             document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
             document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
             document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
             document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
             document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+            document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
             
             let corScore = '';
             if (risco.score <= 4) corScore = '🟢';
@@ -2727,6 +3043,16 @@
             .replace(/'/g, '&#39;');
     }
 
+    // Função para formatar data de YYYY-MM-DD para DD/MM/YYYY na visualização
+    function formatarDataParaExibicao(dataString) {
+        if (!dataString) return '-';
+        const partes = dataString.split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dataString;
+    }
+
     // ===== RESETAR CAMPOS DA SEÇÃO 3 =====
     function resetarCamposDetalhes() {
         const descricao = document.getElementById('descricao_processo');
@@ -2947,6 +3273,12 @@
 
     // Função principal que verifica e gera o código
     async function verificarEGerarCodigo() {
+        // ====== SE FOR EDIÇÃO, PULA COMPLETAMENTE A VERIFICAÇÃO ======
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+        if (modoEdicao === 'true') {
+            console.log('✏️ Modo edição ativo - pulando verificação de duplicidade');
+            return;
+        }
         const nomeProcesso = nomeProcessoInput?.value.trim();
         const areaId = idAreaSelecionado?.value || areaSelect?.value;
         
@@ -3031,6 +3363,57 @@
 
     // Função para mostrar aviso de processo existente
     function mostrarAvisoProcessoExistente(nomeProcesso, codigoExistente) {
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+
+        // ===== CASO 1: EDIÇÃO - Mostra card AZUL (informativo) =====
+        if (modoEdicao === 'true') {
+            // Remove aviso anterior se existir
+            removerAvisoProcessoExistente();
+            
+            // Usa o container global (que não some ao mudar de etapa)
+            const container = document.getElementById('global-avisos-container');
+            if (!container) {
+                console.warn('⚠️ Container global-avisos-container não encontrado');
+                return;
+            }
+            
+            // Cria o card de aviso
+            const avisoDiv = document.createElement('div');
+            avisoDiv.id = 'aviso-processo-existente';
+            avisoDiv.className = 'alert-info';
+            avisoDiv.style.marginBottom = '15px';
+            avisoDiv.style.padding = '12px 16px';
+            avisoDiv.style.borderRadius = '8px';
+            avisoDiv.style.borderLeft = '4px solid #0b5b99';
+            avisoDiv.style.backgroundColor = '#e8f4f8';
+            avisoDiv.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <i class="fas fa-edit" style="color: #0b5b99; margin-right: 8px;"></i>
+                        <strong style="color: #184145;">Editando processo:</strong>
+                        <span style="margin-left: 8px;">Você está editando o processo 
+                        <strong>${escapeHtml(nomeProcesso)}</strong> (código <strong>${escapeHtml(codigoExistente)}</strong>)</span>
+                    </div>
+                    <button type="button" id="fechar-aviso-edicao" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #999;">&times;</button>
+                </div>
+                <small style="display: block; margin-top: 8px; color: #0c5460;">
+                    <i class="fas fa-info-circle"></i> Modifique os campos abaixo e clique em "Próximo" para salvar as alterações.
+                </small>
+            `;
+            
+            container.appendChild(avisoDiv);
+            
+            // Evento para fechar o aviso se o usuário clicar no X
+            const closeBtn = document.getElementById('fechar-aviso-edicao');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    removerAvisoProcessoExistente();
+                });
+            }
+            return;
+        }
+        
+        // ===== CASO 2: NOVO PROCESSO - Mostra card AMARELO (alerta) =====
         removerAvisoProcessoExistente();
         
         const avisoDiv = document.createElement('div');
@@ -3045,6 +3428,7 @@
             <small>💡 Para modificar este processo, utilize a aba <strong>"Edição"</strong>.</small>
         `;
         
+        // Para novos processos, insere após o campo de código
         if (codigoProcessoInput && codigoProcessoInput.parentNode) {
             codigoProcessoInput.parentNode.insertAdjacentElement('afterend', avisoDiv);
         }
@@ -3052,9 +3436,10 @@
 
     // Função para remover aviso de processo existente
     function removerAvisoProcessoExistente() {
-        const avisoExistente = document.getElementById('aviso-processo-existente');
-        if (avisoExistente) {
-            avisoExistente.remove();
+        // Remove o aviso do container global (usado na edição)
+        const avisoGlobal = document.getElementById('aviso-processo-existente');
+        if (avisoGlobal) {
+            avisoGlobal.remove();
         }
     }
 
@@ -3062,6 +3447,7 @@
     function desabilitarProximoStep(desabilitar, mensagem) {
         const btnProximo = document.getElementById('btn-proximo-etapa3');
         if (btnProximo) {
+            btnProximo.addEvent
             btnProximo.disabled = desabilitar;
             if (desabilitar && mensagem) {
                 btnProximo.title = mensagem;
@@ -3073,6 +3459,13 @@
 
     // ===== QUANDO A ÁREA É ALTERADA, RESETAR A VERIFICAÇÃO =====
     function resetarVerificacaoProcesso() {
+        // ===== SE FOR EDIÇÃO, NÃO LIMPA NADA! =====
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+        if (modoEdicao === 'true') {
+            console.log('✏️ Modo edição ativo - resetarVerificacaoProcesso ignorado');
+            return;
+        }
+        
         ultimoNomeVerificado = '';
         ultimoCodigoGerado = '';
         
@@ -3205,15 +3598,15 @@
             if (modoEdicaoAtivo !== 'true') {
                 resetarCamposDetalhes();  // Só limpa se for novo processo
             }
-            // Resetar modo de edição ao mudar de área
-            sessionStorage.removeItem('modo_edicao');
-            sessionStorage.removeItem('processo_id');
-            sessionStorage.removeItem('auditoria_id');
-
-            // Limpar riscos ao mudar de área (novo processo)
-            riscosLista = [];
-            sessionStorage.removeItem('riscos_temp');
-            sessionStorage.removeItem('etapa_atual');
+            // ===== SÓ REMOVE SE NÃO FOR EDIÇÃO =====
+            if (modoEdicaoAtivo !== 'true') {
+                sessionStorage.removeItem('modo_edicao');
+                sessionStorage.removeItem('processo_id');
+                sessionStorage.removeItem('auditoria_id');
+                riscosLista = [];
+                sessionStorage.removeItem('riscos_temp');
+                sessionStorage.removeItem('etapa_atual');
+            }
         }
         
         const areaId = this.value;
@@ -3405,7 +3798,31 @@
     function irParaEtapa(etapa) {
         console.log(`📍 irParaEtapa: mudando para etapa ${etapa}`);
 
-        /// SALVAR ETAPA ATUAL (FAZER ISSO PRIMEIRO)
+        const etapaAtual = etapaWizard;
+        
+        // ===== VALIDAÇÃO AO SAIR DA ETAPA 2 (apenas se estiver avançando) =====
+        if (etapaAtual === 2 && etapa > etapaAtual) {
+            const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+            
+            if (!nomeProcesso) {
+                mostrarToast('⚠️ Por favor, informe o nome do processo antes de avançar.', 'warning');
+                return;
+            }
+            
+            if (executoresSelecionados.length === 0) {
+                mostrarToast('⚠️ Selecione pelo menos um executor para o processo.', 'warning');
+                return;
+            }
+            
+            salvarInfoBasicasAntesDeAvancar();
+        }
+        
+        // ===== VALIDAÇÃO AO SAIR DA ETAPA 3 (apenas se estiver avançando) =====
+        if (etapaAtual === 3 && etapa > etapaAtual) {
+            salvarDetalhesAntesDeAvancar();
+        }
+
+        /// SALVAR ETAPA ATUAL
         sessionStorage.setItem('etapa_atual', etapa.toString());
 
         const etapa1 = document.getElementById('auditoria-section');
@@ -3428,11 +3845,21 @@
         if (etapa === 4 && etapa4) etapa4.style.display = 'block';
         if (etapa === 5 && etapa5) etapa5.style.display = 'block';
 
-        // SALVAR ETAPA ATUAL NO SESSIONSTORAGE
         sessionStorage.setItem('etapa_atual', etapa.toString());
         
         atualizarProgressoWizard(etapa);
         etapaWizard = etapa;
+        
+        // ===== CARREGAR DADOS AO ENTRAR NA ETAPA (NOVO) =====
+        // Isso resolve o problema de voltar da etapa 4 para 3
+        setTimeout(() => {
+            if (etapa === 3) {
+                carregarDetalhesProcesso();
+            }
+            if (etapa === 4) {
+                carregarRiscosProcesso();
+            }
+        }, 50);
     }
 
     function atualizarProgressoWizard(etapa) {
@@ -3503,23 +3930,31 @@
             const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
             
             try {
+                const processoId = sessionStorage.getItem('processo_id');
+                const payload = {
+                    nome_processo: nomeProcesso,
+                    codigo_processo: codigoProcesso,
+                    id_area: parseInt(areaId),
+                    nome_area: nomeArea,
+                    executores_ids: executoresSelecionados.map(e => e.id),
+                    auditoria_id: parseInt(auditoriaId)
+                };
+
+                //Só adiciona processo_id se for ediçãoo (se existe no storage)
+                if (processoId) {
+                    payload.processo_id = parseInt(processoId);
+                }
+
                 const response = await fetch('/api/processo/salvar-basico', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        nome_processo: nomeProcesso,
-                        codigo_processo: codigoProcesso,
-                        id_area: parseInt(areaId),
-                        nome_area: nomeArea,
-                        executores_ids: executoresSelecionados.map(e => e.id),
-                        auditoria_id: parseInt(auditoriaId)
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                     console.log('=' .repeat(50));
+                    console.log('=' .repeat(50));
                     console.log('📝 SALVAMENTO ETAPA 2 (Informações Básicas)');
                     console.log(`   Processo ID: ${data.processo_id}`);
                     console.log(`   Código do Processo: ${data.codigo_processo}`);
@@ -3591,26 +4026,38 @@
 
     // Carregar detalhes salvos ao entrar na etapa 3
     async function carregarDetalhesProcesso() {
+        console.log('💾 [DENTRO carregarDetalhesProcesso] processo_id:', sessionStorage.getItem('processo_id'));
         const processoId = sessionStorage.getItem('processo_id');
-        if (!processoId) return;
+        console.log('🔍 carregarDetalhesProcesso chamado, processoId:', processoId);
+        
+        if (!processoId) {
+            console.log('❌ Nenhum processo_id encontrado');
+            return;
+        }
         
         // Primeiro, verificar se há dados temporários do rascunho
         const detalhesTemp = sessionStorage.getItem('detalhes_temp');
+        console.log('🔍 detalhes_temp:', detalhesTemp);
+        
         if (detalhesTemp) {
             const dados = JSON.parse(detalhesTemp);
+            console.log('📝 Dados carregados do detalhes_temp:', dados);
             document.getElementById('descricao_processo').value = dados.descricao || '';
             document.getElementById('etapa_ini_processo').value = dados.etapa_ini || '';
             document.getElementById('produto_processo').value = dados.produto || '';
             document.getElementById('etapa_fim_processo').value = dados.etapa_fim || '';
             document.getElementById('objetivo_processo').value = dados.objetivo || '';
             sessionStorage.removeItem('detalhes_temp');
+            console.log('✅ Detalhes carregados do sessionStorage');
             return;
         }
         
         // Se não houver dados temporários, buscar do banco
+        console.log('🔍 Buscando detalhes do backend...');
         try {
             const response = await fetch(`/api/processo/${processoId}/dados`);
             const data = await response.json();
+            console.log('📦 Dados do backend:', data);
             
             if (data.success) {
                 document.getElementById('descricao_processo').value = data.descricao || '';
@@ -3618,9 +4065,12 @@
                 document.getElementById('produto_processo').value = data.produto || '';
                 document.getElementById('etapa_fim_processo').value = data.etapa_fim || '';
                 document.getElementById('objetivo_processo').value = data.objetivo || '';
+                console.log('✅ Detalhes carregados do backend');
+            } else {
+                console.log('❌ Erro ao buscar detalhes:', data.error);
             }
         } catch (error) {
-            console.error('Erro ao carregar detalhes:', error);
+            console.error('❌ Erro ao carregar detalhes:', error);
         }
     }
 
@@ -3690,23 +4140,6 @@
             }
         });
     }
-
-    // Modificar a função irParaEtapa para carregar detalhes ao entrar na etapa 3 e riscos na etapa 4
-    const irParaEtapaOriginal = irParaEtapa;
-    window.irParaEtapa = function(etapa) {
-        console.log(`🎯 window.irParaEtapa chamado com etapa ${etapa}`);
-        irParaEtapaOriginal(etapa);
-        
-        // Pequeno delay para garantir que o DOM foi atualizado
-        setTimeout(() => {
-            if (etapa === 3) {
-                carregarDetalhesProcesso();
-            }
-            if (etapa === 4) {
-                carregarRiscosProcesso();
-            }
-        }, 100);
-    };
 
     // Botão voltar da etapa 4 para etapa 3
     const btnVoltarEtapa3 = document.getElementById('btn-voltar-etapa3');
@@ -3855,6 +4288,14 @@
     let modalEditandoIdx = null;
 
     function abrirModal(modo, idx = null) {
+        console.log('🔍 abrirModal chamado - modo:', modo, 'idx:', idx);
+    
+        if (modo === 'editar' && idx !== null) {
+            console.log('🔍 Risco sendo editado:', riscosLista[idx]);
+            console.log('📅 Data do risco:', riscosLista[idx].prazo_implantacao);
+            carregarRiscoNoModal(riscosLista[idx]);
+        }
+
         modalModo = modo;
         modalEditandoIdx = idx;
         const modal = document.getElementById('modal-risco');
@@ -3890,33 +4331,57 @@
         document.getElementById('modal-risco').style.display = 'none';
     }
 
+    function limparCheckboxes(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+    }
+
     function limparModal() {
         document.getElementById('modal-nome_risco').value = '';
         document.getElementById('modal-fator_risco').value = '';
         document.getElementById('modal-melhoria').value = '';
         document.getElementById('modal-apetite_risco').value = '';
-        document.getElementById('modal-categorias').value = [];
+        limparCheckboxes('categorias-checkboxes');
+        limparCheckboxes('causa-checkboxes');
         document.getElementById('modal-impacto').value = 'Médio';
         document.getElementById('modal-probabilidade').value = 'Médio';
         document.getElementById('modal-motivo_risco').value = '';
+        document.getElementById('modal-como-tratar').value = '';
+        document.getElementById('modal-desc-tratamento').value = '';
+        document.getElementById('modal-prazo-implantacao').value = '';
     }
 
     function carregarRiscoNoModal(risco) {
+        console.log('🔍 Carregando risco no modal:', risco);
+        console.log('📅 prazo_implantacao do risco:', risco.prazo_implantacao);
         document.getElementById('modal-nome_risco').value = risco.nome_risco || '';
         document.getElementById('modal-fator_risco').value = risco.fator_risco || '';
         document.getElementById('modal-melhoria').value = risco.melhoria || '';
         document.getElementById('modal-apetite_risco').value = risco.apetite_risco || '';
-        
-        // Selecionar categorias
-        const categoriasSelect = document.getElementById('modal-categorias');
+
+        // Categorias do Risco (checkboxes)
         const categoriasSelecionadas = risco.categorias || [];
-        Array.from(categoriasSelect.options).forEach(opt => {
-            opt.selected = categoriasSelecionadas.includes(opt.value);
+        const catCheckboxes = document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]');
+        catCheckboxes.forEach(cb => {
+            cb.checked = categoriasSelecionadas.includes(cb.value);
         });
-        
+
+        // Categoria de Causa (checkboxes)
+        const causasSelecionadas = risco.categoria_causa || [];
+        const causaCheckboxes = document.querySelectorAll('#causa-checkboxes input[type="checkbox"]');
+        causaCheckboxes.forEach(cb => {
+            cb.checked = causasSelecionadas.includes(cb.value);
+        });
+
         document.getElementById('modal-impacto').value = risco.impacto || 'Médio';
         document.getElementById('modal-probabilidade').value = risco.probabilidade || 'Médio';
         document.getElementById('modal-motivo_risco').value = risco.motivo_risco || '';
+        document.getElementById('modal-como-tratar').value = risco.como_tratar || '';
+        document.getElementById('modal-desc-tratamento').value = risco.desc_tratamento || '';
+        document.getElementById('modal-prazo-implantacao').value = risco.prazo_implantacao || '';
     }
 
     function salvarDoModal() {
@@ -3925,47 +4390,95 @@
             mostrarToast('⚠️ Nome do risco é obrigatório', 'warning');
             return;
         }
-        
+
         const impacto = document.getElementById('modal-impacto').value;
         const probabilidade = document.getElementById('modal-probabilidade').value;
-        
-        // Selecionar categorias
-        const categoriasSelect = document.getElementById('modal-categorias');
-        const categorias = Array.from(categoriasSelect.selectedOptions).map(opt => opt.value);
-        
+
+        // Coletar categorias marcadas
+        const categorias = [];
+        document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]:checked').forEach(cb => {
+            categorias.push(cb.value);
+        });
+
+        // Coletar causas marcadas
+        const categoriaCausa = [];
+        document.querySelectorAll('#causa-checkboxes input[type="checkbox"]:checked').forEach(cb => {
+            categoriaCausa.push(cb.value);
+        });
+
         const novoRisco = {
             nome_risco: nome,
             fator_risco: document.getElementById('modal-fator_risco').value,
             melhoria: document.getElementById('modal-melhoria').value,
             apetite_risco: document.getElementById('modal-apetite_risco').value,
             categorias: categorias,
+            categoria_causa: categoriaCausa,
             impacto: impacto,
             probabilidade: probabilidade,
-            motivo_risco: document.getElementById('modal-motivo_risco').value
+            motivo_risco: document.getElementById('modal-motivo_risco').value,
+            como_tratar: document.getElementById('modal-como-tratar').value,
+            desc_tratamento: document.getElementById('modal-desc-tratamento').value,
+            prazo_implantacao: document.getElementById('modal-prazo-implantacao').value
         };
-        
+
         if (modalModo === 'novo') {
             riscosLista.push(novoRisco);
             mostrarToast('✅ Risco adicionado!', 'success');
         } else if (modalModo === 'editar' && modalEditandoIdx !== null) {
-            // Preservar o id se existir
             if (riscosLista[modalEditandoIdx].id) {
                 novoRisco.id = riscosLista[modalEditandoIdx].id;
             }
             riscosLista[modalEditandoIdx] = novoRisco;
             mostrarToast('✅ Risco atualizado!', 'success');
         }
-        
-        // SALVAR RISCOS NO STORAGE
+
         salvarRiscosNoStorage();
         autoSaveRiscosDebounced();
-        
         renderizarKanban();
         fecharModal();
-    } 
+    }
+
+    // Evento para mostrar/esconder card de categorias
+    document.addEventListener('DOMContentLoaded', function() {
+        // ===== Categorias do Risco =====
+        const helpCat = document.getElementById('help-categorias-icon');
+        const infoCat = document.getElementById('info-categorias');
+        const closeCat = document.getElementById('fechar-info-categorias');
+
+        if (helpCat && infoCat) {
+            helpCat.addEventListener('click', () => {
+                infoCat.style.display = infoCat.style.display === 'none' ? 'block' : 'none';
+            });
+            if (closeCat) {
+                closeCat.addEventListener('click', () => {
+                    infoCat.style.display = 'none';
+                });
+            }
+        }
+
+        // ===== Critérios de Avaliação =====
+        const helpCriterios = document.getElementById('help-criterios-icon');
+        const infoCriterios = document.getElementById('info-criterios');
+        const closeCriterios = document.getElementById('fechar-info-criterios');
+
+        if (helpCriterios && infoCriterios) {
+            helpCriterios.addEventListener('click', () => {
+                infoCriterios.style.display = infoCriterios.style.display === 'none' ? 'block' : 'none';
+            });
+            if (closeCriterios) {
+                closeCriterios.addEventListener('click', () => {
+                    infoCriterios.style.display = 'none';
+                });
+            }
+        }
+
+        habilitarNavegacaoEtapas();
+    });
 
     function visualizarRisco(idx) {
         const risco = riscosLista[idx];
+        console.log('🔍 Risco completo:', risco);
+        console.log('📅 prazo_implantacao:', risco.prazo_implantacao);
         if (!risco) return;
         
         // Preencher os campos do modal de visualização
@@ -3974,9 +4487,13 @@
         document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
         document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
         document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
+        document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
         document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
         document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
         document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+        document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
+        document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
+        document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
         
         // Calcular score
         const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
@@ -4317,5 +4834,335 @@
         });
     }
 
+    // ===== FUNÇÃO PARA EDITAR PROCESSO EXISTENTE ======
+    // 'processoId' é o n´mero de identificação do processo (ex: 123)
+    // 'processoCodigo' é o código visível do processo (ex: 1.05)
+    function abrirModalEdicao(processoId, processoCodigo) {
+        console.log('✏️ Abrindo edição do processo:', processoId, '-', processoCodigo);
+
+        // ===== SALVAR ID IMEDIATAMENTE (ANTES DE TUDO) =====
+        sessionStorage.setItem('processo_id', processoId);
+        sessionStorage.setItem('modo_edicao', 'true');
+
+        // ===== LOG PARA VERIFICAR =====
+        console.log('💾 [INÍCIO] processo_id salvo:', sessionStorage.getItem('processo_id'));
+        console.log('💾 [INÍCIO] modo_edicao salvo:', sessionStorage.getItem('modo_edicao'));
+
+        // PASSO 1: Limpar dados antigos do sessionStorage
+        // sessionStorage é como uma "mochila" que guarda os dados enquanto a página está aberta
+        // Precisamos limpar para não mistar dados de um processo anterior
+        //sessionStorage.removeItem('processo_id');
+        sessionStorage.removeItem('auditoria_id');
+        //sessionStorage.removeItem('modo_edicao');
+        sessionStorage.removeItem('etapa_atual');
+        sessionStorage.removeItem('detalhes_temp');
+        sessionStorage.removeItem('riscos_temp');
+
+        // PASSO 2: Limpar variáveis globais (listas que guardam dados em memória)
+        // riscosLista guarda os riscos do processo atual
+        // executoresSelecionados guarda os funcionários selecionados 
+        riscosLista = [];
+        executoresSelecionados = [];
+
+        // PASSO 3: Resetar os campos do formulário (para não ficar sujeira de processos anteriores)
+        resetarCamposDetalhes(); // limpa descricao, etapa_ini, produto, etc.
+
+        // Limpar o campo de nome do processo
+        if (nomeProcessoInput) {
+            nomeProcessoInput.value = '';
+        }
+
+        //Limpar o campo de código do processo
+        if (codigoProcessoInput) {
+            codigoProcessoInput.value = '';
+        }
+
+        // Limpar badges de executores (aqueles "cards" que mostram os funcionários)
+        atualizarBadges();
+
+        // PASSO 4: Buscar os dados do processo no backend
+        // Vamos fazer uma requisição HTTP para o servido (Flask)
+        // A URL é /api/processo/{id}/dados (ex: api/processo/123/dados)
+        fetch(`/api/processo/${processoId}/dados`)
+            .then(response => response.json())
+            .then(data => {
+                // 'data' é o objeto que veio do backend com todos os dados do processo
+                console.log('📦 Dados recebidos do backend:', data);
+                console.log('🔍 Dados recebidos do backend:', data);
+                console.log('📝 nome_processo:', data.nome_processo);
+                console.log('🏷️ codigo_processo:', data.codigo_processo);
+
+                if (data.success) {
+                    // PASSO 5: Salvar osdads mo sessionStorage
+                    //Precisamos guardar o ID do processo (para sabr qual estamos editando)
+
+                    //sessionStorage.setItem('processo_id', processoId);
+
+                    // SAlvar o ID da auditoria (para manter o vínculo)
+                    // Nota: Na visualização, a auditoria pode não vir no campo 'id_area'
+                    // Vamos usar o ID area depois buscar a auditoria do processo
+
+                    if (data.id_area) {
+                        // Salvar o ID da área que será usada ppara recarregar a auditoria
+                        sessionStorage.setItem('id_area_selecionado', data.id_area);
+
+                        // Também precisamos encotnrar o nome da área para o selectbox
+                        // Você pode fazer uma busca no select ou guardar o nome vindo do backend
+
+
+                        // 1. Primeiro, define a área
+                        const areaSelectElement = document.getElementById('area_select');
+                        if (areaSelectElement && data.nome_area) {
+                            // Procura a opção com o texto igual ao nome da área
+                            for (let i = 0; i < areaSelectElement.options.length; i++) {
+                                if (areaSelectElement.options[i].text === data.nome_area) {
+                                    areaSelectElement.selectedIndex = i;
+                                    break;
+                                }
+                            }
+                            // Dispara o evento change para carregar as auditorias
+                            const changeEvent = new Event('change');
+                            areaSelectElement.dispatchEvent(changeEvent);
+                        }
+
+                        // 2. Depois de disparar o change da área, as auditorias vão carregar
+                        // Aí usamos o setTimeout para aguardar o carregamento e selecionar a auditoria
+
+                        setTimeout(() => {
+                            const auditoriaSelect = document.getElementById('auditoria_select');
+                            if (auditoriaSelect && data.auditoria_id) {
+                                auditoriaSelect.value = data.auditoria_id;
+                                const auditEvent = new Event('change');
+                                auditoriaSelect.dispatchEvent(auditEvent)
+                            }
+                        }, 500);
+                    }
+
+                    // Marcar que estamos no modo EDIÇÃO (não criação)
+                    //sessionStorage.setItem('modo_edicao', 'true');
+
+                    // PASSO 6: Salvar os riscos em uma variavel global
+                    // Os riscos vêm do backend no campo 'riscos'
+                    console.log('🔍 RISCOS RECEBIDOS DO BACKEND:', data.riscos);
+                    if (data.riscos && data.riscos.length > 0) {
+                        console.log('🔍 Primeiro risco - prazo_implantacao:', data.riscos[0].prazo_implantacao);
+                    }
+                    riscosLista = data.riscos || [];
+
+                    // Salvar os riscos no sessionStorage (para recuperar depois)
+                    sessionStorage.setItem('riscos_temp', JSON.stringify(riscosLista));
+                    console.log('🔍 Riscos salvos no sessionStorage:', sessionStorage.getItem('riscos_temp'));
+
+                    // PASSO 7: Salvar os executores (funcionários) em uma variável global
+                    // Os executores vêm no campo 'executores' como um array de objetos
+                    // cada objeto tem {id, nome, cargo}
+                    if (data.executores && data.executores.length > 0) {
+                        executoresSelecionados = data.executores.map(exec => ({
+                            id: exec.id,
+                            nome: exec.nome,
+                            cargo: exec.cargo || 'Sem cargo'
+                        }));
+                    } else {
+                        executoresSelecionados = [];
+                    }
+                    atualizarBadges(); // Atualiza a visualização dos badges
+
+                    // PASSO 8: Preencher os campos básicos do wizard
+                    // O campo 'nome_processo' já existe na etapa 2
+                    const nomeProcessoField = document.getElementById('nome_processo');
+                    if (nomeProcessoField) {
+                        nomeProcessoField.value = data.nome_processo || '';
+                    }
+
+                    // ===== HABILITAR BOTÃO PRÓXIMO NA EDIÇÃO =====
+                    const btnProximoEtapa3 = document.getElementById('btn-proximo-etapa3');
+                    if (btnProximoEtapa3) {
+                        btnProximoEtapa3.disabled = false;
+                    }
+                    // ====== PREENCHER CÓDIGO DO PROCESSO ======
+                    const codigoProcessoField = document.getElementById('codigo_processo');
+                    if (codigoProcessoField) {
+                        codigoProcessoField.value = data.codigo_processo || '';
+                        console.log('🔧 Campo código encontrado, valor preenchido:', codigoProcessoField.value);
+                        console.log('🔧 data.codigo_processo original:', data.codigo_processo);
+                    } else {
+                        console.log('❌ Campo código_processo NÃO encontrado no DOM!')
+                    }
+
+                    mostrarAvisoProcessoExistente(data.nome_processo, data.codigo_processo);
+
+                    // PASSO 9: Preencher os detalhes do processo (etapa 3)
+                    // Estes campos ficam no sessionStorage para serem carregados quando entrar na etapa 3
+                    const detalhesTemp = {
+                        descricao: data.descricao || '',
+                        etapa_ini: data.etapa_ini || '',
+                        etapa_fim: data.etapa_fim || '',
+                        produto: data.produto || '',
+                        objetivo: data.objetivo || ''
+                    };
+                    sessionStorage.setItem('detalhes_temp', JSON.stringify(detalhesTemp));
+                    console.log('💾 Detalhes salvos no sessionStorage:', detalhesTemp);
+
+                    // Se já estamos na etapa de detalhes (etapa 3), carregar imediatamente
+                    // Isso será feito dentro da função carregarDetalhesProcesso
+
+                    // PASSO 10: Definir a área selecionada
+                    // Precisamos saber qual área este processo pertence para carregar os funcionários corretos
+                    if (data.id_area) {
+                        // Salvar em uma variável que será usada pelo areaSelect
+                        sessionStorage.setItem('area_id_selecionada', data.id_area);
+
+                        // Também atualizar o hidden input da área
+                        const idAreaHidden = document.getElementById('id_area_selecionado');
+                        if (idAreaHidden) {
+                            idAreaHidden.value = data.id_area;
+                        }
+                    }
+
+                    // PASSO 11: Abrir o wizard na etapa 1 (vínculo com auditoria)
+                    // Vamos usar a função existente irParaEtapa(1)
+                    // Mas precisamos primeiro garantir que o wizard está visível
+                    if (modalWizard) {
+                        modalWizard.style.display = 'flex';
+                    }
+
+                    console.log('💾 [ANTES DE irParaEtapa] processo_id:', sessionStorage.getItem('processo_id'));
+
+                    // Ir para a etapa 1 (vinculo com auditoria)
+                    // O usuário vai clicar em "Próximo" para avançar
+                    irParaEtapa(1);
+
+                    // PASSO 12: Recarregar a lista de funcionários da área
+                    // Para que os card de funcionários apareça corretamente
+                    if (data.id_area) {
+                        carregarFuncionariosArea(parseInt(data.id_area));
+                    }
+
+                    // Mostrar mensagem de sucesso
+                    mostrarToast('Processo carregado para edição!', 'success');
+
+                } else {
+                    // Se o backend retornou erro
+                    mostrarToast('❌ Erro ao carregar dados do processo', 'error');
+                }
+            })
+            .catch(error => {
+                // Se aconteceu algum erro na requisição (rede, servidor fora, etc.)
+                console.error('❌ Erro ao buscar processo:', error);
+                mostrarToast('❌ Erro ao carregar dados. Tente novamente.', 'error');
+            });
+    }
+
+    // ====== FUNÇÃO PARA PERMITIR CLIQUE NAS ETAPAS DO WIZARD ======
+    function habilitarNavegacaoEtapas() {
+        const steps = document.querySelectorAll('.step');
+        steps.forEach(step => {
+            step.style.cursor = 'pointer';
+            step.addEventListener('click', (e) => {
+                // Não fazer nada se clicar no step ativo
+                if (step.classList.contains('active')) {
+                    return;
+                }
+
+                // Obter o número da etapa clicada
+                const etapaNum = parseInt(step.getAttribute('data-step'));
+
+                // Verificar se é uma transição válida (impedir pular para etapas não disponíveis)
+                const etapaAtual = parseInt(document.querySelector('.step.active')?.getAttribute('data-step') || 1);
+
+                // Regras de validação
+                if (etapaNum > etapaAtual) {
+                    // Avançando: verificar se as etapas anteriores estão completas?
+                    // Por enquanto, permitir qualquer navegação
+                    console.log(`🖱️ Navegando da etapa ${etapaAtual} para etapa ${etapaNum}`);
+                } else {
+                    // Voltando: sempre permitido
+                    console.log(`🖱️ Voltando da etapa ${etapaAtual} para etapa ${etapaNum}`);
+                }
+
+                // Ir para a etapa clicada
+                irParaEtapa(etapaNum);
+            });
+        });
+    }
+    
+    // Função para salvar informações básicas antes de avançar
+    async function salvarInfoBasicasAntesDeAvancar() {
+        const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+        if (!nomeProcesso || executoresSelecionados.length === 0) return;
+        
+        const areaId = document.getElementById('id_area_selecionado')?.value || areaSelect.value;
+        const codigoProcesso = document.getElementById('codigo_processo')?.value;
+        const auditoriaId = auditoriaSelect.value;
+        const areaSelectElement = document.getElementById('area_select');
+        const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
+        
+        const processoId = sessionStorage.getItem('processo_id');
+        const payload = {
+            nome_processo: nomeProcesso,
+            codigo_processo: codigoProcesso,
+            id_area: parseInt(areaId),
+            nome_area: nomeArea,
+            executores_ids: executoresSelecionados.map(e => e.id),
+            auditoria_id: parseInt(auditoriaId)
+        };
+        
+        if (processoId) {
+            payload.processo_id = parseInt(processoId);
+        }
+        
+        try {
+            const response = await fetch('/api/processo/salvar-basico', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                sessionStorage.setItem('processo_id', data.processo_id);
+                sessionStorage.setItem('auditoria_id', auditoriaId);
+                sessionStorage.setItem('modo_edicao', 'true');
+                console.log('💾 Informações básicas salvas automaticamente');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar automaticamente:', error);
+        }
+    }
+
+    // Função para salvar detalhes antes de avançar
+    async function salvarDetalhesAntesDeAvancar() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) return;
+        
+        const descricao = document.getElementById('descricao_processo')?.value || '';
+        const etapaIni = document.getElementById('etapa_ini_processo')?.value || '';
+        const produto = document.getElementById('produto_processo')?.value || '';
+        const etapaFim = document.getElementById('etapa_fim_processo')?.value || '';
+        const objetivo = document.getElementById('objetivo_processo')?.value || '';
+        
+        try {
+            const response = await fetch('/api/processo/salvar-detalhes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    processo_id: parseInt(processoId),
+                    descricao: descricao,
+                    etapa_ini: etapaIni,
+                    etapa_fim: etapaFim,
+                    produto: produto,
+                    objetivo: objetivo
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log('💾 Detalhes salvos automaticamente');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar detalhes:', error);
+        }
+    }
 </script>
 {% endblock %}
