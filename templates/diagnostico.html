@@ -2391,7 +2391,7 @@
     .resumo-risco-card.low {border-left-color: #28a745; }
     .resumo-risco-card.medium { border-left-color: #ffc107; }
     .resumo-risco-card.high { border-left-color: #fd7e14; }
-    .resumo-risco-card-critical { border-left-color: #dc3545; }
+    .resumo-risco-card.critical { border-left-color: #dc3545; }
 
     .resumo-risco-header {
         display: flex;
@@ -3067,13 +3067,13 @@
                     if (riscosData.riscos && riscosData.riscos.length > 0) {
                         scoreMaximo = Math.max(...riscosData.riscos.map(r => r.score_risco || 0));
                         
-                        if (scoreMaximo <= 4) {
+                        if (scoreMaximo <= 3) {
                             corScore = '🟢';
                             textoScore = 'baixo';
-                        } else if (scoreMaximo <= 9) {
+                        } else if (scoreMaximo <= 7) {
                             corScore = '🟡';
                             textoScore = 'médio';
-                        } else if (scoreMaximo <= 12) {
+                        } else if (scoreMaximo <= 11) {
                             corScore = '🟠';
                             textoScore = 'alto';
                         } else {
@@ -4048,7 +4048,7 @@
                 // NÃO AVANÇAR AUTOMATICAMENTE - deixar o usuário clicar no botão
                 
                 if (data.perfil === 'administrador' || data.perfil === 'admin') {
-                    mostrarToast('Acesso concedido (Administrador). Você tem permissão total.', 'success');
+                    mostrarToast('Acesso concedido (Administrador).', 'success');
                 } else {
                     mostrarToast('Você está autorizado a diagnosticar processos nesta auditoria.', 'success');
                 }
@@ -4489,17 +4489,17 @@
 
     // Determinar nível baseado no score
     function getScoreLevel(score) {
-        if (score <= 4) return 'low';
-        if (score <= 9) return 'medium';
-        if (score <= 12) return 'high';
+        if (score <= 3) return 'low';
+        if (score <= 7) return 'medium';
+        if (score <= 11) return 'high';
         return 'critical';
     }
 
     // Obter texto do nível
     function getScoreLevelText(score) {
-        if (score <= 4) return 'BAIXO';
-        if (score <= 9) return 'MÉDIO';
-        if (score <= 12) return 'ALTO';
+        if (score <= 3) return 'BAIXO';
+        if (score <= 7) return 'MÉDIO';
+        if (score <= 11) return 'ALTO';
         return 'CRÍTICO';
     }
 
@@ -4907,17 +4907,25 @@
             
             // Validar campos obrigatórios
             let temErro = false;
+            let riscosComErro = []
             riscosLista.forEach((risco, idx) => {
                 if (!risco.nome_risco?.trim()) {
-                    mostrarToast(`⚠️ Risco ${idx + 1}: Nome é obrigatório`, 'warning');
+                    riscosComErro.push(idx + 1);
                     temErro = true;
                 }
             });
             
-            if (temErro) return;
+           if (temErro) {
+                mostrarToast(`⚠️ Risco(s) ${riscosComErro.join(', ')}: Nome é obrigatório`, 'warning');
+                return;
+            }
             
-            console.log('Riscos a serem salvos:', riscosLista);
-            mostrarToast('✅ Riscos validados! (backend em desenvolvimento)', 'success');
+            // Salvar os riscos antes de avançar
+            await autoSaveEtapa4();
+
+            // Avançar para a etapa 5 (visualização)
+            irParaEtapa(5);
+            mostrarToast('✅ Riscos salvos!', 'success');
         });
     }
 
@@ -5517,15 +5525,15 @@
                         const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
                         let nivel = 'low';
                         let nivelTexto = 'BAIXO';
-                        if (score <= 4) { nivel ='low'; nivelTexto = 'BAIXO'; }
-                        else if (score <= 9) { nivel = 'medium'; nivelTexto = "MÉDIO"; }
-                        else if (score <= 12) { nivel = 'high'; nivelTexto = "ALTO"; }
+                        if (score <= 3) { nivel ='low'; nivelTexto = 'BAIXO'; }
+                        else if (score <= 7) { nivel = 'medium'; nivelTexto = "MÉDIO"; }
+                        else if (score <= 11) { nivel = 'high'; nivelTexto = "ALTO"; }
                         else { nivel = 'critical'; nivelTexto = 'CRÍTICO'; }
 
                         let corScore = '';
-                        if (score <= 4) corScore = '🟢';
-                        else if (score <= 9) corScore = '🟡';
-                        else if (score <= 12) corScore = '🟠';
+                        if (score <= 3) corScore = '🟢';
+                        else if (score <= 7) corScore = '🟡';
+                        else if (score <= 11) corScore = '🟠';
                         else corScore = '🔴';
 
                         return `
