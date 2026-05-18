@@ -148,14 +148,38 @@
         }
         .nav-section {
             margin-bottom: 25px;
+            position: relative;
         }
+        
         .nav-section-title {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 2px;
-            color: rgba(228,228,228,0.5);
-            padding: 10px 15px 5px 15px;
+            color: rgba(228,228,228,0.6);
+            padding: 8px 15px 8px 22px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+
+        .nav-section-title::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 14px;
+            background: #0b5b99;
+            border-radius: 2px;
+        }
+
+        .nav-section-title i {
+            font-size: 12px;
+            color: #0b5b99;
+        }
+
         .nav-item {
             display: flex;
             align-items: center;
@@ -569,6 +593,76 @@
 
         /* ============================== FIM PADRÃO DE BOTÕES GLOBAL ============================== */
         
+        /* ====== SUBMENU COM CORES DIFERENTES ====== */
+        .submenu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 15px;
+            margin: 4px 0;
+            border-radius: 8px;
+            color: #e4e4e4;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+
+        /* Riscos - Cor Vermelha */
+        .submenu-riscos:hover {
+            border-left-color: #fd6a14 !important;
+        }
+        .submenu-riscos.active {
+            border-left-color: #fd6a14 !important;
+        }
+        .submenu-riscos i {
+            color: #fd6a14;
+        }
+
+        /* Controles - Cor Azul */
+        .submenu-controles:hover {
+            background: rgba(255,255,255,0.08);
+            border-left-color: #17a2b8 !important;
+        }
+        .submenu-controles.active {
+            background: rgba(23,162,184,0.15);
+            border-left-color: #17a2b8 !important;
+        }
+        .submenu-controles i {
+            color: #17a2b8;
+        }
+        .submenu-controles:hover i,
+        .submenu-controles.active i {
+            color: #4dd0e1;
+        }
+
+        /* Itens do submenu do Diagnóstico (opcional) */
+        .submenu-visao:hover {
+            background: rgba(255,255,255,0.08);
+            border-left-color: #0b5b99 !important;
+        }
+        .submenu-visao.active {
+            background: rgba(11,91,153,0.15);
+            border-left-color: #0b5b99 !important;
+        }
+
+        /* Item principal ativo */
+        .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: #0b5b99;
+        }
+
+        /* Container do submenu */
+        .submenu {
+            margin-left: 35px;
+            padding-left: 15px;
+            border-left: 1px solid rgba(228,228,228,0.2);
+            display: none;
+        }
+
+        .submenu.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -606,7 +700,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">EXECUÇÃO</div>
 
-                    <!-- Item principal com Submenu (seta dentro do link) -->
+                    <!-- Diagnóstico dos Processos com Submenu -->
                     <div class="nav-item-parent">
                         <a href="{{ url_for('diagnostico') }}" class="nav-item" id="toggleDiagnosticoSubmenu">
                             <span class="nav-item-content">
@@ -616,19 +710,33 @@
                             <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
                     </div>
-
-                    <!-- Submenu (escondido por padrão) -->
                     <div class="submenu" id="diagnosticoSubmenu">
-                        <a href="{{ url_for('visao_geral') }}" class="submenu-item">
+                        <a href="{{ url_for('visao_geral') }}" class="submenu-item submenu-visao">
                             <i class="fas fa-eye"></i>
                             <span>Visão Geral do Diagnóstico</span>
                         </a>
                     </div>
 
-                    <a href="{{ url_for('detalhamento') }}" class="nav-item">
-                        <i class="fas fa-list"></i>
-                        <span>Detalhamento das Etapas</span>
-                    </a>
+                    <!-- Detalhamento das Etapas com Submenu -->
+                    <div class="nav-item-parent">
+                        <a href="{{ url_for('detalhamento') }}" class="nav-item" id="toggleDetalhamentoSubmenu">
+                            <span class="nav-item-content">
+                                <i class="fas fa-list"></i>
+                                <span>Detalhamento das Etapas</span>
+                            </span>
+                            <i class="fas fa-chevron-down submenu-arrow"></i>
+                        </a>
+                    </div>
+                    <div class="submenu" id="detalhamentoSubmenu">
+                        <a href="{{ url_for('detalhamento_riscos') }}" class="submenu-item submenu-riscos">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Riscos das Etapas</span>
+                        </a>
+                        <a href="{{ url_for('detalhamento_controles') }}" class="submenu-item submenu-controles">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Controles das Etapas</span>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- SEÇÃO 3: COMUNICAÇÃO -->
@@ -677,15 +785,80 @@
     <div id ="toastContainer" class="toast-container"></div>
 
     <script>
-        // ====== DESTACAR ITEM ATIVO DO MENU ======
+        // ====== CONTROLE DOS SUBMENUS (VERSÃO UNIFICADA) ======
+        (function() {
+            // Configuração dos submenus
+            const submenus = [
+                {
+                    toggleId: 'toggleDiagnosticoSubmenu',
+                    submenuId: 'diagnosticoSubmenu',
+                    relatedUrls: ['/visao-geral', '/diagnostico']
+                },
+                {
+                    toggleId: 'toggleDetalhamentoSubmenu',
+                    submenuId: 'detalhamentoSubmenu',
+                    relatedUrls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles']
+                }
+            ];
+            
+            submenus.forEach(menu => {
+                const menuItem = document.getElementById(menu.toggleId);
+                const submenu = document.getElementById(menu.submenuId);
+                
+                if (menuItem && submenu) {
+                    const arrow = menuItem.querySelector('.submenu-arrow');
+                    const currentUrl = window.location.pathname;
+                    
+                    // Verificar se alguma URL relacionada está ativa
+                    const isRelatedActive = menu.relatedUrls.some(url => currentUrl.includes(url));
+                    
+                    if (isRelatedActive) {
+                        submenu.classList.add('show');
+                        if (arrow) arrow.classList.add('open');
+                    }
+                    
+                    menuItem.addEventListener('click', function(e) {
+                        // Verificar se o clique foi na seta
+                        const isArrow = e.target === arrow || (e.target.parentElement === arrow);
+                        const isText = e.target.closest('.nav-item-content') || e.target === menuItem;
+                        
+                        if (isArrow) {
+                            e.preventDefault();
+                            submenu.classList.toggle('show');
+                            if (arrow) arrow.classList.toggle('open');
+                        } else if (isText) {
+                            // Redirecionar para a página principal do menu
+                            const href = menuItem.getAttribute('href');
+                            if (href && href !== '#') {
+                                window.location.href = href;
+                            }
+                        }
+                    });
+                }
+            });
+        })();
+
+        // ====== DESTACAR ITEM ATIVO DO MENU (incluindo submenus com cores) ======
         (function() {
             const currentUrl = window.location.pathname;
             const allLinks = document.querySelectorAll('.nav-item, .submenu-item');
-
+            
             allLinks.forEach(link => {
                 const linkUrl = link.getAttribute('href');
                 if (linkUrl && linkUrl !== '#' && currentUrl.includes(linkUrl)) {
                     link.classList.add('active');
+                    
+                    // Se for um submenu item, também mostrar o submenu pai
+                    if (link.classList.contains('submenu-item')) {
+                        const parentSubmenu = link.closest('.submenu');
+                        if (parentSubmenu) {
+                            parentSubmenu.classList.add('show');
+                            const parentToggle = parentSubmenu.previousElementSibling;
+                            if (parentToggle && parentToggle.querySelector('.submenu-arrow')) {
+                                parentToggle.querySelector('.submenu-arrow').classList.add('open');
+                            }
+                        }
+                    }
                 }
             });
         })();
@@ -755,35 +928,6 @@
                 window.addEventListener('mouseup', stopResize);
             }
             loadSavedWidth();
-        })();
-
-        // ====== CONTROLE DO SUBMENU ======
-        (function() {
-            const menuItem = document.getElementById('toggleDiagnosticoSubmenu');
-            const submenu = document.getElementById('diagnosticoSubmenu');
-            
-            if (menuItem && submenu) {
-                const arrow = menuItem.querySelector('.submenu-arrow');
-                const currentUrl = window.location.pathname;
-                const isVisaoGeral = currentUrl.includes('/visao-geral');
-                const isDiagnostico = currentUrl.includes('/diagnostico');
-                
-                if (isVisaoGeral || isDiagnostico) {
-                    submenu.classList.add('show');
-                    if (arrow) arrow.classList.add('open');
-                }
-                
-                menuItem.addEventListener('click', function(e) {
-                    // Verificar se o clique foi na seta
-                    const isArrow = e.target === arrow || (e.target.parentElement === arrow);
-                    
-                    if (isArrow) {
-                        e.preventDefault();
-                        submenu.classList.toggle('show');
-                        if (arrow) arrow.classList.toggle('open');
-                    }
-                });
-            }
         })();
 
         // ====== FUNÇÃO PARA MOSTRAR TOAST ======

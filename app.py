@@ -1104,6 +1104,18 @@ def api_salvar_funcionario():
 # DETALHAMENTO DOS PROCESSOS
 # ============================================================
 
+@app.route('/detalhamento_riscos')
+def detalhamento_riscos():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('detalhamento_riscos.html')
+
+@app.route('/detalhamento_controles')
+def detalhamento_controles():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('detalhamento_controles.html')
+
 @app.route('/api/etapa/<int:etapa_id>/download/<tipo>')
 def api_etapa_download(etapa_id, tipo):
     """Download do diagrama ou manual da etapa"""
