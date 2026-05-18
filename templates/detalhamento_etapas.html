@@ -10,7 +10,7 @@
                 <h1><i class="fas fa-project-diagram"></i> Detalhamento de Etapas</h1>
                 <p id="processo-info">Carregando informações do processo...</p>
             </div>
-            <button class="btn-voltar" onclick="history.voltarParaDetalhamento()">
+            <button class="btn-voltar" id="btn-voltar-detalhamento">
                 <i class="fas fa-arrow-left"></i> Voltar
             </button>
         </div>
@@ -998,12 +998,59 @@
 </style>
 
 <script>
-
     // ============================================================
     // 1. FUNÇÕES AUXILIARES
     // ============================================================
 
-    // Função para converter IDs de executores em nomes
+    // Função para salvar o estado antes de sair
+    function salvarEstadoDetalhamento() {
+        return new Promise((resolve, reject) => {
+            console.log('💾 FUNÇÃO SALVAR ESTADO CHAMADA!');
+            const params = getUrlParams();
+            console.log('📋 Parâmetros da URL:', params);
+            
+            if (params.processoId) {
+                fetch(`/api/processo/${params.processoId}/dados`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const estado = {
+                                area_id: data.id_area,
+                                area_nome: data.nome_area,
+                                auditoria_id: data.auditoria_id,
+                                processo_id: params.processoId,
+                                processo_codigo: params.processoCodigo,
+                                timestamp: new Date().getTime()
+                            };
+                            sessionStorage.setItem('detalhamento_estado', JSON.stringify(estado));
+                            console.log('💾 Estado SALVO com sucesso:', estado);
+                            resolve(true);
+                        } else {
+                            console.error('❌ data.success é false');
+                            resolve(false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Erro na API:', error);
+                        resolve(false);
+                    });
+            } else {
+                console.warn('⚠️ Não tem processo_id nos parâmetros!');
+                resolve(false);
+            }
+        });
+    }
+
+    // Função para voltar (definida uma única vez)
+    window.voltarParaDetalhamento = function() {
+        salvarEstadoDetalhamento();
+        window.location.href = '/detalhamento';
+    };
+
+    // Cache para nomes de funcionários
+    let nomeFuncionariosCache = new Map();
+
+    // Função para converter IDs de executores em nomes com cache
     async function getNomesExecutores(executoresIdsString) {
         if (!executoresIdsString || executoresIdsString.trim() === '') return '-';
         
@@ -1011,278 +1058,217 @@
         const nomes = [];
         
         for (const id of ids) {
-            try {
-                // Buscar nome do funcionário pelo ID
-                const response = await fetch(`/api/funcionario/${id.trim()}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    nomes.push(data.nome_funcionario);
-                } else {
-                    nomes.push(`ID: ${id}`);
+            const idTrimmed = id.trim();
+            
+            if (nomeFuncionariosCache.has(idTrimmed)) {
+                nomes.push(nomeFuncionariosCache.get(idTrimmed));
+            } else {
+                try {
+                    const response = await fetch(`/api/funcionario/${idTrimmed}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const nome = data.nome_funcionario;
+                        nomeFuncionariosCache.set(idTrimmed, nome);
+                        nomes.push(nome);
+                    } else {
+                        nomes.push(`ID: ${idTrimmed}`);
+                    }
+                } catch (error) {
+                    console.error(`Erro ao buscar executor ${idTrimmed}:`, error);
+                    nomes.push(`ID: ${idTrimmed}`);
                 }
-            } catch (error) {
-                console.error(`Erro ao buscar executor ${id}:`, error);
-                nomes.push(`ID: ${id}`);
             }
         }
         
         return nomes.join(', ');
     }
 
-    // Variáveis globais para o tag input
-    let todosExecutores = [];
-    let selectedExecutores = new Map(); // Usar Map para fácil acesso
-    let searchTimeout = null;
+    // ============================================================
+    // EXECUTORES - DROPDOWN COM CHECKBOX
+    // ============================================================
 
-    // Função para carregar executores do processo
+    let todosExecutoresLista = [];
+    let selectedExecutoresMap = new Map();
+
+    // Carregar executores do processo
     async function carregarExecutoresProcesso() {
         try {
             const response = await fetch(`/api/processo/${processoAtualId}/dados`);
             const data = await response.json();
             
             if (data.success && data.executores && data.executores.length > 0) {
-                todosExecutores = data.executores;
-                return todosExecutores;
+                todosExecutoresLista = data.executores;
+                renderizarListaExecutores();
+                return todosExecutoresLista;
             } else {
-                todosExecutores = [];
+                todosExecutoresLista = [];
+                const optionsDiv = document.getElementById('executores-options');
+                if (optionsDiv) {
+                    optionsDiv.innerHTML = '<div class="no-options">⚠️ Nenhum executor cadastrado para este processo</div>';
+                }
                 return [];
             }
         } catch (error) {
             console.error('Erro ao carregar executores:', error);
-            todosExecutores = [];
+            todosExecutoresLista = [];
             return [];
         }
     }
 
-    // Função para renderizar as tags
-    function renderTags() {
-        const tagsList = document.getElementById('tags-list');
-        tagsList.innerHTML = '';
+    // Renderizar lista de executores no dropdown
+    function renderizarListaExecutores(filtro = '') {
+        const optionsDiv = document.getElementById('executores-options');
+        if (!optionsDiv) return;
         
-        selectedExecutores.forEach((executor, id) => {
-            const tag = document.createElement('div');
-            tag.className = 'tag';
-            tag.innerHTML = `
-                <span class="tag-name" title="${escapeHtml(executor.nome)}">${escapeHtml(executor.nome)}</span>
-                <span class="tag-remove" onclick="removeExecutor('${id}')">&times;</span>
-            `;
-            tagsList.appendChild(tag);
-        });
-        
-        atualizarExibicaoExecutores();
-    }
-
-    // Função para adicionar executor
-    function addExecutor(executor) {
-        if (!selectedExecutores.has(String(executor.id))) {
-            selectedExecutores.set(String(executor.id), executor);
-            renderTags();
-            limparBusca();
-        }
-    }
-
-    // Função para remover executor
-    function removeExecutor(executorId) {
-        selectedExecutores.delete(executorId);
-        renderTags();
-        limparBusca();
-    }
-
-    // Função para buscar executores
-    function buscarExecutores(searchTerm) {
-        if (!searchTerm || searchTerm.trim() === '') {
-            document.getElementById('search-results').style.display = 'none';
-            return [];
+        let filteredExecutores = todosExecutoresLista;
+        if (filtro) {
+            const term = filtro.toLowerCase();
+            filteredExecutores = todosExecutoresLista.filter(exec => 
+                exec.nome.toLowerCase().includes(term) || 
+                (exec.cargo && exec.cargo.toLowerCase().includes(term))
+            );
         }
         
-        const term = searchTerm.toLowerCase().trim();
-        const results = todosExecutores.filter(executor => {
-            // Não mostrar já selecionados
-            if (selectedExecutores.has(String(executor.id))) return false;
-            
-            // Buscar por nome ou cargo
-            return executor.nome.toLowerCase().includes(term) || 
-                (executor.cargo && executor.cargo.toLowerCase().includes(term));
-        });
-        
-        return results.slice(0, 10); // Limitar a 10 resultados
-    }
-
-    // Função para mostrar resultados da busca
-    function mostrarResultadosBusca(results) {
-        const resultsDiv = document.getElementById('search-results');
-        
-        if (results.length === 0) {
-            resultsDiv.innerHTML = '<div class="no-results">❌ Nenhum executor encontrado</div>';
-            resultsDiv.style.display = 'block';
+        if (filteredExecutores.length === 0) {
+            optionsDiv.innerHTML = '<div class="no-options">❌ Nenhum executor encontrado</div>';
             return;
         }
         
         let html = '';
-        results.forEach(executor => {
+        filteredExecutores.forEach(executor => {
+            const isSelected = selectedExecutoresMap.has(String(executor.id));
             html += `
-                <div class="search-result-item" onclick="addExecutor(${JSON.stringify(executor).replace(/"/g, '&quot;')})">
-                    <span class="result-name">${escapeHtml(executor.nome)}</span>
-                    ${executor.cargo ? `<span class="result-cargo">- ${escapeHtml(executor.cargo)}</span>` : ''}
-                    <span class="result-info">
-                        <i class="fas fa-plus-circle"></i> Adicionar
-                    </span>
+                <div class="executor-option ${isSelected ? 'selected' : ''}" onclick="toggleExecutor(${executor.id})">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleExecutor(${executor.id})">
+                    <div class="executor-info">
+                        <span class="executor-name">${escapeHtml(executor.nome)}</span>
+                        ${executor.cargo ? `<span class="executor-cargo">- ${escapeHtml(executor.cargo)}</span>` : ''}
+                    </div>
                 </div>
             `;
         });
         
-        resultsDiv.innerHTML = html;
-        resultsDiv.style.display = 'block';
+        optionsDiv.innerHTML = html;
     }
 
-    // Função para limpar busca
-    function limparBusca() {
-        const searchInput = document.getElementById('executor-search-input');
-        searchInput.value = '';
-        document.getElementById('search-results').style.display = 'none';
-    }
-
-    // Função para lidar com a busca em tempo real
-    function handleSearchInput() {
-        const searchInput = document.getElementById('executor-search-input');
-        const searchTerm = searchInput.value;
+    // Alternar seleção de um executor
+    window.toggleExecutor = function(executorId) {
+        const executor = todosExecutoresLista.find(e => e.id == executorId);
+        if (!executor) return;
         
-        // Limpar timeout anterior
-        if (searchTimeout) clearTimeout(searchTimeout);
-        
-        // Debounce para não fazer muitas buscas
-        searchTimeout = setTimeout(() => {
-            const results = buscarExecutores(searchTerm);
-            mostrarResultadosBusca(results);
-        }, 300);
-    }
-
-    // Função para lidar com teclas especiais
-    function handleSearchKeydown(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            const searchInput = document.getElementById('executor-search-input');
-            const searchTerm = searchInput.value;
-            
-            if (searchTerm) {
-                const results = buscarExecutores(searchTerm);
-                if (results.length > 0) {
-                    addExecutor(results[0]); // Adicionar o primeiro resultado
-                }
-            }
-        } else if (event.key === 'Escape') {
-            limparBusca();
-        } else if (event.key === 'Backspace' && event.target.value === '') {
-            // Se pressionar backspace com campo vazio, remover última tag
-            const lastTag = Array.from(selectedExecutores.values()).pop();
-            if (lastTag) {
-                removeExecutor(lastTag.id);
-            }
-        }
-    }
-
-    // Função para atualizar a exibição dos selecionados
-    function atualizarExibicaoExecutores() {
-        const divExibicao = document.getElementById('executores-selecionados-info');
-        const total = selectedExecutores.size;
-        
-        if (total > 0) {
-            const nomes = Array.from(selectedExecutores.values()).map(e => e.nome).join(', ');
-            divExibicao.innerHTML = `
-                <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                <strong>${total} executor(es) selecionado(s):</strong> ${nomes}
-            `;
+        if (selectedExecutoresMap.has(String(executorId))) {
+            selectedExecutoresMap.delete(String(executorId));
         } else {
-            divExibicao.innerHTML = `
+            selectedExecutoresMap.set(String(executorId), executor);
+        }
+        
+        atualizarDisplaySelecionados();
+        renderizarListaExecutores(document.getElementById('executor-search')?.value || '');
+    };
+
+    // Atualizar o display dos selecionados
+    function atualizarDisplaySelecionados() {
+        const displayDiv = document.getElementById('executores-display');
+        const infoDiv = document.getElementById('executores-selecionados-info');
+        
+        if (!displayDiv || !infoDiv) return;
+        
+        if (selectedExecutoresMap.size === 0) {
+            displayDiv.innerHTML = '<span class="placeholder">Selecione os executores...</span>';
+            infoDiv.innerHTML = `
                 <i class="fas fa-info-circle" style="color: #ffc107;"></i>
                 Nenhum executor selecionado
             `;
+        } else {
+            let badgesHtml = '';
+            selectedExecutoresMap.forEach((executor, id) => {
+                badgesHtml += `
+                    <span class="selected-badge">
+                        ${escapeHtml(executor.nome)}
+                        <span class="remove-badge" onclick="event.stopPropagation(); toggleExecutor(${id})">&times;</span>
+                    </span>
+                `;
+            });
+            displayDiv.innerHTML = badgesHtml;
+            
+            const nomes = Array.from(selectedExecutoresMap.values()).map(e => e.nome).join(', ');
+            infoDiv.innerHTML = `
+                <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                <strong>${selectedExecutoresMap.size} executor(es) selecionado(s):</strong> ${nomes}
+            `;
         }
     }
 
-    // Função para obter os IDs dos executores selecionados
-    function getSelectedExecutores() {
-        return Array.from(selectedExecutores.keys());
+    // Toggle do dropdown
+    window.toggleExecutoresDropdown = function() {
+        const dropdown = document.getElementById('executores-dropdown');
+        if (!dropdown) return;
+        
+        const isVisible = dropdown.style.display === 'block';
+        
+        if (isVisible) {
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.style.display = 'flex';
+            const searchInput = document.getElementById('executor-search');
+            if (searchInput) {
+                searchInput.focus();
+            }
+            renderizarListaExecutores('');
+        }
+    };
+
+    // Filtrar executores
+    function setupExecutorSearch() {
+        const searchInput = document.getElementById('executor-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                renderizarListaExecutores(e.target.value);
+            });
+        }
     }
 
-    // Função para carregar executores salvos na edição
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', function(event) {
+        const selector = document.querySelector('.executores-selector');
+        const dropdown = document.getElementById('executores-dropdown');
+        if (selector && dropdown && !selector.contains(event.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Funções para integração
+    function getSelectedExecutores() {
+        return Array.from(selectedExecutoresMap.keys());
+    }
+
+    function limparExecutoresSelecionados() {
+        selectedExecutoresMap.clear();
+        atualizarDisplaySelecionados();
+        renderizarListaExecutores('');
+    }
+
     function carregarExecutoresSalvos(executoresIdsString) {
         if (!executoresIdsString || executoresIdsString.trim() === '') return;
         
         const ids = executoresIdsString.split(',');
         ids.forEach(id => {
-            const executor = todosExecutores.find(e => String(e.id) === String(id.trim()));
-            if (executor && !selectedExecutores.has(String(executor.id))) {
-                selectedExecutores.set(String(executor.id), executor);
+            const executor = todosExecutoresLista.find(e => String(e.id) === String(id.trim()));
+            if (executor && !selectedExecutoresMap.has(String(executor.id))) {
+                selectedExecutoresMap.set(String(executor.id), executor);
             }
         });
-        renderTags();
+        atualizarDisplaySelecionados();
     }
 
-    // Função para limpar os selecionados
-    function limparExecutoresSelecionados() {
-        selectedExecutores.clear();
-        renderTags();
+    function setupExecutoresSelector() {
+        setupExecutorSearch();
     }
 
-    // Inicializar o tag input
-    function setupTagInput() {
-        const searchInput = document.getElementById('executor-search-input');
-        const container = document.getElementById('tag-input-container');
-        
-        searchInput.addEventListener('input', handleSearchInput);
-        searchInput.addEventListener('keydown', handleSearchKeydown);
-        
-        // Fechar resultados ao clicar fora
-        document.addEventListener('click', function(event) {
-            if (!container.contains(event.target)) {
-                limparBusca();
-            }
-        });
-        
-        // Focar no input ao clicar no container
-        container.addEventListener('click', function() {
-            searchInput.focus();
-        });
-    }
+    // ============================================================
+    // TOAST E UTILIDADES
+    // ============================================================
 
-    // Função para salvar o estado antes de sair
-    function salvarEstadoDetalhamento() {
-        const params = getUrlParams();
-        if (params.processoId) {
-            // Buscar a área e auditoria do processo atual
-            fetch(`/api/processo/${params.processoId}/dados`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const estado = {
-                            area_id: data.id_area,
-                            area_nome: data.nome_area,
-                            auditoria_id: data.auditoria_id,
-                            processo_id: params.processoId,
-                            processo_codigo: params.processoCodigo,
-                            timestamp: new Date().getTime()
-                        };
-                        sessionStorage.setItem('detalhamento_estado', JSON.stringify(estado));
-                        console.log('💾 Estado salvo:', estado);
-                    }
-                })
-                .catch(error => console.error('Erro ao salvar estado:', error));
-        }
-    }
-
-    // Modificar o botão voltar para salvar o estado antes de voltar
-    function voltarParaDetalhamento() {
-        salvarEstadoDetalhamento();
-        history.back();
-    }
-
-    // Atualizar o botão voltar no HTML
-    // Altere o onclick do botão voltar de:
-    // <button class="btn-voltar" onclick="history.back()">
-    // PARA:
-    // <button class="btn-voltar" onclick="voltarParaDetalhamento()">
-    
     function mostrarToast(mensagem, tipo = 'info') {
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
@@ -1333,7 +1319,6 @@
         
         toastContainer.appendChild(toast);
         
-        // Adicionar animação de saída
         setTimeout(() => {
             if (toast && toast.parentElement) {
                 toast.style.animation = 'slideOut 0.3s ease';
@@ -1364,7 +1349,7 @@
     }
 
     // ============================================================
-    // 2. VALIDAÇÃO E LIMPEZA DO FORMULÁRIO
+    // VALIDAÇÃO E LIMPEZA
     // ============================================================
 
     function validarFormularioEtapa() {
@@ -1400,13 +1385,11 @@
         document.getElementById('modal-ganho-previsto').value = '';
         document.getElementById('modal-obrigacoes-regulatorias').value = '';
         
-        // Limpar inputs de arquivo
         const diagramaInput = document.getElementById('modal-diagrama');
         const manualInput = document.getElementById('modal-manual');
         if (diagramaInput) diagramaInput.value = '';
         if (manualInput) manualInput.value = '';
         
-        // Limpar divs de nome de arquivo
         const diagramaNomeDiv = document.getElementById('diagrama-nome');
         const manualNomeDiv = document.getElementById('manual-nome');
         if (diagramaNomeDiv) {
@@ -1420,21 +1403,20 @@
 
         limparExecutoresSelecionados();
         
-        // Remover erros
         document.querySelectorAll('#modal-etapa .form-group').forEach(group => {
             group.classList.remove('error');
         });
     }
 
     // ============================================================
-    // 3. VARIÁVEIS GLOBAIS
+    // VARIÁVEIS GLOBAIS
     // ============================================================
 
     let processoAtualId = null;
     let processoAtualCodigo = null;
 
     // ============================================================
-    // 4. FUNÇÕES DE CARREGAMENTO DE DADOS
+    // FUNÇÕES DE CARREGAMENTO
     // ============================================================
 
     function getUrlParams() {
@@ -1508,7 +1490,7 @@
     }
 
     // ============================================================
-    // 5. DOWNLOAD DE ARQUIVOS
+    // DOWNLOAD
     // ============================================================
 
     function downloadArquivo(etapaId, tipo) {
@@ -1516,27 +1498,20 @@
     }
 
     // ============================================================
-    // 6. RENDERIZAÇÃO DAS ETAPAS
+    // RENDERIZAÇÃO DAS ETAPAS
     // ============================================================
 
     function renderizarEtapas(etapas) {
         const container = document.getElementById('etapas-container');
-        let html = '';
-
-        // Usar Promise.all para buscar todos os nomes dos executores em paralelo
+        
         Promise.all(etapas.map(async (etapa) => {
-            // Converter IDs dos executores para nomes
             const executoresNomes = await getNomesExecutores(etapa.executores_etapa);
             
-            // Verificar se tem arquivos anexados
             const temDiagrama = etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '';
             const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
             const temAnexos = temDiagrama || temManual;
-            
-            // Ícone de anexo (clips)
             const anexoIcon = temAnexos ? '<i class="fas fa-paperclip anexo-icon" title="Possui anexos"></i>' : '';
             
-            // Tooltip para mostrar quais anexos
             let anexoTooltip = '';
             if (temAnexos) {
                 const anexosList = [];
@@ -1569,7 +1544,6 @@
                                 <div class="etapa-detalhe-label">Executores da Etapa</div>
                                 <div class="etapa-detalhe-value">${escapeHtml(executoresNomes)}</div>
                             </div>
-
                             <div class="etapa-detalhe-item">
                                 <div class="etapa-detalhe-label">Descrição</div>
                                 <div class="etapa-detalhe-value">${escapeHtml(etapa.descricao_etapa) || '-'}</div>
@@ -1641,18 +1615,13 @@
     }
 
     // ============================================================
-    // 7. FUNÇÕES DO MODAL (CRUD)
+    // CRUD DO MODAL
     // ============================================================
 
-    // Função para remover arquivo existente (marcar para exclusão)
     function removerArquivoExistente(tipo, etapaId) {
         if (confirm(`Tem certeza que deseja remover este ${tipo === 'diagrama' ? 'diagrama' : 'manual'}?`)) {
             const nomeDiv = document.getElementById(`${tipo}-nome`);
-            
-            // Marcar que o arquivo deve ser removido no backend
             nomeDiv.setAttribute('data-remover-arquivo', 'true');
-            
-            // Atualizar a interface
             nomeDiv.innerHTML = `
                 <i class="fas fa-trash-alt"></i> 
                 Arquivo removido (será excluído ao salvar)
@@ -1660,21 +1629,17 @@
             `;
             nomeDiv.style.backgroundColor = '#fff3cd';
             nomeDiv.style.borderLeftColor = '#ffc107';
-            
-            // Limpar o input file
             const fileInput = document.getElementById(`modal-${tipo}`);
             if (fileInput) fileInput.value = '';
         }
     }
 
-    // Função para desfazer remoção do arquivo
     function desfazerRemocaoArquivo(tipo) {
         const nomeDiv = document.getElementById(`${tipo}-nome`);
         const temArquivo = nomeDiv.getAttribute('data-tem-arquivo') === 'true';
         const arquivoNome = nomeDiv.getAttribute('data-arquivo-nome') || '';
         
         if (temArquivo && arquivoNome) {
-            // Restaurar a exibição do arquivo
             nomeDiv.innerHTML = `
                 <i class="fas fa-paperclip"></i> 
                 ${escapeHtml(arquivoNome)} 
@@ -1685,7 +1650,6 @@
             nomeDiv.style.borderLeftColor = '';
             nomeDiv.removeAttribute('data-remover-arquivo');
         } else {
-            // Se não tinha arquivo, apenas esconder
             nomeDiv.style.display = 'none';
             nomeDiv.removeAttribute('data-remover-arquivo');
         }
@@ -1710,11 +1674,9 @@
         await carregarExecutoresProcesso();
         limparExecutoresSelecionados();
         setupExecutoresSelector();
-        
         document.getElementById('modal-etapa').style.display = 'flex';
     }
 
-    // Atualizar editarEtapa
     async function editarEtapa(etapaId) {
         limparFormularioEtapa();
         
@@ -1743,15 +1705,12 @@
                 await carregarExecutoresProcesso();
                 limparExecutoresSelecionados();
 
-                // Carregar executores salvos
                 if (etapa.executores_etapa && etapa.executores_etapa.trim() !== '') {
                     carregarExecutoresSalvos(etapa.executores_etapa);
                 }
                 
                 setupExecutoresSelector();
                 
-                // ===== NOVO: Carregar informações dos arquivos anexados =====
-                // Diagrama
                 const diagramaNomeDiv = document.getElementById('diagrama-nome');
                 if (etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '') {
                     diagramaNomeDiv.innerHTML = `
@@ -1761,7 +1720,6 @@
                         <span class="remove-file" onclick="removerArquivoExistente('diagrama', ${etapa.id})">&times;</span>
                     `;
                     diagramaNomeDiv.style.display = 'block';
-                    // Armazenar que tem arquivo existente
                     diagramaNomeDiv.setAttribute('data-tem-arquivo', 'true');
                     diagramaNomeDiv.setAttribute('data-arquivo-nome', etapa.diagrama_nome);
                 } else {
@@ -1769,7 +1727,6 @@
                     diagramaNomeDiv.setAttribute('data-tem-arquivo', 'false');
                 }
                 
-                // Manual
                 const manualNomeDiv = document.getElementById('manual-nome');
                 if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
                     manualNomeDiv.innerHTML = `
@@ -1779,7 +1736,6 @@
                         <span class="remove-file" onclick="removerArquivoExistente('manual', ${etapa.id})">&times;</span>
                     `;
                     manualNomeDiv.style.display = 'block';
-                    // Armazenar que tem arquivo existente
                     manualNomeDiv.setAttribute('data-tem-arquivo', 'true');
                     manualNomeDiv.setAttribute('data-arquivo-nome', etapa.manual_nome);
                 } else {
@@ -1818,7 +1774,6 @@
     }
 
     async function salvarEtapa() {
-        // VALIDAR formulário
         if (!validarFormularioEtapa()) {
             mostrarToast('⚠️ Preencha o campo Nome da Etapa', 'warning');
             return;
@@ -1827,9 +1782,8 @@
         const nomeEtapa = document.getElementById('modal-nome-etapa').value.trim();
         if (!nomeEtapa) return;
 
-        // Coletar executores selecionados
         const executoresIds = getSelectedExecutores();
-        const executoresEtapa = executoresIds.join(','); // Salvar como string separada por vírgula
+        const executoresEtapa = executoresIds.join(',');
 
         const etapaId = document.getElementById('modal-etapa-id').value || null;
         
@@ -1853,47 +1807,39 @@
             executores_etapa: executoresEtapa
         };
 
-        // ===== PROCESSAR DIAGRAMA =====
         const diagramaFile = document.getElementById('modal-diagrama').files[0];
         const diagramaNomeDiv = document.getElementById('diagrama-nome');
         const removerDiagrama = diagramaNomeDiv.getAttribute('data-remover-arquivo') === 'true';
         
         if (diagramaFile) {
-            // Se escolheu um novo arquivo
             const diagramaBase64 = await converterParaBase64(diagramaFile);
             payload.diagrama_base64 = diagramaBase64;
             payload.diagrama_nome = diagramaFile.name;
             payload.diagrama_tipo = diagramaFile.type;
             payload.remover_diagrama = false;
         } else if (removerDiagrama) {
-            // Se marcou para remover o arquivo existente
             payload.remover_diagrama = true;
             payload.diagrama_nome = null;
             payload.diagrama_tipo = null;
         } else {
-            // Manter o arquivo existente (não enviar nada)
             payload.remover_diagrama = false;
         }
 
-        // ===== PROCESSAR MANUAL =====
         const manualFile = document.getElementById('modal-manual').files[0];
         const manualNomeDiv = document.getElementById('manual-nome');
         const removerManual = manualNomeDiv.getAttribute('data-remover-arquivo') === 'true';
         
         if (manualFile) {
-            // Se escolheu um novo arquivo
             const manualBase64 = await converterParaBase64(manualFile);
             payload.manual_base64 = manualBase64;
             payload.manual_nome = manualFile.name;
             payload.manual_tipo = manualFile.type;
             payload.remover_manual = false;
         } else if (removerManual) {
-            // Se marcou para remover o arquivo existente
             payload.remover_manual = true;
             payload.manual_nome = null;
             payload.manual_tipo = null;
         } else {
-            // Manter o arquivo existente
             payload.remover_manual = false;
         }
 
@@ -1918,20 +1864,14 @@
         }
     }
 
-    // Monitorar seleção de arquivos e exibir nome
-    // Função para configurar os inputs de arquivo
     function setupFileInputs() {
-        console.log("🔧 Configurando inputs de arquivo...");
-        
         const diagramaInput = document.getElementById('modal-diagrama');
         const manualInput = document.getElementById('modal-manual');
         const diagramaNomeDiv = document.getElementById('diagrama-nome');
         const manualNomeDiv = document.getElementById('manual-nome');
         
         if (diagramaInput) {
-            console.log("✅ Input diagrama encontrado");
             diagramaInput.addEventListener('change', function(e) {
-                console.log("📁 Arquivo de diagrama selecionado");
                 const file = e.target.files[0];
                 if (file) {
                     diagramaNomeDiv.innerHTML = `
@@ -1944,14 +1884,10 @@
                     diagramaNomeDiv.style.display = 'none';
                 }
             });
-        } else {
-            console.error("❌ Elemento modal-diagrama não encontrado!");
         }
         
         if (manualInput) {
-            console.log("✅ Input manual encontrado");
             manualInput.addEventListener('change', function(e) {
-                console.log("📁 Arquivo de manual selecionado");
                 const file = e.target.files[0];
                 if (file) {
                     manualNomeDiv.innerHTML = `
@@ -1964,12 +1900,9 @@
                     manualNomeDiv.style.display = 'none';
                 }
             });
-        } else {
-            console.error("❌ Elemento modal-manual não encontrado!");
         }
     }
 
-    // Remover arquivo selecionado
     function removeFile(tipo) {
         const input = document.getElementById(`modal-${tipo}`);
         const nomeDiv = document.getElementById(`${tipo}-nome`);
@@ -1981,7 +1914,6 @@
         }
     }
 
-    // Formatar tamanho do arquivo
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -1991,194 +1923,71 @@
     }
 
     // ============================================================
-    // 8. INICIALIZAÇÃO
+    // INICIALIZAÇÃO
     // ============================================================
 
     document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 DOMContentLoaded - Iniciando');
+        
         carregarDadosProcesso();
         setupFileInputs();
 
-        document.getElementById('btn-nova-etapa').addEventListener('click', novaEtapa);
-        document.getElementById('btn-fechar-modal-etapa').addEventListener('click', () => {
-            document.getElementById('modal-etapa').style.display = 'none';
-            limparFormularioEtapa();
-        });
-        document.getElementById('btn-cancelar-modal-etapa').addEventListener('click', () => {
-            document.getElementById('modal-etapa').style.display = 'none';
-            limparFormularioEtapa();
-        });
-        document.getElementById('btn-salvar-modal-etapa').addEventListener('click', salvarEtapa);
-    });
-
-    // ============================================================
-    // EXECUTORES - NOVA VERSÃO COM DROPDOWN
-    // ============================================================
-
-    let todosExecutoresLista = [];
-    let selectedExecutoresMap = new Map();
-
-    // Carregar executores do processo
-    async function carregarExecutoresProcesso() {
-        try {
-            const response = await fetch(`/api/processo/${processoAtualId}/dados`);
-            const data = await response.json();
-            
-            if (data.success && data.executores && data.executores.length > 0) {
-                todosExecutoresLista = data.executores;
-                renderizarListaExecutores();
-                return todosExecutoresLista;
-            } else {
-                todosExecutoresLista = [];
-                const optionsDiv = document.getElementById('executores-options');
-                optionsDiv.innerHTML = '<div class="no-options">⚠️ Nenhum executor cadastrado para este processo</div>';
-                return [];
-            }
-        } catch (error) {
-            console.error('Erro ao carregar executores:', error);
-            todosExecutoresLista = [];
-            return [];
-        }
-    }
-
-    // Renderizar lista de executores no dropdown
-    function renderizarListaExecutores(filtro = '') {
-        const optionsDiv = document.getElementById('executores-options');
-        
-        let filteredExecutores = todosExecutoresLista;
-        if (filtro) {
-            const term = filtro.toLowerCase();
-            filteredExecutores = todosExecutoresLista.filter(exec => 
-                exec.nome.toLowerCase().includes(term) || 
-                (exec.cargo && exec.cargo.toLowerCase().includes(term))
-            );
-        }
-        
-        if (filteredExecutores.length === 0) {
-            optionsDiv.innerHTML = '<div class="no-options">❌ Nenhum executor encontrado</div>';
-            return;
-        }
-        
-        let html = '';
-        filteredExecutores.forEach(executor => {
-            const isSelected = selectedExecutoresMap.has(String(executor.id));
-            html += `
-                <div class="executor-option ${isSelected ? 'selected' : ''}" onclick="toggleExecutor(${executor.id})">
-                    <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleExecutor(${executor.id})">
-                    <div class="executor-info">
-                        <span class="executor-name">${escapeHtml(executor.nome)}</span>
-                        ${executor.cargo ? `<span class="executor-cargo">- ${escapeHtml(executor.cargo)}</span>` : ''}
-                    </div>
-                </div>
-            `;
-        });
-        
-        optionsDiv.innerHTML = html;
-    }
-
-    // Alternar seleção de um executor
-    function toggleExecutor(executorId) {
-        const executor = todosExecutoresLista.find(e => e.id == executorId);
-        if (!executor) return;
-        
-        if (selectedExecutoresMap.has(String(executorId))) {
-            selectedExecutoresMap.delete(String(executorId));
-        } else {
-            selectedExecutoresMap.set(String(executorId), executor);
-        }
-        
-        // Atualizar UI
-        atualizarDisplaySelecionados();
-        renderizarListaExecutores(document.getElementById('executor-search').value);
-    }
-
-    // Atualizar o display dos selecionados
-    function atualizarDisplaySelecionados() {
-        const displayDiv = document.getElementById('executores-display');
-        const infoDiv = document.getElementById('executores-selecionados-info');
-        
-        if (selectedExecutoresMap.size === 0) {
-            displayDiv.innerHTML = '<span class="placeholder">Selecione os executores...</span>';
-            infoDiv.innerHTML = `
-                <i class="fas fa-info-circle" style="color: #ffc107;"></i>
-                Nenhum executor selecionado
-            `;
-        } else {
-            let badgesHtml = '';
-            selectedExecutoresMap.forEach((executor, id) => {
-                badgesHtml += `
-                    <span class="selected-badge">
-                        ${escapeHtml(executor.nome)}
-                        <span class="remove-badge" onclick="event.stopPropagation(); toggleExecutor(${id})">&times;</span>
-                    </span>
-                `;
+        // Verificar se o botão existe
+        const btnVoltar = document.getElementById('btn-voltar-detalhamento');
+        if (btnVoltar) {
+            btnVoltar.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log('🔴 CLIQUE NO BOTÃO VOLTAR DETECTADO!');
+                
+                // Mostrar loading no botão
+                const originalText = btnVoltar.innerHTML;
+                btnVoltar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                btnVoltar.disabled = true;
+                
+                // Aguardar o salvamento
+                await salvarEstadoDetalhamento();
+                
+                // Pequeno delay extra para garantir
+                setTimeout(() => {
+                    window.location.href = '/detalhamento';
+                }, 100);
             });
-            displayDiv.innerHTML = badgesHtml;
-            
-            const nomes = Array.from(selectedExecutoresMap.values()).map(e => e.nome).join(', ');
-            infoDiv.innerHTML = `
-                <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                <strong>${selectedExecutoresMap.size} executor(es) selecionado(s):</strong> ${nomes}
-            `;
-        }
-    }
-
-    // Toggle do dropdown
-    function toggleExecutoresDropdown() {
-        const dropdown = document.getElementById('executores-dropdown');
-        const isVisible = dropdown.style.display === 'block';
-        
-        if (isVisible) {
-            dropdown.style.display = 'none';
         } else {
-            dropdown.style.display = 'flex';
-            document.getElementById('executor-search').focus();
-            renderizarListaExecutores('');
+            console.error('❌ Botão com ID "btn-voltar-detalhamento" não encontrado!');
+            console.log('📋 Botões disponíveis:', document.querySelectorAll('.btn-voltar'));
         }
-    }
 
-    // Filtrar executores
-    function setupExecutorSearch() {
-        const searchInput = document.getElementById('executor-search');
-        searchInput.addEventListener('input', (e) => {
-            renderizarListaExecutores(e.target.value);
-        });
-    }
+        // Botão nova etapa
+        const btnNovaEtapa = document.getElementById('btn-nova-etapa');
+        if (btnNovaEtapa) {
+            btnNovaEtapa.addEventListener('click', novaEtapa);
+        } else {
+            console.error('❌ Botão nova etapa não encontrado');
+        }
 
-    // Fechar dropdown ao clicar fora
-    document.addEventListener('click', function(event) {
-        const selector = document.querySelector('.executores-selector');
-        if (selector && !selector.contains(event.target)) {
-            document.getElementById('executores-dropdown').style.display = 'none';
+        // Modal fechar
+        const btnFechar = document.getElementById('btn-fechar-modal-etapa');
+        if (btnFechar) {
+            btnFechar.addEventListener('click', () => {
+                document.getElementById('modal-etapa').style.display = 'none';
+                limparFormularioEtapa();
+            });
+        }
+
+        // Modal cancelar
+        const btnCancelar = document.getElementById('btn-cancelar-modal-etapa');
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', () => {
+                document.getElementById('modal-etapa').style.display = 'none';
+                limparFormularioEtapa();
+            });
+        }
+
+        // Modal salvar
+        const btnSalvar = document.getElementById('btn-salvar-modal-etapa');
+        if (btnSalvar) {
+            btnSalvar.addEventListener('click', salvarEtapa);
         }
     });
-
-    // Funções para integração com o resto do sistema
-    function getSelectedExecutores() {
-        return Array.from(selectedExecutoresMap.keys());
-    }
-
-    function limparExecutoresSelecionados() {
-        selectedExecutoresMap.clear();
-        atualizarDisplaySelecionados();
-        renderizarListaExecutores('');
-    }
-
-    function carregarExecutoresSalvos(executoresIdsString) {
-        if (!executoresIdsString || executoresIdsString.trim() === '') return;
-        
-        const ids = executoresIdsString.split(',');
-        ids.forEach(id => {
-            const executor = todosExecutoresLista.find(e => String(e.id) === String(id.trim()));
-            if (executor && !selectedExecutoresMap.has(String(executor.id))) {
-                selectedExecutoresMap.set(String(executor.id), executor);
-            }
-        });
-        atualizarDisplaySelecionados();
-    }
-
-    // Inicializar componente
-    function setupExecutoresSelector() {
-        setupExecutorSearch();
-    }
 </script>
 {% endblock %}

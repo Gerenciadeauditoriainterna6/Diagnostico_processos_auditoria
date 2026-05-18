@@ -193,7 +193,10 @@
 </style>
 
 <script>
-    // Função para escapar HTML
+    // ============================================================
+    // FUNÇÕES AUXILIARES
+    // ============================================================
+
     function escapeHtml(text) {
         if (!text) return '';
         return text
@@ -204,111 +207,208 @@
             .replace(/'/g, '&#39;');
     }
 
-    // Adicione esta função no início do script do detalhamento.html
-    function restaurarEstadoDetalhamento() {
-        const estadoSalvo = sessionStorage.getItem('detalhamento_estado');
-        if (estadoSalvo) {
-            const estado = JSON.parse(estadoSalvo);
-            
-            // Verificar se o estado não é muito antigo (ex: 5 minutos)
-            const agora = new Date().getTime();
-            const diffMinutes = (agora - estado.timestamp) / 1000 / 60;
-            
-            if (diffMinutes < 5) { // Só restaura se tiver menos de 5 minutos
-                console.log('🔄 Restaurando estado:', estado);
-                
-                // Aguardar o carregamento das áreas
-                setTimeout(() => {
-                    const selectArea = document.getElementById('select-area');
-                    const selectAuditoria = document.getElementById('select-auditoria');
-                    
-                    if (selectArea && estado.area_id) {
-                        selectArea.value = estado.area_id;
-                        // Disparar evento change para carregar auditorias
-                        const event = new Event('change', { bubbles: true });
-                        selectArea.dispatchEvent(event);
-                        
-                        // Aguardar carregamento das auditorias e selecionar
-                        setTimeout(() => {
-                            if (selectAuditoria && estado.auditoria_id) {
-                                selectAuditoria.value = estado.auditoria_id;
-                                // Disparar evento change para carregar processos
-                                const auditEvent = new Event('change', { bubbles: true });
-                                selectAuditoria.dispatchEvent(auditEvent);
-                                
-                                // Limpar o estado depois de restaurar (opcional)
-                                // sessionStorage.removeItem('detalhamento_estado');
-                            }
-                        }, 500);
-                    }
-                }, 300);
+    // ============================================================
+    // CARREGAR ÁREAS
+    // ============================================================
+
+    async function carregarAreas() {
+        const selectArea = document.getElementById('detalhamento_area_select');
+        if (!selectArea) return;
+
+        selectArea.innerHTML = '<option value="">Carregando áreas...</option>';
+
+        try {
+            const response = await fetch('/api/areas');
+            const areas = await response.json();
+
+            if (areas && areas.length > 0) {
+                selectArea.innerHTML = '<option value="">Selecione uma área...</option>';
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id_area;
+                    option.textContent = area.nome_area;
+                    selectArea.appendChild(option);
+                });
+                selectArea.disabled = false;
             } else {
-                // Estado muito antigo, remover
-                sessionStorage.removeItem('detalhamento_estado');
+                selectArea.innerHTML = '<option value="">Nenhuma área encontrada</option>';
+                selectArea.disabled = true;
             }
+        } catch (error) {
+            console.error('Erro ao carregar áreas:', error);
+            selectArea.innerHTML = '<option value="">Erro ao carregar áreas</option>';
+            selectArea.disabled = true;
         }
     }
 
-    // Chamar a função quando a página carregar
-    document.addEventListener('DOMContentLoaded', () => {
-        restaurarEstadoDetalhamento();
-        // ... resto do código existente
-    });
+    // ============================================================
+    // FUNÇÃO PARA RESTAURAR ESTADO (CORRIGIDA)
+    // ============================================================
 
-    // Elementos do DOM
-    const detalhamentoAreaSelect = document.getElementById('detalhamento_area_select');
-    const detalhamentoAuditoriaSelect = document.getElementById('detalhamento_auditoria_select');
-    const tabelaContainer = document.getElementById('detalhamento-tabela-container');
-
-    // Função para carregar auditorias
-    async function carregarAuditoriasDetalhamento(areaId) {
-        if (!areaId) {
-            detalhamentoAuditoriaSelect.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
-            detalhamentoAuditoriaSelect.disabled = true;
+    function restaurarEstadoDetalhamento() {
+        const estadoSalvo = sessionStorage.getItem('detalhamento_estado');
+        if (!estadoSalvo) {
+            console.log('📭 Nenhum estado salvo encontrado');
             return;
         }
 
-        detalhamentoAuditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
-        detalhamentoAuditoriaSelect.disabled = true;
+        const estado = JSON.parse(estadoSalvo);
+        console.log('🔄 Estado encontrado:', estado);
+        
+        // Verificar se o estado não é muito antigo (ex: 5 minutos)
+        const agora = new Date().getTime();
+        const diffMinutes = (agora - estado.timestamp) / 1000 / 60;
+        
+        if (diffMinutes > 5) {
+            console.log('⚠️ Estado muito antigo, removendo');
+            sessionStorage.removeItem('detalhamento_estado');
+            return;
+        }
+        
+        // Aguardar o carregamento das áreas
+        setTimeout(async () => {
+            const selectArea = document.getElementById('detalhamento_area_select');
+            const selectAuditoria = document.getElementById('detalhamento_auditoria_select');
+            
+            console.log('🔍 Buscando elementos:', {
+                selectArea: !!selectArea,
+                selectAuditoria: !!selectAuditoria,
+                area_id: estado.area_id,
+                auditoria_id: estado.auditoria_id
+            });
+            
+            if (selectArea && estado.area_id) {
+                // Aguardar as áreas serem carregadas
+                let tentativas = 0;
+                const aguardarAreas = setInterval(() => {
+                    const options = selectArea.querySelectorAll('option');
+                    const hasValue = Array.from(options).some(opt => opt.value == estado.area_id);
+                    
+                    if (hasValue || tentativas > 20) {
+                        clearInterval(aguardarAreas);
+                        
+                        if (hasValue) {
+                            // Selecionar a área
+                            selectArea.value = estado.area_id;
+                            console.log('✅ Área selecionada:', selectArea.value);
+                            
+                            // Forçar o carregamento das auditorias
+                            const event = new Event('change', { bubbles: true });
+                            selectArea.dispatchEvent(event);
+                            
+                            // Aguardar o carregamento das auditorias e selecionar
+                            setTimeout(() => {
+                                if (selectAuditoria && estado.auditoria_id) {
+                                    // Aguardar as auditorias serem carregadas
+                                    let tentativasAud = 0;
+                                    const aguardarAuditorias = setInterval(() => {
+                                        const auditOptions = selectAuditoria.querySelectorAll('option');
+                                        const hasAuditValue = Array.from(auditOptions).some(opt => opt.value == estado.auditoria_id);
+                                        
+                                        if (hasAuditValue || tentativasAud > 20) {
+                                            clearInterval(aguardarAuditorias);
+                                            
+                                            if (hasAuditValue) {
+                                                selectAuditoria.value = estado.auditoria_id;
+                                                console.log('✅ Auditoria selecionada:', selectAuditoria.value);
+                                                
+                                                // Disparar evento change para carregar processos
+                                                const auditEvent = new Event('change', { bubbles: true });
+                                                selectAuditoria.dispatchEvent(auditEvent);
+                                                
+                                                // Limpar o estado depois de restaurar
+                                                setTimeout(() => {
+                                                    sessionStorage.removeItem('detalhamento_estado');
+                                                    console.log('🗑️ Estado removido após restauração');
+                                                }, 1000);
+                                            }
+                                        }
+                                        tentativasAud++;
+                                    }, 200);
+                                }
+                            }, 800);
+                        }
+                    }
+                    tentativas++;
+                }, 200);
+            }
+        }, 500);
+    }
+
+    // ============================================================
+    // FUNÇÕES DE CARREGAMENTO
+    // ============================================================
+
+    async function carregarAuditoriasDetalhamento(areaId) {
+        const selectAuditoria = document.getElementById('detalhamento_auditoria_select');
+        const tabelaContainer = document.getElementById('detalhamento-tabela-container');
+        
+        if (!areaId) {
+            if (selectAuditoria) {
+                selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
+                selectAuditoria.disabled = true;
+            }
+            if (tabelaContainer) {
+                tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área para começar.</div>';
+            }
+            return;
+        }
+
+        if (selectAuditoria) {
+            selectAuditoria.innerHTML = '<option value="">Carregando auditorias...</option>';
+            selectAuditoria.disabled = true;
+        }
 
         try {
             const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
-            if (data.auditorias && data.auditorias.length > 0) {
-                detalhamentoAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
-                data.auditorias.forEach(aud => {
-                    const option = document.createElement('option');
-                    option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
-                    detalhamentoAuditoriaSelect.appendChild(option);
-                });
-                detalhamentoAuditoriaSelect.disabled = false;
-            } else {
-                detalhamentoAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
-                detalhamentoAuditoriaSelect.disabled = true;
+            if (selectAuditoria) {
+                if (data.auditorias && data.auditorias.length > 0) {
+                    selectAuditoria.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                    data.auditorias.forEach(aud => {
+                        const option = document.createElement('option');
+                        option.value = aud.id;
+                        option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                        selectAuditoria.appendChild(option);
+                    });
+                    selectAuditoria.disabled = false;
+                } else {
+                    selectAuditoria.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
+                    selectAuditoria.disabled = true;
+                }
             }
         } catch (error) {
             console.error('Erro ao carregar auditorias:', error);
-            detalhamentoAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+            if (selectAuditoria) {
+                selectAuditoria.innerHTML = '<option value="">Erro ao carregar</option>';
+                selectAuditoria.disabled = true;
+            }
         }
     }
 
-    // Função para carregar processos
     async function carregarProcessosDetalhamento(auditoriaId) {
+        const tabelaContainer = document.getElementById('detalhamento-tabela-container');
+        
         if (!auditoriaId) {
-            tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+            if (tabelaContainer) {
+                tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+            }
             return;
         }
 
-        tabelaContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando processos...</div>';
+        if (tabelaContainer) {
+            tabelaContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando processos...</div>';
+        }
 
         try {
             const response = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const data = await response.json();
 
             if (!data.success || !data.processos || data.processos.length === 0) {
-                tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Nenhum processo encontrado para esta auditoria.</div>';
+                if (tabelaContainer) {
+                    tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Nenhum processo encontrado para esta auditoria.</div>';
+                }
                 return;
             }
 
@@ -347,42 +447,67 @@
                 </div>
             `;
 
-            tabelaContainer.innerHTML = html;
+            if (tabelaContainer) {
+                tabelaContainer.innerHTML = html;
+            }
 
             // Adicionar eventos aos botões
             document.querySelectorAll('.btn-detalhar-processo').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const processoId = btn.getAttribute('data-processo-id');
                     const processoCodigo = btn.getAttribute('data-processo-codigo');
-                    console.log('🔍 Detalhar processo:', processoId, '-', processoCodigo);
                     window.location.href = `/detalhamento_etapas?processo_id=${processoId}&processo_codigo=${processoCodigo}`;
                 });
             });
 
         } catch (error) {
             console.error('Erro ao carregar processos:', error);
-            tabelaContainer.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar processos.</div>';
+            if (tabelaContainer) {
+                tabelaContainer.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar processos.</div>';
+            }
         }
     }
 
-    // Eventos
-    if (detalhamentoAreaSelect) {
-        detalhamentoAreaSelect.addEventListener('change', () => {
-            const areaId = detalhamentoAreaSelect.value;
-            carregarAuditoriasDetalhamento(areaId);
-            tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.</div>';
-        });
-    }
+    // ============================================================
+    // EVENTOS
+    // ============================================================
 
-    if (detalhamentoAuditoriaSelect) {
-        detalhamentoAuditoriaSelect.addEventListener('change', () => {
-            const auditoriaId = detalhamentoAuditoriaSelect.value;
-            if (auditoriaId) {
-                carregarProcessosDetalhamento(auditoriaId);
-            } else {
-                tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
-            }
-        });
-    }
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🚀 Página de detalhamento carregada');
+        
+        // Carregar áreas primeiro
+        await carregarAreas();
+        
+        // Depois de carregar as áreas, tentar restaurar o estado
+        setTimeout(() => {
+            restaurarEstadoDetalhamento();
+        }, 500);
+        
+        // Configurar eventos
+        const selectArea = document.getElementById('detalhamento_area_select');
+        const selectAuditoria = document.getElementById('detalhamento_auditoria_select');
+        const tabelaContainer = document.getElementById('detalhamento-tabela-container');
+        
+        if (selectArea) {
+            selectArea.addEventListener('change', () => {
+                const areaId = selectArea.value;
+                carregarAuditoriasDetalhamento(areaId);
+                if (tabelaContainer) {
+                    tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+                }
+            });
+        }
+        
+        if (selectAuditoria) {
+            selectAuditoria.addEventListener('change', () => {
+                const auditoriaId = selectAuditoria.value;
+                if (auditoriaId) {
+                    carregarProcessosDetalhamento(auditoriaId);
+                } else if (tabelaContainer) {
+                    tabelaContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}
