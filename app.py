@@ -147,7 +147,12 @@ def diagnostico():
 def detalhamento():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('detalhamento.html')
+    
+    from modules.execucao.areas import carregar_areas_banco
+    areas = carregar_areas_banco()
+    usuario_perfil = session.get('usuario_perfil', 'auditor')
+    
+    return render_template('detalhamento.html', areas=areas, usuario_perfil=usuario_perfil)
 
 @app.route('/visao-geral')
 def visao_geral():
@@ -181,6 +186,64 @@ def historico():
         return redirect(url_for('login'))
     return render_template('historico.html')
 
+@app.route('/api/processo/<int:processo_id>/etapas')
+def api_processo_etapas(processo_id):
+    """Retorna todas as etapas de um processo"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, codigo_etapa, nome_etapa, descricao_etapa,
+                       como_e_feito, objetivo_etapa, status_etapa, criticidade_etapa,
+                       politica_interna, analise_critica, sugestao_melhoria,
+                       necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
+                       executores_etapa,
+                       diagrama_nome, manual_nome, created_at
+                FROM etapas_processo
+                WHERE processo_id = :processo_id
+                ORDER BY codigo_etapa
+            """)
+            
+            result = conn.execute(query, {'processo_id': processo_id}).fetchall()
+
+            etapas = []
+            for row in result:
+                etapas.append({
+                    'id': row[0],
+                    'codigo_etapa': row[1] or '',
+                    'nome_etapa': row[2] or '',
+                    'descricao_etapa': row[3] or '',
+                    'como_e_feito': row[4] or '',
+                    'objetivo_etapa': row[5] or '',
+                    'status_etapa': row[6] or 'Ativa',
+                    'criticidade_etapa': row[7] or 'Em aprovação',
+                    'politica_interna': row[8] or '',
+                    'analise_critica': row[9] or '',
+                    'sugestao_melhoria': row[10] or '',
+                    'necessidade_implantacao': row[11] or '',
+                    'ganho_previsto': row[12] or '',
+                    'obrigacoes_regulatorias': row[13] or '',
+                    'executores_etapa': row[14] or '',
+                    'diagrama_nome': row[15] or '',
+                    'manual_nome': row[16] or '',
+                    'created_at': row[17].isoformat() if row[17] else ''
+                })
+            
+            return jsonify({'success': True, 'etapas': etapas})
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar etapas: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/detalhamento_etapas')
+def detalhamento_etapas():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    return render_template('detalhamento_etapas.html')
+    
 # ============================================================
 # ROTAS DE API (BACKEND)
 # ============================================================
@@ -1037,6 +1100,409 @@ def api_salvar_funcionario():
         return jsonify({'success': True, 'id': resultado})
     return jsonify({'success': False}), 400
 
+# ============================================================
+# DETALHAMENTO DOS PROCESSOS
+# ============================================================
+
+@app.route('/api/etapa/<int:etapa_id>/download/<tipo>')
+def api_etapa_download(etapa_id, tipo):
+    """Download do diagrama ou manual da etapa"""
+    from database import engine
+    from sqlalchemy import text
+    from flask import send_file
+    import io
+    
+    if tipo not in ['diagrama', 'manual']:
+        return jsonify({'error': 'Tipo inválido'}), 400
+    
+    try:
+        with engine.connect() as conn:
+            if tipo == 'diagrama':
+                query = text("SELECT diagrama_bpmn, diagrama_nome, diagrama_tipo FROM etapas_processo WHERE id = :etapa_id")
+            else:
+                query = text("SELECT manual_etapa, manual_nome, manual_tipo FROM etapas_processo WHERE id = :etapa_id")
+            
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'error': 'Arquivo não encontrado'}), 404
+            
+            arquivo_bytes = result[0]
+            nome_arquivo = result[1] or f'{tipo}_{etapa_id}'
+            tipo_arquivo = result[2] or 'application/octet-stream'
+            
+            return send_file(
+                io.BytesIO(arquivo_bytes),
+                mimetype=tipo_arquivo,
+                as_attachment=True,
+                download_name=nome_arquivo
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar arquivo: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/etapa/<int:etapa_id>/excluir', methods=['DELETE'])
+def api_excluir_etapa(etapa_id):
+    """Remove uma etapa do processo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("DELETE FROM etapas_processo WHERE id = :etapa_id")
+            conn.execute(query, {'etapa_id': etapa_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Etapa removida com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir etapa: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/etapa/<int:etapa_id>')
+def api_etapa_detalhes(etapa_id):
+    """Retorna os dados de uma etapa específica para edição"""
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    from datetime import datetime, timedelta, date
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, processo_id, codigo_etapa, nome_etapa, descricao_etapa,
+                       como_e_feito, objetivo_etapa, status_etapa, criticidade_etapa,
+                       politica_interna, analise_critica, sugestao_melhoria,
+                       necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
+                       executores_etapa,
+                       diagrama_bpmn, diagrama_nome, diagrama_tipo,
+                       manual_etapa, manual_nome, manual_tipo
+                FROM etapas_processo
+                WHERE id = :etapa_id
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+            
+            # CORRIGIDO: Os índices agora estão corretos
+            # Índices: 0-14 = campos text, 15 = executores_etapa, 
+            # 16 = diagrama_bpmn, 17 = diagrama_nome, 18 = diagrama_tipo,
+            # 19 = manual_etapa, 20 = manual_nome, 21 = manual_tipo
+            
+            # Converter diagrama (índice 16) se existir
+            diagrama_base64 = None
+            if result[16]:  # ← CORRIGIDO: era 15, agora é 16
+                diagrama_base64 = base64.b64encode(result[16]).decode('utf-8')
+            
+            # Converter manual (índice 19) se existir
+            manual_base64 = None
+            if result[19]:  # ← CORRIGIDO: era 18, agora é 19
+                manual_base64 = base64.b64encode(result[19]).decode('utf-8')
+            
+            etapa = {
+                'id': result[0],
+                'processo_id': result[1],
+                'codigo_etapa': result[2] or '',
+                'nome_etapa': result[3] or '',
+                'descricao_etapa': result[4] or '',
+                'como_e_feito': result[5] or '',
+                'objetivo_etapa': result[6] or '',
+                'status_etapa': result[7] or 'Ativa',
+                'criticidade_etapa': result[8] or 'Em aprovação',
+                'politica_interna': result[9] or '',
+                'analise_critica': result[10] or '',
+                'sugestao_melhoria': result[11] or '',
+                'necessidade_implantacao': result[12] or '',
+                'ganho_previsto': result[13] or '',
+                'obrigacoes_regulatorias': result[14] or '',
+                'executores_etapa': result[15] or '',  # ← OK
+                'diagrama_base64': diagrama_base64,
+                'diagrama_nome': result[17] or '',  # ← CORRIGIDO: era 16, agora é 17
+                'diagrama_tipo': result[18] or '',  # ← CORRIGIDO: era 17, agora é 18
+                'manual_base64': manual_base64,
+                'manual_nome': result[20] or '',  # ← CORRIGIDO: era 19, agora é 20
+                'manual_tipo': result[21] or ''   # ← CORRIGIDO: era 20, agora é 21
+            }
+            
+            return jsonify({'success': True, 'etapa': etapa})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar etapa: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/etapa/gerar-codigo')
+def api_gerar_codigo_etapa():
+    """Gera o próximo código de etapa para um processo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    processo_id = request.args.get('processo_id')
+    if not processo_id:
+        return jsonify({'error': 'processo_id é obrigatório'}), 400
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar o código do processo
+            query_processo = text("SELECT codigo_processo FROM processos WHERE id = :processo_id")
+            processo = conn.execute(query_processo, {'processo_id': processo_id}).fetchone()
+            
+            if not processo:
+                return jsonify({'error': 'Processo não encontrado'}), 404
+            
+            codigo_processo = processo[0]
+            
+            # Buscar o maior número de etapa para este processo
+            query_etapas = text("""
+                SELECT MAX(CAST(COALESCE(REGEXP_REPLACE(codigo_etapa, '^.*\\.', ''), '0') AS INTEGER))
+                FROM etapas_processo
+                WHERE processo_id = :processo_id
+            """)
+            result = conn.execute(query_etapas, {'processo_id': processo_id}).fetchone()
+            
+            ultimo_numero = result[0] if result[0] else 0
+            novo_numero = ultimo_numero + 1
+            
+            codigo_etapa = f"{codigo_processo}.{novo_numero}"
+            
+            return jsonify({'success': True, 'codigo_etapa': codigo_etapa})
+            
+    except Exception as e:
+        print(f"❌ Erro ao gerar código da etapa: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/etapa/salvar', methods=['POST'])
+def api_salvar_etapa():
+    """Salva uma nova etapa ou atualiza existente"""
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    
+    data = request.json
+    etapa_id = data.get('id')
+    processo_id = data.get('processo_id')
+    auditoria_id = data.get('auditoria_id')
+    codigo_etapa = data.get('codigo_etapa')
+    nome_etapa = data.get('nome_etapa')
+    descricao_etapa = data.get('descricao_etapa', '')
+    como_e_feito = data.get('como_e_feito', '')
+    objetivo_etapa = data.get('objetivo_etapa', '')
+    status_etapa = data.get('status_etapa', 'Ativa')
+    criticidade_etapa = data.get('criticidade_etapa', 'Em aprovação')
+    politica_interna = data.get('politica_interna', '')
+    analise_critica = data.get('analise_critica', '')
+    sugestao_melhoria = data.get('sugestao_melhoria', '')
+    necessidade_implantacao = data.get('necessidade_implantacao', '')
+    ganho_previsto = data.get('ganho_previsto', '')
+    obrigacoes_regulatorias = data.get('obrigacoes_regulatorias', '')
+    executores_etapa = data.get('executores_etapa', '')
+    
+    # Processar upload de arquivos (vêm como base64)
+    diagrama_bytes = None
+    diagrama_nome = data.get('diagrama_nome')
+    diagrama_tipo = data.get('diagrama_tipo')
+    
+    if data.get('diagrama_base64'):
+        diagrama_bytes = base64.b64decode(data['diagrama_base64'].split(',')[1] if ',' in data['diagrama_base64'] else data['diagrama_base64'])
+    
+    manual_bytes = None
+    manual_nome = data.get('manual_nome')
+    manual_tipo = data.get('manual_tipo')
+    
+    if data.get('manual_base64'):
+        manual_bytes = base64.b64decode(data['manual_base64'].split(',')[1] if ',' in data['manual_base64'] else data['manual_base64'])
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
+    
+    if not nome_etapa:
+        return jsonify({'success': False, 'error': 'Nome da etapa é obrigatório'}), 400
+    
+    try:
+        with engine.connect() as conn:
+            if etapa_id:
+                # ========== EDIÇÃO: atualizar etapa existente ==========
+                
+                # Verificar se deve remover arquivos
+                remover_diagrama = data.get('remover_diagrama', False)
+                remover_manual = data.get('remover_manual', False)
+                
+                # Se deve remover o diagrama, forçar None
+                if remover_diagrama:
+                    diagrama_bytes = None
+                    diagrama_nome = None
+                    diagrama_tipo = None
+                    print(f"🗑️ Removendo diagrama da etapa {etapa_id}")
+                
+                # Se deve remover o manual, forçar None
+                if remover_manual:
+                    manual_bytes = None
+                    manual_nome = None
+                    manual_tipo = None
+                    print(f"🗑️ Removendo manual da etapa {etapa_id}")
+                
+                # Parâmetros básicos
+                params = {
+                    'etapa_id': etapa_id,
+                    'nome_etapa': nome_etapa,
+                    'descricao_etapa': descricao_etapa,
+                    'como_e_feito': como_e_feito,
+                    'objetivo_etapa': objetivo_etapa,
+                    'status_etapa': status_etapa,
+                    'criticidade_etapa': criticidade_etapa,
+                    'politica_interna': politica_interna,
+                    'analise_critica': analise_critica,
+                    'sugestao_melhoria': sugestao_melhoria,
+                    'necessidade_implantacao': necessidade_implantacao,
+                    'ganho_previsto': ganho_previsto,
+                    'obrigacoes_regulatorias': obrigacoes_regulatorias,
+                    'executores_etapa': executores_etapa
+                }
+                
+                # Campos base da query
+                base_fields = """
+                    nome_etapa = :nome_etapa,
+                    descricao_etapa = :descricao_etapa,
+                    como_e_feito = :como_e_feito,
+                    objetivo_etapa = :objetivo_etapa,
+                    status_etapa = :status_etapa,
+                    criticidade_etapa = :criticidade_etapa,
+                    politica_interna = :politica_interna,
+                    analise_critica = :analise_critica,
+                    sugestao_melhoria = :sugestao_melhoria,
+                    necessidade_implantacao = :necessidade_implantacao,
+                    ganho_previsto = :ganho_previsto,
+                    obrigacoes_regulatorias = :obrigacoes_regulatorias,
+                    executores_etapa = :executores_etapa
+                """
+                
+                update_fields = []
+                
+                # Diagrama: se veio um novo arquivo OU foi marcado para remover
+                if data.get('diagrama_base64') or remover_diagrama:
+                    update_fields.append("diagrama_bpmn = :diagrama_bpmn")
+                    update_fields.append("diagrama_nome = :diagrama_nome")
+                    update_fields.append("diagrama_tipo = :diagrama_tipo")
+                    params['diagrama_bpmn'] = diagrama_bytes
+                    params['diagrama_nome'] = diagrama_nome
+                    params['diagrama_tipo'] = diagrama_tipo
+                
+                # Manual: se veio um novo arquivo OU foi marcado para remover
+                if data.get('manual_base64') or remover_manual:
+                    update_fields.append("manual_etapa = :manual_etapa")
+                    update_fields.append("manual_nome = :manual_nome")
+                    update_fields.append("manual_tipo = :manual_tipo")
+                    params['manual_etapa'] = manual_bytes
+                    params['manual_nome'] = manual_nome
+                    params['manual_tipo'] = manual_tipo
+                
+                # Montar query final
+                if update_fields:
+                    query_sql = f"""
+                        UPDATE etapas_processo
+                        SET {base_fields}, {', '.join(update_fields)}, updated_at = NOW()
+                        WHERE id = :etapa_id
+                    """
+                else:
+                    query_sql = f"""
+                        UPDATE etapas_processo
+                        SET {base_fields}, updated_at = NOW()
+                        WHERE id = :etapa_id
+                    """
+                
+                query = text(query_sql)
+                conn.execute(query, params)
+                
+                print(f"✏️ Etapa {etapa_id} atualizada com sucesso!")
+                
+            else:
+                # ========== NOVO: inserir etapa ==========
+                
+                # Se não veio código, gerar automaticamente
+                if not codigo_etapa:
+                    # Buscar código do processo e gerar próximo número
+                    query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :processo_id")
+                    processo_codigo = conn.execute(query_codigo, {'processo_id': processo_id}).fetchone()
+                    
+                    if processo_codigo:
+                        codigo_base = processo_codigo[0]
+                        query_max = text("""
+                            SELECT MAX(CAST(SUBSTRING(codigo_etapa FROM '[^.]+$') AS INTEGER))
+                            FROM etapas_processo
+                            WHERE processo_id = :processo_id
+                        """)
+                        max_result = conn.execute(query_max, {'processo_id': processo_id}).fetchone()
+                        proximo_num = (max_result[0] or 0) + 1
+                        codigo_etapa = f"{codigo_base}.{proximo_num}"
+                    else:
+                        codigo_etapa = f"{processo_id}.1"
+                
+                query = text("""
+                    INSERT INTO etapas_processo (
+                        processo_id, auditoria_id, codigo_etapa, nome_etapa,
+                        descricao_etapa, como_e_feito, objetivo_etapa,
+                        status_etapa, criticidade_etapa,
+                        politica_interna, analise_critica, sugestao_melhoria,
+                        necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
+                        executores_etapa,
+                        diagrama_bpmn, diagrama_nome, diagrama_tipo,
+                        manual_etapa, manual_nome, manual_tipo,
+                        created_at
+                    ) VALUES (
+                        :processo_id, :auditoria_id, :codigo_etapa, :nome_etapa,
+                        :descricao_etapa, :como_e_feito, :objetivo_etapa,
+                        :status_etapa, :criticidade_etapa,
+                        :politica_interna, :analise_critica, :sugestao_melhoria,
+                        :necessidade_implantacao, :ganho_previsto, :obrigacoes_regulatorias,
+                        :executores_etapa,
+                        :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
+                        :manual_etapa, :manual_nome, :manual_tipo,
+                        NOW()
+                    )
+                    RETURNING id
+                """)
+                
+                result = conn.execute(query, {
+                    'processo_id': processo_id,
+                    'auditoria_id': auditoria_id,
+                    'codigo_etapa': codigo_etapa,
+                    'nome_etapa': nome_etapa,
+                    'descricao_etapa': descricao_etapa,
+                    'como_e_feito': como_e_feito,
+                    'objetivo_etapa': objetivo_etapa,
+                    'status_etapa': status_etapa,
+                    'criticidade_etapa': criticidade_etapa,
+                    'politica_interna': politica_interna,
+                    'analise_critica': analise_critica,
+                    'sugestao_melhoria': sugestao_melhoria,
+                    'necessidade_implantacao': necessidade_implantacao,
+                    'ganho_previsto': ganho_previsto,
+                    'obrigacoes_regulatorias': obrigacoes_regulatorias,
+                    'executores_etapa': executores_etapa,
+                    'diagrama_bpmn': diagrama_bytes,
+                    'diagrama_nome': diagrama_nome,
+                    'diagrama_tipo': diagrama_tipo,
+                    'manual_etapa': manual_bytes,
+                    'manual_nome': manual_nome,
+                    'manual_tipo': manual_tipo
+                })
+                
+                novo_id = result.fetchone()[0]
+                print(f"✅ Nova etapa criada! ID: {novo_id}, Código: {codigo_etapa}")
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Etapa salva com sucesso',
+                'codigo_etapa': codigo_etapa
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar etapa: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
 # ============================================================
 # PONTO DE ENTRADA
 # ============================================================
