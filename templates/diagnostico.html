@@ -2470,6 +2470,42 @@
         font-size: 14px;
     }
 
+    /* ====== BOTÕES DE AÇÃO PADRONIZADOS (mesmo padrão do detalhamento_etapas) ====== */
+
+    /* Botão Editar (Amarelo - apenas ícone) */
+    .btn-edit-processo {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 5px;
+        border-radius: 5px;
+        transition: all 0.2s;
+        color: #ffc107;
+    }
+
+    .btn-edit-processo:hover {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    /* Botão Excluir (Vermelho - apenas ícone) */
+    .btn-delete-processo {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 5px;
+        border-radius: 5px;
+        transition: all 0.2s;
+        color: #dc3545;
+    }
+
+    .btn-delete-processo:hover {
+        background: #f8d7da;
+        color: #c82333;
+    }
+
 
 </style>
 
@@ -3172,11 +3208,11 @@
                 
                 if (isAdmin) {
                     botoesHtml = `
-                        <button class="btn-editar-processo" data-processo-id="${processo.id}" data-processo-codigo="${processo.codigo_processo}">
-                            <i class="fas fa-edit"></i> Editar
+                        <button class="btn-edit-processo" data-processo-id="${processo.id}" data-processo-codigo="${processo.codigo_processo}" title="Editar">
+                            <i class="fas fa-pencil-alt"></i>
                         </button>
-                        <button class="btn-excluir-processo" data-processo-id="${processo.id}" data-processo-nome="${escapeHtml(processo.nome_processo)}">
-                            <i class="fas fa-trash-alt"></i> Excluir
+                        <button class="btn-delete-processo" data-processo-id="${processo.id}" data-processo-nome="${escapeHtml(processo.nome_processo)}" title="Excluir">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     `;
                 } else {

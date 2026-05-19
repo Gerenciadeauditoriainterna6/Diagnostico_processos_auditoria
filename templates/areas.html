@@ -1342,11 +1342,11 @@
                         </div>
                         ${isAdmin && isAreaAtiva && isFuncAtivo ? `
                         <div class="funcionario-actions">
-                            <button class="btn-editar-func" data-id="${funcId}" data-nome="${func.nome_funcionario}">
-                                <i class="fas fa-edit"></i> Editar
+                            <button class="btn-edit-icon btn-edit-func" data-id="${funcId}" data-nome="${func.nome_funcionario}" title="Editar Funcionário">
+                                <i class="fas fa-pencil-alt"></i>
                             </button>
-                            <button class="btn-excluir-func" data-id="${funcId}" data-nome="${func.nome_funcionario}">
-                                <i class="fas fa-trash-alt"></i> Excluir
+                            <button class="btn-delete-icon btn-delete-func" data-id="${funcId}" data-nome="${func.nome_funcionario}" title="Excluir Funcionário">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
                         ` : ''}
@@ -1356,7 +1356,7 @@
             
             // ====== ADICIONAR EVENTO DE EXCLUSÃO (apenas se for admin e área ativa) ======
             if (isAdmin && isAreaAtiva) {
-                document.querySelectorAll('.btn-excluir-func').forEach(btn => {
+                document.querySelectorAll('.btn-delete-func').forEach(btn => {
                     btn.removeEventListener('click', btn.clickHandler);
                     btn.clickHandler = async (e) => {
                         e.stopPropagation();
@@ -1370,7 +1370,7 @@
                     btn.addEventListener('click', btn.clickHandler);
                 });
                 
-                document.querySelectorAll('.btn-editar-func').forEach(btn => {
+                document.querySelectorAll('.btn-edit-func').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         const funcId = btn.getAttribute('data-id');
@@ -2152,11 +2152,11 @@
                 ${isAdmin ? `
                 <div class="area-actions">
                     ${isAtivo ? `
-                        <button class="btn-editar-area" data-id="${id}" data-nome="${nome}">
-                            <i class="fas fa-edit"></i> Editar
+                        <button class="btn-edit-icon btn-edit-area" data-id="${id}" data-nome="${nome}" title="Editar Área">
+                            <i class="fas fa-pencil-alt"></i>
                         </button>
-                        <button class="btn-excluir-area" data-id="${id}" data-nome="${nome}">
-                            <i class="fas fa-trash-alt"></i> Desativar
+                        <button class="btn-delete-icon btn-delete-area" data-id="${id}" data-nome="${nome}" title="Excluir Área">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     ` : `
                         <button class="btn-reativar-area" data-id="${id}" data-nome="${nome}">
@@ -2230,7 +2230,7 @@
         });
 
         if (isAdmin) {
-            document.querySelectorAll('.btn-excluir-area').forEach(btn => {
+            document.querySelectorAll('.btn-delete-area').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const areaId = btn.getAttribute('data-id');
@@ -2243,7 +2243,7 @@
                 });
             });
             
-            document.querySelectorAll('.btn-editar-area').forEach(btn => {
+            document.querySelectorAll('.btn-edit-area').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const areaId = btn.getAttribute('data-id');

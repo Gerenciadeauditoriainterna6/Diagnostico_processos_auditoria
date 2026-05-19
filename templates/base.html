@@ -163,6 +163,7 @@
             gap: 8px;
         }
 
+        /* ESTILO BASE DO PSEUDO-ELEMENTO (OBRIGATÓRIO) */
         .nav-section-title::before {
             content: '';
             position: absolute;
@@ -171,13 +172,21 @@
             transform: translateY(-50%);
             width: 3px;
             height: 14px;
-            background: #0b5b99;
             border-radius: 2px;
+            /*background: #0b5b99;*/
         }
 
-        .nav-section-title i {
-            font-size: 12px;
-            color: #0b5b99;
+        .nav-section-title.nav-section-planejamento::before {
+            background: #f7690a;
+        }
+        .nav-section-title.nav-section-execucao::before {
+            background: #0af765;
+        }
+        .nav-section-title.nav-section-comunicacao::before {
+            background: #f70a0a;
+        }
+        .nav-section-title.nav-section-administracao::before {
+            background: #0b5b99;
         }
 
         .nav-item {
@@ -591,6 +600,93 @@
             justify-content: center;
         }
 
+        /* ====== BOTÕES DE AÇÃO PADRONIZADOS ====== */
+
+        /* Botão Editar Ícone (Apenas ícone, sem texto) - Mesmo padrão do detalhamento_etapas */
+        .btn-edit-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.2s;
+            color: #ffc107;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-edit-icon:hover {
+            background: #fff3cd;
+            color: #856404;
+            transform: scale(1.05);
+        }
+
+        /* Botão Editar Ícone (Amarelo) - Mantendo compatibilidade */
+        .btn-editar-icon {
+            background: transparent;
+            color: #ffc107;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-editar-icon:hover {
+            background: rgba(255,193,7,0.1);
+            transform: scale(1.05);
+            color: #e0a800;
+        }
+
+        /* Botão Excluir Ícone (Apenas ícone, sem texto) - Mesmo padrão do detalhamento_etapas */
+        .btn-delete-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.2s;
+            color: #dc3545;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete-icon:hover {
+            background: #f8d7da;
+            color: #c82333;
+            transform: scale(1.05);
+        }
+
+        /* Botão Excluir Ícone (Vermelho) - Mantendo compatibilidade */
+        .btn-excluir-icon {
+            background: transparent;
+            color: #dc3545;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-excluir-icon:hover {
+            background: rgba(220,53,69,0.1);
+            transform: scale(1.05);
+            color: #c82333;
+        }
+
+
+
         /* ============================== FIM PADRÃO DE BOTÕES GLOBAL ============================== */
         
         /* ====== SUBMENU COM CORES DIFERENTES ====== */
@@ -642,7 +738,6 @@
             border-left-color: #0b5b99 !important;
         }
         .submenu-visao.active {
-            background: rgba(11,91,153,0.15);
             border-left-color: #0b5b99 !important;
         }
 
@@ -662,6 +757,141 @@
 
         .submenu.show {
             display: block;
+        }
+
+        /* ====== BOTÕES DE AÇÃO PADRONIZADOS ====== */
+
+        /* Botão Visualizar (Azul) */
+        .btn-visualizar {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-visualizar:hover {
+            background: #138496;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(23,162,184,0.3);
+        }
+
+        /* Botão Editar (Amarelo) */
+        .btn-editar {
+            background: #ffc107;
+            color: #333;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-editar:hover {
+            background: #e0a800;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(255,193,7,0.3);
+        }
+
+        /* Botão Editar Ícone (Apenas ícone, sem texto) */
+        .btn-editar-icon {
+            background: transparent;
+            color: #ffc107;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-editar-icon:hover {
+            background: rgba(255,193,7,0.1);
+            transform: scale(1.05);
+            color: #e0a800;
+        }
+
+        /* Botão Excluir (Vermelho) */
+        .btn-excluir {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-excluir:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(220,53,69,0.3);
+        }
+
+        /* Botão Excluir Ícone (Apenas ícone, sem texto) */
+        .btn-excluir-icon {
+            background: transparent;
+            color: #dc3545;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-excluir-icon:hover {
+            background: rgba(220,53,69,0.1);
+            transform: scale(1.05);
+            color: #c82333;
+        }
+
+        /* Botão Detalhar (Verde) */
+        .btn-detalhar {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-detalhar:hover {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(40,167,69,0.3);
+        }
+
+        /* Grupo de botões de ação */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
         }
     </style>
 </head>
@@ -689,7 +919,7 @@
             <nav class="nav-menu">
                 <!-- SEÇÃO 1: PLANEJAMENTO -->
                 <div class="nav-section">
-                    <div class="nav-section-title">PLANEJAMENTO</div>
+                    <div class="nav-section-title nav-section-planejamento">PLANEJAMENTO</div>
                     <a href="{{ url_for('plano_anual') }}" class="nav-item">
                         <i class="fas fa-calendar-alt"></i>
                         <span>Plano Anual de Auditoria</span>
@@ -698,7 +928,7 @@
 
                 <!-- SEÇÃO 2: EXECUÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title">EXECUÇÃO</div>
+                    <div class="nav-section-title nav-section-execucao">EXECUÇÃO</div>
 
                     <!-- Diagnóstico dos Processos com Submenu -->
                     <div class="nav-item-parent">
@@ -741,7 +971,7 @@
 
                 <!-- SEÇÃO 3: COMUNICAÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title">COMUNICAÇÃO</div>
+                    <div class="nav-section-title nav-section-comunicacao">COMUNICAÇÃO</div>
                     <a href="{{ url_for('comunicacao') }}" class="nav-item">
                         <i class="fas fa-bullhorn"></i>
                         <span>Comunicação dos Resultados</span>
@@ -754,7 +984,7 @@
 
                 <!-- SEÇÃO 4: ADMINISTRAÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title">ADMINISTRAÇÃO</div>
+                    <div class="nav-section-title nav-section-administracao">ADMINISTRAÇÃO</div>
                     <a href="{{ url_for('areas') }}" class="nav-item">
                         <i class="fas fa-building"></i>
                         <span>Cadastro de Áreas e Funcionários</span>

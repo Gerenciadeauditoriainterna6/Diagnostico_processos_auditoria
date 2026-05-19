@@ -11,7 +11,7 @@
 
     <div class="em-desenvolvimento-card">
         <div class="em-desenvolvimento-icon">
-            <i class="fas fa-tools"></i>
+            <i class="fas fa-eye"></i>
         </div>
         <h2>Funcionalidade em Desenvolvimento</h2>
         <p>Estamos trabalhando para trazer uma visão completa e integrada dos seus processos e riscos.</p>
@@ -22,9 +22,9 @@
             <li><i class="fas fa-chart-line"></i> Evolução dos scores ao longo do tempo</li>
         </ul>
 
-        <button class="btn-primary btn-voltar" onclick="history.back()">
+        <!--<button class="btn-primary btn-voltar" onclick="history.back()">
             <i class="fas fa-arrow-left"></i> Voltar
-        </button>
+        </button>-->
     </div>
 </div>
 
@@ -45,7 +45,7 @@
     }
 
     .page-header h1 i {
-        color: #0b5b99;
+        color: #ffc107;
         margin-right: 10px;
     }
 
@@ -60,7 +60,7 @@
         padding: 50px 30px;
         text-align: center;
         box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        max-width: 600px;
+        max-width: 700px;
         margin: 40px auto;
     }
 
@@ -68,6 +68,18 @@
         font-size: 70px;
         color: #ffc107;
         margin-bottom: 20px;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
     }
 
     .em-desenvolvimento-card h2 {
@@ -98,13 +110,13 @@
     }
 
     .recursos-lista li i {
-        color: #28a745;
+        color: #ffc107;
         margin-right: 10px;
         width: 20px;
     }
 
     .btn-voltar {
-        background: #184145;
+        background: #ffc107;
         color: white;
         border: none;
         padding: 10px 24px;
@@ -112,7 +124,7 @@
         cursor: pointer;
         font-size: 14px;
         transition: all 0.2s;
-        display: inline-flex;
+        display: inline-flex !important;
         align-items: center;
         gap: 8px;
         margin-top: 20px;

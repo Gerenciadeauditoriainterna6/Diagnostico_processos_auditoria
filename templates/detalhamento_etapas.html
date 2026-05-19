@@ -998,6 +998,252 @@
 </style>
 
 <script>
+
+    // ============================================================
+    // AUTOSAVE - Salvar rascunho automaticamente
+    // ============================================================
+
+    let autoSaveTimer = null;
+    let autoSaveEnabled = true;
+
+    // Chave única para o autoSave baseada no processo e etapa
+    function getAutoSaveKey() {
+        const etapaId = document.getElementById('modal-etapa-id').value;
+        const processoId = processoAtualId;
+        const isNova = !etapaId || etapaId === '';
+        return `autosave_etapa_${processoId}_${isNova ? 'nova': etapaId}`;
+    }
+
+    // Salvar rascunho no localStorage
+    function salvarRascunho() {
+        if (!autoSaveEnabled) return;
+
+        const nomeEtapa = document.getElementById('modal-nome-etapa').value.trim();
+        // Não salvar se estiver vazio ou só com campos vazios
+        if (!nomeEtapa && !document.getElementById('modal-descricao-etapa').value) {
+            return;
+        }
+
+        const rascunho = {
+            id: document.getElementById('modal-etapa-id').value,
+            codigo_etapa: document.getElementById('modal-codigo-etapa').value,
+            nome_etapa: nomeEtapa,
+            descricao_etapa: document.getElementById('modal-descricao-etapa').value,
+            como_e_feito: document.getElementById('modal-como-feito').value,
+             objetivo_etapa: document.getElementById('modal-objetivo-etapa').value,
+            status_etapa: document.getElementById('modal-status-etapa').value,
+            criticidade_etapa: document.getElementById('modal-criticidade-etapa').value,
+            politica_interna: document.getElementById('modal-politica-interna').value,
+            analise_critica: document.getElementById('modal-analise-critica').value,
+            sugestao_melhoria: document.getElementById('modal-sugestao-melhoria').value,
+            necessidade_implantacao: document.getElementById('modal-necessidade-implantacao').value,
+            ganho_previsto: document.getElementById('modal-ganho-previsto').value,
+            obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias').value,
+            // Salvar IDs dos executores selecionados
+            executores_ids: Array.from(selectedExecutoresMap.keys()).join(','),
+            timestamp: new Date().getTime()
+        };
+
+        try {
+            localStorage.setItem(getAutoSaveKey(), JSON.stringify(rascunho));
+            console.log('💾 Rascunho salvo automaticamente');
+
+            // Mostrar indicador de salvamento (opcional)
+            mostrarIndicadorAutoSave();
+        } catch (error) {
+            console.error('Erro ao salvar rascunho:', error);
+        }
+    }
+
+    // Mostrar indicador visual de auto save
+    let autoSaveIndicator = null;
+
+    function mostrarIndicadorAutoSave() {
+        if (autoSaveIndicator) {
+            autoSaveIndicator.remove();
+        }
+        
+        autoSaveIndicator = document.createElement('div');
+        autoSaveIndicator.className = 'autosave-indicator';
+        autoSaveIndicator.innerHTML = '<i class="fas fa-save"></i> Rascunho salvo';
+        autoSaveIndicator.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 10001;
+            animation: fadeInOut 2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+        
+        document.body.appendChild(autoSaveIndicator);
+        
+        setTimeout(() => {
+            if (autoSaveIndicator) {
+                autoSaveIndicator.style.animation = 'fadeOut 0.5s ease';
+                setTimeout(() => {
+                    if (autoSaveIndicator) autoSaveIndicator.remove();
+                    autoSaveIndicator = null;
+                }, 500);
+            }
+        }, 2000);
+    }
+
+    // Carregar rascunho salvo
+    function carregarRascunho() {
+        const key = getAutoSaveKey();
+        const rascunhoSalvo = localStorage.getItem(key);
+        
+        if (rascunhoSalvo) {
+            try {
+                const rascunho = JSON.parse(rascunhoSalvo);
+                const agora = new Date().getTime();
+                const diffMinutes = (agora - rascunho.timestamp) / 1000 / 60;
+                
+                // Só restaurar se tiver menos de 30 minutos
+                if (diffMinutes < 30 && rascunho.nome_etapa) {
+                    if (confirm('⚠️ Um rascunho não salvo foi encontrado. Deseja restaurá-lo?')) {
+                        restaurarRascunho(rascunho);
+                        mostrarToast('📋 Rascunho restaurado com sucesso!', 'info');
+                    } else {
+                        // Limpar rascunho se usuário não quiser restaurar
+                        localStorage.removeItem(key);
+                    }
+                } else {
+                    // Rascunho muito antigo, remover
+                    localStorage.removeItem(key);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar rascunho:', error);
+            }
+        }
+    }
+
+    // Restaurar dados do rascunho
+    function restaurarRascunho(rascunho) {
+        document.getElementById('modal-nome-etapa').value = rascunho.nome_etapa || '';
+        document.getElementById('modal-descricao-etapa').value = rascunho.descricao_etapa || '';
+        document.getElementById('modal-como-feito').value = rascunho.como_e_feito || '';
+        document.getElementById('modal-objetivo-etapa').value = rascunho.objetivo_etapa || '';
+        document.getElementById('modal-status-etapa').value = rascunho.status_etapa || 'Ativa';
+        document.getElementById('modal-criticidade-etapa').value = rascunho.criticidade_etapa || 'Em aprovação';
+        document.getElementById('modal-politica-interna').value = rascunho.politica_interna || '';
+        document.getElementById('modal-analise-critica').value = rascunho.analise_critica || '';
+        document.getElementById('modal-sugestao-melhoria').value = rascunho.sugestao_melhoria || '';
+        document.getElementById('modal-necessidade-implantacao').value = rascunho.necessidade_implantacao || '';
+        document.getElementById('modal-ganho-previsto').value = rascunho.ganho_previsto || '';
+        document.getElementById('modal-obrigacoes-regulatorias').value = rascunho.obrigacoes_regulatorias || '';
+        
+        // Restaurar executores selecionados
+        if (rascunho.executores_ids && rascunho.executores_ids.trim() !== '') {
+            const ids = rascunho.executores_ids.split(',');
+            ids.forEach(id => {
+                const executor = todosExecutoresLista.find(e => String(e.id) === String(id.trim()));
+                if (executor && !selectedExecutoresMap.has(String(executor.id))) {
+                    selectedExecutoresMap.set(String(executor.id), executor);
+                }
+            });
+            atualizarDisplaySelecionados();
+            renderizarListaExecutores('');
+        }
+    }
+
+    // Limpar rascunho após salvar com sucesso
+    function limparRascunho() {
+        const key = getAutoSaveKey();
+        localStorage.removeItem(key);
+        console.log('🗑️ Rascunho removido após salvamento');
+    }
+
+    // Configurar auto save nos campos do modal
+    function setupAutoSave() {
+        const campos = [
+            'modal-nome-etapa', 'modal-descricao-etapa', 'modal-como-feito',
+            'modal-objetivo-etapa', 'modal-status-etapa', 'modal-criticidade-etapa',
+            'modal-politica-interna', 'modal-analise-critica', 'modal-sugestao-melhoria',
+            'modal-necessidade-implantacao', 'modal-ganho-previsto', 'modal-obrigacoes-regulatorias'
+        ];
+        
+        campos.forEach(campoId => {
+            const campo = document.getElementById(campoId);
+            if (campo) {
+                campo.addEventListener('input', () => {
+                    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+                    autoSaveTimer = setTimeout(() => salvarRascunho(), 1000);
+                });
+            }
+        });
+        
+        // Observar mudanças nos executores
+        const observer = new MutationObserver(() => {
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => salvarRascunho(), 1000);
+        });
+        
+        const executoresContainer = document.getElementById('executores-display');
+        if (executoresContainer) {
+            observer.observe(executoresContainer, { childList: true, subtree: true });
+        }
+    }
+
+    // ============================================================
+    // AUTOSAVE - FUNÇÕES AUXILIARES
+    // ============================================================
+
+    // Salvar rascunho antes de fechar o modal
+    function salvarRascunhoAntesFechar() {
+        const nomeEtapa = document.getElementById('modal-nome-etapa').value.trim();
+        if (nomeEtapa) {
+            salvarRascunho();
+            mostrarToast('📋 Rascunho salvo. Você pode continuar depois!', 'info');
+        }
+    }
+
+    // Verificar se existe rascunho ao abrir o modal
+    function verificarRascunhoAoAbrir() {
+        const key = getAutoSaveKey();
+        const rascunhoSalvo = localStorage.getItem(key);
+        if (rascunhoSalvo) {
+            try {
+                const rascunho = JSON.parse(rascunhoSalvo);
+                const agora = new Date().getTime();
+                const diffMinutes = (agora - rascunho.timestamp) / 1000 / 60;
+                
+                if (diffMinutes < 30 && rascunho.nome_etapa) {
+                    mostrarToast('📋 Um rascunho foi encontrado! Clique em "Restaurar" se desejar continuar.', 'info');
+                }
+            } catch (error) {
+                console.error('Erro ao verificar rascunho:', error);
+            }
+        }
+    }
+
+    // Adicionar animações CSS
+    const autoSaveCSS = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    `;
+
+    // Adicionar CSS ao documento
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = autoSaveCSS;
+    document.head.appendChild(styleSheet);
+
+
+
     // ============================================================
     // 1. FUNÇÕES AUXILIARES
     // ============================================================
@@ -1674,11 +1920,18 @@
         await carregarExecutoresProcesso();
         limparExecutoresSelecionados();
         setupExecutoresSelector();
+        setupAutoSave(); // Configurar auto save
+    
+        // Tentar carregar rascunho
+        carregarRascunho();
+
         document.getElementById('modal-etapa').style.display = 'flex';
     }
 
     async function editarEtapa(etapaId) {
         limparFormularioEtapa();
+        autoSaveEnabled = false; // Desabilitar auto save durante carregamento
+        limparRascunho(); // Limpar rascunho anterior
         
         try {
             const response = await fetch(`/api/etapa/${etapaId}`);
@@ -1710,6 +1963,8 @@
                 }
                 
                 setupExecutoresSelector();
+                setupAutoSave(); // Reativar auto save
+                autoSaveEnabled = true;
                 
                 const diagramaNomeDiv = document.getElementById('diagrama-nome');
                 if (etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '') {
@@ -1853,6 +2108,7 @@
             const data = await response.json();
             if (data.success) {
                 mostrarToast('✅ Etapa salva com sucesso!', 'success');
+                limparRascunho(); // Limpar rascunho após salvar
                 document.getElementById('modal-etapa').style.display = 'none';
                 carregarEtapas();
             } else {
@@ -1965,29 +2221,82 @@
             console.error('❌ Botão nova etapa não encontrado');
         }
 
-        // Modal fechar
+        // Modal fechar - COM AUTOSAVE
         const btnFechar = document.getElementById('btn-fechar-modal-etapa');
         if (btnFechar) {
             btnFechar.addEventListener('click', () => {
+                salvarRascunhoAntesFechar(); // Salvar rascunho antes de fechar
                 document.getElementById('modal-etapa').style.display = 'none';
                 limparFormularioEtapa();
             });
         }
 
-        // Modal cancelar
+        // Modal cancelar - COM AUTOSAVE
         const btnCancelar = document.getElementById('btn-cancelar-modal-etapa');
         if (btnCancelar) {
             btnCancelar.addEventListener('click', () => {
+                salvarRascunhoAntesFechar(); // Salvar rascunho antes de fechar
                 document.getElementById('modal-etapa').style.display = 'none';
                 limparFormularioEtapa();
             });
         }
 
-        // Modal salvar
+        // Modal salvar - COM LIMPEZA DO RASCUNHO
         const btnSalvar = document.getElementById('btn-salvar-modal-etapa');
         if (btnSalvar) {
-            btnSalvar.addEventListener('click', salvarEtapa);
+            btnSalvar.addEventListener('click', async (e) => {
+                // Salvar antes de tentar enviar (opcional)
+                salvarRascunho();
+                await salvarEtapa();
+            });
         }
+        
+        // ====== CONFIGURAÇÃO ADICIONAL PARA AUTOSAVE ======
+        
+        // Salvar rascunho ao perder foco do modal (usuário clicou fora)
+        const modal = document.getElementById('modal-etapa');
+        if (modal) {
+            modal.addEventListener('beforehide', () => {
+                salvarRascunho();
+            });
+        }
+        
+        // Salvar rascunho periodicamente a cada 30 segundos (backup)
+        setInterval(() => {
+            const modalDisplay = document.getElementById('modal-etapa').style.display;
+            if (modalDisplay === 'flex') {
+                salvarRascunho();
+            }
+        }, 30000); // 30 segundos
+        
+        // Recuperar rascunho se houver perda de conexão
+        window.addEventListener('online', () => {
+            console.log('🌐 Conexão restaurada!');
+            const modalDisplay = document.getElementById('modal-etapa').style.display;
+            if (modalDisplay === 'flex') {
+                const key = getAutoSaveKey();
+                const rascunhoSalvo = localStorage.getItem(key);
+                if (rascunhoSalvo) {
+                    if (confirm('🔄 Conexão restaurada! Um rascunho foi encontrado. Deseja restaurá-lo?')) {
+                        carregarRascunho();
+                    }
+                }
+            }
+        });
+        
+        // Aviso ao tentar fechar a página com dados não salvos
+        window.addEventListener('beforeunload', (e) => {
+            const key = getAutoSaveKey();
+            const rascunhoSalvo = localStorage.getItem(key);
+            if (rascunhoSalvo) {
+                const rascunho = JSON.parse(rascunhoSalvo);
+                if (rascunho.nome_etapa) {
+                    e.preventDefault();
+                    e.returnValue = 'Você tem um rascunho não salvo. Tem certeza que deseja sair?';
+                    return e.returnValue;
+                }
+            }
+        });
     });
 </script>
 {% endblock %}
