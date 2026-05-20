@@ -1068,18 +1068,27 @@
             });
         })();
 
-        // ====== DESTACAR ITEM ATIVO DO MENU (incluindo submenus com cores) ======
+        // ====== DESTACAR ITEM ATIVO DO MENU (VERSÃO CORRIGIDA - APENAS SUBMENU) ======
         (function() {
             const currentUrl = window.location.pathname;
             const allLinks = document.querySelectorAll('.nav-item, .submenu-item');
             
+            // Lista de URLs que são "página principal" (não devem ativar submenus)
+            const mainPageUrls = ['/detalhamento', '/diagnostico'];
+            
             allLinks.forEach(link => {
                 const linkUrl = link.getAttribute('href');
-                if (linkUrl && linkUrl !== '#' && currentUrl.includes(linkUrl)) {
-                    link.classList.add('active');
-                    
-                    // Se for um submenu item, também mostrar o submenu pai
-                    if (link.classList.contains('submenu-item')) {
+                if (!linkUrl || linkUrl === '#') return;
+                
+                // Verificar se é um link de submenu (está dentro de um submenu)
+                const isSubmenuItem = link.closest('.submenu') !== null;
+                
+                if (isSubmenuItem) {
+                    // Para submenu items: verifica se a URL atual contém o link do submenu
+                    if (currentUrl.includes(linkUrl)) {
+                        link.classList.add('active');
+                        
+                        // Mostrar o submenu pai
                         const parentSubmenu = link.closest('.submenu');
                         if (parentSubmenu) {
                             parentSubmenu.classList.add('show');
@@ -1089,9 +1098,26 @@
                             }
                         }
                     }
+                } else {
+                    // Para itens principais: SÓ marca como ativo se a URL for exatamente igual
+                    // E também não marca se for uma URL que tem submenu (exceto a página principal)
+                    const isMainPage = mainPageUrls.includes(linkUrl);
+                    
+                    if (isMainPage) {
+                        // Para páginas principais, marca apenas se for exatamente igual
+                        if (currentUrl === linkUrl) {
+                            link.classList.add('active');
+                        }
+                    } else {
+                        // Para outros itens (sem submenu), mantém o comportamento original
+                        if (currentUrl.includes(linkUrl)) {
+                            link.classList.add('active');
+                        }
+                    }
                 }
             });
         })();
+        
 
         // ====== REDIMENSIONAR O SIDEBAR ======
         (function() {
