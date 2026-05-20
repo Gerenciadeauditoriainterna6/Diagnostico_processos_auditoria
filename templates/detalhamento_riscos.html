@@ -1014,7 +1014,7 @@
                                 <button class="btn-edit-icon" onclick="editarRiscoEtapa(${risco.id}, ${etapaId}, '${codigoEtapa}', '${escapeHtml(nomeEtapa)}')" title="Editar Risco">
                                     <i class="fas fa-pencil-alt"></i>
                                 </button>
-                                <button class="btn-delete-icon" onclick="excluirRiscoEtapa(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Excluir Risco">
+                                <button class="btn-delete-icon" onclick="excluirRiscoEtapa(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId}, '${codigoEtapa}', '${escapeHtml(nomeEtapa)}')" title="Excluir Risco">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
@@ -1138,12 +1138,43 @@
         }
     }
 
-    function excluirRiscoEtapa(riscoId, nomeRisco, etapaId) {
-        console.log(`🗑️ Excluir risco ${riscoId}: ${nomeRisco}`);
+    async function excluirRiscoEtapa(riscoId, nomeRisco, etapaId, codigoEtapa, nomeEtapa) {
+        // 1. Confirmar com o usuário
+        const confirmado = confirm(`Tem certeza que deseja excluir o risco "${nomeRisco}" da etapa ${codigoEtapa} - ${nomeEtapa}?`);
         
-        if (confirm(`Tem certeza que deseja excluir o risco "${nomeRisco}"?`)) {
-            alert(`Funcionalidade em desenvolvimento: Excluir risco ${riscoId}`);
-            // Depois vamos implementar a exclusão via API
+        if (!confirmado) {
+            return;  // Usuário cancelou, sai da função
+        }
+        
+        // 2. Tentar excluir
+        try {
+            console.log(`🗑️ Excluindo risco ${riscoId}...`);
+            
+            // 3. Fazer a requisição DELETE
+            const response = await fetch(`/api/risco-etapa/${riscoId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            // 4. Processar a resposta
+            const resultado = await response.json();
+            
+            // 5. Verificar se deu certo
+            if (resultado.success) {
+                mostrarToast('✅ Risco excluído com sucesso!', 'success');
+                
+                // 6. Recarregar a lista de riscos
+                await carregarRiscosDaEtapa(etapaId, codigoEtapa, nomeEtapa);
+            } else {
+                mostrarToast('❌ Erro ao excluir: ' + (resultado.error || 'Tente novamente'), 'error');
+            }
+            
+        } catch (error) {
+            // 7. Capturar erros de rede/conexão
+            console.error('❌ Erro ao excluir:', error);
+            mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
         }
     }
 
