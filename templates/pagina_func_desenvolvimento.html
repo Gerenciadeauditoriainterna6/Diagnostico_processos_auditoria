@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Controles das Etapas - Sistema de Auditoria Interna{% endblock %}
+
+{% block content %}
+<div class="controles-container">
+    <div class="page-header">
+        <h1><i class="fas fa-shield-alt"></i> Controles das Etapas</h1>
+        <p>Mapeamento e avaliação dos controles internos aplicados às etapas dos processos.</p>
+    </div>
+
+    <div class="em-desenvolvimento-card">
+        <div class="em-desenvolvimento-icon">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        <h2>Funcionalidade em Desenvolvimento</h2>
+        <p>Estamos desenvolvendo uma ferramenta completa para gestão dos controles das etapas dos seus processos.</p>
+        <p class="text-muted">Em breve, você poderá:</p>
+        <ul class="recursos-lista">
+            <li><i class="fas fa-plus-circle"></i> Cadastrar controles por etapa do processo</li>
+            <li><i class="fas fa-check-double"></i> Avaliar eficácia dos controles existentes</li>
+            <li><i class="fas fa-clipboard-list"></i> Classificar controles por tipo (preventivo,detectivo,corretivo)</li>
+            <li><i class="fas fa-chart-line"></i> Monitorar a maturidade dos controles</li>
+        </ul>
+
+        <!--<button class="btn-primary btn-voltar" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </button>-->
+    </div>
+</div>
+
+<style>
+    .controles-container {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        margin-bottom: 25px;
+    }
+
+    .page-header h1 {
+        color: #184145;
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+
+    .page-header h1 i {
+        color: #17a2b8;
+        margin-right: 10px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .em-desenvolvimento-card {
+        background: white;
+        border-radius: 20px;
+        padding: 50px 30px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        max-width: 700px;
+        margin: 40px auto;
+    }
+
+    .em-desenvolvimento-icon {
+        font-size: 80px;
+        color: #17a2b8;
+        margin-bottom: 20px;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .em-desenvolvimento-card h2 {
+        color: #184145;
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+
+    .em-desenvolvimento-card p {
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 14px;
+        margin-top: 20px;
+    }
+
+    .recursos-lista {
+        list-style: none;
+        padding: 0;
+        margin: 25px 0;
+        text-align: left;
+        display: block;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .recursos-lista li {
+        padding: 8px 0;
+        color: #555;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .recursos-lista li i {
+        color: #17a2b8;
+        width: 24px;
+        text-align: center;
+    }
+
+    .btn-voltar {
+        background: #17a2b8;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .btn-voltar:hover {
+        background: #138496;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23,162,184,0.3);
+    }
+</style>
+{% endblock %}

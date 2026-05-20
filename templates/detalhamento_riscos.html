@@ -25,7 +25,7 @@
             <div class="form-group">
                 <label for="filtro_auditoria_select"><i class="fas fa-clipboard-list"></i> Auditoria:</label>
                 <select id="filtro_auditoria_select" class="form-control" disabled>
-                    <option value="">Selecione uma auditoria...</option>
+                    <option value="">Selecione uma área primeiro...</option>
                 </select>
             </div>
         </div>
@@ -313,6 +313,19 @@
         border-radius: 8px;
         color: #0c5460;
         font-size: 14px;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #721c24;
+        font-size: 14px;
+    }
+
+    .alert-error i {
+        margin-right: 8px;
     }
 
     .etapas-container {
@@ -785,16 +798,49 @@
         });
     }
 
-    // ====== EVENTO DE MUDANÇA DE AUDITORIA (será implementado depois) ======
-        if (filtroAuditoriaSelect) {
-        filtroAuditoriaSelect.addEventListener('change', () => {
+    if (filtroAuditoriaSelect) {
+        filtroAuditoriaSelect.addEventListener('change', async () => {
             const auditoriaId = filtroAuditoriaSelect.value;
-            if (auditoriaId) {
-                carregarEtapas(auditoriaId);  // ← CHAMA A FUNÇÃO!
-            } else {
+            
+            if (!auditoriaId) {
                 etapasContainer.innerHTML = `
                     <div class="alert-info" style="text-align: center; padding: 40px;">
                         <i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar as etapas.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Mostrar loading enquanto verifica permissão
+            etapasContainer.innerHTML = `
+                <div class="loading-message" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin"></i> Verificando permissão...
+                </div>
+            `;
+            
+            try {
+                // Verificar se o usuário tem permissão para esta auditoria
+                const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                const data = await response.json();
+                
+                if (data.autorizado) {  // ← CORRIGIDO: "autorizado" com "z"
+                    // Usuário autorizado - carregar as etapas
+                    console.log('✅ Usuário autorizado:', data.usuario);
+                    await carregarEtapas(auditoriaId);
+                } else {
+                    // Usuário NÃO autorizado - mostrar mensagem
+                    console.log('❌ Usuário NÃO autorizado:', data.usuario);
+                    etapasContainer.innerHTML = `
+                        <div class="alert-error" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-lock"></i> Você não tem permissão para visualizar as etapas dos processos desta auditoria.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao verificar permissão:', error);
+                etapasContainer.innerHTML = `
+                    <div class="alert-error" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao verificar permissão. Tente novamente.
                     </div>
                 `;
             }

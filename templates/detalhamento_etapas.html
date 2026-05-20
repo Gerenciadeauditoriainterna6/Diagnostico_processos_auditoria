@@ -1684,22 +1684,67 @@
         processoAtualCodigo = params.processoCodigo;
 
         let nomeProcesso = '';
+        let auditoriaId = null;
+        
         try {
             const response = await fetch(`/api/processo/${processoAtualId}/dados`);
             const data = await response.json();
             if (data.success) {
                 nomeProcesso = data.nome_processo;
+                auditoriaId = data.auditoria_id;  // ← Pegar o ID da auditoria
             }
         } catch (error) {
             console.error('Erro ao buscar nome do processo:', error);
         }
 
+        // Mostrar informações básicas do processo
         document.getElementById('processo-info').innerHTML = `
             <i class="fas fa-tag"></i> Processo: <strong>${escapeHtml(processoAtualCodigo || '')}</strong> - ${escapeHtml(nomeProcesso)}
         `;
         document.getElementById('modal-processo-id').value = processoAtualId;
 
-        await carregarEtapas();
+        // ===== VERIFICAR PERMISSÃO DA AUDITORIA =====
+        if (auditoriaId) {
+            // Mostrar loading enquanto verifica
+            const etapasContainer = document.getElementById('etapas-container');
+            etapasContainer.innerHTML = `
+                <div class="loading-message" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin"></i> Verificando permissão...
+                </div>
+            `;
+            
+            try {
+                const respPermissao = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                const dadosPermissao = await respPermissao.json();
+                
+                if (dadosPermissao.autorizado) {
+                    // Usuário autorizado - carregar as etapas
+                    console.log('✅ Usuário autorizado:', dadosPermissao.usuario);
+                    await carregarEtapas();
+                } else {
+                    // Usuário NÃO autorizado - mostrar mensagem
+                    console.log('❌ Usuário NÃO autorizado:', dadosPermissao.usuario);
+                    etapasContainer.innerHTML = `
+                        <div class="alert-error" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-lock"></i> Você não tem permissão para visualizar as etapas deste processo.
+                        </div>
+                    `;
+                    // Desabilitar botão de nova etapa
+                    const btnNovaEtapa = document.getElementById('btn-nova-etapa');
+                    if (btnNovaEtapa) btnNovaEtapa.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar permissão:', error);
+                etapasContainer.innerHTML = `
+                    <div class="alert-error" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao verificar permissão. Tente novamente.
+                    </div>
+                `;
+            }
+        } else {
+            // Se não tem auditoria, carregar etapas mesmo assim (fallback)
+            await carregarEtapas();
+        }
     }
 
     async function carregarEtapas() {

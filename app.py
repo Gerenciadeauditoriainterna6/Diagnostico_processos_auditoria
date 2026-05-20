@@ -1368,7 +1368,11 @@ def detalhamento_riscos():
 def detalhamento_controles():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('detalhamento_controles.html')
+    
+    from logic import carregar_areas_banco
+    areas = carregar_areas_banco()
+    
+    return render_template('detalhamento_controles.html', areas=areas)
 
 @app.route('/api/etapa/<int:etapa_id>/download/<tipo>')
 def api_etapa_download(etapa_id, tipo):
