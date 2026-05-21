@@ -136,7 +136,7 @@
         padding: 15px 20px;
         background: #f8f9fa;
         cursor: pointer;
-        border-left: 4px solid #184145;
+        border-left: 4px solid #17a2b8;
     }
 
     .processo-header:hover {
@@ -152,6 +152,10 @@
     .processo-info strong {
         color: #184145;
         font-size: 14px;
+    }
+
+    .processo-info i {
+        color: #17a2b8
     }
 
     .processo-arrow {
@@ -181,7 +185,7 @@
         align-items: center;
         padding: 12px 15px;
         cursor: pointer;
-        border-left: 3px solid #28a745;  /* ← Verde em vez de azul */
+        border-left: 3px solid #17a2b8;  /* ← Verde em vez de azul */
     }
 
     .etapa-header:hover {
@@ -195,7 +199,7 @@
     }
 
     .etapa-info strong {
-        color: #28a745;  /* ← Verde em vez de azul */
+        color: #17a2b8;  /* ← Verde em vez de azul */
         font-size: 13px;
     }
 
@@ -353,7 +357,267 @@
 </style>
 
 <script>
-    // Vamos adicionar o JavaScript depois
+    // ====== ELEMENTOS DO DOM ======
+    const filtroAreaSelect = document.getElementById('filtro_area_select');
+    const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select')
+    const etapasContainer = document.getElementById('etapas-container');
+
+    // ====== FUNÇÃO PARA ESCAPAR HTML (evita injeção de código malicioso) ======
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // ====== CARREGAR AUDITORIAS POR ÁREA ======
+    async function carregarAuditorias(areaId) {
+        // Se não tem área selecionada, limpa o select de auditoria
+        if (!areaId) {
+            filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
+            filtroAuditoriaSelect.disabled = true;
+            return;
+        }
+
+        // Mostra loading enquanto busca as auditorias
+        filtroAuditoriaSelect.innerHTML = '<option value"">Carregando auditorias...</option>';
+        filtroAuditoriaSelect.disabled = true;
+
+        try {
+            // Faz a requisição apra o backend
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+
+            // Se encontrou auditorias, popula o select
+            if (data.auditorias && data.auditorias.length > 0) {
+                filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    filtroAuditoriaSelect.appendChild(option);
+                });
+
+                filtroAuditoriaSelect.disabled = false;
+            } else {
+                // Nenhuma auditoria encontrada
+                filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada para esta áreas.</option>';
+                filtroAuditoriaSelect.disabled = true;
+            }
+        } catch (error) {
+            console.error('Error o carregar auditorias:', error);
+            filtroAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+            filtroAuditoriaSelect.disabled = true;
+        }
+    }
+
+    // ====== EVENTO DE MUDANÇA DE ÁREA ======
+    if (filtroAreaSelect) {
+        filtroAreaSelect.addEventListener('change', () => {
+            const areaId = filtroAreaSelect.value;
+            carregarAuditorias(areaId);
+
+            // Limpar container de etapas (para não mostrar dados antigos)
+            etapasContainer.innerHTML = `
+                <div class="alert-info" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-info-circle"></i> Seleciona uma área e auditoria para visualizar as etapas.
+                </div>
+            `;
+        });
+    }
+
+    // ====== EVENTO DE MUDANÇA DE AUDITORIA ======
+    if (filtroAuditoriaSelect) {
+        filtroAuditoriaSelect.addEventListener('change', async () => {
+            const auditoriaId = filtroAuditoriaSelect.value;
+
+            if (!auditoriaId) {
+                etapasContainer.innerHTML = `
+                    <div class="alert-info" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar as etapas.
+                    </div>
+                `;
+                return;
+            }
+
+            // Mostrar loading enquanto verifica premissão
+            etapasContainer.innerHTML = `
+                <div class="loading-message" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin"></i> Verificando permissão...
+                </div>
+            `;
+
+            try {
+                // 1. Verificar se o usuário tem permissão
+                const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                const data = await response.json();
+
+                if (data.autorizado) {
+                    // 2. Usuário autorizado - carregar as etapas
+                    console.log('✅ Usuário autorizado:', data.usuario);
+                    await carregarEtapas(auditoriaId);
+                } else {
+                    // 3. Usuário NÃO autorizado
+                    console.log('❌ Usuário NÃO autorizado:', data.usuario);
+                    etapasContainer.innerHTML = `
+                        <div class="alert-error" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-lock"></i> Você não tem permissão para visualizar etapas dos processos desta auditoria.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Erro ao verificar permissão:', error);
+                etapasContainer.innerHTML = `
+                    <div class="alert-error" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao verificar permissão. Tente novamente.
+                    </div>
+                `;
+            }
+        });
+    }
+
+    // ====== FUNÇÃO PARA CARREGAR ETAPAS (e depois riscos) ======
+    async function carregarEtapas(auditoriaId) {
+        console.log('📋 Carregando etapas para auditoria:', auditoriaId);
+
+        // Mostrar loading
+        etapasContainer.innerHTML = `
+            <div class="loading-message" style="text-align: center; padding 40px;">
+                <i class="fas fa-spinner fa-spin"></i> Carregando processos e etapas...
+            </div>
+        `;
+
+        try {
+            // 1. Buscar todos os processos da auditoria
+            const responseProcessos = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+            const dataProcessos = await responseProcessos.json();
+
+            console.log('📦 Processos encontrados:', dataProcessos);
+
+            // 2. Verificar se tem processos
+            if (!dataProcessos.success || !dataProcessos.processos || dataProcessos.processos.length === 0) {
+                etapasContainer.innerHTML = `
+                    <div class="alert-info" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-info-circle"></i> Nenhum processo encontrado para esta auditoria.
+                    </div>
+                `;
+                return;
+            }
+
+            // 3. Vamos montar o HTML (próximo passo)
+            let htmlFinal = '';
+
+            // 4. PErcorrer cada processo (um por um)
+            for (const processo of dataProcessos.processos) {
+                console.log(`🔍 Buscando etapas do processo: ${processo.codigo_processo} - ${processo.nome_processo}`);
+
+                // Buscar etapas deste processo específico
+                const responseEtapas = await fetch(`/api/processo/${processo.id}/etapas`);
+                const dataEtapas = await responseEtapas.json();
+
+                console.log(`   📋 Etapas encontradas: ${dataEtapas.etapas?.length || 0}`);
+
+                // Adicionar o cabeçalho do processo (card que agrupa as etapas)
+                htmlFinal += `
+                    <div class="processo-card" data-processo-id="${processo.id}">
+                        <div class="processo-header" onclick="toggleProcesso(this)">
+                            <div class="processo-info">
+                                <i class="fas fa-folder-open"></i>
+                                <strong>${processo.codigo_processo}</strong>
+                                <span>${processo.nome_processo}</span>
+                            </div>
+                            <i class="fas fa-chevron-down processo-arrow"></i>
+                        </div>
+                        <div class="processo-body" style="display: none;">
+                            <div class="etapas-list">
+                `;
+
+                // Verificar se o processo tem etapas
+                if (dataEtapas.success && dataEtapas.etapas && dataEtapas.etapas.length > 0) {
+                    // Percorrer cada etapa do processo
+                    for (const etapa of dataEtapas.etapas) {
+                        htmlFinal += `
+                            <div class="etapa-card" data-etapa-id="${etapa.id}" data-etapa-codigo="${etapa.codigo_etapa}" data-etapa-nome="${escapeHtml(etapa.nome_etapa)}">
+                                <div class="etapa-header" onclick="toggleEtapa(this)">
+                                    <div class="etapa-info">
+                                        <i class="fas fa-step-forward"></i>
+                                        <strong>${etapa.codigo_etapa}</strong>
+                                        <span>${etapa.nome_etapa}</span>
+                                    </div>
+                                    <div class="etapa-actions">
+                                        <i class="fas fa-chevron-down etapa-arrow"></i>
+                                    </div>
+                                </div>
+                                <div class="etapa-body" style="display: none;">
+                                    <div class="riscos-container" id="riscos-etapa-${etapa.id}">
+                                        <div class="loading-small">Carregando riscos...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } 
+                } else {
+                    htmlFinal += `
+                        <div class="empty-etapas">
+                            <i class="fas fa-info-circle"></i> Nenhuma etapa cadastrada para este processo.
+                        </div>
+                    `;
+                }
+
+                htmlFinal += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Depois de processar todos os processos, colocar o HTML na tela
+            etapasContainer.innerHTML = htmlFinal;
+
+        } catch (error) {
+            console.error('❌ Erro ao carregar etapas:', error);
+            etapasContainer.innerHTML = `
+                <div class="alert-error" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar etapas. Tente novamente.
+                </div>
+            `;
+        }
+    }
+
+    // Função para expandir/colapsar processo
+    function toggleProcesso(header) {
+        const processoCard = header.closest('.processo-card');
+        const body = processoCard.querySelector('.processo-body');
+        const arrow = header.querySelector('.processo-arrow');
+
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            if (arrow) arrow.classList.add('open');
+        } else {
+            body.style.display = 'none';
+            if (arrow) arrow.classList.remove('open');
+        }
+    }
+
+    // Função para expandir/colapsar etapa
+    function toggleEtapa(header) {
+        const etapaCard = header.closest('.etapa-card');
+        const body = etapaCard.querySelector('.etapa-body');
+        const arrow = header.querySelector('.etapa-arrow');
+
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            if (arrow) arrow.classList.add('open');
+        } else {
+            body.style.display = 'none';
+            if (arrow) arrow.classList.remove('open');
+        }
+    }
+
 </script>
 
 {% endblock %}
