@@ -123,6 +123,18 @@
                 <textarea id="controle_evidencia" class="form-control" rows="2" placeholder="Qual a evidência de que o controle foi executado?"></textarea>
             </div>
 
+            <!-- Frequência da evidência -->
+             <div class="form-group">
+                <label><i class="fas fa-calendar-check"></i> Frequência da Evidência</label>
+                <select id="controle_frequencia_evidencia" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="Diário">Diário</option>
+                    <option value="Semanal">Semanal</option>
+                    <option value="Mensal">Mensal</option>
+                    <option value="Trimestral">Trimestral</option>
+                </select>
+            </div>
+
             <!-- Responsáveis pelo Tratamento -->
             <div class="form-group">
                 <label><i class="fas fa-users"></i> Responsáveis pelo Tratamento</label>
@@ -541,6 +553,23 @@
         background: #f8f9fa;
         border-radius: 0 0 16px 16px;
     }
+
+    .btn-add-controle {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    .btn-add-controle:hover {
+        background: #0b5b99;
+    }
+
+
     
 </style>
 
@@ -1078,6 +1107,7 @@
         document.getElementById('controle_como_executado').value = '';
         document.getElementById('controle_objetivo').value = '';
         document.getElementById('controle_evidencia').value = '';
+        document.getElementById('controle_frequencia_evidencia').value = '';
         document.getElementById('controle_responsaveis').value = '';
         document.getElementById('controle_risco_avaliacao').value = '';
         document.getElementById('controle_causa_motivo').value = '';
@@ -1098,6 +1128,185 @@
         if (modal) {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto'; // Restaura a rolagem
+        }
+    }
+
+    // ====== FUNÇÃO PARA SALVAR CONTROLE ======
+    async function salvarControle() {
+        console.log('💾 Iniciando salvamento do controle...');
+        
+        // 1. Validar campo obrigatório
+        const nomeControle = document.getElementById('controle_nome').value.trim();
+        if (!nomeControle) {
+           mostrarToast('❌ O nome do controle é obrigatório!', 'error');
+           return; 
+        }
+
+        // 2. Coletar todos os dados do formulário
+        const dados = {
+            id: controleIdEditando, // Se for edição, tem o ID; se for novo, é null
+            risco_id: riscoIdAtual,
+            nome_controle: nomeControle,
+            como_executado: document.getElementById('controle_como_executado').value,
+            objetivo_controle: document.getElementById('controle_objetivo').value,
+            periodicidade_execucao: document.getElementById('controle_periodicidade').value,
+            natureza: document.getElementById('controle_natureza').value,
+            forma_execucao: document.getElementById('controle_forma_execucao').value,
+            status_controle: document.getElementById('controle_status').value,
+            evidencia_realizacao: document.getElementById('controle_evidencia').value,
+            frequencia_evidencia: document.getElementById('controle_frequencia_evidencia').value,
+            responsaveis_tratamento: document.getElementById('controle_responsaveis').value,
+            risco_avaliacao: document.getElementById('controle_risco_avaliacao').value,
+            causa_motivo: document.getElementById('controle_causa_motivo').value,
+            auditoria_id: filtroAuditoriaSelect.value || null
+        };
+
+        console.log('📦 Dados a serem enviados:', dados);
+
+        // 3. Enviar para o backend
+        try {
+            // Mostrar loading no botão
+            const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+            const textoOriginal = btnSalvar.innerHTML;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSalvar.disabled = true;
+
+            const response = await fetch('/api/controle-etapa/salvar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+
+            const resultado = await response.json();
+            console.log('📬 Resposta do servidor:', resultado);
+
+            if (resultado.success) {
+                mostrarToast('✅ Controle salvo com sucesso!', 'success');
+
+                // Fechar o modal
+                fecharModalControle();
+
+                // Recarregar os controles do risco
+                await carregarControlesDoRisco(riscoIdAtual);
+
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
+            }
+
+            // Restaurar botão
+            btnSalvar.innerHTML = textoOriginal;
+            btnSalvar.disabled = false;
+
+        } catch (error) {
+            console.error('❌ Erro na requisição:', error);
+            mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
+
+            // Restaurar botão
+            const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+            if (btnSalvar) {
+                btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Controle';
+                btnSalvar.disabled = false;
+            }
+        }
+
+    }
+
+    // ====== FUNÇÃO PARA EXCLUIR CONTROLE ======
+    async function excluirControle(controleId, nomeControle, riscoId) {
+        console.log(`🗑️ Excluir controle ${controleId}: ${nomeControle}`);
+        
+        // Confirmar com o usuário
+        const confirmado = confirm(`Tem certeza que deseja excluir o controle "${nomeControle}"?`);
+        
+        if (!confirmado) {
+            return;  // Usuário cancelou
+        }
+        
+        try {
+            // Mostrar loading no botão (opcional)
+            mostrarToast('⏳ Excluindo controle...', 'info');
+            
+            // Chamar a API de exclusão
+            const response = await fetch(`/api/controle-etapa/${controleId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                mostrarToast('✅ Controle excluído com sucesso!', 'success');
+                
+                // Recarregar os controles do risco
+                await carregarControlesDoRisco(riscoId);
+            } else {
+                mostrarToast('❌ Erro ao excluir: ' + (resultado.error || 'Tente novamente'), 'error');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao excluir controle:', error);
+            mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
+        }
+    }
+
+    // ====== FUNÇÃO PARA EDITAR CONTROLE ======
+    async function editarControle(controleId, riscoId) {
+        console.log(`✏️ Editando controle ${controleId} do risco ${riscoId}`);
+        
+        try {
+            // Buscar os dados do controle
+            const response = await fetch(`/api/controle-etapa/${controleId}`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                mostrarToast('❌ Erro ao carregar dados do controle', 'error');
+                return;
+            }
+            
+            const controle = data.controle;
+            
+            // Guardar o ID do controle que está sendo editado
+            controleIdEditando = controleId;
+            riscoIdAtual = riscoId;
+            
+            // Preencher o modal com os dados
+            document.getElementById('controle_nome').value = controle.nome_controle;
+            document.getElementById('controle_como_executado').value = controle.como_executado;
+            document.getElementById('controle_objetivo').value = controle.objetivo_controle;
+            document.getElementById('controle_periodicidade').value = controle.periodicidade_execucao;
+            document.getElementById('controle_natureza').value = controle.natureza;
+            document.getElementById('controle_forma_execucao').value = controle.forma_execucao;
+            document.getElementById('controle_status').value = controle.status_controle;
+            document.getElementById('controle_evidencia').value = controle.evidencia_realizacao;
+            document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
+            document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento;
+            document.getElementById('controle_risco_avaliacao').value = controle.risco_avaliacao;
+            document.getElementById('controle_causa_motivo').value = controle.causa_motivo;
+            
+            // Buscar o nome do risco para o título
+            const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
+            const riscoNome = riscoCard ? riscoCard.getAttribute('data-risco-nome') : 'Controle';
+            
+            // Mudar o título do modal
+            const modalTitle = document.getElementById('modal-controle-title');
+            if (modalTitle) {
+                modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Editar Controle - ${riscoNome}`;
+            }
+            
+            // Abrir o modal
+            const modal = document.getElementById('modal-controle');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar controle:', error);
+            mostrarToast('❌ Erro ao carregar dados do controle', 'error');
         }
     }
 
@@ -1123,6 +1332,12 @@
                     fecharModalControle();
                 }
             });
+        }
+
+        // Botão salvar
+        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+        if (btnSalvar) {
+            btnSalvar.addEventListener('click', salvarControle)
         }
     }
 

@@ -243,6 +243,196 @@ def detalhamento_etapas():
         return redirect(url_for('login'))
     
     return render_template('detalhamento_etapas.html')
+
+@app.route('/api/controle-etapa/salvar', methods=['POST'])
+def api_controle_etapa_salvar():
+    """Salva um novo controle de etapa ou atualiza existente"""
+    from database import engine
+    from sqlalchemy import text
+    
+    data = request.json
+    controle_id = data.get('id')
+    risco_id = data.get('risco_id')
+    auditoria_id = data.get('auditoria_id')
+    
+    
+    # Dados do controle
+    nome_controle = data.get('nome_controle', '')
+    como_executado = data.get('como_executado', '')
+    objetivo_controle = data.get('objetivo_controle', '')
+    periodicidade_execucao = data.get('periodicidade_execucao', '')
+    natureza = data.get('natureza', '')
+    forma_execucao = data.get('forma_execucao', '')
+    status_controle = data.get('status_controle', '')
+    evidencia_realizacao = data.get('evidencia_realizacao', '')
+    responsaveis_tratamento = data.get('responsaveis_tratamento', '')
+    risco_avaliacao = data.get('risco_avaliacao', '')
+    causa_motivo = data.get('causa_motivo', '')
+    frequencia_evidencia = data.get('frequencia_evidencia', '')
+    
+    # Validação básica
+    if not risco_id:
+        return jsonify({'success': False, 'error': 'ID do risco é obrigatório'}), 400
+    
+    if not nome_controle:
+        return jsonify({'success': False, 'error': 'Nome do controle é obrigatório'}), 400
+    
+    try:
+        with engine.connect() as conn:
+            if controle_id:
+                # EDIÇÃO: atualizar controle existente
+                query = text("""
+                    UPDATE controles_etapa
+                    SET nome_controle = :nome_controle,
+                        como_executado = :como_executado,
+                        objetivo_controle = :objetivo_controle,
+                        periodicidade_execucao = :periodicidade_execucao,
+                        natureza = :natureza,
+                        forma_execucao = :forma_execucao,
+                        status_controle = :status_controle,
+                        evidencia_realizacao = :evidencia_realizacao,
+                        responsaveis_tratamento = :responsaveis_tratamento,
+                        risco_avaliacao = :risco_avaliacao,
+                        causa_motivo = :causa_motivo,
+                        frequencia_evidencia = :frequencia_evidencia,
+                        updated_at = CURRENT_DATE
+                    WHERE id = :controle_id
+                """)
+                
+                conn.execute(query, {
+                    'controle_id': controle_id,
+                    'nome_controle': nome_controle,
+                    'como_executado': como_executado,
+                    'objetivo_controle': objetivo_controle,
+                    'periodicidade_execucao': periodicidade_execucao,
+                    'natureza': natureza,
+                    'forma_execucao': forma_execucao,
+                    'status_controle': status_controle,
+                    'evidencia_realizacao': evidencia_realizacao,
+                    'frequencia_evidencia': frequencia_evidencia,
+                    'responsaveis_tratamento': responsaveis_tratamento,
+                    'risco_avaliacao': risco_avaliacao,
+                    'causa_motivo': causa_motivo
+                })
+                
+                print(f"✏️ Controle {controle_id} atualizado!")
+                
+            else:
+                # NOVO CONTROLE: inserir
+                query = text("""
+                    INSERT INTO controles_etapa (
+                        risco_id, auditoria_id, nome_controle,
+                        como_executado, objetivo_controle,
+                        periodicidade_execucao, natureza, forma_execucao,
+                        status_controle, evidencia_realizacao,
+                        responsaveis_tratamento, risco_avaliacao, causa_motivo,
+                        frequencia_evidencia, created_at, updated_at
+                    ) VALUES (
+                        :risco_id, :auditoria_id, :nome_controle,
+                        :como_executado, :objetivo_controle,
+                        :periodicidade_execucao, :natureza, :forma_execucao,
+                        :status_controle, :evidencia_realizacao,
+                        :responsaveis_tratamento, :risco_avaliacao, :causa_motivo,
+                        :frequencia_evidencia, CURRENT_TIMESTAMP, CURRENT_DATE
+                    )
+                    RETURNING id
+                """)
+                
+                result = conn.execute(query, {
+                    'risco_id': risco_id,
+                    'auditoria_id': auditoria_id,
+                    'nome_controle': nome_controle,
+                    'como_executado': como_executado,
+                    'objetivo_controle': objetivo_controle,
+                    'periodicidade_execucao': periodicidade_execucao,
+                    'natureza': natureza,
+                    'forma_execucao': forma_execucao,
+                    'status_controle': status_controle,
+                    'evidencia_realizacao': evidencia_realizacao,
+                    'responsaveis_tratamento': responsaveis_tratamento,
+                    'risco_avaliacao': risco_avaliacao,
+                    'causa_motivo': causa_motivo,
+                    'frequencia_evidencia': frequencia_evidencia
+                })
+                
+                novo_id = result.fetchone()[0]
+                print(f"✅ Novo controle criado! ID: {novo_id}")
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Controle salvo com sucesso',
+                'controle_id': controle_id or novo_id
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar controle: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500   
+    
+@app.route('/api/controle-etapa/<int:controle_id>', methods=['DELETE'])
+def api_controle_etapa_excluir(controle_id):
+    """Remove um controle (soft delete)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Como sua tabela não tem coluna 'ativo', vamos deletar mesmo
+            # Se quiser manter soft delete, teria que adicionar a coluna 'ativo'
+            query = text("DELETE FROM controles_etapa WHERE id = :controle_id")
+            conn.execute(query, {'controle_id': controle_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Controle excluído com sucesso'})
+    except Exception as e:
+        print(f"❌ Erro ao excluir controle: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/controle-etapa/<int:controle_id>', methods=['GET'])
+def api_controle_etapa_detalhes(controle_id):
+    """Retorna os dados de um controle específico para edição"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, risco_id, nome_controle, como_executado, objetivo_controle,
+                       periodicidade_execucao, natureza, forma_execucao, status_controle,
+                       evidencia_realizacao, responsaveis_tratamento, risco_avaliacao, causa_motivo,
+                       frequencia_evidencia
+                FROM controles_etapa
+                WHERE id = :controle_id
+            """)
+            
+            result = conn.execute(query, {'controle_id': controle_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Controle não encontrado'}), 404
+            
+            controle = {
+                'id': result[0],
+                'risco_id': result[1],
+                'nome_controle': result[2] or '',
+                'como_executado': result[3] or '',
+                'objetivo_controle': result[4] or '',
+                'periodicidade_execucao': result[5] or '',
+                'natureza': result[6] or '',
+                'forma_execucao': result[7] or '',
+                'status_controle': result[8] or '',
+                'evidencia_realizacao': result[9] or '',
+                'responsaveis_tratamento': result[10] or '',
+                'risco_avaliacao': result[11] or '',
+                'causa_motivo': result[12] or '',
+                'frequencia_evidencia': result[13] or ''
+            }
+            
+            return jsonify({'success': True, 'controle': controle})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar controle: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
     
 # ============================================================
 # ROTAS DE API (BACKEND)
@@ -1778,22 +1968,21 @@ def api_risco_controles(risco_id):
     """Retorna todos os controles associados a um risco"""
     from database import engine
     from sqlalchemy import text
-
+    
     try:
         with engine.connect() as conn:
             query = text("""
                 SELECT id, nome_controle, como_executado, objetivo_controle,
                        periodicidade_execucao, evidencia_realizacao, forma_execucao,
-                       natureza, status_controle, frequencia_evidencia,
-                       responsaveis_Tratamento, risco_avaliacao, causa_motivo,
-                       data_atualizacao, ativo
+                       natureza, status_controle, responsaveis_tratamento,
+                       risco_avaliacao, causa_motivo, created_at, updated_at
                 FROM controles_etapa
-                WHERE risco_id = :risco_id AND (ativo is NULL OR ativo = true)
-                ORDER By id  
+                WHERE risco_id = :risco_id
+                ORDER BY id
             """)
-
-            result = conn.execute(query, {"risco_id": risco_id}).fetchall()
-
+            
+            result = conn.execute(query, {'risco_id': risco_id}).fetchall()
+            
             controles = []
             for row in result:
                 controles.append({
@@ -1806,15 +1995,15 @@ def api_risco_controles(risco_id):
                     'forma_execucao': row[6] or '',
                     'natureza': row[7] or '',
                     'status_controle': row[8] or '',
-                    'frequencia_evidencia': row[9] or '',
-                    'responsaveis_tratamento': row[10] or '',
-                    'risco_avaliacao': row[11] or '',
-                    'causa_motivo': row[12] or '',
-                    'data_atualizacao': row[13].strftime('%Y-%m-%d') if row[13] else '',
-                    'ativo': row[14] if row[14] is not None else True
+                    'responsaveis_tratamento': row[9] or '',
+                    'risco_avaliacao': row[10] or '',
+                    'causa_motivo': row[11] or '',
+                    'created_at': row[12].isoformat() if row[12] else '',
+                    'updated_at': row[13].strftime('%Y-%m-%d') if row[13] else ''
                 })
             
             return jsonify({'success': True, 'controles': controles})
+            
     except Exception as e:
         print(f"❌ Erro ao buscar controles do risco: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
