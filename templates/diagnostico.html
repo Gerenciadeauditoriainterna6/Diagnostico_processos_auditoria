@@ -34,7 +34,7 @@
     <div class="form-section tabela-section">
         <div class="tabela-header">
             <h3>Processos da Auditoria</h3>
-            <button type="button" id="btn-novo-processo" class="btn-primary" style="display: none;">
+            <button type="button" id="btn-novo-processo" class="btn-novo-processo" style="display: none;">
                 <i class="fas fa-plus" style="margin-right: 8px;"></i> Novo Processo
             </button>
         </div>
@@ -799,13 +799,18 @@
 
     .page-header h1 {
         color: #184145;
-        font-size: 24px;
+        font-size: 32px;
         margin-bottom: 5px;
     }
 
     .page-header h1 i {
-        color: #0b5b99;
+        background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
+        color: #e4e4e4;
         margin-right: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 32px;
     }
 
     .page-header p {
@@ -2506,6 +2511,23 @@
         color: #c82333;
     }
 
+    #btn-novo-processo {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    #btn-novo-processo:hover {
+        background: #0b5b99;
+    }
+
+    
+
 
 </style>
 
@@ -3261,7 +3283,7 @@
             });
             
             // Adicionar eventos aos botões de editar
-            document.querySelectorAll('.btn-editar-processo').forEach(btn => {
+            document.querySelectorAll('.btn-edit-processo').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const processoId = btn.getAttribute('data-processo-id');
                     const processoCodigo = btn.getAttribute('data-processo-codigo');
@@ -3270,7 +3292,7 @@
             });
 
             // Adicionar eventos aos botões de excluir
-            document.querySelectorAll('.btn-excluir-processo').forEach(btn => {
+            document.querySelectorAll('.btn-delete-processo').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const processoId = btn.getAttribute('data-processo-id');

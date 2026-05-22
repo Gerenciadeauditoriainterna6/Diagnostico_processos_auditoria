@@ -6,7 +6,7 @@
 <div class="detalhamento-container">
     <div class="page-header">
         <h1><i class="fas fa-clipboard-list"></i> Detalhamento dos Processos</h1>
-        <p>Gerencie as etapas e o detalhamento dos processos da auditoria.</p>
+        <p>Gerencie o detalhamento dos processos baseados em etapas</p>
     </div>
 
     <!-- FILTROS (mesmo padrão do diagnostico.html) -->
@@ -56,13 +56,19 @@
 
     .page-header h1 {
         color: #184145;
-        font-size: 24px;
+        font-size: 32px;
         margin-bottom: 5px;
     }
 
     .page-header h1 i {
-        color: #0b5b99;
+        background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
+        color: #e4e4e4;
         margin-right: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        width: 52px;
+        text-align: center;
+        font-size: 32px;
     }
 
     .page-header p {
@@ -146,7 +152,7 @@
 
     /* Botão Detalhar */
     .btn-detalhar-processo {
-        background: #17a2b8;
+        background: #184145;
         color: white;
         border: none;
         padding: 6px 12px;
@@ -160,7 +166,7 @@
     }
 
     .btn-detalhar-processo:hover {
-        background: #138496;
+        background: #0b5b99;
         transform: translateY(-1px);
     }
 
