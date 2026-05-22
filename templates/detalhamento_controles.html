@@ -39,6 +39,115 @@
     </div>
 </div>
 
+<!-- MODAL PARA ADICIONAR/EDITAR CONTROLE -->
+<div id="modal-controle" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3 id="modal-controle-title">
+                <i class="fas fa-shield-alt"></i> Novo Controle
+            </h3>
+            <button type="button" class="modal-close" id="btn-fechar-modal-controle">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="controle_id">
+            <input type="hidden" id="controle_risco_id">
+            
+            <!-- Nome do Controle (obrigatório) -->
+            <div class="form-group">
+                <label><i class="fas fa-tag"></i> Nome do Controle *</label>
+                <input type="text" id="controle_nome" class="form-control" placeholder="Ex: Revisão semanal dos dados">
+            </div>
+
+            <!-- Como é executado -->
+            <div class="form-group">
+                <label><i class="fas fa-cogs"></i> Como é executado?</label>
+                <textarea id="controle_como_executado" class="form-control" rows="2" placeholder="Descreva como o controle é executado..."></textarea>
+            </div>
+
+            <!-- Objetivo do Controle -->
+            <div class="form-group">
+                <label><i class="fas fa-bullseye"></i> Objetivo do Controle</label>
+                <textarea id="controle_objetivo" class="form-control" rows="2" placeholder="Qual o objetivo deste controle?"></textarea>
+            </div>
+
+            <!-- Periodicidade e Natureza (lado a lado) -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Periodicidade</label>
+                    <select id="controle_periodicidade" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="Diário">Diário</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Mensal">Mensal</option>
+                        <option value="Trimestral">Trimestral</option>
+                        <option value="Semestral">Semestral</option>
+                        <option value="Anual">Anual</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-chart-line"></i> Natureza</label>
+                    <select id="controle_natureza" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="Preventivo">Preventivo</option>
+                        <option value="Detectivo">Detectivo</option>
+                        <option value="Corretivo">Corretivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Forma de Execução e Status (lado a lado) -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-play-circle"></i> Forma de Execução</label>
+                    <select id="controle_forma_execucao" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automático">Automático</option>
+                        <option value="Semiautomático">Semiautomático</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-circle"></i> Status</label>
+                    <select id="controle_status" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Inativo">Inativo</option>
+                        <option value="Em implantação">Em implantação</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Evidência de Realização -->
+            <div class="form-group">
+                <label><i class="fas fa-file-alt"></i> Evidência de Realização</label>
+                <textarea id="controle_evidencia" class="form-control" rows="2" placeholder="Qual a evidência de que o controle foi executado?"></textarea>
+            </div>
+
+            <!-- Responsáveis pelo Tratamento -->
+            <div class="form-group">
+                <label><i class="fas fa-users"></i> Responsáveis pelo Tratamento</label>
+                <input type="text" id="controle_responsaveis" class="form-control" placeholder="Nomes dos responsáveis (separados por vírgula)">
+            </div>
+
+            <!-- Avaliação do Risco e Causa/Motivo -->
+            <div class="form-group">
+                <label><i class="fas fa-chart-bar"></i> Avaliação do Risco</label>
+                <textarea id="controle_risco_avaliacao" class="form-control" rows="2" placeholder="Avaliação do risco após o controle..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-search"></i> Causa/Motivo</label>
+                <textarea id="controle_causa_motivo" class="form-control" rows="2" placeholder="Causa ou motivo do controle..."></textarea>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="btn-cancelar-modal-controle">Cancelar</button>
+            <button type="button" class="btn-primary" id="btn-salvar-modal-controle">Salvar Controle</button>
+        </div>
+    </div>
+</div>
+
 <style>
     
     .controles-container {
@@ -353,10 +462,94 @@
         border-radius: 6px;
         word-break: break-word;
     }
+
+    .empty-riscos, .error-riscos {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-style: italic;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .error-riscos {
+        color: #dc3545;
+        font-style: normal;
+    }
+
+    /* Modal */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #184145;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+    }
+
+    .modal-close:hover {
+        color: #dc3545;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        background: #f8f9fa;
+        border-radius: 0 0 16px 16px;
+    }
     
 </style>
 
 <script>
+
+    // ====== VARIÁVEIS GLOBAIS PARA O MODAL DE CONTROLE ======
+    let riscoIdAtual = null;      // Armazena o ID do risco que está recebendo o controle
+    let controleIdEditando = null; // Para saber se estamos editando (null = novo)
+
     // ====== ELEMENTOS DO DOM ======
     const filtroAreaSelect = document.getElementById('filtro_area_select');
     const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select')
@@ -424,7 +617,7 @@
             // Limpar container de etapas (para não mostrar dados antigos)
             etapasContainer.innerHTML = `
                 <div class="alert-info" style="text-align: center; padding: 40px;">
-                    <i class="fas fa-info-circle"></i> Seleciona uma área e auditoria para visualizar as etapas.
+                    <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar as etapas.
                 </div>
             `;
         });
@@ -608,15 +801,333 @@
         const etapaCard = header.closest('.etapa-card');
         const body = etapaCard.querySelector('.etapa-body');
         const arrow = header.querySelector('.etapa-arrow');
+        const etapaId = etapaCard.getAttribute('data-etapa-id');
 
         if (body.style.display === 'none') {
             body.style.display = 'block';
             if (arrow) arrow.classList.add('open');
+
+            // Verificar se já carregou os riscos desta etapa
+            const riscosContainer = body.querySelector('.riscos-container');
+            // Se ainda tem o loading, carregar os riscos
+            if (riscosContainer && riscosContainer.innerHTML.includes('Carregando riscos')) {
+                carregarRiscosDaEtapa(etapaId);
+            }
         } else {
             body.style.display = 'none';
             if (arrow) arrow.classList.remove('open');
         }
     }
+
+    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA ======
+    async function carregarRiscosDaEtapa(etapaId) {
+        console.log(`🔍 Buscando riscos da etapa ${etapaId}...`);
+
+        const container = document.getElementById(`riscos-etapa-${etapaId}`);
+        if (!container) return;
+
+        try {
+            // Buscar os riscos da API
+            const response = await fetch(`/api/etapa/${etapaId}/riscos`);
+            const data = await response.json();
+
+            console.log(`📦 Riscos encontrados:`, data);
+
+            // Verificar se tem riscos
+            if (!data.success || !data.riscos || data.riscos.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-riscos">
+                        <i class="fas fa-info-circle"></i> Nenhum risco cadastrado para esta etapa.
+                    </div>
+                `;
+                return;
+            }
+
+            // Montar o HTML dos riscos
+            let riscosHtml = '';
+
+            for (const risco of data.riscos) {
+                // Calcular a cor do badge baseado na magnitude (score)
+                let badgeClass= '';
+                let badgeIcon = '';
+
+                if (risco.magnitude <= 3) {
+                    badgeClass = 'risco-baixo';
+                    badgeIcon = '🟢';
+                } else if (risco.magnitude <= 7) {
+                    badgeClass = 'risco-medio';
+                    badgeIcon = '🟡';
+                } else if (risco.magnitude <= 11) {
+                    badgeClass = 'risco-alto';
+                    badgeIcon = '🟠';
+                } else {
+                    badgeClass = 'risco-critico';
+                    badgeIcon = '🔴';
+                }
+
+                riscosHtml += `
+                    <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}" data-risco-nome="${escapeHtml(risco.nome_risco)}" onclick="toggleRisco(this, event)">
+                        <div class="risco-header">
+                            <div class="risco-info">
+                                <span class="risco-icon">${badgeIcon}</span>
+                                <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
+                                <span class="risco-score">Score: ${risco.magnitude}</span>
+                            </div>
+                            <div class="risco-actions">
+                                <button class="btn-add-controle" onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Adicionar Controle">
+                                    <i class="fas fa-plus"></i> Controle
+                                </button>
+                                <button class="btn-edit-icon" onclick="event.stopPropagation(); editarRiscoEtapa(${risco.id}, ${etapaId})" title="Editar Risco">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirRiscoEtapa(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Excluir Risco">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="risco-detalhes">
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Impacto:</span>
+                                <span class="detalhe-valor">${risco.impacto || 'Médio'}</span>
+                            </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Probabilidade:</span>
+                                <span class="detalhe-valor">${risco.probabilidade || 'Médio'}</span>
+                            </div>
+                            ${risco.fator_risco ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Fator de Risco:</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.fator_risco)}</span>
+                            </div>
+                            ` : ''}
+                            ${risco.consequencia ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Consequência:</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.consequencia)}</span>
+                            </div>
+                            ` : ''}
+                            
+                            <!-- SEÇÃO DE CONTROLES -->
+                            <div class="controles-section">
+                                <div class="controles-header">
+                                    <span class="controles-titulo"><i class="fas fa-shield-alt"></i> Controles</span>
+                                </div>
+                                <div class="controles-container" id="controles-risco-${risco.id}">
+                                    <div class="loading-small">Carregando controles...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = riscosHtml;
+
+        } catch (error) {
+            console.error('❌ Erro ao carregar riscos:', error);
+            container.innerHTML = `
+                <div class="error-riscos">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar riscos.
+                </div>
+            `;
+        }
+    }
+
+    // ====== FUNÇÃO PARA CARREGAR CONTROLES DE UM RISCO ======
+    async function carregarControlesDoRisco(riscoId) {
+        console.log(`🔍 Buscando controles do risco ${riscoId}...`);
+
+        const container = document.getElementById(`controles-risco-${riscoId}`);
+        if (!container) return;
+
+        try {
+            // Buscar os controles da API
+            const response = await fetch(`/api/risco/${riscoId}/controles`);
+            const data = await response.json();
+
+            console.log(`📦 Controles encontrados:`, data);
+
+            if (!data.success || !data.controles || data.controles.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-controles">
+                        <i class="fas fa-info-circle"></i> Nenhum controle cadastrado para este risco.
+                    </div>
+                `;
+                return;
+            }
+
+            let controlesHtml = '';
+
+            for (const controle of data.controles) {
+                controlesHtml += `
+                    <div class="controle-card">
+                        <div class="controle-header">
+                            <div class="controle-info">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>${escapeHtml(controle.nome_controle)}</strong>
+                            </div>
+                            <div class="controle-actions">
+                                <button class="btn-edit-icon" onclick="event.stopPropagation(); editarControle(${controle.id}, ${riscoId})" title="Editar Controle">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirControle(${controle.id}, '${escapeHtml(controle.nome_controle)}', ${riscoId})" title="Excluir Controle">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="controle-detalhes">
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Como é executado:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.como_executado) || '-'}</span>
+                            </div>
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Objetivo:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.objetivo_controle) || '-'}</span>
+                            </div>
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Periodicidade:</span>
+                                <span class="detalhe-valor">${controle.periodicidade_execucao || '-'}</span>
+                            </div>
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Natureza:</span>
+                                <span class="detalhe-valor">${controle.natureza || '-'}</span>
+                            </div>
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Status:</span>
+                                <span class="detalhe-valor">${controle.status_controle || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = controlesHtml;
+
+        } catch (error) {
+            console.error('❌ Erro ao carregar controles:', error);
+            container.innerHTML = `
+                <div class="error-controles">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar controles.
+                </div>
+            `;
+        }
+    }
+
+    // Função para expandir/colapsar detalhes do risco (mostrar/esconder detalhes)
+    function toggleRisco(riscoCard, event) {
+        // Se o clique foi no botão de editar, excluir ou adicionar controle, NÃO expande o card
+        if (event.target.closest('.btn-edit-icon') || 
+            event.target.closest('.btn-delete-icon') ||
+            event.target.closest('.btn-add-controle')) {
+            return;
+        }
+
+        // Verificar se o card estava expandido antes de alternar
+        const wasExpanded = riscoCard.classList.contains('expandido');
+
+        // Alternar a classe 'expandido'
+        riscoCard.classList.toggle('expandido');
+
+        // Se NÃO estava expandido e AGORA está expandindo (primeira vez)
+        if (!wasExpanded) {
+            // Pegar o ID do risco (guardado no atributo data-risco-id)
+            const riscoId = riscoCard.getAttribute('data-risco-id');
+
+            // Procurar o container de controles dentro deste card
+            const controlesContainer = riscoCard.querySelector('.controles-container');
+
+            // Verificar se o container existe e ainda tem a mensagem de "Carregando controles..."
+            if (controlesContainer && controlesContainer.innerHTML.includes('Carregando controles')) {
+                // Chama a função que vai buscar os controles no backend
+                carregarControlesDoRisco(riscoId);
+            }
+        }
+    }
+
+    // ====== FUNÇÃO PARA ABRIR MODAL DE CONTROLE ======
+    // Esta função é chamada quando o usuário clica no botão "Controle"
+    function abrirModalControle(riscoId, riscoNome, etapaId) {
+        // 1. Guardar o ID do risco em uma variável global (para usar depois ao salvar)
+        riscoIdAtual = riscoId;
+
+        // 2. Mostrar no console para debug (opcional)
+        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome} (ID: ${riscoId})`);
+        
+        // 3. Mudar o título do modal para mostrar qual risco está recebendo o controle
+        const modalTitle = document.getElementById('modal-controle-title');
+        if (modalTitle) {
+            modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Novo Controle - ${riscoNome}`;
+        }
+
+        // 4. Limpar todos os campos do formulario (para começar vazio)
+        limparFormularioControle();
+
+        // 5. Mostrar o modal na tela
+        const modal = document.getElementById('modal-controle')
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Impede a rolagem da página
+        }
+    }
+
+    // ====== FUNÇÃO PARA LIMPAR O FORMULÁRIO DE CONTROLE ======
+    function limparFormularioControle() {
+        // Limpar campos de texto
+        document.getElementById('controle_id').value = '';
+        document.getElementById('controle_nome').value = '';
+        document.getElementById('controle_como_executado').value = '';
+        document.getElementById('controle_objetivo').value = '';
+        document.getElementById('controle_evidencia').value = '';
+        document.getElementById('controle_responsaveis').value = '';
+        document.getElementById('controle_risco_avaliacao').value = '';
+        document.getElementById('controle_causa_motivo').value = '';
+        
+        // Resetar selects para valor padrão (primeira opção vazia)
+        document.getElementById('controle_periodicidade').value = '';
+        document.getElementById('controle_natureza').value = '';
+        document.getElementById('controle_forma_execucao').value = '';
+        document.getElementById('controle_status').value = '';
+        
+        // Resetar ID do controle (indicando que é novo)
+        controleIdEditando = null;
+    }
+
+    // ====== FUNÇÃO PARA FECHAR O MODAL ======
+    function fecharModalControle() {
+        const modal = document.getElementById('modal-controle');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restaura a rolagem
+        }
+    }
+
+    // ====== CONFIGURAR EVENTOS DO MODAL DE CONTROLE ======
+    function setupModalControle() {
+        // Botão fechar (X)
+        const btnFechar = document.getElementById('btn-fechar-modal-controle');
+        if (btnFechar) {
+            btnFechar.addEventListener('click', fecharModalControle);
+        }
+        
+        // Botão Cancelar
+        const btnCancelar = document.getElementById('btn-cancelar-modal-controle');
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', fecharModalControle);
+        }
+        
+        // Fechar ao clicar fora do modal (no fundo escuro)
+        const modal = document.getElementById('modal-controle');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    fecharModalControle();
+                }
+            });
+        }
+    }
+
+    // ====== INICIALIZAR OS EVENTOS DO MODAL ======
+    setupModalControle();
 
 </script>
 

@@ -1772,6 +1772,53 @@ def api_salvar_etapa():
     except Exception as e:
         print(f"❌ Erro ao salvar etapa: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/risco/<int:risco_id>/controles')
+def api_risco_controles(risco_id):
+    """Retorna todos os controles associados a um risco"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, nome_controle, como_executado, objetivo_controle,
+                       periodicidade_execucao, evidencia_realizacao, forma_execucao,
+                       natureza, status_controle, frequencia_evidencia,
+                       responsaveis_Tratamento, risco_avaliacao, causa_motivo,
+                       data_atualizacao, ativo
+                FROM controles_etapa
+                WHERE risco_id = :risco_id AND (ativo is NULL OR ativo = true)
+                ORDER By id  
+            """)
+
+            result = conn.execute(query, {"risco_id": risco_id}).fetchall()
+
+            controles = []
+            for row in result:
+                controles.append({
+                    'id': row[0],
+                    'nome_controle': row[1] or '',
+                    'como_executado': row[2] or '',
+                    'objetivo_controle': row[3] or '',
+                    'periodicidade_execucao': row[4] or '',
+                    'evidencia_realizacao': row[5] or '',
+                    'forma_execucao': row[6] or '',
+                    'natureza': row[7] or '',
+                    'status_controle': row[8] or '',
+                    'frequencia_evidencia': row[9] or '',
+                    'responsaveis_tratamento': row[10] or '',
+                    'risco_avaliacao': row[11] or '',
+                    'causa_motivo': row[12] or '',
+                    'data_atualizacao': row[13].strftime('%Y-%m-%d') if row[13] else '',
+                    'ativo': row[14] if row[14] is not None else True
+                })
+            
+            return jsonify({'success': True, 'controles': controles})
+    except Exception as e:
+        print(f"❌ Erro ao buscar controles do risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+            
     
 # ============================================================
 # PONTO DE ENTRADA
