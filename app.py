@@ -74,7 +74,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 def login():
     """Tela de login do sistema"""
     if session.get('autenticado'):
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('home'))
     
     erro = None
     if request.method == 'POST':
@@ -91,7 +91,7 @@ def login():
             session['usuario_perfil'] = usuario_perfil
             session['login_timestamp'] = datetime.now().isoformat()
             session.permanent = True
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('home'))
         else:
             erro = "❌ Usuário ou senha incorretos."
     
@@ -113,11 +113,18 @@ def ping():
 # ============================================================
 
 @app.route('/')
-def home():
-    """Redireciona para dashboard"""
+def index():
+    """Redireciona para login ou home"""
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('home'))  # Agora redireciona para /home
+
+@app.route('/home')
+def home():
+    """Redireciona para a home"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    return render_template('home.html')
 
 @app.route('/dashboard')
 def dashboard():

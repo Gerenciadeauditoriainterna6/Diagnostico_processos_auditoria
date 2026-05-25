@@ -900,7 +900,7 @@
         <!-- SIDEBAR (MENU LATERAL) -->
         <aside class="sidebar">
             <div class="sidebar-logo">
-                <a href="{{ url_for('dashboard') }}" title="Retornar para Home">
+                <a href="{{ url_for('home') }}" title="Retornar para Home">
                     <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
                 </a>
                 <h3>GERÊNCIA DE AUDITORIA INTERNA</h3>
@@ -979,6 +979,10 @@
                     <a href="{{ url_for('relatorios') }}" class="nav-item">
                         <i class="fas fa-file-alt"></i>
                         <span>Geração de Relatórios</span>
+                    </a>
+                    <a href="{{ url_for('dashboard') }}" class="nav-item">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
                     </a>
                 </div>
 
