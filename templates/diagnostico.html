@@ -13,7 +13,7 @@
     <div class="form-section filtros-section">
         <div class="form-row">
             <div class="form-group">
-                <label for="filtro_area_select">Área:</label>
+                <label for="filtro_area_select"><i class="fas fa-building"></i> Área:</label>
                 <select id="filtro_area_select" class="form-control">
                     <option value="">Selecione uma área...</option>
                     {% for nome, id in areas.items() %}
@@ -22,7 +22,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="filtro_auditoria_select">Auditoria:</label>
+                <label for="filtro_auditoria_select"><i class="fas fa-clipboard-list"></i> Auditoria:</label>
                 <select id="filtro_auditoria_select" class="form-control" disabled>
                     <option value="">Selecione uma área primeiro...</option>
                 </select>

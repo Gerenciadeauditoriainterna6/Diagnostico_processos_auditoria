@@ -5,6 +5,7 @@ Sistema de Auditoria Interna - FUSVE
 
 import os
 from datetime import datetime, timedelta, date
+import json
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from dotenv import load_dotenv
@@ -167,11 +168,11 @@ def visao_geral():
         return redirect(url_for('login'))
     return render_template('visao_geral.html')
 
-@app.route('/comunicacao')
-def comunicacao():
+@app.route('/checklists')
+def checklists():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('comunicacao.html')
+    return render_template('checklists.html')
 
 @app.route('/relatorios')
 def relatorios():
@@ -2014,8 +2015,324 @@ def api_risco_controles(risco_id):
     except Exception as e:
         print(f"❌ Erro ao buscar controles do risco: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-            
+
+# ============================================================
+# COMUNICAÇÃO DOS RESULTADOS
+# ============================================================
+
+@app.route('/api/checklist/carregar')
+def api_checklist_carregar():
+    """Carrega as respostas de um checklist para uma auditoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
+    auditoria_id = request.args.get('auditoria_id')
+    tipo = request.args.get('tipo')  # governanca, riscos, controles
+    
+    if not auditoria_id or not tipo:
+        return jsonify({'success': False, 'error': 'auditoria_id e tipo são obrigatórios'}), 400
+    
+    # Mapeamento tipo -> nome da tabela e número de perguntas
+    TABELAS = {
+        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 14},
+        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 11},
+        'controles': {'tabela': 'checklist_controles_respostas', 'total': 11}
+    }
+    
+    if tipo not in TABELAS:
+        return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            tabela = TABELAS[tipo]['tabela']
+            total_perguntas = TABELAS[tipo]['total']
+            
+            # Buscar registro existente
+            query = text(f"""
+                SELECT id, status, observacoes_gerais,
+                       {', '.join([f'p{i}_resposta, p{i}_comentario' for i in range(1, total_perguntas + 1)])}
+                FROM {tabela}
+                WHERE auditoria_id = :auditoria_id
+                ORDER BY id DESC
+                LIMIT 1
+            """)
+            
+            result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+            
+            if result:
+                resposta_id = result[0]  # ← PEGAR O ID DA RESPOSTA
+                status = result[1] or 'Não iniciado'
+                observacoes = result[2] or ''
+                
+                # Montar respostas com evidências
+                respostas = []
+                for i in range(1, total_perguntas + 1):
+                    idx_resposta = 3 + (i - 1) * 2
+                    idx_comentario = 4 + (i - 1) * 2
+                    
+                    resposta_valor = result[idx_resposta] if idx_resposta < len(result) else ''
+                    comentario_valor = result[idx_comentario] if idx_comentario < len(result) else ''
+                    
+                    # ⭐ BUSCAR EVIDÊNCIAS PARA ESTA RESPOSTA
+                    evidencias = []
+                    query_evidencias = text("""
+                        SELECT id, nome_arquivo, tipo_arquivo, tamanho_bytes
+                        FROM checklist_evidencias
+                        WHERE resposta_id = :resposta_id AND pergunta_numero = :pergunta_numero
+                    """)
+                    ev_result = conn.execute(query_evidencias, {
+                        'resposta_id': resposta_id,
+                        'pergunta_numero': i
+                        }).fetchall()
+                    
+                    for ev in ev_result:
+                        evidencias.append({
+                            'id': ev[0],
+                            'nome_arquivo': ev[1],
+                            'tipo_arquivo': ev[2],
+                            'tamanho_bytes': ev[3]
+                        })
+                    
+                    respostas.append({
+                        'resposta': resposta_valor,
+                        'comentario': comentario_valor,
+                        'evidencias': evidencias  # ← INCLUI EVIDÊNCIAS
+                    })
+                
+                return jsonify({
+                    'success': True,
+                    'id': resposta_id,
+                    'status': status,
+                    'observacoes_gerais': observacoes,
+                    'respostas': respostas
+                })
+            else:
+                # Nenhum registro encontrado - retornar vazio sem evidências
+                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(total_perguntas)]
+                
+                return jsonify({
+                    'success': True,
+                    'id': None,
+                    'status': 'Não iniciado',
+                    'observacoes_gerais': '',
+                    'respostas': respostas_vazias
+                })
+            
+    except Exception as e:
+        print(f"❌ Erro ao carregar checklist: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/checklist/salvar', methods=['POST'])
+def api_checklist_salvar():
+    """Salva as respostas de um checklist (com suporte a arquivos em Base64)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    # Receber dados do JSON (não mais FormData)
+    data = request.json
+    auditoria_id = data.get('auditoria_id')
+    tipo = data.get('tipo')
+    respostas = data.get('respostas')
+    observacoes_gerais = data.get('observacoes_gerais', '')
+    concluir = data.get('concluir', False)
+    arquivos = data.get('arquivos', {})  # Dicionário com arquivos por pergunta
+    
+    if not auditoria_id or not tipo or not respostas:
+        return jsonify({'success': False, 'error': 'auditoria_id, tipo e respostas são obrigatórios'}), 400
+    
+    TABELAS = {
+        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 14},
+        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 11},
+        'controles': {'tabela': 'checklist_controles_respostas', 'total': 11}
+    }
+    
+    if tipo not in TABELAS:
+        return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    
+    try:
+        with engine.connect() as conn:
+            tabela = TABELAS[tipo]['tabela']
+            total_perguntas = TABELAS[tipo]['total']
+            
+            # Verificar se já existe um registro
+            check_query = text(f"SELECT id FROM {tabela} WHERE auditoria_id = :auditoria_id")
+            existing = conn.execute(check_query, {'auditoria_id': auditoria_id}).fetchone()
+            
+            resposta_id = None
+            
+            if existing:
+                # UPDATE
+                set_parts = []
+                params = {'id': existing[0]}
+                
+                for i in range(1, total_perguntas + 1):
+                    if i - 1 < len(respostas):
+                        set_parts.append(f"p{i}_resposta = :p{i}_resposta")
+                        set_parts.append(f"p{i}_comentario = :p{i}_comentario")
+                        params[f'p{i}_resposta'] = respostas[i-1].get('resposta', '')
+                        params[f'p{i}_comentario'] = respostas[i-1].get('comentario', '')
+                
+                set_parts.append("observacoes_gerais = :observacoes")
+                set_parts.append("status = :status")
+                set_parts.append("updated_at = NOW()")
+                params['observacoes'] = observacoes_gerais
+                params['status'] = 'Concluído' if concluir else 'Em andamento'
+                
+                update_query = text(f"UPDATE {tabela} SET {', '.join(set_parts)} WHERE id = :id")
+                conn.execute(update_query, params)
+                resposta_id = existing[0]
+                
+            else:
+                # INSERT
+                colunas = ['auditoria_id', 'status', 'observacoes_gerais']
+                valores_placeholders = [':auditoria_id', ':status', ':observacoes']
+                params = {
+                    'auditoria_id': auditoria_id,
+                    'status': 'Concluído' if concluir else 'Em andamento',
+                    'observacoes': observacoes_gerais
+                }
+                
+                for i in range(1, total_perguntas + 1):
+                    if i - 1 < len(respostas):
+                        colunas.append(f"p{i}_resposta")
+                        colunas.append(f"p{i}_comentario")
+                        valores_placeholders.append(f":p{i}_resposta")
+                        valores_placeholders.append(f":p{i}_comentario")
+                        params[f'p{i}_resposta'] = respostas[i-1].get('resposta', '')
+                        params[f'p{i}_comentario'] = respostas[i-1].get('comentario', '')
+                
+                insert_query = text(f"""
+                    INSERT INTO {tabela} ({', '.join(colunas)})
+                    VALUES ({', '.join(valores_placeholders)})
+                    RETURNING id
+                """)
+                result = conn.execute(insert_query, params)
+                resposta_id = result.fetchone()[0]
+            
+            # Processar arquivos enviados (apenas para controles)
+            if tipo == 'controles' and arquivos:
+                # Primeiro, remover evidências antigas desta resposta
+                delete_evidencias = text("DELETE FROM checklist_evidencias WHERE resposta_id = :resposta_id")
+                conn.execute(delete_evidencias, {'resposta_id': resposta_id})
+                
+                # Depois, inserir as novas evidências
+                for pergunta_index, lista_arquivos in arquivos.items():
+                    for arquivo in lista_arquivos:
+                        # Converter Base64 para bytes
+                        conteudo_base64 = arquivo['conteudo']
+                        if ',' in conteudo_base64:
+                            conteudo_base64 = conteudo_base64.split(',')[1]
+                        conteudo_bytes = base64.b64decode(conteudo_base64)
+                        
+                        insert_evidencia = text("""
+                            INSERT INTO checklist_evidencias (resposta_id, pergunta_numero, nome_arquivo, tipo_arquivo, conteudo, tamanho_bytes)
+                            VALUES (:resposta_id, :pergunta_numero, :nome_arquivo, :tipo_arquivo, :conteudo, :tamanho)
+                        """)
+                        conn.execute(insert_evidencia, {
+                            'resposta_id': resposta_id,
+                            'pergunta_numero': int(pergunta_index) + 1,
+                            'nome_arquivo': arquivo['nome'],
+                            'tipo_arquivo': arquivo['tipo'],
+                            'conteudo': conteudo_bytes,
+                            'tamanho': len(conteudo_bytes)
+                        })
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Respostas salvas com sucesso',
+                'id': resposta_id
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar checklist: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/checklist/progresso')
+def api_checklist_progresso():
+    """Retorna o progresso dos 3 checklists para uma auditoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    auditoria_id = request.args.get('auditoria_id')
+    if not auditoria_id:
+        return jsonify({'success': False, 'error': 'auditoria_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    # Configuração dos checklists
+    CONFIG = {
+        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 14},
+        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 11},
+        'controles': {'tabela': 'checklist_controles_respostas', 'total': 11}
+    }
+    
+    resultado = {}
+    
+    try:
+        with engine.connect() as conn:
+            for tipo, config in CONFIG.items():
+                tabela = config['tabela']
+                total = config['total']
+                
+                # Buscar registro
+                query = text(f"""
+                    SELECT id, status, 
+                           {', '.join([f'p{i}_resposta' for i in range(1, total + 1)])}
+                    FROM {tabela}
+                    WHERE auditoria_id = :auditoria_id
+                    ORDER BY id DESC
+                    LIMIT 1
+                """)
+                
+                registro = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+                
+                if not registro:
+                    # Nenhum registro - não iniciado
+                    resultado[tipo] = {
+                        'id': None,
+                        'total': total,
+                        'respondidas': 0,
+                        'status': 'Não iniciado'
+                    }
+                else:
+                    # Contar quantas perguntas têm resposta (não vazia)
+                    respondidas = 0
+                    # As respostas começam no índice 2 (id=0, status=1, depois as respostas)
+                    for i in range(2, 2 + total):
+                        if registro[i] and registro[i] != '':
+                            respondidas += 1
+                    
+                    status = registro[1] or 'Em andamento'
+                    if respondidas == total and status != 'Concluído':
+                        status = 'Em andamento'
+                    
+                    resultado[tipo] = {
+                        'id': registro[0],
+                        'total': total,
+                        'respondidas': respondidas,
+                        'status': status
+                    }
+            
+            return jsonify({
+                'success': True,
+                'progresso': resultado
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar progresso: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============================================================
 # PONTO DE ENTRADA
 # ============================================================
