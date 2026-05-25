@@ -1163,10 +1163,23 @@
 
     function renderizarChecklist(container, perguntas, respostasExistentes, tipo, sessaoId, observacoes, status) {
     
+
+        // 🔍 ADICIONE ESTA LINHA PARA DEPURAR
+        console.log(`🔍 [${tipo}] Status recebido: "${status}", tipo: ${typeof status}, comprimento: ${status?.length}`);
+
+        console.log(`🔍 [${tipo}] Status recebido: "${status}", tipo: ${typeof status}, comprimento: ${status?.length}`);
+    
         // Verificar se está concluído
         const estaConcluido = (status === 'Concluído');
+        
+        // 🔍 ADICIONE ESTA LINHA
+        console.log(`🔍 [${tipo}] estaConcluído = ${estaConcluido}`);
+        
         const disabledAttr = estaConcluido ? 'disabled' : '';
         const readonlyAttr = estaConcluido ? 'readonly' : '';
+        
+        // 🔍 ADICIONE ESTA LINHA PARA VER OS ATRIBUTOS
+        console.log(`🔍 [${tipo}] disabledAttr = "${disabledAttr}", readonlyAttr = "${readonlyAttr}"`);
         
         let html = `
             <form id="form-checklist-${tipo}" class="checklist-form">
