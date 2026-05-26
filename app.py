@@ -2334,6 +2334,131 @@ def api_checklist_progresso():
 
 
 # ============================================================
+# GERAÇÃO DE RELATÓRIOS
+# ============================================================
+
+@app.route('/api/relatorios/areas')
+def api_relatorios_areas():
+    """Retorna todas as áreas ativas para os relatórios"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id_area, nome_area, gestor
+                FROM informacoes_area
+                WHERE status = 'Ativo'
+                ORDER BY nome_area
+            """)
+
+            result = conn.execute(query).fetchall()
+
+            areas = []
+
+            for row in result:
+                areas.append({
+                    'id': row[0],
+                    'nome': row[1],
+                    'gestor': row[2] or 'Não informado'
+                })
+
+            return jsonify({'success': True, 'areas': areas})
+
+    except Exception as e:
+        print(f"❌ Erro ao buscar áreas: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/auditorias-por-area')
+def api_relatorios_auditorias_por_area():
+    """Retorna as auditorias de uma área específica"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    area_id = request.args.get('area_id')
+    if not area_id:
+        return jsonify({'success': False, 'error': 'area_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, codigo_auditoria, titulo, ano, trimestre
+                FROM auditorias
+                WHERE id_area = :area_id
+                ORDER BY ano DESC, trimestre DESC
+            """)
+
+            result = conn.execute(query, {'area_id': area_id}).fetchall()
+
+            auditorias = []
+            for row in result:
+                auditorias.append({
+                    'id': row[0],
+                    'codigo': row[1],
+                    'titulo': row[2],
+                    'ano': row[3],
+                    'trimestre': row[4]
+                })
+
+            return jsonify({'success': True, 'auditorias': auditorias})
+    
+    except Exception as e:
+        print(f"❌ Erro ao buscar auditorias: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/gerar-gerencial', methods=['POST'])
+def api_relatorios_gerar_gerencial():
+    """Gerar o relatório gerencial em PDF"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    area_id = data.get('area_id')
+    auditoria_id = data.get('auditoria_id')
+    oirentacao = data.get('orientacao', 'RETRATO')
+
+    if not area_id or not auditoria_id:
+        return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        # Buscar nome da área e gestor
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor FROM informacoes_area WHERE id_area = :area_id
+            """)
+
+            area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
+
+            if not area_info:
+                return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0] or 'Área sem nome'
+            gestor = area_info[1] or 'Gestor não informado'
+
+        # TODO: Chamar a função de geração do pdf (que vem do meu relatorio.py)
+        # por enquanto, vamos retornr um placeholder
+
+        return jsonify({
+            'success': True,
+            'message': 'Relatório gerado com sucesso',
+            'area_nome': area_nome,
+            'gestor': gestor
+        })
+    
+    except Exception as e:
+        print(f"❌ Erro ao gerar relatório: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
 # PONTO DE ENTRADA
 # ============================================================
 

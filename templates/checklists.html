@@ -107,6 +107,46 @@
     <div id="checklists-area" style="display: none;">
         <!-- Aqui vão as 3 abas -->
     </div>
+
+    <!-- MODAL GOVERNANCA -->
+    <div id="modal-governanca" class="modal-checklist" style="display: none;">
+        <div class="modal-checklist-content">
+            <div class="modal-checklist-header">
+                <h2><i class="fas fa-briefcase"></i> Eficácia da Governança</h2>
+                <button class="modal-fechar" onclick="fecharModal('governanca')">&times;</button>
+            </div>
+            <div class="modal-checklist-body" id="modal-governanca-body">
+                <!-- Conteúdo dinâmico será inserido aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RISCOS -->
+    <div id="modal-riscos" class="modal-checklist" style="display: none;">
+        <div class="modal-checklist-content">
+            <div class="modal-checklist-header">
+                <h2><i class="fas fa-chart-line"></i> Eficácia dos Riscos</h2>
+                <button class="modal-fechar" onclick="fecharModal('riscos')">&times;</button>
+            </div>
+            <div class="modal-checklist-body" id="modal-riscos-body">
+                <!-- Conteúdo dinâmico será inserido aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONTROLES -->
+    <div id="modal-controles" class="modal-checklist" style="display: none;">
+        <div class="modal-checklist-content">
+            <div class="modal-checklist-header">
+                <h2><i class="fas fa-check-circle"></i> Eficácia dos Controles</h2>
+                <button class="modal-fechar" onclick="fecharModal('controles')">&times;</button>
+            </div>
+            <div class="modal-checklist-body" id="modal-controles-body">
+                <!-- Conteúdo dinâmico será inserido aqui -->
+            </div>
+        </div>
+    </div>
+        
 </div>
 
 <style>
@@ -647,6 +687,65 @@
         background: #cc3131;
     }
 
+    /* Estilos dos Modais */
+    .modal-checklist {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-checklist-content {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-checklist-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 16px 16px 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .modal-checklist-header h2 {
+        margin: 0;
+        color: #184145;
+    }
+
+    .modal-fechar {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        padding: 0 8px;
+    }
+
+    .modal-fechar:hover {
+        color: #dc3545;
+    }
+
+    .modal-checklist-body {
+        padding: 20px;
+    }
+
 </style>
 
 <script>
@@ -1184,7 +1283,7 @@
         let html = `
             <form id="form-checklist-${tipo}" class="checklist-form">
                 <input type="hidden" id="sessao-id-${tipo}" value="${sessaoId || ''}">
-                <div class="status-info" style="margin-bottom: 15px; padding: 10px; background: ${estaConcluido ? '#d4edda' : '#f8f9fa'}; border-radius: 8px; border-left: 4px solid ${estaConcluido ? '#28a745' : '#184145'};">
+                <div class="status-info" style="margin-bottom: 15px; padding: 10px; background: ${estaConcluido ? '#d4edda' : '#fff3cd'}; border-radius: 8px; border-left: 4px solid ${estaConcluido ? '#28a745' : '#fff3cd'};">
                     <strong>Status:</strong> 
                     <span class="status-text" style="color: ${estaConcluido ? '#155724' : '#184145'}; font-weight: bold;">${status}</span>
                     ${estaConcluido ? ' <i class="fas fa-check-circle"></i> (Este checklist já foi concluído e não pode mais ser editado)' : ''}
@@ -1275,7 +1374,7 @@
         let html = `
             <form id="form-checklist-${tipo}" class="checklist-form">
                 <input type="hidden" id="sessao-id-${tipo}" value="${sessaoId || ''}">
-                <div class="status-info" style="margin-bottom: 15px; padding: 10px; background: ${estaConcluido ? '#d4edda' : '#f8f9fa'}; border-radius: 8px; border-left: 4px solid ${estaConcluido ? '#28a745' : '#184145'};">
+                <div class="status-info" style="margin-bottom: 15px; padding: 10px; background: ${estaConcluido ? '#d4edda' : '#FFF3CD'}; border-radius: 8px; border-left: 4px solid ${estaConcluido ? '#28a745' : '#FFF3CD'};">
                     <strong>Status:</strong> 
                     <span class="status-text" style="color: ${estaConcluido ? '#155724' : '#184145'}; font-weight: bold;">${status}</span>
                     ${estaConcluido ? ' <i class="fas fa-check-circle"></i> (Este checklist já foi concluído e não pode mais ser editado)' : ''}
@@ -1803,33 +1902,11 @@
     function abrirChecklist(tipo, status) {
         // Esconder o painel de resumo
         const painelResumo = document.getElementById('painel-resumo');
-        const checklistsArea = document.getElementById('checklists-area');
-        
         if (painelResumo) painelResumo.style.display = 'none';
         
-        // Mostrar as abas dos checklists
-        if (checklistsArea) {
-            checklistsArea.style.display = 'block';
-            
-            // Ativar a aba correta
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            tabBtns.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-tab') === tipo) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-                if (content.id === `tab-${tipo}`) {
-                    content.classList.add('active');
-                }
-            });
-        }
-    };
+        // Abrir o modal correspondente
+        abrirModal(tipo);
+    }
 
     function voltarParaPainel() {
         const painelResumo = document.getElementById('painel-resumo');
@@ -1897,7 +1974,290 @@
             console.error('Erro ao remover evidência:', error);
             mostrarToast('❌ Erro ao conectar com o servidor', 'error');
         }
-    }
+    };
+
+    function abrirModal(tipo) {
+        const modal = document.getElementById(`modal-${tipo}`);
+        if (modal) {
+            modal.style.display = 'flex';
+
+            // Carregar o conteúdo do checklist dentro do modal
+            if (tipo === 'governanca') {
+                carregarModalGovernanca(auditoriaIdAtual);
+            } else if (tipo === 'riscos') {
+                carregarModalRiscos(auditoriaIdAtual);
+            } else if (tipo === 'controles') {
+                carregarModalControles(auditoriaIdAtual);
+            }
+        }
+    };
+
+    function fecharModal(tipo) {
+        const modal = document.getElementById(`modal-${tipo}`);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    async function carregarModalGovernanca(auditoriaId) {
+        const body = document.getElementById('modal-governanca-body');
+        if (!body) return;
+
+        body.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+
+        try {
+            const perguntas = PERGUNTAS.governanca;
+
+            if (!perguntas || perguntas.length === 0) {
+                body.innerHTML - `<div class="alert alert-info">Nenhuma pergunta de governança encontrada.</div>`;
+                return;
+            }
+
+            const response = await fetch(`/api/checklist/carregar?auditoria_id=${auditoriaId}&tipo=governanca`);
+            const dados = await response.json();
+
+            let respostasExistentes = [];
+            let sessaoId = null;
+            let statu = 'Não iniciado';
+            let observacoes = '';
+
+            if (dados.success) {
+                sessaoId = dados.id;
+                respostasExistentes = dados.respostas || [];
+                status = dados.status || 'Não iniciado';
+                observacoes = dados.observacoes_gerais || '';
+            }
+
+            // Renderizar o checklist dentro do modal
+            renderizarChecklistNoModal(body, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status);
+
+        } catch (error) {
+            console.error('Erro:', error);
+            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
+        }
+    };
+
+    function renderizarChecklistNoModal(body, perguntas, respostasExistentes, tipo, sessaoId, observacoes, status) {
+    
+        // Verificar se está concluído
+        const estaConcluido = (status === 'Concluído');
+        const disabledAttr = estaConcluido ? 'disabled' : '';
+        const readonlyAttr = estaConcluido ? 'readonly' : '';
+        
+        let html = `
+            <form id="form-checklist-${tipo}" class="checklist-form">
+                <input type="hidden" id="sessao-id-${tipo}" value="${sessaoId || ''}">
+                <div class="status-info" style="margin-bottom: 15px; padding: 10px; background: ${estaConcluido ? '#d4edda' : '#FFF3CD'}; border-radius: 8px; border-left: 4px solid ${estaConcluido ? '#28a745' : '#FFF3CD'};">
+                    <strong>Status:</strong> 
+                    <span class="status-text">${status}</span>
+                    ${estaConcluido ? ' <i class="fas fa-check-circle"></i> (Concluído - apenas leitura)' : ''}
+                </div>
+                <div class="perguntas-container">
+        `;
+        
+        // Loop pelas perguntas (igual ao que você já tinha)
+        perguntas.forEach((pergunta, index) => {
+            const respostaExistente = respostasExistentes[index] || {};
+            const respostaValue = respostaExistente.resposta || '';
+            const comentarioValue = respostaExistente.comentario || '';
+            
+            html += `
+                <div class="pergunta-card" data-pergunta-index="${index}">
+                    <div class="pergunta-header">
+                        <div class="pergunta-numero">${pergunta.ordem || index + 1}</div>
+                        <div class="pergunta-texto">${escapeHtml(pergunta.pergunta)}</div>
+                    </div>
+                    <div class="pergunta-opcoes">
+                        <label class="radio-label">
+                            <input type="radio" name="resposta_${index}" value="Sim" ${respostaValue === 'Sim' ? 'checked' : ''} ${disabledAttr}>
+                            <span>✅ Sim</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="resposta_${index}" value="Não" ${respostaValue === 'Não' ? 'checked' : ''} ${disabledAttr}>
+                            <span>❌ Não</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="resposta_${index}" value="Não se aplica" ${respostaValue === 'Não se aplica' ? 'checked' : ''} ${disabledAttr}>
+                            <span>➖ Não se aplica</span>
+                        </label>
+                    </div>
+                    <div class="pergunta-comentario">
+                        <textarea class="form-control comentario-textarea" data-pergunta-index="${index}" placeholder="Comentários..." rows="2" ${readonlyAttr}>${escapeHtml(comentarioValue)}</textarea>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+                <div class="checklist-footer">
+                    <div class="observacoes-gerais">
+                        <label>Observações Gerais</label>
+                        <textarea id="obs-gerais-${tipo}" class="form-control" rows="3" ${readonlyAttr}>${escapeHtml(observacoes)}</textarea>
+                    </div>
+                    ${!estaConcluido ? `
+                    <div class="checklist-botoes">
+                        <button type="button" class="btn-salvar-checklist" data-tipo="${tipo}">
+                            <i class="fas fa-save"></i> Salvar Respostas
+                        </button>
+                        <button type="button" class="btn-concluir-checklist" data-tipo="${tipo}">
+                            <i class="fas fa-check-circle"></i> Concluir Checklist
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            </form>
+        `;
+        
+        body.innerHTML = html;
+        
+        // Adicionar eventos dos botões (apenas se não estiver concluído)
+        if (!estaConcluido) {
+            body.querySelectorAll('.btn-salvar-checklist, .btn-concluir-checklist').forEach(btn => {
+                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+            });
+        }
+    };
+
+    async function renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, tipo, sessaoId, observacoes, status, auditoriaId) {
+    
+        // Verificar se está concluído
+        const estaConcluido = (status === 'Concluído');
+        const disabledAttr = estaConcluido ? 'disabled' : '';
+        const readonlyAttr = estaConcluido ? 'readonly' : '';
+        
+        let html = `
+            <form id="form-checklist-${tipo}" class="checklist-form">
+                <input type="hidden" id="sessao-id-${tipo}" value="${sessaoId || ''}">
+                <div class="status-info" style="margin-bottom: 15px; padding: 10px; background: ${estaConcluido ? '#d4edda' : '#f8f9fa'}; border-radius: 8px; border-left: 4px solid ${estaConcluido ? '#28a745' : '#184145'};">
+                    <strong>Status:</strong> 
+                    <span class="status-text">${status}</span>
+                    ${estaConcluido ? ' <i class="fas fa-check-circle"></i> (Concluído - apenas leitura)' : ''}
+                </div>
+                <div class="perguntas-container">
+        `;
+        
+        for (let index = 0; index < perguntas.length; index++) {
+            const pergunta = perguntas[index];
+            const respostaExistente = respostasExistentes[index] || {};
+            const respostaValue = respostaExistente.resposta || '';
+            const comentarioValue = respostaExistente.comentario || '';
+            
+            // Buscar evidências já salvas
+            const evidenciasDaApi = respostaExistente.evidencias || [];
+            let evidenciasHtml = '';
+            
+            if (evidenciasDaApi.length > 0) {
+                evidenciasHtml = `
+                    <div class="evidencias-lista">
+                        <div class="evidencias-titulo">📎 Evidências salvas:</div>
+                        <div class="evidencias-items">
+                `;
+                for (const ev of evidenciasDaApi) {
+                    evidenciasHtml += `
+                        <div class="evidencia-item">
+                            <i class="fas fa-file"></i>
+                            <a href="#" onclick="baixarEvidencia(${ev.id}); return false;">${escapeHtml(ev.nome_arquivo)}</a>
+                            <button type="button" class="btn-remover-evidencia" onclick="removerEvidencia(${ev.id}, this)" ${disabledAttr}>&times;</button>
+                        </div>
+                    `;
+                }
+                evidenciasHtml += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="pergunta-card" data-pergunta-index="${index}">
+                    <div class="pergunta-header">
+                        <div class="pergunta-numero">${pergunta.ordem || index + 1}</div>
+                        <div class="pergunta-texto">${escapeHtml(pergunta.pergunta)}</div>
+                    </div>
+                    <div class="pergunta-opcoes">
+                        <label class="radio-label">
+                            <input type="radio" name="resposta_${index}" value="Sim" ${respostaValue === 'Sim' ? 'checked' : ''} ${disabledAttr}>
+                            <span>✅ Sim</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="resposta_${index}" value="Não" ${respostaValue === 'Não' ? 'checked' : ''} ${disabledAttr}>
+                            <span>❌ Não</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="resposta_${index}" value="Não se aplica" ${respostaValue === 'Não se aplica' ? 'checked' : ''} ${disabledAttr}>
+                            <span>➖ Não se aplica</span>
+                        </label>
+                    </div>
+                    <div class="pergunta-comentario">
+                        <textarea class="form-control comentario-textarea" data-pergunta-index="${index}" placeholder="Comentários..." rows="2" ${readonlyAttr}>${escapeHtml(comentarioValue)}</textarea>
+                    </div>
+            `;
+            
+            // Só adiciona botão de evidência se a pergunta precisar e não estiver concluído
+            if (pergunta.precisaEvidencia === true) {
+                html += `
+                    <div class="pergunta-evidencias">
+                        <button type="button" class="btn-anexar-evidencia" data-pergunta-index="${index}" ${estaConcluido ? 'disabled style="opacity:0.5;"' : ''}>
+                            <i class="fas fa-paperclip"></i> Selecionar Evidência
+                        </button>
+                        <input type="file" class="input-evidencia" data-pergunta-index="${index}" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>
+                        ${evidenciasHtml}
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+        }
+        
+        html += `
+                </div>
+                <div class="checklist-footer">
+                    <div class="observacoes-gerais">
+                        <label>Observações Gerais</label>
+                        <textarea id="obs-gerais-${tipo}" class="form-control" rows="3" ${readonlyAttr}>${escapeHtml(observacoes)}</textarea>
+                    </div>
+                    ${!estaConcluido ? `
+                    <div class="checklist-botoes">
+                        <button type="button" class="btn-salvar-checklist" data-tipo="${tipo}">
+                            <i class="fas fa-save"></i> Salvar Respostas
+                        </button>
+                        <button type="button" class="btn-concluir-checklist" data-tipo="${tipo}">
+                            <i class="fas fa-check-circle"></i> Concluir Checklist
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            </form>
+        `;
+        
+        body.innerHTML = html;
+        
+        // Configurar eventos apenas se não estiver concluído
+        if (!estaConcluido) {
+            // Evento para anexar evidência
+            body.querySelectorAll('.btn-anexar-evidencia').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const perguntaIndex = btn.getAttribute('data-pergunta-index');
+                    const fileInput = body.querySelector(`.input-evidencia[data-pergunta-index="${perguntaIndex}"]`);
+                    if (fileInput) fileInput.click();
+                });
+            });
+            
+            // Evento para upload de arquivos
+            body.querySelectorAll('.input-evidencia').forEach(input => {
+                input.addEventListener('change', async (e) => {
+                    // TODO: implementar upload (vamos fazer depois)
+                    mostrarToast('📎 Arquivo selecionado. Clique em Salvar para enviar.', 'info');
+                });
+            });
+            
+            // Eventos dos botões salvar/concluir
+            body.querySelectorAll('.btn-salvar-checklist, .btn-concluir-checklist').forEach(btn => {
+                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+            });
+        }
+    };
+
 
 
 </script>
