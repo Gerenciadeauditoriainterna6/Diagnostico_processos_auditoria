@@ -2518,12 +2518,56 @@
         padding: 4px 10px;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 14px;
         transition: all 0.2s;
     }
 
     #btn-novo-processo:hover {
         background: #0b5b99;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* ===== SPINNER MODERNO ===== */
+    .spinner-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .spinner {
+        width: 30px;
+        height: 30px;
+        border: 4px solid #e0e0e0;
+        border-right: 4px solid #0b5b99;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Spinner com pulsação (opcional) */
+    .spinner-pulse {
+        width: 50px;
+        height: 50px;
+        background: #184145;
+        border-radius: 50%;
+        animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        50% {
+            transform: scale(1);
+            opacity: 1;
+        }
     }
 
     
@@ -2749,7 +2793,7 @@
                         
                         <!-- Riscos Identificados -->
                         <div class="vis-secao">
-                            <h4><i class="fas fa-chart-line"></i> Riscos Identificados</h4>
+                            <h4><i class="fas fa-exclamation-triangle"></i> Riscos Identificados</h4>
                             ${riscosHtml}
                         </div>
                     </div>
@@ -3008,18 +3052,30 @@
                 modal = document.createElement('div');
                 modal.id = 'modalConfirmacao';
                 modal.className = 'modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 100000;
+                `;
                 modal.innerHTML = `
-                    <div class="modal-content" style="max-width: 400px;">
+                    <div class="modal-content" style="max-width: 400px; margin: 0 auto;">
                         <div class="modal-header">
                             <h2><i class="fas fa-question-circle"></i> Confirmar Ação</h2>
-                            <button class="modal-close" id="btnFecharConfirmacao">&times;</button>
+                            <button class="modal-close" id="btnFecharConfirmacao" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
                         </div>
                         <div class="modal-body">
                             <p id="mensagemConfirmacao">Tem certeza que deseja realizar esta ação?</p>
                             <p style="font-size: 12px; color: #666; margin-top: 10px;">Esta ação não poderá ser desfeita.</p>
-                            <div class="modal-buttons" style="margin-top: 25px;">
-                                <button type="button" class="btn-cancelar-modal" id="btnCancelarConfirmacao">Cancelar</button>
-                                <button type="button" class="btn-salvar-area" id="btnConfirmarAcao">Confirmar</button>
+                            <div class="modal-buttons" style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+                                <button type="button" class="btn-cancelar-modal" id="btnCancelarConfirmacao" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cancelar</button>
+                                <button type="button" class="btn-salvar-area" id="btnConfirmarAcao" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Confirmar</button>
                             </div>
                         </div>
                     </div>
@@ -3034,7 +3090,11 @@
             const btnFechar = document.getElementById('btnFecharConfirmacao');
             
             mensagemEl.textContent = mensagem;
-            modalEl.style.display = 'block';
+            
+            // Garantir que o modal esteja visível e centralizado
+            modalEl.style.display = 'flex';
+            modalEl.style.alignItems = 'center';
+            modalEl.style.justifyContent = 'center';
             document.body.style.overflow = 'hidden';
             
             function resolver(valor) {
@@ -3043,12 +3103,18 @@
                 resolve(valor);
             }
             
-            const handleConfirmar = () => resolver(true);
-            const handleCancelar = () => resolver(false);
+            // Remover listeners antigos para evitar duplicação
+            const newBtnConfirmar = btnConfirmar.cloneNode(true);
+            const newBtnCancelar = btnCancelar.cloneNode(true);
+            const newBtnFechar = btnFechar.cloneNode(true);
             
-            btnConfirmar.onclick = handleConfirmar;
-            btnCancelar.onclick = handleCancelar;
-            btnFechar.onclick = handleCancelar;
+            btnConfirmar.parentNode.replaceChild(newBtnConfirmar, btnConfirmar);
+            btnCancelar.parentNode.replaceChild(newBtnCancelar, btnCancelar);
+            btnFechar.parentNode.replaceChild(newBtnFechar, btnFechar);
+            
+            newBtnConfirmar.onclick = () => resolver(true);
+            newBtnCancelar.onclick = () => resolver(false);
+            newBtnFechar.onclick = () => resolver(false);
             
             modalEl.onclick = (e) => {
                 if (e.target === modalEl) resolver(false);
@@ -3102,7 +3168,12 @@
                 return;
             }
             
-            tabelaProcessosContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando processos...</div>';
+            tabelaProcessosContainer.innerHTML = `
+                <div class="spinner-container" style="text-align: center; padding: 60px 20px;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px; color: #666; font-size: 14px;">Carregando processos...</p>
+                </div>
+            `;
             
             try {
                 const response = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
