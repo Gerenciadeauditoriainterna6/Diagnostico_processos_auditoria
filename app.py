@@ -6,6 +6,7 @@ Sistema de Auditoria Interna - FUSVE
 import os
 from datetime import datetime, timedelta, date
 import json
+import io
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from dotenv import load_dotenv
@@ -20,7 +21,7 @@ load_dotenv()
 # IMPORTAR FUNÇÕES AUXILIARES
 # ============================================================
 
-from logic import validar_login_no_banco
+from logic import validar_login_no_banco, gerar_relatorio_gerencial_area
 
 # ============================================================
 # FUNÇÕES DE UTILIDADE
@@ -2414,49 +2415,80 @@ def api_relatorios_auditorias_por_area():
 
 @app.route('/api/relatorios/gerar-gerencial', methods=['POST'])
 def api_relatorios_gerar_gerencial():
-    """Gerar o relatório gerencial em PDF"""
+    """Gera o relatório gerencial em PDF e retorna diretamente"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
     area_id = data.get('area_id')
     auditoria_id = data.get('auditoria_id')
-    oirentacao = data.get('orientacao', 'RETRATO')
-
+    orientacao = data.get('orientacao', 'RETRATO')
+    
     if not area_id or not auditoria_id:
         return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
     
     from database import engine
     from sqlalchemy import text
-
+    from logic import gerar_relatorio_gerencial_area
+    
     try:
         # Buscar nome da área e gestor
         with engine.connect() as conn:
             query_area = text("""
                 SELECT nome_area, gestor FROM informacoes_area WHERE id_area = :area_id
             """)
-
             area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
-
+            
             if not area_info:
                 return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
             
             area_nome = area_info[0] or 'Área sem nome'
             gestor = area_info[1] or 'Gestor não informado'
-
-        # TODO: Chamar a função de geração do pdf (que vem do meu relatorio.py)
-        # por enquanto, vamos retornr um placeholder
-
-        return jsonify({
-            'success': True,
-            'message': 'Relatório gerado com sucesso',
-            'area_nome': area_nome,
-            'gestor': gestor
-        })
-    
+        
+        # Gerar o PDF
+        pdf_bytes = gerar_relatorio_gerencial_area(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            orientacao=orientacao,
+            auditoria_id=auditoria_id
+        )
+        
+        # Criar nome do arquivo
+        nome_arquivo = f"relatorio_gerencial_{area_nome}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        # Retornar o PDF diretamente (NÃO salvar na sessão)
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
     except Exception as e:
         print(f"❌ Erro ao gerar relatório: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/download')
+def api_relatorios_download():
+    """Faz o download do relatório PDF gerado"""
+
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    
+    pdf_bytes = session.get('relatorio_pdf')
+    nome_arquivo = session.get('relatorio_nome', 'relatorio.pdf')
+
+    if not pdf_bytes:
+        return jsonify({'error': 'Nenhum relatório gerado'}), 404
+    
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
 
 # ============================================================
 # PONTO DE ENTRADA

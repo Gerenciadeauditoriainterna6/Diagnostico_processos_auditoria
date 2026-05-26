@@ -3292,3 +3292,248 @@ def carregar_areas_banco():
     # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
     # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
     return dict(zip(df['nome_area'], df['id_area']))
+
+def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO", auditoria_id=None):
+    """Gera relatório gerencial da área (para validação do gestor)"""
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    import io
+    import os
+    import math
+    import pandas as pd
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    from logic import get_estilo_risco
+    
+    buffer = io.BytesIO()
+    
+    # Definir orientação da página
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+        col_widths = [3.0*cm, 8*cm, 12*cm, 3.0*cm]
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 3*cm
+        rightMargin = 2*cm
+        col_widths = [2.2*cm, 4.5*cm, 7.5*cm, 2.2*cm]
+    
+    doc = SimpleDocTemplate(buffer, pagesize=pagesize, 
+                           topMargin=topMargin, bottomMargin=bottomMargin,
+                           leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    styles = getSampleStyleSheet()
+    
+    titulo_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=30,
+        textColor=colors.HexColor('#0b5b99')
+    )
+    
+    normal_style = styles['Normal']
+    
+    story = []
+    
+    # ===== CABEÇALHO COM LOGOS (APENAS NA PRIMEIRA PÁGINA) =====
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_fusve_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
+        
+    header_data = []
+    tem_logo_esquerda = os.path.exists(logo_fusve_path)
+    tem_logo_direita = os.path.exists(logo_auditoria_path)
+    
+    if tem_logo_esquerda or tem_logo_direita:
+        logos_linha = []
+        if tem_logo_esquerda:
+            img_esquerda = Image(logo_fusve_path, width=4*cm, height=1.5*cm)
+            logos_linha.append(img_esquerda)
+        else:
+            logos_linha.append(Paragraph("", normal_style))
+        
+        logos_linha.append(Paragraph("", normal_style))
+        
+        if tem_logo_direita:
+            img_direita = Image(logo_auditoria_path, width=5.0*cm, height=1.8*cm)
+            logos_linha.append(img_direita)
+        else:
+            logos_linha.append(Paragraph("", normal_style))
+        
+        header_data.append(logos_linha)
+        
+        header_table = Table(header_data, colWidths=[4*cm, 8*cm, 4*cm])
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 10))
+    
+    # ===== TÍTULO PRINCIPAL =====
+    story.append(Paragraph("Relatório de Diagnóstico da Auditoria", titulo_style))
+    
+    # Buscar código da auditoria
+    codigo_auditoria = ""
+    if auditoria_id:
+        with engine.connect() as conn:
+            query_auditoria = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+            if result_aud:
+                codigo_auditoria = result_aud[0]
+    
+    # Informações
+    story.append(Paragraph(f"<b>Auditoria:</b> {codigo_auditoria}", normal_style))
+    story.append(Paragraph(f"<b>Área:</b> {area_nome}", normal_style))
+    story.append(Paragraph(f"<b>Gestor Responsável:</b> {gestor}", normal_style))
+    story.append(Paragraph(f"<b>Data de Geração:</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
+    story.append(Spacer(1, 20))
+    
+    # ===== BUSCAR PROCESSOS =====
+    query = text("""
+        SELECT 
+            p.id,
+            p.codigo_processo,
+            p.nome_processo,
+            r.id as risco_id,
+            r.nome_risco,
+            r.score_risco,
+            r.impacto,
+            r.probabilidade
+        FROM processos p
+        INNER JOIN auditoria_processos ap ON p.id = ap.processo_id
+        LEFT JOIN riscos r ON p.id = r.processo_id
+        WHERE ap.auditoria_id = :auditoria_id 
+          AND p.id_area = :area_id 
+          AND p.status = 'Ativo'
+        ORDER BY 
+            string_to_array(p.codigo_processo, '.')::int[],
+            r.score_risco DESC NULLS LAST
+    """)
+    
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params={"area_id": area_id, "auditoria_id": auditoria_id})
+    
+    total_riscos = df['risco_id'].notna().sum()
+    
+    if df.empty:
+        story.append(Paragraph("Nenhum processo encontrado para esta área.", normal_style))
+    else:
+        story.append(Paragraph(f"<b>Quantidade de Riscos identificados:</b> {total_riscos}", normal_style))
+        story.append(Spacer(1, 20))
+        story.append(Paragraph("<b>Processos e Riscos Identificados</b>", styles['Heading2']))
+        story.append(Spacer(1, 10))
+        
+        data = [[
+            Paragraph("<b>Código</b>", normal_style),
+            Paragraph("<b>Processo</b>", normal_style),
+            Paragraph("<b>Risco Identificado</b>", normal_style),
+            Paragraph("<b>Risco Bruto</b>", normal_style)
+        ]]
+        
+        for _, row in df.iterrows():
+            codigo = Paragraph(str(row['codigo_processo']) if row['codigo_processo'] else "N/A", normal_style)
+            nome_processo = Paragraph(str(row['nome_processo']) if row['nome_processo'] else "Não informado", normal_style)
+            
+            if row['risco_id']:
+                nome_risco = str(row['nome_risco']) if row['nome_risco'] else "Risco não nomeado"
+                risco_nome = Paragraph(nome_risco, normal_style)
+                
+                score = row['score_risco']
+                if isinstance(score, float) and math.isnan(score):
+                    score = None
+                
+                cor_risco, _ = get_estilo_risco(score)
+                texto_score = str(int(score)) if score is not None else "-"
+                risco_bruto = Paragraph(f'<font color="{cor_risco}"><b>{texto_score}</b></font>', normal_style)
+            else:
+                risco_nome = Paragraph("<i>Nenhum risco cadastrado</i>", normal_style)
+                risco_bruto = Paragraph("0", normal_style)
+            
+            data.append([codigo, nome_processo, risco_nome, risco_bruto])
+        
+        tabela = Table(data, colWidths=col_widths, repeatRows=1)
+        
+        tabela_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
+            ('VALIGN', (3, 1), (3, -1), 'MIDDLE'),
+            ('VALIGN', (1, 1), (2, -1), 'TOP'),
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+            ('ALIGN', (1, 1), (2, -1), 'LEFT'),
+        ])
+        
+        for i in range(1, len(data)):
+            if i % 2 == 1:
+                tabela_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#e8f4f8'))
+        
+        tabela.setStyle(tabela_style)
+        story.append(tabela)
+    
+    story.append(PageBreak())
+    
+    # ===== PÁGINA DE VALIDAÇÃO DO GESTOR =====
+    story.append(Paragraph("<b>Validação do Gestor</b>", styles['Heading1']))
+    story.append(Spacer(1, 30))
+    story.append(Paragraph(
+        "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
+        "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido.",
+        normal_style
+    ))
+    story.append(Spacer(1, 50))
+    story.append(Paragraph(f"<b>Gestor:</b> {gestor}", normal_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>Data:</b> ___/___/_______", normal_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>Assinatura:</b> ________________________________", normal_style))
+    
+    # ===== RODAPÉ EM TODAS AS PÁGINAS =====
+    def rodape(canvas, doc):
+        canvas.saveState()
+        
+        # Linha separadora
+        canvas.setStrokeColor(colors.HexColor('#cccccc'))
+        canvas.line(leftMargin, bottomMargin + 0.3*cm, pagesize[0] - rightMargin, bottomMargin + 0.3*cm)
+        
+        # Número da página
+        canvas.setFont('Helvetica', 9)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(pagesize[0]/2, bottomMargin - 0.5*cm, f"Página {doc.page}")
+        
+        # Data
+        data_str = datetime.now().strftime('%d/%m/%Y %H:%M')
+        canvas.setFont('Helvetica', 8)
+        canvas.drawString(leftMargin, bottomMargin - 0.5*cm, f"Gerado em: {data_str}")
+        
+        # Área
+        area_abreviada = area_nome[:35] + "..." if len(area_nome) > 35 else area_nome
+        canvas.drawRightString(pagesize[0] - rightMargin, bottomMargin - 0.5*cm, f"Gerência de Auditoria Interna")
+        
+        canvas.restoreState()
+    
+    # Construir o documento com rodapé em todas as páginas
+    doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
+    buffer.seek(0)
+    return buffer.getvalue()
