@@ -69,6 +69,59 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # ============================================================
+# MIDDLEWARE PARA AUDITORIA
+# ============================================================
+
+from flask import request, g
+from database import engine
+from sqlalchemy import text
+
+@app.before_request
+def configurar_auditoria():
+    """
+    Configura variáveis no PostgreSQL para auditoria
+    """
+    
+    # Só configura se o usuário estiver autenticado
+    if not session.get('autenticado'):
+        return
+    
+    # Pega os dados do usuário da sessão
+    usuario_id = session.get('usuario_id')
+    usuario_nome = session.get('usuario_nome')
+    
+    # Se não tiver, usa padrão
+    if not usuario_id:
+        usuario_id = 0
+    if not usuario_nome:
+        usuario_nome = 'Sistema'
+    
+    # Pega o IP real do cliente
+    ip_origem = request.headers.get('X-Forwarded-For')
+    if ip_origem:
+        ip_origem = ip_origem.split(',')[0].strip()
+    else:
+        ip_origem = request.remote_addr or '127.0.0.1'
+    
+    # Guarda na sessão do Flask
+    g.usuario_id = usuario_id
+    g.usuario_nome = usuario_nome
+    g.ip_origem = ip_origem
+    
+    # ✅ NOVA ABORDAGEM: Chama a função PostgreSQL
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text("SELECT set_app_user(:uid, :uname, :ip)"),
+                {'uid': usuario_id, 'uname': usuario_nome, 'ip': ip_origem}
+            )
+            conn.commit()
+            print(f"✅ [AUDITORIA] Usuário configurado: {usuario_id} - {usuario_nome} - {ip_origem}")
+    except Exception as e:
+        print(f"⚠️ [AUDITORIA] Erro: {e}")
+
+
+# ============================================================
 # ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
 # ============================================================
 
@@ -595,6 +648,7 @@ def api_salvar_processo_basico():
     
     data = request.json
     print(f"📥 Dados recebidos em salvar-basico: {data}")
+    print(f"🔍 processo_id recebido: {data.get('processo_id')}")  # ← ADICIONE ESTA LINHA
     
     # ===== DADOS RECEBIDOS DO FRONTEND =====
     processo_id = data.get('processo_id')           # ← Se veio, é edição
@@ -2489,6 +2543,60 @@ def api_relatorios_download():
         as_attachment=True,
         download_name=nome_arquivo
     )
+
+# ============================================================
+# ROTA DE TESTE PARA AUDITORIA (remover depois)
+# ============================================================
+
+@app.route('/debug-auditoria')
+def debug_auditoria():
+    """🔍 Rota de teste para verificar se a auditoria está configurada"""
+    if not session.get('autenticado'):
+        return jsonify({'erro': 'Faça login primeiro'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Tenta ler as variáveis que configuramos
+            resultado = conn.execute(text("""
+                SELECT 
+                    current_setting('app.usuario_id', true) as usuario_id,
+                    current_setting('app.usuario_nome', true) as usuario_nome,
+                    current_setting('app.ip_origem', true) as ip_origem
+            """))
+            row = resultado.fetchone()
+            
+            return jsonify({
+                'sucesso': True,
+                'usuario_id': row[0],
+                'usuario_nome': row[1],
+                'ip_origem': row[2],
+                'explicacao': '✅ Se você vê seus dados, a auditoria está pronta!'
+            })
+    except Exception as e:
+        return jsonify({
+            'sucesso': False,
+            'erro': str(e),
+            'explicacao': '⚠️ As variáveis ainda não foram configuradas para esta conexão'
+        }), 500
+    
+
+@app.route('/debug-sessao')
+def debug_sessao():
+    """🔍 Verifica o que tem na sessão do Flask"""
+    if not session.get('autenticado'):
+        return jsonify({'erro': 'Não logado'}), 401
+    
+    return jsonify({
+        'autenticado': session.get('autenticado'),
+        'usuario_id': session.get('usuario_id'),
+        'usuario_nome': session.get('usuario_nome'),
+        'usuario_logado': session.get('usuario_logado'),
+        'usuario_perfil': session.get('usuario_perfil'),
+        'login_timestamp': session.get('login_timestamp')
+    })
 
 # ============================================================
 # PONTO DE ENTRADA

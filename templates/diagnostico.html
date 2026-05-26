@@ -417,7 +417,7 @@
                     <!-- Card:: Riscos Identificados -->
                      <div class="resumo-card">
                         <div class="resumo-card-header">
-                            <i class="fas fa-chart-line"></i>
+                            <i class="fas fa-exclamation-triangle"></i>
                             <h4>Riscos Identificados</h4>
                             <span id="resumo-qtd-riscos" class="resumo-badge">0 riscos</span>
                         </div>
@@ -3833,11 +3833,24 @@
 
     // ===== EVENT LISTENERS =====
     if (nomeProcessoInput) {
-        nomeProcessoInput.addEventListener('input', verificarEGerarCodigo);  // ← SÓ UMA VEZ!
+        nomeProcessoInput.addEventListener('input', () => {
+            // 🔧 Se for edição, não faz a verificação
+            const modoEdicao = sessionStorage.getItem('modo_edicao');
+            if (modoEdicao === 'true') {
+                console.log('✏️ Edição ativa - ignorando verificação de nome');
+                return;
+            }
+            verificarEGerarCodigo();
+        });
     }
 
     if (areaSelect) {
-        areaSelect.addEventListener('change', resetarVerificacaoProcesso);
+        areaSelect.addEventListener('change', () => {
+            const modoEdicao = sessionStorage.getItem('modo_edicao');
+            if (modoEdicao !== 'true') {
+                resetarVerificacaoProcesso();
+            }
+        });
     }
 
     if (idAreaSelecionado) {
@@ -4144,7 +4157,7 @@
     // ===== CONTROLE DO WIZARD =====
     let etapaWizard = 1;
 
-    function irParaEtapa(etapa) {
+    async function irParaEtapa(etapa) {
         console.log(`📍 irParaEtapa: mudando para etapa ${etapa}`);
 
         const etapaAtual = etapaWizard;
@@ -4163,12 +4176,16 @@
                 return;
             }
             
-            salvarInfoBasicasAntesDeAvancar();
+            // 🔧 Só salva se NÃO for edição
+            const modoEdicao = sessionStorage.getItem('modo_edicao');
+            if (modoEdicao !== 'true') {
+                await salvarInfoBasicasAntesDeAvancar();
+            }
         }
         
         // ===== VALIDAÇÃO AO SAIR DA ETAPA 3 (apenas se estiver avançando) =====
         if (etapaAtual === 3 && etapa > etapaAtual) {
-            salvarDetalhesAntesDeAvancar();
+            await salvarDetalhesAntesDeAvancar();
         }
 
         /// SALVAR ETAPA ATUAL
@@ -4281,8 +4298,15 @@
             const areaSelectElement = document.getElementById('area_select');
             const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
             
+            // 🔧 FORÇAR a verificação do modo edição
+            const modoEdicao = sessionStorage.getItem('modo_edicao');
+            let processoId = sessionStorage.getItem('processo_id');
+            
+            // 🔧 Se o storage perdeu o ID, tenta recuperar do código do processo? Não, melhor buscar do backend
+            console.log('🔍 [DEBUG] modo_edicao:', modoEdicao);
+            console.log('🔍 [DEBUG] processo_id do storage:', processoId);
+            
             try {
-                const processoId = sessionStorage.getItem('processo_id');
                 const payload = {
                     nome_processo: nomeProcesso,
                     codigo_processo: codigoProcesso,
@@ -4292,10 +4316,30 @@
                     auditoria_id: parseInt(auditoriaId)
                 };
 
-                //Só adiciona processo_id se for ediçãoo (se existe no storage)
-                if (processoId) {
+                // 🔧 CORREÇÃO CRÍTICA: Se for edição, MAS o processo_id está vazio, tenta buscar
+                if (modoEdicao === 'true') {
+                    if (processoId) {
+                        payload.processo_id = parseInt(processoId);
+                        console.log('🔍 [DEBUG] Edição com ID do storage:', payload.processo_id);
+                    } else {
+                        // Tenta buscar o processo pelo código
+                        console.log('🔍 [DEBUG] Storage sem ID, tentando buscar pelo código:', codigoProcesso);
+                        const buscaResponse = await fetch(`/api/processo/buscar-por-codigo?codigo=${codigoProcesso}&area_id=${areaId}`);
+                        const buscaData = await buscaResponse.json();
+                        if (buscaData.id) {
+                            payload.processo_id = buscaData.id;
+                            sessionStorage.setItem('processo_id', buscaData.id);
+                            console.log('🔍 [DEBUG] ID recuperado da busca:', buscaData.id);
+                        }
+                    }
+                } else if (processoId && modoEdicao !== 'true') {
+                    // Se tem ID mas não é modo edição, ainda assim usar (pode ser edição que perdeu o flag)
                     payload.processo_id = parseInt(processoId);
+                    sessionStorage.setItem('modo_edicao', 'true');
+                    console.log('🔍 [DEBUG] Usando ID mesmo sem flag de edição');
                 }
+
+                console.log('🔍 [DEBUG] Payload final:', payload);
 
                 const response = await fetch('/api/processo/salvar-basico', {
                     method: 'POST',
@@ -4306,17 +4350,6 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    console.log('=' .repeat(50));
-                    console.log('📝 SALVAMENTO ETAPA 2 (Informações Básicas)');
-                    console.log(`   Processo ID: ${data.processo_id}`);
-                    console.log(`   Código do Processo: ${data.codigo_processo}`);
-                    console.log(`   Nome: ${nomeProcesso}`);
-                    console.log(`   Área ID: ${areaId}`);
-                    console.log(`   Área Nome: ${nomeArea}`);
-                    console.log(`   Executores IDs: ${executoresSelecionados.map(e => e.id).join(', ')}`);
-                    console.log(`   Executores Nomes: ${executoresSelecionados.map(e => e.nome).join(', ')}`);
-                    console.log(`   Auditoria ID: ${auditoriaId}`);
-                    console.log('=' .repeat(50));
                     sessionStorage.setItem('processo_id', data.processo_id);
                     sessionStorage.setItem('auditoria_id', auditoriaId);
                     sessionStorage.setItem('modo_edicao', 'true');
@@ -5000,6 +5033,15 @@
     let autoSaveTimeout = null;
 
     async function autoSaveEtapa2() {
+        // 🔧 VERIFICAR SE É MODO EDIÇÃO - NÃO EXECUTAR AUTO-SAVE
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+        const processoIdExistente = sessionStorage.getItem('processo_id');
+        
+        if (modoEdicao === 'true' && processoIdExistente) {
+            console.log('✏️ Modo edição ativo - AUTO-SAVE desabilitado');
+            return;
+        }
+        
         const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
         const executores = executoresSelecionados;
         
@@ -5022,24 +5064,25 @@
                     nome_area: nomeArea,
                     executores_ids: executores.map(e => e.id),
                     auditoria_id: parseInt(auditoriaId)
+                    // 🔧 NÃO ENVIA processo_id para NUNCA criar na edição
                 })
             });
             
             const data = await response.json();
             
             if (data.success) {
-                sessionStorage.setItem('processo_id', data.processo_id);
-                sessionStorage.setItem('auditoria_id', auditoriaId);
-                sessionStorage.setItem('modo_edicao', 'true');
-                console.log('💾 Auto-save etapa 2 realizado');
+                // 🔧 Só atualiza o storage se NÃO for edição
+                if (modoEdicao !== 'true') {
+                    sessionStorage.setItem('processo_id', data.processo_id);
+                    sessionStorage.setItem('auditoria_id', auditoriaId);
+                    sessionStorage.setItem('modo_edicao', 'true');
+                    console.log('💾 Auto-save etapa 2 realizado (novo processo)');
+                } else {
+                    console.log('💾 Auto-save etapa 2 ignorado (modo edição)');
+                }
             }
         } catch (error) {
             console.error('Erro auto-save etapa 2:', error);
-            sessionStorage.setItem('rascunho_etapa2', JSON.stringify({
-                nome_processo: nomeProcesso,
-                executores_ids: executores.map(e => e.id),
-                codigo_processo: codigoProcesso
-            }));
         }
     }
 
@@ -5465,9 +5508,25 @@
     }
     
     // Função para salvar informações básicas antes de avançar
+ 
     async function salvarInfoBasicasAntesDeAvancar() {
         const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
         if (!nomeProcesso || executoresSelecionados.length === 0) return;
+
+        // 🔍 LOG
+        console.log('🔍 [DEBUG] salvarInfoBasicasAntesDeAvancar chamada');
+        console.log('  modo_edicao:', sessionStorage.getItem('modo_edicao'));
+        console.log('  processo_id:', sessionStorage.getItem('processo_id'));
+        
+        // 🔧 VERIFICAR SE É MODO EDIÇÃO
+        const modoEdicao = sessionStorage.getItem('modo_edicao');
+        const processoIdExistente = sessionStorage.getItem('processo_id');
+        
+        // ⚠️ Se for modo edição, NÃO SALVAR AUTOMATICAMENTE
+        if (modoEdicao === 'true' && processoIdExistente) {
+            console.log('✏️ Modo edição ativo - NÃO salvando informações básicas automaticamente');
+            return;
+        }
         
         const areaId = document.getElementById('id_area_selecionado')?.value || areaSelect.value;
         const codigoProcesso = document.getElementById('codigo_processo')?.value;
@@ -5475,7 +5534,6 @@
         const areaSelectElement = document.getElementById('area_select');
         const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
         
-        const processoId = sessionStorage.getItem('processo_id');
         const payload = {
             nome_processo: nomeProcesso,
             codigo_processo: codigoProcesso,
@@ -5485,8 +5543,9 @@
             auditoria_id: parseInt(auditoriaId)
         };
         
-        if (processoId) {
-            payload.processo_id = parseInt(processoId);
+        // Só adiciona processo_id se existir e NÃO for edição
+        if (processoIdExistente && modoEdicao !== 'true') {
+            payload.processo_id = parseInt(processoIdExistente);
         }
         
         try {
@@ -5506,6 +5565,11 @@
             }
         } catch (error) {
             console.error('Erro ao salvar automaticamente:', error);
+            sessionStorage.setItem('rascunho_etapa2', JSON.stringify({
+                nome_processo: nomeProcesso,
+                executores_ids: executoresSelecionados.map(e => e.id),
+                codigo_processo: codigoProcesso
+            }));
         }
     }
 
