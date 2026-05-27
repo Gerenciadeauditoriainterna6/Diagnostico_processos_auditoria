@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, date
 import json
 import io
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from dotenv import load_dotenv
 
 # ============================================================
@@ -242,11 +242,27 @@ def areas():
     usuario_perfil = session.get('usuario_perfil', 'auditor')
     return render_template('areas.html', usuario_perfil=usuario_perfil)
 
-@app.route('/historico')
-def historico():
+@app.route('/log-alteracoes')
+def log_alteracoes():
+    """
+    Página de visualização do histórico de alterações
+    Apenas administradores podem acessar
+    """
+
+    # 1. Verificar se o usuário está logado
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('historico.html')
+    
+    # 2. Verifica se o usuário é adminsitrador
+    usuario_perfil = session.get('usuario_perfil')
+    if usuario_perfil not in ['administrador', 'admin']:
+        # Se nã for admin, redireciona para home com mensagem de erro
+        # Usando o sistema de toast que já temos
+        flash('Acesso negado. Apenas administradores podem visualizar o histórico de alterações', 'error')
+        return redirect(url_for('home'))
+    
+    # 3. Se for admin, mostra a página
+    return render_template('log_alteracoes.html')
 
 @app.route('/api/processo/<int:processo_id>/etapas')
 def api_processo_etapas(processo_id):
@@ -2597,6 +2613,207 @@ def debug_sessao():
         'usuario_perfil': session.get('usuario_perfil'),
         'login_timestamp': session.get('login_timestamp')
     })
+
+# ============================================================
+# LOG DE ALTERACOES
+# ============================================================
+
+@app.route('/api/logs')
+def api_logs():
+    """
+    API que retorna os logs da tabela log_auditoria com paginação
+    Apenas administradores podem acessar
+    """
+    # 1. Verificar autenticação
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    # 2. Verificar se é administrador
+    if session.get('usuario_perfil') not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+    
+    # 3. Importar dependências
+    from database import engine
+    from sqlalchemy import text
+    
+    # 4. Pegar parâmetros da URL
+    pagina = request.args.get('pagina', 1, type=int)
+    limite = request.args.get('limite', 20, type=int)
+    tabela = request.args.get('tabela', '')
+    operacao = request.args.get('operacao', '')
+    usuario = request.args.get('usuario', '')
+    data_inicio = request.args.get('data_inicio', '')
+    data_fim = request.args.get('data_fim', '')
+    
+    # Calcular offset (deslocamento) para paginação
+    # Exemplo: página 1, limite 20 → offset 0 (registros 1-20)
+    #          página 2, limite 20 → offset 20 (registros 21-40)
+    offset = (pagina - 1) * limite
+    
+    # 5. Construir a query BASE (para contar total)
+    base_query = """
+        FROM log_auditoria
+        WHERE 1=1
+    """
+    
+    # 6. Construir a query de SELECT (para buscar os dados)
+    select_query = """
+        SELECT 
+            id,
+            tabela_afetada,
+            registro_id,
+            operacao,
+            usuario_nome,
+            ip_origem,
+            data_hora,
+            dados_anteriores,
+            dados_novos
+    """
+    
+    # 7. Parâmetros compartilhados entre as queries
+    params = {}
+    
+    # 8. Adicionar filtros (mesmo para COUNT e SELECT)
+    if tabela:
+        base_query += " AND tabela_afetada = :tabela"
+        select_query += base_query  # Adiciona o WHERE à SELECT também
+        params['tabela'] = tabela
+    else:
+        select_query += base_query
+    
+    # Recriar base_query para o COUNT (porque já foi usada)
+    count_query = "SELECT COUNT(*) " + base_query
+    
+    # Ajustar select_query para incluir o ORDER BY e LIMIT
+    select_query += " ORDER BY id DESC LIMIT :limite OFFSET :offset"
+    params['limite'] = limite
+    params['offset'] = offset
+    
+    # Adicionar filtros individualmente (para não duplicar)
+    if operacao:
+        select_query = select_query.replace("WHERE 1=1", "WHERE 1=1 AND operacao = :operacao")
+        count_query = count_query.replace("WHERE 1=1", "WHERE 1=1 AND operacao = :operacao")
+        params['operacao'] = operacao
+    
+    if usuario:
+        select_query = select_query.replace("WHERE 1=1", "WHERE 1=1 AND usuario_nome ILIKE :usuario")
+        count_query = count_query.replace("WHERE 1=1", "WHERE 1=1 AND usuario_nome ILIKE :usuario")
+        params['usuario'] = f'%{usuario}%'
+    
+    if data_inicio:
+        select_query = select_query.replace("WHERE 1=1", "WHERE 1=1 AND data_hora >= :data_inicio")
+        count_query = count_query.replace("WHERE 1=1", "WHERE 1=1 AND data_hora >= :data_inicio")
+        params['data_inicio'] = data_inicio
+    
+    if data_fim:
+        select_query = select_query.replace("WHERE 1=1", "WHERE 1=1 AND data_hora <= :data_fim")
+        count_query = count_query.replace("WHERE 1=1", "WHERE 1=1 AND data_hora <= :data_fim")
+        params['data_fim'] = data_fim + ' 23:59:59'  # Inclui todo o dia
+    
+    try:
+        with engine.connect() as conn:
+            # 9. Primeiro, buscar o TOTAL de registros (para paginação)
+            total_result = conn.execute(text(count_query), params)
+            total_registros = total_result.fetchone()[0]
+            
+            # 10. Calcular total de páginas
+            total_paginas = (total_registros + limite - 1) // limite if total_registros > 0 else 1
+            
+            # 11. Buscar os registros da página atual
+            result = conn.execute(text(select_query), params)
+            
+            # 12. Converter os resultados para lista de dicionários
+            logs = []
+            for row in result:
+                logs.append({
+                    'id': row[0],
+                    'tabela_afetada': row[1],
+                    'registro_id': row[2],
+                    'operacao': row[3],
+                    'usuario_nome': row[4] or 'Sistema',
+                    'ip_origem': row[5] or '-',
+                    'data_hora': row[6].strftime('%d/%m/%Y %H:%M:%S') if row[6] else '',
+                    'dados_anteriores': row[7],
+                    'dados_novos': row[8]
+                })
+            
+            return jsonify({
+                'success': True,
+                'logs': logs,
+                'total_registros': total_registros,
+                'total_paginas': total_paginas,
+                'pagina_atual': pagina,
+                'limite': limite
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar logs: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/tabelas')
+def api_tabelas():
+    """
+    Retorna a lista de todas as tabelas do banco (exceto log_auditoria)
+    Apenas administradores podem acessar
+    """
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    if session.get('usuario_perfil') not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar todas as tabelas do schema public
+            query = text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                    AND table_type = 'BASE TABLE'
+                    AND table_name != 'log_auditoria'
+                ORDER BY table_name
+            """)
+            result = conn.execute(query)
+            tabelas = [row[0] for row in result]
+            
+            return jsonify({'success': True, 'tabelas': tabelas})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/usuarios')
+def api_usuarios():
+    """
+    Retorna a lista de usuários para o filtro de logs
+    Apenas administradores podem acessar
+    """
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    if session.get('usuario_perfil') not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Acesso negado'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, nome, login
+                FROM usuarios
+                                WHERE ativo = true
+                ORDER BY nome
+            """)
+            result = conn.execute(query)
+            usuarios = [{'id': row[0], 'nome': row[1], 'login': row[2]} for row in result]
+            
+            return jsonify({'success': True, 'usuarios': usuarios})
+    except Exception as e:
+        print(f"❌ Erro ao buscar usuários: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 # ============================================================
 # PONTO DE ENTRADA

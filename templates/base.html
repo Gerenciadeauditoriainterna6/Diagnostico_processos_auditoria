@@ -993,10 +993,12 @@
                         <i class="fas fa-building"></i>
                         <span>Cadastro de Áreas e Funcionários</span>
                     </a>
-                    <a href="{{ url_for('historico') }}" class="nav-item">
-                        <i class="fas fa-history"></i>
-                        <span>Histórico de Alterações</span>
-                    </a>
+                    {% if session.get('usuario_perfil') == 'administrador' or session.get('usuario_perfil') == 'admin' %}
+                        <a href="{{ url_for('log_alteracoes') }}" class="nav-item">
+                            <i class="fas fa-history"></i>
+                            <span>Histórico de Alterações</span>
+                        </a>
+                    {% endif %}
                 </div>
             </nav>
 
