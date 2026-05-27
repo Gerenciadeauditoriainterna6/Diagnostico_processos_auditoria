@@ -547,8 +547,8 @@
             const log = logs[i];
             const operacaoClass = log.operacao === 'INSERT' ? 'badge-insert' : 
                             (log.operacao === 'UPDATE' ? 'badge-update' : 'badge-delete');
-            const operacaoTexto = log.operacao === 'INSERT' ? 'Inserção' :
-                            (log.operacao === 'UPDATE' ? 'Alteração' : 'Exclusão');
+            const operacaoTexto = log.operacao === 'INSERT' ? 'INSERT' :
+                            (log.operacao === 'UPDATE' ? 'UPDATE' : 'DELETE');
             
             // Criar ID único para o botão de visualizar
             const btnId = `btn-ver-detalhes-${log.id}`;
@@ -572,7 +572,7 @@
                                 data-novos='${dadosNovosStr}'
                                 data-operacao="${log.operacao}"
                                 style="background: #0b5b99; color: white; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-eye"></i> Ver o que mudou
+                            <i class="fas fa-eye"></i>
                         </button>
                     </td>
                 </tr>

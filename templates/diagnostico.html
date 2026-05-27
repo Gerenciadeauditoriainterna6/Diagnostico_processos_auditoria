@@ -147,7 +147,12 @@
                 <h3>2. Informações do Processo</h3>
                 
                 <div class="form-group">
-                    <label for="nome_processo"><i class="fas fa-tag"></i> Nome do Processo *</label>
+                    <label for="nome_processo">
+                        <i class="fas fa-tag"></i> Nome do Processo *
+                        <span class="help-icon" data-tooltip="Atividade realizada pela área.">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
                     <input type="text" id="nome_processo" name="nome_processo" class="form-control" required 
                         placeholder="Ex: Processo de Fechamento Financeiro">
                 </div>
@@ -155,7 +160,7 @@
                 <div class="form-group">
                     <label for="codigo_processo"><i class="fas fa-barcode"></i> Código do Processo</label>
                     <input type="text" id="codigo_processo" name="codigo_processo" class="form-control" disabled 
-                        placeholder="Será gerado automaticamente">
+                        placeholder="Código gerado automaticamente">
                 </div>
 
                 <!-- SEÇÃO DE EXECUTORES -->
@@ -195,7 +200,7 @@
                                 <span id="contador-executores" class="contador">0</span>
                             </div>
                             <div id="executores-selecionados" class="selected-badges-container">
-                                <div class="empty-message">📌 Nenhum executor selecionado</div>
+                                <div class="empty-message"><i class="fas fa-ban" style="color:#0b5b99";></i> Nenhum executor selecionado</div>
                             </div>
                         </div>
                         
@@ -231,44 +236,53 @@
                     <div class="form-group">
                         <label for="descricao_processo">
                             <i class="fas fa-align-left"></i> O que é o processo?
+                            <span class="help-icon" data-tooltip="O que acontece aqui dentro no dia a dia? Exemplo (Processo de Contratação): É o conjunto de etapas que inclui a abertura da vaga, a triagem de currículos, as entrevistas e a coleta de documentos do candidato.">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
                         </label>
                         <textarea id="descricao_processo" name="descricao" class="form-control" 
-                            rows="3" placeholder="Descreva o processo com as palavras do gestor..."></textarea>
-                        <small class="text-muted">Gestor diz com as suas palavras o que entende ser o processo.</small>
+                            rows="3" placeholder="Descreva o que é o processo..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="etapa_ini_processo">
                             <i class="fas fa-play-circle"></i> Onde começa o processo?
+                            <span class="help-icon" data-tooltip="Ex: Do envio do relatório x pela área y – ETAPA INICIAL">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
                         </label>
-                        <textarea id="etapa_ini_processo" name="etapa_ini" class="form-control" rows="2" placeholder="Ex: Do envio do relatório X pela área Y..."></textarea>
-                        <small class="text-muted">Onde começa o processo? - ETAPA INICIAL</small>
+                        <textarea id="etapa_ini_processo" name="etapa_ini" class="form-control" rows="2" placeholder="Etapa de..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="produto_processo">
                             <i class="fas fa-cube"></i> Qual(is) o(s) produto(s) final(is) desse processo?
+                            <span class="help-icon" data-tooltip="(Relatório, Planilha, Sistema, Word e etc) – PENÚLTIMA ETAPA ">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
                         </label>
                         <textarea id="produto_processo" name="produto" class="form-control" rows="2" placeholder="Ex: Relatório, Planilha, Sistema..."></textarea>
-                        <small class="text-muted">Qual(is) o(s) produto(s) final(is) desse processo?</small>
                     </div>
 
                     <div class="form-group">
                         <label for="etapa_fim_processo">
                             <i class="fas fa-stop-circle"></i> Depois de acabado, para onde envia?
+                            <span class="help-icon" data-tooltip="(Ex: Área x, Arquivo físico localizado no..., Arquivo digital localizado no...) ETAPA FINAL">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
                         </label>
-                        <textarea id="etapa_fim_processo" name="etapa_fim" class="form-control" 
-                            rows="2" placeholder="Ex: Área X, Arquivo físico localizado em Y..."></textarea>
-                        <small class="text-muted">Depois de acabado, para onde envia? - ETAPA FINAL</small>
+                        <textarea id="etapa_fim_processo" name="etapa_fim" class="form-control" rows="2" placeholder="Ex: Enviado para..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="objetivo_processo">
                             <i class="fas fa-bullseye"></i> Qual o objetivo do processo? E por que faz?
+                            <span class="help-icon" data-tooltip="Exemplo (Objetivo da Contratação): Garantir que a empresa tenha o talento certo, na cadeira certa, no tempo necessário para não perder produtividade.">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
                         </label>
                         <textarea id="objetivo_processo" name="objetivo" class="form-control" 
                             rows="2" placeholder="Garantir o que exatamente?"></textarea>
-                        <small class="text-muted">Qual o objetivo do processo e por que ele é realizado?</small>
                     </div>
                 </div>
 
@@ -460,7 +474,12 @@
 
                             <!-- Nome do Risco -->
                             <div class="form-group">
-                                <label><i class="fas fa-font"></i> Nome do Risco *</label>
+                                <label>
+                                    <i class="fas fa-font"></i> Nome do Risco *
+                                    <span class="help-icon" data-tooltip="Qual a incerteza do processo que pode impedir de ele ser concluído corretamente?">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
                                 <input type="text" id="modal-nome_risco" class="form-control" placeholder="Risco pela possibilidade de...">
                             </div>
 
@@ -469,12 +488,12 @@
                             <div class="form-group">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                                     <label><i class="fas fa-tags"></i> Categoria(s) do Risco</label>
-                                    <span id="help-categorias-icon" class="help-icon-categorias" style="cursor: pointer;">?</span>
+                                    <span id="help-categorias-icon" class="help-icon-categorias" style="cursor: pointer;">i</span>
                                 </div>
                                 <!-- Card descritivo das categorias -->
                                 <div id="info-categorias" class="info-card" style="display: none; margin-bottom: 15px;">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <strong><i class="fas fa-info-circle"></i> Descrição das Categorias</strong>
+                                        <strong>Descrição das Categorias</strong>
                                         <button type="button" id="fechar-info-categorias" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
                                     </div>
                                     <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
@@ -521,20 +540,35 @@
 
                             <!-- Fator de Risco -->
                             <div class="form-group">
-                                <label><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</label>
+                                <label>
+                                    <i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)
+                                    <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
                                 <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="Pelo motivo de..."></textarea>
                             </div>
 
                             <!-- Ponto de Melhoria -->
                             <div class="form-group">
-                                <label><i class="fas fa-lightbulb"></i> Ponto de Melhoria</label>
-                                <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="O que poderia ser melhorado?"></textarea>
+                                <label>
+                                    <i class="fas fa-lightbulb"></i> Ponto de Melhoria
+                                    <span class="help-icon" data-tooltip="O que mais te incomoda no processo e pensa que deveria ser melhorado?">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
+                                <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="Descreva o ponto de melhoria..."></textarea>
                             </div>
 
                             <!-- Apetite ao Risco -->
                             <div class="form-group">
-                                <label><i class="fas fa-bullseye"></i> Apetite ao Risco</label>
-                                <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Nível de risco aceitável"></textarea>
+                                <label>
+                                    <i class="fas fa-bullseye"></i> Apetite ao Risco
+                                    <span class="help-icon" data-tooltip="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
+                                <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Descreva o nível do apetite ao risco"></textarea>
                             </div>
                         </div>
 
@@ -548,11 +582,11 @@
                             <div class="form-group">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                                     <label><i class="fas fa-info-circle"></i> Critérios de avaliação</label>
-                                    <span id="help-criterios-icon" class="help-icon-categorias" style="cursor: pointer;">?</span>
+                                    <span id="help-criterios-icon" class="help-icon-categorias" style="cursor: pointer;">i</span>
                                 </div>
                                 <div id="info-criterios" class="info-card" style="display: none;">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <strong><i class="fas fa-info-circle"></i> Critérios de Avaliação</strong>
+                                        <strong>Critérios de Avaliação</strong>
                                         <button type="button" id="fechar-info-criterios" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
                                     </div>
                                     <div style="margin-top: 8px;">
@@ -577,7 +611,7 @@
                             <!-- Impacto e Probabilidade -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label><i class="fas fa-chart-line"></i> Impacto *</label>
+                                    <label><i class="fas fa-sack-dollar"></i> Impacto *</label>
                                     <select id="modal-impacto" class="form-control">
                                         <option value="Baixo">Baixo</option>
                                         <option value="Médio">Médio</option>
@@ -598,13 +632,18 @@
 
                             <!-- Score Preview -->
                             <div id="modal-score-preview" class="score-preview" style="margin: 15px 0;">
-                                                <strong>Score calculado:</strong> 0 (Baixo)
+                                <strong>Score calculado:</strong> 0 (Baixo)
                             </div>
 
                             <!-- Motivo da Classificação -->
                             <div class="form-group">
-                                <label><i class="fas fa-comment"></i> Motivo da Classificação</label>
-                                <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique a escolha do impacto e probabilidade"></textarea>
+                                <label>
+                                    <i class="fas fa-comment"></i> Motivo da Classificação
+                                    <span class="help-icon" data-tooltip="Qual o motivo da classificação do nível da probabilidade?">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
+                                <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique o nível definido na probabilidade..."></textarea>
                             </div>
                         </div>
 
@@ -616,7 +655,12 @@
 
                             <!-- Como tratar -->
                             <div class="form-group">
-                                <label><i class="fas fa-handshake"></i> Como tratar o risco? *</label>
+                                <label>
+                                    <i class="fas fa-handshake"></i> Como tratar o risco? *
+                                    <span class="help-icon" data-tooltip="1. EVITAR? (isso quer dizer deixar de fazer o processo); 2. MITIGAR? (isso quer dizer incluir um controle interno para mitigar a probabilidade do evento acontecer, mesmo sabendo que o sistema de controle interno não é absoluto e que o evento possui chances de ocorrer); 3. COMPARTILHAR? (isso quer dizer quando a responsabilidade pela mitigação do risco é terceirizada ou dividida com agentes terceiros, por exemplo uma outra área ou um seguro de veículo. 4. ACEITAR? (isso quer dizer quando a magnitude do risco já foi medida e ela esta dentro do meu apetite a risco ou quando o custo para mitigar for maior que o custo de ter o risco)">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
                                 <select id="modal-como-tratar" class="form-control">
                                     <option value="">Selecione uma opção...</option>
                                     <option value="Aceitar">Aceitar</option>
@@ -628,7 +672,9 @@
 
                             <!-- Descrição do tratamento -->
                             <div class="form-group">
-                                <label><i class="fas fa-file-alt"></i> Descrição do tratamento</label>
+                                <label>
+                                    <i class="fas fa-file-alt"></i> Descrição do tratamento do risco
+                                </label>
                                 <textarea id="modal-desc-tratamento" class="form-control" rows="2" placeholder="Descreva como o tratamento será aplicado..."></textarea>
                             </div>
 
@@ -1098,6 +1144,7 @@
         border-radius: 8px;
         font-size: 14px;
         transition: all 0.2s;
+        z-index: 9998;
     }
 
     .search-input:focus {
@@ -1386,14 +1433,14 @@
 
     /* Help icon - versão simples */
     .help-icon {
+        position: relative;
+        z-index: 9999;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         width: 10px;
         height: 10px;
-        color: #0b5b99;
         border-radius: 50%;
-        font-size: 8px;
         font-weight: bold;
         cursor: help;
         margin-left: 6px;
@@ -1418,13 +1465,20 @@
         position: absolute;
         background: #333;
         color: white;
-        padding: 6px 12px;
+        padding: 8px 12px;          /* Aumentei um pouco o padding vertical */
         border-radius: 6px;
         font-size: 12px;
-        white-space: nowrap;
-        z-index: 1000;
+        max-width: 350px;           /* ← REDUZI de 300px para 250px (mais compacto) */
+        min-width: 250px;           /* ← NOVO: largura mínima (evita ficar muito estreito) */
+        text-align: center;
+        white-space: normal;        /* ← PERMITE QUEBRA */
+        word-wrap: break-word;      /* ← NOVO: quebra palavras longas */
+        word-break: break-word;     /* ← NOVO: quebra palavras muito longas */
+        line-height: 1.4;           /* ← NOVO: espaçamento entre linhas */
+        z-index: 9999;
         margin-top: 20px;
         margin-left: -10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);  /* ← NOVO: sombra suave */
     }
 
     /* Seta do tooltip */
@@ -2575,6 +2629,10 @@
         }
     }
 
+    #info-icon-categorias:hover::after {
+        content: "Clique aqui";
+    }
+
     
 
 
@@ -2705,7 +2763,16 @@
         const conteudo = document.getElementById('visualizar-processo-conteudo');
         
         modal.style.display = 'flex';
-        conteudo.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando informações do processo...</div>';
+        conteudo.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div class="dot-spinner">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando processos...</p>
+                </div>
+            `;
         
         try {
             // Buscar dados do processo
@@ -2860,7 +2927,7 @@
         // Gerar cards
         const gerarCards = (riscosLista, nivelClasse) => {
             if (riscosLista.length === 0) {
-                return '<div class="empty-col-message">Nenhum risco</div>';
+                return '<div class="empty-col-message">Nenhum risco nesta categoria</div>';
             }
             return riscosLista.map((risco, cardIdx) => {
                 const categoriasHtml = (risco.categorias || []).map(cat => 
@@ -3669,7 +3736,7 @@
         
         // Mostrar mensagem ou badges
         if (executoresSelecionados.length === 0) {
-            container.innerHTML = '<div class="empty-message">📌 Nenhum executor selecionado</div>';
+            container.innerHTML = '<div class="empty-message"><i class="fas fa-ban" style="color:#0b5b99";></i> Nenhum executor selecionado</div>';
             return;
         }
         
