@@ -211,25 +211,42 @@
 
     .form-group label {
         display: block;
-        margin-bottom: 5px;
-        font-weight: 500;
-        color: #48606c;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #184145;
         font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+
+    .form-group label i {
+        margin-right: 6px;
+        color: #0b5b99;
     }
 
     .form-control {
         width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 8px;
+        padding: 12px 14px;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
         font-size: 14px;
         transition: all 0.2s;
+        background: white;
     }
 
     .form-control:focus {
         outline: none;
         border-color: #184145;
         box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    .form-control:hover:not(:disabled) {
+        border-color: #b0b0b0;
+    }
+
+    .form-control:disabled {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+        border-color: #e0e0e0;
     }
 
     .alert-info {
@@ -573,6 +590,36 @@
         background: #0b5b99;
     }
 
+    /* ===== SPINNER DE BOLINHAS ===== */
+    .dot-spinner {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background: #184145;
+        border-radius: 50%;
+        animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    .dot:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+    }
+
 
     
 </style>
@@ -672,8 +719,13 @@
 
             // Mostrar loading enquanto verifica premissão
             etapasContainer.innerHTML = `
-                <div class="loading-message" style="text-align: center; padding: 40px;">
-                    <i class="fas fa-spinner fa-spin"></i> Verificando permissão...
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div class="dot-spinner">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Verificando permissão...</p>
                 </div>
             `;
 
@@ -712,10 +764,15 @@
 
         // Mostrar loading
         etapasContainer.innerHTML = `
-            <div class="loading-message" style="text-align: center; padding 40px;">
-                <i class="fas fa-spinner fa-spin"></i> Carregando processos e etapas...
-            </div>
-        `;
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div class="dot-spinner">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando etapas e seus controles...</p>
+                </div>
+            `;
 
         try {
             // 1. Buscar todos os processos da auditoria
