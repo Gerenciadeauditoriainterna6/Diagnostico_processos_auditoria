@@ -140,6 +140,18 @@
             </div>
 
             <div class="form-group">
+                <label><i class="fas fa-draw-polygon"></i> Arquivo do Escritório de Mapeamento dos Processos</label>
+                <div class="custom-file-upload">
+                    <button type="button" class="file-upload-button" onclick="document.getElementById('modal-arquivo-mapeamento').click()">
+                        <i class="fas fa-cloud-upload-alt"></i> Inserir Arquivo
+                    </button>
+                    <input type="file" id="modal-arquivo-mapeamento" accept=".pdf,.doc,.docx,.jpg,.png" style="display: none;">
+                </div>
+                <small class="text-muted">Arquivo produzido pela equipe de escritório de mapeamento. Formatos: PDF, DOC, DOCX, JPG, PNG (Max: 10MB)</small>
+                <div id="arquivo-mapeamento-nome" class="file-name" style="display: none;"></div>
+            </div>
+
+            <div class="form-group">
                 <label><i class="fas fa-gavel"></i> Política Interna</label>
                 <textarea id="modal-politica-interna" class="form-control" rows="2" placeholder="Políticas internas aplicáveis..."></textarea>
             </div>
@@ -1650,11 +1662,16 @@
         
         const diagramaInput = document.getElementById('modal-diagrama');
         const manualInput = document.getElementById('modal-manual');
+        const mapeamentoInput = document.getElementById('modal-arquivo-mapeamento');
+
         if (diagramaInput) diagramaInput.value = '';
         if (manualInput) manualInput.value = '';
+        if (mapeamentoInput) mapeamentoInput.value = '';
         
         const diagramaNomeDiv = document.getElementById('diagrama-nome');
         const manualNomeDiv = document.getElementById('manual-nome');
+        const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-name');  // ← NOVO
+
         if (diagramaNomeDiv) {
             diagramaNomeDiv.style.display = 'none';
             diagramaNomeDiv.innerHTML = '';
@@ -1662,6 +1679,10 @@
         if (manualNomeDiv) {
             manualNomeDiv.style.display = 'none';
             manualNomeDiv.innerHTML = '';
+        }
+        if (mapeamentoNomeDiv) {
+            mapeamentoNomeDiv.style.display = 'none';
+            mapeamentoNomeDiv.innerHTML = '';
         }
 
         limparExecutoresSelecionados();
@@ -1927,8 +1948,8 @@
     // ============================================================
 
     function removerArquivoExistente(tipo, etapaId) {
-        if (confirm(`Tem certeza que deseja remover este ${tipo === 'diagrama' ? 'diagrama' : 'manual'}?`)) {
-            const nomeDiv = document.getElementById(`${tipo}-nome`);
+        if (confirm(`Tem certeza que deseja remover este ${tipo === 'diagrama' ? 'diagrama' : (tipo === 'manual' ? 'manual' : 'arquivo de mapeamento')}?`)) {
+            const nomeDiv = document.getElementById(`${tipo === 'arquivo-mapeamento' ? 'arquivo-mapeamento-nome' : tipo + '-nome'}`);
             nomeDiv.setAttribute('data-remover-arquivo', 'true');
             nomeDiv.innerHTML = `
                 <i class="fas fa-trash-alt"></i> 
@@ -2059,6 +2080,23 @@
                     manualNomeDiv.style.display = 'none';
                     manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
                 }
+
+                // Arquivo de Mapeamento
+                const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-nome');
+                if (etapa.arquivo_mapeamento_nome && etapa.arquivo_mapeamento_nome.trim() !== '') {
+                    mapeamentoNomeDiv.innerHTML = `
+                        <i class="fas fa-paperclip"></i> 
+                        ${escapeHtml(etapa.arquivo_mapeamento_nome)} 
+                        <span class="file-info">(arquivo atual)</span>
+                        <span class="remove-file" onclick="removerArquivoExistente('arquivo-mapeamento', ${etapa.id})">&times;</span>
+                    `;
+                    mapeamentoNomeDiv.style.display = 'block';
+                    mapeamentoNomeDiv.setAttribute('data-tem-arquivo', 'true');
+                    mapeamentoNomeDiv.setAttribute('data-arquivo-nome', etapa.arquivo_mapeamento_nome);
+                } else {
+                    mapeamentoNomeDiv.style.display = 'none';
+                    mapeamentoNomeDiv.setAttribute('data-tem-arquivo', 'false');
+                }
                 
                 document.getElementById('modal-etapa').style.display = 'flex';
             }
@@ -2127,6 +2165,7 @@
         const diagramaFile = document.getElementById('modal-diagrama').files[0];
         const diagramaNomeDiv = document.getElementById('diagrama-nome');
         const removerDiagrama = diagramaNomeDiv.getAttribute('data-remover-arquivo') === 'true';
+
         
         if (diagramaFile) {
             const diagramaBase64 = await converterParaBase64(diagramaFile);
@@ -2160,6 +2199,25 @@
             payload.remover_manual = false;
         }
 
+        // Processar arquivo de mapeamento
+        const mapeamentoFile = document.getElementById('modal-arquivo-mapeamento').files[0];
+        const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-nome');
+        const removerMapeamento = mapeamentoNomeDiv.getAttribute('data-remover-arquivo') === 'true';
+
+        if (mapeamentoFile) {
+            const mapeamentoBase64 = await converterParaBase64(mapeamentoFile);
+            payload.arquivo_mapeamento_base64 = mapeamentoBase64;
+            payload.arquivo_mapeamento_nome = mapeamentoFile.name;
+            payload.arquivo_mapeamento_tipo = mapeamentoFile.type;
+            payload.remover_arquivo_mapeamento = false;
+        } else if (removerMapeamento) {
+            payload.remover_arquivo_mapeamento = true;
+            payload.arquivo_mapeamento_nome = null;
+            payload.arquivo_mapeamento_tipo = null;
+        } else {
+            payload.remover_arquivo_mapeamento = false;
+        }
+
         try {
             const response = await fetch('/api/etapa/salvar', {
                 method: 'POST',
@@ -2185,9 +2243,13 @@
     function setupFileInputs() {
         const diagramaInput = document.getElementById('modal-diagrama');
         const manualInput = document.getElementById('modal-manual');
+        const mapeamentoInput = document.getElementById('modal-arquivo-mapeamento');  // ← NOVO
+        
         const diagramaNomeDiv = document.getElementById('diagrama-nome');
         const manualNomeDiv = document.getElementById('manual-nome');
+        const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-nome');  // ← NOVO
         
+        // Diagrama (já existente)
         if (diagramaInput) {
             diagramaInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
@@ -2204,6 +2266,7 @@
             });
         }
         
+        // Manual (já existente)
         if (manualInput) {
             manualInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
@@ -2216,6 +2279,23 @@
                     manualNomeDiv.style.display = 'block';
                 } else {
                     manualNomeDiv.style.display = 'none';
+                }
+            });
+        }
+        
+        // 🔧 NOVO: Arquivo de Mapeamento
+        if (mapeamentoInput) {
+            mapeamentoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    mapeamentoNomeDiv.innerHTML = `
+                        <i class="fas fa-paperclip"></i> 
+                        ${escapeHtml(file.name)} (${formatFileSize(file.size)})
+                        <span class="remove-file" onclick="removeFile('arquivo-mapeamento')">&times;</span>
+                    `;
+                    mapeamentoNomeDiv.style.display = 'block';
+                } else {
+                    mapeamentoNomeDiv.style.display = 'none';
                 }
             });
         }

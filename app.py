@@ -1716,7 +1716,8 @@ def api_etapa_detalhes(etapa_id):
                        necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
                        executores_etapa,
                        diagrama_bpmn, diagrama_nome, diagrama_tipo,
-                       manual_etapa, manual_nome, manual_tipo
+                       manual_etapa, manual_nome, manual_tipo,
+                       arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo
                 FROM etapas_processo
                 WHERE id = :etapa_id
             """)
@@ -1725,20 +1726,20 @@ def api_etapa_detalhes(etapa_id):
             if not result:
                 return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
             
-            # CORRIGIDO: Os índices agora estão corretos
-            # Índices: 0-14 = campos text, 15 = executores_etapa, 
-            # 16 = diagrama_bpmn, 17 = diagrama_nome, 18 = diagrama_tipo,
-            # 19 = manual_etapa, 20 = manual_nome, 21 = manual_tipo
-            
-            # Converter diagrama (índice 16) se existir
+            # ===== CONVERTER DIAGRAMA PARA BASE64 =====
             diagrama_base64 = None
-            if result[16]:  # ← CORRIGIDO: era 15, agora é 16
+            if result[16]:  # diagrama_bpmn
                 diagrama_base64 = base64.b64encode(result[16]).decode('utf-8')
             
-            # Converter manual (índice 19) se existir
+            # ===== CONVERTER MANUAL PARA BASE64 =====
             manual_base64 = None
-            if result[19]:  # ← CORRIGIDO: era 18, agora é 19
+            if result[19]:  # manual_etapa
                 manual_base64 = base64.b64encode(result[19]).decode('utf-8')
+            
+            # ===== CONVERTER ARQUIVO DE MAPEAMENTO PARA BASE64 =====
+            arquivo_mapeamento_base64 = None
+            if result[22]:  # arquivo_mapeamento (índice 22)
+                arquivo_mapeamento_base64 = base64.b64encode(result[22]).decode('utf-8')
             
             etapa = {
                 'id': result[0],
@@ -1756,13 +1757,22 @@ def api_etapa_detalhes(etapa_id):
                 'necessidade_implantacao': result[12] or '',
                 'ganho_previsto': result[13] or '',
                 'obrigacoes_regulatorias': result[14] or '',
-                'executores_etapa': result[15] or '',  # ← OK
+                'executores_etapa': result[15] or '',
+                
+                # Diagrama
                 'diagrama_base64': diagrama_base64,
-                'diagrama_nome': result[17] or '',  # ← CORRIGIDO: era 16, agora é 17
-                'diagrama_tipo': result[18] or '',  # ← CORRIGIDO: era 17, agora é 18
+                'diagrama_nome': result[17] or '',
+                'diagrama_tipo': result[18] or '',
+                
+                # Manual
                 'manual_base64': manual_base64,
-                'manual_nome': result[20] or '',  # ← CORRIGIDO: era 19, agora é 20
-                'manual_tipo': result[21] or ''   # ← CORRIGIDO: era 20, agora é 21
+                'manual_nome': result[20] or '',
+                'manual_tipo': result[21] or '',
+                
+                # Arquivo de Mapeamento (NOVO)
+                'arquivo_mapeamento_base64': arquivo_mapeamento_base64,
+                'arquivo_mapeamento_nome': result[23] or '',
+                'arquivo_mapeamento_tipo': result[24] or '',
             }
             
             return jsonify({'success': True, 'etapa': etapa})
@@ -1852,6 +1862,14 @@ def api_salvar_etapa():
     if data.get('manual_base64'):
         manual_bytes = base64.b64decode(data['manual_base64'].split(',')[1] if ',' in data['manual_base64'] else data['manual_base64'])
     
+    # Processar upload do arquivo do mapeamento
+    arquivo_mapeamento_bytes = None
+    arquivo_mapeamento_nome = data.get('arquivo_mapeamento_nome')
+    arquivo_mapeamento_tipo = data.get('arquivo_mapeamento_tipo')
+
+    if data.get('arquivo_mapeamento_base64'):
+        arquivo_mapeamento_bytes = base64.b64decode(data['arquivo_mapeamento_base64'].split(',')[1] if ',' in data['arquivo_mapeamento_base64'] else data['arquivo_mapeamento_base64'])
+
     if not processo_id:
         return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
     
@@ -1936,6 +1954,16 @@ def api_salvar_etapa():
                     params['manual_nome'] = manual_nome
                     params['manual_tipo'] = manual_tipo
                 
+                # 🔧 NOVO: Arquivo de Mapeamento
+                remover_arquivo_mapeamento = data.get('remover_arquivo_mapeamento', False)
+                if data.get('arquivo_mapeamento_base64') or remover_arquivo_mapeamento:
+                    update_fields.append("arquivo_mapeamento = :arquivo_mapeamento")
+                    update_fields.append("arquivo_mapeamento_nome = :arquivo_mapeamento_nome")
+                    update_fields.append("arquivo_mapeamento_tipo = :arquivo_mapeamento_tipo")
+                    params['arquivo_mapeamento'] = arquivo_mapeamento_bytes
+                    params['arquivo_mapeamento_nome'] = arquivo_mapeamento_nome
+                    params['arquivo_mapeamento_tipo'] = arquivo_mapeamento_tipo
+                
                 # Montar query final
                 if update_fields:
                     query_sql = f"""
@@ -1987,6 +2015,7 @@ def api_salvar_etapa():
                         executores_etapa,
                         diagrama_bpmn, diagrama_nome, diagrama_tipo,
                         manual_etapa, manual_nome, manual_tipo,
+                        arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,  -- ← NOVOS
                         created_at
                     ) VALUES (
                         :processo_id, :auditoria_id, :codigo_etapa, :nome_etapa,
@@ -1997,6 +2026,7 @@ def api_salvar_etapa():
                         :executores_etapa,
                         :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
                         :manual_etapa, :manual_nome, :manual_tipo,
+                        :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,  -- ← NOVOS
                         NOW()
                     )
                     RETURNING id
