@@ -333,17 +333,261 @@
             transition: none;
         }
 
-        /* ====== RESPONSIVIDADE ====== */
+        /* ====== SIDEBAR COLAPSADA (BARRA DE ÍCONES) ====== */
+
+        .sidebar.sidebar-hidden .nav-menu {
+            padding: 0 11px;
+        }
+        .sidebar.sidebar-hidden {
+            width: 60px !important;
+            transform: translateX(0) !important;
+            transition: width 0.2s ease;
+        }
+
+        .sidebar.sidebar-hidden .sidebar-logo {
+            padding: 15px 8px 10px 0;
+        }
+
+        .sidebar.sidebar-hidden .sidebar-logo img {
+            width: 30px;
+        }
+
+        .sidebar.sidebar-hidden .sidebar-logo h3,
+        .sidebar.sidebar-hidden .user-details,
+        .sidebar.sidebar-hidden .nav-item span,
+        .sidebar.sidebar-hidden .nav-section-title,
+        .sidebar.sidebar-hidden .submenu,
+        .sidebar.sidebar-hidden .submenu-arrow,
+        .sidebar.sidebar-hidden .logout-btn span {
+            display: none;
+        }
+
+        .sidebar.sidebar-hidden .user-info {
+            justify-content: flex-end;
+            padding: 10px 8px 10px 10px;
+            margin: 5px 5px 15px 0px;
+            background: transparent !important;
+        }
+
+        .sidebar.sidebar-hidden .nav-item {
+            justify-content: flex-end;
+            padding: 12px 8px 12px 0;
+        }
+
+        .sidebar.sidebar-hidden .nav-item i {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .sidebar.sidebar-hidden .logout-btn {
+            justify-content: flex-end;
+            max-width: 100%;
+            margin: 20px 8px 25px 5px;
+        }
+
+        .sidebar.sidebar-hidden .resize-handle {
+            display: none;
+        }
+
+        /* Ajuste do conteúdo quando sidebar colapsada */
+        .main-content.sidebar-hidden {
+            margin-left: 60px !important;
+            width: calc(100% - 60px) !important;
+        }
+
+        /* Mostra apenas o ícone nos itens com submenu */
+        .sidebar.sidebar-hidden .nav-item-parent .nav-item {
+            justify-content: flex-end;
+            padding: 12px 8px 12px 0;
+        }
+
+        .sidebar.sidebar-hidden .nav-item-parent .nav-item-content {
+            display: flex;
+        }
+
+        .sidebar.sidebar-hidden .nav-item-parent .nav-item-content span {
+            display: none;
+        }
+
+        .sidebar.sidebar-hidden .nav-item-parent .nav-item-content i {
+            display: flex;
+            font-size: 18px;
+        }
+
+        /* Remove a borda esquerda na sidebar colapsada */
+        .sidebar.sidebar-hidden .nav-item {
+            border-left: none !important;
+            border-radius: 8px;
+        }
+
+        .sidebar.sidebar-hidden .nav-item.active {
+            background: transparent;
+            border-left: none !important;
+        }
+
+        .sidebar.sidebar-hidden .nav-item.active i {
+            color: rgb(11, 91, 153, 0.9);
+        }
+
+        /* Hover na sidebar colapsada */
+        .sidebar.sidebar-hidden .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-left: none !important;
+        }
+
+
+        /* ====== SIDEBAR EXPANDE NO HOVER (DESKTOP) ====== */
+        @media (min-width: 769px) {
+            .sidebar.sidebar-hidden:hover {
+                width: 260px !important;
+                z-index: 150;
+                box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+            }
+            
+            .sidebar.sidebar-hidden:hover .sidebar-logo img {
+                width: 80px;
+            }
+            
+            .sidebar.sidebar-hidden:hover .sidebar-logo h3,
+            .sidebar.sidebar-hidden:hover .user-details,
+            .sidebar.sidebar-hidden:hover .nav-item span,
+            .sidebar.sidebar-hidden:hover .nav-section-title,
+            .sidebar.sidebar-hidden:hover .logout-btn span {
+                display: block;
+            }
+            
+            .sidebar.sidebar-hidden:hover .user-info {
+                justify-content: flex-start;
+                padding: 15px 20px;
+                margin: 0 15px 20px 15px;
+            }
+            
+            .sidebar.sidebar-hidden:hover .nav-item {
+                justify-content: flex-start;
+                padding: 10px 15px;
+            }
+            
+            .sidebar.sidebar-hidden:hover .nav-item i {
+                margin: 0;
+                font-size: 16px;
+            }
+            
+            .sidebar.sidebar-hidden:hover .logout-btn {
+                justify-content: flex-start;
+                max-width: 100px;
+                margin: 20px 15px 25px 15px;
+                padding: 10px 15px;
+            }
+            
+            /* Botão hamburguer alinha à esquerda no hover */
+            .sidebar.sidebar-hidden:hover .menu-toggle {
+                display: flex;
+                margin: 10px 0 5px 10px;
+            }
+
+            /* Mostra setas dos submenus no hover */
+            .sidebar.sidebar-hidden:hover .submenu-arrow {
+                display: inline-block;
+            }
+
+            /* Mostra submenus que estavam abertos */
+            .sidebar.sidebar-hidden:hover .submenu.show {
+                display: block;
+            }
+        }
+
+        /* Impede hover de expandir após clique para fechar */
+        .sidebar.sidebar-hidden.no-hover:hover {
+            width: 60px !important;
+        }
+
+        .sidebar.sidebar-hidden.no-hover:hover .sidebar-logo h3,
+        .sidebar.sidebar-hidden.no-hover:hover .user-details,
+        .sidebar.sidebar-hidden.no-hover:hover .nav-item span,
+        .sidebar.sidebar-hidden.no-hover:hover .nav-section-title,
+        .sidebar.sidebar-hidden.no-hover:hover .submenu-arrow,
+        .sidebar.sidebar-hidden.no-hover:hover .logout-btn span {
+            display: none;
+        }
+
+        .sidebar.sidebar-hidden.no-hover:hover .nav-item {
+            justify-content: flex-end;
+            /*padding: 12px 8px 12px 0;*/
+        }
+
+        .sidebar.sidebar-hidden.no-hover:hover .user-info {
+            justify-content: flex-end;
+            padding: 10px 8px 10px 0;
+        }
+
+        .sidebar.sidebar-hidden.no-hover:hover .logout-btn {
+            justify-content: flex-end;
+        }
+
+        .sidebar.sidebar-hidden.no-hover:hover .menu-toggle {
+            margin: 10px auto 5px auto;
+        }
+
+        /* ====== RESPONSIVIDADE (MOBILE) ====== */
         @media (max-width: 768px) {
             .sidebar {
-                width: 240px;
+                width: 280px;
+                z-index: 150;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
+            
+            /* Sidebar visível no mobile */
+            .sidebar:not(.sidebar-hidden) {
+                transform: translateX(0);
+            }
+            
+            /* No mobile, escondida = fora da tela */
+            .sidebar.sidebar-hidden {
+                width: 280px !important;
+                transform: translateX(-100%) !important;
+            }
+            
+            /* Anula o hover de desktop no mobile */
+            .sidebar.sidebar-hidden:hover {
+                width: 280px !important;
+                transform: translateX(-100%) !important;
+            }
+            
             .main-content {
-                margin-left: 240px;
-                width: calc(100% - 240px);
+                margin-left: 0 !important;
+                width: 100% !important;
             }
-            .nav-item span {
-                font-size: 12px;
+            
+            .main-content.sidebar-hidden {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            
+            /* Botão hamburguer sempre visível no mobile */
+            .menu-toggle {
+                display: flex !important;
+                left: 15px;
+                top: 15px;
+                background: #184145;
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            /* Overlay visível quando menu aberto */
+            .sidebar:not(.sidebar-hidden) ~ .sidebar-overlay {
+                display: block;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+            }
+            
+            /* Ajuste do botão sair */
+            .logout-btn {
+                max-width: 100%;
+                margin: 20px 15px 25px 15px;
             }
         }
 
@@ -893,12 +1137,56 @@
             align-items: center;
             flex-wrap: wrap;
         }
+
+        /* ====== OVERLAY ====== */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        /* ====== BOTÃO HAMBURGUER ====== */
+        .menu-toggle {
+            display: flex;
+            background: transparent;
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 10px 5px auto;
+        }
+
+        /* Quando colapsada, centraliza o botão */
+        .sidebar.sidebar-hidden .menu-toggle {
+            margin: 10px auto 5px auto;
+        }
+
+
     </style>
 </head>
 <body>
+    <!-- Overlay para fechar o menu no mobile -->
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <div class="app-container">
         <!-- SIDEBAR (MENU LATERAL) -->
         <aside class="sidebar">
+            <!-- Botão Hamburguer (sempre visível) -->
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
             <div class="sidebar-logo">
                 <a href="{{ url_for('home') }}" title="Retornar para Home">
                     <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
@@ -1021,6 +1309,111 @@
     <div id ="toastContainer" class="toast-container"></div>
 
     <script>
+        // ====== CONTROLE DO MENU HAMBURGUER ====== 
+        (function() {
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (!menuToggle || !sidebar) return;
+            
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // Recupera estado salvo
+            let sidebarVisible = localStorage.getItem('sidebar_visible');
+            if (sidebarVisible === null) {
+                sidebarVisible = true;
+            } else {
+                sidebarVisible = sidebarVisible === 'true';
+            }
+            
+            // No mobile, sempre começa fechado
+            if (isMobile()) {
+                sidebarVisible = false;
+            }
+            
+            function updateSidebarState() {
+                if (sidebarVisible) {
+                    sidebar.classList.remove('sidebar-hidden');
+                    mainContent.classList.remove('sidebar-hidden');
+                    overlay.classList.remove('show');
+                } else {
+                    sidebar.classList.add('sidebar-hidden');
+                    mainContent.classList.add('sidebar-hidden');
+                    overlay.classList.remove('show');
+                }
+            }
+            
+            function openSidebar() {
+                sidebarVisible = true;
+                localStorage.setItem('sidebar_visible', 'true');
+                updateSidebarState();
+                sidebar.classList.remove('no-hover'); // ← Adicione esta linha
+            }
+            
+            function closeSidebar() {
+                sidebarVisible = false;
+                localStorage.setItem('sidebar_visible', 'false');
+                updateSidebarState();
+                sidebar.classList.add('no-hover'); // ← Adicione esta linha
+            }
+            
+            // Clique no botão hamburguer
+            menuToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (sidebarVisible) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+            
+            // Clique no overlay fecha o menu
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    closeSidebar();
+                });
+            }
+            
+            // Fecha menu ao clicar fora em mobile
+            document.addEventListener('click', function(e) {
+                if (isMobile() && sidebarVisible) {
+                    if (!sidebar.contains(e.target)) {
+                        closeSidebar();
+                    }
+                }
+            });
+            
+            // Ao redimensionar: mobile fecha menu, desktop mantém
+            window.addEventListener('resize', function() {
+                if (isMobile()) {
+                    closeSidebar();
+                }
+                updateSidebarState();
+            });
+
+            // Hover na sidebar colapsada: expande e fixa (desktop)
+            if (!isMobile()) {
+                sidebar.addEventListener('mouseenter', function(e) {
+                    if (!sidebarVisible) {
+                        openSidebar();
+                        // Posiciona o scroll da sidebar próximo ao mouse
+                        setTimeout(function() {
+                            sidebar.scrollTop = e.clientY - 100;
+                        }, 50);
+                    }
+                });
+            }
+            
+            // Estado inicial
+            updateSidebarState();
+        })();
+
+
+
         // ====== CONTROLE DOS SUBMENUS (VERSÃO UNIFICADA) ======
         (function() {
             // Configuração dos submenus
