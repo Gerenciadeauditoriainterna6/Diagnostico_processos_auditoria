@@ -58,7 +58,6 @@
         </div>
 
         <div class="info-box" id="info-box" style="display: none;">
-            <i class="fas fa-info-circle"></i>
             <span id="info-mensagem"></span>
         </div>
 
@@ -404,6 +403,20 @@
     .orientacao-card[data-orientacao="PAISAGEM"] > i {
         transform: rotate(270deg);
     }
+
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #721c24;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .alert-error i {
+        margin-right: 8px;
+    }
     
 </style>
 
@@ -655,10 +668,40 @@
         }
 
         if (selectAuditoria) {
-            selectAuditoria.addEventListener('change', () => {
+            selectAuditoria.addEventListener('change', async () => {
                 const auditoriaId = selectAuditoria.value;
-                if (btnGerar) {
-                    btnGerar.disabled = !auditoriaId;
+                const infoBox = document.getElementById('info-box');
+                const infoMsg = document.getElementById('info-mensagem');
+                
+                if (!auditoriaId) {
+                    if (btnGerar) btnGerar.disabled = true;
+                    if (infoBox) infoBox.style.display = 'none';
+                    return;
+                }
+                
+                // Verificar permissão do usuário
+                try {
+                    const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                    const data = await response.json();
+                    
+                    if (data.autorizado) {
+                        // Usuário autorizado
+                        if (btnGerar) btnGerar.disabled = false;
+                        if (infoBox) infoBox.style.display = 'none';
+                    } else {
+                        // Usuário NÃO autorizado
+                        if (btnGerar) btnGerar.disabled = true;
+                        if (infoBox) {
+                            infoBox.style.display = 'flex';
+                            infoBox.className = 'alert-error';
+                            infoMsg.innerHTML = '<i class="fas fa-lock"></i> Você não tem permissão para gerar relatórios desta auditoria.';
+                            
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao verificar permissão:', error);
+                    if (btnGerar) btnGerar.disabled = true;
+                    mostrarToast('Erro ao verificar permissão.', 'error');
                 }
             });
         }

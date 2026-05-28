@@ -786,20 +786,20 @@
 
     const PERGUNTAS = {
         governanca: [
-            { id: 1, pergunta: "O fluxo das etapas do processo de fato são realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1},
-            { id: 2, pergunta: "O fluxo das etapas do processo de fato são realizados? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2},
-            { id: 3, pergunta: "O objetivo da estapa está sendo cumprido? Compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 3},
-            { id: 4, pergunta: "O objetivo da estapa está sendo cumprido? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 4},
-            { id: 5, pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", ordem: 5},
-            { id: 6, pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", ordem: 6},
-            { id: 7, pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", ordem: 7},
-            { id: 8, pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", ordem: 8},
-            { id: 9, pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", ordem: 9},
-            { id: 10, pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", ordem: 10},
-            { id: 11, pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", ordem: 11},
-            { id: 12, pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", ordem: 12},
-            { id: 13, pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", ordem: 13},
-            { id: 14, pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", ordem: 14}
+            { id: 1, pergunta: "O fluxo das etapas e seus objetivos são de fato realizados? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1, precisaEvidencia: true },
+            { id: 2, pergunta: "O fluxo das etapas e seus objetivos são de fato realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2, precisaEvidencia: true },
+            // { id: 4, pergunta: "O objetivo da estapa está sendo cumprido? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 4},
+            // { id: 3, pergunta: "O objetivo da estapa está sendo cumprido? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 4},
+            { id: 3, pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", ordem: 3, precisaEvidencia: false },
+            { id: 4, pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", ordem: 4, precisaEvidencia: false },
+            { id: 5, pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", ordem: 5, precisaEvidencia: false },
+            { id: 6, pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", ordem: 6},
+            { id: 7, pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", ordem: 7, precisaEvidencia: false },
+            { id: 8, pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", ordem: 8, precisaEvidencia: false },
+            { id: 9, pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", ordem: 9, precisaEvidencia: false },
+            { id: 10, pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", ordem: 10, precisaEvidencia: false },
+            { id: 11, pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", ordem: 11, precisaEvidencia: false },
+            { id: 12, pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", ordem: 12, precisaEvidencia: false }
         ],
         riscos: [
             { id: 1, pergunta: "Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.", ordem: 1},
@@ -815,8 +815,8 @@
             { id: 11, pergunta: "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?", ordem: 11},
         ],
         controles: [
-            { id: 1, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Comparando com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1, precisaEvidencia: true},
-            { id: 2, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2, precisaEvidencia: true},
+            { id: 1, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1, precisaEvidencia: true},
+            { id: 2, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2, precisaEvidencia: true},
             { id: 3, pergunta: "Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?", ordem: 3, precisaEvidencia: false},
             { id: 4, pergunta: "Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?", ordem: 4, precisaEvidencia: false},
             { id: 5, pergunta: "Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?", ordem: 5, precisaEvidencia: false},
@@ -1180,7 +1180,7 @@
             }
             
             // Renderizar o formulário com as perguntas fixas
-            renderizarChecklist(container, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status);
+            renderizarChecklistComEvidencias(container, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status, auditoriaId);
             
         } catch (error) {
             console.error('Erro ao carregar checklist de governança:', error);
@@ -1373,7 +1373,16 @@
         // Adicionar eventos (apenas se não estiver concluído)
         if (!estaConcluido) {
             container.querySelectorAll(`.btn-salvar-checklist, .btn-concluir-checklist`).forEach(btn => {
-                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+                btn.addEventListener('click', function() {
+                    const concluir = this.classList.contains('btn-concluir-checklist');
+                    if (concluir) {
+                        if (confirm('⚠️ Tem certeza que deseja CONCLUIR este checklist?\n\nApós a conclusão, ele não poderá mais ser editado.')) {
+                            salvarChecklist(tipo, true);
+                        }
+                    } else {
+                        salvarChecklist(tipo, false);
+                    }
+                });
             });
         }
     }
@@ -1594,7 +1603,16 @@
             });
             
             container.querySelectorAll(`.btn-salvar-checklist, .btn-concluir-checklist`).forEach(btn => {
-                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+                btn.addEventListener('click', function() {
+                    const concluir = this.classList.contains('btn-concluir-checklist');
+                    if (concluir) {
+                        if (confirm('⚠️ Tem certeza que deseja CONCLUIR este checklist?\n\nApós a conclusão, ele não poderá mais ser editado.')) {
+                            salvarChecklist(tipo, true);
+                        }
+                    } else {
+                        salvarChecklist(tipo, false);
+                    }
+                });
             });
         }
     }
@@ -1755,12 +1773,36 @@
     document.addEventListener('DOMContentLoaded', async () => {
         console.log('🚀 Página de checklists carregada');
         
-        // Carregar áreas
-        await carregarAreas();
-        
         // Configurar eventos
         const selectArea = document.getElementById('area_select');
         const selectAuditoria = document.getElementById('auditoria_select');
+        
+        // Carregar áreas
+        await carregarAreas();
+
+        // Restaurar filtros salvos
+        const areaSalva = sessionStorage.getItem('checklist_area_id');
+        const auditoriaSalva = sessionStorage.getItem('checklist_auditoria_id');
+
+        if (areaSalva) {
+            selectArea.value = areaSalva;
+            await carregarAuditorias(areaSalva);
+            
+            if (auditoriaSalva) {
+                // Aguardar as auditorias carregarem
+                setTimeout(async () => {
+                    selectAuditoria.value = auditoriaSalva;
+                    if (auditoriaSalva) {
+                        await carregarChecklists(auditoriaSalva);
+                    }
+                }, 500);
+            }
+            
+            // Limpar após restaurar
+            sessionStorage.removeItem('checklist_area_id');
+            sessionStorage.removeItem('checklist_auditoria_id');
+        }
+    
         
         if (selectArea) {
             selectArea.addEventListener('change', () => {
@@ -1792,6 +1834,16 @@
             if (btn) {
                 voltarParaPainel();
             }
+        });
+
+        // Fechar modais ao clicar fora
+        document.querySelectorAll('.modal-checklist').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    const tipo = modal.id.replace('modal-', '');
+                    fecharModal(tipo);
+                }
+            });
         });
     });
 
@@ -2015,7 +2067,21 @@
         if (modal) {
             modal.style.display = 'none';
         }
-    };
+        
+        // Salvar filtros atuais
+        const areaSelect = document.getElementById('area_select');
+        const auditoriaSelect = document.getElementById('auditoria_select');
+        
+        if (areaSelect && areaSelect.value) {
+            sessionStorage.setItem('checklist_area_id', areaSelect.value);
+        }
+        if (auditoriaSelect && auditoriaSelect.value) {
+            sessionStorage.setItem('checklist_auditoria_id', auditoriaSelect.value);
+        }
+        
+        // Recarregar a página para restaurar os filtros
+        location.reload();
+    }
 
     async function carregarModalGovernanca(auditoriaId) {
         const body = document.getElementById('modal-governanca-body');
@@ -2047,13 +2113,73 @@
             }
 
             // Renderizar o checklist dentro do modal
-            renderizarChecklistNoModal(body, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status);
+            renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status, auditoriaId);
 
         } catch (error) {
             console.error('Erro:', error);
             body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
         }
     };
+
+    async function carregarModalRiscos(auditoriaId) {
+        const body = document.getElementById('modal-riscos-body');
+        if (!body) return;
+
+        body.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+
+        try {
+            const perguntas = PERGUNTAS.riscos;
+            const response = await fetch(`/api/checklist/carregar?auditoria_id=${auditoriaId}&tipo=riscos`);
+            const dados = await response.json();
+
+            let respostasExistentes = [];
+            let sessaoId = null;
+            let status = 'Não iniciado';
+            let observacoes = '';
+
+            if (dados.success) {
+                sessaoId = dados.id;
+                respostasExistentes = dados.respostas || [];
+                status = dados.status || 'Não iniciado';
+                observacoes = dados.observacoes_gerais || '';
+            }
+
+            renderizarChecklistNoModal(body, perguntas, respostasExistentes, 'riscos', sessaoId, observacoes, status);
+        } catch (error) {
+            console.error('Erro:', error);
+            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
+        }
+    }
+
+    async function carregarModalControles(auditoriaId) {
+        const body = document.getElementById('modal-controles-body');
+        if (!body) return;
+
+        body.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+
+        try {
+            const perguntas = PERGUNTAS.controles;
+            const response = await fetch(`/api/checklist/carregar?auditoria_id=${auditoriaId}&tipo=controles`);
+            const dados = await response.json();
+
+            let respostasExistentes = [];
+            let sessaoId = null;
+            let status = 'Não iniciado';
+            let observacoes = '';
+
+            if (dados.success) {
+                sessaoId = dados.id;
+                respostasExistentes = dados.respostas || [];
+                status = dados.status || 'Não iniciado';
+                observacoes = dados.observacoes_gerais || '';
+            }
+
+            renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, 'controles', sessaoId, observacoes, status, auditoriaId);
+        } catch (error) {
+            console.error('Erro:', error);
+            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
+        }
+    }
 
     function renderizarChecklistNoModal(body, perguntas, respostasExistentes, tipo, sessaoId, observacoes, status) {
     
@@ -2132,7 +2258,16 @@
         // Adicionar eventos dos botões (apenas se não estiver concluído)
         if (!estaConcluido) {
             body.querySelectorAll('.btn-salvar-checklist, .btn-concluir-checklist').forEach(btn => {
-                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+                btn.addEventListener('click', function() {
+                    const concluir = this.classList.contains('btn-concluir-checklist');
+                    if (concluir) {
+                        if (confirm('⚠️ Tem certeza que deseja CONCLUIR este checklist?\n\nApós a conclusão, ele não poderá mais ser editado.')) {
+                            salvarChecklist(tipo, true);
+                        }
+                    } else {
+                        salvarChecklist(tipo, false);
+                    }
+                });
             });
         }
     };
@@ -2216,7 +2351,7 @@
                 html += `
                     <div class="pergunta-evidencias">
                         <button type="button" class="btn-anexar-evidencia" data-pergunta-index="${index}" ${estaConcluido ? 'disabled style="opacity:0.5;"' : ''}>
-                            <i class="fas fa-paperclip"></i> Selecionar Evidência
+                            <i class="fas fa-paperclip"></i> Anexar Evidência
                         </button>
                         <input type="file" class="input-evidencia" data-pergunta-index="${index}" style="display: none;" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" multiple>
                         ${evidenciasHtml}
@@ -2271,7 +2406,16 @@
             
             // Eventos dos botões salvar/concluir
             body.querySelectorAll('.btn-salvar-checklist, .btn-concluir-checklist').forEach(btn => {
-                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+                btn.addEventListener('click', function() {
+                    const concluir = this.classList.contains('btn-concluir-checklist');
+                    if (concluir) {
+                        if (confirm('⚠️ Tem certeza que deseja CONCLUIR este checklist?\n\nApós a conclusão, ele não poderá mais ser editado.')) {
+                            salvarChecklist(tipo, true);
+                        }
+                    } else {
+                        salvarChecklist(tipo, false);
+                    }
+                });
             });
         }
     };

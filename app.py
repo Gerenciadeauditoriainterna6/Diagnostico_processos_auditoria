@@ -199,7 +199,7 @@ def diagnostico():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     
-    from modules.execucao.areas import carregar_areas_banco
+    from logic import carregar_areas_banco
     areas = carregar_areas_banco()
     usuario_perfil = session.get('usuario_perfil', 'auditor')
     

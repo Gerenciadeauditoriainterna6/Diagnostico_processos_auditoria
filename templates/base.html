@@ -426,7 +426,7 @@
         }
 
         .sidebar.sidebar-hidden .nav-item.active i {
-            color: rgb(11, 91, 153, 0.9);
+            color: rgba(11, 91, 153, 0.9) !important;
         }
 
         /* Hover na sidebar colapsada */
@@ -1476,6 +1476,8 @@
             const mainPageUrls = ['/detalhamento', '/diagnostico'];
             
             allLinks.forEach(link => {
+
+                
                 const linkUrl = link.getAttribute('href');
                 if (!linkUrl || linkUrl === '#') return;
                 
@@ -1486,6 +1488,11 @@
                     // Para submenu items: verifica se a URL atual contém o link do submenu
                     if (currentUrl.includes(linkUrl)) {
                         link.classList.add('active');
+
+                        const parentNavItem = link.closest('.nav-item-parent')?.querySelector('.nav-item');
+                        if (parentNavItem) {
+                            parentNavItem.classList.add('active');
+                        }
                         
                         // Mostrar o submenu pai
                         const parentSubmenu = link.closest('.submenu');
@@ -1496,6 +1503,7 @@
                                 parentToggle.querySelector('.submenu-arrow').classList.add('open');
                             }
                         }
+                        
                     }
                 } else {
                     // Para itens principais: SÓ marca como ativo se a URL for exatamente igual

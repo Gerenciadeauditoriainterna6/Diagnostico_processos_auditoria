@@ -3537,3 +3537,13 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
     buffer.seek(0)
     return buffer.getvalue()
+
+def carregar_areas_banco():
+    """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
+    query = text("SELECT id_area, nome_area FROM informacoes_area ORDER BY nome_area ASC")
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+
+    # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
+    # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
+    return dict(zip(df['nome_area'], df['id_area']))
