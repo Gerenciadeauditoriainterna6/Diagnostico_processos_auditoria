@@ -273,15 +273,23 @@ def api_processo_etapas(processo_id):
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT id, codigo_etapa, nome_etapa, descricao_etapa,
-                       como_e_feito, objetivo_etapa, status_etapa, criticidade_etapa,
-                       politica_interna, analise_critica, sugestao_melhoria,
-                       necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
-                       executores_etapa,
-                       diagrama_nome, manual_nome, created_at
-                FROM etapas_processo
-                WHERE processo_id = :processo_id
-                ORDER BY codigo_etapa
+                SELECT ep.id, ep.codigo_etapa, ep.nome_etapa, ep.descricao_etapa,
+                    ep.como_e_feito, ep.objetivo_etapa, ep.status_etapa, ep.criticidade_etapa,
+                    ep.politica_interna, ep.analise_critica, ep.sugestao_melhoria,
+                    ep.necessidade_implantacao, ep.ganho_previsto, ep.obrigacoes_regulatorias,
+                    ep.executores_etapa,
+                    ep.manual_nome, ep.created_at,
+                    EXISTS(
+                        SELECT 1 FROM analises_criticas ac 
+                        WHERE ac.etapa_id = ep.id AND ac.tipo_analise = 'entrevistado'
+                    ) as tem_analise_auditado,
+                    EXISTS(
+                        SELECT 1 FROM analises_criticas ac 
+                        WHERE ac.etapa_id = ep.id AND ac.tipo_analise = 'auditor'
+                    ) as tem_analise_auditor
+                FROM etapas_processo ep
+                WHERE ep.processo_id = :processo_id
+                ORDER BY ep.codigo_etapa
             """)
             
             result = conn.execute(query, {'processo_id': processo_id}).fetchall()
@@ -304,9 +312,10 @@ def api_processo_etapas(processo_id):
                     'ganho_previsto': row[12] or '',
                     'obrigacoes_regulatorias': row[13] or '',
                     'executores_etapa': row[14] or '',
-                    'diagrama_nome': row[15] or '',
-                    'manual_nome': row[16] or '',
-                    'created_at': row[17].isoformat() if row[17] else ''
+                    'manual_nome': row[15] or '',                    
+                    'created_at': row[16].isoformat() if row[16] else '',  
+                    'tem_analise_auditado': row[17] if len(row) > 17 else False,  
+                    'tem_analise_auditor': row[18] if len(row) > 18 else False,  
                 })
             
             return jsonify({'success': True, 'etapas': etapas})
@@ -2953,6 +2962,155 @@ def api_usuarios():
             return jsonify({'success': True, 'usuarios': usuarios})
     except Exception as e:
         print(f"❌ Erro ao buscar usuários: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# API - ANÁLISES CRÍTICAS
+# ============================================================
+
+@app.route('/api/etapa/<int:etapa_id>/analises', methods=['GET'])
+def api_etapa_analises(etapa_id):
+    """Retorna todas as análises críticas de uma etapa"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, etapa_id, tipo_analise, categoria,
+                       analise_critica, sugestao_melhoria,
+                       necessidade_implantacao, ganho_previsto,
+                       created_at, updated_at
+                FROM analises_criticas
+                WHERE etapa_id = :etapa_id
+                ORDER BY tipo_analise, categoria
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchall()
+            
+            analises = []
+            for row in result:
+                analises.append({
+                    'id': row[0],
+                    'etapa_id': row[1],
+                    'tipo_analise': row[2],
+                    'categoria': row[3],
+                    'analise_critica': row[4] or '',
+                    'sugestao_melhoria': row[5] or '',
+                    'necessidade_implantacao': row[6] or '',
+                    'ganho_previsto': row[7] or '',
+                    'created_at': row[8].isoformat() if row[8] else '',
+                    'updated_at': row[9].strftime('%Y-%m-%d %H:%M') if row[9] else ''
+                })
+            
+            return jsonify({'success': True, 'analises': analises})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar análises: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise/salvar', methods=['POST'])
+def api_analise_salvar():
+    """Salva ou atualiza uma análise crítica"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    analise_id = data.get('id')
+    etapa_id = data.get('etapa_id')
+    tipo_analise = data.get('tipo_analise', 'entrevistado')
+    categoria = data.get('categoria', 'governanca')
+    analise_critica = data.get('analise_critica', '')
+    sugestao_melhoria = data.get('sugestao_melhoria', '')
+    necessidade_implantacao = data.get('necessidade_implantacao', '')
+    ganho_previsto = data.get('ganho_previsto', '')
+    
+    if not etapa_id:
+        return jsonify({'success': False, 'error': 'etapa_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            if analise_id:
+                # Atualizar
+                query = text("""
+                    UPDATE analises_criticas
+                    SET tipo_analise = :tipo_analise,
+                        categoria = :categoria,
+                        analise_critica = :analise_critica,
+                        sugestao_melhoria = :sugestao_melhoria,
+                        necessidade_implantacao = :necessidade_implantacao,
+                        ganho_previsto = :ganho_previsto,
+                        updated_at = NOW()
+                    WHERE id = :id
+                """)
+                conn.execute(query, {
+                    'id': analise_id,
+                    'tipo_analise': tipo_analise,
+                    'categoria': categoria,
+                    'analise_critica': analise_critica,
+                    'sugestao_melhoria': sugestao_melhoria,
+                    'necessidade_implantacao': necessidade_implantacao,
+                    'ganho_previsto': ganho_previsto
+                })
+            else:
+                # Inserir nova
+                query = text("""
+                    INSERT INTO analises_criticas
+                    (etapa_id, tipo_analise, categoria, analise_critica,
+                     sugestao_melhoria, necessidade_implantacao, ganho_previsto)
+                    VALUES (:etapa_id, :tipo_analise, :categoria, :analise_critica,
+                            :sugestao_melhoria, :necessidade_implantacao, :ganho_previsto)
+                    RETURNING id
+                """)
+                result = conn.execute(query, {
+                    'etapa_id': etapa_id,
+                    'tipo_analise': tipo_analise,
+                    'categoria': categoria,
+                    'analise_critica': analise_critica,
+                    'sugestao_melhoria': sugestao_melhoria,
+                    'necessidade_implantacao': necessidade_implantacao,
+                    'ganho_previsto': ganho_previsto
+                })
+                analise_id = result.fetchone()[0]
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'id': analise_id,
+                'message': 'Análise salva com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar análise: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise/<int:analise_id>', methods=['DELETE'])
+def api_analise_excluir(analise_id):
+    """Exclui uma análise crítica"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("DELETE FROM analises_criticas WHERE id = :id")
+            conn.execute(query, {'id': analise_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Análise excluída'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir análise: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

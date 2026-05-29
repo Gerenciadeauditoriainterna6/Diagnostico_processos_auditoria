@@ -7,8 +7,8 @@
     <div class="page-header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h1><i class="fas fa-project-diagram"></i> Detalhamento de Etapas</h1>
-                <p id="processo-info">Carregando informações do processo...</p>
+                <h1><i class="fas fa-project-diagram"></i> Detalhamento das Etapas</h1>
+                <p id="processo-info"></p>
             </div>
             <button class="btn-voltar" id="btn-voltar-detalhamento">
                 <i class="fas fa-arrow-left"></i> Voltar
@@ -25,13 +25,18 @@
         </div>
     </div>
 
-    <!-- Lista de Etapas -->
-    <div class="form-section">
-        <h3><i class="fas fa-list"></i> Etapas do Processo</h3>
-        <div id="etapas-container" style="margin-top: 20px;">
-            <div class="loading-message" style="text-align: center; padding: 40px;">
-                <i class="fas fa-spinner fa-spin"></i> Carregando etapas...
-            </div>
+    <!-- Container Integrado de Etapas -->
+    <div style="background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 25px;">
+        <!-- Cabeçalho -->
+        <div style="padding: 15px 25px; border-bottom: 2px solid #e0e0e0;">
+            <h3 style="color: #184145; margin: 0;">
+                <i class="fas fa-list"></i> Etapas do Processo
+            </h3>
+        </div>
+        
+        <!-- Corpo com os cards de etapa -->
+        <div id="etapas-container" style="padding: 20px;">
+            
         </div>
     </div>
 </div>
@@ -114,19 +119,7 @@
                 </div>
             </div>
 
-            <!-- Upload de Arquivos -->
-            <div class="form-group">
-                <label><i class="fas fa-project-diagram"></i> Diagrama BPMN</label>
-                <div class="custom-file-upload">
-                    <button type="button" class="file-upload-button" onclick="document.getElementById('modal-diagrama').click()">
-                        <i class="fas fa-cloud-upload-alt"></i> Inserir Diagrama
-                    </button>
-                    <input type="file" id="modal-diagrama" accept=".bpmn,.xml,.png,.jpg,.jpeg" style="display: none;">
-                </div>
-                <small class="text-muted">Formatos: BPMN, XML, PNG, JPG (Max: 10MB)</small>
-                <div id="diagrama-nome" class="file-name" style="display: none;"></div>
-            </div>
-
+            <!-- Upload de Manual -->
             <div class="form-group">
                 <label><i class="fas fa-book"></i> Manual da Etapa</label>
                 <div class="custom-file-upload">
@@ -139,51 +132,106 @@
                 <div id="manual-nome" class="file-name" style="display: none;"></div>
             </div>
 
-            <div class="form-group">
-                <label><i class="fas fa-draw-polygon"></i> Arquivo do Escritório de Mapeamento dos Processos</label>
-                <div class="custom-file-upload">
-                    <button type="button" class="file-upload-button" onclick="document.getElementById('modal-arquivo-mapeamento').click()">
-                        <i class="fas fa-cloud-upload-alt"></i> Inserir Arquivo
-                    </button>
-                    <input type="file" id="modal-arquivo-mapeamento" accept=".pdf,.doc,.docx,.jpg,.png" style="display: none;">
-                </div>
-                <small class="text-muted">Arquivo produzido pela equipe de escritório de mapeamento. Formatos: PDF, DOC, DOCX, JPG, PNG (Max: 10MB)</small>
-                <div id="arquivo-mapeamento-nome" class="file-name" style="display: none;"></div>
-            </div>
+    
 
             <div class="form-group">
                 <label><i class="fas fa-gavel"></i> Política Interna</label>
                 <textarea id="modal-politica-interna" class="form-control" rows="2" placeholder="Políticas internas aplicáveis..."></textarea>
             </div>
 
-            <div class="form-group">
-                <label><i class="fas fa-chart-bar"></i> Análise Crítica</label>
-                <textarea id="modal-analise-critica" class="form-control" rows="2" placeholder="Análise crítica da etapa..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</label>
-                <textarea id="modal-sugestao-melhoria" class="form-control" rows="2" placeholder="Sugestões de melhoria para esta etapa..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label><i class="fas fa-tools"></i> Necessidade de implantação</label>
-                <textarea id="modal-necessidade-implantacao" class="form-control" rows="2" placeholder="O que é necessário para implantar?"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label><i class="fas fa-chart-line"></i> Ganho previsto</label>
-                <textarea id="modal-ganho-previsto" class="form-control" rows="2" placeholder="Ganhos esperados com a etapa..."></textarea>
-            </div>
 
             <div class="form-group">
                 <label><i class="fas fa-balance-scale"></i> Obrigações Regulatórias</label>
                 <textarea id="modal-obrigacoes-regulatorias" class="form-control" rows="2" placeholder="Normas e regulamentações aplicáveis..."></textarea>
             </div>
+
+            <!-- Seção de Análises Críticas -->
+            <div class="form-section-inline" style="margin-top: 20px; border-top: 2px solid #e0e0e0; padding-top: 20px;">
+                <h4 style="color: #184145; margin-bottom: 15px;">
+                    <i class="fas fa-clipboard-check"></i> Análises Críticas
+                </h4>
+                <p class="text-muted" style="margin-bottom: 15px;">
+                    Cadastre as análises críticas do auditado e do auditor para esta etapa.
+                </p>
+                
+                <!-- Lista de análises existentes -->
+                <div id="analises-lista" style="margin-bottom: 15px;">
+                    <!-- Preenchido dinamicamente -->
+                </div>
+                
+                <!-- Botão para adicionar nova análise -->
+                <button type="button" class="btn-outline" id="btn-nova-analise" style="width: 100%;">
+                    <i class="fas fa-plus"></i> Adicionar Análise Crítica
+                </button>
+                
+                <!-- Formulário de análise (escondido por padrão) -->
+                <div id="form-analise" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <input type="hidden" id="analise-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo de Análise</label>
+                            <select id="analise-tipo" class="form-control">
+                                <option value="entrevistado">Auditado</option>
+                                <option value="auditor">Auditor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select id="analise-categoria" class="form-control">
+                                <option value="governanca">Governança</option>
+                                <option value="riscos">Riscos</option>
+                                <option value="controles">Controles</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Análise Crítica</label>
+                        <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sugestão de Melhoria</label>
+                        <textarea id="analise-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Necessidade de Implantação</label>
+                        <textarea id="analise-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ganho Previsto</label>
+                        <textarea id="analise-ganho" class="form-control" rows="2" placeholder="Ganhos previstos..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn-cancelar-modal-etapa" id="btn-cancelar-analise">Cancelar</button>
+                        <button type="button" class="btn-salvar-modal-etapa" id="btn-salvar-analise">Salvar Análise</button>
+                    </div>
+                    
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-cancelar-modal-etapa" id="btn-cancelar-modal-etapa">Cancelar</button>
             <button type="button" class="btn-salvar-modal-etapa" id="btn-salvar-modal-etapa">Salvar Etapa</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA VISUALIZAÇÃO DA ETAPA -->
+<div id="modal-visualizar-etapa" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3><i class="fas fa-eye"></i> Visualizar Etapa</h3>
+            <button type="button" class="modal-close" onclick="fecharModalVisualizar()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-visualizar-body">
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-spinner fa-spin"></i> Carregando...
+            </div>
         </div>
     </div>
 </div>
@@ -644,148 +692,10 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
-    /* Estilização personalizada para upload de arquivos */
-    .custom-file-upload {
-        position: relative;
-        display: inline-block;
-        width: 100%;
-    }
-
-    .custom-file-upload input[type="file"] {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .file-upload-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
-        background: linear-gradient(135deg, #184145 0%, #0d2e31 100%);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .file-upload-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(24,65,69,0.3);
-        background: linear-gradient(135deg, #1a5559 0%, #0f3a3e 100%);
-    }
-
-    .file-upload-button:active {
-        transform: translateY(0);
-    }
-
-    .file-upload-button i {
-        font-size: 16px;
-    }
-
-    .file-name {
-        margin-top: 8px;
-        font-size: 12px;
-        color: #666;
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-radius: 6px;
-        border-left: 3px solid #184145;
-        word-break: break-all;
-    }
-
-    .file-name i {
-        margin-right: 6px;
-        color: #184145;
-    }
-
-    .file-name .remove-file {
-        float: right;
-        cursor: pointer;
-        color: #dc3545;
-        margin-left: 10px;
-        font-weight: bold;
-    }
-
-    .file-name .remove-file:hover {
-        color: #c82333;
-        transform: scale(1.1);
-    }
-
-    .file-info {
-        font-size: 11px;
-        color: #28a745;
-        margin-left: 8px;
-    }
-
-    .undo-remove {
-        float: right;
-        cursor: pointer;
-        color: #007bff;
-        margin-left: 10px;
-        font-weight: bold;
-    }
-
-    .undo-remove:hover {
-        color: #0056b3;
-        text-decoration: underline;
-    }
-
-    .file-name[data-remover-arquivo="true"] {
-        background-color: #fff3cd;
-        border-left-color: #ffc107;
-    }
-
-    /* Ícone de anexo */
-    .anexo-icon {
-        color: #0b5b99;
-        font-size: 14px;
-        position: relative;
-        left: -5px;  /* ← Move para esquerda (valores negativos) */
-        animation: pulse 2s ease-in-out infinite;
-    }
-
-    .anexo-icon:hover {
-        color: #184145;
-        transform: scale();
-    }
 
     /* Tooltip personalizado */
     .etapa-info {
         position: relative;
-    }
-
-    .anexo-tooltip {
-        position: absolute;
-        background: #333;
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 12px;
-        white-space: nowrap;
-        top: -30px;
-        left: 50%;
-        transform: translateX(-50%);
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s;
-        z-index: 1000;
-    }
-
-    .anexo-tooltip::before {
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-width: 5px;
-        border-style: solid;
-        border-color: #333 transparent transparent transparent;
     }
 
     .etapa-info:hover .anexo-tooltip {
@@ -1022,7 +932,294 @@
     .selected-badge .remove-badge:hover {
         color: #ff6b6b;
     }
+    /* Badge de Status da Análise Crítica */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
 
+    .status-pendente {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+
+    .status-concluido {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #28a745;
+    }
+
+    /* Cards de Análise Crítica */
+    .analise-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        transition: all 0.2s;
+    }
+
+    .analise-card:hover {
+        border-color: #184145;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .analise-card-info {
+        flex: 1;
+    }
+
+    .analise-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+    }
+
+    .analise-card-tipo {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .analise-card-tipo.entrevistado {
+        background: #e8f4f8;
+        color: #0b5b99;
+    }
+
+    .analise-card-tipo.auditor {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .analise-card-categoria {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background: #f0f0f0;
+        color: #666;
+    }
+
+    .analise-card-texto {
+        font-size: 13px;
+        color: #333;
+        line-height: 1.4;
+    }
+
+    .analise-card-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .analise-card-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .btn-edit-analise {
+        color: #ffc107;
+    }
+    .btn-edit-analise:hover { background: #fff3cd; }
+
+    .btn-delete-analise {
+        color: #dc3545;
+    }
+    .btn-delete-analise:hover { background: #f8d7da; }
+
+    /* Seção vazia */
+    .analises-empty {
+        text-align: center;
+        padding: 20px;
+        color: #999;
+        font-size: 13px;
+    }
+
+    .custom-file-upload {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-upload-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #184145 0%, #0d2e31 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .file-upload-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(24,65,69,0.3);
+    }
+
+    .file-name {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #666;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #184145;
+    }
+
+    .file-info {
+        font-size: 11px;
+        color: #28a745;
+        margin-left: 8px;
+    }
+
+    .remove-file {
+        float: right;
+        cursor: pointer;
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .remove-file:hover {
+        color: #c82333;
+    }
+
+    .status-vazio {
+        background: #e9ecef;
+        color: #6c757d;
+        border: 1px solid #ced4da;
+    }
+
+    .analise-card-detalhes {
+        margin-top: 8px;
+    }
+
+    .analise-detalhe {
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 4px;
+        line-height: 1.4;
+        padding: 4px 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .analise-detalhe strong {
+        color: #184145;
+    }
+
+    .btn-view-etapa {
+        color: #0b5b99;
+    }
+
+    .btn-view-etapa:hover {
+        background: rgba(11, 91, 153, 0.2);
+        color: #07416d;
+    }
+
+    /* Visualização da Etapa */
+    .vis-etapa-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .vis-secao {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 15px;
+    }
+
+    .vis-secao h4 {
+        color: #184145;
+        margin: 0 0 12px 0;
+        font-size: 15px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .vis-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .vis-item {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .vis-item.vis-full {
+        grid-column: 1 / -1;
+    }
+
+    .vis-item label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+    }
+
+    .vis-item span {
+        font-size: 14px;
+        color: #333;
+        background: #f8f9fa;
+        padding: 8px 10px;
+        border-radius: 6px;
+    }
+
+    #processo-info {
+        margin-top: 10px;
+    }
+
+    /* ===== SPINNER DE BOLINHAS ===== */
+    .dot-spinner {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background: #184145;
+        border-radius: 50%;
+        animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    .dot:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+    }
 
 </style>
 
@@ -1063,10 +1260,6 @@
             status_etapa: document.getElementById('modal-status-etapa').value,
             criticidade_etapa: document.getElementById('modal-criticidade-etapa').value,
             politica_interna: document.getElementById('modal-politica-interna').value,
-            analise_critica: document.getElementById('modal-analise-critica').value,
-            sugestao_melhoria: document.getElementById('modal-sugestao-melhoria').value,
-            necessidade_implantacao: document.getElementById('modal-necessidade-implantacao').value,
-            ganho_previsto: document.getElementById('modal-ganho-previsto').value,
             obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias').value,
             // Salvar IDs dos executores selecionados
             executores_ids: Array.from(selectedExecutoresMap.keys()).join(','),
@@ -1161,10 +1354,6 @@
         document.getElementById('modal-status-etapa').value = rascunho.status_etapa || 'Ativa';
         document.getElementById('modal-criticidade-etapa').value = rascunho.criticidade_etapa || 'Em aprovação';
         document.getElementById('modal-politica-interna').value = rascunho.politica_interna || '';
-        document.getElementById('modal-analise-critica').value = rascunho.analise_critica || '';
-        document.getElementById('modal-sugestao-melhoria').value = rascunho.sugestao_melhoria || '';
-        document.getElementById('modal-necessidade-implantacao').value = rascunho.necessidade_implantacao || '';
-        document.getElementById('modal-ganho-previsto').value = rascunho.ganho_previsto || '';
         document.getElementById('modal-obrigacoes-regulatorias').value = rascunho.obrigacoes_regulatorias || '';
         
         // Restaurar executores selecionados
@@ -1193,8 +1382,8 @@
         const campos = [
             'modal-nome-etapa', 'modal-descricao-etapa', 'modal-como-feito',
             'modal-objetivo-etapa', 'modal-status-etapa', 'modal-criticidade-etapa',
-            'modal-politica-interna', 'modal-analise-critica', 'modal-sugestao-melhoria',
-            'modal-necessidade-implantacao', 'modal-ganho-previsto', 'modal-obrigacoes-regulatorias'
+            'modal-politica-interna', /*'modal-analise-critica', 'modal-sugestao-melhoria',
+            'modal-necessidade-implantacao', 'modal-ganho-previsto',*/ 'modal-obrigacoes-regulatorias'
         ];
         
         campos.forEach(campoId => {
@@ -1654,36 +1843,8 @@
         document.getElementById('modal-status-etapa').value = 'Ativa';
         document.getElementById('modal-criticidade-etapa').value = 'Em aprovação';
         document.getElementById('modal-politica-interna').value = '';
-        document.getElementById('modal-analise-critica').value = '';
-        document.getElementById('modal-sugestao-melhoria').value = '';
-        document.getElementById('modal-necessidade-implantacao').value = '';
-        document.getElementById('modal-ganho-previsto').value = '';
         document.getElementById('modal-obrigacoes-regulatorias').value = '';
         
-        const diagramaInput = document.getElementById('modal-diagrama');
-        const manualInput = document.getElementById('modal-manual');
-        const mapeamentoInput = document.getElementById('modal-arquivo-mapeamento');
-
-        if (diagramaInput) diagramaInput.value = '';
-        if (manualInput) manualInput.value = '';
-        if (mapeamentoInput) mapeamentoInput.value = '';
-        
-        const diagramaNomeDiv = document.getElementById('diagrama-nome');
-        const manualNomeDiv = document.getElementById('manual-nome');
-        const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-name');  // ← NOVO
-
-        if (diagramaNomeDiv) {
-            diagramaNomeDiv.style.display = 'none';
-            diagramaNomeDiv.innerHTML = '';
-        }
-        if (manualNomeDiv) {
-            manualNomeDiv.style.display = 'none';
-            manualNomeDiv.innerHTML = '';
-        }
-        if (mapeamentoNomeDiv) {
-            mapeamentoNomeDiv.style.display = 'none';
-            mapeamentoNomeDiv.innerHTML = '';
-        }
 
         limparExecutoresSelecionados();
         
@@ -1735,10 +1896,7 @@
             console.error('Erro ao buscar nome do processo:', error);
         }
 
-        // Mostrar informações básicas do processo
-        document.getElementById('processo-info').innerHTML = `
-            <i class="fas fa-tag"></i> Processo: <strong>${escapeHtml(processoAtualCodigo || '')}</strong> - ${escapeHtml(nomeProcesso)}
-        `;
+        
         document.getElementById('modal-processo-id').value = processoAtualId;
 
         // ===== VERIFICAR PERMISSÃO DA AUDITORIA =====
@@ -1746,8 +1904,13 @@
             // Mostrar loading enquanto verifica
             const etapasContainer = document.getElementById('etapas-container');
             etapasContainer.innerHTML = `
-                <div class="loading-message" style="text-align: center; padding: 40px;">
-                    <i class="fas fa-spinner fa-spin"></i> Verificando permissão...
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div class="dot-spinner">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Verificando permissão...</p>
                 </div>
             `;
             
@@ -1787,7 +1950,16 @@
 
     async function carregarEtapas() {
         const container = document.getElementById('etapas-container');
-        container.innerHTML = '<div class="loading-message"><i class="fas fa-spinner fa-spin"></i> Carregando etapas...</div>';
+        container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div class="dot-spinner">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando etapas do processo...</p>
+                </div>
+            `;
 
         try {
             const response = await fetch(`/api/processo/${processoAtualId}/etapas`);
@@ -1819,14 +1991,6 @@
     }
 
     // ============================================================
-    // DOWNLOAD
-    // ============================================================
-
-    function downloadArquivo(etapaId, tipo) {
-        window.open(`/api/etapa/${etapaId}/download/${tipo}`, '_blank');
-    }
-
-    // ============================================================
     // RENDERIZAÇÃO DAS ETAPAS
     // ============================================================
 
@@ -1835,19 +1999,22 @@
         
         Promise.all(etapas.map(async (etapa) => {
             const executoresNomes = await getNomesExecutores(etapa.executores_etapa);
-            
-            const temDiagrama = etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '';
-            const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
-            const temAnexos = temDiagrama || temManual;
-            const anexoIcon = temAnexos ? '<i class="fas fa-paperclip anexo-icon" title="Possui anexos"></i>' : '';
-            
-            let anexoTooltip = '';
-            if (temAnexos) {
-                const anexosList = [];
-                if (temDiagrama) anexosList.push('📊 Diagrama BPMN');
-                if (temManual) anexosList.push('📖 Manual');
-                anexoTooltip = `data-tooltip="Anexos: ${anexosList.join(' | ')}"`;
+            const temAnaliseAuditado = etapa.tem_analise_auditado;
+            const temAnaliseAuditor = etapa.tem_analise_auditor;
+            let statusBadge = '';
+            if (!temAnaliseAuditado) {
+                // Auditado ainda não fez a análise
+                statusBadge = '<span class="status-badge status-vazio"><i class="fas fa-circle"></i> Aguardando Análise do Auditado</span>';
+            } else if (temAnaliseAuditado && !temAnaliseAuditor) {
+                // Auditado fez, mas auditor ainda não
+                statusBadge = '<span class="status-badge status-pendente"><i class="fas fa-clock"></i> Pendente de Análise do Auditor</span>';
+            } else {
+                // Ambos fizeram
+                statusBadge = '<span class="status-badge status-concluido"><i class="fas fa-check-circle"></i> Analisado</span>';
             }
+        
+            const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
+            const anexoIcon = temManual ? '<i class="fas fa-paperclip" title="Possui manual"></i>' : '';
             
             return `
                 <div class="etapa-card" data-etapa-id="${etapa.id}">
@@ -1855,10 +2022,13 @@
                         <div class="etapa-info">
                             <span class="etapa-codigo">${escapeHtml(etapa.codigo_etapa)}</span>
                             <span class="etapa-nome">${escapeHtml(etapa.nome_etapa)}</span>
+                            ${statusBadge}
                             ${anexoIcon}
-                            <span class="anexo-tooltip" ${anexoTooltip}></span>
                         </div>
                         <div class="etapa-actions">
+                            <button class="btn-view-etapa" onclick="event.stopPropagation(); visualizarEtapa(${etapa.id})" title="Visualizar detalhes">
+                                <i class="fas fa-eye"></i>
+                            </button>
                             <button class="btn-edit-etapa" onclick="event.stopPropagation(); editarEtapa(${etapa.id})" title="Editar">
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
@@ -1885,16 +2055,6 @@
                                 <div class="etapa-detalhe-label">Objetivo</div>
                                 <div class="etapa-detalhe-value">${escapeHtml(etapa.objetivo_etapa) || '-'}</div>
                             </div>
-                            ${temDiagrama ? `
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Diagrama BPMN</div>
-                                <div class="etapa-detalhe-value">
-                                    <a href="#" onclick="downloadArquivo(${etapa.id}, 'diagrama'); return false;">
-                                        <i class="fas fa-file-download"></i> ${escapeHtml(etapa.diagrama_nome)}
-                                    </a>
-                                </div>
-                            </div>
-                            ` : ''}
                             ${temManual ? `
                             <div class="etapa-detalhe-item">
                                 <div class="etapa-detalhe-label">Manual da Etapa</div>
@@ -1908,22 +2068,6 @@
                             <div class="etapa-detalhe-item">
                                 <div class="etapa-detalhe-label">Política Interna</div>
                                 <div class="etapa-detalhe-value">${escapeHtml(etapa.politica_interna) || '-'}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Análise Crítica</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.analise_critica) || '-'}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Sugestão de Melhoria</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.sugestao_melhoria) || '-'}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Necessidade de implantação</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.necessidade_implantacao) || '-'}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Ganho previsto</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.ganho_previsto) || '-'}</div>
                             </div>
                             <div class="etapa-detalhe-item">
                                 <div class="etapa-detalhe-label">Obrigações Regulatórias</div>
@@ -1947,43 +2091,7 @@
     // CRUD DO MODAL
     // ============================================================
 
-    function removerArquivoExistente(tipo, etapaId) {
-        if (confirm(`Tem certeza que deseja remover este ${tipo === 'diagrama' ? 'diagrama' : (tipo === 'manual' ? 'manual' : 'arquivo de mapeamento')}?`)) {
-            const nomeDiv = document.getElementById(`${tipo === 'arquivo-mapeamento' ? 'arquivo-mapeamento-nome' : tipo + '-nome'}`);
-            nomeDiv.setAttribute('data-remover-arquivo', 'true');
-            nomeDiv.innerHTML = `
-                <i class="fas fa-trash-alt"></i> 
-                Arquivo removido (será excluído ao salvar)
-                <span class="undo-remove" onclick="desfazerRemocaoArquivo('${tipo}')">↩️ Desfazer</span>
-            `;
-            nomeDiv.style.backgroundColor = '#fff3cd';
-            nomeDiv.style.borderLeftColor = '#ffc107';
-            const fileInput = document.getElementById(`modal-${tipo}`);
-            if (fileInput) fileInput.value = '';
-        }
-    }
-
-    function desfazerRemocaoArquivo(tipo) {
-        const nomeDiv = document.getElementById(`${tipo}-nome`);
-        const temArquivo = nomeDiv.getAttribute('data-tem-arquivo') === 'true';
-        const arquivoNome = nomeDiv.getAttribute('data-arquivo-nome') || '';
-        
-        if (temArquivo && arquivoNome) {
-            nomeDiv.innerHTML = `
-                <i class="fas fa-paperclip"></i> 
-                ${escapeHtml(arquivoNome)} 
-                <span class="file-info">(arquivo atual)</span>
-                <span class="remove-file" onclick="removerArquivoExistente('${tipo}', ${document.getElementById('modal-etapa-id').value})">&times;</span>
-            `;
-            nomeDiv.style.backgroundColor = '';
-            nomeDiv.style.borderLeftColor = '';
-            nomeDiv.removeAttribute('data-remover-arquivo');
-        } else {
-            nomeDiv.style.display = 'none';
-            nomeDiv.removeAttribute('data-remover-arquivo');
-        }
-    }
-
+    
     async function gerarCodigoEtapa() {
         try {
             const response = await fetch(`/api/etapa/gerar-codigo?processo_id=${processoAtualId}`);
@@ -2004,6 +2112,9 @@
         limparExecutoresSelecionados();
         setupExecutoresSelector();
         setupAutoSave(); // Configurar auto save
+        analisesLista = [];
+        renderizarAnalises();
+        esconderFormAnalise();
     
         // Tentar carregar rascunho
         carregarRascunho();
@@ -2032,10 +2143,6 @@
                 document.getElementById('modal-status-etapa').value = etapa.status_etapa;
                 document.getElementById('modal-criticidade-etapa').value = etapa.criticidade_etapa;
                 document.getElementById('modal-politica-interna').value = etapa.politica_interna;
-                document.getElementById('modal-analise-critica').value = etapa.analise_critica;
-                document.getElementById('modal-sugestao-melhoria').value = etapa.sugestao_melhoria;
-                document.getElementById('modal-necessidade-implantacao').value = etapa.necessidade_implantacao;
-                document.getElementById('modal-ganho-previsto').value = etapa.ganho_previsto;
                 document.getElementById('modal-obrigacoes-regulatorias').value = etapa.obrigacoes_regulatorias;
 
                 await carregarExecutoresProcesso();
@@ -2047,58 +2154,36 @@
                 
                 setupExecutoresSelector();
                 setupAutoSave(); // Reativar auto save
+                
                 autoSaveEnabled = true;
-                
-                const diagramaNomeDiv = document.getElementById('diagrama-nome');
-                if (etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '') {
-                    diagramaNomeDiv.innerHTML = `
-                        <i class="fas fa-paperclip"></i> 
-                        ${escapeHtml(etapa.diagrama_nome)} 
-                        <span class="file-info">(arquivo atual)</span>
-                        <span class="remove-file" onclick="removerArquivoExistente('diagrama', ${etapa.id})">&times;</span>
-                    `;
-                    diagramaNomeDiv.style.display = 'block';
-                    diagramaNomeDiv.setAttribute('data-tem-arquivo', 'true');
-                    diagramaNomeDiv.setAttribute('data-arquivo-nome', etapa.diagrama_nome);
-                } else {
-                    diagramaNomeDiv.style.display = 'none';
-                    diagramaNomeDiv.setAttribute('data-tem-arquivo', 'false');
-                }
-                
+
+                console.log('🔍 Verificando manual-nome:', document.getElementById('manual-nome'));
+                console.log('🔍 Verificando modal-etapa:', document.getElementById('modal-etapa'));
+                                
                 const manualNomeDiv = document.getElementById('manual-nome');
-                if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
-                    manualNomeDiv.innerHTML = `
-                        <i class="fas fa-paperclip"></i> 
-                        ${escapeHtml(etapa.manual_nome)} 
-                        <span class="file-info">(arquivo atual)</span>
-                        <span class="remove-file" onclick="removerArquivoExistente('manual', ${etapa.id})">&times;</span>
-                    `;
-                    manualNomeDiv.style.display = 'block';
-                    manualNomeDiv.setAttribute('data-tem-arquivo', 'true');
-                    manualNomeDiv.setAttribute('data-arquivo-nome', etapa.manual_nome);
-                } else {
-                    manualNomeDiv.style.display = 'none';
-                    manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
+                if (manualNomeDiv) {
+                    if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
+                        manualNomeDiv.innerHTML = `
+                            <i class="fas fa-paperclip"></i> 
+                            ${escapeHtml(etapa.manual_nome)} 
+                            <span class="file-info">(arquivo atual)</span>
+                            <span class="remove-file" onclick="removeFile('manual')">&times;</span>
+                        `;
+                        manualNomeDiv.style.display = 'block';
+                        manualNomeDiv.setAttribute('data-tem-arquivo', 'true');
+                        manualNomeDiv.setAttribute('data-arquivo-nome', etapa.manual_nome);
+                    } else {
+                        manualNomeDiv.style.display = 'none';
+                        manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
+                    }
                 }
 
-                // Arquivo de Mapeamento
-                const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-nome');
-                if (etapa.arquivo_mapeamento_nome && etapa.arquivo_mapeamento_nome.trim() !== '') {
-                    mapeamentoNomeDiv.innerHTML = `
-                        <i class="fas fa-paperclip"></i> 
-                        ${escapeHtml(etapa.arquivo_mapeamento_nome)} 
-                        <span class="file-info">(arquivo atual)</span>
-                        <span class="remove-file" onclick="removerArquivoExistente('arquivo-mapeamento', ${etapa.id})">&times;</span>
-                    `;
-                    mapeamentoNomeDiv.style.display = 'block';
-                    mapeamentoNomeDiv.setAttribute('data-tem-arquivo', 'true');
-                    mapeamentoNomeDiv.setAttribute('data-arquivo-nome', etapa.arquivo_mapeamento_nome);
-                } else {
-                    mapeamentoNomeDiv.style.display = 'none';
-                    mapeamentoNomeDiv.setAttribute('data-tem-arquivo', 'false');
-                }
                 
                 document.getElementById('modal-etapa').style.display = 'flex';
+
+                // Carregar análises após o modal estar visível
+                await carregarAnalises(etapaId);
+                esconderFormAnalise();
             }
         } catch (error) {
             console.error('Erro ao carregar etapa:', error);
@@ -2154,33 +2239,11 @@
             status_etapa: document.getElementById('modal-status-etapa').value,
             criticidade_etapa: document.getElementById('modal-criticidade-etapa').value,
             politica_interna: document.getElementById('modal-politica-interna').value,
-            analise_critica: document.getElementById('modal-analise-critica').value,
-            sugestao_melhoria: document.getElementById('modal-sugestao-melhoria').value,
-            necessidade_implantacao: document.getElementById('modal-necessidade-implantacao').value,
-            ganho_previsto: document.getElementById('modal-ganho-previsto').value,
             obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias').value,
             executores_etapa: executoresEtapa
         };
 
-        const diagramaFile = document.getElementById('modal-diagrama').files[0];
-        const diagramaNomeDiv = document.getElementById('diagrama-nome');
-        const removerDiagrama = diagramaNomeDiv.getAttribute('data-remover-arquivo') === 'true';
-
         
-        if (diagramaFile) {
-            const diagramaBase64 = await converterParaBase64(diagramaFile);
-            payload.diagrama_base64 = diagramaBase64;
-            payload.diagrama_nome = diagramaFile.name;
-            payload.diagrama_tipo = diagramaFile.type;
-            payload.remover_diagrama = false;
-        } else if (removerDiagrama) {
-            payload.remover_diagrama = true;
-            payload.diagrama_nome = null;
-            payload.diagrama_tipo = null;
-        } else {
-            payload.remover_diagrama = false;
-        }
-
         const manualFile = document.getElementById('modal-manual').files[0];
         const manualNomeDiv = document.getElementById('manual-nome');
         const removerManual = manualNomeDiv.getAttribute('data-remover-arquivo') === 'true';
@@ -2199,24 +2262,6 @@
             payload.remover_manual = false;
         }
 
-        // Processar arquivo de mapeamento
-        const mapeamentoFile = document.getElementById('modal-arquivo-mapeamento').files[0];
-        const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-nome');
-        const removerMapeamento = mapeamentoNomeDiv.getAttribute('data-remover-arquivo') === 'true';
-
-        if (mapeamentoFile) {
-            const mapeamentoBase64 = await converterParaBase64(mapeamentoFile);
-            payload.arquivo_mapeamento_base64 = mapeamentoBase64;
-            payload.arquivo_mapeamento_nome = mapeamentoFile.name;
-            payload.arquivo_mapeamento_tipo = mapeamentoFile.type;
-            payload.remover_arquivo_mapeamento = false;
-        } else if (removerMapeamento) {
-            payload.remover_arquivo_mapeamento = true;
-            payload.arquivo_mapeamento_nome = null;
-            payload.arquivo_mapeamento_tipo = null;
-        } else {
-            payload.remover_arquivo_mapeamento = false;
-        }
 
         try {
             const response = await fetch('/api/etapa/salvar', {
@@ -2240,67 +2285,6 @@
         }
     }
 
-    function setupFileInputs() {
-        const diagramaInput = document.getElementById('modal-diagrama');
-        const manualInput = document.getElementById('modal-manual');
-        const mapeamentoInput = document.getElementById('modal-arquivo-mapeamento');  // ← NOVO
-        
-        const diagramaNomeDiv = document.getElementById('diagrama-nome');
-        const manualNomeDiv = document.getElementById('manual-nome');
-        const mapeamentoNomeDiv = document.getElementById('arquivo-mapeamento-nome');  // ← NOVO
-        
-        // Diagrama (já existente)
-        if (diagramaInput) {
-            diagramaInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    diagramaNomeDiv.innerHTML = `
-                        <i class="fas fa-paperclip"></i> 
-                        ${escapeHtml(file.name)} (${formatFileSize(file.size)})
-                        <span class="remove-file" onclick="removeFile('diagrama')">&times;</span>
-                    `;
-                    diagramaNomeDiv.style.display = 'block';
-                } else {
-                    diagramaNomeDiv.style.display = 'none';
-                }
-            });
-        }
-        
-        // Manual (já existente)
-        if (manualInput) {
-            manualInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    manualNomeDiv.innerHTML = `
-                        <i class="fas fa-paperclip"></i> 
-                        ${escapeHtml(file.name)} (${formatFileSize(file.size)})
-                        <span class="remove-file" onclick="removeFile('manual')">&times;</span>
-                    `;
-                    manualNomeDiv.style.display = 'block';
-                } else {
-                    manualNomeDiv.style.display = 'none';
-                }
-            });
-        }
-        
-        // 🔧 NOVO: Arquivo de Mapeamento
-        if (mapeamentoInput) {
-            mapeamentoInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    mapeamentoNomeDiv.innerHTML = `
-                        <i class="fas fa-paperclip"></i> 
-                        ${escapeHtml(file.name)} (${formatFileSize(file.size)})
-                        <span class="remove-file" onclick="removeFile('arquivo-mapeamento')">&times;</span>
-                    `;
-                    mapeamentoNomeDiv.style.display = 'block';
-                } else {
-                    mapeamentoNomeDiv.style.display = 'none';
-                }
-            });
-        }
-    }
-
     function removeFile(tipo) {
         const input = document.getElementById(`modal-${tipo}`);
         const nomeDiv = document.getElementById(`${tipo}-nome`);
@@ -2312,13 +2296,327 @@
         }
     }
 
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    // ============================================================
+    // ANÁLISES CRÍTICAS
+    // ============================================================
+
+    let analisesLista = [];
+
+    // Carregar análises da etapa
+    async function carregarAnalises(etapaId) {
+        const container = document.getElementById('analises-lista');
+        if (!container) {
+            console.warn('Container analises-lista não encontrado');
+            return;
+        }
+        try {
+            const response = await fetch(`/api/etapa/${etapaId}/analises`);
+            const data = await response.json();
+            
+            if (data.success) {
+                analisesLista = data.analises || [];
+                renderizarAnalises();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar análises:', error);
+        }
     }
+
+    // Renderizar lista de análises
+    function renderizarAnalises() {
+        const container = document.getElementById('analises-lista');
+        if (!container) return;
+        
+        if (analisesLista.length === 0) {
+            container.innerHTML = '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhuma análise crítica cadastrada.</div>';
+            return;
+        }
+        
+        container.innerHTML = analisesLista.map((analise, index) => `
+            <div class="analise-card">
+                <div class="analise-card-info">
+                    <div class="analise-card-header">
+                        <span class="analise-card-tipo ${analise.tipo_analise}">
+                            <i class="fas ${analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user'}"></i>
+                            ${analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado'}
+                        </span>
+                        <span class="analise-card-categoria">
+                            ${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}
+                        </span>
+                    </div>
+                    <div class="analise-card-detalhes">
+                        ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                        ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                        ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                        ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
+                        ${!analise.analise_critica && !analise.sugestao_melhoria && !analise.necessidade_implantacao && !analise.ganho_previsto ? 
+                            '<div class="analise-card-texto" style="color: #999;">Nenhum detalhe preenchido</div>' : ''}
+                    </div>
+                </div>
+                <div class="analise-card-actions">
+                    <button class="btn-edit-analise" onclick="editarAnalise(${index})" title="Editar">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button class="btn-delete-analise" onclick="excluirAnalise(${index})" title="Excluir">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Mostrar formulário de análise
+    function mostrarFormAnalise(modo = 'novo', index = null) {
+        const form = document.getElementById('form-analise');
+        if (!form) return;
+        
+        form.style.display = 'block';
+        
+        if (modo === 'editar' && index !== null) {
+            const analise = analisesLista[index];
+            document.getElementById('analise-id').value = analise.id || '';
+            document.getElementById('analise-tipo').value = analise.tipo_analise;
+            document.getElementById('analise-categoria').value = analise.categoria;
+            document.getElementById('analise-texto').value = analise.analise_critica || '';
+            document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
+            document.getElementById('analise-necessidade').value = analise.necessidade_implantacao || '';
+            document.getElementById('analise-ganho').value = analise.ganho_previsto || '';
+        } else {
+            document.getElementById('analise-id').value = '';
+            document.getElementById('analise-tipo').value = 'entrevistado';
+            document.getElementById('analise-categoria').value = 'governanca';
+            document.getElementById('analise-texto').value = '';
+            document.getElementById('analise-sugestao').value = '';
+            document.getElementById('analise-necessidade').value = '';
+            document.getElementById('analise-ganho').value = '';
+        }
+        
+        // Scroll até o formulário
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Esconder formulário
+    function esconderFormAnalise() {
+        const form = document.getElementById('form-analise');
+        if (form) form.style.display = 'none';
+    }
+
+    // Editar análise
+    function editarAnalise(index) {
+        mostrarFormAnalise('editar', index);
+    }
+
+    // Salvar análise
+    async function salvarAnalise() {
+        const etapaId = document.getElementById('modal-etapa-id').value;
+        if (!etapaId) {
+            mostrarToast('⚠️ Salve a etapa primeiro antes de adicionar análises', 'warning');
+            return;
+        }
+        
+        const analiseId = document.getElementById('analise-id').value || null;
+        
+        const payload = {
+            id: analiseId,
+            etapa_id: parseInt(etapaId),
+            tipo_analise: document.getElementById('analise-tipo').value,
+            categoria: document.getElementById('analise-categoria').value,
+            analise_critica: document.getElementById('analise-texto').value,
+            sugestao_melhoria: document.getElementById('analise-sugestao').value,
+            necessidade_implantacao: document.getElementById('analise-necessidade').value,
+            ganho_previsto: document.getElementById('analise-ganho').value
+        };
+        
+        try {
+            const response = await fetch('/api/analise/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Análise salva com sucesso!', 'success');
+                esconderFormAnalise();
+                await carregarAnalises(etapaId);
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar análise:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+        }
+    }
+
+    // Excluir análise
+    async function excluirAnalise(index) {
+        const analise = analisesLista[index];
+        if (!analise || !analise.id) {
+            analisesLista.splice(index, 1);
+            renderizarAnalises();
+            return;
+        }
+        
+        if (!confirm('Tem certeza que deseja excluir esta análise?')) return;
+        
+        try {
+            const response = await fetch(`/api/analise/${analise.id}`, { method: 'DELETE' });
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Análise excluída', 'success');
+                await carregarAnalises(document.getElementById('modal-etapa-id').value);
+            } else {
+                mostrarToast('❌ Erro ao excluir', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao excluir análise:', error);
+            mostrarToast('❌ Erro ao excluir', 'error');
+        }
+    }
+
+    // ============================================================
+    // VISUALIZAR ETAPA
+    // ============================================================
+
+    async function visualizarEtapa(etapaId) {
+        const modal = document.getElementById('modal-visualizar-etapa');
+        const body = document.getElementById('modal-visualizar-body');
+        
+        if (!modal || !body) return;
+        
+        modal.style.display = 'flex';
+        body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        
+        try {
+            // Buscar dados da etapa
+            const responseEtapa = await fetch(`/api/etapa/${etapaId}`);
+            const dataEtapa = await responseEtapa.json();
+            
+            // Buscar análises da etapa
+            const responseAnalises = await fetch(`/api/etapa/${etapaId}/analises`);
+            const dataAnalises = await responseAnalises.json();
+            
+            if (dataEtapa.success) {
+                const etapa = dataEtapa.etapa;
+                const analises = dataAnalises.success ? (dataAnalises.analises || []) : [];
+                
+                // Buscar nomes dos executores
+                const executoresNomes = await getNomesExecutores(etapa.executores_etapa);
+                
+                let html = `
+                    <div class="vis-etapa-container">
+                        <!-- Informações Básicas -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-info-circle"></i> Informações Básicas</h4>
+                            <div class="vis-grid">
+                                <div class="vis-item">
+                                    <label>Código</label>
+                                    <span>${escapeHtml(etapa.codigo_etapa)}</span>
+                                </div>
+                                <div class="vis-item">
+                                    <label>Nome</label>
+                                    <span>${escapeHtml(etapa.nome_etapa)}</span>
+                                </div>
+                                <div class="vis-item">
+                                    <label>Status</label>
+                                    <span>${escapeHtml(etapa.status_etapa)}</span>
+                                </div>
+                                <div class="vis-item">
+                                    <label>Criticidade</label>
+                                    <span>${escapeHtml(etapa.criticidade_etapa)}</span>
+                                </div>
+                                <div class="vis-item vis-full">
+                                    <label>Executores</label>
+                                    <span>${escapeHtml(executoresNomes)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detalhes -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-clipboard-list"></i> Detalhes</h4>
+                            <div class="vis-grid">
+                                <div class="vis-item vis-full">
+                                    <label>Descrição</label>
+                                    <span>${escapeHtml(etapa.descricao_etapa) || '-'}</span>
+                                </div>
+                                <div class="vis-item vis-full">
+                                    <label>Como é feito?</label>
+                                    <span>${escapeHtml(etapa.como_e_feito) || '-'}</span>
+                                </div>
+                                <div class="vis-item vis-full">
+                                    <label>Objetivo</label>
+                                    <span>${escapeHtml(etapa.objetivo_etapa) || '-'}</span>
+                                </div>
+                                <div class="vis-item vis-full">
+                                    <label>Política Interna</label>
+                                    <span>${escapeHtml(etapa.politica_interna) || '-'}</span>
+                                </div>
+                                <div class="vis-item vis-full">
+                                    <label>Obrigações Regulatórias</label>
+                                    <span>${escapeHtml(etapa.obrigacoes_regulatorias) || '-'}</span>
+                                </div>
+                                ${etapa.manual_nome ? `
+                                <div class="vis-item vis-full">
+                                    <label>Manual da Etapa</label>
+                                    <span><a href="#" onclick="downloadArquivo(${etapa.id}, 'manual'); return false;"><i class="fas fa-download"></i> ${escapeHtml(etapa.manual_nome)}</a></span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- Análises Críticas -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-clipboard-check"></i> Análises Críticas</h4>
+                            ${analises.length === 0 ? 
+                                '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhuma análise crítica cadastrada.</div>' :
+                                analises.map((analise, idx) => `
+                                    <div class="analise-card">
+                                        <div class="analise-card-info">
+                                            <div class="analise-card-header">
+                                                <span class="analise-card-tipo ${analise.tipo_analise}">
+                                                    <i class="fas ${analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user'}"></i>
+                                                    ${analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado'}
+                                                </span>
+                                                <span class="analise-card-categoria">${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}</span>
+                                            </div>
+                                            <div class="analise-card-detalhes">
+                                                ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                                                ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                                                ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                                                ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                `;
+                
+                body.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar etapa:', error);
+            body.innerHTML = '<div class="alert-error">Erro ao carregar dados da etapa.</div>';
+        }
+    }
+
+    function fecharModalVisualizar() {
+        const modal = document.getElementById('modal-visualizar-etapa');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Fechar ao clicar fora
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('modal-visualizar-etapa');
+        if (modal && e.target === modal) {
+            fecharModalVisualizar();
+        }
+    });
+
 
     // ============================================================
     // INICIALIZAÇÃO
@@ -2328,7 +2626,6 @@
         console.log('🚀 DOMContentLoaded - Iniciando');
         
         carregarDadosProcesso();
-        setupFileInputs();
 
         // Verificar se o botão existe
         const btnVoltar = document.getElementById('btn-voltar-detalhamento');
@@ -2439,6 +2736,30 @@
                 }
             }
         });
+
+        // Botão nova análise
+        const btnNovaAnalise = document.getElementById('btn-nova-analise');
+        if (btnNovaAnalise) {
+            btnNovaAnalise.addEventListener('click', () => mostrarFormAnalise('novo'));
+        }
+
+        // Botão cancelar análise
+        const btnCancelarAnalise = document.getElementById('btn-cancelar-analise');
+        if (btnCancelarAnalise) {
+            btnCancelarAnalise.addEventListener('click', esconderFormAnalise);
+        }
+
+        // Botão salvar análise
+        const btnSalvarAnalise = document.getElementById('btn-salvar-analise');
+        if (btnSalvarAnalise) {
+            btnSalvarAnalise.addEventListener('click', salvarAnalise);
+        }
     });
+
+    function downloadArquivo(etapaId, tipo) {
+        window.open(`/api/etapa/${etapaId}/download/${tipo}`, '_blank');
+    }
 </script>
+
+
 {% endblock %}
