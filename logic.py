@@ -3798,3 +3798,31 @@ def carregar_areas_banco():
     # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
     # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
     return dict(zip(df['nome_area'], df['id_area']))
+
+import re
+import json
+
+def limpar_dados_exibicao(dados):
+    """Remove conteúdo de arquivos binários, mantendo metadados"""
+    if not dados:
+        return dados
+    
+    texto = str(dados)
+    
+    # Para cada ocorrência de valor string muito longo (base64)
+    # Substitui por metadados
+    import re
+    
+    # Encontra padrões como: "fluxo_bpmn": "iVBORw0KGgo..."
+    # e substitui o valor longo por um resumo
+    padrao = r'("(?:fluxo_bpmn|diagrama_bpmn|manual_etapa|arquivo_mapeamento|conteudo)":\s*)"([^"]{100,})"'
+    texto = re.sub(padrao, r'\1"[ARQUIVO BINÁRIO - \2 bytes]"', texto)
+    
+    # Fallback: qualquer string com mais de 1000 caracteres
+    if len(texto) > 5000:
+        texto = texto[:5000] + '...[truncado]'
+    
+    return texto
+
+    import re
+

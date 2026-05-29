@@ -2834,6 +2834,7 @@ def api_logs():
     API que retorna os logs da tabela log_auditoria com paginação
     Apenas administradores podem acessar
     """
+    from logic import limpar_log
     # 1. Verificar autenticação
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
@@ -2933,6 +2934,8 @@ def api_logs():
             result = conn.execute(text(select_query), params)
             
             # 12. Converter os resultados para lista de dicionários
+            import re
+
             logs = []
             for row in result:
                 logs.append({
