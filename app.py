@@ -954,6 +954,7 @@ def api_processo_dados(processo_id):
             query = text("""
                 SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area,
                        p.descricao, p.etapa_ini, p.etapa_fim, p.produto, p.objetivo,
+                       p.fluxo_bpmn_nome, p.fluxo_bpmn_tipo,
                        i.nome_area
                 FROM processos p
                 JOIN informacoes_area i ON p.id_area = i.id_area
@@ -1034,19 +1035,129 @@ def api_processo_dados(processo_id):
                 'nome_processo': processo[1],
                 'codigo_processo': processo[2],
                 'id_area': processo[3],
-                'nome_area': processo[9],
+                'nome_area': processo[11],
                 'auditoria_id': auditoria_id,
                 'descricao': processo[4] or '',
                 'etapa_ini': processo[5] or '',
                 'etapa_fim': processo[6] or '',
                 'produto': processo[7] or '',
                 'objetivo': processo[8] or '',
+                'fluxo_bpmn_nome': processo[9] or '',   # ← NOVO
+                'fluxo_bpmn_tipo': processo[10] or '',   # ← NOVO
                 'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores],
                 'riscos': riscos
             })
             
     except Exception as e:
         print(f"❌ Erro ao buscar dados do processo: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/processo/<int:processo_id>/upload-bpmn', methods=['POST'])
+def api_processo_upload_bpmn(processo_id):
+    """Faz upload do fluxo BPMN do processo"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    
+    data = request.json
+    arquivo_base64 = data.get('arquivo_base64')
+    nome_arquivo = data.get('nome_arquivo')
+    tipo_arquivo = data.get('tipo_arquivo')
+    
+    if not arquivo_base64:
+        return jsonify({'success': False, 'error': 'Arquivo é obrigatório'}), 400
+    
+    try:
+        # Decodificar Base64 para bytes
+        if ',' in arquivo_base64:
+            arquivo_base64 = arquivo_base64.split(',')[1]
+        arquivo_bytes = base64.b64decode(arquivo_base64)
+        
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE processos 
+                SET fluxo_bpmn = :fluxo_bpmn,
+                    fluxo_bpmn_nome = :nome,
+                    fluxo_bpmn_tipo = :tipo,
+                    updated_at = NOW()
+                WHERE id = :processo_id
+            """)
+            
+            conn.execute(query, {
+                'fluxo_bpmn': arquivo_bytes,
+                'nome': nome_arquivo,
+                'tipo': tipo_arquivo,
+                'processo_id': processo_id
+            })
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Fluxo BPMN salvo com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar fluxo BPMN: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/processo/<int:processo_id>/download-bpmn')
+def api_processo_download_bpmn(processo_id):
+    """Faz download do fluxo BPMN do processo"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT fluxo_bpmn, fluxo_bpmn_nome, fluxo_bpmn_tipo
+                FROM processos
+                WHERE id = :processo_id
+            """)
+            result = conn.execute(query, {'processo_id': processo_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'error': 'Nenhum fluxo BPMN encontrado'}), 404
+            
+            return send_file(
+                io.BytesIO(result[0]),
+                mimetype=result[2] or 'application/octet-stream',
+                as_attachment=True,
+                download_name=result[1] or f'fluxo_bpmn_processo_{processo_id}'
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar fluxo BPMN: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/processo/<int:processo_id>/remover-bpmn', methods=['DELETE'])
+def api_processo_remover_bpmn(processo_id):
+    """Remove o fluxo BPMN do processo"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE processos 
+                SET fluxo_bpmn = NULL,
+                    fluxo_bpmn_nome = NULL,
+                    fluxo_bpmn_tipo = NULL,
+                    updated_at = NOW()
+                WHERE id = :processo_id
+            """)
+            conn.execute(query, {'processo_id': processo_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Fluxo BPMN removido'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover fluxo BPMN: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/processo/salvar-riscos', methods=['POST'])
@@ -1150,7 +1261,7 @@ def api_processos_por_auditoria():
         with engine.connect() as conn:
             # Ordenação correta: converte a parte após o ponto para inteiro
             query = text("""
-                SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo
+                SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo, p.fluxo_bpmn_nome
                 FROM processos p
                 JOIN auditoria_processos ap ON p.id = ap.processo_id
                 WHERE ap.auditoria_id = :auditoria_id

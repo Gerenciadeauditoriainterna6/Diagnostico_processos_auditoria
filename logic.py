@@ -3293,6 +3293,20 @@ def carregar_areas_banco():
     # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
     return dict(zip(df['nome_area'], df['id_area']))
 
+def calcular_score_risco_etapa(impacto, probabilidade):
+    """Calcula o score do risco baseado no impacto e probabilidade"""
+    mapa_impacto = {
+        'Muito Alto': 5, 'Alto': 4, 'Médio': 3, 'Baixo': 2, 'Muito Baixo': 1
+    }
+    mapa_prob = {
+        'Muito Alta': 5, 'Alta': 4, 'Média': 3, 'Baixa': 2, 'Muito Baixa': 1
+    }
+    
+    imp_val = mapa_impacto.get(impacto, 3)
+    prob_val = mapa_prob.get(probabilidade, 3)
+    
+    return imp_val * prob_val
+
 def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO", auditoria_id=None):
     """Gera relatório gerencial da área (para validação do gestor)"""
     from reportlab.lib.pagesizes import A4, landscape
@@ -3491,6 +3505,243 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         
         tabela.setStyle(tabela_style)
         story.append(tabela)
+
+        # ===== SEÇÃO 2: DETALHAMENTO POR PROCESSO =====
+        story.append(PageBreak())
+        
+        # Título da seção
+        story.append(Paragraph("<b>Detalhamento dos Processos</b>", styles['Heading1']))
+        story.append(Spacer(1, 15))
+        
+        # Estilo para box de processo
+        processo_box_style = ParagraphStyle(
+            'ProcessoBox',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.white,
+            backColor=colors.HexColor('#184145'),
+            borderPadding=(8, 12, 8, 12),
+            spaceAfter=10,
+        )
+        
+        etapa_header_style = ParagraphStyle(
+            'EtapaHeader',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#184145'),
+            fontName='Helvetica-Bold',
+            spaceBefore=10,
+            spaceAfter=5,
+        )
+        
+        sub_header_style = ParagraphStyle(
+            'SubHeader',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#0b5b99'),
+            fontName='Helvetica-Bold',
+            spaceBefore=8,
+            spaceAfter=4,
+        )
+        
+        # Linha separadora colorida
+        def add_separador(cor=colors.HexColor('#cccccc'), espaco_antes=5, espaco_depois=5):
+            story.append(Spacer(1, espaco_antes))
+            sep_data = [['']]
+            sep_table = Table(sep_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+            sep_table.setStyle(TableStyle([
+                ('LINEBELOW', (0, 0), (-1, 0), 0.5, cor),
+            ]))
+            story.append(sep_table)
+            story.append(Spacer(1, espaco_depois))
+        
+        query_processos = text("""
+            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo
+            FROM processos p
+            INNER JOIN auditoria_processos ap ON p.id = ap.processo_id
+            WHERE ap.auditoria_id = :auditoria_id 
+            AND p.id_area = :area_id 
+            AND p.status = 'Ativo'
+            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo
+            ORDER BY string_to_array(p.codigo_processo, '.')::int[]
+        """)
+        
+        with engine.connect() as conn:
+            processos = conn.execute(query_processos, {
+                "area_id": area_id, 
+                "auditoria_id": auditoria_id
+            }).fetchall()
+        
+        for idx, proc in enumerate(processos):
+            proc_id = proc[0]
+            proc_codigo = proc[1]
+            proc_nome = proc[2]
+            proc_objetivo = proc[3] or 'Não informado'
+            
+            # Cada processo começa em nova página (exceto o primeiro)
+            if idx > 0:
+                story.append(PageBreak())
+            
+            # ===== CABEÇALHO DO PROCESSO (SIMPLES, SEM FUNDO) =====
+            story.append(Paragraph(
+                f"<b>Processo: {proc_codigo} - {proc_nome}</b>",
+                styles['Heading2']
+            ))
+            story.append(Spacer(1, 5))
+            
+            # Objetivo do processo
+            story.append(Paragraph(f"<b>Objetivo:</b> {proc_objetivo}", normal_style))
+            story.append(Spacer(1, 12))
+            
+            # Buscar etapas
+            query_etapas = text("""
+                SELECT ep.id, ep.nome_etapa, ep.descricao_etapa, ep.codigo_etapa
+                FROM etapas_processo ep
+                WHERE ep.processo_id = :processo_id
+                ORDER BY ep.id
+            """)
+            
+            with engine.connect() as conn:
+                etapas = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
+            
+            if not etapas:
+                story.append(Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style))
+                continue
+            
+            story.append(Paragraph("<b>Etapas do Processo:</b>", styles['Heading3']))
+            story.append(Spacer(1, 5))
+            
+            for etapa_idx, etapa in enumerate(etapas):
+                etapa_id = etapa[0]
+                etapa_nome = etapa[1] or 'Etapa sem nome'
+                etapa_desc = etapa[2] or ''
+                etapa_codigo = etapa[3] or ''
+                
+                # Fundo alternado para cada etapa
+                bg_cor = colors.HexColor('#f8f9fa') if etapa_idx % 2 == 0 else colors.white
+                
+                # Box da etapa
+                etapa_header = Paragraph(
+                    f"<b>Etapa {etapa_codigo}: {etapa_nome}</b>", 
+                    etapa_header_style
+                )
+                
+                # Criar uma tabela de 1 coluna para a etapa (efeito de card)
+                etapa_conteudo = []
+                
+                if etapa_desc:
+                    etapa_conteudo.append([
+                        Paragraph(f"{etapa_desc[:300]}{'...' if len(etapa_desc) > 300 else ''}", normal_style)
+                    ])
+                
+                # Riscos da etapa
+                query_riscos_etapa = text("""
+                    SELECT re.nome_risco, re.impacto, re.probabilidade, re.fator_risco
+                    FROM riscos_etapa re
+                    WHERE re.etapa_id = :etapa_id
+                    ORDER BY re.id
+                """)
+                
+                with engine.connect() as conn:
+                    riscos_etapa = conn.execute(query_riscos_etapa, {"etapa_id": etapa_id}).fetchall()
+                
+                if riscos_etapa:
+                    # Montar tabela de riscos
+                    riscos_todas = [[
+                        Paragraph("<b>Risco</b>", normal_style),
+                        Paragraph("<b>Impacto</b>", normal_style),
+                        Paragraph("<b>Prob.</b>", normal_style),
+                        Paragraph("<b>Score</b>", normal_style),
+                    ]]
+                    
+                    for r in riscos_etapa:
+                        impacto = r[1] or 'Médio'
+                        probabilidade = r[2] or 'Médio'
+                        score = calcular_score_risco_etapa(impacto, probabilidade)
+                        cor_risco, _ = get_estilo_risco(score)
+                        
+                        riscos_todas.append([
+                            Paragraph(str(r[0]) if r[0] else "-", normal_style),
+                            Paragraph(impacto, normal_style),
+                            Paragraph(probabilidade, normal_style),
+                            Paragraph(f'<font color="{cor_risco}"><b>{score}</b></font>', normal_style),
+                        ])
+                    
+                    tabela_riscos = Table(riscos_todas, colWidths=[6*cm, 3*cm, 3*cm, 3*cm])
+                    tabela_riscos.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fd6a14')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dddddd')),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 5),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ]))
+                    
+                    etapa_conteudo.append([Paragraph("<b>Riscos:</b>", sub_header_style)])
+                    etapa_conteudo.append([tabela_riscos])
+                else:
+                    etapa_conteudo.append([Paragraph("<i>Nenhum risco cadastrado.</i>", normal_style)])
+                
+                # Controles da etapa
+                query_controles_etapa = text("""
+                    SELECT ce.nome_controle, ce.como_executado, ce.natureza
+                    FROM controles_etapa ce
+                    WHERE ce.risco_id IN (
+                        SELECT id FROM riscos_etapa WHERE etapa_id = :etapa_id
+                    )
+                    ORDER BY ce.id
+                """)
+                
+                with engine.connect() as conn:
+                    controles_etapa = conn.execute(query_controles_etapa, {"etapa_id": etapa_id}).fetchall()
+                
+                if controles_etapa:
+                    controles_todas = [[
+                        Paragraph("<b>Controle</b>", normal_style),
+                        Paragraph("<b>Como Executado</b>", normal_style),
+                        Paragraph("<b>Natureza</b>", normal_style),
+                    ]]
+                    
+                    for c in controles_etapa:
+                        controles_todas.append([
+                            Paragraph(str(c[0]) if c[0] else "-", normal_style),
+                            Paragraph(str(c[1])[:120] if c[1] else "-", normal_style),
+                            Paragraph(str(c[2]) if c[2] else "-", normal_style),
+                        ])
+                    
+                    tabela_controles = Table(controles_todas, colWidths=[4.5*cm, 7*cm, 3.5*cm])
+                    tabela_controles.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#17a2b8')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dddddd')),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 5),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ]))
+                    
+                    etapa_conteudo.append([Paragraph("<b>Controles:</b>", sub_header_style)])
+                    etapa_conteudo.append([tabela_controles])
+                
+                # Montar tabela da etapa
+                etapa_table = Table(etapa_conteudo, colWidths=[pagesize[0] - leftMargin - rightMargin])
+                etapa_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), bg_cor),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+                ]))
+                
+                story.append(etapa_header)
+                story.append(etapa_table)
+                story.append(Spacer(1, 8))
+            
+            # Separador entre processos (exceto último)
+            if idx < len(processos) - 1:
+                add_separador(colors.HexColor('#184145'), 10, 5)
     
     story.append(PageBreak())
     

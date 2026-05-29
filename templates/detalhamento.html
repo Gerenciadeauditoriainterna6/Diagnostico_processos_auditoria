@@ -30,6 +30,7 @@
         </div>
     </div>
 
+
     <!-- TABELA DE PROCESSOS -->
     <div class="form-section tabela-section">
         <div class="tabela-header">
@@ -38,6 +39,19 @@
         <div id="detalhamento-tabela-container">
             <div class="alert-info" style="text-align: center; padding: 40px;">
                 <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL BPMN -->
+    <div id="modal-bpmn" class="modal-checklist" style="display: none;">
+        <div class="modal-checklist-content" style="max-width: 500px;">
+            <div class="modal-checklist-header">
+                <h2><i class="fas fa-project-diagram"></i> Fluxo BPMN do Processo</h2>
+                <button class="modal-fechar" onclick="fecharModalBPMN()">&times;</button>
+            </div>
+            <div class="modal-checklist-body" id="modal-bpmn-body">
+                <!-- Conteúdo dinâmico -->
             </div>
         </div>
     </div>
@@ -244,6 +258,113 @@
         }
     }
 
+    /* Área de Upload do Fluxo BPMN */
+    .fluxo-upload-area {
+        text-align: center;
+        padding: 30px;
+        border: 2px dashed #ccc;
+        border-radius: 12px;
+        background: #fafafa;
+        transition: all 0.3s;
+    }
+
+    .fluxo-upload-area:hover {
+        border-color: #184145;
+        background: #f0f7f7;
+    }
+
+    .fluxo-info-card {
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s;
+    }
+
+    .fluxo-info-card:hover {
+        border-color: #184145;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Estilos do Modal */
+    .modal-checklist {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-checklist-content {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-checklist-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 16px 16px 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .modal-checklist-header h2 {
+        margin: 0;
+        color: #184145;
+        font-size: 18px;
+    }
+
+    .modal-fechar {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+        padding: 0 8px;
+    }
+
+    .modal-fechar:hover {
+        color: #dc3545;
+    }
+
+    .modal-checklist-body {
+        padding: 20px;
+    }
+
+    /* Botão BPMN na tabela */
+    .btn-bpmn-processo {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-bpmn-processo:hover {
+        background: #0b5b99;
+        transform: translateY(-1px);
+    }
+
 </style>
 
 <script>
@@ -259,6 +380,24 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    function converterParaBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function mostrarToast(mensagem, tipo = 'info') {
+        // Usa a função do base.html se existir, senão cria uma local
+        if (typeof window.mostrarToast === 'function') {
+            window.mostrarToast(mensagem, tipo);
+            return;
+        }
+        alert(mensagem);
     }
 
     // ============================================================
@@ -514,6 +653,7 @@
                                 <th>Código</th>
                                 <th>Nome do Processo</th>
                                 <th>Objetivo</th>
+                                <th>Fluxo BPMN</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -521,11 +661,22 @@
             `;
 
             for (const processo of data.processos) {
+                const temBpmn = processo.fluxo_bpmn_nome && processo.fluxo_bpmn_nome.trim() !== '';
+                const corBpmn = temBpmn ? '#28a745' : '#184145';
+                
                 html += `
                     <tr>
                         <td><strong>${escapeHtml(processo.codigo_processo)}</strong></td>
                         <td>${escapeHtml(processo.nome_processo)}</td>
                         <td>${escapeHtml(processo.objetivo || '-')}</td>
+                        <td>
+                            <button class="btn-bpmn-processo" 
+                                    data-processo-id="${processo.id}" 
+                                    title="${temBpmn ? 'Fluxo BPMN anexado - Clique para gerenciar' : 'Clique para anexar fluxo BPMN'}"
+                                    style="background: ${corBpmn};">
+                                <i class="fas fa-project-diagram"></i> BPMN
+                            </button>
+                        </td>
                         <td>
                             <button class="btn-detalhar-processo" data-processo-id="${processo.id}" data-processo-codigo="${processo.codigo_processo}">
                                 <i class="fas fa-eye"></i> Detalhar
@@ -603,5 +754,157 @@
             });
         }
     });
+
+
+    // ============================================================
+    // MODAL BPMN DO PROCESSO
+    // ============================================================
+
+    let processoBPMNAtual = null;
+
+    function abrirModalBPMN(processoId) {
+        processoBPMNAtual = processoId;
+        const modal = document.getElementById('modal-bpmn');
+        const body = document.getElementById('modal-bpmn-body');
+        
+        if (!modal || !body) return;
+        
+        modal.style.display = 'flex';
+        body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        
+        // Buscar dados do processo para verificar se já tem BPMN
+        fetch(`/api/processo/${processoId}/dados`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.fluxo_bpmn_nome) {
+                    // Já tem BPMN
+                    body.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 20px;">
+                                <i class="fas fa-file-code" style="font-size: 48px; color: #184145;"></i>
+                            </div>
+                            <p style="margin-bottom: 5px;"><strong>${escapeHtml(data.fluxo_bpmn_nome)}</strong></p>
+                            <p style="color: #666; font-size: 12px; margin-bottom: 20px;">Arquivo BPMN anexado</p>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button class="btn-primary" onclick="baixarBPMN(${processoId})">
+                                    <i class="fas fa-download"></i> Baixar
+                                </button>
+                                <button class="btn-outline" onclick="substituirBPMN(${processoId})">
+                                    <i class="fas fa-exchange-alt"></i> Substituir
+                                </button>
+                                <button class="btn-outline" style="border-color: #dc3545; color: #dc3545;" onclick="removerBPMN(${processoId})">
+                                    <i class="fas fa-trash"></i> Remover
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Não tem BPMN
+                    body.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 20px;">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #184145;"></i>
+                            </div>
+                            <p style="color: #666; margin-bottom: 20px;">Nenhum fluxo BPMN anexado para este processo.</p>
+                            <button class="btn-primary" onclick="uploadBPMN(${processoId})">
+                                <i class="fas fa-upload"></i> Anexar Fluxo BPMN
+                            </button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                body.innerHTML = '<div class="alert-error">Erro ao carregar dados do processo.</div>';
+            });
+    }
+
+    function fecharModalBPMN() {
+        document.getElementById('modal-bpmn').style.display = 'none';
+        processoBPMNAtual = null;
+    }
+
+    function baixarBPMN(processoId) {
+        window.open(`/api/processo/${processoId}/download-bpmn`, '_blank');
+    }
+
+    function uploadBPMN(processoId) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.bpmn,.xml,.jpg,.jpeg,.png,.pdf';
+        input.onchange = async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Mostrar loading
+            const body = document.getElementById('modal-bpmn-body');
+            body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Enviando arquivo...</div>';
+            
+            try {
+                const base64 = await converterParaBase64(file);
+                const response = await fetch(`/api/processo/${processoId}/upload-bpmn`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        arquivo_base64: base64,
+                        nome_arquivo: file.name,
+                        tipo_arquivo: file.type || 'application/octet-stream'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    mostrarToast('✅ Fluxo BPMN salvo!', 'success');
+                    abrirModalBPMN(processoId); // Recarregar modal
+                } else {
+                    mostrarToast('❌ Erro: ' + (data.error || 'Tente novamente'), 'error');
+                    abrirModalBPMN(processoId);
+                }
+            } catch (error) {
+                mostrarToast('❌ Erro ao enviar arquivo', 'error');
+                abrirModalBPMN(processoId);
+            }
+        };
+        input.click();
+    }
+
+    function substituirBPMN(processoId) {
+        uploadBPMN(processoId);
+    }
+
+    async function removerBPMN(processoId) {
+        if (!confirm('Tem certeza que deseja remover o fluxo BPMN deste processo?')) return;
+        
+        try {
+            const response = await fetch(`/api/processo/${processoId}/remover-bpmn`, { method: 'DELETE' });
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Fluxo BPMN removido', 'success');
+                abrirModalBPMN(processoId);
+            } else {
+                mostrarToast('❌ Erro ao remover', 'error');
+            }
+        } catch (error) {
+            mostrarToast('❌ Erro ao remover', 'error');
+        }
+    }
+
+    // Evento para abrir modal ao clicar no botão BPMN
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-bpmn-processo');
+        if (btn) {
+            const processoId = btn.getAttribute('data-processo-id');
+            abrirModalBPMN(processoId);
+        }
+    });
+
+    // Fechar modal ao clicar fora
+    const modalBpmn = document.getElementById('modal-bpmn');
+    if (modalBpmn) {
+        modalBpmn.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalBPMN();
+        });
+    }
 </script>
 {% endblock %}
