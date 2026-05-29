@@ -1767,6 +1767,108 @@
     }
 
     // ============================================================
+    // EXIBIR ANÁLISES CRÍTICAS NOS CHECKLISTS
+    // ============================================================
+
+    async function carregarAnalisesChecklist(categoria, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        if (!auditoriaIdAtual) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/checklist/analises-por-auditoria?auditoria_id=${auditoriaIdAtual}&categoria=${categoria}`);
+            const data = await response.json();
+            
+            if (data.success && data.analises && data.analises.length > 0) {
+                let html = `
+                    <div style="margin-top: 20px; border-top: 2px solid #e0e0e0; padding-top: 15px;">
+                        <h4 style="color: #184145; margin-bottom: 10px;">
+                            <i class="fas fa-clipboard-check"></i> Análises Críticas das Etapas
+                        </h4>
+                `;
+                
+                // Agrupar por processo
+                const agrupado = {};
+                data.analises.forEach(a => {
+                    const chave = a.codigo_processo;
+                    if (!agrupado[chave]) {
+                        agrupado[chave] = {
+                            nome_processo: a.nome_processo,
+                            etapas: {}
+                        };
+                    }
+                    const etapaChave = a.codigo_etapa;
+                    if (!agrupado[chave].etapas[etapaChave]) {
+                        agrupado[chave].etapas[etapaChave] = {
+                            nome_etapa: a.nome_etapa,
+                            analises: []
+                        };
+                    }
+                    agrupado[chave].etapas[etapaChave].analises.push(a);
+                });
+                
+                for (const [codProc, processo] of Object.entries(agrupado)) {
+                    html += `
+                        <div style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+                            <div style="background: #184145; color: white; padding: 8px 15px; font-weight: 600; font-size: 14px;">
+                                ${escapeHtml(codProc)} - ${escapeHtml(processo.nome_processo)}
+                            </div>
+                    `;
+                    
+                    for (const [codEtapa, etapa] of Object.entries(processo.etapas)) {
+                        html += `
+                            <div style="padding: 10px 15px; border-bottom: 1px solid #f0f0f0;">
+                                <strong style="color: #0b5b99;">Etapa ${escapeHtml(codEtapa)}: ${escapeHtml(etapa.nome_etapa)}</strong>
+                        `;
+                        
+                        etapa.analises.forEach(a => {
+                            const icone = a.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user';
+                            const tipo = a.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado';
+                            const cor = a.tipo_analise === 'auditor' ? '#155724' : '#0b5b99';
+                            
+                            html += `
+                                <div style="margin: 8px 0; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid ${cor};">
+                                    <div style="font-size: 11px; color: ${cor}; margin-bottom: 4px;">
+                                        <i class="fas ${icone}"></i> ${tipo}
+                                    </div>
+                                    ${a.analise_critica ? `<div style="font-size: 12px; margin-bottom: 3px;"><strong>Validação:</strong> ${escapeHtml(a.analise_critica)}</div>` : ''}
+                                    ${a.sugestao_melhoria ? `<div style="font-size: 12px; margin-bottom: 3px;"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(a.sugestao_melhoria)}</div>` : ''}
+                                    ${a.necessidade_implantacao ? `<div style="font-size: 12px; margin-bottom: 3px;"><strong>Necessidade de Implantação:</strong> ${escapeHtml(a.necessidade_implantacao)}</div>` : ''}
+                                    ${a.ganho_previsto ? `<div style="font-size: 12px;"><strong>Ganho Previsto:</strong> ${escapeHtml(a.ganho_previsto)}</div>` : ''}
+                                </div>
+                            `;
+                        });
+                        
+                        html += `</div>`;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div style="margin-top: 20px; border-top: 2px solid #e0e0e0; padding-top: 15px;">
+                        <h4 style="color: #184145; margin-bottom: 10px;">
+                            <i class="fas fa-clipboard-check"></i> Análises Críticas das Etapas
+                        </h4>
+                        <div style="text-align: center; padding: 15px; color: #999; font-size: 13px;">
+                            <i class="fas fa-info-circle"></i> Nenhuma análise crítica encontrada para esta categoria.
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar análises:', error);
+        }
+    }
+
+    // ============================================================
     // EVENTOS
     // ============================================================
 
@@ -2091,9 +2193,8 @@
 
         try {
             const perguntas = PERGUNTAS.governanca;
-
             if (!perguntas || perguntas.length === 0) {
-                body.innerHTML - `<div class="alert alert-info">Nenhuma pergunta de governança encontrada.</div>`;
+                body.innerHTML = '<div class="alert alert-info">Nenhuma pergunta de governança encontrada.</div>';
                 return;
             }
 
@@ -2102,7 +2203,7 @@
 
             let respostasExistentes = [];
             let sessaoId = null;
-            let statu = 'Não iniciado';
+            let status = 'Não iniciado';
             let observacoes = '';
 
             if (dados.success) {
@@ -2112,14 +2213,20 @@
                 observacoes = dados.observacoes_gerais || '';
             }
 
-            // Renderizar o checklist dentro do modal
-            renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status, auditoriaId);
+            // Primeiro renderiza o checklist
+            await renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, 'governanca', sessaoId, observacoes, status, auditoriaId);
+            
+            // Depois adiciona o container de análises
+            const analisesContainer = document.createElement('div');
+            analisesContainer.id = 'analises-checklist-governanca';
+            body.appendChild(analisesContainer);
+            carregarAnalisesChecklist('governanca', 'analises-checklist-governanca');
 
         } catch (error) {
             console.error('Erro:', error);
-            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
+            body.innerHTML = '<div class="alert-error">❌ Erro ao carregar checklist.</div>';
         }
-    };
+    }
 
     async function carregarModalRiscos(auditoriaId) {
         const body = document.getElementById('modal-riscos-body');
@@ -2145,9 +2252,14 @@
             }
 
             renderizarChecklistNoModal(body, perguntas, respostasExistentes, 'riscos', sessaoId, observacoes, status);
+
+            const analisesContainer = document.createElement('div');
+            analisesContainer.id = 'analises-checklist-riscos';
+            body.appendChild(analisesContainer);
+            carregarAnalisesChecklist('riscos', 'analises-checklist-riscos');
         } catch (error) {
             console.error('Erro:', error);
-            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
+            body.innerHTML = '<div class="alert-error">❌ Erro ao carregar checklist.</div>';
         }
     }
 
@@ -2174,10 +2286,15 @@
                 observacoes = dados.observacoes_gerais || '';
             }
 
-            renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, 'controles', sessaoId, observacoes, status, auditoriaId);
+            await renderizarChecklistComEvidenciasNoModal(body, perguntas, respostasExistentes, 'controles', sessaoId, observacoes, status, auditoriaId);
+
+            const analisesContainer = document.createElement('div');
+            analisesContainer.id = 'analises-checklist-controles';
+            body.appendChild(analisesContainer);
+            carregarAnalisesChecklist('controles', 'analises-checklist-controles');
         } catch (error) {
             console.error('Erro:', error);
-            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar checklist.</div>`;
+            body.innerHTML = '<div class="alert-error">❌ Erro ao carregar checklist.</div>';
         }
     }
 

@@ -2241,6 +2241,66 @@ def api_risco_controles(risco_id):
 # COMUNICAÇÃO DOS RESULTADOS
 # ============================================================
 
+@app.route('/api/checklist/analises-por-auditoria')
+def api_checklist_analises_por_auditoria():
+    """Retorna as análises críticas de todas as etapas dos processos de uma auditoria, filtradas por categoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    auditoria_id = request.args.get('auditoria_id')
+    categoria = request.args.get('categoria', 'governanca')
+    
+    if not auditoria_id:
+        return jsonify({'success': False, 'error': 'auditoria_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    ac.id, ac.tipo_analise, ac.categoria,
+                    ac.analise_critica, ac.sugestao_melhoria,
+                    ac.necessidade_implantacao, ac.ganho_previsto,
+                    ep.codigo_etapa, ep.nome_etapa,
+                    p.codigo_processo, p.nome_processo
+                FROM analises_criticas ac
+                JOIN etapas_processo ep ON ac.etapa_id = ep.id
+                JOIN processos p ON ep.processo_id = p.id
+                JOIN auditoria_processos ap ON p.id = ap.processo_id
+                WHERE ap.auditoria_id = :auditoria_id
+                  AND ac.categoria = :categoria
+                ORDER BY p.codigo_processo, ep.codigo_etapa, ac.tipo_analise
+            """)
+            
+            result = conn.execute(query, {
+                'auditoria_id': auditoria_id,
+                'categoria': categoria
+            }).fetchall()
+            
+            analises = []
+            for row in result:
+                analises.append({
+                    'id': row[0],
+                    'tipo_analise': row[1],
+                    'categoria': row[2],
+                    'analise_critica': row[3] or '',
+                    'sugestao_melhoria': row[4] or '',
+                    'necessidade_implantacao': row[5] or '',
+                    'ganho_previsto': row[6] or '',
+                    'codigo_etapa': row[7] or '',
+                    'nome_etapa': row[8] or '',
+                    'codigo_processo': row[9] or '',
+                    'nome_processo': row[10] or ''
+                })
+            
+            return jsonify({'success': True, 'analises': analises})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar análises: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/checklist/carregar')
 def api_checklist_carregar():
     """Carrega as respostas de um checklist para uma auditoria"""
@@ -3111,6 +3171,128 @@ def api_analise_excluir(analise_id):
             
     except Exception as e:
         print(f"❌ Erro ao excluir análise: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# API - ANOTAÇÕES DO AUDITOR
+# ============================================================
+
+@app.route('/api/anotacoes', methods=['GET'])
+def api_anotacoes_listar():
+    """Retorna todas as anotações do usuário logado"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    usuario_id = session.get('usuario_id')
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, titulo, conteudo, created_at, updated_at
+                FROM anotacoes_auditor
+                WHERE usuario_id = :usuario_id
+                ORDER BY updated_at DESC
+            """)
+            result = conn.execute(query, {'usuario_id': usuario_id}).fetchall()
+            
+            anotacoes = []
+            for row in result:
+                anotacoes.append({
+                    'id': row[0],
+                    'titulo': row[1] or 'Sem título',
+                    'conteudo': row[2] or '',
+                    'created_at': row[3].strftime('%d/%m/%Y %H:%M') if row[3] else '',
+                    'updated_at': row[4].strftime('%d/%m/%Y %H:%M') if row[4] else ''
+                })
+            
+            return jsonify({'success': True, 'anotacoes': anotacoes})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar anotações: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/anotacoes/salvar', methods=['POST'])
+def api_anotacoes_salvar():
+    """Salva ou atualiza uma anotação"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    usuario_id = session.get('usuario_id')
+    data = request.json
+    
+    anotacao_id = data.get('id')
+    titulo = data.get('titulo', 'Sem título')
+    conteudo = data.get('conteudo', '')
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            if anotacao_id:
+                # Atualizar
+                query = text("""
+                    UPDATE anotacoes_auditor
+                    SET titulo = :titulo, conteudo = :conteudo, updated_at = NOW()
+                    WHERE id = :id AND usuario_id = :usuario_id
+                """)
+                conn.execute(query, {
+                    'id': anotacao_id,
+                    'titulo': titulo,
+                    'conteudo': conteudo,
+                    'usuario_id': usuario_id
+                })
+            else:
+                # Nova
+                query = text("""
+                    INSERT INTO anotacoes_auditor (usuario_id, titulo, conteudo)
+                    VALUES (:usuario_id, :titulo, :conteudo)
+                    RETURNING id
+                """)
+                result = conn.execute(query, {
+                    'usuario_id': usuario_id,
+                    'titulo': titulo,
+                    'conteudo': conteudo
+                })
+                anotacao_id = result.fetchone()[0]
+            
+            conn.commit()
+            
+            return jsonify({'success': True, 'id': anotacao_id, 'message': 'Anotação salva!'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar anotação: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/anotacoes/<int:anotacao_id>', methods=['DELETE'])
+def api_anotacoes_excluir(anotacao_id):
+    """Exclui uma anotação"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    usuario_id = session.get('usuario_id')
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                DELETE FROM anotacoes_auditor
+                WHERE id = :id AND usuario_id = :usuario_id
+            """)
+            conn.execute(query, {'id': anotacao_id, 'usuario_id': usuario_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Anotação excluída'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir anotação: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

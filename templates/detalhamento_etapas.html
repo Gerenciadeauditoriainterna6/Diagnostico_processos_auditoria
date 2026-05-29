@@ -187,7 +187,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Análise Crítica</label>
+                        <label>Validações</label>
                         <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica..."></textarea>
                     </div>
 
@@ -2345,9 +2345,9 @@
                         </span>
                     </div>
                     <div class="analise-card-detalhes">
-                        ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
-                        ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
-                        ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                        ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Validações:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                        ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                        ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade de Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                         ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
                         ${!analise.analise_critica && !analise.sugestao_melhoria && !analise.necessidade_implantacao && !analise.ganho_previsto ? 
                             '<div class="analise-card-texto" style="color: #999;">Nenhum detalhe preenchido</div>' : ''}
@@ -2487,7 +2487,16 @@
         if (!modal || !body) return;
         
         modal.style.display = 'flex';
-        body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        body.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div class="dot-spinner">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando visualização da etapa...</p>
+                </div>
+            `;
         
         try {
             // Buscar dados da etapa
@@ -2583,9 +2592,9 @@
                                                 <span class="analise-card-categoria">${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}</span>
                                             </div>
                                             <div class="analise-card-detalhes">
-                                                ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
-                                                ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
-                                                ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                                                ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Validação:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                                                ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                                                ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade de Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                                                 ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
                                             </div>
                                         </div>
