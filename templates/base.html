@@ -426,7 +426,7 @@
         }
 
         .sidebar.sidebar-hidden .nav-item.active i {
-            color: rgba(11, 91, 153, 0.9) !important;
+            color: #0b5b99 !important;
         }
 
         /* Hover na sidebar colapsada */
@@ -1410,7 +1410,42 @@
             
             // Estado inicial
             updateSidebarState();
+
+            function atualizarIconesMenuPai() {
+                const currentUrl = window.location.pathname;
+                
+                // Configuração: URL do submenu → ID do toggle do menu pai
+                const submenuParaMenuPai = {
+                    '/detalhamento_riscos': 'toggleDetalhamentoSubmenu',
+                    '/detalhamento_controles': 'toggleDetalhamentoSubmenu',
+                    '/visao-geral': 'toggleDiagnosticoSubmenu'
+                };
+                
+                // Remover active de todos primeiro
+                document.querySelectorAll('.nav-item-parent .nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Verificar cada submenu
+                for (const [urlSubmenu, toggleId] of Object.entries(submenuParaMenuPai)) {
+                    if (currentUrl.includes(urlSubmenu)) {
+                        const parentToggle = document.getElementById(toggleId);
+                        if (parentToggle) {
+                            parentToggle.classList.add('active');
+                            console.log('✅ Ícone do menu pai ativado:', toggleId);
+                        }
+                    }
+                }
+            }
+            atualizarIconesMenuPai();
+
+            // Reaplicar sempre que a sidebar mudar de estado
+            const sidebarObserver = new MutationObserver(() => atualizarIconesMenuPai());
+            sidebarObserver.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+            
         })();
+
+        
 
 
 
