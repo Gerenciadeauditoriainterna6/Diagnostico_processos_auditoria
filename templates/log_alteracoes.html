@@ -550,12 +550,6 @@
             const operacaoTexto = log.operacao === 'INSERT' ? 'INSERT' :
                             (log.operacao === 'UPDATE' ? 'UPDATE' : 'DELETE');
             
-            // Criar ID único para o botão de visualizar
-            const btnId = `btn-ver-detalhes-${log.id}`;
-            
-            // Preparar os dados para passar para o modal
-            const dadosAntigosStr = log.dados_anteriores ? JSON.stringify(log.dados_anteriores) : 'null';
-            const dadosNovosStr = log.dados_novos ? JSON.stringify(log.dados_novos) : 'null';
 
             html += `
                 <tr>
@@ -567,10 +561,7 @@
                     <td>${log.ip_origem || '-'}</td>
                     <td>
                         <button class="btn-visualizar-detalhes" 
-                                id="${btnId}"
-                                data-antigos='${dadosAntigosStr}'
-                                data-novos='${dadosNovosStr}'
-                                data-operacao="${log.operacao}"
+                                data-log-id="${log.id}"
                                 style="background: #0b5b99; color: white; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer;">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -586,31 +577,37 @@
             `;
 
         container.innerHTML = html;
-        
-        // Adicionar eventos de clique para os botões
-        for (const log of logs) {
-            const btn = document.getElementById(`btn-ver-detalhes-${log.id}`);
-            if (btn) {
-                btn.addEventListener('click', function() {
-                    const dadosAntigos = this.getAttribute('data-antigos');
-                    const dadosNovos = this.getAttribute('data-novos');
-                    const operacao = this.getAttribute('data-operacao');
-                    
-                    let antigosObj = null;
-                    let novosObj = null;
-                    
-                    try { antigosObj = JSON.parse(dadosAntigos); } catch(e) { antigosObj = dadosAntigos; }
-                    try { novosObj = JSON.parse(dadosNovos); } catch(e) { novosObj = dadosNovos; }
-                    
-                    let titulo = '';
-                    if (operacao === 'INSERT') titulo = 'Registro Inserido';
-                    else if (operacao === 'DELETE') titulo = 'Registro Removido';
-                    else titulo = 'Alteração do Registro';
-                    
-                    abrirModalJson(antigosObj, novosObj, operacao, titulo);
-                });
-            }
+
+       // Adicionar evento de clique na tabela (delegação)
+        const tabela = container.querySelector('table');
+        if (tabela) {
+            tabela.addEventListener('click', function(e) {
+                console.log('🖱️ Clique na tabela!', e.target);
+                
+                const btn = e.target.closest('.btn-visualizar-detalhes');
+                console.log('🔍 Botão encontrado:', btn);
+                
+                if (!btn) return;
+                
+                const logId = parseInt(btn.getAttribute('data-log-id'));
+                console.log('🆔 Log ID:', logId);
+                
+                const log = logs.find(l => l.id === logId);
+                console.log('📋 Log encontrado:', log);
+                
+                if (!log) return;
+                
+                console.log('📂 Abrindo modal...');
+                abrirModalJson(
+                    log.dados_anteriores,
+                    log.dados_novos,
+                    log.operacao,
+                    log.operacao === 'INSERT' ? 'Registro Inserido' : 
+                    log.operacao === 'DELETE' ? 'Registro Removido' : 'Alteração do Registro'
+                );
+            });
         }
+        
     };
 
     function formatarJson(dados) {

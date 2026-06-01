@@ -98,6 +98,17 @@
                     <input type="text" id="edit_nome_area" name="nome" class="form-control" required>
                 </div>
 
+                <div class="form-group">
+                    <label for="unidade_area"><i class="fas fa-map-marker-alt"></i> Unidade</label>
+                    <select id="unidade_area" name="unidade" class="form-control">
+                        <option value="">Seleciona uma unidade...</option>
+                        <option value="FUSVE">FUSVE</option>
+                        <option value="FUSVE">HMC</option>
+                        <option value="FUSVE">HMK</option>
+                        <option value="FUSVE">HUV</option>
+                    </select>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_email"><i class="fas fa-envelope"></i> E-mail</label>
@@ -1261,6 +1272,11 @@
                         <h2><i class="fas fa-building"></i> ${area.nome_area}</h2>
                         <p class="detail-status ${area.status === 'Ativo' ? 'status-ativo' : 'status-inativo'}">${area.status}</p>
                     </div>
+
+                    <div class="info-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Unidade</label>
+                        <p>${area.unidade || 'Não informado'}</p>
+                    </div>
                     
                     <div class="detail-info">
                         <div class="info-group">
@@ -1590,6 +1606,7 @@
                 
                 const dados = {
                     nome: document.getElementById('nome_area').value,
+                    unidade: document.getElementById('unidade_area').value,
                     email: document.getElementById('email').value,
                     telefone: limparMascaraTelefone(document.getElementById('telefone').value),
                     gestor: document.getElementById('gestor').value,
@@ -1831,6 +1848,7 @@
             
             document.getElementById('edit_area_id').value = area.id_area;
             document.getElementById('edit_nome_area').value = area.nome_area || '';
+            document.getElementById('edit_unidade').value = area.unidade || '';
             document.getElementById('edit_email').value = area.email || '';
             document.getElementById('edit_telefone').value = area.telefone || '';
             document.getElementById('edit_gestor').value = area.gestor || '';
@@ -1859,6 +1877,7 @@
             const areaId = document.getElementById('edit_area_id').value;
             const dados = {
                 nome: document.getElementById('edit_nome_area').value,
+                unidade: document.getElementsByTagName('edit_unidade').value,
                 email: document.getElementById('edit_email').value,
                 telefone: limparMascaraTelefone(document.getElementById('edit_telefone').value),
                 gestor: document.getElementById('edit_gestor').value,
@@ -2173,6 +2192,7 @@
                         <i class="fas fa-users"></i> <span class="count-number">...</span>
                     </span>
                 </h4>
+                <p><i class="fas fa-map-marker-alt"></i> ${area.unidade || 'Não informada'}</p>
                 <p><i class="fas fa-user-tie"></i> Gestor: ${gestor}</p>
                 <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
                 <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
@@ -2365,6 +2385,17 @@
                     <div class="form-group">
                         <label for="nome_area"><i class="fas fa-tag"></i> Nome da Área *</label>
                         <input type="text" id="nome_area" name="nome_area" class="form-control" required placeholder="Ex: Gerência Financeira, Gerência de RH">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="unidade_area"><i class="fas fa-map-marker-alt"></i> Unidade</label>
+                        <select id="unidade_area" name="unidade" class="form-control">
+                            <option value="">Seleciona uma unidade...</option>
+                            <option value="FUSVE">FUSVE</option>
+                            <option value="FUSVE">HMC</option>
+                            <option value="FUSVE">HMK</option>
+                            <option value="FUSVE">HUV</option>
+                        </select>
                     </div>
 
                     <div class="form-row">

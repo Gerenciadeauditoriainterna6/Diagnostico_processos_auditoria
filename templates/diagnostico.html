@@ -531,6 +531,17 @@
                                 <i class="fas fa-search"></i> Causa e Análise
                             </h4>
 
+                            <!-- Fator de Risco -->
+                            <div class="form-group">
+                                <label>
+                                    <i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)
+                                    <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                </label>
+                                <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="Pelo motivo de..."></textarea>
+                            </div>
+
                             <!-- Categoria de Causa -->
                             <div class="form-group">
                                 <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
@@ -545,26 +556,15 @@
                                 <small class="text-muted">Selecione uma ou mais causas</small>
                             </div>
 
-                            <!-- Fator de Risco -->
-                            <div class="form-group">
-                                <label>
-                                    <i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)
-                                    <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
-                                        <i class="fas fa-question-circle"></i>
-                                    </span>
-                                </label>
-                                <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="Pelo motivo de..."></textarea>
-                            </div>
-
                             <!-- Ponto de Melhoria -->
                             <div class="form-group">
                                 <label>
-                                    <i class="fas fa-lightbulb"></i> Ponto de Melhoria
+                                    <i class="fas fa-lightbulb"></i> O que mais te incomoda no processo?
                                     <span class="help-icon" data-tooltip="O que mais te incomoda no processo e pensa que deveria ser melhorado?">
                                         <i class="fas fa-question-circle"></i>
                                     </span>
                                 </label>
-                                <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="Descreva o ponto de melhoria..."></textarea>
+                                <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="Descreva o que mais te incomoda nesse processo..."></textarea>
                             </div>
 
                             <!-- Apetite ao Risco -->
@@ -727,7 +727,7 @@
                         <div class="vis-value" id="vis-categoria-causa"></div>
                     </div>
                     <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-lightbulb"></i> Ponto de Melhoria</div>
+                        <div class="vis-label"><i class="fas fa-lightbulb"></i> O que mais te incomoda nesse processo?</div>
                         <div class="vis-value" id="vis-melhoria">-</div>
                     </div>
                     <div class="vis-item">

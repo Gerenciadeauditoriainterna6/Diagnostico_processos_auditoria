@@ -1369,6 +1369,7 @@ def api_excluir_area(area_id):
         return jsonify({'success': False, 'error': 'Permissão negada'}), 403
     
     resultado = excluir_area(area_id)
+    print(f"🔍 Resultado de excluir_area({area_id}): {resultado}")
     
     if resultado:
         return jsonify({'success': True})

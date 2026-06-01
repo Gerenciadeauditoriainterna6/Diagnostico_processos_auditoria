@@ -1982,15 +1982,16 @@ def salvar_area(dados_area):
     try:
         query = text("""
             INSERT INTO informacoes_area 
-            (nome_area, objetivo_area, status, email, telefone, gestor)
+            (nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade)
             VALUES 
-            (:nome, :objetivo, :status, :email, :telefone, :gestor)
+            (:nome, :objetivo, :status, :email, :telefone, :gestor, :loc_unidade)
             RETURNING id_area
         """)
         
         with engine.begin() as conn:
             id_area = conn.execute(query, {
                 "nome": dados_area['nome'],
+                "loc_unidade": dados_area.get('loc_unidade', ''),
                 "objetivo": dados_area.get('objetivo', ''),
                 "status": dados_area.get('status', 'Ativo'),
                 "email": dados_area.get('email', ''),
@@ -2021,14 +2022,14 @@ def listar_areas(apenas_ativas=True):
     
     if apenas_ativas:
         query = text("""
-            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade
             FROM informacoes_area
             WHERE status = 'Ativo'
             ORDER BY nome_area
         """)
     else:
         query = text("""
-            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade
             FROM informacoes_area
             ORDER BY 
                 CASE WHEN status = 'Ativo' THEN 0 ELSE 1 END,
@@ -2197,48 +2198,35 @@ def excluir_area(area_id):
     print(f"🔍 Desativando área ID: {area_id} e seus funcionários")
     
     try:
-        # 1. Buscar dados ANTES da desativação (para o log)
         dados_anteriores = buscar_area_por_id(area_id)
-
         if not dados_anteriores:
             print(f"❌ Área ID {area_id} não encontrada")
             return False
         
         with engine.connect() as conn:
-            # Iniciar transação
-            with conn.begin():
-                # 1. Desativar todos os funcionários da área
-                update_funcionarios = text("""
-                    UPDATE funcionarios_area 
-                    SET ativo = false 
-                    WHERE id_area = :id
-                """)
-                result_func = conn.execute(update_funcionarios, {"id": area_id})
-                print(f"✅ Funcionários desativados: {result_func.rowcount}")
-                
-                # 2. Desativar a área
-                update_area = text("""
-                    UPDATE informacoes_area 
-                    SET status = 'Inativo' 
-                    WHERE id_area = :id
-                """)
-                result_area = conn.execute(update_area, {"id": area_id})
-                print(f"✅ Área desativada: {result_area.rowcount}")
-
-                # 3. Registrar log da área desativada
-                if result_area.rowcount > 0:
-                    registrar_log (
-                        tabela='informacoes_area',
-                        registro_id=area_id,
-                        operacao='DELETE',
-                        dados_anteriores=dados_anteriores,
-                        query_sql="UPDATE informacoes_area SET status = 'Inativo' + UPDATE funcionarios_area SET ativo = false"
-                    )
-                
-                return result_area.rowcount > 0
-                
+            # Desativar funcionários
+            update_funcionarios = text("""
+                UPDATE funcionarios_area 
+                SET ativo = false 
+                WHERE id_area = :id
+            """)
+            conn.execute(update_funcionarios, {"id": area_id})
+            
+            # Desativar área
+            update_area = text("""
+                UPDATE informacoes_area 
+                SET status = 'Inativo' 
+                WHERE id_area = :id
+            """)
+            result_area = conn.execute(update_area, {"id": area_id})
+            
+            conn.commit()
+            
+            print(f"✅ Área {area_id} desativada com sucesso")
+            return True
+            
     except Exception as e:
-        print(f"❌ Erro ao desativar área em cascata: {e}")
+        print(f"❌ Erro ao desativar área: {e}")
         return False
 
 
@@ -3121,7 +3109,8 @@ def atualizar_area(area_id, dados):
                 email = :email,
                 telefone = :telefone,
                 gestor = :gestor,
-                objetivo_area = :objetivo
+                objetivo_area = :objetivo,
+                loc_unidade = :loc_unidade
             WHERE id_area = :id
         """)
         
@@ -3132,7 +3121,8 @@ def atualizar_area(area_id, dados):
                 "email": dados.get('email', ''),
                 "telefone": dados.get('telefone', ''),
                 "gestor": dados.get('gestor', ''),
-                "objetivo": dados.get('objetivo', '')
+                "objetivo": dados.get('objetivo', ''),
+                "loc_unidade": dados.get('loc_unidade', '')
             })
             conn.commit()
 
@@ -3824,5 +3814,43 @@ def limpar_dados_exibicao(dados):
     
     return texto
 
-    import re
+
+def limpar_binario(dados):
+    if not dados:
+        return dados
+    texto = str(dados)
+    # Substitui fluxo_bpmn e outros campos binários
+    # Padrão para BYTEA: "fluxo_bpmn": "\x89504e..."
+    # Padrão para Base64: "fluxo_bpmn": "iVBORw0..."
+    texto = re.sub(
+        r'"fluxo_bpmn":\s*"[^"]*"',
+        '"fluxo_bpmn": "[ARQUIVO BINARIO]"',
+        texto
+    )
+    texto = re.sub(
+        r'"diagrama_bpmn":\s*"[^"]*"',
+        '"diagrama_bpmn": "[ARQUIVO BINARIO]"',
+        texto
+    )
+    texto = re.sub(
+        r'"manual_etapa":\s*"[^"]*"',
+        '"manual_etapa": "[ARQUIVO BINARIO]"',
+        texto
+    )
+    texto = re.sub(
+        r'"arquivo_mapeamento":\s*"[^"]*"',
+        '"arquivo_mapeamento": "[ARQUIVO BINARIO]"',
+        texto
+    )
+    texto = re.sub(
+        r'"conteudo":\s*"[^"]*"',
+        '"conteudo": "[ARQUIVO BINARIO]"',
+        texto
+    )
+    texto = re.sub(
+        r'"arquivo_base64":\s*"[^"]*"',
+        '"arquivo_base64": "[ARQUIVO BINARIO]"',
+        texto
+    )
+    return texto
 
