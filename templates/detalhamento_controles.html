@@ -633,7 +633,146 @@
         margin-right: 8px;
     }
 
+    /* Hint de expansão */
+    .expandir-hint {
+        font-size: 11px;
+        color: #17a2b8;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: rgba(23, 162, 184, 0.1);
+        border-radius: 12px;
+        transition: all 0.2s;
+    }
 
+    .expandir-hint:hover {
+        background: rgba(23, 162, 184, 0.2);
+    }
+
+    .risco-card.expandido .expandir-hint i {
+        transform: rotate(180deg);
+    }
+
+    /* Cards de Controle */
+    .controle-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border-left: 3px solid #17a2b8;
+        transition: all 0.2s;
+    }
+
+    .controle-card:hover {
+        background: #eef2f3;
+        transform: translateX(2px);
+    }
+
+    .controle-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .controle-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .controle-info i {
+        color: #17a2b8;
+        font-size: 14px;
+    }
+
+    .controle-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .controle-detalhes {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .controle-detalhe {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    /* Seção de controles dentro do card de risco */
+    .controles-section {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 2px solid #17a2b8;
+        grid-column: 1 / -1;
+    }
+
+    .controles-header {
+        margin-bottom: 8px;
+    }
+
+    .controles-titulo {
+        font-size: 12px;
+        font-weight: 600;
+        color: #17a2b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .empty-controles, .error-controles {
+        text-align: center;
+        padding: 15px;
+        color: #666;
+        font-size: 12px;
+        font-style: italic;
+    }
+
+
+    /* Modal melhorias */
+    .modal-body .form-group {
+        margin-bottom: 15px;
+    }
+
+    .modal-body .form-group label {
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    .modal-body textarea.form-control {
+        resize: vertical;
+        min-height: 60px;
+    }
+
+    .modal-body .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .controles-count-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(23, 162, 184, 0.1);
+        color: #17a2b8;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-left: 4px;
+    }
     
 </style>
 
@@ -787,6 +926,7 @@
                 </div>
             `;
 
+
         try {
             // 1. Buscar todos os processos da auditoria
             const responseProcessos = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
@@ -807,7 +947,7 @@
             // 3. Vamos montar o HTML (próximo passo)
             let htmlFinal = '';
 
-            // 4. PErcorrer cada processo (um por um)
+            // 4. Percorrer cada processo (um por um)
             for (const processo of dataProcessos.processos) {
                 console.log(`🔍 Buscando etapas do processo: ${processo.codigo_processo} - ${processo.nome_processo}`);
 
@@ -873,6 +1013,23 @@
 
             // Depois de processar todos os processos, colocar o HTML na tela
             etapasContainer.innerHTML = htmlFinal;
+
+            // AGORA SIM: buscar contagem de controles (após o HTML existir no DOM)
+            document.querySelectorAll('.etapa-card').forEach(async (card) => {
+                const etapaId = card.getAttribute('data-etapa-id');
+                try {
+                    const resp = await fetch(`/api/etapa/${etapaId}/controles/count`);
+                    const data = await resp.json();
+                    if (data.success && data.total > 0) {
+                        const header = card.querySelector('.etapa-info');
+                        const badge = document.createElement('span');
+                        badge.className = 'controles-count-badge';
+                        badge.innerHTML = `<i class="fas fa-shield-alt"></i> ${data.total}`;
+                        badge.title = `${data.total} controle(s) cadastrado(s)`;
+                        header.appendChild(badge);
+                    }
+                } catch(e) {}
+            });
 
         } catch (error) {
             console.error('❌ Erro ao carregar etapas:', error);
@@ -969,7 +1126,7 @@
                 }
 
                 riscosHtml += `
-                    <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}" data-risco-nome="${escapeHtml(risco.nome_risco)}" onclick="toggleRisco(this, event)">
+                    <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}" data-risco-nome="${escapeHtml(risco.nome_risco)}" onclick="toggleRisco(this, event)" style="position: relative;">
                         <div class="risco-header">
                             <div class="risco-info">
                                 <span class="risco-icon">${badgeIcon}</span>
@@ -977,8 +1134,11 @@
                                 <span class="risco-score">Score: ${risco.magnitude}</span>
                             </div>
                             <div class="risco-actions">
+                                <span class="expandir-hint" title="Clique para ver controles">
+                                    <i class="fas fa-chevron-down"></i> Controles
+                                </span>
                                 <button class="btn-add-controle" onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Adicionar Controle">
-                                    <i class="fas fa-plus"></i> Controle
+                                    <i class="fas fa-plus"></i>
                                 </button>
                                 <button class="btn-edit-icon" onclick="event.stopPropagation(); editarRiscoEtapa(${risco.id}, ${etapaId})" title="Editar Risco">
                                     <i class="fas fa-pencil-alt"></i>

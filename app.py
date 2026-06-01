@@ -1228,8 +1228,8 @@ def api_salvar_processo_riscos():
                 categoria_str = ', '.join(categorias) if categorias else None
                 
                 # IMPORTANTE: frontend envia "categoria_causa", banco chama "causas"
-                categoria_causa = risco.get('categoria_causa', [])
-                causas_str = ', '.join(categoria_causa) if categoria_causa else None
+                causas = risco.get('categoria_causa', [])
+                causas_str = ', '.join([c.strip() for c in causas]) if causas else None
                 
                 conn.execute(insert_query, {
                     'processo_id': processo_id,
@@ -1515,9 +1515,11 @@ def api_risco_etapa_salvar():
     apetite = data.get('apetite', '')
     tratamento = data.get('tratamento', '')
     origem = data.get('origem', '')
-    doc_legal = data.get('doc_legal', '')
+    desc_tratamento = data.get('desc_tratamento', '')
     financeiro = data.get('financeiro', False)
     info_adicional = data.get('info_adicional', '')
+    causas_lista = data.get('causas', [])
+    causas_str = ', '.join(causas_lista) if causas_lista else None
 
     # Validação básica
     if not etapa_id:
@@ -1555,9 +1557,10 @@ def api_risco_etapa_salvar():
                         apetite = :apetite,
                         tratamento = :tratamento,
                         origem = :origem,
-                        doc_legal = :doc_legal,
+                        desc_tratamento = :desc_tratamento,
                         financeiro = :financeiro,
                         info_adicional = :info_adicional,
+                        causas = :causas,
                         updated_at = NOW()
                     WHERE id = :risco_id
                 """)
@@ -1574,9 +1577,10 @@ def api_risco_etapa_salvar():
                     'apetite': apetite,
                     'tratamento': tratamento,
                     'origem': origem,
-                    'doc_legal': doc_legal,
+                    'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
-                    'info_adicional': info_adicional
+                    'info_adicional': info_adicional,
+                    'causas': causas_str
                 })
 
                 print(f"✏️ Risco de etapa {risco_id} atualizado!")
@@ -1587,13 +1591,13 @@ def api_risco_etapa_salvar():
                     INSERT INTO riscos_etapa (
                         etapa_id, auditoria_id, nome_risco, categoria,
                         fator_risco, consequencia, impacto, probabilidade,
-                        magnitude, apetite, tratamento, origem,
-                        doc_legal, financeiro, info_adicional, ativo, created_at
+                        magnitude, apetite, tratamento, origem, causas,
+                        desc_tratamento, financeiro, info_adicional, ativo, created_at
                     ) VALUES (
                         :etapa_id, :auditoria_id, :nome_risco, :categoria,
                         :fator_risco, :consequencia, :impacto, :probabilidade,
-                        :magnitude, :apetite, :tratamento, :origem,
-                        :doc_legal, :financeiro, :info_adicional, true, NOW()
+                        :magnitude, :apetite, :tratamento, :origem, :causas,
+                        :desc_tratamento, :financeiro, :info_adicional, true, NOW()
                     )
                     RETURNING id
                 """)
@@ -1611,9 +1615,10 @@ def api_risco_etapa_salvar():
                     'apetite': apetite,
                     'tratamento': tratamento,
                     'origem': origem,
-                    'doc_legal': doc_legal,
+                    'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
-                    'info_adicional': info_adicional
+                    'info_adicional': info_adicional,
+                    'causas': causas_str
                 })
 
                 novo_id = result.fetchone()[0]
@@ -1663,8 +1668,8 @@ def api_risco_etapa_detalhes(risco_id):
             query = text("""
                 SELECT id, etapa_id, nome_risco, categoria, fator_risco,
                        consequencia, impacto, probabilidade, magnitude,
-                       apetite, tratamento, origem, doc_legal, financeiro,
-                       info_adicional, ativo
+                       apetite, tratamento, origem, desc_tratamento, financeiro,
+                       info_adicional, ativo, causas
                 FROM riscos_etapa
                 WHERE id = :risco_id
             """)
@@ -1686,10 +1691,11 @@ def api_risco_etapa_detalhes(risco_id):
                 'apetite': result[9] or '',
                 'tratamento': result[10] or '',
                 'origem': result[11] or '',
-                'doc_legal': result[12] or '',
+                'desc_tratamento': result[12] or '',
                 'financeiro': result[13] or False,
                 'info_adicional': result[14] or '',
-                'ativo': result[15] if result[15] is not None else True
+                'ativo': result[15] if result[15] is not None else True,
+                'causas': [c.strip() for c in result[16].split(',')] if result[16] else []
             }
 
             return jsonify({'success': True, 'risco': risco})
@@ -1709,7 +1715,7 @@ def api_etapa_riscos(etapa_id):
             query = text("""
                 SELECT id, nome_risco, categoria, fator_risco, consequencia,
                        impacto, probabilidade, magnitude, apetite, tratamento,
-                       origem, doc_legal, financeiro, info_adicional, ativo
+                       origem, desc_tratamento, financeiro, info_adicional, ativo, causas
                 FROM riscos_etapa
                 WHERE etapa_id = :etapa_id AND (ativo IS NULL OR ativo = true)
                 ORDER BY id
@@ -1732,10 +1738,11 @@ def api_etapa_riscos(etapa_id):
                     'apetite': row[8] or '',
                     'tratamento': row[9] or '',
                     'origem': row[10] or '',
-                    'doc_legal': row[11] or '',
+                    'desc_tratamento': row[11] or '',
                     'financeiro': row[12] or False,
                     'info_adicional': row[13] or '',
-                    'ativo': row[14] if row[14] is not None else True
+                    'ativo': row[14] if row[14] is not None else True,
+                    'causas': [c.strip() for c in row[15].split(',')] if row[15] else []
                 })
 
             return jsonify({'success': True, 'riscos': riscos})
@@ -2175,7 +2182,10 @@ def api_salvar_etapa():
                     'diagrama_tipo': diagrama_tipo,
                     'manual_etapa': manual_bytes,
                     'manual_nome': manual_nome,
-                    'manual_tipo': manual_tipo
+                    'manual_tipo': manual_tipo,
+                    'arquivo_mapeamento': None,
+                    'arquivo_mapeamento_nome': None,
+                    'arquivo_mapeamento_tipo': None
                 })
                 
                 novo_id = result.fetchone()[0]
@@ -2236,6 +2246,24 @@ def api_risco_controles(risco_id):
             
     except Exception as e:
         print(f"❌ Erro ao buscar controles do risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/etapa/<int:etapa_id>/controles/count')
+def api_etapa_controles_count(etapa_id):
+    """Retorna a quantidade de controles de uma etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT COUNT(*) FROM controles_etapa ce
+                JOIN riscos_etapa re ON ce.risco_id = re.id
+                WHERE re.etapa_id = :etapa_id AND re.ativo = true
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+            return jsonify({'success': True, 'total': result[0]})
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================

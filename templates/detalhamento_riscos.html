@@ -59,7 +59,7 @@
                 <!-- Nome do Risco -->
                 <div class="form-group">
                     <label><i class="fas fa-font"></i> Nome do Risco *</label>
-                    <input type="text" id="risco_nome" class="form-control" placeholder="Ex: Atraso na validação dos dados">
+                    <input type="text" id="risco_nome" class="form-control" placeholder="Ex: Risco pela possibilidade de...">
                 </div>
 
                 <!-- Categorias do Risco -->
@@ -92,6 +92,7 @@
                         <label><input type="checkbox" value="Reputacional"> Risco Reputacional</label>
                         <label><input type="checkbox" value="Ambiental"> Risco Ambiental</label>
                     </div>
+                    <small class="text-muted">Selecione uma ou mais categorias de risco</small>
                 </div>
             </div>
 
@@ -101,27 +102,62 @@
                     <i class="fas fa-search"></i> Causa, Consequência e Análise
                 </h4>
 
+                <!-- Categoria de Causa -->
+                <div class="form-group">
+                    <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
+                    <div id="causa-checkboxes" class="checkbox-grid">
+                        <label><input type="checkbox" value="Falha Operacional"> Falha Operacional</label>
+                        <label><input type="checkbox" value="Falta de Controle"> Falta de Controle</label>
+                        <label><input type="checkbox" value="Não Conformidade"> Não Conformidade</label>
+                        <label><input type="checkbox" value="Problemas Financeiros"> Problemas Financeiros</label>
+                        <label><input type="checkbox" value="Fenômeno natural"> Fenômeno natural</label>
+                        <label><input type="checkbox" value="Fraude"> Fraude</label>
+                    </div>
+                    <small class="text-muted">Selecione uma ou mais categorias de causa</small>
+                </div>
+
                 <!-- Fator de Risco (Causa) -->
                 <div class="form-group">
-                    <label><i class="fas fa-exclamation-triangle"></i> Fator de Risco (Causa)</label>
+                    <label>
+                        <i class="fas fa-exclamation-triangle"></i> Fator de Risco (Causa)
+                        <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
                     <textarea id="risco_fator" class="form-control" rows="2" placeholder="O que causa este risco? Ex: Falta de revisão, dependência de terceiros..."></textarea>
                 </div>
 
                 <!-- Consequência -->
                 <div class="form-group">
-                    <label><i class="fas fa-bullseye"></i> Consequência</label>
+                    <label>
+                        <i class="fas fa-bullseye"></i> Consequência
+                        <span class="help-icon" data-tooltip="Consequências ou efeitos da materialização do risco">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+
                     <textarea id="risco_consequencia" class="form-control" rows="2" placeholder="O que acontece se o risco se materializar? Ex: Atraso na entrega, multa, retrabalho..."></textarea>
                 </div>
 
                 <!-- Origem -->
                 <div class="form-group">
-                    <label><i class="fas fa-map-marker-alt"></i> Origem</label>
+                    <label>
+                        <i class="fas fa-map-marker-alt"></i> Origem do Risco
+                        <span class="help-icon" data-tooltip="Origem do risco(externo, interno ou área)">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
                     <input type="text" id="risco_origem" class="form-control" placeholder="Ex: Entrevista com gestor, Análise documental, Auditoria anterior">
                 </div>
 
                 <!-- Apetite ao Risco -->
                 <div class="form-group">
-                    <label><i class="fas fa-bullseye"></i> Apetite ao Risco</label>
+                    <label>
+                        <i class="fas fa-bullseye"></i> Apetite ao Risco
+                        <span class="help-icon" data-tooltip="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração às combinações para chegar ao risco bruto.">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
                     <textarea id="risco_apetite" class="form-control" rows="2" placeholder="Qual o nível de risco aceitável para este processo?"></textarea>
                 </div>
             </div>
@@ -191,7 +227,7 @@
 
                 <!-- Impacto Financeiro -->
                 <div class="form-group">
-                    <label><i class="fas fa-dollar-sign"></i> Impacto Financeiro</label>
+                    <label><i class="fas fa-dollar-sign"></i> Impacta financeiramente se o risco de materializar?</label>
                     <select id="risco_financeiro" class="form-control">
                         <option value="false">Não</option>
                         <option value="true">Sim</option>
@@ -207,7 +243,12 @@
 
                 <!-- Como tratar o risco -->
                 <div class="form-group">
-                    <label><i class="fas fa-handshake"></i> Tratamento do Risco</label>
+                    <label>
+                        <i class="fas fa-handshake"></i> Tratamento do Risco
+                        <span class="help-icon" data-tooltip="Como tratar o risco? 1. EVITAR? (isso quer dizer deixar de fazer o processo); 2. MITIGAR? (isso quer dizer incluir um controle interno para mitigar a probabilidade do evento acontecer, mesmo sabendo que o sistema de controle interno não é absoluto e que o evento possui chances de ocorrer); 3. COMPARTILHAR? (isso quer dizer quando a responsabilidade pela mitigação do risco é terceirizada ou dividida com agentes terceiros, por exemplo uma outra área ou um seguro de veículo. 4. ACEITAR? (isso quer dizer quando a magnitude do risco já foi medida e ela esta dentro do meu apetite a risco ou quando o custo para mitigar for maior que o custo de ter o risco)">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
                     <select id="risco_tratamento" class="form-control">
                         <option value="">Selecione uma opção...</option>
                         <option value="Aceitar">Aceitar</option>
@@ -219,8 +260,8 @@
 
                 <!-- Documento Legal -->
                 <div class="form-group">
-                    <label><i class="fas fa-gavel"></i> Documento Legal</label>
-                    <textarea id="risco_doc_legal" class="form-control" rows="2" placeholder="Leis, normas ou regulamentações aplicáveis (ex: LGPD, ISO 27001, Portaria 123)"></textarea>
+                    <label><i class="fas fa-gavel"></i> Descrição do Tratamento</label>
+                    <textarea id="risco_desc_tratamento" class="form-control" rows="2" placeholder="Descrição detalhada do tratamento do risco"></textarea>
                 </div>
 
                 <!-- Informações Adicionais -->
@@ -289,6 +330,7 @@
 
     .form-group label {
         display: block;
+        margin-top: 14px;
         margin-bottom: 8px;
         font-weight: 600;
         color: #184145;
@@ -767,6 +809,40 @@
         }
     }
 
+    /* Tooltip */
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 8px 12px;          /* Aumentei um pouco o padding vertical */
+        border-radius: 6px;
+        font-size: 12px;
+        max-width: 350px;           /* ← REDUZI de 300px para 250px (mais compacto) */
+        min-width: 250px;           /* ← NOVO: largura mínima (evita ficar muito estreito) */
+        text-align: center;
+        white-space: normal;        /* ← PERMITE QUEBRA */
+        word-wrap: break-word;      /* ← NOVO: quebra palavras longas */
+        word-break: break-word;     /* ← NOVO: quebra palavras muito longas */
+        line-height: 1.4;           /* ← NOVO: espaçamento entre linhas */
+        z-index: 9999;
+        margin-top: 20px;
+        margin-left: -10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);  /* ← NOVO: sombra suave */
+    }
+
+    /* Seta do tooltip */
+    .help-icon:hover::before {
+        content: '';
+        position: absolute;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent #333 transparent;
+        margin-top: 8px;
+        margin-left: 4px;
+        z-index: 1000;
+    }
+
 </style>
 
 <script>
@@ -1209,13 +1285,23 @@
             document.getElementById('risco_consequencia').value = risco.consequencia;
             document.getElementById('risco_apetite').value = risco.apetite;
             document.getElementById('risco_origem').value = risco.origem;
-            document.getElementById('risco_doc_legal').value = risco.doc_legal;
+            document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
             document.getElementById('risco_info_adicional').value = risco.info_adicional;
             
             // Categorias (checkboxes)
             const categorias = risco.categoria ? risco.categoria.split(', ') : [];
             document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => {
                 cb.checked = categorias.includes(cb.value);
+            });
+
+            // Causas (checkboxes)
+            const causas = risco.causas || [];
+            console.log('🔍 causas recebidas:', causas, typeof causas);
+            console.log('🔍 checkboxes causas:', document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').length);
+            document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => {
+                const encontrado = causas.some(c => c.trim() === cb.value);
+                console.log(`  ${cb.value}: encontrado=${encontrado}`);
+                cb.checked = encontrado;
             });
             
             // Impacto e Probabilidade
@@ -1336,12 +1422,16 @@
         document.getElementById('risco_consequencia').value = '';
         document.getElementById('risco_apetite').value = '';
         document.getElementById('risco_origem').value = '';
-        document.getElementById('risco_doc_legal').value = '';
+        document.getElementById('risco_desc_tratamento').value = '';
         document.getElementById('risco_info_adicional').value = '';
         
         // Limpar checkboxes de categorias
         const categoriasCheckboxes = document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]');
         categoriasCheckboxes.forEach(cb => cb.checked = false);
+
+        // Limpar checkboxes de causas
+        const causasCheckboxes = document.querySelectorAll('#causa-checkboxes input[type="checkbox"]');
+        causasCheckboxes.forEach(cb => cb.checked = false);
         
         // Resetar selects para valores padrão
         document.getElementById('risco_impacto').value = 'Médio';
@@ -1551,6 +1641,12 @@
             categoriasSelecionadas.push(cb.value);
         });
 
+        // Coletar causas marcadas
+        const causasSelecionadas = [];
+        document.querySelectorAll('#causa-checkboxes input[type="checkbox"]:checked').forEach(cb => {
+            causasSelecionadas.push(cb.value);
+        });
+
         // 3. Montar o objeto com os dados
         const dados = {
             id: riscoIdEditando,
@@ -1565,9 +1661,10 @@
             apetite: document.getElementById('risco_apetite').value,
             tratamento: document.getElementById('risco_tratamento').value,
             origem: document.getElementById('risco_origem').value,
-            doc_legal: document.getElementById('risco_doc_legal').value,
+            desc_tratamento: document.getElementById('risco_desc_tratamento').value,
             financeiro: document.getElementById('risco_financeiro').value === 'true',
-            info_adicional: document.getElementById('risco_info_adicional').value
+            info_adicional: document.getElementById('risco_info_adicional').value,
+            causas: causasSelecionadas
         };
 
         console.log('📦 Dados a serem enviados:', dados);
