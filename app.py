@@ -548,7 +548,7 @@ def api_auditorias_por_area():
         return jsonify({'error': 'area_id é obrigatório'}), 400
     
     query = text("""
-        SELECT id, codigo_auditoria, titulo, trimestre, ano, status
+        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, unidade
         FROM auditorias
         WHERE id_area = :area_id
         ORDER BY ano DESC, trimestre DESC
@@ -1245,7 +1245,7 @@ def api_salvar_processo_riscos():
                     'score_risco': score,
                     'tratamento_risco': risco.get('como_tratar', ''),   # ← frontend → banco
                     'descricao_tratamento': risco.get('desc_tratamento', ''),
-                    'prazo_implantacao': risco.get('prazo_implantacao', '')
+                    'prazo_implantacao': risco.get('prazo_implantacao') or None
                 })
             
             conn.commit()
@@ -2315,9 +2315,9 @@ def api_checklist_carregar():
     
     # Mapeamento tipo -> nome da tabela e número de perguntas
     TABELAS = {
-        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 14},
-        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 11},
-        'controles': {'tabela': 'checklist_controles_respostas', 'total': 11}
+        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 13},
+        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 12},
+        'controles': {'tabela': 'checklist_controles_respostas', 'total': 12}
     }
     
     if tipo not in TABELAS:
@@ -2552,9 +2552,9 @@ def api_checklist_progresso():
     
     # Configuração dos checklists
     CONFIG = {
-        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 14},
-        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 11},
-        'controles': {'tabela': 'checklist_controles_respostas', 'total': 11}
+        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 13},
+        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 12},
+        'controles': {'tabela': 'checklist_controles_respostas', 'total': 12}
     }
     
     resultado = {}
@@ -2669,7 +2669,7 @@ def api_relatorios_auditorias_por_area():
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT id, codigo_auditoria, titulo, ano, trimestre
+                SELECT id, codigo_auditoria, titulo, ano, trimestre, unidade
                 FROM auditorias
                 WHERE id_area = :area_id
                 ORDER BY ano DESC, trimestre DESC
@@ -2684,7 +2684,8 @@ def api_relatorios_auditorias_por_area():
                     'codigo': row[1],
                     'titulo': row[2],
                     'ano': row[3],
-                    'trimestre': row[4]
+                    'trimestre': row[4],
+                    'unidade': row[5] or ''
                 })
 
             return jsonify({'success': True, 'auditorias': auditorias})

@@ -684,7 +684,7 @@
                 data.auditorias.forEach(aud => {
                     const option = document.createElement('option');
                     option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
                     filtroAuditoriaSelect.appendChild(option);
                 });
 

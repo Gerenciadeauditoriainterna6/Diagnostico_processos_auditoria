@@ -514,7 +514,14 @@
                                     <label><input type="checkbox" value="Risco Reputacional"> Risco Reputacional</label>
                                     <label><input type="checkbox" value="Risco de Integridade"> Risco de Integridade</label>
                                     <label><input type="checkbox" value="Risco Ambiental"> Risco Ambiental</label>
+                                    <label><input type="checkbox" value="OUTRA" id="check-outra-categoria"> Outra</label>
                                 </div>
+
+                                <!-- Campo para categoria personalizada -->
+                                 <div id="outra-categoria-container" style="display: none; margin-top: 8px;">
+                                    <input type="text" id="outra-categoria-texto" class="form-control" placeholder="Digite a categoria...">
+            
+                                 </div>
                             </div>
                         </div>
 
@@ -3214,7 +3221,7 @@
                 data.auditorias.forEach(aud => {
                     const option = document.createElement('option');
                     option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim)`;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
                     filtroAuditoriaSelect.appendChild(option);
                 });
                 filtroAuditoriaSelect.disabled = false;
@@ -4180,7 +4187,7 @@
                 data.auditorias.forEach(aud => {
                     const option = document.createElement('option');
                     option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
                     auditoriaSelect.appendChild(option);
                 });
                 
@@ -4544,7 +4551,7 @@
                 data.auditorias.forEach(aud => {
                     const option = document.createElement('option');
                     option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano} ${aud.trimestre}º trim)`;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
                     auditoriaSelect.appendChild(option);
                 });
             }
@@ -4901,6 +4908,32 @@
             cb.checked = categoriasSelecionadas.includes(cb.value);
         });
 
+        // Verificar se tem categoria personalizada (compara sem espaços extras)
+        const categoriasPadrao = ['Risco Financeiro', 'Risco Legal', 'Risco Inerente', 'Risco de TI', 
+                                'Risco Reputacional', 'Risco de Integridade', 'Risco Ambiental'];
+        const categoriaPersonalizada = categoriasSelecionadas.find(c => {
+            const cLimpa = c.trim();
+            return !categoriasPadrao.some(p => p.trim().toLowerCase() === cLimpa.toLowerCase());
+        });
+
+        if (categoriaPersonalizada) {
+            const checkOutra = document.getElementById('check-outra-categoria');
+            const containerOutra = document.getElementById('outra-categoria-container');
+            const textoOutra = document.getElementById('outra-categoria-texto');
+            
+            if (checkOutra) checkOutra.checked = true;
+            if (containerOutra) containerOutra.style.display = 'block';
+            if (textoOutra) textoOutra.value = categoriaPersonalizada.trim();
+        } else {
+            const checkOutra = document.getElementById('check-outra-categoria');
+            const containerOutra = document.getElementById('outra-categoria-container');
+            const textoOutra = document.getElementById('outra-categoria-texto');
+            
+            if (checkOutra) checkOutra.checked = false;
+            if (containerOutra) containerOutra.style.display = 'none';
+            if (textoOutra) textoOutra.value = '';
+        }
+
         // Categoria de Causa (checkboxes)
         const causasSelecionadas = risco.categoria_causa || [];
         const causaCheckboxes = document.querySelectorAll('#causa-checkboxes input[type="checkbox"]');
@@ -4929,7 +4962,12 @@
         // Coletar categorias marcadas
         const categorias = [];
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]:checked').forEach(cb => {
-            categorias.push(cb.value);
+            if (cb.value === 'OUTRA') {
+                const texto = document.getElementById('outra-categoria-texto').value.trim();
+                if (texto) categorias.push(texto);
+            } else {
+                categorias.push(cb.value);
+            }
         });
 
         // Coletar causas marcadas
@@ -4976,6 +5014,22 @@
         const helpCat = document.getElementById('help-categorias-icon');
         const infoCat = document.getElementById('info-categorias');
         const closeCat = document.getElementById('fechar-info-categorias');
+        // ====== Campo "Outra" Categoria ======
+        const checkOutra = document.getElementById('check-outra-categoria');
+        const containerOutra = document.getElementById('outra-categoria-container');
+        const textoOutra = document.getElementById('outra-categoria-texto')
+
+        if (checkOutra && containerOutra) {
+            checkOutra.addEventListener('change', function() {
+                if (this.checked) {
+                    containerOutra.style.display = 'block';
+                    if (textoOutra) textoOutra.focus();
+                } else {
+                    containerOutra.style.display = 'none';
+                    if (textoOutra) textoOutra.value = '';
+                }
+            });
+        }
 
         if (helpCat && infoCat) {
             helpCat.addEventListener('click', () => {
