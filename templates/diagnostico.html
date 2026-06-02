@@ -2771,15 +2771,15 @@
         
         modal.style.display = 'flex';
         conteudo.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
-                    <div class="dot-spinner">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando processos...</p>
+            <div style="text-align: center; padding: 60px 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
                 </div>
-            `;
+                <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando processos...</p>
+            </div>
+        `;
         
         try {
             // Buscar dados do processo
@@ -2805,8 +2805,9 @@
                     console.log('Primeiro risco:', riscosArray[0]);
                     console.log('Propriedades:', Object.keys(riscosArray[0]));
                     
-                    // Mapear corretamente
+                    // ⭐ CORREÇÃO: Mapear TODOS os campos, incluindo os de tratamento ⭐
                     const riscosFormatados = riscosArray.map(risco => ({
+                        id: risco.id,
                         nome_risco: risco.nome_risco || risco.nome || 'Risco sem nome',
                         impacto: risco.impacto || risco.impact || 'Médio',
                         probabilidade: risco.probabilidade || risco.probability || 'Médio',
@@ -2814,9 +2815,19 @@
                         melhoria: risco.melhoria || '',
                         apetite_risco: risco.apetite_risco || '',
                         motivo_risco: risco.motivo_risco || '',
-                        categorias: risco.categorias || (risco.categoria ? risco.categoria.split(',') : [])
+                        categorias: risco.categorias || (risco.categoria ? risco.categoria.split(',') : []),
+                        // ⭐ NOVOS CAMPOS ADICIONADOS ⭐
+                        categoria_causa: risco.categoria_causa || [],           // ← ADICIONADO
+                        como_tratar: risco.como_tratar || '',                   // ← ADICIONADO
+                        desc_tratamento: risco.desc_tratamento || '',           // ← ADICIONADO
+                        prazo_implantacao: risco.prazo_implantacao || '',       // ← ADICIONADO
+                        score_risco: risco.score_risco || 0
                     }));
-                    console.log('Riscos formatados:', riscosFormatados);
+                    
+                    console.log('✅ Riscos formatados COM TODOS OS CAMPOS:', riscosFormatados);
+                    console.log('Primeiro risco - como_tratar:', riscosFormatados[0]?.como_tratar);
+                    console.log('Primeiro risco - desc_tratamento:', riscosFormatados[0]?.desc_tratamento);
+                    
                     riscosHtml = gerarKanbanVisualizacao(riscosFormatados);
                 } else {
                     riscosHtml = '<div class="alert-info" style="text-align: center; padding: 20px;"><i class="fas fa-info-circle"></i> Nenhum risco identificado para este processo.</div>';
@@ -2894,16 +2905,33 @@
         
         // Processar riscos com score e nível
         const riscosProcessados = riscos.map((risco, idx) => {
-            const impacto = risco.impacto || 'Médio';
-            const probabilidade = risco.probabilidade || 'Médio';
-            const score = calcularScoreRisco(impacto, probabilidade);
+            // Usar score_risco se existir, senão calcular
+            let score = risco.score_risco;
+            if (!score && score !== 0) {
+                score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+            }
+            
+            // ⭐ CORREÇÃO DOS LIMITES DOS NÍVEIS ⭐
             let nivel = '';
             let nivelTexto = '';
+
             
-            if (score <= 4) { nivel = 'low'; nivelTexto = 'BAIXA EXPOSIÇÃO'; }
-            else if (score <= 9) { nivel = 'medium'; nivelTexto = 'SOB OBSERVAÇÃO'; }
-            else if (score <= 12) { nivel = 'high'; nivelTexto = 'ATENÇÃO'; }
-            else { nivel = 'critical'; nivelTexto = 'CRÍTICO'; }
+            if (score <= 3) { 
+                nivel = 'low'; 
+                nivelTexto = 'BAIXA EXPOSIÇÃO'; 
+            }
+            else if (score >= 4 && score <= 7) { 
+                nivel = 'medium'; 
+                nivelTexto = 'SOB OBSERVAÇÃO'; 
+            }
+            else if (score >= 8 && score <= 11) { 
+                nivel = 'high'; 
+                nivelTexto = 'ATENÇÃO'; 
+            }
+            else { // score >= 12
+                nivel = 'critical'; 
+                nivelTexto = 'CRÍTICO'; 
+            }
             
             // Garantir que categorias seja um array
             let categorias = risco.categorias || [];
@@ -2929,6 +2957,10 @@
         
         // Armazenar riscos globalmente para visualização
         window.riscosVisualizacao = riscosProcessados;
+
+        // Log para debug
+        console.log('✅ Riscos processados para visualização:', riscosProcessados);
+        console.log('📊 Distribuição:', { baixo: baixo.length, medio: medio.length, alto: alto.length, critico: critico.length });
         
         
         // Gerar cards
@@ -2945,7 +2977,7 @@
                 const originalIdx = riscosProcessados.findIndex(r => r === risco);
                 
                 return `
-                    <div class="kanban-card ${nivelClasse}">
+                    <div class="kanban-card ${nivelClasse}" data-risco-id="${risco.id}">
                         <div class="kanban-card-title">${escapeHtml(risco.nome_risco)}</div>
                         <div class="kanban-card-score">
                             <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
@@ -3054,20 +3086,29 @@
 
     // Função global para visualizar risco
         window.visualizarRiscoVisualizacao = function(idx) {
-            console.log('🟢 visualizarRiscoVisualizacao chamado com índice:', idx);
-            const risco = window.riscosVisualizacao[idx];
-            console.log('Risco encontrado:', risco);
+            console.log('🟢 FUNÇÃO visualizarRiscoVisualizacao CHAMADA');
+            console.log('Índice:', idx);
+            console.log('window.riscosVisualizacao:', window.riscosVisualizacao);
             
-            if (!risco) {
-                console.error('Risco não encontrado para índice:', idx);
+            if (!window.riscosVisualizacao) {
+                console.error('❌ window.riscosVisualizacao não existe!');
+                mostrarToast('Erro: Dados dos riscos não encontrados', 'error');
                 return;
             }
             
-            // Verificar se os elementos existem
-            const visNomeRisco = document.getElementById('vis-nome_risco');
-            console.log('Elemento vis-nome_risco:', visNomeRisco);
+            const risco = window.riscosVisualizacao[idx];
             
-            // Preencher modal de visualização
+            if (!risco) {
+                console.error('❌ Risco não encontrado para índice:', idx);
+                mostrarToast('Erro: Risco não encontrado', 'error');
+                return;
+            }
+            
+            console.log('✅ Risco encontrado:', risco);
+            console.log('✅ como_tratar:', risco.como_tratar);
+            console.log('✅ desc_tratamento:', risco.desc_tratamento);
+            
+            // Preencher todos os campos do modal
             document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
             document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
             document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
@@ -3077,17 +3118,39 @@
             document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
             document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
             document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
+            document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
+            document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
             document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
             
+            // Calcular score e nível para exibição
+            const score = risco.score || calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+            let nivelTexto = '';
             let corScore = '';
-            if (risco.score <= 4) corScore = '🟢';
-            else if (risco.score <= 9) corScore = '🟡';
-            else if (risco.score <= 12) corScore = '🟠';
-            else corScore = '🔴';
             
-            document.getElementById('vis-score').innerHTML = `${corScore} ${risco.score} (${risco.nivelTexto})`;
+            if (score <= 3) {
+                nivelTexto = 'BAIXA EXPOSIÇÃO';
+                corScore = '🟢';
+            } else if (score <= 7) {
+                nivelTexto = 'SOB OBSERVAÇÃO';
+                corScore = '🟡';
+            } else if (score <= 11) {
+                nivelTexto = 'ATENÇÃO';
+                corScore = '🟠';
+            } else {
+                nivelTexto = 'CRÍTICO';
+                corScore = '🔴';
+            }
             
-            document.getElementById('modal-visualizar-risco').style.display = 'flex';
+            document.getElementById('vis-score').innerHTML = `${corScore} ${score} (${nivelTexto})`;
+            
+            // Abrir modal
+            const modal = document.getElementById('modal-visualizar-risco');
+            if (modal) {
+                modal.style.display = 'flex';
+                console.log('✅ Modal de visualização aberto');
+            } else {
+                console.error('❌ Modal não encontrado!');
+            }
         };
 
 
@@ -5080,6 +5143,8 @@
     });
 
     function visualizarRisco(idx) {
+        console.log('🔵 FUNÇÃO visualizarRisco CHAMADA');
+        
         const risco = riscosLista[idx];
         console.log('🔍 Risco completo:', risco);
         console.log('📅 prazo_implantacao:', risco.prazo_implantacao);

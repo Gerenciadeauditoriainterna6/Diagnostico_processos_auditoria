@@ -917,19 +917,19 @@ def api_desativar_processo(processo_id):
 
 @app.route('/api/processo/<int:processo_id>/riscos')
 def api_processo_riscos(processo_id):
-    """Retorna os riscos de um processo para cálculo do score máximo"""
+    """Retorna os riscos de um processo"""
     from database import engine
     from sqlalchemy import text
-    from datetime import datetime
     
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT id, processo_id, nome_risco, fator_risco, melhoria,
+                SELECT 
+                    id, nome_risco, fator_risco, melhoria,
                     impacto, probabilidade, apetite_risco, motivo_risco,
-                    validacao_gerencia, validacao_superintendencia, relatorio_gerado,
-                    created_at, score_risco, categoria, causas,
-                    tratamento_risco, descricao_tratamento, prazo_implantacao
+                    categoria, causas,
+                    tratamento_risco, descricao_tratamento, prazo_implantacao,
+                    score_risco
                 FROM riscos
                 WHERE processo_id = :processo_id
             """)
@@ -937,30 +937,69 @@ def api_processo_riscos(processo_id):
             
             riscos = []
             for row in result:
-                categorias = row[14].split(',') if row[14] else []      # categoria
-                causas = row[15].split(',') if row[15] else []          # causas
+                # MAPEAMENTO CORRETO DOS ÍNDICES (0 a 13)
+                # 0: id
+                # 1: nome_risco
+                # 2: fator_risco
+                # 3: melhoria
+                # 4: impacto
+                # 5: probabilidade
+                # 6: apetite_risco
+                # 7: motivo_risco
+                # 8: categoria
+                # 9: causas
+                # 10: tratamento_risco
+                # 11: descricao_tratamento
+                # 12: prazo_implantacao
+                # 13: score_risco
                 
-                riscos.append({
+                # Converter strings para listas
+                categorias_str = row[8] if len(row) > 8 else ''
+                causas_str = row[9] if len(row) > 9 else ''
+                
+                categorias = categorias_str.split(',') if categorias_str else []
+                causas_list = causas_str.split(',') if causas_str else []
+                
+                # Formatar data
+                prazo = ''
+                if len(row) > 12 and row[12]:
+                    if hasattr(row[12], 'strftime'):
+                        prazo = row[12].strftime('%Y-%m-%d')
+                    else:
+                        prazo = str(row[12])
+                
+                risco = {
                     'id': row[0],
-                    'nome_risco': row[2] or '',                         # ← índice 2
-                    'fator_risco': row[3] or '',
-                    'melhoria': row[4] or '',
-                    'apetite_risco': row[7] or '',
-                    'impacto': row[5] or 'Médio',
-                    'probabilidade': row[6] or 'Médio',
-                    'motivo_risco': row[8] or '',
+                    'nome_risco': row[1] if len(row) > 1 and row[1] else '',
+                    'fator_risco': row[2] if len(row) > 2 and row[2] else '',
+                    'melhoria': row[3] if len(row) > 3 and row[3] else '',
+                    'apetite_risco': row[6] if len(row) > 6 and row[6] else '',
+                    'impacto': row[4] if len(row) > 4 and row[4] else 'Médio',
+                    'probabilidade': row[5] if len(row) > 5 and row[5] else 'Médio',
+                    'motivo_risco': row[7] if len(row) > 7 and row[7] else '',
                     'categorias': [c.strip() for c in categorias if c.strip()],
-                    'categoria_causa': [c.strip() for c in causas if c.strip()],
-                    'score_risco': row[13] or 0,
-                    'como_tratar': row[16] or '',                       # tratamento_risco
-                    'desc_tratamento': row[17] or '',                   # descricao_tratamento
-                    'prazo_implantacao': row[18].strftime('%Y-%m-%d') if row[18] else ''  # ← índice 18
-                })
+                    'categoria_causa': [c.strip() for c in causas_list if c.strip()],
+                    'score_risco': row[13] if len(row) > 13 and row[13] else 0,
+                    # ⭐ CAMPOS DE TRATAMENTO CORRIGIDOS ⭐
+                    'como_tratar': row[10] if len(row) > 10 and row[10] else '',
+                    'desc_tratamento': row[11] if len(row) > 11 and row[11] else '',
+                    'prazo_implantacao': prazo
+                }
+                
+                riscos.append(risco)
+            
+            # Log para debug no servidor
+            print(f"✅ Buscou {len(riscos)} riscos para o processo {processo_id}")
+            if riscos:
+                print(f"📊 Primeiro risco - como_tratar: '{riscos[0].get('como_tratar', 'N/A')}'")
+                print(f"📊 Primeiro risco - desc_tratamento: '{riscos[0].get('desc_tratamento', 'N/A')}'")
             
             return jsonify({'success': True, 'riscos': riscos})
             
     except Exception as e:
         print(f"❌ Erro ao buscar riscos: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/processo/<int:processo_id>/dados')
