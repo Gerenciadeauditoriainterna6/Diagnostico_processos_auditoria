@@ -356,6 +356,8 @@ def api_controle_etapa_salvar():
     risco_avaliacao = data.get('risco_avaliacao', '')
     causa_motivo = data.get('causa_motivo', '')
     frequencia_evidencia = data.get('frequencia_evidencia', '')
+    local_evidencia = data.get('local_evidencia', '')
+    lgpd = data.get('lgpd', '')
     
     # Validação básica
     if not risco_id:
@@ -378,6 +380,8 @@ def api_controle_etapa_salvar():
                         forma_execucao = :forma_execucao,
                         status_controle = :status_controle,
                         evidencia_realizacao = :evidencia_realizacao,
+                        local_evidencia = :local_evidencia,
+                        lgpd = :lgpd,
                         responsaveis_tratamento = :responsaveis_tratamento,
                         risco_avaliacao = :risco_avaliacao,
                         causa_motivo = :causa_motivo,
@@ -413,6 +417,7 @@ def api_controle_etapa_salvar():
                         periodicidade_execucao, natureza, forma_execucao,
                         status_controle, evidencia_realizacao,
                         responsaveis_tratamento, risco_avaliacao, causa_motivo,
+                        local_evidencia, lgpd,
                         frequencia_evidencia, created_at, updated_at
                     ) VALUES (
                         :risco_id, :auditoria_id, :nome_controle,
@@ -420,6 +425,7 @@ def api_controle_etapa_salvar():
                         :periodicidade_execucao, :natureza, :forma_execucao,
                         :status_controle, :evidencia_realizacao,
                         :responsaveis_tratamento, :risco_avaliacao, :causa_motivo,
+                        :local_evidencia, :lgpd,
                         :frequencia_evidencia, CURRENT_TIMESTAMP, CURRENT_DATE
                     )
                     RETURNING id
@@ -437,6 +443,8 @@ def api_controle_etapa_salvar():
                     'status_controle': status_controle,
                     'evidencia_realizacao': evidencia_realizacao,
                     'responsaveis_tratamento': responsaveis_tratamento,
+                    'local_evidencia': local_evidencia,
+                    'lgpd': lgpd,
                     'risco_avaliacao': risco_avaliacao,
                     'causa_motivo': causa_motivo,
                     'frequencia_evidencia': frequencia_evidencia
@@ -2710,7 +2718,7 @@ def api_relatorios_auditorias_por_area():
             for row in result:
                 auditorias.append({
                     'id': row[0],
-                    'codigo': row[1],
+                    'codigo_auditoria': row[1],
                     'titulo': row[2],
                     'ano': row[3],
                     'trimestre': row[4],

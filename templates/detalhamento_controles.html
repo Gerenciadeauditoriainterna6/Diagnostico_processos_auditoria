@@ -52,50 +52,73 @@
             <input type="hidden" id="controle_id">
             <input type="hidden" id="controle_risco_id">
             
-            <!-- Nome do Controle (obrigatório) -->
+            <!-- 3. Fator de Risco (Causa/Motivo) -->
             <div class="form-group">
-                <label><i class="fas fa-tag"></i> Nome do Controle *</label>
+                <label><i class="fas fa-exclamation-triangle"></i> Fator de Risco da Etapa</label>
+                <textarea id="controle_causa_motivo" class="form-control" rows="2" placeholder="Descreva o fator de risco..."></textarea>
+            </div>
+
+            <!-- 4. Ação de Controle (Nome do Controle) -->
+            <div class="form-group">
+                <label><i class="fas fa-shield-alt"></i> Ação de Controle *</label>
                 <input type="text" id="controle_nome" class="form-control" placeholder="Ex: Revisão semanal dos dados">
             </div>
 
-            <!-- Como é executado -->
+            <!-- 5. Como executo a ação de controle? -->
             <div class="form-group">
-                <label><i class="fas fa-cogs"></i> Como é executado?</label>
+                <label><i class="fas fa-cogs"></i> Como executo a ação de controle?</label>
                 <textarea id="controle_como_executado" class="form-control" rows="2" placeholder="Descreva como o controle é executado..."></textarea>
             </div>
 
-            <!-- Objetivo do Controle -->
+            <!-- 6. Qual o objetivo da ação de controle? -->
             <div class="form-group">
-                <label><i class="fas fa-bullseye"></i> Objetivo do Controle</label>
+                <label><i class="fas fa-bullseye"></i> Qual o objetivo da ação de controle?</label>
                 <textarea id="controle_objetivo" class="form-control" rows="2" placeholder="Qual o objetivo deste controle?"></textarea>
             </div>
 
-            <!-- Periodicidade e Natureza (lado a lado) -->
+            <!-- 7. Periodicidade e 14. Frequência (lado a lado) -->
             <div class="form-row">
                 <div class="form-group">
-                    <label><i class="fas fa-calendar-alt"></i> Periodicidade</label>
+                    <label><i class="fas fa-calendar-alt"></i> Qual a periodicidade da ação de controle?</label>
                     <select id="controle_periodicidade" class="form-control">
                         <option value="">Selecione...</option>
                         <option value="Diário">Diário</option>
                         <option value="Semanal">Semanal</option>
                         <option value="Mensal">Mensal</option>
+                        <option value="Bimestral">Bimestral</option>
                         <option value="Trimestral">Trimestral</option>
                         <option value="Semestral">Semestral</option>
-                        <option value="Anual">Anual</option>
+                        <option value="Por Evento">Por Evento</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label><i class="fas fa-chart-line"></i> Natureza</label>
-                    <select id="controle_natureza" class="form-control">
+                    <label><i class="fas fa-calendar-check"></i> Frequência da evidência</label>
+                    <select id="controle_frequencia_evidencia" class="form-control">
                         <option value="">Selecione...</option>
-                        <option value="Preventivo">Preventivo</option>
-                        <option value="Detectivo">Detectivo</option>
-                        <option value="Corretivo">Corretivo</option>
+                        <option value="Diário">Diário</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Mensal">Mensal</option>
+                        <option value="Bimestral">Bimestral</option>
+                        <option value="Trimestral">Trimestral</option>
+                        <option value="Semestral">Semestral</option>
+                        <option value="Por Evento">Por Evento</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Forma de Execução e Status (lado a lado) -->
+            <!-- 8. Prova material (evidência) e 9. Local da evidência -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-file-alt"></i> Qual a prova material (evidência)?</label>
+                    <textarea id="controle_evidencia" class="form-control" rows="2" placeholder="Qual a evidência de que o controle foi executado?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Qual o local da evidência?</label>
+                    <input type="text" id="controle_local_evidencia" class="form-control" placeholder="Ex: Pasta X, Sistema Y, Site Z...">
+                </div>
+            </div>
+
+            <!-- 10. Forma de Execução e 11. Natureza (lado a lado) -->
             <div class="form-row">
                 <div class="form-group">
                     <label><i class="fas fa-play-circle"></i> Forma de Execução</label>
@@ -107,49 +130,36 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label><i class="fas fa-circle"></i> Status</label>
-                    <select id="controle_status" class="form-control">
+                    <label><i class="fas fa-chart-line"></i> Natureza do Controle</label>
+                    <select id="controle_natureza" class="form-control">
                         <option value="">Selecione...</option>
-                        <option value="Ativo">Ativo</option>
-                        <option value="Inativo">Inativo</option>
-                        <option value="Em implantação">Em implantação</option>
+                        <option value="Preventivo">Preventivo</option>
+                        <option value="Detectivo">Detectivo</option>
+                        <option value="Corretivo">Corretivo</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Evidência de Realização -->
+            <!-- 12. LGPD -->
             <div class="form-group">
-                <label><i class="fas fa-file-alt"></i> Evidência de Realização</label>
-                <textarea id="controle_evidencia" class="form-control" rows="2" placeholder="Qual a evidência de que o controle foi executado?"></textarea>
+                <label><i class="fas fa-lock"></i> LGPD - Como estão protegidos os dados da pessoa física nas evidências do controle?</label>
+                <textarea id="controle_lgpd" class="form-control" rows="2" placeholder="Descreva as medidas de proteção de dados pessoais..."></textarea>
             </div>
 
-            <!-- Frequência da evidência -->
-             <div class="form-group">
-                <label><i class="fas fa-calendar-check"></i> Frequência da Evidência</label>
-                <select id="controle_frequencia_evidencia" class="form-control">
+            <!-- 13. Status -->
+            <div class="form-group">
+                <label><i class="fas fa-circle"></i> Status da Ação de Controle</label>
+                <select id="controle_status" class="form-control">
                     <option value="">Selecione...</option>
-                    <option value="Diário">Diário</option>
-                    <option value="Semanal">Semanal</option>
-                    <option value="Mensal">Mensal</option>
-                    <option value="Trimestral">Trimestral</option>
+                    <option value="Ativado">Ativado</option>
+                    <option value="Desativado">Desativado</option>
                 </select>
             </div>
 
-            <!-- Responsáveis pelo Tratamento -->
+            <!-- 15. Usuário Responsável -->
             <div class="form-group">
-                <label><i class="fas fa-users"></i> Responsáveis pelo Tratamento</label>
-                <input type="text" id="controle_responsaveis" class="form-control" placeholder="Nomes dos responsáveis (separados por vírgula)">
-            </div>
-
-            <!-- Avaliação do Risco e Causa/Motivo -->
-            <div class="form-group">
-                <label><i class="fas fa-chart-bar"></i> Avaliação do Risco</label>
-                <textarea id="controle_risco_avaliacao" class="form-control" rows="2" placeholder="Avaliação do risco após o controle..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label><i class="fas fa-search"></i> Causa/Motivo</label>
-                <textarea id="controle_causa_motivo" class="form-control" rows="2" placeholder="Causa ou motivo do controle..."></textarea>
+                <label><i class="fas fa-user"></i> Usuário Responsável</label>
+                <input type="text" id="controle_responsaveis" class="form-control" placeholder="Nome do responsável pelo controle">
             </div>
 
         </div>
@@ -1341,16 +1351,15 @@
         document.getElementById('controle_como_executado').value = '';
         document.getElementById('controle_objetivo').value = '';
         document.getElementById('controle_evidencia').value = '';
-        document.getElementById('controle_frequencia_evidencia').value = '';
+        document.getElementById('controle_local_evidencia').value = '';
+        document.getElementById('controle_lgpd').value = '';
         document.getElementById('controle_responsaveis').value = '';
-        document.getElementById('controle_risco_avaliacao').value = '';
         document.getElementById('controle_causa_motivo').value = '';
-        
-        // Resetar selects para valor padrão (primeira opção vazia)
         document.getElementById('controle_periodicidade').value = '';
         document.getElementById('controle_natureza').value = '';
         document.getElementById('controle_forma_execucao').value = '';
         document.getElementById('controle_status').value = '';
+        document.getElementById('controle_frequencia_evidencia').value = '';
         
         // Resetar ID do controle (indicando que é novo)
         controleIdEditando = null;
@@ -1378,20 +1387,21 @@
 
         // 2. Coletar todos os dados do formulário
         const dados = {
-            id: controleIdEditando, // Se for edição, tem o ID; se for novo, é null
+            id: controleIdEditando,
             risco_id: riscoIdAtual,
             nome_controle: nomeControle,
+            causa_motivo: document.getElementById('controle_causa_motivo').value,
             como_executado: document.getElementById('controle_como_executado').value,
             objetivo_controle: document.getElementById('controle_objetivo').value,
             periodicidade_execucao: document.getElementById('controle_periodicidade').value,
-            natureza: document.getElementById('controle_natureza').value,
-            forma_execucao: document.getElementById('controle_forma_execucao').value,
-            status_controle: document.getElementById('controle_status').value,
             evidencia_realizacao: document.getElementById('controle_evidencia').value,
+            local_evidencia: document.getElementById('controle_local_evidencia').value,
+            forma_execucao: document.getElementById('controle_forma_execucao').value,
+            natureza: document.getElementById('controle_natureza').value,
+            lgpd: document.getElementById('controle_lgpd').value,
+            status_controle: document.getElementById('controle_status').value,
             frequencia_evidencia: document.getElementById('controle_frequencia_evidencia').value,
             responsaveis_tratamento: document.getElementById('controle_responsaveis').value,
-            risco_avaliacao: document.getElementById('controle_risco_avaliacao').value,
-            causa_motivo: document.getElementById('controle_causa_motivo').value,
             auditoria_id: filtroAuditoriaSelect.value || null
         };
 
@@ -1508,18 +1518,19 @@
             riscoIdAtual = riscoId;
             
             // Preencher o modal com os dados
-            document.getElementById('controle_nome').value = controle.nome_controle;
-            document.getElementById('controle_como_executado').value = controle.como_executado;
-            document.getElementById('controle_objetivo').value = controle.objetivo_controle;
-            document.getElementById('controle_periodicidade').value = controle.periodicidade_execucao;
-            document.getElementById('controle_natureza').value = controle.natureza;
-            document.getElementById('controle_forma_execucao').value = controle.forma_execucao;
-            document.getElementById('controle_status').value = controle.status_controle;
-            document.getElementById('controle_evidencia').value = controle.evidencia_realizacao;
+            document.getElementById('controle_nome').value = controle.nome_controle || '';
+            document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
+            document.getElementById('controle_como_executado').value = controle.como_executado || '';
+            document.getElementById('controle_objetivo').value = controle.objetivo_controle || '';
+            document.getElementById('controle_periodicidade').value = controle.periodicidade_execucao || '';
+            document.getElementById('controle_evidencia').value = controle.evidencia_realizacao || '';
+            document.getElementById('controle_local_evidencia').value = controle.local_evidencia || '';
+            document.getElementById('controle_forma_execucao').value = controle.forma_execucao || '';
+            document.getElementById('controle_natureza').value = controle.natureza || '';
+            document.getElementById('controle_lgpd').value = controle.lgpd || '';
+            document.getElementById('controle_status').value = controle.status_controle || '';
             document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
-            document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento;
-            document.getElementById('controle_risco_avaliacao').value = controle.risco_avaliacao;
-            document.getElementById('controle_causa_motivo').value = controle.causa_motivo;
+            document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
             
             // Buscar o nome do risco para o título
             const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);

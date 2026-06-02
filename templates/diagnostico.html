@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Diagnóstico dos Processos - Auditoria Interna{% endblock %}
+{% block title %}Matriz de Panorama - Sistema Gerência de Auditoria Interna{% endblock %}
 
 {% block content %}
 <div class="diagnostico-container">
     <div class="page-header">
-        <h1><i class="fas fa-search"></i> Diagnóstico dos Processos</h1>
+        <h1><i class="fas fa-search"></i> Matriz de Panorama</h1>
         <p>Gerencia os processos da área e auditoria selecionada.</p>
     </div>
 
@@ -312,7 +312,7 @@
                     <div class="kanban-col" data-score-level="baixo">
                         <div class="kanban-col-header low">
                             <i class="fas fa-circle"></i>
-                            <span>BAIXO</span>
+                            <span>BAIXA EXPOSIÇÃO</span>
                             <span class="score-range">0 - 3</span>
                             <span class="risk-count" id="count-baixo">0</span>
                         </div>
@@ -323,7 +323,7 @@
                     <div class="kanban-col" data-score-level="medio">
                         <div class="kanban-col-header medium">
                             <i class="fas fa-circle"></i>
-                            <span>MÉDIO</span>
+                            <span>SOB OBSERVAÇÃO</span>
                             <span class="score-range">4 - 7</span>
                             <span class="risk-count" id="count-medio">0</span>
                         </div>
@@ -334,7 +334,7 @@
                     <div class="kanban-col" data-score-level="alto">
                         <div class="kanban-col-header high">
                             <i class="fas fa-circle"></i>
-                            <span>ALTO</span>
+                            <span>ATENÇÃO</span>
                             <span class="score-range">8 - 11</span>
                             <span class="risk-count" id="count-alto">0</span>
                         </div>
@@ -2900,9 +2900,9 @@
             let nivel = '';
             let nivelTexto = '';
             
-            if (score <= 4) { nivel = 'low'; nivelTexto = 'BAIXO'; }
-            else if (score <= 9) { nivel = 'medium'; nivelTexto = 'MÉDIO'; }
-            else if (score <= 12) { nivel = 'high'; nivelTexto = 'ALTO'; }
+            if (score <= 4) { nivel = 'low'; nivelTexto = 'BAIXA EXPOSIÇÃO'; }
+            else if (score <= 9) { nivel = 'medium'; nivelTexto = 'SOB OBSERVAÇÃO'; }
+            else if (score <= 12) { nivel = 'high'; nivelTexto = 'ATENÇÃO'; }
             else { nivel = 'critical'; nivelTexto = 'CRÍTICO'; }
             
             // Garantir que categorias seja um array
@@ -2969,7 +2969,7 @@
             <div class="kanban-board">
                 <div class="kanban-col">
                     <div class="kanban-col-header low">
-                        <i class="fas fa-circle"></i> <span>BAIXO</span>
+                        <i class="fas fa-circle"></i> <span>BAIXA EXPOSIÇÃO</span>
                         <span class="score-range">0 - 3</span>
                         <span class="risk-count">${baixo.length}</span>
                     </div>
@@ -2979,7 +2979,7 @@
                 </div>
                 <div class="kanban-col">
                     <div class="kanban-col-header medium">
-                        <i class="fas fa-circle"></i> <span>MÉDIO</span>
+                        <i class="fas fa-circle"></i> <span>SOB OBSERVAÇÃO</span>
                         <span class="score-range">4 - 7</span>
                         <span class="risk-count">${medio.length}</span>
                     </div>
@@ -2989,7 +2989,7 @@
                 </div>
                 <div class="kanban-col">
                     <div class="kanban-col-header high">
-                        <i class="fas fa-circle"></i> <span>ALTO</span>
+                        <i class="fas fa-circle"></i> <span>ATENÇÃO</span>
                         <span class="score-range">8 - 11</span>
                         <span class="risk-count">${alto.length}</span>
                     </div>
@@ -4742,9 +4742,9 @@
 
     // Obter texto do nível
     function getScoreLevelText(score) {
-        if (score <= 3) return 'BAIXO';
-        if (score <= 7) return 'MÉDIO';
-        if (score <= 11) return 'ALTO';
+        if (score <= 3) return 'BAIXA EXPOSIÇÃO';
+        if (score <= 7) return 'SOB OBSERVAÇÃO';
+        if (score <= 11) return 'ATENÇÃO';
         return 'CRÍTICO';
     }
 
@@ -5848,9 +5848,9 @@
                         const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
                         let nivel = 'low';
                         let nivelTexto = 'BAIXO';
-                        if (score <= 3) { nivel ='low'; nivelTexto = 'BAIXO'; }
-                        else if (score <= 7) { nivel = 'medium'; nivelTexto = "MÉDIO"; }
-                        else if (score <= 11) { nivel = 'high'; nivelTexto = "ALTO"; }
+                        if (score <= 3) { nivel ='low'; nivelTexto = 'BAIXA EXPOSIÇÃO'; }
+                        else if (score <= 7) { nivel = 'medium'; nivelTexto = "SOB OBSERVAÇÃO"; }
+                        else if (score <= 11) { nivel = 'high'; nivelTexto = "ATENÇÃO"; }
                         else { nivel = 'critical'; nivelTexto = 'CRÍTICO'; }
 
                         let corScore = '';
