@@ -1096,7 +1096,7 @@
         }
     }
 
-    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA ======
+    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA (COM BADGE DE CONTROLES) ======
     async function carregarRiscosDaEtapa(etapaId) {
         console.log(`🔍 Buscando riscos da etapa ${etapaId}...`);
 
@@ -1110,7 +1110,6 @@
 
             console.log(`📦 Riscos encontrados:`, data);
 
-            // Verificar se tem riscos
             if (!data.success || !data.riscos || data.riscos.length === 0) {
                 container.innerHTML = `
                     <div class="empty-riscos">
@@ -1120,12 +1119,41 @@
                 return;
             }
 
-            // Montar o HTML dos riscos
+            // ⭐ PASSO 1: Criar array de promessas para buscar contagem de controles
+            const promessasContagem = [];
+
+            for (const risco of data.riscos) {
+                const promessa = fetch(`/api/risco/${risco.id}/controles/count`)
+                    .then(res => res.json())
+                    .then(data => ({
+                        id: risco.id,
+                        total: data.success ? data.total : 0
+                    }))
+                    .catch(error => {
+                        console.error(`Erro ao contar controles do risco ${risco.id}:`, error);
+                        return { id: risco.id, total: 0 };
+                    });
+                
+                promessasContagem.push(promessa);
+            }
+
+            // ⭐ PASSO 2: Aguardar todas as contagens
+            const contagens = await Promise.all(promessasContagem);
+
+            // ⭐ PASSO 3: Criar mapa para acesso rápido
+            const mapaContagens = {};
+            contagens.forEach(cont => {
+                mapaContagens[cont.id] = cont.total;
+            });
+
+            // ⭐ PASSO 4: Montar o HTML dos riscos com os badges
             let riscosHtml = '';
 
             for (const risco of data.riscos) {
-                // Calcular a cor do badge baseado na magnitude (score)
-                let badgeClass= '';
+                const totalControles = mapaContagens[risco.id] || 0;
+                
+                // Calcular a cor do badge de risco baseado na magnitude
+                let badgeClass = '';
                 let badgeIcon = '';
 
                 if (risco.magnitude <= 3) {
@@ -1142,13 +1170,21 @@
                     badgeIcon = '🔴';
                 }
 
+                // ⭐ Badge de controles (só mostra se tiver controles)
+                const controlesBadge = `
+                    <span class="controles-count-badge" title="${totalControles} controle(s) cadastrado(s)">
+                        <i class="fas fa-shield-alt"></i> ${totalControles}
+                    </span>
+                `;
+
                 riscosHtml += `
                     <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}" data-risco-nome="${escapeHtml(risco.nome_risco)}" onclick="toggleRisco(this, event)" style="position: relative;">
                         <div class="risco-header">
-                            <div class="risco-info">
+                             <div class="risco-info">
                                 <span class="risco-icon">${badgeIcon}</span>
                                 <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
-                                <span class="risco-score">Magnitude do risco: ${risco.magnitude}</span>
+                                <span class="risco-score">Magnitude: ${risco.magnitude}</span>
+                                ${controlesBadge}  <!-- ⭐ SEMPRE APARECE ⭐ -->
                             </div>
                             <div class="risco-actions">
                                 <span class="expandir-hint" title="Clique para ver controles">
@@ -1475,6 +1511,7 @@
 
                 // Recarregar os controles do risco
                 await carregarControlesDoRisco(riscoIdAtual);
+                await atualizarBadgeControles(riscoIdAtual);
 
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
@@ -1528,6 +1565,7 @@
                 
                 // Recarregar os controles do risco
                 await carregarControlesDoRisco(riscoId);
+                await atualizarBadgeControles(riscoId);
             } else {
                 mostrarToast('❌ Erro ao excluir: ' + (resultado.error || 'Tente novamente'), 'error');
             }
@@ -1624,6 +1662,37 @@
         const btnSalvar = document.getElementById('btn-salvar-modal-controle');
         if (btnSalvar) {
             btnSalvar.addEventListener('click', salvarControle)
+        }
+    }
+
+    // Função para atualizar o badge de controles de um risco específico
+    async function atualizarBadgeControles(riscoId) {
+        try {
+            const response = await fetch(`/api/risco/${riscoId}/controles/count`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
+                if (riscoCard) {
+                    const riscoInfo = riscoCard.querySelector('.risco-info');
+                    const existingBadge = riscoInfo.querySelector('.controles-count-badge');
+                    const total = data.total || 0;
+                    
+                    // Criar o novo badge (sempre, mesmo com zero)
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'controles-count-badge';
+                    newBadge.title = `${total} controle(s) cadastrado(s)`;
+                    newBadge.innerHTML = `<i class="fas fa-shield-alt"></i> ${total}`;
+                    
+                    if (existingBadge) {
+                        existingBadge.replaceWith(newBadge);
+                    } else {
+                        riscoInfo.appendChild(newBadge);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar badge:', error);
         }
     }
 

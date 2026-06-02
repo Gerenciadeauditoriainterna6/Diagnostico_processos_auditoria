@@ -1803,6 +1803,34 @@ def api_etapa_riscos(etapa_id):
         print(f"❌ Erro ao buscar riscos da etapa: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/etapa/<int:etapa_id>/riscos/count')
+def api_etapa_riscos_count(etapa_id):
+    """Retorna a quantidade de riscos de uma etapa"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT COUNT(*) 
+                FROM riscos_etapa 
+                WHERE etapa_id = :etapa_id 
+                AND (ativo IS NULL OR ativo = true)
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+
+            # result[0] contém o número de riscos
+            total = result[0] if result[0] else 0
+            
+            return jsonify({
+                'success': True, 
+                'total': total
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao contar riscos da etapa {etapa_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/detalhamento_riscos')
 def detalhamento_riscos():
     if not session.get('autenticado'):

@@ -843,6 +843,24 @@
         z-index: 1000;
     }
 
+    /* Badge de contagem de riscos - versão universal */
+    .badge-riscos {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(253, 126, 20, 0.1);
+        color: #fd6a14;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-left: 4px;
+    }
+
+    .badge-riscos i {
+        font-size: 10px;
+    }
+
 </style>
 
 <script>
@@ -986,8 +1004,6 @@
 
     // ====== FUNÇÃO PARA CARREGAR ETAPAS E RISCOS ======
     async function carregarEtapas(auditoriaId) {
-        // Esta função será chamada quando o usuário selecionar uma auditoria
-
         console.log('📋 Carregando etapas para auditoria:', auditoriaId);
 
         etapasContainer.innerHTML = `
@@ -1002,35 +1018,30 @@
         `;
 
         try {
-            // PASSO 1: Buscar todos os processos da auditoria selecionada
             const responseProcessos = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const dataProcessos = await responseProcessos.json();
 
             console.log('📦 Processos encontrados:', dataProcessos);
 
-            // Verificar se tem processos
             if (!dataProcessos.success || !dataProcessos.processos || dataProcessos.processos.length === 0) {
                 etapasContainer.innerHTML = `
                     <div class="alert-info" style="text-align: center; padding: 40px;">
                         <i class="fas fa-info-circle"></i> Nenhum processo encontrado para esta auditoria
                     </div>
                 `;
-                return; // Sai da função
+                return;
             }
 
-            // PASSO 2: Preparar o container que ai receber TODO o HTML
             let htmlFinal = '';
 
-            // PASSO 3: Percorrer cada processo (um por um)
             for (const processo of dataProcessos.processos) {
                 console.log(`🔍 Buscando etapas do processo: ${processo.codigo_processo} - ${processo.nome_processo}`);
             
-                // PASSO 4: Buscar etapas deste processo específico
                 const responseEtapas = await fetch(`/api/processo/${processo.id}/etapas`);
                 const dataEtapas = await responseEtapas.json();
                 console.log(`   📋 Etapas encontradas: ${dataEtapas.etapas?.length || 0}`);
 
-                // Adicionar o cabeçalho do processo (como um "card" que agrupa as etapas)
+                // Cabeçalho do processo
                 htmlFinal += `
                     <div class="processo-card" data-processo-id="${processo.id}">
                         <div class="processo-header" onclick="toggleProcesso(this)">
@@ -1047,15 +1058,53 @@
                 
                 // Verificar se o processo tem etapas
                 if (dataEtapas.success && dataEtapas.etapas && dataEtapas.etapas.length > 0) {
-                    // Percorrer cada etapa do processo
+                    // Array para guardar as promessas de busca da contagem
+                    const promessasContagem = [];
+                    const etapasTemp = [];
+
+                    // ⭐ PASSO 1: Guardar as etapas e criar as promessas
                     for (const etapa of dataEtapas.etapas) {
+                        etapasTemp.push(etapa);
+
+                        const promessa = fetch(`/api/etapa/${etapa.id}/riscos/count`)
+                            .then(res => res.json())
+                            .then(data => ({
+                                id: etapa.id,
+                                total: data.success ? data.total : 0
+                            }))
+                            .catch(error => {
+                                console.error(`Erro ao contar riscos da etapa ${etapa.id}:`, error);
+                                return { id: etapa.id, total: 0 };
+                            });
+                        
+                        promessasContagem.push(promessa);
+                    }
+                    
+                    // ⭐ PASSO 2: Aguardar todas as contagens
+                    const contagens = await Promise.all(promessasContagem);
+
+                    // ⭐ PASSO 3: Criar mapa de contagens
+                    const mapaContagens = {};
+                    contagens.forEach(cont => {
+                        mapaContagens[cont.id] = cont.total;
+                    });
+
+                    // ⭐ PASSO 4: Montar HTML com os badges
+                    for (const etapa of etapasTemp) {
+                        const totalRiscos = mapaContagens[etapa.id] || 0;
+
+                        let badgeClass = 'badge-riscos';
+                        
                         htmlFinal += `
                             <div class="etapa-card" data-etapa-id="${etapa.id}">
                                 <div class="etapa-header" onclick="toggleEtapa(this)">
                                     <div class="etapa-info">
                                         <i class="fas fa-step-forward"></i>
                                         <strong>${etapa.codigo_etapa}</strong>
-                                        <span>${etapa.nome_etapa}</span>
+                                        <span>${limitarTexto(etapa.nome_etapa, 50)}</span>
+                                        <span class="${badgeClass}" title="${totalRiscos} risco(s) cadastrado(s)">
+                                            <i class="fas fa-exclamation-triangle"></i> ${totalRiscos}
+                                        </span>
                                     </div>
                                     <div class="etapa-actions">
                                         <button class="btn-add-risco" onclick="event.stopPropagation(); abrirModalRisco(${etapa.id}, '${etapa.codigo_etapa}', '${escapeHtml(etapa.nome_etapa)}')">
@@ -1071,21 +1120,24 @@
                                 </div>
                             </div>
                         `;
-                    }
+                    } // ⬅️ FECHA O for de etapasTemp
+
                 } else {
+                    // Nenhuma etapa encontrada para este processo
                     htmlFinal += `
                         <div class="empty-etapas">
                             <i class="fas fa-info-circle"></i> Nenhuma etapa cadastrada para este processo.
                         </div>
                     `;
-                }
+                } // ⬅️ FECHA O if/else de verificação de etapas
                 
+                // Fechar as divs do processo
                 htmlFinal += `
-                            </div>
-                        </div>
-                    </div>
+                                </div> <!-- fecha .etapas-list -->
+                            </div> <!-- fecha .processo-body -->
+                        </div> <!-- fecha .processo-card -->
                 `;
-            }
+            } // ⬅️ FECHA O for de processos
 
             // Depois de processar todos os processos, colocar o HTML na tela
             etapasContainer.innerHTML = htmlFinal;
@@ -1715,6 +1767,13 @@
                 btnSalvar.disabled = false;
             }
         }
+    }
+
+    // Função para limitar o tamanho do texto
+    function limitarTexto(texto, limite = 50) {
+        if (!texto) return '';
+        if (texto.length <= limite) return texto;
+        return texto.substring(0, limite) + '...';
     }
 
 </script>
