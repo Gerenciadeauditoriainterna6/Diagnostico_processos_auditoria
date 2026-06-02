@@ -151,7 +151,7 @@
                 <label><i class="fas fa-circle"></i> Status da Ação de Controle</label>
                 <select id="controle_status" class="form-control">
                     <option value="">Selecione...</option>
-                    <option value="Ativado">Ativado</option>
+                    <option value="Ativado">Ativo</option>
                     <option value="Desativado">Desativado</option>
                 </select>
             </div>
@@ -698,6 +698,13 @@
         font-size: 14px;
     }
 
+    .controle-info strong {
+        color: #17a2b8;
+        font-size: 14px;
+    }
+
+
+
     .controle-actions {
         display: flex;
         gap: 4px;
@@ -1141,7 +1148,7 @@
                             <div class="risco-info">
                                 <span class="risco-icon">${badgeIcon}</span>
                                 <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
-                                <span class="risco-score">Score: ${risco.magnitude}</span>
+                                <span class="risco-score">Magnitude do risco: ${risco.magnitude}</span>
                             </div>
                             <div class="risco-actions">
                                 <span class="expandir-hint" title="Clique para ver controles">
@@ -1149,12 +1156,6 @@
                                 </span>
                                 <button class="btn-add-controle" onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Adicionar Controle">
                                     <i class="fas fa-plus"></i>
-                                </button>
-                                <button class="btn-edit-icon" onclick="event.stopPropagation(); editarRiscoEtapa(${risco.id}, ${etapaId})" title="Editar Risco">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
-                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirRiscoEtapa(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Excluir Risco">
-                                    <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
                         </div>
@@ -1236,7 +1237,7 @@
                     <div class="controle-card">
                         <div class="controle-header">
                             <div class="controle-info">
-                                <i class="fas fa-check-circle"></i>
+                                <i class="fas fa-shield-alt"></i>
                                 <strong>${escapeHtml(controle.nome_controle)}</strong>
                             </div>
                             <div class="controle-actions">
@@ -1249,26 +1250,66 @@
                             </div>
                         </div>
                         <div class="controle-detalhes">
+                            ${controle.causa_motivo ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Fator de Risco:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.causa_motivo)}</span>
+                            </div>` : ''}
+                            ${controle.como_executado ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Como é executado:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.como_executado) || '-'}</span>
-                            </div>
+                                <span class="detalhe-valor">${escapeHtml(controle.como_executado)}</span>
+                            </div>` : ''}
+                            ${controle.objetivo_controle ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Objetivo:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.objetivo_controle) || '-'}</span>
-                            </div>
+                                <span class="detalhe-valor">${escapeHtml(controle.objetivo_controle)}</span>
+                            </div>` : ''}
+                            ${controle.periodicidade_execucao ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Periodicidade:</span>
-                                <span class="detalhe-valor">${controle.periodicidade_execucao || '-'}</span>
-                            </div>
+                                <span class="detalhe-valor">${controle.periodicidade_execucao}</span>
+                            </div>` : ''}
+                            ${controle.evidencia_realizacao ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Evidência:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.evidencia_realizacao)}</span>
+                            </div>` : ''}
+                            ${controle.local_evidencia ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Local da Evidência:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.local_evidencia)}</span>
+                            </div>` : ''}
+                            ${controle.forma_execucao ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Forma de Execução:</span>
+                                <span class="detalhe-valor">${controle.forma_execucao}</span>
+                            </div>` : ''}
+                            ${controle.natureza ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Natureza:</span>
-                                <span class="detalhe-valor">${controle.natureza || '-'}</span>
-                            </div>
+                                <span class="detalhe-valor">${controle.natureza}</span>
+                            </div>` : ''}
+                            ${controle.lgpd ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">LGPD:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.lgpd)}</span>
+                            </div>` : ''}
+                            ${controle.status_controle ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Status:</span>
-                                <span class="detalhe-valor">${controle.status_controle || '-'}</span>
-                            </div>
+                                <span class="detalhe-valor">${controle.status_controle}</span>
+                            </div>` : ''}
+                            ${controle.frequencia_evidencia ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Frequência da Evidência:</span>
+                                <span class="detalhe-valor">${controle.frequencia_evidencia}</span>
+                            </div>` : ''}
+                            ${controle.responsaveis_tratamento ? `
+                            <div class="controle-detalhe">
+                                <span class="detalhe-label">Responsável:</span>
+                                <span class="detalhe-valor">${escapeHtml(controle.responsaveis_tratamento)}</span>
+                            </div>` : ''}
                         </div>
                     </div>
                 `;

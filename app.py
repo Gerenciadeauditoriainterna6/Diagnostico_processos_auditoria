@@ -400,6 +400,8 @@ def api_controle_etapa_salvar():
                     'forma_execucao': forma_execucao,
                     'status_controle': status_controle,
                     'evidencia_realizacao': evidencia_realizacao,
+                    'local_evidencia': local_evidencia,     
+                    'lgpd': lgpd,                            
                     'frequencia_evidencia': frequencia_evidencia,
                     'responsaveis_tratamento': responsaveis_tratamento,
                     'risco_avaliacao': risco_avaliacao,
@@ -496,7 +498,7 @@ def api_controle_etapa_detalhes(controle_id):
                 SELECT id, risco_id, nome_controle, como_executado, objetivo_controle,
                        periodicidade_execucao, natureza, forma_execucao, status_controle,
                        evidencia_realizacao, responsaveis_tratamento, risco_avaliacao, causa_motivo,
-                       frequencia_evidencia
+                       frequencia_evidencia, local_evidencia, lgpd
                 FROM controles_etapa
                 WHERE id = :controle_id
             """)
@@ -520,7 +522,9 @@ def api_controle_etapa_detalhes(controle_id):
                 'responsaveis_tratamento': result[10] or '',
                 'risco_avaliacao': result[11] or '',
                 'causa_motivo': result[12] or '',
-                'frequencia_evidencia': result[13] or ''
+                'frequencia_evidencia': result[13] or '',
+                'local_evidencia': result[14] or '',
+                'lgpd': result[15] or ''
             }
             
             return jsonify({'success': True, 'controle': controle})
@@ -1282,6 +1286,7 @@ def api_processos_por_auditoria():
                 FROM processos p
                 JOIN auditoria_processos ap ON p.id = ap.processo_id
                 WHERE ap.auditoria_id = :auditoria_id
+                    AND p.status = 'Ativo'
                 ORDER BY 
                     CAST(SUBSTRING(p.codigo_processo FROM '^[0-9]+') AS INTEGER),
                     CAST(SUBSTRING(p.codigo_processo FROM '[0-9]+$') AS INTEGER)
@@ -2223,7 +2228,8 @@ def api_risco_controles(risco_id):
                 SELECT id, nome_controle, como_executado, objetivo_controle,
                        periodicidade_execucao, evidencia_realizacao, forma_execucao,
                        natureza, status_controle, responsaveis_tratamento,
-                       risco_avaliacao, causa_motivo, created_at, updated_at
+                       risco_avaliacao, causa_motivo, frequencia_evidencia, 
+                       local_evidencia, lgpd, created_at, updated_at
                 FROM controles_etapa
                 WHERE risco_id = :risco_id
                 ORDER BY id
@@ -2246,8 +2252,11 @@ def api_risco_controles(risco_id):
                     'responsaveis_tratamento': row[9] or '',
                     'risco_avaliacao': row[10] or '',
                     'causa_motivo': row[11] or '',
-                    'created_at': row[12].isoformat() if row[12] else '',
-                    'updated_at': row[13].strftime('%Y-%m-%d') if row[13] else ''
+                    'frequencia_evidencia': row[12] or '',
+                    'local_evidencia': row[13] or '',
+                    'lgpd': row[14] or '',
+                    'created_at': row[15].isoformat() if row[15] else '',
+                    'updated_at': row[16].strftime('%Y-%m-%d') if row[16] else ''
                 })
             
             return jsonify({'success': True, 'controles': controles})
