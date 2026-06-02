@@ -167,6 +167,7 @@
                 <!-- Formulário de análise (escondido por padrão) -->
                 <div id="form-analise" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
                     <input type="hidden" id="analise-id">
+                    <input type="hidden" id="analise-temp-id"> <!-- Para análises temporárias -->
                     
                     <div class="form-row">
                         <div class="form-group">
@@ -187,7 +188,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Validações</label>
+                        <label>
+                            <i class="fas fa-check-circle"></i> Validações
+                            <span class="help-icon" style="position: relative; display: inline-block;" data-tooltip="1- O que falta na etapa do processo?&#10; 2-O que essa falta provoca no processo?&#10;&#10;Conclusão: Essa falta são as dores do processo">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
+                        </label>
                         <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica..."></textarea>
                     </div>
 
@@ -1221,9 +1227,49 @@
         }
     }
 
+    /* Tooltip */
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        max-width: 350px;
+        min-width: 250px;
+        text-align: center;
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        line-height: 1.4;
+        z-index: 9999;
+        margin-top: 20px;
+        margin-left: 5px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Seta do tooltip */
+    .help-icon:hover::before {
+        content: '';
+        position: absolute;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent #333 transparent;
+        margin-top: 8px;
+        margin-left: 4px;
+        z-index: 1000;
+    }
+
 </style>
 
 <script>
+
+    // Análises temporárias (não salvas no banco ainda)
+    let analisesTemporarias = []; // Para armazenar análises antes da etapa ser salva
+    let analisesExistentes = [];   // Para análises que já estão no banco
+    let isEtapaSalva = false;      // Flag para saber se a etapa já foi salva
+    let etapaIdAtual = null;       // ID da etapa atual (se já salva)
 
     // ============================================================
     // AUTOSAVE - Salvar rascunho automaticamente
@@ -2111,21 +2157,25 @@
         await carregarExecutoresProcesso();
         limparExecutoresSelecionados();
         setupExecutoresSelector();
-        setupAutoSave(); // Configurar auto save
-        analisesLista = [];
+        setupAutoSave();
+        
+        // ⭐ Resetar análises para nova etapa ⭐
+        analisesTemporarias = [];
+        analisesExistentes = [];
         renderizarAnalises();
         esconderFormAnalise();
-    
-        // Tentar carregar rascunho
-        carregarRascunho();
 
+        carregarRascunho();
         document.getElementById('modal-etapa').style.display = 'flex';
     }
 
     async function editarEtapa(etapaId) {
         limparFormularioEtapa();
-        autoSaveEnabled = false; // Desabilitar auto save durante carregamento
-        limparRascunho(); // Limpar rascunho anterior
+        autoSaveEnabled = false;
+        limparRascunho();
+        
+        // ⭐ Resetar análises temporárias ⭐
+        analisesTemporarias = [];
         
         try {
             const response = await fetch(`/api/etapa/${etapaId}`);
@@ -2153,13 +2203,14 @@
                 }
                 
                 setupExecutoresSelector();
-                setupAutoSave(); // Reativar auto save
-                
+                setupAutoSave();
                 autoSaveEnabled = true;
 
-                console.log('🔍 Verificando manual-nome:', document.getElementById('manual-nome'));
-                console.log('🔍 Verificando modal-etapa:', document.getElementById('modal-etapa'));
-                                
+                // ⭐ Carregar análises existentes (apenas UMA vez) ⭐
+                await carregarAnalises(etapaId);
+                esconderFormAnalise();
+
+                // Verificar manual
                 const manualNomeDiv = document.getElementById('manual-nome');
                 if (manualNomeDiv) {
                     if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
@@ -2177,13 +2228,9 @@
                         manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
                     }
                 }
-
                 
+                // Abrir o modal
                 document.getElementById('modal-etapa').style.display = 'flex';
-
-                // Carregar análises após o modal estar visível
-                await carregarAnalises(etapaId);
-                esconderFormAnalise();
             }
         } catch (error) {
             console.error('Erro ao carregar etapa:', error);
@@ -2243,7 +2290,7 @@
             executores_etapa: executoresEtapa
         };
 
-        
+        // Upload de manual...
         const manualFile = document.getElementById('modal-manual').files[0];
         const manualNomeDiv = document.getElementById('manual-nome');
         const removerManual = manualNomeDiv.getAttribute('data-remover-arquivo') === 'true';
@@ -2262,7 +2309,6 @@
             payload.remover_manual = false;
         }
 
-
         try {
             const response = await fetch('/api/etapa/salvar', {
                 method: 'POST',
@@ -2272,9 +2318,19 @@
             
             const data = await response.json();
             if (data.success) {
+                // ⭐ SALVAR ANÁLISES TEMPORÁRIAS ⭐
+                if (analisesTemporarias.length > 0) {
+                    await salvarAnalisesTemporarias(data.etapa_id);
+                }
+                
                 mostrarToast('✅ Etapa salva com sucesso!', 'success');
-                limparRascunho(); // Limpar rascunho após salvar
+                limparRascunho();
                 document.getElementById('modal-etapa').style.display = 'none';
+                
+                // Limpar variáveis
+                analisesTemporarias = [];
+                analisesExistentes = [];
+                
                 carregarEtapas();
             } else {
                 mostrarToast('❌ Erro ao salvar etapa: ' + (data.error || 'Erro desconhecido'), 'error');
@@ -2302,19 +2358,24 @@
 
     let analisesLista = [];
 
-    // Carregar análises da etapa
+    // Carregar análises da etapa (do banco)
     async function carregarAnalises(etapaId) {
-        const container = document.getElementById('analises-lista');
-        if (!container) {
-            console.warn('Container analises-lista não encontrado');
+        if (!etapaId || etapaId === '') {
+            // Etapa ainda não foi salva, mostrar apenas análises temporárias
+            analisesExistentes = [];
+            renderizarAnalises();
             return;
         }
+        
+        const container = document.getElementById('analises-lista');
+        if (!container) return;
+        
         try {
             const response = await fetch(`/api/etapa/${etapaId}/analises`);
             const data = await response.json();
             
             if (data.success) {
-                analisesLista = data.analises || [];
+                analisesExistentes = data.analises || [];
                 renderizarAnalises();
             }
         } catch (error) {
@@ -2322,67 +2383,85 @@
         }
     }
 
-    // Renderizar lista de análises
+    // Renderizar lista de análises (combinando existentes + temporárias)
     function renderizarAnalises() {
         const container = document.getElementById('analises-lista');
         if (!container) return;
         
-        if (analisesLista.length === 0) {
+        // Combinar análises existentes + temporárias
+        const todasAnalises = [...analisesExistentes, ...analisesTemporarias];
+        
+        if (todasAnalises.length === 0) {
             container.innerHTML = '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhuma análise crítica cadastrada.</div>';
             return;
         }
         
-        container.innerHTML = analisesLista.map((analise, index) => `
-            <div class="analise-card">
-                <div class="analise-card-info">
-                    <div class="analise-card-header">
-                        <span class="analise-card-tipo ${analise.tipo_analise}">
-                            <i class="fas ${analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user'}"></i>
-                            ${analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado'}
-                        </span>
-                        <span class="analise-card-categoria">
-                            ${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}
-                        </span>
+        container.innerHTML = todasAnalises.map((analise, index) => {
+            const isTemporaria = analise._temporaria === true;
+            const originalIndex = isTemporaria ? index - analisesExistentes.length : index;
+            
+            return `
+                <div class="analise-card" data-analise-temp="${isTemporaria}">
+                    <div class="analise-card-info">
+                        <div class="analise-card-header">
+                            <span class="analise-card-tipo ${analise.tipo_analise}">
+                                <i class="fas ${analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user'}"></i>
+                                ${analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado'}
+                                ${isTemporaria ? '<span style="background: #ffc107; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px;">(Não salvo)</span>' : ''}
+                            </span>
+                            <span class="analise-card-categoria">
+                                ${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}
+                            </span>
+                        </div>
+                        <div class="analise-card-detalhes">
+                            ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Validações:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                            ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                            ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade de Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                            ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
+                        </div>
                     </div>
-                    <div class="analise-card-detalhes">
-                        ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Validações:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
-                        ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
-                        ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade de Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
-                        ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
-                        ${!analise.analise_critica && !analise.sugestao_melhoria && !analise.necessidade_implantacao && !analise.ganho_previsto ? 
-                            '<div class="analise-card-texto" style="color: #999;">Nenhum detalhe preenchido</div>' : ''}
+                    <div class="analise-card-actions">
+                        <button class="btn-edit-analise" onclick="editarAnalise(${index}, ${isTemporaria})" title="Editar">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="btn-delete-analise" onclick="excluirAnalise(${index}, ${isTemporaria})" title="Excluir">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="analise-card-actions">
-                    <button class="btn-edit-analise" onclick="editarAnalise(${index})" title="Editar">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                    <button class="btn-delete-analise" onclick="excluirAnalise(${index})" title="Excluir">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Mostrar formulário de análise
-    function mostrarFormAnalise(modo = 'novo', index = null) {
+    function mostrarFormAnalise(modo = 'novo', index = null, isTemporaria = false) {
         const form = document.getElementById('form-analise');
         if (!form) return;
         
         form.style.display = 'block';
         
         if (modo === 'editar' && index !== null) {
-            const analise = analisesLista[index];
-            document.getElementById('analise-id').value = analise.id || '';
-            document.getElementById('analise-tipo').value = analise.tipo_analise;
-            document.getElementById('analise-categoria').value = analise.categoria;
-            document.getElementById('analise-texto').value = analise.analise_critica || '';
-            document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
-            document.getElementById('analise-necessidade').value = analise.necessidade_implantacao || '';
-            document.getElementById('analise-ganho').value = analise.ganho_previsto || '';
+            let analise;
+            if (isTemporaria) {
+                const tempIndex = index - analisesExistentes.length;
+                analise = analisesTemporarias[tempIndex];
+            } else {
+                analise = analisesExistentes[index];
+            }
+            
+            if (analise) {
+                document.getElementById('analise-id').value = analise.id || '';
+                document.getElementById('analise-temp-id').value = isTemporaria ? index : '';
+                document.getElementById('analise-tipo').value = analise.tipo_analise;
+                document.getElementById('analise-categoria').value = analise.categoria;
+                document.getElementById('analise-texto').value = analise.analise_critica || '';
+                document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
+                document.getElementById('analise-necessidade').value = analise.necessidade_implantacao || '';
+                document.getElementById('analise-ganho').value = analise.ganho_previsto || '';
+            }
         } else {
             document.getElementById('analise-id').value = '';
+            document.getElementById('analise-temp-id').value = '';
             document.getElementById('analise-tipo').value = 'entrevistado';
             document.getElementById('analise-categoria').value = 'governanca';
             document.getElementById('analise-texto').value = '';
@@ -2391,7 +2470,6 @@
             document.getElementById('analise-ganho').value = '';
         }
         
-        // Scroll até o formulário
         form.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
@@ -2402,29 +2480,77 @@
     }
 
     // Editar análise
-    function editarAnalise(index) {
-        mostrarFormAnalise('editar', index);
+    function editarAnalise(index, isTemporaria) {
+        mostrarFormAnalise('editar', index, isTemporaria);
     }
 
-    // Salvar análise
-    async function salvarAnalise() {
-        const etapaId = document.getElementById('modal-etapa-id').value;
-        if (!etapaId) {
-            mostrarToast('⚠️ Salve a etapa primeiro antes de adicionar análises', 'warning');
-            return;
-        }
-        
-        const analiseId = document.getElementById('analise-id').value || null;
-        
-        const payload = {
-            id: analiseId,
-            etapa_id: parseInt(etapaId),
+    // Salvar análise (suporta modo temporário)
+    function salvarAnalise() {
+        const analiseData = {
             tipo_analise: document.getElementById('analise-tipo').value,
             categoria: document.getElementById('analise-categoria').value,
             analise_critica: document.getElementById('analise-texto').value,
             sugestao_melhoria: document.getElementById('analise-sugestao').value,
             necessidade_implantacao: document.getElementById('analise-necessidade').value,
             ganho_previsto: document.getElementById('analise-ganho').value
+        };
+        
+        const analiseId = document.getElementById('analise-id').value;
+        const tempId = document.getElementById('analise-temp-id').value;
+        const etapaId = document.getElementById('modal-etapa-id').value;
+        
+        // Caso 1: Editando análise existente no banco
+        if (analiseId && analiseId !== '') {
+            salvarAnaliseNoBanco(analiseId, analiseData, etapaId);
+            return;
+        }
+        
+        // Caso 2: Editando análise temporária
+        if (tempId && tempId !== '') {
+            const tempIndex = parseInt(tempId);
+            if (tempIndex >= 0 && tempIndex < analisesTemporarias.length) {
+                analisesTemporarias[tempIndex] = { ...analisesTemporarias[tempIndex], ...analiseData };
+                mostrarToast('✅ Análise atualizada (será salva ao finalizar a etapa)!', 'success');
+                esconderFormAnalise();
+                renderizarAnalises();
+            }
+            return;
+        }
+        
+        // Caso 3: Nova análise
+        if (!etapaId || etapaId === '') {
+            // Etapa não salva - salvar como temporária
+            const novaAnalise = {
+                ...analiseData,
+                _temporaria: true,
+                _id: Date.now()
+            };
+            analisesTemporarias.push(novaAnalise);
+            mostrarToast('✅ Análise adicionada (será salva ao finalizar a etapa)!', 'success');
+            esconderFormAnalise();
+            renderizarAnalises();
+        } else {
+            // Etapa já salva - salvar direto no banco
+            salvarAnaliseNoBanco(null, analiseData, etapaId);
+        }
+    }
+
+    // Salvar análise no banco
+    async function salvarAnaliseNoBanco(analiseId, analiseData, etapaId) {
+        if (!etapaId || etapaId === '') {
+            mostrarToast('⚠️ Erro: Etapa não identificada', 'error');
+            return;
+        }
+        
+        const payload = {
+            id: analiseId || null,
+            etapa_id: parseInt(etapaId),
+            tipo_analise: analiseData.tipo_analise,
+            categoria: analiseData.categoria,
+            analise_critica: analiseData.analise_critica,
+            sugestao_melhoria: analiseData.sugestao_melhoria,
+            necessidade_implantacao: analiseData.necessidade_implantacao,
+            ganho_previsto: analiseData.ganho_previsto
         };
         
         try {
@@ -2450,23 +2576,41 @@
     }
 
     // Excluir análise
-    async function excluirAnalise(index) {
-        const analise = analisesLista[index];
+    function excluirAnalise(index, isTemporaria) {
+        if (!confirm('Tem certeza que deseja excluir esta análise?')) return;
+        
+        if (isTemporaria) {
+            const tempIndex = index - analisesExistentes.length;
+            if (tempIndex >= 0 && tempIndex < analisesTemporarias.length) {
+                analisesTemporarias.splice(tempIndex, 1);
+                mostrarToast('✅ Análise removida', 'success');
+                renderizarAnalises();
+            }
+            return;
+        }
+        
+        const analise = analisesExistentes[index];
         if (!analise || !analise.id) {
-            analisesLista.splice(index, 1);
+            analisesExistentes.splice(index, 1);
             renderizarAnalises();
             return;
         }
         
-        if (!confirm('Tem certeza que deseja excluir esta análise?')) return;
-        
+        excluirAnaliseDoBanco(analise.id);
+    }
+
+    // Excluir análise do banco
+    async function excluirAnaliseDoBanco(analiseId) {
         try {
-            const response = await fetch(`/api/analise/${analise.id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/analise/${analiseId}`, { method: 'DELETE' });
             const data = await response.json();
             
             if (data.success) {
                 mostrarToast('✅ Análise excluída', 'success');
-                await carregarAnalises(document.getElementById('modal-etapa-id').value);
+                const etapaId = document.getElementById('modal-etapa-id').value;
+                if (etapaId) {
+                    await carregarAnalises(etapaId);
+                }
             } else {
                 mostrarToast('❌ Erro ao excluir', 'error');
             }
@@ -2474,6 +2618,48 @@
             console.error('Erro ao excluir análise:', error);
             mostrarToast('❌ Erro ao excluir', 'error');
         }
+    }
+
+    async function salvarAnalisesTemporarias(etapaId) {
+        if (analisesTemporarias.length === 0) return;
+        
+        console.log(`💾 Salvando ${analisesTemporarias.length} análises temporárias para etapa ${etapaId}`);
+        console.log('📋 Análises a serem salvas:', JSON.stringify(analisesTemporarias, null, 2));
+        
+        for (const analise of analisesTemporarias) {
+            const payload = {
+                etapa_id: parseInt(etapaId),
+                tipo_analise: analise.tipo_analise,
+                categoria: analise.categoria,
+                analise_critica: analise.analise_critica,
+                sugestao_melhoria: analise.sugestao_melhoria,
+                necessidade_implantacao: analise.necessidade_implantacao,
+                ganho_previsto: analise.ganho_previsto
+            };
+            
+            console.log('📤 Enviando payload:', payload);
+            
+            try {
+                const response = await fetch('/api/analise/salvar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                console.log('📥 Resposta do servidor:', data);
+                
+                if (!data.success) {
+                    console.error('❌ Erro ao salvar análise:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Erro na requisição:', error);
+            }
+        }
+        
+        // Limpar análises temporárias após salvar
+        analisesTemporarias = [];
+        console.log('✅ Análises temporárias limpas após salvamento');
     }
 
     // ============================================================

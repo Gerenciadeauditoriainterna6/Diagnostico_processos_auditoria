@@ -2134,7 +2134,7 @@ def api_salvar_etapa():
                     params['manual_nome'] = manual_nome
                     params['manual_tipo'] = manual_tipo
                 
-                # 🔧 NOVO: Arquivo de Mapeamento
+                # Arquivo de Mapeamento
                 remover_arquivo_mapeamento = data.get('remover_arquivo_mapeamento', False)
                 if data.get('arquivo_mapeamento_base64') or remover_arquivo_mapeamento:
                     update_fields.append("arquivo_mapeamento = :arquivo_mapeamento")
@@ -2162,9 +2162,19 @@ def api_salvar_etapa():
                 conn.execute(query, params)
                 
                 print(f"✏️ Etapa {etapa_id} atualizada com sucesso!")
+                conn.commit()
+                
+                # ⭐⭐⭐ CORREÇÃO AQUI - RESPOSTA PARA EDIÇÃO ⭐⭐⭐
+                return jsonify({
+                    'success': True,
+                    'message': 'Etapa salva com sucesso',
+                    'codigo_etapa': codigo_etapa,
+                    'etapa_id': etapa_id,      # ← ADICIONADO
+                    'id': etapa_id             # ← ADICIONADO (fallback)
+                })
                 
             else:
-                # ========== NOVO: inserir etapa ==========
+                # ========== NOVA ETAPA: inserir ==========
                 
                 # Se não veio código, gerar automaticamente
                 if not codigo_etapa:
@@ -2195,7 +2205,7 @@ def api_salvar_etapa():
                         executores_etapa,
                         diagrama_bpmn, diagrama_nome, diagrama_tipo,
                         manual_etapa, manual_nome, manual_tipo,
-                        arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,  -- ← NOVOS
+                        arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,
                         created_at
                     ) VALUES (
                         :processo_id, :auditoria_id, :codigo_etapa, :nome_etapa,
@@ -2206,7 +2216,7 @@ def api_salvar_etapa():
                         :executores_etapa,
                         :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
                         :manual_etapa, :manual_nome, :manual_tipo,
-                        :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,  -- ← NOVOS
+                        :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,
                         NOW()
                     )
                     RETURNING id
@@ -2235,24 +2245,28 @@ def api_salvar_etapa():
                     'manual_etapa': manual_bytes,
                     'manual_nome': manual_nome,
                     'manual_tipo': manual_tipo,
-                    'arquivo_mapeamento': None,
-                    'arquivo_mapeamento_nome': None,
-                    'arquivo_mapeamento_tipo': None
+                    'arquivo_mapeamento': arquivo_mapeamento_bytes,
+                    'arquivo_mapeamento_nome': arquivo_mapeamento_nome,
+                    'arquivo_mapeamento_tipo': arquivo_mapeamento_tipo
                 })
                 
                 novo_id = result.fetchone()[0]
                 print(f"✅ Nova etapa criada! ID: {novo_id}, Código: {codigo_etapa}")
-            
-            conn.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Etapa salva com sucesso',
-                'codigo_etapa': codigo_etapa
-            })
+                conn.commit()
+                
+                # ⭐⭐⭐ CORREÇÃO AQUI - RESPOSTA PARA NOVA ETAPA ⭐⭐⭐
+                return jsonify({
+                    'success': True,
+                    'message': 'Etapa salva com sucesso',
+                    'codigo_etapa': codigo_etapa,
+                    'etapa_id': novo_id,       # ← ADICIONADO
+                    'id': novo_id              # ← ADICIONADO (fallback)
+                })
             
     except Exception as e:
         print(f"❌ Erro ao salvar etapa: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/risco/<int:risco_id>/controles')
