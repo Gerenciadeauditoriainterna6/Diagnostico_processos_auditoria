@@ -619,15 +619,16 @@ def api_auditoria_responsavel(auditoria_id):
 # ============================================================
 @app.route('/api/processo/verificar')
 def api_verificar_processo():
-    """Verifica se um processo co o mesmo nome já existe na área"""
+    """Verifica se um processo com o mesmo nome já existe na área E auditoria"""
     nome_processo = request.args.get('nome')
     id_area = request.args.get('id_area')
+    auditoria_id = request.args.get('auditoria_id')  # ← NOVO
 
-    if not nome_processo or not id_area:
+    if not nome_processo or not id_area or not auditoria_id:
         return jsonify({'existe': False})
     
     from logic import buscar_processo_por_nome_e_area
-    processo = buscar_processo_por_nome_e_area(nome_processo, id_area)
+    processo = buscar_processo_por_nome_e_area(nome_processo, id_area, auditoria_id)  # ← MODIFICAR
 
     if processo:
         return jsonify({
@@ -639,19 +640,22 @@ def api_verificar_processo():
 
 @app.route('/api/processo/gerar-codigo')
 def api_gerar_codigo_processo():
-    """Gera o próximo código sequencial para uma área"""
+    """Gera o próximo código sequencial para uma área em uma auditoria específica"""
     from logic import gerar_codigo_processo
     
     id_area = request.args.get('id_area')
-    if not id_area:
-        return jsonify({'error': 'id_area é obrigatório'}), 400
+    auditoria_id = request.args.get('auditoria_id')  # ← NOVO
+    
+    if not id_area or not auditoria_id:
+        return jsonify({'error': 'id_area e auditoria_id são obrigatórios'}), 400
     
     try:
         id_area = int(id_area)
+        auditoria_id = int(auditoria_id)
     except ValueError:
-        return jsonify({'error': 'id_area deve ser um número'}), 400
+        return jsonify({'error': 'id_area e auditoria_id devem ser números'}), 400
     
-    codigo = gerar_codigo_processo(id_area)
+    codigo = gerar_codigo_processo(id_area, auditoria_id)  # ← MODIFICAR
     
     return jsonify({'codigo': codigo})
 
@@ -685,10 +689,10 @@ def api_salvar_processo_basico():
     
     data = request.json
     print(f"📥 Dados recebidos em salvar-basico: {data}")
-    print(f"🔍 processo_id recebido: {data.get('processo_id')}")  # ← ADICIONE ESTA LINHA
+    print(f"🔍 processo_id recebido: {data.get('processo_id')}")
     
     # ===== DADOS RECEBIDOS DO FRONTEND =====
-    processo_id = data.get('processo_id')           # ← Se veio, é edição
+    processo_id = data.get('processo_id')
     nome_processo = data.get('nome_processo')
     codigo_processo = data.get('codigo_processo')
     id_area = data.get('id_area')
@@ -718,6 +722,7 @@ def api_salvar_processo_basico():
                     SET nome_processo = :nome, 
                         codigo_processo = :codigo,
                         area = :area,
+                        auditoria_id = :auditoria_id,
                         updated_at = NOW()
                     WHERE id = :id
                     RETURNING id
@@ -726,6 +731,7 @@ def api_salvar_processo_basico():
                     'nome': nome_processo,
                     'codigo': codigo_processo,
                     'area': nome_area,
+                    'auditoria_id': auditoria_id,
                     'id': processo_id
                 })
                 processo_id = result.fetchone()[0]
@@ -735,14 +741,17 @@ def api_salvar_processo_basico():
                 # ===== CASO 2: NOVO PROCESSO - Vamos CRIAR =====
                 print(f"➕ Criando novo processo: {nome_processo}")
                 
-                # Verificar se já existe outro com mesmo nome na área
+                # Verificar se já existe outro com mesmo nome na área E MESMA AUDITORIA
                 check_query = text("""
                     SELECT id FROM processos 
-                    WHERE nome_processo = :nome AND id_area = :id_area
+                    WHERE nome_processo = :nome 
+                    AND id_area = :id_area 
+                    AND auditoria_id = :auditoria_id
                 """)
                 existing = conn.execute(check_query, {
                     'nome': nome_processo,
-                    'id_area': id_area
+                    'id_area': id_area,
+                    'auditoria_id': auditoria_id
                 }).fetchone()
                 
                 if existing:
@@ -756,6 +765,7 @@ def api_salvar_processo_basico():
                         SET nome_processo = :nome, 
                             codigo_processo = :codigo,
                             area = :area,
+                            auditoria_id = :auditoria_id,
                             updated_at = NOW()
                         WHERE id = :id
                     """)
@@ -763,23 +773,31 @@ def api_salvar_processo_basico():
                         'nome': nome_processo,
                         'codigo': codigo_processo,
                         'area': nome_area,
+                        'auditoria_id': auditoria_id,
                         'id': processo_id
                     })
                 else:
                     # Realmente novo: gerar código e inserir
                     if not codigo_processo:
-                        codigo_processo = gerar_codigo_processo(id_area)
+                        codigo_processo = gerar_codigo_processo(id_area, auditoria_id)  # ← PASSAR AUDITORIA_ID
                     
                     insert_query = text("""
-                        INSERT INTO processos (nome_processo, codigo_processo, id_area, area, created_at, updated_at)
-                        VALUES (:nome, :codigo, :id_area, :area, NOW(), NOW())
+                        INSERT INTO processos (
+                            nome_processo, codigo_processo, id_area, area, 
+                            auditoria_id, created_at, updated_at
+                        )
+                        VALUES (
+                            :nome, :codigo, :id_area, :area, 
+                            :auditoria_id, NOW(), NOW()
+                        )
                         RETURNING id
                     """)
                     result = conn.execute(insert_query, {
                         'nome': nome_processo,
                         'codigo': codigo_processo,
                         'id_area': id_area,
-                        'area': nome_area
+                        'area': nome_area,
+                        'auditoria_id': auditoria_id
                     })
                     processo_id = result.fetchone()[0]
                     print(f"✅ Novo processo criado com ID: {processo_id}")
@@ -806,32 +824,8 @@ def api_salvar_processo_basico():
             else:
                 print(f"⚠️ Nenhum executor para salvar no processo {processo_id}")
             
-            # ===== VINCULAR À AUDITORIA =====
-            if auditoria_id:
-                print(f"🔗 Vinculando processo {processo_id} à auditoria {auditoria_id}")
-                
-                # Verificar se já está vinculado
-                check_link = text("""
-                    SELECT id FROM auditoria_processos 
-                    WHERE auditoria_id = :auditoria_id AND processo_id = :processo_id
-                """)
-                link_exists = conn.execute(check_link, {
-                    'auditoria_id': auditoria_id,
-                    'processo_id': processo_id
-                }).fetchone()
-                
-                if not link_exists:
-                    insert_link = text("""
-                        INSERT INTO auditoria_processos (auditoria_id, processo_id, created_at, updated_at)
-                        VALUES (:auditoria_id, :processo_id, NOW(), NOW())
-                    """)
-                    conn.execute(insert_link, {
-                        'auditoria_id': auditoria_id,
-                        'processo_id': processo_id
-                    })
-                    print(f"✅ Vinculado com sucesso!")
-                else:
-                    print(f"ℹ️ Processo já vinculado a esta auditoria")
+            # ⭐ REMOVIDO: Bloco de vinculação à auditoria (não é mais necessário)
+            # O auditoria_id já está na tabela processos!
             
             # ===== CONFIRMAR TRANSAÇÃO =====
             conn.commit()
@@ -1011,8 +1005,9 @@ def api_processo_dados(processo_id):
     try:
         with engine.connect() as conn:
             # ===== 1. BUSCAR DADOS BÁSICOS DO PROCESSO =====
+            # ⭐ AGORA COM auditoria_id DIRETO NO SELECT
             query = text("""
-                SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area,
+                SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area, p.auditoria_id,
                        p.descricao, p.etapa_ini, p.etapa_fim, p.produto, p.objetivo,
                        p.fluxo_bpmn_nome, p.fluxo_bpmn_tipo,
                        i.nome_area
@@ -1025,17 +1020,10 @@ def api_processo_dados(processo_id):
             if not processo:
                 return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404
             
-            # ===== 2. BUSCAR A AUDITORIA VINCULADA AO PROCESSO =====
-            query_auditoria = text("""
-                SELECT ap.auditoria_id
-                FROM auditoria_processos ap
-                WHERE ap.processo_id = :processo_id
-                LIMIT 1
-            """)
-            auditoria_result = conn.execute(query_auditoria, {'processo_id': processo_id}).fetchone()
-            auditoria_id = auditoria_result[0] if auditoria_result else None
+            # ⭐ REMOVIDO: A busca separada da auditoria (já não é mais necessária)
+            # O auditoria_id já está no SELECT acima no índice 4
             
-            # ===== 3. BUSCAR EXECUTORES =====
+            # ===== 2. BUSCAR EXECUTORES =====
             query_exec = text("""
                 SELECT f.id, f.nome_funcionario, f.cargo
                 FROM processo_executores pe
@@ -1044,7 +1032,7 @@ def api_processo_dados(processo_id):
             """)
             executores = conn.execute(query_exec, {'processo_id': processo_id}).fetchall()
             
-            # ===== 4. BUSCAR RISCOS =====
+            # ===== 3. BUSCAR RISCOS =====
             query_riscos = text("""
                 SELECT id, nome_risco, fator_risco, melhoria, apetite_risco,
                        impacto, probabilidade, motivo_risco, categoria, causas,
@@ -1089,21 +1077,22 @@ def api_processo_dados(processo_id):
                     'prazo_implantacao': prazo_str
                 })
             
-            # ===== 5. RETORNAR TODOS OS DADOS =====
+            # ===== 4. RETORNAR TODOS OS DADOS =====
+            # ⭐ NOVO: p.auditoria_id está no índice 4
             return jsonify({
                 'success': True,
                 'nome_processo': processo[1],
                 'codigo_processo': processo[2],
                 'id_area': processo[3],
-                'nome_area': processo[11],
-                'auditoria_id': auditoria_id,
-                'descricao': processo[4] or '',
-                'etapa_ini': processo[5] or '',
-                'etapa_fim': processo[6] or '',
-                'produto': processo[7] or '',
-                'objetivo': processo[8] or '',
-                'fluxo_bpmn_nome': processo[9] or '',   # ← NOVO
-                'fluxo_bpmn_tipo': processo[10] or '',   # ← NOVO
+                'auditoria_id': processo[4],  # ← AGORA VEM DIRETO DO SELECT
+                'nome_area': processo[12],    # ← Índice ajustado (12 em vez de 11)
+                'descricao': processo[5] or '',
+                'etapa_ini': processo[6] or '',
+                'etapa_fim': processo[7] or '',
+                'produto': processo[8] or '',
+                'objetivo': processo[9] or '',
+                'fluxo_bpmn_nome': processo[10] or '',
+                'fluxo_bpmn_tipo': processo[11] or '',
                 'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores],
                 'riscos': riscos
             })
@@ -1319,12 +1308,11 @@ def api_processos_por_auditoria():
     
     try:
         with engine.connect() as conn:
-            # Ordenação correta: converte a parte após o ponto para inteiro
+            # ⭐ AGORA É DIRETO - SEM JOIN!
             query = text("""
                 SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo, p.fluxo_bpmn_nome
                 FROM processos p
-                JOIN auditoria_processos ap ON p.id = ap.processo_id
-                WHERE ap.auditoria_id = :auditoria_id
+                WHERE p.auditoria_id = :auditoria_id
                     AND p.status = 'Ativo'
                 ORDER BY 
                     CAST(SUBSTRING(p.codigo_processo FROM '^[0-9]+') AS INTEGER),
@@ -2420,9 +2408,8 @@ def api_checklist_analises_por_auditoria():
                 FROM analises_criticas ac
                 JOIN etapas_processo ep ON ac.etapa_id = ep.id
                 JOIN processos p ON ep.processo_id = p.id
-                JOIN auditoria_processos ap ON p.id = ap.processo_id
-                WHERE ap.auditoria_id = :auditoria_id
-                  AND ac.categoria = :categoria
+                WHERE p.auditoria_id = :auditoria_id   -- ← AGORA É DIRETO!
+                AND ac.categoria = :categoria
                 ORDER BY p.codigo_processo, ep.codigo_etapa, ac.tipo_analise
             """)
             

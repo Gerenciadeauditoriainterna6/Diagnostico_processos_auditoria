@@ -3225,23 +3225,29 @@ def reativar_area(area_id):
         print(f"Erro ao reativar área: {e}")
         return False
 
-def buscar_processo_por_nome_e_area(nome_processo, id_area):
+def buscar_processo_por_nome_e_area(nome_processo, id_area, auditoria_id):
+    """Verifica se já existe um processo com mesmo nome na área E auditoria"""
     from database import engine
     from sqlalchemy import text
     
-    query = text("""
-        SELECT id, codigo_processo, nome_processo
-        FROM processos
-        WHERE nome_processo = :nome AND id_area = :id_area
-    """)
-    
     with engine.connect() as conn:
+        query = text("""
+            SELECT id, codigo_processo 
+            FROM processos 
+            WHERE nome_processo = :nome 
+            AND id_area = :id_area 
+            AND auditoria_id = :auditoria_id
+            AND status = 'Ativo'
+        """)
         result = conn.execute(query, {
-            "nome": nome_processo,
-            "id_area": id_area
-        }).mappings().first()
+            'nome': nome_processo,
+            'id_area': id_area,
+            'auditoria_id': auditoria_id
+        }).fetchone()
         
-        return dict(result) if result else None
+        if result:
+            return {'id': result[0], 'codigo_processo': result[1]}
+        return None
 
 def gerar_codigo_processo(id_area):
     """

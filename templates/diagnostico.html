@@ -2646,6 +2646,55 @@
 </style>
 
 <script>
+    // ===== RESTAURAR FILTROS SALVOS =====
+    function restaurarFiltros() {
+        const areaSalva = sessionStorage.getItem('filtro_area_id');
+        const auditoriaSalva = sessionStorage.getItem('filtro_auditoria_id');
+        
+        console.log('🔄 Restaurando filtros - Área:', areaSalva, 'Auditoria:', auditoriaSalva);
+        
+        // Restaurar área se existir
+        if (areaSalva && filtroAreaSelect) {
+            // Verificar se a opção existe
+            let optionExists = false;
+            for (let i = 0; i < filtroAreaSelect.options.length; i++) {
+                if (filtroAreaSelect.options[i].value == areaSalva) {
+                    optionExists = true;
+                    break;
+                }
+            }
+            
+            if (optionExists) {
+                filtroAreaSelect.value = areaSalva;
+                // Disparar evento change para carregar as auditorias
+                const changeEvent = new Event('change');
+                filtroAreaSelect.dispatchEvent(changeEvent);
+            }
+        }
+        
+        // Restaurar auditoria se existir (com um pequeno delay para as auditorias carregarem)
+        if (auditoriaSalva) {
+            setTimeout(() => {
+                if (filtroAuditoriaSelect) {
+                    let optionExists = false;
+                    for (let i = 0; i < filtroAuditoriaSelect.options.length; i++) {
+                        if (filtroAuditoriaSelect.options[i].value == auditoriaSalva) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (optionExists) {
+                        filtroAuditoriaSelect.value = auditoriaSalva;
+                        // Disparar evento change para carregar a tabela
+                        const changeEvent = new Event('change');
+                        filtroAuditoriaSelect.dispatchEvent(changeEvent);
+                    }
+                }
+            }, 500); // Aguardar as auditorias carregarem
+        }
+    }
+
     // MONITOR DE REMOÇÃO DO sessionStorage
     const originalRemoveItem = sessionStorage.removeItem;
     sessionStorage.removeItem = function(key) {
@@ -3535,6 +3584,15 @@
     if (filtroAreaSelect) {
         filtroAreaSelect.addEventListener('change', () => {
             const areaId = filtroAreaSelect.value;
+
+            // SALVAR O FILTRO NO SESSIONSTORAGE
+            if (areaId) {
+                sessionStorage.setItem('filtro_area_id', areaId);
+            } else {
+                sessionStorage.removeItem('filtro_area_id');
+            }
+            sessionStorage.removeItem('filtro_auditoria_id');
+
             carregarAuditoriasFiltro(areaId);
             // Limpar tabela quando mudar de área
             if (tabelaProcessosContainer) {
@@ -3547,6 +3605,14 @@
     if (filtroAuditoriaSelect) {
         filtroAuditoriaSelect.addEventListener('change', () => {
             const auditoriaId = filtroAuditoriaSelect.value;
+
+            // SALVAR O FILTRO NO SESSIONSTORAGE
+            if (auditoriaId) {
+                sessionStorage.setItem('filtro_auditoria_id', auditoriaId);
+            } else {
+                sessionStorage.removeItem('filtro_auditoria_id');
+            }
+
             const btnNovoProcesso = document.getElementById('btn-novo-processo');
             
             if (auditoriaId) {
@@ -3863,7 +3929,9 @@
         timeoutId = setTimeout(async () => {
             try {
                 // Verificar se o processo já existe com este nome
-                const response = await fetch(`/api/processo/verificar?nome=${encodeURIComponent(nomeProcesso)}&id_area=${areaId}`);
+                const response = await fetch(
+                    `/api/processo/verificar?nome=${encodeURIComponent(nomeProcesso)}&id_area=${areaId}&auditoria_id=${auditoriaId}`
+                );
                 const data = await response.json();
                 
                 if (data.existe) {
@@ -3886,7 +3954,9 @@
                     
                 } else {
                     // ===== CASO 2: PROCESSO NOVO - GERAR NOVO CÓDIGO =====
-                    const codigoResponse = await fetch(`/api/processo/gerar-codigo?id_area=${areaId}`);
+                    const codigoResponse = await fetch(
+                        `/api/processo/gerar-codigo?id_area=${areaId}&auditoria_id=${auditoriaId}`
+                    );
                     const codigoData = await codigoResponse.json();
                     
                     if (codigoResponse.ok && codigoData.codigo) {
@@ -5104,6 +5174,8 @@
                 });
             }
         }
+
+        restaurarFiltros();
 
         // ===== Critérios de Avaliação =====
         const helpCriterios = document.getElementById('help-criterios-icon');
