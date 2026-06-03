@@ -861,6 +861,31 @@
         font-size: 10px;
     }
 
+    /* Tags de categorias e causas */
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .risco-categoria-tag {
+        background: #e8f4f8;
+        color: #0b5b99;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+    }
+
+    .risco-causa-tag {
+        background: #fff3cd;
+        color: #856404;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 500;
+    }
+
 </style>
 
 <script>
@@ -1242,13 +1267,25 @@
                     badgeIcon = '🔴';
                 }
 
+                // Formatando categorias e causas como tags
+                const categoriasLista = risco.categoria ? risco.categoria.split(', ') : [];
+                const causasLista = risco.causas || [];
+
+                const categoriasHtml = categoriasLista.map(cat => 
+                    `<span class="risco-categoria-tag">Risco ${escapeHtml(cat)}</span>`
+                ).join('');
+
+                const causasHtml = causasLista.map(causa => 
+                    `<span class="risco-causa-tag">${escapeHtml(causa)}</span>`
+                ).join('');
+
                 riscosHtml += `
                     <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}">
                         <div class="risco-header">
                             <div class="risco-info">
                                 <span class="risco-icon">${badgeIcon}</span>
                                 <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
-                                <span class="risco-score">Score: ${risco.magnitude}</span>
+                                <span class="risco-score">Magnitude: ${risco.magnitude}</span>
                             </div>
                             <div class="risco-actions">
                                 <button class="btn-edit-icon" onclick="editarRiscoEtapa(${risco.id}, ${etapaId}, '${codigoEtapa}', '${escapeHtml(nomeEtapa)}')" title="Editar Risco">
@@ -1260,6 +1297,18 @@
                             </div>
                         </div>
                         <div class="risco-detalhes">
+                            ${risco.categoria ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Categorias:</span>
+                                <div class="detalhe-valor tags-container">${categoriasHtml || '-'}</div>
+                            </div>
+                            ` : ''}
+                            ${risco.causas && risco.causas.length > 0 ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Causas:</span>
+                                <div class="detalhe-valor tags-container">${causasHtml || '-'}</div>
+                            </div>
+                            ` : ''}
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Fator de Risco:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.fator_risco) || '-'}</span>
@@ -1267,6 +1316,10 @@
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Consequência:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.consequencia) || '-'}</span>
+                            </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Origem:</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.origem) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Impacto:</span>
@@ -1286,6 +1339,24 @@
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Tratamento:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.tratamento)}</span>
+                            </div>
+                            ` : ''}
+                            ${risco.desc_tratamento ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Descrição do Tratamento:</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.desc_tratamento)}</span>
+                            </div>
+                            ` : ''}
+                            ${risco.financeiro !== null ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Impacto Financeiro:</span>
+                                <span class="detalhe-valor">${risco.financeiro ? 'Sim' : 'Não'}</span>
+                            </div>
+                            ` : ''}
+                            ${risco.info_adicional ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Informações Adicionais:</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.info_adicional)}</span>
                             </div>
                             ` : ''}
                         </div>
@@ -1417,6 +1488,9 @@
                 
                 // 6. Recarregar a lista de riscos
                 await carregarRiscosDaEtapa(etapaId, codigoEtapa, nomeEtapa);
+
+                // Atualizar o badge da etapa
+                await atualizarBadgeEtapa(etapaId);
             } else {
                 mostrarToast('❌ Erro ao excluir: ' + (resultado.error || 'Tente novamente'), 'error');
             }
@@ -1748,7 +1822,11 @@
                 fecharModalRisco();
 
                 // Recarregar os riscos da etapa (para mostrar o novo risco)
-                await carregarRiscosDaEtapa(etapaIdAtual)
+                await carregarRiscosDaEtapa(etapaIdAtual, codigoEtapaAtual, nomeEtapaAtual);
+
+                // Atualizar Badge da etapa
+                await atualizarBadgeRiscos(etapaIdAtual);
+
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
             }
@@ -1774,6 +1852,38 @@
         if (!texto) return '';
         if (texto.length <= limite) return texto;
         return texto.substring(0, limite) + '...';
+    }
+
+    // Função para atualizar o badge de riscos de uma etapa específica
+    async function atualizarBadgeRiscos(etapaId) {
+        try {
+            const response = await fetch(`/api/etapa/${etapaId}/riscos/count`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Encontrar o card da etapa
+                const etapaCard = document.querySelector(`.etapa-card[data-etapa-id="${etapaId}"]`);
+                if (etapaCard) {
+                    const etapaInfo = etapaCard.querySelector('.etapa-info');
+                    const existingBadge = etapaInfo.querySelector('.badge-riscos');
+                    const total = data.total || 0;
+                    
+                    // Criar o novo badge
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge-riscos';
+                    newBadge.title = `${total} risco(s) cadastrado(s)`;
+                    newBadge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${total}`;
+                    
+                    if (existingBadge) {
+                        existingBadge.replaceWith(newBadge);
+                    } else {
+                        etapaInfo.appendChild(newBadge);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar badge:', error);
+        }
     }
 
 </script>

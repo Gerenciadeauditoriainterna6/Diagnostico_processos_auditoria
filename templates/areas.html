@@ -1848,7 +1848,10 @@
             
             document.getElementById('edit_area_id').value = area.id_area;
             document.getElementById('edit_nome_area').value = area.nome_area || '';
-            document.getElementById('edit_unidade').value = area.unidade || '';
+            
+            // ⭐ CORRIGIR: usar o ID correto do HTML
+            document.getElementById('unidade_area').value = area.unidade || '';  // ← mudar para 'unidade_area'
+            
             document.getElementById('edit_email').value = area.email || '';
             document.getElementById('edit_telefone').value = area.telefone || '';
             document.getElementById('edit_gestor').value = area.gestor || '';

@@ -2297,6 +2297,7 @@ def api_salvar_etapa():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @app.route('/api/risco/<int:risco_id>/controles')
 def api_risco_controles(risco_id):
     """Retorna todos os controles associados a um risco"""
@@ -2362,6 +2363,30 @@ def api_etapa_controles_count(etapa_id):
             result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
             return jsonify({'success': True, 'total': result[0]})
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/risco/<int:risco_id>/controles/count')
+def api_risco_controles_count(risco_id):
+    """Retorna a quantidade de controles de um risco específico"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT COUNT(*) as total
+                FROM controles_etapa
+                WHERE risco_id = :risco_id
+            """)
+            result = conn.execute(query, {'risco_id': risco_id}).fetchone()
+            
+            return jsonify({
+                'success': True,
+                'total': result[0] or 0
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao contar controles do risco {risco_id}: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================

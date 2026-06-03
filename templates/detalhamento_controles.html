@@ -778,7 +778,8 @@
         gap: 15px;
     }
 
-    .controles-count-badge {
+    /* Badge de CONTROLES na ETAPA (mostra total de controles da etapa) */
+    .etapa-controles-badge {
         display: inline-flex;
         align-items: center;
         gap: 4px;
@@ -788,7 +789,25 @@
         border-radius: 12px;
         font-size: 11px;
         font-weight: 500;
-        margin-left: 4px;
+        margin-left: 8px;
+    }
+
+    /* Badge de CONTROLES no RISCO (mostra controles do risco específico) */
+    .risco-controles-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(23, 162, 184, 0.1);
+        color: #17a2b8;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-left: 8px;
+    }
+
+    .risco-controles-badge i {
+        font-size: 10px;
     }
     
 </style>
@@ -1040,7 +1059,7 @@
                     if (data.success && data.total > 0) {
                         const header = card.querySelector('.etapa-info');
                         const badge = document.createElement('span');
-                        badge.className = 'controles-count-badge';
+                        badge.className = 'etapa-controles-badge';
                         badge.innerHTML = `<i class="fas fa-shield-alt"></i> ${data.total}`;
                         badge.title = `${data.total} controle(s) cadastrado(s)`;
                         header.appendChild(badge);
@@ -1172,7 +1191,7 @@
 
                 // ⭐ Badge de controles (só mostra se tiver controles)
                 const controlesBadge = `
-                    <span class="controles-count-badge" title="${totalControles} controle(s) cadastrado(s)">
+                    <span class="risco-controles-badge" title="${totalControles} controle(s) cadastrado(s)">
                         <i class="fas fa-shield-alt"></i> ${totalControles}
                     </span>
                 `;
@@ -1244,7 +1263,7 @@
     }
 
     // ====== FUNÇÃO PARA CARREGAR CONTROLES DE UM RISCO ======
-    async function carregarControlesDoRisco(riscoId) {
+    async function carregarControlesDoRisco(riscoId, etapaId) {
         console.log(`🔍 Buscando controles do risco ${riscoId}...`);
 
         const container = document.getElementById(`controles-risco-${riscoId}`);
@@ -1280,7 +1299,7 @@
                                 <button class="btn-edit-icon" onclick="event.stopPropagation(); editarControle(${controle.id}, ${riscoId})" title="Editar Controle">
                                     <i class="fas fa-pencil-alt"></i>
                                 </button>
-                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirControle(${controle.id}, '${escapeHtml(controle.nome_controle)}', ${riscoId})" title="Excluir Controle">
+                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirControle(${controle.id}, '${escapeHtml(controle.nome_controle)}', ${riscoId}, ${etapaId})" title="Excluir Controle">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
@@ -1378,45 +1397,43 @@
         // Alternar a classe 'expandido'
         riscoCard.classList.toggle('expandido');
 
-        // Se NÃO estava expandido e AGORA está expandindo (primeira vez)
+        // ⭐ Passar etapaId também
         if (!wasExpanded) {
-            // Pegar o ID do risco (guardado no atributo data-risco-id)
             const riscoId = riscoCard.getAttribute('data-risco-id');
-
-            // Procurar o container de controles dentro deste card
+            const etapaCard = riscoCard.closest('.etapa-card');
+            const etapaId = etapaCard.getAttribute('data-etapa-id');  // ← Buscar etapaId
+            
             const controlesContainer = riscoCard.querySelector('.controles-container');
-
-            // Verificar se o container existe e ainda tem a mensagem de "Carregando controles..."
             if (controlesContainer && controlesContainer.innerHTML.includes('Carregando controles')) {
-                // Chama a função que vai buscar os controles no backend
-                carregarControlesDoRisco(riscoId);
+                carregarControlesDoRisco(riscoId, etapaId);  // ← Passar etapaId
             }
         }
     }
 
     // ====== FUNÇÃO PARA ABRIR MODAL DE CONTROLE ======
     // Esta função é chamada quando o usuário clica no botão "Controle"
-    function abrirModalControle(riscoId, riscoNome, etapaId) {
-        // 1. Guardar o ID do risco em uma variável global (para usar depois ao salvar)
-        riscoIdAtual = riscoId;
+    // No início do script, adicione:
+    let etapaIdAtualControle = null;  // Guarda o ID da etapa do risco
 
-        // 2. Mostrar no console para debug (opcional)
-        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome} (ID: ${riscoId})`);
+    // Modifique a função abrirModalControle:
+    function abrirModalControle(riscoId, riscoNome, etapaId) {
+        // Guardar o ID da etapa também
+        etapaIdAtualControle = etapaId;
+        riscoIdAtual = riscoId;
         
-        // 3. Mudar o título do modal para mostrar qual risco está recebendo o controle
+        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome} (ID do risco: ${riscoId}, ID da etapa: ${etapaId})`);
+        
         const modalTitle = document.getElementById('modal-controle-title');
         if (modalTitle) {
             modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Novo Controle - ${riscoNome}`;
         }
-
-        // 4. Limpar todos os campos do formulario (para começar vazio)
+        
         limparFormularioControle();
-
-        // 5. Mostrar o modal na tela
-        const modal = document.getElementById('modal-controle')
+        
+        const modal = document.getElementById('modal-controle');
         if (modal) {
             modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // Impede a rolagem da página
+            document.body.style.overflow = 'hidden';
         }
     }
 
@@ -1455,14 +1472,12 @@
     async function salvarControle() {
         console.log('💾 Iniciando salvamento do controle...');
         
-        // 1. Validar campo obrigatório
         const nomeControle = document.getElementById('controle_nome').value.trim();
         if (!nomeControle) {
-           mostrarToast('❌ O nome do controle é obrigatório!', 'error');
-           return; 
+            mostrarToast('❌ O nome do controle é obrigatório!', 'error');
+            return;
         }
-
-        // 2. Coletar todos os dados do formulário
+        
         const dados = {
             id: controleIdEditando,
             risco_id: riscoIdAtual,
@@ -1481,81 +1496,68 @@
             responsaveis_tratamento: document.getElementById('controle_responsaveis').value,
             auditoria_id: filtroAuditoriaSelect.value || null
         };
-
-        console.log('📦 Dados a serem enviados:', dados);
-
-        // 3. Enviar para o backend
+        
         try {
-            // Mostrar loading no botão
             const btnSalvar = document.getElementById('btn-salvar-modal-controle');
             const textoOriginal = btnSalvar.innerHTML;
             btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             btnSalvar.disabled = true;
-
+            
             const response = await fetch('/api/controle-etapa/salvar', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)
             });
-
+            
             const resultado = await response.json();
-            console.log('📬 Resposta do servidor:', resultado);
-
+            
             if (resultado.success) {
                 mostrarToast('✅ Controle salvo com sucesso!', 'success');
-
-                // Fechar o modal
                 fecharModalControle();
-
+                
                 // Recarregar os controles do risco
-                await carregarControlesDoRisco(riscoIdAtual);
+                await carregarControlesDoRisco(riscoIdAtual, etapaIdAtualControle);
+                
+                // Atualizar badge do RISCO
                 await atualizarBadgeControles(riscoIdAtual);
-
+                
+                // ⭐ ATUALIZAR BADGE DA ETAPA ⭐
+                if (etapaIdAtualControle) {
+                    await atualizarBadgeEtapaControles(etapaIdAtualControle);
+                }
+                
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
             }
-
-            // Restaurar botão
+            
             btnSalvar.innerHTML = textoOriginal;
             btnSalvar.disabled = false;
-
+            
         } catch (error) {
             console.error('❌ Erro na requisição:', error);
             mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
-
-            // Restaurar botão
+            
             const btnSalvar = document.getElementById('btn-salvar-modal-controle');
             if (btnSalvar) {
                 btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Controle';
                 btnSalvar.disabled = false;
             }
         }
-
     }
 
     // ====== FUNÇÃO PARA EXCLUIR CONTROLE ======
-    async function excluirControle(controleId, nomeControle, riscoId) {
+    async function excluirControle(controleId, nomeControle, riscoId, etapaId) {
         console.log(`🗑️ Excluir controle ${controleId}: ${nomeControle}`);
         
-        // Confirmar com o usuário
         const confirmado = confirm(`Tem certeza que deseja excluir o controle "${nomeControle}"?`);
-        
-        if (!confirmado) {
-            return;  // Usuário cancelou
-        }
+        if (!confirmado) return;
         
         try {
-            // Mostrar loading no botão (opcional)
             mostrarToast('⏳ Excluindo controle...', 'info');
             
-            // Chamar a API de exclusão
             const response = await fetch(`/api/controle-etapa/${controleId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' }
             });
             
             const resultado = await response.json();
@@ -1563,9 +1565,14 @@
             if (resultado.success) {
                 mostrarToast('✅ Controle excluído com sucesso!', 'success');
                 
-                // Recarregar os controles do risco
-                await carregarControlesDoRisco(riscoId);
+                await carregarControlesDoRisco(riscoId, etapaId);
                 await atualizarBadgeControles(riscoId);
+                
+                // ⭐ ATUALIZAR BADGE DA ETAPA ⭐
+                if (etapaId) {
+                    await atualizarBadgeEtapaControles(etapaId);
+                }
+                
             } else {
                 mostrarToast('❌ Erro ao excluir: ' + (resultado.error || 'Tente novamente'), 'error');
             }
@@ -1665,7 +1672,7 @@
         }
     }
 
-    // Função para atualizar o badge de controles de um risco específico
+    // Função para atualizar o badge de CONTROLES de um RISCO específico
     async function atualizarBadgeControles(riscoId) {
         try {
             const response = await fetch(`/api/risco/${riscoId}/controles/count`);
@@ -1675,12 +1682,11 @@
                 const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
                 if (riscoCard) {
                     const riscoInfo = riscoCard.querySelector('.risco-info');
-                    const existingBadge = riscoInfo.querySelector('.controles-count-badge');
+                    const existingBadge = riscoInfo.querySelector('.risco-controles-badge');  // ← classe corrigida
                     const total = data.total || 0;
                     
-                    // Criar o novo badge (sempre, mesmo com zero)
                     const newBadge = document.createElement('span');
-                    newBadge.className = 'controles-count-badge';
+                    newBadge.className = 'risco-controles-badge';  // ← classe corrigida
                     newBadge.title = `${total} controle(s) cadastrado(s)`;
                     newBadge.innerHTML = `<i class="fas fa-shield-alt"></i> ${total}`;
                     
@@ -1692,7 +1698,43 @@
                 }
             }
         } catch (error) {
-            console.error('Erro ao atualizar badge:', error);
+            console.error('Erro ao atualizar badge do risco:', error);
+        }
+    }
+
+    // Função para atualizar o badge de CONTROLES de uma ETAPA específica
+    async function atualizarBadgeEtapaControles(etapaId) {
+        try {
+            const response = await fetch(`/api/etapa/${etapaId}/controles/count`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const etapaCard = document.querySelector(`.etapa-card[data-etapa-id="${etapaId}"]`);
+                if (etapaCard) {
+                    const etapaInfo = etapaCard.querySelector('.etapa-info');
+                    const existingBadge = etapaInfo.querySelector('.etapa-controles-badge');
+                    const total = data.total || 0;
+                    
+                    if (total > 0) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'etapa-controles-badge';
+                        newBadge.title = `${total} controle(s) cadastrado(s) nesta etapa`;
+                        newBadge.innerHTML = `<i class="fas fa-shield-alt"></i> ${total}`;
+                        
+                        if (existingBadge) {
+                            existingBadge.replaceWith(newBadge);
+                        } else {
+                            etapaInfo.appendChild(newBadge);
+                        }
+                    } else {
+                        if (existingBadge) {
+                            existingBadge.remove();
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar badge da etapa:', error);
         }
     }
 
