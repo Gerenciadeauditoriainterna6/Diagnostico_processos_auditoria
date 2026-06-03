@@ -1426,6 +1426,7 @@
                             <span>Visão Geral do Diagnóstico</span>
                         </a>
                     </div>
+                    
 
                     <!-- Detalhamento das Etapas com Submenu -->
                     <div class="nav-item-parent">
@@ -1447,15 +1448,16 @@
                             <span>Controles das Etapas</span>
                         </a>
                     </div>
+
+                        <a href="{{ url_for('checklists') }}" class="nav-item">
+                            <i class="fas fa-list-check"></i>
+                            <span>Matriz de Eficácia</span>
+                        </a>
                 </div>
 
                 <!-- SEÇÃO 3: COMUNICAÇÃO -->
                 <div class="nav-section">
                     <div class="nav-section-title nav-section-comunicacao">COMUNICAÇÃO DOS RESULTADOS</div>
-                    <a href="{{ url_for('checklists') }}" class="nav-item">
-                        <i class="fas fa-list-check"></i>
-                        <span>Matriz de Eficácia</span>
-                    </a>
                     <a href="{{ url_for('relatorios') }}" class="nav-item">
                         <i class="fas fa-file-alt"></i>
                         <span>Geração de Relatórios</span>

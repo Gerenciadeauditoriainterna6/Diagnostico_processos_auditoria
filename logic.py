@@ -3395,7 +3395,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         story.append(Spacer(1, 10))
     
     # ===== TÍTULO PRINCIPAL =====
-    story.append(Paragraph("Relatório de Diagnóstico da Auditoria", titulo_style))
+    story.append(Paragraph("Relatório de Validação (Matrizes Panorama e Detalhamento)", titulo_style))
     
     # Buscar código da auditoria
     codigo_auditoria = ""
@@ -3413,7 +3413,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Paragraph(f"<b>Data de Geração:</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
-    # ===== BUSCAR PROCESSOS =====
+    # ===== BUSCAR PROCESSOS (CORRIGIDO - SEM auditoria_processos) =====
     query = text("""
         SELECT 
             p.id,
@@ -3425,9 +3425,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             r.impacto,
             r.probabilidade
         FROM processos p
-        INNER JOIN auditoria_processos ap ON p.id = ap.processo_id
         LEFT JOIN riscos r ON p.id = r.processo_id
-        WHERE ap.auditoria_id = :auditoria_id 
+        WHERE p.auditoria_id = :auditoria_id 
           AND p.id_area = :area_id 
           AND p.status = 'Ativo'
         ORDER BY 
@@ -3551,13 +3550,13 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             story.append(sep_table)
             story.append(Spacer(1, espaco_depois))
         
+        # ⭐ CORRIGIDO: Buscar processos SEM auditoria_processos
         query_processos = text("""
             SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo
             FROM processos p
-            INNER JOIN auditoria_processos ap ON p.id = ap.processo_id
-            WHERE ap.auditoria_id = :auditoria_id 
-            AND p.id_area = :area_id 
-            AND p.status = 'Ativo'
+            WHERE p.auditoria_id = :auditoria_id 
+              AND p.id_area = :area_id 
+              AND p.status = 'Ativo'
             GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo
             ORDER BY string_to_array(p.codigo_processo, '.')::int[]
         """)
@@ -3578,7 +3577,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             if idx > 0:
                 story.append(PageBreak())
             
-            # ===== CABEÇALHO DO PROCESSO (SIMPLES, SEM FUNDO) =====
+            # ===== CABEÇALHO DO PROCESSO =====
             story.append(Paragraph(
                 f"<b>Processo: {proc_codigo} - {proc_nome}</b>",
                 styles['Heading2']
@@ -3589,7 +3588,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             story.append(Paragraph(f"<b>Objetivo:</b> {proc_objetivo}", normal_style))
             story.append(Spacer(1, 12))
             
-            # Buscar etapas
+            # Buscar etapas (não precisa de auditoria, já está ligado ao processo)
             query_etapas = text("""
                 SELECT ep.id, ep.nome_etapa, ep.descricao_etapa, ep.codigo_etapa
                 FROM etapas_processo ep
