@@ -39,7 +39,17 @@
                 <label><i class="fas fa-file-pdf"></i> Tipo de Relatório:</label>
                 <select id="tipo_relatorio" class="form-control">
                     <option value="gerencial">Relatório de Validação (Matrizes Panorama e Detalhamento)</option>
-                    <option value="parecer">Parecer da Auditoria (Análises Críticas)</option>
+                    <option value="parecer">Parecer da Auditoria Interna</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- NOVO: Seleção de Processo (aparece só para Parecer) -->
+        <div class="form-row" id="row_processo" style="display: none;">
+            <div class="form-group">
+                <label><i class="fas fa-project-diagram"></i> Processo:</label>
+                <select id="processo_relatorio" class="form-control" disabled>
+                    <option value="">Selecione uma auditoria primeiro...</option>
                 </select>
             </div>
         </div>
@@ -539,11 +549,13 @@
     async function gerarRelatorio() {
         const selectArea = document.getElementById('area_relatorio');
         const selectAuditoria = document.getElementById('auditoria_relatorio');
+        const selectProcesso = document.getElementById('processo_relatorio');
         const orientacaoSelecionada = document.querySelector('input[name="orientacao"]:checked');
         const selectTipo = document.getElementById('tipo_relatorio');
 
         const areaId = selectArea?.value;
         const auditoriaId = selectAuditoria?.value;
+        const processoId = selectProcesso?.value;
         const orientacao = orientacaoSelecionada?.value || 'RETRATO';
         const tipoRelatorio = selectTipo?.value || 'gerencial';
 
@@ -552,8 +564,13 @@
             return;
         }
 
+        // Validar processo se for parecer
+        if (tipoRelatorio === 'parecer' && !processoId) {
+            mostrarToast('Selecione o processo para gerar o parecer', 'warning');
+            return;
+        }
+
         const btnGerar = document.getElementById('btn-gerar-relatorio');
-        const textoOriginal = btnGerar?.innerHTML;
         const btnLoading = btnGerar?.querySelector('.btn-loading');
 
         if (btnGerar) {
@@ -562,27 +579,28 @@
             if (btnLoading) btnLoading.style.display = 'inline-flex';
         }
 
-        // ⭐ Definir a URL baseada no tipo de relatório
         let url = '';
         let nomeBase = '';
+        let bodyData = {
+            area_id: areaId,
+            auditoria_id: auditoriaId,
+            orientacao: orientacao
+        };
         
         if (tipoRelatorio === 'gerencial') {
             url = '/api/relatorios/gerar-gerencial';
             nomeBase = 'relatorio_gerencial';
         } else if (tipoRelatorio === 'parecer') {
             url = '/api/relatorios/gerar-parecer';
-            nomeBase = 'parecer_auditoria';
+            nomeBase = `parecer_auditoria_processo_${processoId}`;
+            bodyData.processo_id = processoId;  // ← ADICIONA O PROCESSO
         }
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    area_id: areaId,
-                    auditoria_id: auditoriaId,
-                    orientacao: orientacao
-                })
+                body: JSON.stringify(bodyData)
             });
 
             if (response.ok) {
@@ -714,32 +732,41 @@
         if (selectAuditoria) {
             selectAuditoria.addEventListener('change', async () => {
                 const auditoriaId = selectAuditoria.value;
+                const tipoRelatorio = document.getElementById('tipo_relatorio')?.value;
                 const infoBox = document.getElementById('info-box');
                 const infoMsg = document.getElementById('info-mensagem');
+                const rowProcesso = document.getElementById('row_processo');
+                const selectProcesso = document.getElementById('processo_relatorio');
                 
                 if (!auditoriaId) {
                     if (btnGerar) btnGerar.disabled = true;
                     if (infoBox) infoBox.style.display = 'none';
+                    if (rowProcesso) rowProcesso.style.display = 'none';
                     return;
                 }
                 
-                // Verificar permissão do usuário
+                // Se for parecer, carrega os processos
+                if (tipoRelatorio === 'parecer') {
+                    if (rowProcesso) rowProcesso.style.display = 'flex';
+                    await carregarProcessosPorAuditoria(auditoriaId);
+                } else {
+                    if (rowProcesso) rowProcesso.style.display = 'none';
+                }
+                
+                // Verificar permissão do usuário (código existente)
                 try {
                     const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
                     const data = await response.json();
                     
                     if (data.autorizado) {
-                        // Usuário autorizado
                         if (btnGerar) btnGerar.disabled = false;
                         if (infoBox) infoBox.style.display = 'none';
                     } else {
-                        // Usuário NÃO autorizado
                         if (btnGerar) btnGerar.disabled = true;
                         if (infoBox) {
                             infoBox.style.display = 'flex';
                             infoBox.className = 'alert-error';
                             infoMsg.innerHTML = '<i class="fas fa-lock"></i> Você não tem permissão para gerar relatórios desta auditoria.';
-                            
                         }
                     }
                 } catch (error) {
@@ -750,9 +777,68 @@
             });
         }
 
+        const selectTipo = document.getElementById('tipo_relatorio');
+        const rowProcesso = document.getElementById('row_processo');
+        
+        if (selectTipo) {
+            selectTipo.addEventListener('change', async () => {
+                const auditoriaId = selectAuditoria?.value;
+                const tipoSelecionado = selectTipo.value;
+                
+                if (tipoSelecionado === 'parecer' && auditoriaId) {
+                    rowProcesso.style.display = 'flex';
+                    await carregarProcessosPorAuditoria(auditoriaId);
+                } else {
+                    rowProcesso.style.display = 'none';
+                }
+            });
+        }
+
         if (btnGerar) {
             btnGerar.addEventListener('click', gerarRelatorio);
         }
     });
+
+    async function carregarProcessosPorAuditoria(auditoriaId) {
+        const selectProcesso = document.getElementById('processo_relatorio');
+        const rowProcesso = document.getElementById('row_processo');
+        const tipoRelatorio = document.getElementById('tipo_relatorio').value;
+        
+        if (!selectProcesso) return;
+        
+        // Se não for parecer, não carrega
+        if (tipoRelatorio !== 'parecer') {
+            rowProcesso.style.display = 'none';
+            return;
+        }
+        
+        // Mostra a linha de processo
+        rowProcesso.style.display = 'flex';
+        selectProcesso.innerHTML = '<option value="">Carregando processos...</option>';
+        selectProcesso.disabled = true;
+
+        try {
+            const response = await fetch(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+            const data = await response.json();
+
+            if (data.success && data.processos && data.processos.length > 0) {
+                selectProcesso.innerHTML = '<option value="">Selecione um processo...</option>';
+                data.processos.forEach(proc => {
+                    const option = document.createElement('option');
+                    option.value = proc.id;
+                    option.textContent = `${proc.codigo_processo} - ${proc.nome_processo}`;
+                    selectProcesso.appendChild(option);
+                });
+                selectProcesso.disabled = false;
+            } else {
+                selectProcesso.innerHTML = '<option value="">Nenhum processo encontrado</option>';
+                selectProcesso.disabled = true;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar processos:', error);
+            selectProcesso.innerHTML = '<option value="">Erro ao carregar</option>';
+            selectProcesso.disabled = true;
+        }
+    }
 </script>
 {% endblock %}
