@@ -1,27 +1,95 @@
 {% extends "base.html" %}
 
+{% block title %}Plano Anual de Auditoria - Sistema de Auditoria Interna{% endblock %}
+
 {% block content %}
 
 <div class="plano-anual-container">
     <div class="page-header">
-        <h1><i class="fas fa-calendar-alt"></i> Plano Anual de Auditoria - 2026</h1>
-        <p>Visualize abaixo as diretrizes e o cronograma para o ano atual.</p>
+        <h1><i class="fas fa-calendar-alt"></i> Plano Anual de Auditoria</h1>
+        <p>Gerencie o plano anual de auditoria e os fundamentos que o justificam</p>
     </div>
 
-    <!--Visualizador do PDF-->
-    <div class="pdf-viewer">
-        <iframe
-            src="{{ url_for('api_plano_anual_pdf') }}"
-            width="100%"
-            height="800px"
-            style="border: 1px solid #ddd; border-radius: 8px;">
-        </iframe>
+    <!-- FILTROS -->
+    <div class="form-section filtros-section">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="filtro_area_select"><i class="fas fa-building"></i> Área:</label>
+                <select id="filtro_area_select" class="form-control">
+                    <option value="">Selecione uma área...</option>
+                    {% for nome, id in areas.items() %}
+                    <option value="{{ id }}">{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="filtro_auditoria_select"><i class="fas fa-clipboard-list"></i> Auditoria:</label>
+                <select id="filtro_auditoria_select" class="form-control" disabled>
+                    <option value="">Selecione uma área primeiro...</option>
+                </select>
+            </div>
+        </div>
     </div>
 
-    <div class="download-section">
-        <a href="{{ url_for('api_plano_anual_pdf') }}" class="btn-download" download>
-            <i class="fas fa-download"></i> Baixar Plano anual (PDF)
-        </a>
+    <!-- CONTEÚDO PRINCIPAL (aparece após selecionar auditoria) -->
+    <div id="conteudo-principal" style="display: none;">
+        
+        <!-- SEÇÃO DO PDF -->
+        <div class="form-section pdf-section">
+            <div class="section-header">
+                <h3><i class="fas fa-file-pdf"></i> Plano Anual de Auditoria</h3>
+                <div id="pdf-status" class="pdf-status"></div>
+            </div>
+            <div class="pdf-actions">
+                <button id="btn-download-pdf" class="btn-download-pdf" style="display: none;">
+                    <i class="fas fa-download"></i> Baixar Plano em PDF
+                </button>
+                <div id="pdf-nao-encontrado" class="alert-warning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Nenhum arquivo PDF encontrado para esta auditoria.
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO DOS FUNDAMENTOS -->
+        <div class="form-section fundamentos-section">
+            <div class="section-header">
+                <h3><i class="fas fa-shield-alt"></i> Auditoria Baseada em Risco</h3>
+                <p class="text-muted">Registre os fatores de risco que fundamentam esta auditoria</p>
+            </div>
+
+            <!-- Lista de fundamentos -->
+            <div id="fundamentos-container">
+                <div class="empty-message">
+                    <i class="fas fa-info-circle"></i> Nenhum fundamento cadastrado. Clique em "Adicionar Fundamento" para começar.
+                </div>
+            </div>
+
+            <!-- Botão para adicionar novo fundamento -->
+            <button id="btn-adicionar-fundamento" class="btn-outline-primary">
+                <i class="fas fa-plus"></i> Adicionar Fundamento
+            </button>
+
+            <!-- Botão salvar tudo -->
+            <div class="salvar-actions">
+                <button id="btn-salvar-fundamentos" class="btn-primary">
+                    <i class="fas fa-save"></i> Salvar Todos os Fundamentos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CARREGAMENTO (opcional) -->
+<div id="loading-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 300px; text-align: center;">
+        <div class="modal-body">
+            <div class="dot-spinner">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <p style="margin-top: 20px;">Carregando...</p>
+        </div>
     </div>
 </div>
 
@@ -47,8 +115,6 @@
         margin-right: 10px;
         padding: 10px;
         border-radius: 12px;
-        width: 50px;
-        text-align: center;
         font-size: 32px;
     }
 
@@ -57,51 +123,801 @@
         font-size: 14px;
     }
 
-    .pdf-viewer {
-        background: #fff;
+    .form-section {
+        background: white;
         border-radius: 15px;
-        padding: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        margin-bottom: 20px;
     }
 
-    .pdf-viewer iframe {
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        flex: 1;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #184145;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+
+    .form-group label i {
+        margin-right: 6px;
+        color: #0b5b99;
+    }
+
+    .form-control {
         width: 100%;
-        height: 800px;
+        padding: 12px 14px;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        font-size: 14px;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #0c5460;
+        font-size: 14px;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #856404;
+        font-size: 14px;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #721c24;
+        font-size: 14px;
+    }
+
+    .section-header {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .section-header h3 {
+        color: #184145;
+        font-size: 18px;
+        margin: 0 0 5px 0;
+    }
+
+    .pdf-status {
+        margin-top: 10px;
+    }
+
+    .btn-download-pdf {
+        background: #dc3545;
+        color: white;
         border: none;
-        border-radius: 10px;
-    }
-
-    .download-section {
-        text-align: center;
-        margin: 20px 0;
-    }
-
-    .btn-download {
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
+    }
+
+    .btn-download-pdf:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        border: 1px solid #184145;
+        color: #184145;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        margin-top: 15px;
+        width: 100%;
+    }
+
+    .btn-outline-primary:hover {
         background: #184145;
         color: white;
-        padding: 12px 24px;
-        border-radius: 10px;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
     }
 
-    .btn-download:hover {
+    .btn-primary {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
         background: #0b5b99;
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    .btn-download i {
+    .salvar-actions {
+        margin-top: 25px;
+        text-align: right;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    /* Card de fundamento */
+    .fundamento-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #fd6a14;
+        position: relative;
+    }
+
+    .fundamento-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .fundamento-titulo {
+        flex: 1;
+        margin-right: 15px;
+    }
+
+    .fundamento-titulo label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .fundamento-titulo input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .fundamento-titulo input:focus {
+        outline: none;
+        border-color: #fd6a14;
+    }
+
+    .btn-remove-fundamento {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 20px;
+        padding: 5px;
+        transition: all 0.2s;
+    }
+
+    .btn-remove-fundamento:hover {
+        color: #bd1425;
+        transform: scale(1.1);
+    }
+
+    /* Lista de pontos */
+    .pontos-container {
+        margin-top: 10px;
+    }
+
+    .pontos-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .ponto-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .ponto-item input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    .ponto-item input:focus {
+        outline: none;
+        border-color: #fd6a14;
+    }
+
+    .btn-remove-ponto {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
         font-size: 16px;
+        padding: 5px;
     }
 
+    .btn-add-ponto {
+        background: none;
+        border: 1px dashed #17a2b8;
+        color: #17a2b8;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-top: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-add-ponto:hover {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+        background: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .pdf-status .badge-success {
+        display: inline-block;
+        background: #d4edda;
+        color: #155724;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    .pdf-status .badge-warning {
+        display: inline-block;
+        background: #fff3cd;
+        color: #856404;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    /* Spinner */
+    .dot-spinner {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        background: #184145;
+        border-radius: 50%;
+        animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    .dot:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes bounce {
+        0%, 80%, 100% {
+            transform: scale(0.8);
+            opacity: 0.5;
+        }
+        40% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+    }
+
+    /* Modal */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+    }
 </style>
+
+<script>
+    // ====== ELEMENTOS DO DOM ======
+    const filtroAreaSelect = document.getElementById('filtro_area_select');
+    const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
+    const conteudoPrincipal = document.getElementById('conteudo-principal');
+    const btnDownloadPdf = document.getElementById('btn-download-pdf');
+    const pdfNaoEncontrado = document.getElementById('pdf-nao-encontrado');
+    const fundamentosContainer = document.getElementById('fundamentos-container');
+    const btnAdicionarFundamento = document.getElementById('btn-adicionar-fundamento');
+    const btnSalvarFundamentos = document.getElementById('btn-salvar-fundamentos');
+
+    // ====== VARIÁVEIS GLOBAIS ======
+    let auditoriaAtualId = null;
+    let auditoriaAtualCodigo = null;
+    let fundamentosLista = [];
+
+    // ====== FUNÇÕES AUXILIARES ======
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function mostrarToast(mensagem, tipo = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 999999;
+            `;
+            document.body.appendChild(toastContainer);
+        }
+        
+        const cores = {
+            success: { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '✅' },
+            error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '❌' },
+            warning: { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '⚠️' },
+            info: { bg: '#d1ecf1', border: '#17a2b8', text: '#0c5460', icon: 'ℹ️' }
+        };
+        
+        const cor = cores[tipo] || cores.info;
+        
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${cor.bg};
+            border-left: 4px solid ${cor.border};
+            color: ${cor.text};
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
+        toast.innerHTML = `
+            <span style="font-size: 18px;">${cor.icon}</span>
+            <span>${mensagem}</span>
+            <span style="margin-left: auto; cursor: pointer; opacity: 0.7;" onclick="this.parentElement.remove()">✕</span>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast && toast.parentElement) {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
+
+    // ====== CARREGAR AUDITORIAS POR ÁREA ======
+    async function carregarAuditorias(areaId) {
+        if (!areaId) {
+            filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
+            filtroAuditoriaSelect.disabled = true;
+            conteudoPrincipal.style.display = 'none';
+            return;
+        }
+
+        filtroAuditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
+        filtroAuditoriaSelect.disabled = true;
+
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+
+            if (data.auditorias && data.auditorias.length > 0) {
+                filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
+                    filtroAuditoriaSelect.appendChild(option);
+                });
+                filtroAuditoriaSelect.disabled = false;
+            } else {
+                filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
+                filtroAuditoriaSelect.disabled = true;
+                conteudoPrincipal.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar auditorias:', error);
+            filtroAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+    }
+
+    // ====== VERIFICAR EXISTÊNCIA DO PDF ======
+    async function verificarPdf(auditoriaId) {
+        try {
+            const response = await fetch(`/api/plano-anual-pdf?auditoria_id=${auditoriaId}`);
+            console.log('Status da resposta:', response.status);
+            
+            if (response.ok) {
+                btnDownloadPdf.style.display = 'inline-flex';
+                pdfNaoEncontrado.style.display = 'none';
+                return true;
+            } else {
+                const errorData = await response.json();
+                console.log('Erro:', errorData);
+                btnDownloadPdf.style.display = 'none';
+                pdfNaoEncontrado.style.display = 'block';
+                pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorData.error || 'Arquivo PDF não encontrado'}`;
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao verificar PDF:', error);
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'block';
+            return false;
+        }
+    }
+
+    // ====== DOWNLOAD DO PDF ======
+    function baixarPdf() {
+        if (auditoriaAtualId) {
+            window.open(`/api/plano-anual-pdf?auditoria_id=${auditoriaAtualId}`, '_blank');
+        }
+    }
+
+    // ====== CARREGAR DADOS DA AUDITORIA SELECIONADA ======
+    async function carregarDadosAuditoria(auditoriaId, auditoriaCodigo) {
+        auditoriaAtualId = auditoriaId;
+        auditoriaAtualCodigo = auditoriaCodigo;
+        
+        conteudoPrincipal.style.display = 'block';
+        
+        // ⭐ Verificar PDF usando o ID, não o código
+        await verificarPdf(auditoriaId);
+        
+        // Carregar fundamentos
+        await carregarFundamentos(auditoriaId);
+    }
+
+    // ====== CARREGAR FUNDAMENTOS DA AUDITORIA ======
+    async function carregarFundamentos(auditoriaId) {
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`);
+            const data = await response.json();
+            
+            if (data.success) {
+                fundamentosLista = data.fundamentos || [];
+                renderizarFundamentos();
+            } else {
+                fundamentosLista = [];
+                renderizarFundamentos();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar fundamentos:', error);
+            fundamentosLista = [];
+            renderizarFundamentos();
+        }
+    }
+
+    // ====== RENDERIZAR FUNDAMENTOS ======
+    function renderizarFundamentos() {
+        if (!fundamentosContainer) return;
+        
+        if (fundamentosLista.length === 0) {
+            fundamentosContainer.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-info-circle"></i> Nenhum fundamento cadastrado. Clique em "Adicionar Fundamento" para começar.
+                </div>
+            `;
+            return;
+        }
+        
+        fundamentosContainer.innerHTML = fundamentosLista.map((fundamento, idx) => `
+            <div class="fundamento-card" data-fundamento-idx="${idx}">
+                <div class="fundamento-header">
+                    <div class="fundamento-titulo">
+                        <label><i class="fas fa-tag"></i> Título do Fundamento</label>
+                        <input type="text" class="fundamento-titulo-input" value="${escapeHtml(fundamento.titulo || '')}" 
+                               placeholder="Ex: Risco de conformidade fiscal" data-idx="${idx}">
+                    </div>
+                    <button class="btn-remove-fundamento" data-idx="${idx}" title="Remover fundamento">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+                
+                <div class="pontos-container">
+                    <label class="pontos-label"><i class="fas fa-list"></i> Pontos que fundamentam</label>
+                    <div class="pontos-list" data-idx="${idx}">
+                        ${(fundamento.pontos || []).map((ponto, pIdx) => `
+                            <div class="ponto-item">
+                                <input type="text" class="ponto-input" value="${escapeHtml(ponto)}" 
+                                       placeholder="Ex: Não conformidade com a Lei 123/2020"
+                                       data-idx="${idx}" data-pidx="${pIdx}">
+                                <button class="btn-remove-ponto" data-idx="${idx}" data-pidx="${pIdx}" title="Remover ponto">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-add-ponto" data-idx="${idx}">
+                        <i class="fas fa-plus"></i> Adicionar ponto
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Adicionar eventos após renderizar
+        adicionarEventosFundamentos();
+    }
+
+    // ====== ADICIONAR EVENTOS DOS FUNDAMENTOS ======
+    function adicionarEventosFundamentos() {
+        // Eventos para títulos
+        document.querySelectorAll('.fundamento-titulo-input').forEach(input => {
+            input.removeEventListener('input', handleTituloChange);
+            input.addEventListener('input', handleTituloChange);
+        });
+        
+        // Eventos para remover fundamento
+        document.querySelectorAll('.btn-remove-fundamento').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverFundamento);
+            btn.addEventListener('click', handleRemoverFundamento);
+        });
+        
+        // Eventos para pontos
+        document.querySelectorAll('.ponto-input').forEach(input => {
+            input.removeEventListener('input', handlePontoChange);
+            input.addEventListener('input', handlePontoChange);
+        });
+        
+        // Eventos para remover ponto
+        document.querySelectorAll('.btn-remove-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverPonto);
+            btn.addEventListener('click', handleRemoverPonto);
+        });
+        
+        // Eventos para adicionar ponto
+        document.querySelectorAll('.btn-add-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleAdicionarPonto);
+            btn.addEventListener('click', handleAdicionarPonto);
+        });
+    }
+    
+    function handleTituloChange(e) {
+        const idx = parseInt(e.target.getAttribute('data-idx'));
+        if (fundamentosLista[idx]) {
+            fundamentosLista[idx].titulo = e.target.value;
+        }
+    }
+    
+    function handleRemoverFundamento(e) {
+        const idx = parseInt(e.target.closest('.btn-remove-fundamento').getAttribute('data-idx'));
+        fundamentosLista.splice(idx, 1);
+        renderizarFundamentos();
+    }
+    
+    function handlePontoChange(e) {
+        const idx = parseInt(e.target.getAttribute('data-idx'));
+        const pIdx = parseInt(e.target.getAttribute('data-pidx'));
+        if (fundamentosLista[idx] && fundamentosLista[idx].pontos[pIdx] !== undefined) {
+            fundamentosLista[idx].pontos[pIdx] = e.target.value;
+        }
+    }
+    
+    function handleRemoverPonto(e) {
+        const idx = parseInt(e.target.closest('.btn-remove-ponto').getAttribute('data-idx'));
+        const pIdx = parseInt(e.target.closest('.btn-remove-ponto').getAttribute('data-pidx'));
+        if (fundamentosLista[idx] && fundamentosLista[idx].pontos) {
+            fundamentosLista[idx].pontos.splice(pIdx, 1);
+            renderizarFundamentos();
+        }
+    }
+    
+    function handleAdicionarPonto(e) {
+        const idx = parseInt(e.target.closest('.btn-add-ponto').getAttribute('data-idx'));
+        if (fundamentosLista[idx]) {
+            if (!fundamentosLista[idx].pontos) {
+                fundamentosLista[idx].pontos = [];
+            }
+            fundamentosLista[idx].pontos.push('');
+            renderizarFundamentos();
+        }
+    }
+    
+    // ====== ADICIONAR NOVO FUNDAMENTO ======
+    function adicionarFundamento() {
+        fundamentosLista.push({
+            titulo: '',
+            pontos: ['']
+        });
+        renderizarFundamentos();
+    }
+    
+    // ====== SALVAR FUNDAMENTOS ======
+    async function salvarFundamentos() {
+        if (!auditoriaAtualId) {
+            mostrarToast('❌ Nenhuma auditoria selecionada', 'error');
+            return;
+        }
+        
+        // Filtrar fundamentos vazios
+        const fundamentosFiltrados = fundamentosLista.filter(f => {
+            if (!f.titulo || f.titulo.trim() === '') return false;
+            const pontosValidos = (f.pontos || []).filter(p => p && p.trim() !== '');
+            return pontosValidos.length > 0;
+        });
+        
+        const payload = {
+            fundamentos: fundamentosFiltrados
+        };
+        
+        try {
+            const btnSalvar = btnSalvarFundamentos;
+            const textoOriginal = btnSalvar.innerHTML;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSalvar.disabled = true;
+            
+            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/fundamentos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                mostrarToast('✅ Fundamentos salvos com sucesso!', 'success');
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (result.error || 'Tente novamente'), 'error');
+            }
+            
+            btnSalvar.innerHTML = textoOriginal;
+            btnSalvar.disabled = false;
+            
+        } catch (error) {
+            console.error('Erro ao salvar fundamentos:', error);
+            mostrarToast('❌ Erro de conexão', 'error');
+            btnSalvarFundamentos.innerHTML = '<i class="fas fa-save"></i> Salvar Todos os Fundamentos';
+            btnSalvarFundamentos.disabled = false;
+        }
+    }
+    
+    // ====== DOWNLOAD DO PDF ======
+    function baixarPdf() {
+        if (auditoriaAtualCodigo) {
+            window.open(`/api/plano-anual-pdf?codigo=${auditoriaAtualCodigo}`, '_blank');
+        }
+    }
+    
+    // ====== CARREGAR DADOS DA AUDITORIA SELECIONADA ======
+    async function carregarDadosAuditoria(auditoriaId, auditoriaCodigo) {
+        auditoriaAtualId = auditoriaId;
+        auditoriaAtualCodigo = auditoriaCodigo;
+        
+        conteudoPrincipal.style.display = 'block';
+        
+        // Verificar PDF
+        await verificarPdf(auditoriaCodigo);
+        
+        // Carregar fundamentos
+        await carregarFundamentos(auditoriaId);
+    }
+    
+    // ====== EVENTO DE MUDANÇA DE ÁREA ======
+    if (filtroAreaSelect) {
+        filtroAreaSelect.addEventListener('change', () => {
+            const areaId = filtroAreaSelect.value;
+            carregarAuditorias(areaId);
+            conteudoPrincipal.style.display = 'none';
+            auditoriaAtualId = null;
+            auditoriaAtualCodigo = null;
+        });
+    }
+    
+    // ====== EVENTO DE MUDANÇA DE AUDITORIA ======
+    if (filtroAuditoriaSelect) {
+        filtroAuditoriaSelect.addEventListener('change', async () => {
+            const auditoriaId = filtroAuditoriaSelect.value;
+            
+            if (!auditoriaId) {
+                conteudoPrincipal.style.display = 'none';
+                return;
+            }
+            
+            // Buscar código da auditoria
+            const selectedOption = filtroAuditoriaSelect.options[filtroAuditoriaSelect.selectedIndex];
+            const textoOption = selectedOption.textContent;
+            const codigoAuditoria = textoOption.split(' - ')[0];
+            
+            await carregarDadosAuditoria(auditoriaId, codigoAuditoria);
+        });
+    }
+    
+    // ====== EVENTOS DOS BOTÕES ======
+    if (btnAdicionarFundamento) {
+        btnAdicionarFundamento.addEventListener('click', adicionarFundamento);
+    }
+    
+    if (btnSalvarFundamentos) {
+        btnSalvarFundamentos.addEventListener('click', salvarFundamentos);
+    }
+    
+    if (btnDownloadPdf) {
+        btnDownloadPdf.addEventListener('click', baixarPdf);
+    }
+    
+    // ====== INICIALIZAÇÃO ======
+    console.log('🚀 Página de Plano Anual carregada');
+    
+    // Adicionar CSS de animação se não existir
+    if (!document.getElementById('toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+</script>
+
 {% endblock %}

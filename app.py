@@ -181,6 +181,22 @@ def home():
         return redirect(url_for('login'))
     return render_template('home.html')
 
+# ============================================================
+# ROTAS PRINCIPAIS (PÁGINAS)
+# ============================================================
+
+@app.route('/plano-anual')
+def plano_anual():
+    """Página do Plano Anual de Auditoria"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    from logic import carregar_areas_banco
+    areas = carregar_areas_banco()
+    usuario_perfil = session.get('usuario_perfil', 'auditor')
+    
+    return render_template('plano_anual.html', areas=areas, usuario_perfil=usuario_perfil)
+
 @app.route('/dashboard')
 def dashboard():
     """Dashboard principal"""
@@ -188,11 +204,102 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-@app.route('/plano-anual')
-def plano_anual():
+# ============================================================
+# API - PLANO ANUNAL
+# ============================================================
+
+@app.route('/api/plano-anual-pdf')
+def api_plano_anual_pdf():
+    """Serve o arquivo PDF do Plano Anual baseado no código da auditoria"""
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('plano_anual.html')
+    
+    codigo_auditoria = request.args.get('codigo')
+    
+    if not codigo_auditoria:
+        return jsonify({'error': 'Código da auditoria é obrigatório'}), 400
+    
+    # Usar o código diretamente como nome do arquivo
+    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', f'{codigo_auditoria}.pdf')
+    
+    print(f"🔍 Buscando: {pdf_path}")
+    
+    if os.path.exists(pdf_path):
+        return send_file(pdf_path, mimetype='application/pdf', as_attachment=True)
+    
+    return jsonify({'error': f'Arquivo {codigo_auditoria}.pdf não encontrado'}), 404
+
+@app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['GET'])
+def api_buscar_fundamentos_auditoria(auditoria_id):
+    """Busca a lista de fundamentos da auditoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT COALESCE(fundamentos, '[]'::jsonb) as fundamentos
+                FROM auditorias
+                WHERE id = :auditoria_id
+            """)
+            result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            
+            fundamentos = result[0] if result[0] else []
+            
+            return jsonify({
+                'success': True,
+                'fundamentos': fundamentos
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar fundamentos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['POST'])
+def api_salvar_fundamentos_auditoria(auditoria_id):
+    """Salva a lista completa de fundamentos da auditoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    fundamentos = data.get('fundamentos', [])
+    
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    try:
+        with engine.connect() as conn:
+            # Converter para JSONB
+            fundamentos_json = json.dumps(fundamentos)
+            
+            query = text("""
+                UPDATE auditorias 
+                SET fundamentos = :fundamentos::jsonb,
+                    updated_at = NOW()
+                WHERE id = :auditoria_id
+            """)
+            conn.execute(query, {
+                'fundamentos': fundamentos_json,
+                'auditoria_id': auditoria_id
+            })
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Fundamentos salvos com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar fundamentos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+# ============================================================
+# FIM API PLANO ANUNAL
+# ============================================================
 
 @app.route('/diagnostico')
 def diagnostico():
@@ -536,18 +643,6 @@ def api_controle_etapa_detalhes(controle_id):
 # ============================================================
 # ROTAS DE API (BACKEND)
 # ============================================================
-
-@app.route('/api/plano-anual-pdf')
-def api_plano_anual_pdf():
-    """Serve o arquivo PDF do Plano Anual"""
-    if not session.get('autenticado'):
-        return redirect(url_for('login'))
-    
-    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', 'plano_auditoria_2026.pdf')
-    
-    if os.path.exists(pdf_path):
-        return send_file(pdf_path, mimetype='application/pdf')
-    return "Arquivo não encontrado", 404
 
 @app.route('/api/auditorias-por-area')
 def api_auditorias_por_area():
