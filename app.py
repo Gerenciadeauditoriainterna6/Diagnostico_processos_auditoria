@@ -3566,24 +3566,63 @@ def api_anotacoes_excluir(anotacao_id):
 
 @app.route('/api/auditorias/situacao')
 def api_auditorias_situacao():
-    """Retorna situação das auditorias: Concluídas, Em Execução, Fora do Prazo"""
+    """Retorna situação das auditorias: Concluídas, Em Execução, Fora do Prazo
+    Suporta filtro por área (area_id) e por auditoria específica (auditoria_id)
+    """
     from database import engine
     from sqlalchemy import text
     from datetime import date
     
     try:
+        area_id = request.args.get('area_id')
+        auditoria_id = request.args.get('auditoria_id')  # ⭐ NOVO: suporte a auditoria única
+        
         with engine.connect() as conn:
             hoje = date.today()
             
-            query = text("""
-                SELECT 
-                    SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
-                    SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
-                    SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
-                    SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
-                FROM auditorias
-            """)
-            result = conn.execute(query, {'hoje': hoje}).fetchone()
+            # CASO 1: Auditoria específica (mais específico)
+            if auditoria_id:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
+                        SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
+                        SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
+                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    FROM auditorias
+                    WHERE id = :auditoria_id
+                """)
+                result = conn.execute(query, {
+                    'hoje': hoje,
+                    'auditoria_id': auditoria_id
+                }).fetchone()
+            
+            # CASO 2: Área específica
+            elif area_id:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
+                        SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
+                        SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
+                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    FROM auditorias
+                    WHERE id_area = :area_id
+                """)
+                result = conn.execute(query, {
+                    'hoje': hoje,
+                    'area_id': area_id
+                }).fetchone()
+            
+            # CASO 3: Nenhum filtro - todas as auditorias
+            else:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
+                        SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
+                        SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
+                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    FROM auditorias
+                """)
+                result = conn.execute(query, {'hoje': hoje}).fetchone()
             
             return jsonify({
                 'success': True,
@@ -3592,7 +3631,9 @@ def api_auditorias_situacao():
                 'fora_prazo': result[2] or 0,
                 'planejamento': result[3] or 0
             })
+            
     except Exception as e:
+        print(f"❌ Erro em /api/auditorias/situacao: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/processos/detalhados')
@@ -3761,18 +3802,18 @@ def api_riscos_total():
 
 @app.route('/api/dashboard/riscos-magnitude')
 def api_dashboard_riscos_magnitude():
-    """Retorna quantidade de riscos por faixa de magnitude"""
+    """Retorna quantidade de riscos por faixa de magnitude (com suporte a filtros)"""
     from database import engine
     from sqlalchemy import text
     
     try:
         auditoria_ids = request.args.get('auditoria_ids', '')
+        auditoria_id = request.args.get('auditoria_id', '')
         
         with engine.connect() as conn:
+            # CASO 1: Múltiplas auditorias
             if auditoria_ids:
-                # Converter string "1,9" para lista de inteiros
                 ids_list = [int(x) for x in auditoria_ids.split(',') if x]
-                # Criar placeholders para o SQL
                 placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
                 params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
                 
@@ -3787,6 +3828,22 @@ def api_dashboard_riscos_magnitude():
                     WHERE p.auditoria_id IN ({placeholders})
                 """)
                 result = conn.execute(query, params).fetchone()
+            
+            # CASO 2: Auditoria única ⭐ NOVO!
+            elif auditoria_id:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN r.score_risco <= 3 THEN 1 ELSE 0 END) as baixo,
+                        SUM(CASE WHEN r.score_risco >= 4 AND r.score_risco <= 7 THEN 1 ELSE 0 END) as medio,
+                        SUM(CASE WHEN r.score_risco >= 8 AND r.score_risco <= 11 THEN 1 ELSE 0 END) as alto,
+                        SUM(CASE WHEN r.score_risco >= 12 THEN 1 ELSE 0 END) as critico
+                    FROM riscos r
+                    JOIN processos p ON r.processo_id = p.id
+                    WHERE p.auditoria_id = :auditoria_id
+                """)
+                result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+            
+            # CASO 3: Nenhum filtro - todos os riscos
             else:
                 query = text("""
                     SELECT 
@@ -3805,8 +3862,9 @@ def api_dashboard_riscos_magnitude():
                 'alto': result[2] or 0,
                 'critico': result[3] or 0
             })
+            
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro em /api/dashboard/riscos-magnitude: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/dashboard/auditorias-status')
