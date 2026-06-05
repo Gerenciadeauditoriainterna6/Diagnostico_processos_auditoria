@@ -1397,6 +1397,21 @@
             </div>
 
             <nav class="nav-menu">
+                <!-- SEÇÃO 0: ADMINISTRAÇÃO -->
+                <div class="nav-section">
+                    <div class="nav-section-title nav-section-administracao">ADMINISTRAÇÃO</div>
+                    <a href="{{ url_for('areas') }}" class="nav-item">
+                        <i class="fas fa-building"></i>
+                        <span>Cadastro de Áreas e Funcionários</span>
+                    </a>
+                    {% if session.get('usuario_perfil') == 'administrador' or session.get('usuario_perfil') == 'admin' %}
+                        <a href="{{ url_for('log_alteracoes') }}" class="nav-item">
+                            <i class="fas fa-history"></i>
+                            <span>Histórico de Alterações</span>
+                        </a>
+                    {% endif %}
+                </div>
+                
                 <!-- SEÇÃO 1: PLANEJAMENTO -->
                 <div class="nav-section">
                     <div class="nav-section-title nav-section-planejamento">PLANEJAMENTO</div>
@@ -1468,20 +1483,7 @@
                     </a>
                 </div>
 
-                <!-- SEÇÃO 4: ADMINISTRAÇÃO -->
-                <div class="nav-section">
-                    <div class="nav-section-title nav-section-administracao">ADMINISTRAÇÃO</div>
-                    <a href="{{ url_for('areas') }}" class="nav-item">
-                        <i class="fas fa-building"></i>
-                        <span>Cadastro de Áreas e Funcionários</span>
-                    </a>
-                    {% if session.get('usuario_perfil') == 'administrador' or session.get('usuario_perfil') == 'admin' %}
-                        <a href="{{ url_for('log_alteracoes') }}" class="nav-item">
-                            <i class="fas fa-history"></i>
-                            <span>Histórico de Alterações</span>
-                        </a>
-                    {% endif %}
-                </div>
+                
             </nav>
 
             <a href="{{ url_for('logout') }}" class="logout-btn">
