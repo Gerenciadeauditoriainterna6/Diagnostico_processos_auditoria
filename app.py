@@ -385,7 +385,7 @@ def api_processo_etapas(processo_id):
                     ep.politica_interna, ep.analise_critica, ep.sugestao_melhoria,
                     ep.necessidade_implantacao, ep.ganho_previsto, ep.obrigacoes_regulatorias,
                     ep.executores_etapa,
-                    ep.manual_nome, ep.created_at,
+                    ep.manual_nome, ep.created_at, ep.auditoria_id,  -- ⭐ ADICIONADO auditoria_id
                     EXISTS(
                         SELECT 1 FROM analises_criticas ac 
                         WHERE ac.etapa_id = ep.id AND ac.tipo_analise = 'entrevistado'
@@ -420,9 +420,10 @@ def api_processo_etapas(processo_id):
                     'obrigacoes_regulatorias': row[13] or '',
                     'executores_etapa': row[14] or '',
                     'manual_nome': row[15] or '',                    
-                    'created_at': row[16].isoformat() if row[16] else '',  
-                    'tem_analise_auditado': row[17] if len(row) > 17 else False,  
-                    'tem_analise_auditor': row[18] if len(row) > 18 else False,  
+                    'created_at': row[16].isoformat() if row[16] else '',
+                    'auditoria_id': row[17] if len(row) > 17 else None,  # ⭐ NOVO
+                    'tem_analise_auditado': row[18] if len(row) > 18 else False,
+                    'tem_analise_auditor': row[19] if len(row) > 19 else False,
                 })
             
             return jsonify({'success': True, 'etapas': etapas})
@@ -2138,6 +2139,18 @@ def api_salvar_etapa():
     obrigacoes_regulatorias = data.get('obrigacoes_regulatorias', '')
     executores_etapa = data.get('executores_etapa', '')
     
+    # ⭐⭐⭐ CORREÇÃO: Se auditoria_id não veio, buscar do processo
+    if not auditoria_id and processo_id:
+        try:
+            with engine.connect() as conn:
+                busca_query = text("SELECT auditoria_id FROM processos WHERE id = :processo_id")
+                result = conn.execute(busca_query, {'processo_id': processo_id}).fetchone()
+                if result and result[0]:
+                    auditoria_id = result[0]
+                    print(f"🔍 Auditoria_id {auditoria_id} obtido do processo {processo_id}")
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar auditoria_id do processo: {e}")
+    
     # Processar upload de arquivos (vêm como base64)
     diagrama_bytes = None
     diagrama_nome = data.get('diagrama_nome')
@@ -2208,6 +2221,10 @@ def api_salvar_etapa():
                     'executores_etapa': executores_etapa
                 }
                 
+                # ⭐⭐⭐ Se tem auditoria_id, atualizar também
+                if auditoria_id:
+                    params['auditoria_id'] = auditoria_id
+                
                 # Campos base da query
                 base_fields = """
                     nome_etapa = :nome_etapa,
@@ -2224,6 +2241,10 @@ def api_salvar_etapa():
                     obrigacoes_regulatorias = :obrigacoes_regulatorias,
                     executores_etapa = :executores_etapa
                 """
+                
+                # ⭐⭐⭐ Adicionar auditoria_id ao UPDATE se disponível
+                if auditoria_id:
+                    base_fields += ", auditoria_id = :auditoria_id"
                 
                 update_fields = []
                 
@@ -2272,20 +2293,27 @@ def api_salvar_etapa():
                 query = text(query_sql)
                 conn.execute(query, params)
                 
-                print(f"✏️ Etapa {etapa_id} atualizada com sucesso!")
+                print(f"✏️ Etapa {etapa_id} atualizada com sucesso! auditoria_id={auditoria_id}")
                 conn.commit()
                 
-                # ⭐⭐⭐ CORREÇÃO AQUI - RESPOSTA PARA EDIÇÃO ⭐⭐⭐
                 return jsonify({
                     'success': True,
                     'message': 'Etapa salva com sucesso',
                     'codigo_etapa': codigo_etapa,
-                    'etapa_id': etapa_id,      # ← ADICIONADO
-                    'id': etapa_id             # ← ADICIONADO (fallback)
+                    'etapa_id': etapa_id,
+                    'id': etapa_id
                 })
                 
             else:
                 # ========== NOVA ETAPA: inserir ==========
+                
+                # ⭐⭐⭐ CORREÇÃO CRÍTICA: Se ainda não tem auditoria_id, buscar do processo
+                if not auditoria_id and processo_id:
+                    busca_query = text("SELECT auditoria_id FROM processos WHERE id = :processo_id")
+                    result = conn.execute(busca_query, {'processo_id': processo_id}).fetchone()
+                    if result and result[0]:
+                        auditoria_id = result[0]
+                        print(f"🔍 Nova etapa - auditoria_id {auditoria_id} obtido do processo {processo_id}")
                 
                 # Se não veio código, gerar automaticamente
                 if not codigo_etapa:
@@ -2335,7 +2363,7 @@ def api_salvar_etapa():
                 
                 result = conn.execute(query, {
                     'processo_id': processo_id,
-                    'auditoria_id': auditoria_id,
+                    'auditoria_id': auditoria_id,  # ⭐ AGORA NÃO É MAIS NULL!
                     'codigo_etapa': codigo_etapa,
                     'nome_etapa': nome_etapa,
                     'descricao_etapa': descricao_etapa,
@@ -2362,16 +2390,15 @@ def api_salvar_etapa():
                 })
                 
                 novo_id = result.fetchone()[0]
-                print(f"✅ Nova etapa criada! ID: {novo_id}, Código: {codigo_etapa}")
+                print(f"✅ Nova etapa criada! ID: {novo_id}, Código: {codigo_etapa}, auditoria_id: {auditoria_id}")
                 conn.commit()
                 
-                # ⭐⭐⭐ CORREÇÃO AQUI - RESPOSTA PARA NOVA ETAPA ⭐⭐⭐
                 return jsonify({
                     'success': True,
                     'message': 'Etapa salva com sucesso',
                     'codigo_etapa': codigo_etapa,
-                    'etapa_id': novo_id,       # ← ADICIONADO
-                    'id': novo_id              # ← ADICIONADO (fallback)
+                    'etapa_id': novo_id,
+                    'id': novo_id
                 })
             
     except Exception as e:
@@ -3536,6 +3563,90 @@ def api_anotacoes_excluir(anotacao_id):
 # ============================================================
 # API - DASHBOARD
 # ============================================================
+
+@app.route('/api/auditorias/situacao')
+def api_auditorias_situacao():
+    """Retorna situação das auditorias: Concluídas, Em Execução, Fora do Prazo"""
+    from database import engine
+    from sqlalchemy import text
+    from datetime import date
+    
+    try:
+        with engine.connect() as conn:
+            hoje = date.today()
+            
+            query = text("""
+                SELECT 
+                    SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
+                    SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
+                    SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
+                    SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                FROM auditorias
+            """)
+            result = conn.execute(query, {'hoje': hoje}).fetchone()
+            
+            return jsonify({
+                'success': True,
+                'concluidas': result[0] or 0,
+                'em_execucao': result[1] or 0,
+                'fora_prazo': result[2] or 0,
+                'planejamento': result[3] or 0
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/processos/detalhados')
+def api_processos_detalhados():
+    """Retorna a quantidade de processos que possuem etapas cadastradas (com filtros)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            auditoria_ids = request.args.get('auditoria_ids', '')
+            auditoria_id = request.args.get('auditoria_id', '')
+            
+            # CASO 1: Múltiplas auditorias
+            if auditoria_ids:
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT COUNT(DISTINCT p.id)
+                    FROM processos p
+                    JOIN etapas_processo ep ON p.id = ep.processo_id
+                    WHERE p.status = 'Ativo'
+                    AND p.auditoria_id IN ({placeholders})
+                """)
+                total = conn.execute(query, params).fetchone()[0] or 0
+            
+            # CASO 2: Única auditoria
+            elif auditoria_id:
+                query = text("""
+                    SELECT COUNT(DISTINCT p.id)
+                    FROM processos p
+                    JOIN etapas_processo ep ON p.id = ep.processo_id
+                    WHERE p.status = 'Ativo'
+                    AND p.auditoria_id = :auditoria_id
+                """)
+                total = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()[0] or 0
+            
+            # CASO 3: Nenhum filtro
+            else:
+                query = text("""
+                    SELECT COUNT(DISTINCT p.id)
+                    FROM processos p
+                    JOIN etapas_processo ep ON p.id = ep.processo_id
+                    WHERE p.status = 'Ativo'
+                """)
+                total = conn.execute(query).fetchone()[0] or 0
+            
+            return jsonify({'total': total})
+            
+    except Exception as e:
+        print(f"❌ Erro em /api/processos/detalhados: {e}")
+        return jsonify({'total': 0, 'error': str(e)})
 
 @app.route('/api/processos/total')
 def api_processos_total():

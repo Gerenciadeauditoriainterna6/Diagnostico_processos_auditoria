@@ -6,7 +6,6 @@
 <div class="dashboard-container">
     <div class="page-header">
         <h1><i class="fa-solid fa-chart-pie"></i>Dashboard</h1>
-        <p>Bem-vindo ao Sistema de Auditoria Interna</p>
     </div>
 
     <!-- ===== SEÇÃO DE PLANEJAMENTO 2026 (DADOS ESTÁTICOS) ===== -->
@@ -199,6 +198,16 @@
                 <span class="stat-number" id="total-controles">0</span>
             </div>
         </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <div class="stat-info">
+                <h3>Processos Detalhados</h3>
+                <span class="stat-number" id="total-processos-detalhados">0</span>
+            </div>
+        </div>
     </div>
 
     <!-- Gráficos -->
@@ -250,42 +259,12 @@
             </div>
         </div>
 
-        <!-- Status das Auditorias -->
+        <!-- Gráfico de Situação das Auditorias -->
         <div class="chart-card">
-            <h3><i class="fas fa-chart-simple"></i> Status das Auditorias</h3>
-            <div class="status-list">
-                <div class="status-item">
-                    <div class="status-info">
-                        <i class="fas fa-check-circle status-concluida"></i>
-                        <span>Concluídas</span>
-                        <span class="status-value" id="status-concluida">0</span>
-                    </div>
-                    <div class="status-progress">
-                        <div class="status-bar" id="progress-concluida" style="width: 0%;"></div>
-                    </div>
-                </div>
-                <div class="status-item">
-                    <div class="status-info">
-                        <i class="fas fa-spinner status-execucao"></i>
-                        <span>Em Execução</span>
-                        <span class="status-value" id="status-execucao">0</span>
-                    </div>
-                    <div class="status-progress">
-                        <div class="status-bar" id="progress-execucao" style="width: 0%;"></div>
-                    </div>
-                </div>
-                <div class="status-item">
-                    <div class="status-info">
-                        <i class="fas fa-clock status-planejamento"></i>
-                        <span>Planejamento</span>
-                        <span class="status-value" id="status-planejamento">0</span>
-                    </div>
-                    <div class="status-progress">
-                        <div class="status-bar" id="progress-planejamento" style="width: 0%;"></div>
-                    </div>
-                </div>
-            </div>
+            <h3><i class="fas fa-chart-pie"></i> Situação das Auditorias</h3>
+            <canvas id="situacaoAuditoriasChart" width="400" height="300" style="max-height: 300px; width: 100%;"></canvas>
         </div>
+
     </div>
 
     <!-- Top Áreas -->
@@ -897,12 +876,45 @@
         border-radius: 8px;
         font-size: 13px;
     }
+
+    /* Ajuste para o gráfico canvas */
+    #situacaoAuditoriasChart {
+        max-height: 280px;
+        width: 100%;
+        margin: 0 auto;
+    }
 </style>
 
 <script>
     // ====== VARIÁVEIS GLOBAIS DE FILTRO ======
     let filtroAreaId = '';
     let filtroAuditoriaId = '';
+    let situacaoChart = null;
+
+    // ====== FUNÇÃO CENTRALIZADA PARA MONTAR URL COM FILTROS ======
+    async function montarUrlComFiltrosCentralizada(baseUrl) {
+        const params = new URLSearchParams();
+        
+        // PRIORIDADE: Se tem auditoria específica, usa ela
+        if (filtroAuditoriaId) {
+            params.append('auditoria_id', filtroAuditoriaId);
+        } 
+        // Se tem apenas área, busca todas as auditorias da área
+        else if (filtroAreaId) {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+            const data = await response.json();
+            if (data.auditorias && data.auditorias.length > 0) {
+                const ids = data.auditorias.map(a => a.id).join(',');
+                params.append('auditoria_ids', ids);
+            } else {
+                // Área sem auditorias - retorna null para indicar que não há dados
+                return null;
+            }
+        }
+        
+        const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+        return url;
+    }
 
     // ====== FUNÇÃO AUXILIAR ======
     function escapeHtml(text) {
@@ -929,42 +941,6 @@
         }
     }
 
-    // ====== FUNÇÃO AUXILIAR PARA MONTAR URL COM FILTROS ======
-    async function montarUrlComFiltros(baseUrl, tipo) {
-        const params = new URLSearchParams();
-        
-        // tipo = 'auditoria' -> usa filtro de auditoria ou todas da área
-        // tipo = 'area' -> usa filtro de área
-        // tipo = 'ambos' -> usa ambos (prioriza auditoria)
-        
-        if (tipo === 'auditoria') {
-            // Para gráficos que filtram por auditoria
-            if (filtroAuditoriaId) {
-                // Tem auditoria específica
-                params.append('auditoria_id', filtroAuditoriaId);
-            } else if (filtroAreaId) {
-                // Só tem área - buscar todas as auditorias da área
-                try {
-                    const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                    const data = await response.json();
-                    if (data.auditorias && data.auditorias.length > 0) {
-                        const ids = data.auditorias.map(a => a.id).join(',');
-                        params.append('auditoria_ids', ids);
-                    }
-                } catch (error) {
-                    console.error('Erro ao buscar auditorias:', error);
-                }
-            }
-        } else if (tipo === 'area') {
-            // Para gráficos que filtram por área (status das auditorias)
-            if (filtroAreaId) {
-                params.append('area_id', filtroAreaId);
-            }
-        }
-        
-        const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-        return url;
-    }
 
     function mostrarToast(mensagem, tipo = 'info') {
         let toastContainer = document.getElementById('toast-container');
@@ -1018,6 +994,85 @@
                 setTimeout(() => toast.remove(), 300);
             }
         }, 4000);
+    }
+
+    // ====== CARREGAR PROCESSOS DETALHADOS ======
+    async function carregarProcessosDetalhados() {
+        try {
+            const url = await montarUrlComFiltrosCentralizada('/api/processos/detalhados');
+            
+            if (url === null) {
+                document.getElementById('total-processos-detalhados').textContent = '0';
+                return;
+            }
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            document.getElementById('total-processos-detalhados').textContent = data.total || 0;
+        } catch (error) {
+            console.error('Erro ao carregar processos detalhados:', error);
+            document.getElementById('total-processos-detalhados').textContent = '0';
+        }
+    }
+
+    // ====== CARREGAR SITUAÇÃO DAS AUDITORIAS ======
+    async function carregarSituacaoAuditorias() {
+        try {
+            let url = '/api/auditorias/situacao';
+            
+            if (filtroAreaId) {
+                url += `?area_id=${filtroAreaId}`;
+            }
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.success) {
+                if (situacaoChart) {
+                    situacaoChart.destroy();
+                }
+                
+                const ctx = document.getElementById('situacaoAuditoriasChart').getContext('2d');
+                
+                situacaoChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Concluídas', 'Em Execução', 'Fora do Prazo', 'Planejamento'],
+                        datasets: [{
+                            data: [
+                                data.concluidas || 0,
+                                data.em_execucao || 0,
+                                data.fora_prazo || 0,
+                                data.planejamento || 0
+                            ],
+                            backgroundColor: ['#28a745', '#17a2b8', '#dc3545', '#ffc107'],
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar situação das auditorias:', error);
+        }
     }
 
     // ====== CARREGAR ÁREAS PARA O FILTRO ======
@@ -1083,36 +1138,16 @@
     // ====== CARREGAR TOTAL DE CONTROLES ======
     async function carregarTotalControles() {
         try {
-            let url = '/api/controles/total';
-            const params = new URLSearchParams();
+            const url = await montarUrlComFiltrosCentralizada('/api/controles/total');
             
-            // ⭐ LÓGICA CORRIGIDA:
-            // Caso 1: Tem auditoria específica selecionada
-            if (filtroAuditoriaId) {
-                params.append('auditoria_id', filtroAuditoriaId);
-            } 
-            // Caso 2: Tem apenas área selecionada - pega TODAS as auditorias da área
-            else if (filtroAreaId) {
-                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                const data = await response.json();
-                if (data.auditorias && data.auditorias.length > 0) {
-                    // ⭐ PEGA TODOS OS IDs e junta com vírgula: "1,9"
-                    const ids = data.auditorias.map(a => a.id).join(',');
-                    params.append('auditoria_ids', ids);
-                }
+            if (url === null) {
+                document.getElementById('total-controles').textContent = '0';
+                return;
             }
-            
-            // Se tem parâmetros, adiciona à URL
-            if (params.toString()) {
-                url += `?${params.toString()}`;
-            }
-            
-            console.log('🔍 URL controles:', url);  // Para debug
             
             const response = await fetch(url);
             const data = await response.json();
             document.getElementById('total-controles').textContent = data.total || 0;
-            
         } catch (error) {
             console.error('Erro ao carregar total de controles:', error);
             document.getElementById('total-controles').textContent = '0';
@@ -1120,37 +1155,15 @@
     }
 
     // ====== CARREGAR TOTAL DE PROCESSOS ======
-    // Exemplo para carregarTotalProcessos
     async function carregarTotalProcessos() {
         try {
-            let url = '/api/processos/total';
-            const params = new URLSearchParams();
+            const url = await montarUrlComFiltrosCentralizada('/api/processos/total');
             
-            // Se tem área selecionada mas não tem auditorias, retorna 0
-            if (filtroAreaId && !filtroAuditoriaId) {
-                const temAuditorias = await areaTemAuditorias(filtroAreaId);
-                if (!temAuditorias) {
-                    document.getElementById('total-processos').textContent = '0';
-                    return;
-                }
+            // Se url é null, significa área sem auditorias
+            if (url === null) {
+                document.getElementById('total-processos').textContent = '0';
+                return;
             }
-            
-            if (filtroAuditoriaId) {
-                params.append('auditoria_id', filtroAuditoriaId);
-            } else if (filtroAreaId) {
-                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                const data = await response.json();
-                if (data.auditorias && data.auditorias.length > 0) {
-                    const ids = data.auditorias.map(a => a.id).join(',');
-                    params.append('auditoria_ids', ids);
-                } else {
-                    // Se não tem auditorias, retorna 0
-                    document.getElementById('total-processos').textContent = '0';
-                    return;
-                }
-            }
-            
-            if (params.toString()) url += `?${params.toString()}`;
             
             const response = await fetch(url);
             const data = await response.json();
@@ -1164,21 +1177,12 @@
     // ====== CARREGAR TOTAL DE RISCOS ======
     async function carregarTotalRiscos() {
         try {
-            let url = '/api/riscos/total';
-            const params = new URLSearchParams();
+            const url = await montarUrlComFiltrosCentralizada('/api/riscos/total');
             
-            if (filtroAuditoriaId) {
-                params.append('auditoria_id', filtroAuditoriaId);
-            } else if (filtroAreaId) {
-                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                const data = await response.json();
-                if (data.auditorias && data.auditorias.length > 0) {
-                    const ids = data.auditorias.map(a => a.id).join(',');
-                    params.append('auditoria_ids', ids);
-                }
+            if (url === null) {
+                document.getElementById('total-riscos').textContent = '0';
+                return;
             }
-            
-            if (params.toString()) url += `?${params.toString()}`;
             
             const response = await fetch(url);
             const data = await response.json();
@@ -1193,19 +1197,16 @@
     async function carregarTotalAuditorias() {
         try {
             let url = '/api/auditorias/total';
-            const params = new URLSearchParams();
             
-            if (filtroAreaId) {
-                // Verificar se a área tem auditorias
-                const temAuditorias = await areaTemAuditorias(filtroAreaId);
-                if (!temAuditorias) {
-                    document.getElementById('total-auditorias').textContent = '0';
-                    return;
-                }
-                params.append('area_id', filtroAreaId);
+            // ⭐ NOVA LÓGICA: Se tem auditoria específica, mostra 1 (apenas ela)
+            if (filtroAuditoriaId) {
+                document.getElementById('total-auditorias').textContent = '1';
+                return;
             }
-            
-            if (params.toString()) url += `?${params.toString()}`;
+            // Se tem apenas área, mostra total de auditorias da área
+            else if (filtroAreaId) {
+                url += `?area_id=${filtroAreaId}`;
+            }
             
             const response = await fetch(url);
             const data = await response.json();
@@ -1219,91 +1220,40 @@
     // ====== CARREGAR RISCOS POR MAGNITUDE ======
     async function carregarRiscosPorMagnitude() {
         try {
-            let url = '/api/dashboard/riscos-magnitude';
-            const params = new URLSearchParams();
+            const url = await montarUrlComFiltrosCentralizada('/api/dashboard/riscos-magnitude');
             
-            // ⭐ LÓGICA DO FILTRO:
-            // Se tem auditoria selecionada -> filtra por ela
-            // Se só tem área selecionada -> filtra por todas auditorias da área
-            if (filtroAuditoriaId) {
-                // Caso 1: Auditoria específica selecionada
-                params.append('auditoria_ids', filtroAuditoriaId);
-            } else if (filtroAreaId) {
-                // Caso 2: Apenas área selecionada - buscar todas as auditorias da área
-                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                const data = await response.json();
-                if (data.auditorias && data.auditorias.length > 0) {
-                    // Pega os IDs de todas as auditorias e junta com vírgula: "1,9"
-                    const ids = data.auditorias.map(a => a.id).join(',');
-                    params.append('auditoria_ids', ids);
-                }
+            if (url === null) {
+                // Zerar gráfico
+                document.getElementById('riscos-baixo').textContent = '0';
+                document.getElementById('riscos-medio').textContent = '0';
+                document.getElementById('riscos-alto').textContent = '0';
+                document.getElementById('riscos-critico').textContent = '0';
+                document.getElementById('bar-baixo').style.width = '0%';
+                document.getElementById('bar-medio').style.width = '0%';
+                document.getElementById('bar-alto').style.width = '0%';
+                document.getElementById('bar-critico').style.width = '0%';
+                return;
             }
             
-            // Se tem parâmetros, adiciona à URL
-            if (params.toString()) url += `?${params.toString()}`;
-            
-            // Buscar os dados da API
             const response = await fetch(url);
             const data = await response.json();
             
-            // ⭐⭐ PARTE QUE FALTAVA - ATUALIZAR A TELA ⭐⭐
             if (data.success) {
-                // 1. Atualizar os números na tela
                 document.getElementById('riscos-baixo').textContent = data.baixo;
                 document.getElementById('riscos-medio').textContent = data.medio;
                 document.getElementById('riscos-alto').textContent = data.alto;
                 document.getElementById('riscos-critico').textContent = data.critico;
                 
-                // 2. Calcular o total de riscos para definir a largura das barras
                 const total = data.baixo + data.medio + data.alto + data.critico;
-                
-                // 3. Atualizar as barras de progresso (apenas se total > 0)
                 if (total > 0) {
                     document.getElementById('bar-baixo').style.width = `${(data.baixo / total) * 100}%`;
                     document.getElementById('bar-medio').style.width = `${(data.medio / total) * 100}%`;
                     document.getElementById('bar-alto').style.width = `${(data.alto / total) * 100}%`;
                     document.getElementById('bar-critico').style.width = `${(data.critico / total) * 100}%`;
-                } else {
-                    // Se não tem riscos, zera as barras
-                    document.getElementById('bar-baixo').style.width = '0%';
-                    document.getElementById('bar-medio').style.width = '0%';
-                    document.getElementById('bar-alto').style.width = '0%';
-                    document.getElementById('bar-critico').style.width = '0%';
                 }
             }
-            
         } catch (error) {
             console.error('Erro ao carregar riscos por magnitude:', error);
-        }
-    }
-
-    // ====== CARREGAR STATUS DAS AUDITORIAS ======
-    async function carregarStatusAuditorias() {
-        try {
-            let url = '/api/dashboard/auditorias-status';
-            const params = new URLSearchParams();
-            if (filtroAuditoriaId) params.append('auditoria_id', filtroAuditoriaId);
-            if (filtroAreaId) params.append('area_id', filtroAreaId);  // ← ADICIONAR ESTA LINHA
-            if (params.toString()) url += `?${params.toString()}`;
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.success) {
-                const total = data.concluida + data.execucao + data.planejamento;
-                
-                document.getElementById('status-concluida').textContent = data.concluida;
-                document.getElementById('status-execucao').textContent = data.execucao;
-                document.getElementById('status-planejamento').textContent = data.planejamento;
-                
-                if (total > 0) {
-                    document.getElementById('progress-concluida').style.width = `${(data.concluida / total) * 100}%`;
-                    document.getElementById('progress-execucao').style.width = `${(data.execucao / total) * 100}%`;
-                    document.getElementById('progress-planejamento').style.width = `${(data.planejamento / total) * 100}%`;
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao carregar status das auditorias:', error);
         }
     }
 
@@ -1344,24 +1294,15 @@
     // ====== CARREGAR RESUMO DE RISCOS ======
     async function carregarResumoRiscosProcessos() {
         try {
-            let url = '/api/dashboard/resumo-riscos';
-            const params = new URLSearchParams();
+            const url = await montarUrlComFiltrosCentralizada('/api/dashboard/resumo-riscos');
             
-            // ⭐ MESMA LÓGICA
-            if (filtroAuditoriaId) {
-                params.append('auditoria_id', filtroAuditoriaId);
-            } else if (filtroAreaId) {
-                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                const data = await response.json();
-                if (data.auditorias && data.auditorias.length > 0) {
-                    const ids = data.auditorias.map(a => a.id).join(',');
-                    params.append('auditoria_ids', ids);
+            if (url === null) {
+                const tbody = document.querySelector('#resumo-table tbody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="loading-message">Nenhuma auditoria encontrada para esta área</td></tr>';
                 }
+                return;
             }
-            
-            if (params.toString()) url += `?${params.toString()}`;
-            
-            console.log('🔍 URL resumo-riscos:', url);  // Debug
             
             const response = await fetch(url);
             const data = await response.json();
@@ -1415,6 +1356,7 @@
                 document.getElementById('total-riscos').textContent = '0';
                 document.getElementById('total-auditorias').textContent = '0';
                 document.getElementById('total-controles').textContent = '0';
+                document.getElementById('total-processos-detalhados').textContent = '0';  // ← NOVO
                 
                 document.getElementById('riscos-baixo').textContent = '0';
                 document.getElementById('riscos-medio').textContent = '0';
@@ -1426,22 +1368,18 @@
                 document.getElementById('bar-alto').style.width = '0%';
                 document.getElementById('bar-critico').style.width = '0%';
                 
-                document.getElementById('status-concluida').textContent = '0';
-                document.getElementById('status-execucao').textContent = '0';
-                document.getElementById('status-planejamento').textContent = '0';
-                
-                document.getElementById('progress-concluida').style.width = '0%';
-                document.getElementById('progress-execucao').style.width = '0%';
-                document.getElementById('progress-planejamento').style.width = '0%';
+                // ⭐ Destruir gráfico de situação se existir
+                if (typeof situacaoChart !== 'undefined' && situacaoChart) {
+                    situacaoChart.destroy();
+                    situacaoChart = null;
+                }
                 
                 const tbody = document.querySelector('#resumo-table tbody');
                 if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="loading-message">Nenhuma auditoria encontrada para esta área</td><tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="loading-message">Nenhuma auditoria encontrada para esta área</td></tr>';
                 }
                 
-                // ⭐⭐⭐ CARREGAR TOP ÁREAS MESMO ASSIM ⭐⭐⭐
                 await carregarTopAreas();
-                
                 return;
             }
         }
@@ -1452,12 +1390,12 @@
             carregarTotalProcessos(),
             carregarTotalRiscos(),
             carregarTotalAuditorias(),
+            carregarProcessosDetalhados(),
             carregarRiscosPorMagnitude(),
-            carregarStatusAuditorias(),
+            carregarSituacaoAuditorias(),
             carregarResumoRiscosProcessos()
         ]);
         
-        // ⭐⭐⭐ CARREGAR TOP ÁREAS SEPARADAMENTE (sempre, sem filtro) ⭐⭐⭐
         await carregarTopAreas();
     }
 
@@ -1506,7 +1444,6 @@
                 filtroAreaId = '';
                 filtroAuditoriaId = '';
                 await carregarDashboardComFiltros();
-                mostrarToast('✅ Filtros limpos!', 'success');
             });
         }
     }
