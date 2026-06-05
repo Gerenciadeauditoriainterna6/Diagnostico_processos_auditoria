@@ -227,7 +227,7 @@ def api_plano_anual_pdf():
     if os.path.exists(pdf_path):
         return send_file(pdf_path, mimetype='application/pdf', as_attachment=True)
     
-    return jsonify({'error': f'Arquivo {codigo_auditoria}.pdf não encontrado'}), 404
+    return jsonify({'error': f'Arquivo PDF do plano anual não encontrado para esta auditoria.'}), 404
 
 @app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['GET'])
 def api_buscar_fundamentos_auditoria(auditoria_id):

@@ -66,7 +66,7 @@
 
             <!-- Botão para adicionar novo fundamento -->
             <button id="btn-adicionar-fundamento" class="btn-outline-primary">
-                <i class="fas fa-plus"></i> Adicionar Fundamento
+                <i class="fas fa-plus"></i> Adicionar Risco que fundamenta a auditoria
             </button>
 
             <!-- Botão salvar tudo -->
@@ -215,7 +215,7 @@
     }
 
     .btn-download-pdf {
-        background: #dc3545;
+        background: #184145;
         color: white;
         border: none;
         padding: 12px 24px;
@@ -229,7 +229,7 @@
     }
 
     .btn-download-pdf:hover {
-        background: #c82333;
+        background: #0b5b99;
         transform: translateY(-2px);
     }
 
@@ -243,7 +243,6 @@
         font-size: 14px;
         transition: all 0.2s;
         margin-top: 15px;
-        width: 100%;
     }
 
     .btn-outline-primary:hover {
@@ -466,9 +465,228 @@
         border-radius: 16px;
         padding: 20px;
     }
+
+    /* Textarea para títulos */
+    .fundamento-titulo-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .fundamento-titulo-input:focus {
+        outline: none;
+        border-color: #fd6a14;
+    }
+
+    /* Textarea para pontos */
+    .ponto-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 13px;
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    .ponto-input:focus {
+        outline: none;
+        border-color: #fd6a14;
+    }
+
+    /* Modo somente leitura */
+    .readonly-mode .fundamento-titulo-input:disabled,
+    .readonly-mode .ponto-input:disabled {
+        background-color: #f8f9fa;
+        color: #666;
+        cursor: not-allowed;
+    }
+
+    .readonly-mode .btn-remove-fundamento,
+    .readonly-mode .btn-remove-ponto,
+    .readonly-mode .btn-add-ponto {
+        display: none !important;
+    }
+
+    .readonly-indicator {
+        display: inline-block;
+        background: #e9ecef;
+        color: #666;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        margin-left: 15px;
+    }
+
+    .badge-secondary {
+        display: inline-block;
+        background: #e9ecef;
+        color: #666;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #721c24;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .alert-error i {
+        margin-right: 8px;
+    }
 </style>
 
 <script>
+    // Recebe o perfil do usuário do Flask
+    const usuarioPerfil = '{{ usuario_perfil }}';
+    const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
+
+    console.log('Perfil do usuário:', usuarioPerfil, 'é admin?', isAdmin);
+
+    let usuarioAutorizado = false;
+    let permissoes = {
+        podeBaixarPDF: false,
+        podeVisualizarFundamentos: false,
+        podeEditarFundamentos: false
+    };
+    
+    // ====== VERIFICAR PERMISSÃO DO USUÁRIO NA AUDITORIA ======
+    async function verificarPermissaoAuditoria(auditoriaId) {
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const data = await response.json();
+            
+            console.log('🔍 Verificação de permissão:', data);
+            
+            if (isAdmin) {
+                // Administrador tem acesso total
+                usuarioAutorizado = true;
+                permissoes.podeBaixarPDF = true;
+                permissoes.podeVisualizarFundamentos = true;
+                permissoes.podeEditarFundamentos = true;
+                console.log('✅ Administrador - acesso total');
+            } else if (data.autorizado) {
+                // Usuário é responsável pela auditoria
+                usuarioAutorizado = true;
+                permissoes.podeBaixarPDF = true;
+                permissoes.podeVisualizarFundamentos = true;
+                permissoes.podeEditarFundamentos = true;
+                console.log('✅ Usuário autorizado - acesso total');
+            } else {
+                // Usuário não tem permissão - NÃO VÊ NADA
+                usuarioAutorizado = false;
+                permissoes.podeBaixarPDF = false;
+                permissoes.podeVisualizarFundamentos = false;
+                permissoes.podeEditarFundamentos = false;
+                console.log('❌ Usuário NÃO autorizado - sem acesso');
+            }
+            
+            // ⭐ APLICAR PERMISSÕES DEPOIS DE VERIFICAR
+            // Aguardar um pouco para garantir que o DOM está pronto
+            setTimeout(() => {
+                aplicarPermissoes();
+            }, 100);
+            
+            return usuarioAutorizado;
+            
+        } catch (error) {
+            console.error('Erro ao verificar permissão:', error);
+            permissoes.podeBaixarPDF = false;
+            permissoes.podeVisualizarFundamentos = false;
+            permissoes.podeEditarFundamentos = false;
+            setTimeout(() => {
+                aplicarPermissoes();
+            }, 100);
+            return false;
+        }
+    }
+
+    // ====== APLICAR PERMISSÕES NA INTERFACE ======
+    function aplicarPermissoes() {
+        console.log('🎯 Aplicando permissões:', permissoes);
+        
+        // ⭐ REMOVER CONTROLE DO PDF AQUI - quem controla o PDF é verificarPdf ⭐
+        // const btnDownload = document.getElementById('btn-download-pdf');
+        // const pdfStatus = document.getElementById('pdf-status');
+        
+        const fundamentosSection = document.querySelector('.fundamentos-section');
+        const btnAdicionarFundamento = document.getElementById('btn-adicionar-fundamento');
+        const btnSalvarFundamentos = document.getElementById('btn-salvar-fundamentos');
+        
+        // Controle da seção de fundamentos
+        if (fundamentosSection) {
+            if (permissoes.podeVisualizarFundamentos) {
+                fundamentosSection.style.display = 'block';
+                console.log('✅ Seção de fundamentos VISÍVEL');
+                
+                // Controle de edição dentro da seção
+                if (btnAdicionarFundamento) {
+                    btnAdicionarFundamento.style.display = permissoes.podeEditarFundamentos ? 'block' : 'none';
+                }
+                if (btnSalvarFundamentos) {
+                    btnSalvarFundamentos.style.display = permissoes.podeEditarFundamentos ? 'flex' : 'none';
+                }
+                
+                // Se não pode editar, desabilitar os campos
+                if (!permissoes.podeEditarFundamentos) {
+                    desabilitarEdicaoFundamentos();
+                }
+            } else {
+                fundamentosSection.style.display = 'none';
+                console.log('❌ Seção de fundamentos OCULTA');
+            }
+        } else {
+            console.log('⚠️ Elemento .fundamentos-section não encontrado no DOM');
+        }
+    }
+
+    // ====== DESABILITAR EDIÇÃO DOS FUNDAMENTOS ======
+    function desabilitarEdicaoFundamentos() {
+        console.log('🔒 Desabilitando edição dos fundamentos');
+        
+        // Desabilitar todos os textareas
+        document.querySelectorAll('.fundamento-titulo-input, .ponto-input').forEach(input => {
+            input.disabled = true;
+            input.style.backgroundColor = '#f8f9fa';
+            input.style.cursor = 'not-allowed';
+        });
+        
+        // Esconder botões de remover/adicionar
+        document.querySelectorAll('.btn-remove-fundamento, .btn-remove-ponto, .btn-add-ponto').forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        // Adicionar indicador de somente leitura
+        const sectionHeader = document.querySelector('.fundamentos-section .section-header');
+        if (sectionHeader && !document.querySelector('.readonly-indicator')) {
+            const indicator = document.createElement('span');
+            indicator.className = 'readonly-indicator';
+            indicator.innerHTML = '<i class="fas fa-eye"></i> Modo somente leitura';
+            indicator.style.cssText = `
+                display: inline-block;
+                background: #e9ecef;
+                color: #666;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                margin-left: 15px;
+            `;
+            sectionHeader.appendChild(indicator);
+        }
+    }
+
+
+
     // ====== ELEMENTOS DO DOM ======
     const filtroAreaSelect = document.getElementById('filtro_area_select');
     const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
@@ -586,18 +804,21 @@
     }
 
     // ====== VERIFICAR EXISTÊNCIA DO PDF ======
-    async function verificarPdf(auditoriaId) {
+    async function verificarPdf(codigoAuditoria) {
         try {
-            const response = await fetch(`/api/plano-anual-pdf?auditoria_id=${auditoriaId}`);
+            const response = await fetch(`/api/plano-anual-pdf?codigo=${codigoAuditoria}`);
             console.log('Status da resposta:', response.status);
+            console.log('Response ok?', response.ok);
             
             if (response.ok) {
+                console.log('✅ PDF encontrado - mostrando botão');
                 btnDownloadPdf.style.display = 'inline-flex';
                 pdfNaoEncontrado.style.display = 'none';
                 return true;
             } else {
                 const errorData = await response.json();
-                console.log('Erro:', errorData);
+                console.log('❌ PDF NÃO encontrado - escondendo botão');
+                console.log('Erro retornado:', errorData);
                 btnDownloadPdf.style.display = 'none';
                 pdfNaoEncontrado.style.display = 'block';
                 pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorData.error || 'Arquivo PDF não encontrado'}`;
@@ -607,29 +828,16 @@
             console.error('Erro ao verificar PDF:', error);
             btnDownloadPdf.style.display = 'none';
             pdfNaoEncontrado.style.display = 'block';
+            pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro ao verificar arquivo PDF.`;
             return false;
         }
     }
 
     // ====== DOWNLOAD DO PDF ======
     function baixarPdf() {
-        if (auditoriaAtualId) {
-            window.open(`/api/plano-anual-pdf?auditoria_id=${auditoriaAtualId}`, '_blank');
+        if (auditoriaAtualCodigo) {  // ← usar codigo, não id
+            window.open(`/api/plano-anual-pdf?codigo=${auditoriaAtualCodigo}`, '_blank');
         }
-    }
-
-    // ====== CARREGAR DADOS DA AUDITORIA SELECIONADA ======
-    async function carregarDadosAuditoria(auditoriaId, auditoriaCodigo) {
-        auditoriaAtualId = auditoriaId;
-        auditoriaAtualCodigo = auditoriaCodigo;
-        
-        conteudoPrincipal.style.display = 'block';
-        
-        // ⭐ Verificar PDF usando o ID, não o código
-        await verificarPdf(auditoriaId);
-        
-        // Carregar fundamentos
-        await carregarFundamentos(auditoriaId);
     }
 
     // ====== CARREGAR FUNDAMENTOS DA AUDITORIA ======
@@ -669,9 +877,8 @@
             <div class="fundamento-card" data-fundamento-idx="${idx}">
                 <div class="fundamento-header">
                     <div class="fundamento-titulo">
-                        <label><i class="fas fa-tag"></i> Título do Fundamento</label>
-                        <input type="text" class="fundamento-titulo-input" value="${escapeHtml(fundamento.titulo || '')}" 
-                               placeholder="Ex: Risco de conformidade fiscal" data-idx="${idx}">
+                        <label><i class="fas fa-tag"></i> Risco que fundamento a auditoria: </label>
+                        <textarea class="fundamento-titulo-input" rows="2" placeholder="Descreva brevemente o risco que fundamentou a auditoria..." data-idx="${idx}">${escapeHtml(fundamento.titulo || '')}</textarea>
                     </div>
                     <button class="btn-remove-fundamento" data-idx="${idx}" title="Remover fundamento">
                         <i class="fas fa-trash-alt"></i>
@@ -679,13 +886,12 @@
                 </div>
                 
                 <div class="pontos-container">
-                    <label class="pontos-label"><i class="fas fa-list"></i> Pontos que fundamentam</label>
+                    <label class="pontos-label"><i class="fas fa-list"></i> Pontos que fundamentam o risco:</label>
                     <div class="pontos-list" data-idx="${idx}">
                         ${(fundamento.pontos || []).map((ponto, pIdx) => `
                             <div class="ponto-item">
-                                <input type="text" class="ponto-input" value="${escapeHtml(ponto)}" 
-                                       placeholder="Ex: Não conformidade com a Lei 123/2020"
-                                       data-idx="${idx}" data-pidx="${pIdx}">
+                                <textarea class="ponto-input" rows="2" placeholder="Ex: Não conformidade com a Lei 123/2026.." 
+                                    data-idx="${idx}" data-pidx="${pIdx}">${escapeHtml(ponto)}</textarea>
                                 <button class="btn-remove-ponto" data-idx="${idx}" data-pidx="${pIdx}" title="Remover ponto">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -834,32 +1040,96 @@
             btnSalvarFundamentos.disabled = false;
         }
     }
-    
-    // ====== DOWNLOAD DO PDF ======
-    function baixarPdf() {
-        if (auditoriaAtualCodigo) {
-            window.open(`/api/plano-anual-pdf?codigo=${auditoriaAtualCodigo}`, '_blank');
-        }
-    }
-    
+
     // ====== CARREGAR DADOS DA AUDITORIA SELECIONADA ======
     async function carregarDadosAuditoria(auditoriaId, auditoriaCodigo) {
+        console.log('🔍 Auditoria ID:', auditoriaId);
+        console.log('🔍 Auditoria Código:', auditoriaCodigo);
+        
         auditoriaAtualId = auditoriaId;
         auditoriaAtualCodigo = auditoriaCodigo;
         
+        // ⭐ REMOVER MENSAGEM DE ACESSO NEGADO ANTERIOR ⭐
+        const existingMsg = document.getElementById('acesso-negado-msg');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+        
+        // ⭐ RESETAR ESTADO DO PDF ⭐
+        btnDownloadPdf.style.display = 'none';
+        pdfNaoEncontrado.style.display = 'none';
+        
+        // ⭐ Mostrar loading ou placeholder
         conteudoPrincipal.style.display = 'block';
         
-        // Verificar PDF
-        await verificarPdf(auditoriaCodigo);
+        // ⭐ Esconder seção de fundamentos inicialmente (só mostra se autorizado)
+        const fundamentosSection = document.querySelector('.fundamentos-section');
+        if (fundamentosSection) {
+            fundamentosSection.style.display = 'none';
+        }
         
-        // Carregar fundamentos
-        await carregarFundamentos(auditoriaId);
+        // ⭐ VERIFICAR PERMISSÃO ⭐
+        const autorizado = await verificarPermissaoAuditoria(auditoriaId);
+        
+        // Se NÃO for autorizado, mostrar mensagem de acesso negado
+        if (!autorizado && !isAdmin) {
+            // Esconder seção de fundamentos completamente
+            if (fundamentosSection) fundamentosSection.style.display = 'none';
+            
+            // Manter PDF oculto
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'none';
+            
+            // Mostrar mensagem de acesso negado na área de conteúdo
+            const pdfSection = document.querySelector('.pdf-section');
+            if (pdfSection) {
+                let msgDiv = document.getElementById('acesso-negado-msg');
+                if (!msgDiv) {
+                    msgDiv = document.createElement('div');
+                    msgDiv.id = 'acesso-negado-msg';
+                    msgDiv.className = 'alert-error';
+                    msgDiv.style.marginTop = '20px';
+                    msgDiv.innerHTML = `
+                        <i class="fas fa-lock"></i> 
+                        <strong>Acesso negado!</strong><br>
+                        Você não tem permissão para visualizar os fundamentos desta auditoria.
+                        Apenas o gestor responsável e administradores têm acesso.
+                    `;
+                    pdfSection.insertAdjacentElement('afterend', msgDiv);
+                }
+            }
+            return; // Sai da função, não carrega fundamentos
+        }
+        
+        // Se tem permissão, carregar PDF
+        if (permissoes.podeBaixarPDF) {
+            await verificarPdf(auditoriaCodigo);
+        } else {
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'none';
+        }
+        
+        // Carregar fundamentos (se tiver permissão para visualizar)
+        if (permissoes.podeVisualizarFundamentos) {
+            await carregarFundamentos(auditoriaId);
+        }
     }
     
     // ====== EVENTO DE MUDANÇA DE ÁREA ======
     if (filtroAreaSelect) {
         filtroAreaSelect.addEventListener('change', () => {
             const areaId = filtroAreaSelect.value;
+            
+            // ⭐ RESETAR ESTADO DO PDF ⭐
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'none';
+            
+            // Remover mensagem de acesso negado
+            const existingMsg = document.getElementById('acesso-negado-msg');
+            if (existingMsg) {
+                existingMsg.remove();
+            }
+            
             carregarAuditorias(areaId);
             conteudoPrincipal.style.display = 'none';
             auditoriaAtualId = null;
@@ -871,6 +1141,16 @@
     if (filtroAuditoriaSelect) {
         filtroAuditoriaSelect.addEventListener('change', async () => {
             const auditoriaId = filtroAuditoriaSelect.value;
+            
+            // ⭐ RESETAR ESTADO DO PDF ⭐
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'none';
+            
+            // Remover mensagem de acesso negado
+            const existingMsg = document.getElementById('acesso-negado-msg');
+            if (existingMsg) {
+                existingMsg.remove();
+            }
             
             if (!auditoriaId) {
                 conteudoPrincipal.style.display = 'none';
