@@ -3011,6 +3011,67 @@ def api_relatorios_gerar_gerencial():
         print(f"❌ Erro ao gerar relatório: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/relatorios/gerar-parecer', methods=['POST'])
+def api_relatorios_gerar_parecer():
+    """Gera o relatório de Parecer da Auditoria em PDF"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    area_id = data.get('area_id')
+    auditoria_id = data.get('auditoria_id')
+    orientacao = data.get('orientacao', 'RETRATO')
+    
+    if not area_id or not auditoria_id:
+        return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    from logic import gerar_relatorio_parecer_auditoria
+    
+    try:
+        # Buscar nome da área e gestor
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor FROM informacoes_area WHERE id_area = :area_id
+            """)
+            area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
+            
+            if not area_info:
+                return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0] or 'Área sem nome'
+            gestor = area_info[1] or 'Gestor não informado'
+        
+        # ⭐ PEGAR O NOME DO USUÁRIO DA SESSÃO
+        usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Auditor'))
+        
+        # Gerar o PDF (passando o nome do usuário)
+        pdf_bytes = gerar_relatorio_parecer_auditoria(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            auditoria_id=auditoria_id,
+            usuario_nome=usuario_nome,  # ← NOVO PARÂMETRO
+            orientacao=orientacao
+        )
+        
+        # Criar nome do arquivo
+        nome_arquivo = f"parecer_auditoria_{area_nome}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar parecer: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/relatorios/download')
 def api_relatorios_download():
     """Faz o download do relatório PDF gerado"""
@@ -3563,6 +3624,76 @@ def api_anotacoes_excluir(anotacao_id):
 # ============================================================
 # API - DASHBOARD
 # ============================================================
+
+@app.route('/api/dashboard/riscos-etapa-magnitude')
+def api_dashboard_riscos_etapa_magnitude():
+    """Retorna quantidade de riscos de ETAPA por faixa de magnitude
+    Suporta filtros por auditoria_id (única) ou auditoria_ids (múltiplas)
+    """
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        auditoria_ids = request.args.get('auditoria_ids', '')
+        auditoria_id = request.args.get('auditoria_id', '')
+        
+        with engine.connect() as conn:
+            # CASO 1: Múltiplas auditorias
+            if auditoria_ids:
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT 
+                        SUM(CASE WHEN magnitude <= 3 THEN 1 ELSE 0 END) as baixo,
+                        SUM(CASE WHEN magnitude >= 4 AND magnitude <= 7 THEN 1 ELSE 0 END) as medio,
+                        SUM(CASE WHEN magnitude >= 8 AND magnitude <= 11 THEN 1 ELSE 0 END) as alto,
+                        SUM(CASE WHEN magnitude >= 12 THEN 1 ELSE 0 END) as critico
+                    FROM riscos_etapa
+                    WHERE ativo = true
+                    AND auditoria_id IN ({placeholders})
+                """)
+                result = conn.execute(query, params).fetchone()
+            
+            # CASO 2: Uma auditoria específica
+            elif auditoria_id:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN magnitude <= 3 THEN 1 ELSE 0 END) as baixo,
+                        SUM(CASE WHEN magnitude >= 4 AND magnitude <= 7 THEN 1 ELSE 0 END) as medio,
+                        SUM(CASE WHEN magnitude >= 8 AND magnitude <= 11 THEN 1 ELSE 0 END) as alto,
+                        SUM(CASE WHEN magnitude >= 12 THEN 1 ELSE 0 END) as critico
+                    FROM riscos_etapa
+                    WHERE ativo = true
+                    AND auditoria_id = :auditoria_id
+                """)
+                result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+            
+            # CASO 3: Nenhum filtro - todos os riscos de etapa ativos
+            else:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN magnitude <= 3 THEN 1 ELSE 0 END) as baixo,
+                        SUM(CASE WHEN magnitude >= 4 AND magnitude <= 7 THEN 1 ELSE 0 END) as medio,
+                        SUM(CASE WHEN magnitude >= 8 AND magnitude <= 11 THEN 1 ELSE 0 END) as alto,
+                        SUM(CASE WHEN magnitude >= 12 THEN 1 ELSE 0 END) as critico
+                    FROM riscos_etapa
+                    WHERE ativo = true
+                """)
+                result = conn.execute(query).fetchone()
+            
+            return jsonify({
+                'success': True,
+                'baixo': result[0] or 0,
+                'medio': result[1] or 0,
+                'alto': result[2] or 0,
+                'critico': result[3] or 0
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro em /api/dashboard/riscos-etapa-magnitude: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/auditorias/situacao')
 def api_auditorias_situacao():

@@ -212,59 +212,107 @@
 
     <!-- Gráficos -->
     <div class="charts-row">
-        <!-- Gráfico de Riscos por Magnitude -->
+        <!-- Gráfico 1: Riscos dos processos (já existe) -->
         <div class="chart-card">
-            <h3><i class="fas fa-chart-pie"></i> Riscos por Magnitude</h3>
+            <h3><i class="fas fa-exclamation-triangle"></i> Magnitude dos Riscos dos Processos</h3>
             <div class="riscos-magnitude">
+                <div class="riscos-magnitude">
+                    <div class="magnitude-item low">
+                        <div class="magnitude-info">
+                            <span class="magnitude-color"></span>
+                            <span class="magnitude-label">Baixa Exposição (0-3)</span>
+                            <span class="magnitude-value" id="riscos-baixo">0</span>
+                        </div>
+                        <div class="magnitude-bar-container">
+                            <div class="magnitude-bar" id="bar-baixo" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="magnitude-item medium">
+                        <div class="magnitude-info">
+                            <span class="magnitude-color"></span>
+                            <span class="magnitude-label">Sob Observação (4-7)</span>
+                            <span class="magnitude-value" id="riscos-medio">0</span>
+                        </div>
+                        <div class="magnitude-bar-container">
+                            <div class="magnitude-bar" id="bar-medio" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="magnitude-item high">
+                        <div class="magnitude-info">
+                            <span class="magnitude-color"></span>
+                            <span class="magnitude-label">Atenção (8-11)</span>
+                            <span class="magnitude-value" id="riscos-alto">0</span>
+                        </div>
+                        <div class="magnitude-bar-container">
+                            <div class="magnitude-bar" id="bar-alto" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="magnitude-item critical">
+                        <div class="magnitude-info">
+                            <span class="magnitude-color"></span>
+                            <span class="magnitude-label">Crítico (12+)</span>
+                            <span class="magnitude-value" id="riscos-critico">0</span>
+                        </div>
+                        <div class="magnitude-bar-container">
+                            <div class="magnitude-bar" id="bar-critico" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICO 2: Riscos das ETAPAS (NOVO) -->
+        <div class="chart-card">
+            <h3><i class="fas fa-chart-bar"></i> Magnitude dos Riscos das Etapas</h3>
+            <div class="riscos-magnitude-etapa">
                 <div class="magnitude-item low">
                     <div class="magnitude-info">
                         <span class="magnitude-color"></span>
                         <span class="magnitude-label">Baixa Exposição (0-3)</span>
-                        <span class="magnitude-value" id="riscos-baixo">0</span>
+                        <span class="magnitude-value" id="riscos-etapa-baixo">0</span>
                     </div>
                     <div class="magnitude-bar-container">
-                        <div class="magnitude-bar" id="bar-baixo" style="width: 0%;"></div>
+                        <div class="magnitude-bar" id="bar-etapa-baixo" style="width: 0%;"></div>
                     </div>
                 </div>
                 <div class="magnitude-item medium">
                     <div class="magnitude-info">
                         <span class="magnitude-color"></span>
                         <span class="magnitude-label">Sob Observação (4-7)</span>
-                        <span class="magnitude-value" id="riscos-medio">0</span>
+                        <span class="magnitude-value" id="riscos-etapa-medio">0</span>
                     </div>
                     <div class="magnitude-bar-container">
-                        <div class="magnitude-bar" id="bar-medio" style="width: 0%;"></div>
+                        <div class="magnitude-bar" id="bar-etapa-medio" style="width: 0%;"></div>
                     </div>
                 </div>
                 <div class="magnitude-item high">
                     <div class="magnitude-info">
                         <span class="magnitude-color"></span>
                         <span class="magnitude-label">Atenção (8-11)</span>
-                        <span class="magnitude-value" id="riscos-alto">0</span>
+                        <span class="magnitude-value" id="riscos-etapa-alto">0</span>
                     </div>
                     <div class="magnitude-bar-container">
-                        <div class="magnitude-bar" id="bar-alto" style="width: 0%;"></div>
+                        <div class="magnitude-bar" id="bar-etapa-alto" style="width: 0%;"></div>
                     </div>
                 </div>
                 <div class="magnitude-item critical">
                     <div class="magnitude-info">
                         <span class="magnitude-color"></span>
                         <span class="magnitude-label">Crítico (12+)</span>
-                        <span class="magnitude-value" id="riscos-critico">0</span>
+                        <span class="magnitude-value" id="riscos-etapa-critico">0</span>
                     </div>
                     <div class="magnitude-bar-container">
-                        <div class="magnitude-bar" id="bar-critico" style="width: 0%;"></div>
+                        <div class="magnitude-bar" id="bar-etapa-critico" style="width: 0%;"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Gráfico de Situação das Auditorias -->
+        <!-- Gráfico 3: Situação das Auditorias (já existe) -->
         <div class="chart-card">
             <h3><i class="fas fa-chart-pie"></i> Situação das Auditorias</h3>
             <canvas id="situacaoAuditoriasChart" width="400" height="300" style="max-height: 300px; width: 100%;"></canvas>
         </div>
-
     </div>
 
     <!-- Top Áreas -->
@@ -473,7 +521,7 @@
     /* Charts Row */
     .charts-row {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
         margin-bottom: 25px;
     }
@@ -1257,6 +1305,51 @@
         }
     }
 
+    // ====== CARREGAR RISCOS DE ETAPA POR MAGNITUDE ======
+    async function carregarRiscosEtapaPorMagnitude() {
+        try {
+            const url = await montarUrlComFiltrosCentralizada('/api/dashboard/riscos-etapa-magnitude');
+            
+            if (url === null) {
+                document.getElementById('riscos-etapa-baixo').textContent = '0';
+                document.getElementById('riscos-etapa-medio').textContent = '0';
+                document.getElementById('riscos-etapa-alto').textContent = '0';
+                document.getElementById('riscos-etapa-critico').textContent = '0';
+                document.getElementById('bar-etapa-baixo').style.width = '0%';
+                document.getElementById('bar-etapa-medio').style.width = '0%';
+                document.getElementById('bar-etapa-alto').style.width = '0%';
+                document.getElementById('bar-etapa-critico').style.width = '0%';
+                return;
+            }
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('riscos-etapa-baixo').textContent = data.baixo;
+                document.getElementById('riscos-etapa-medio').textContent = data.medio;
+                document.getElementById('riscos-etapa-alto').textContent = data.alto;
+                document.getElementById('riscos-etapa-critico').textContent = data.critico;
+                
+                const total = data.baixo + data.medio + data.alto + data.critico;
+                
+                if (total > 0) {
+                    document.getElementById('bar-etapa-baixo').style.width = `${(data.baixo / total) * 100}%`;
+                    document.getElementById('bar-etapa-medio').style.width = `${(data.medio / total) * 100}%`;
+                    document.getElementById('bar-etapa-alto').style.width = `${(data.alto / total) * 100}%`;
+                    document.getElementById('bar-etapa-critico').style.width = `${(data.critico / total) * 100}%`;
+                } else {
+                    document.getElementById('bar-etapa-baixo').style.width = '0%';
+                    document.getElementById('bar-etapa-medio').style.width = '0%';
+                    document.getElementById('bar-etapa-alto').style.width = '0%';
+                    document.getElementById('bar-etapa-critico').style.width = '0%';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar riscos de etapa:', error);
+        }
+    }
+
     // ====== CARREGAR TOP ÁREAS ======
     async function carregarTopAreas() {
         try {
@@ -1392,6 +1485,7 @@
             carregarTotalAuditorias(),
             carregarProcessosDetalhados(),
             carregarRiscosPorMagnitude(),
+            carregarRiscosEtapaPorMagnitude(),
             carregarSituacaoAuditorias(),
             carregarResumoRiscosProcessos()
         ]);

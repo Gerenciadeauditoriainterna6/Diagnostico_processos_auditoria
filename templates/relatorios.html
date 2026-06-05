@@ -13,8 +13,8 @@
     <div class="form-section">
         <div class="section-header">
             <div>
-                <h3>Relatório de Validação (Matrizes Panorama e Detalhamento)</h3>
-                <p class="section-desc">Consolida o diagnóstico dos processos para validação do gestor</p>
+                <h3>Gerar Relatórios</h3>
+                <p class="section-desc">Selecione o tipo de relatório desejado</p>
             </div>
         </div>
         
@@ -29,6 +29,17 @@
                 <label><i class="fas fa-clipboard-list"></i> Auditoria:</label>
                 <select id="auditoria_relatorio" class="form-control" disabled>
                     <option value="">Primeiro selecione uma área...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tipo de Relatório -->
+        <div class="form-row">
+            <div class="form-group">
+                <label><i class="fas fa-file-pdf"></i> Tipo de Relatório:</label>
+                <select id="tipo_relatorio" class="form-control">
+                    <option value="gerencial">Relatório de Validação (Matrizes Panorama e Detalhamento)</option>
+                    <option value="parecer">Parecer da Auditoria (Análises Críticas)</option>
                 </select>
             </div>
         </div>
@@ -417,6 +428,24 @@
     .alert-error i {
         margin-right: 8px;
     }
+
+    /* Estilo para o select de tipo de relatório */
+    #tipo_relatorio {
+        background-color: white;
+        font-weight: 500;
+    }
+
+    #tipo_relatorio option {
+        padding: 10px;
+    }
+
+    #tipo_relatorio option[value="gerencial"] {
+        color: #184145;
+    }
+
+    #tipo_relatorio option[value="parecer"] {
+        color: #0b5b99;
+    }
     
 </style>
 
@@ -507,6 +536,100 @@
         }
     }
 
+    async function gerarRelatorio() {
+        const selectArea = document.getElementById('area_relatorio');
+        const selectAuditoria = document.getElementById('auditoria_relatorio');
+        const orientacaoSelecionada = document.querySelector('input[name="orientacao"]:checked');
+        const selectTipo = document.getElementById('tipo_relatorio');
+
+        const areaId = selectArea?.value;
+        const auditoriaId = selectAuditoria?.value;
+        const orientacao = orientacaoSelecionada?.value || 'RETRATO';
+        const tipoRelatorio = selectTipo?.value || 'gerencial';
+
+        if (!areaId || !auditoriaId) {
+            mostrarToast('Selecione a área e a auditoria primeiro', 'warning');
+            return;
+        }
+
+        const btnGerar = document.getElementById('btn-gerar-relatorio');
+        const textoOriginal = btnGerar?.innerHTML;
+        const btnLoading = btnGerar?.querySelector('.btn-loading');
+
+        if (btnGerar) {
+            btnGerar.disabled = true;
+            btnGerar.querySelector('i')?.classList.add('d-none');
+            if (btnLoading) btnLoading.style.display = 'inline-flex';
+        }
+
+        // ⭐ Definir a URL baseada no tipo de relatório
+        let url = '';
+        let nomeBase = '';
+        
+        if (tipoRelatorio === 'gerencial') {
+            url = '/api/relatorios/gerar-gerencial';
+            nomeBase = 'relatorio_gerencial';
+        } else if (tipoRelatorio === 'parecer') {
+            url = '/api/relatorios/gerar-parecer';
+            nomeBase = 'parecer_auditoria';
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    area_id: areaId,
+                    auditoria_id: auditoriaId,
+                    orientacao: orientacao
+                })
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let nomeArquivo = `${nomeBase}.pdf`;
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match && match[1]) {
+                        nomeArquivo = match[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                a.download = nomeArquivo;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                const resultadoDiv = document.getElementById('resultado-relatorio');
+                if (resultadoDiv) {
+                    resultadoDiv.style.display = 'block';
+                    setTimeout(() => {
+                        resultadoDiv.style.opacity = '1';
+                    }, 10);
+                }
+                mostrarToast('✅ Relatório gerado e baixado com sucesso!', 'success');
+            } else {
+                const error = await response.json();
+                mostrarToast('❌ Erro: ' + (error.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+        } finally {
+            if (btnGerar) {
+                btnGerar.disabled = false;
+                btnGerar.querySelector('i')?.classList.remove('d-none');
+                if (btnLoading) btnLoading.style.display = 'none';
+            }
+        }
+    }
+
     async function carregarAuditoriasPorArea(areaId) {
         const selectAuditoria = document.getElementById('auditoria_relatorio');
         const infoBox = document.getElementById('info-box');
@@ -561,85 +684,6 @@
         });
     }
 
-    async function gerarRelatorio() {
-        const selectArea = document.getElementById('area_relatorio');
-        const selectAuditoria = document.getElementById('auditoria_relatorio');
-        const orientacaoSelecionada = document.querySelector('input[name="orientacao"]:checked');
-
-        const areaId = selectArea?.value;
-        const auditoriaId = selectAuditoria?.value;
-        const orientacao = orientacaoSelecionada?.value || 'RETRATO';
-
-        if (!areaId || !auditoriaId) {
-            mostrarToast('Selecione a área e a auditoria primeiro', 'warning');
-            return;
-        }
-
-        const btnGerar = document.getElementById('btn-gerar-relatorio');
-        const textoOriginal = btnGerar?.innerHTML;
-        const btnLoading = btnGerar?.querySelector('.btn-loading');
-
-        if (btnGerar) {
-            btnGerar.disabled = true;
-            btnGerar.querySelector('i')?.classList.add('d-none');
-            if (btnLoading) btnLoading.style.display = 'inline-flex';
-        }
-
-        try {
-            const response = await fetch('/api/relatorios/gerar-gerencial', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    area_id: areaId,
-                    auditoria_id: auditoriaId,
-                    orientacao: orientacao
-                })
-            });
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let nomeArquivo = 'relatorio_gerencial.pdf';
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                    if (match && match[1]) {
-                        nomeArquivo = match[1].replace(/['"]/g, '');
-                    }
-                }
-                
-                a.download = nomeArquivo;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                const resultadoDiv = document.getElementById('resultado-relatorio');
-                if (resultadoDiv) {
-                    resultadoDiv.style.display = 'block';
-                    setTimeout(() => {
-                        resultadoDiv.style.opacity = '1';
-                    }, 10);
-                }
-                mostrarToast('✅ Relatório gerado e baixado com sucesso!', 'success');
-            } else {
-                const error = await response.json();
-                mostrarToast('❌ Erro: ' + (error.error || 'Erro desconhecido'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
-        } finally {
-            if (btnGerar) {
-                btnGerar.disabled = false;
-                btnGerar.querySelector('i')?.classList.remove('d-none');
-                if (btnLoading) btnLoading.style.display = 'none';
-            }
-        }
-    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         console.log('🚀 Página de relatórios carregada');

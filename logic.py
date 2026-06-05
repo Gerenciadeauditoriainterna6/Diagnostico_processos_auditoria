@@ -3407,10 +3407,10 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 codigo_auditoria = result_aud[0]
     
     # Informações
-    story.append(Paragraph(f"<b>Auditoria:</b> {codigo_auditoria}", normal_style))
-    story.append(Paragraph(f"<b>Área:</b> {area_nome}", normal_style))
-    story.append(Paragraph(f"<b>Gestor Responsável:</b> {gestor}", normal_style))
-    story.append(Paragraph(f"<b>Data de Geração:</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
+    story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
+    story.append(Paragraph(f"Área: {area_nome}", normal_style))
+    story.append(Paragraph(f"Gestor Responsável: {gestor}", normal_style))
+    story.append(Paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
     # ===== BUSCAR PROCESSOS (CORRIGIDO - SEM auditoria_processos) =====
@@ -3442,16 +3442,16 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     if df.empty:
         story.append(Paragraph("Nenhum processo encontrado para esta área.", normal_style))
     else:
-        story.append(Paragraph(f"<b>Quantidade de Riscos identificados:</b> {total_riscos}", normal_style))
+        story.append(Paragraph(f"Quantidade de Riscos identificados: {total_riscos}", normal_style))
         story.append(Spacer(1, 20))
-        story.append(Paragraph("<b>Processos e Riscos Identificados</b>", styles['Heading2']))
+        story.append(Paragraph("Processos e Riscos Identificados", styles['Heading2']))
         story.append(Spacer(1, 10))
         
         data = [[
-            Paragraph("<b>Código</b>", normal_style),
-            Paragraph("<b>Processo</b>", normal_style),
-            Paragraph("<b>Risco Identificado</b>", normal_style),
-            Paragraph("<b>Risco Bruto</b>", normal_style)
+            Paragraph("Código", normal_style),
+            Paragraph("Processo", normal_style),
+            Paragraph("Risco Identificado", normal_style),
+            Paragraph("Risco Bruto", normal_style)
         ]]
         
         for _, row in df.iterrows():
@@ -3468,7 +3468,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 
                 cor_risco, _ = get_estilo_risco(score)
                 texto_score = str(int(score)) if score is not None else "-"
-                risco_bruto = Paragraph(f'<font color="{cor_risco}"><b>{texto_score}</b></font>', normal_style)
+                risco_bruto = Paragraph(f'<font color="{cor_risco}">{texto_score}</font>', normal_style)
             else:
                 risco_nome = Paragraph("<i>Nenhum risco cadastrado</i>", normal_style)
                 risco_bruto = Paragraph("0", normal_style)
@@ -3505,7 +3505,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         story.append(PageBreak())
         
         # Título da seção
-        story.append(Paragraph("<b>Detalhamento dos Processos</b>", styles['Heading1']))
+        story.append(Paragraph("Detalhamento dos Processos", styles['Heading1']))
         story.append(Spacer(1, 15))
         
         # Estilo para box de processo
@@ -3579,13 +3579,13 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             
             # ===== CABEÇALHO DO PROCESSO =====
             story.append(Paragraph(
-                f"<b>Processo: {proc_codigo} - {proc_nome}</b>",
+                f"Processo: {proc_codigo} - {proc_nome}",
                 styles['Heading2']
             ))
             story.append(Spacer(1, 5))
             
             # Objetivo do processo
-            story.append(Paragraph(f"<b>Objetivo:</b> {proc_objetivo}", normal_style))
+            story.append(Paragraph(f"Objetivo: {proc_objetivo}", normal_style))
             story.append(Spacer(1, 12))
             
             # Buscar etapas (não precisa de auditoria, já está ligado ao processo)
@@ -3603,7 +3603,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 story.append(Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style))
                 continue
             
-            story.append(Paragraph("<b>Etapas do Processo:</b>", styles['Heading3']))
+            story.append(Paragraph("Etapas do Processo:", styles['Heading3']))
             story.append(Spacer(1, 5))
             
             for etapa_idx, etapa in enumerate(etapas):
@@ -3617,7 +3617,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 
                 # Box da etapa
                 etapa_header = Paragraph(
-                    f"<b>Etapa {etapa_codigo}: {etapa_nome}</b>", 
+                    f"Etapa {etapa_codigo}: {etapa_nome}", 
                     etapa_header_style
                 )
                 
@@ -3643,10 +3643,10 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 if riscos_etapa:
                     # Montar tabela de riscos
                     riscos_todas = [[
-                        Paragraph("<b>Risco</b>", normal_style),
-                        Paragraph("<b>Impacto</b>", normal_style),
-                        Paragraph("<b>Prob.</b>", normal_style),
-                        Paragraph("<b>Score</b>", normal_style),
+                        Paragraph("Risco", normal_style),
+                        Paragraph("Impacto", normal_style),
+                        Paragraph("Prob.", normal_style),
+                        Paragraph("Score", normal_style),
                     ]]
                     
                     for r in riscos_etapa:
@@ -3659,7 +3659,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                             Paragraph(str(r[0]) if r[0] else "-", normal_style),
                             Paragraph(impacto, normal_style),
                             Paragraph(probabilidade, normal_style),
-                            Paragraph(f'<font color="{cor_risco}"><b>{score}</b></font>', normal_style),
+                            Paragraph(f'<font color="{cor_risco}">{score}</font>', normal_style),
                         ])
                     
                     tabela_riscos = Table(riscos_todas, colWidths=[6*cm, 3*cm, 3*cm, 3*cm])
@@ -3673,7 +3673,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
                     ]))
                     
-                    etapa_conteudo.append([Paragraph("<b>Riscos:</b>", sub_header_style)])
+                    etapa_conteudo.append([Paragraph("Riscos:", sub_header_style)])
                     etapa_conteudo.append([tabela_riscos])
                 else:
                     etapa_conteudo.append([Paragraph("<i>Nenhum risco cadastrado.</i>", normal_style)])
@@ -3693,9 +3693,9 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 
                 if controles_etapa:
                     controles_todas = [[
-                        Paragraph("<b>Controle</b>", normal_style),
-                        Paragraph("<b>Como Executado</b>", normal_style),
-                        Paragraph("<b>Natureza</b>", normal_style),
+                        Paragraph("Controle", normal_style),
+                        Paragraph("Como Executado", normal_style),
+                        Paragraph("Natureza", normal_style),
                     ]]
                     
                     for c in controles_etapa:
@@ -3716,7 +3716,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
                     ]))
                     
-                    etapa_conteudo.append([Paragraph("<b>Controles:</b>", sub_header_style)])
+                    etapa_conteudo.append([Paragraph("Controles:", sub_header_style)])
                     etapa_conteudo.append([tabela_controles])
                 
                 # Montar tabela da etapa
@@ -3741,7 +3741,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(PageBreak())
     
     # ===== PÁGINA DE VALIDAÇÃO DO GESTOR =====
-    story.append(Paragraph("<b>Validação do Gestor</b>", styles['Heading1']))
+    story.append(Paragraph("Validação do Gestor", styles['Heading1']))
     story.append(Spacer(1, 30))
     story.append(Paragraph(
         "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
@@ -3749,11 +3749,11 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         normal_style
     ))
     story.append(Spacer(1, 50))
-    story.append(Paragraph(f"<b>Gestor:</b> {gestor}", normal_style))
+    story.append(Paragraph(f"Gestor: {gestor}", normal_style))
     story.append(Spacer(1, 20))
-    story.append(Paragraph("<b>Data:</b> ___/___/_______", normal_style))
+    story.append(Paragraph("Data: ___/___/_______", normal_style))
     story.append(Spacer(1, 20))
-    story.append(Paragraph("<b>Assinatura:</b> ________________________________", normal_style))
+    story.append(Paragraph("Assinatura: ________________________________", normal_style))
     
     # ===== RODAPÉ EM TODAS AS PÁGINAS =====
     def rodape(canvas, doc):
@@ -3859,3 +3859,239 @@ def limpar_binario(dados):
     )
     return texto
 
+def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, usuario_nome='Auditor', orientacao="RETRATO"):
+    """
+    Gera relatório de Parecer da Auditoria usando ReportLab (sem instalação extra)
+    """
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    import io
+    import os
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    buffer = io.BytesIO()
+    
+    # Definir orientação
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+    else:
+        pagesize = A4
+    
+    doc = SimpleDocTemplate(buffer, pagesize=pagesize,
+                           topMargin=1.5*cm, bottomMargin=2*cm,
+                           leftMargin=2*cm, rightMargin=2*cm)
+    
+    styles = getSampleStyleSheet()
+    
+    # Estilos melhorados
+    titulo_style = ParagraphStyle(
+        'CustomTitle', parent=styles['Heading1'],
+        fontSize=16, alignment=1, spaceAfter=20,
+        textColor=colors.HexColor('#0b5b99')
+    )
+    
+    subtitulo_style = ParagraphStyle(
+        'SubTitle', parent=styles['Heading2'],
+        fontSize=12, alignment=1, spaceAfter=15,
+        textColor=colors.HexColor('#555555')
+    )
+    
+    secao_style = ParagraphStyle(
+        'SecaoStyle', parent=styles['Heading2'],
+        fontSize=14, spaceAfter=10, spaceBefore=15,
+        textColor=colors.HexColor('#184145')
+    )
+    
+    normal_style = styles['Normal']
+    normal_style.fontSize = 9
+    
+    story = []
+    
+    # ===== BUSCAR DADOS =====
+    with engine.connect() as conn:
+        query_auditoria = text("""
+            SELECT codigo_auditoria, titulo, data_inicio, data_fim, status, trimestre, ano
+            FROM auditorias WHERE id = :auditoria_id
+        """)
+        auditoria_info = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+        
+        if not auditoria_info:
+            raise Exception(f"Auditoria não encontrada")
+        
+        codigo_auditoria = auditoria_info[0]
+        titulo_auditoria = auditoria_info[1]
+        data_inicio = auditoria_info[2]
+        data_fim = auditoria_info[3]
+        trimestre = auditoria_info[5]
+        ano = auditoria_info[6]
+    
+    # ===== TÍTULO =====
+    story.append(Paragraph("PARECER DA AUDITORIA INTERNA", titulo_style))
+    story.append(Spacer(1, 5))
+    
+    # ===== INFORMAÇÕES EM TABELA =====
+    info_data = [
+        ["Código:", codigo_auditoria],
+        ["Título:", titulo_auditoria],
+        ["Área:", area_nome],
+        ["Gestor:", gestor],
+        ["Período:", f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}"],
+        ["Data Emissão:", datetime.now().strftime('%d/%m/%Y')],
+    ]
+    
+    info_table = Table(info_data, colWidths=[4*cm, 12*cm])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 20))
+    
+    # ===== PROCESSOS =====
+    query_processos = text("""
+        SELECT p.id, p.codigo_processo, p.nome_processo
+        FROM processos p
+        WHERE p.auditoria_id = :auditoria_id AND p.id_area = :area_id AND p.status = 'Ativo'
+        ORDER BY string_to_array(p.codigo_processo, '.')::int[]
+    """)
+    
+    with engine.connect() as conn:
+        processos_raw = conn.execute(query_processos, {"area_id": area_id, "auditoria_id": auditoria_id}).fetchall()
+        
+        for proc_idx, proc in enumerate(processos_raw):
+            proc_id = proc[0]
+            proc_codigo = proc[1]
+            proc_nome = proc[2]
+            
+            # Cabeçalho do processo
+            story.append(Paragraph(f"PROCESSO {proc_codigo}: {proc_nome}", secao_style))
+            story.append(Spacer(1, 5))
+            
+            # Buscar etapas
+            query_etapas = text("SELECT id, nome_etapa, codigo_etapa FROM etapas_processo WHERE processo_id = :processo_id ORDER BY codigo_etapa")
+            etapas_raw = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
+            
+            for etapa in etapas_raw:
+                etapa_id = etapa[0]
+                etapa_nome = etapa[1]
+                etapa_codigo = etapa[2] or ''
+                
+                story.append(Paragraph(f"Etapa {etapa_codigo}: {etapa_nome}", styles['Heading3']))
+                story.append(Spacer(1, 3))
+                
+                # Buscar análises
+                query_analises = text("""
+                    SELECT tipo_analise, categoria, analise_critica, sugestao_melhoria, necessidade_implantacao, ganho_previsto
+                    FROM analises_criticas WHERE etapa_id = :etapa_id
+                    ORDER BY tipo_analise, categoria
+                """)
+                analises = conn.execute(query_analises, {"etapa_id": etapa_id}).fetchall()
+                
+                if not analises:
+                    story.append(Paragraph("<i>Nenhuma análise cadastrada.</i>", normal_style))
+                    story.append(Spacer(1, 5))
+                    continue
+                
+                # Separar por tipo
+                for tipo in ['entrevistado', 'auditor']:
+                    tipo_nome = "ANÁLISE DO AUDITADO" if tipo == 'entrevistado' else "ANÁLISE DO AUDITOR"
+                    cor_fundo = colors.HexColor('#FFF8E7') if tipo == 'entrevistado' else colors.HexColor('#E8F4F8')
+                    
+                    analises_tipo = [a for a in analises if a[0] == tipo]
+                    if analises_tipo:
+                        story.append(Paragraph(f"{tipo_nome}", styles['Heading4']))
+                        
+                        for a in analises_tipo:
+                            categoria = a[1]
+                            dados = []
+                            
+                            if a[2]:
+                                dados.append([Paragraph("Análise Crítica:", normal_style), Paragraph(a[2], normal_style)])
+                            if a[3]:
+                                dados.append([Paragraph("Sugestão de Melhoria:", normal_style), Paragraph(a[3], normal_style)])
+                            if a[4]:
+                                dados.append([Paragraph("Necessidade para Implantação:", normal_style), Paragraph(a[4], normal_style)])
+                            if a[5]:
+                                dados.append([Paragraph("Ganho Previsto:", normal_style), Paragraph(a[5], normal_style)])
+                            
+                            if dados:
+                                tabela_analise = Table(dados, colWidths=[4*cm, 11*cm])
+                                tabela_analise.setStyle(TableStyle([
+                                    ('BACKGROUND', (0, 0), (-1, -1), cor_fundo),
+                                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                                ]))
+                                story.append(tabela_analise)
+                                story.append(Spacer(1, 5))
+                
+                story.append(Spacer(1, 8))
+            
+            if proc_idx < len(processos_raw) - 1:
+                story.append(PageBreak())
+    
+    # ===== CONCLUSÃO =====
+    story.append(PageBreak())
+    story.append(Paragraph("CONCLUSÃO E RECOMENDAÇÕES", titulo_style))
+    story.append(Spacer(1, 15))
+    story.append(Paragraph("Com base nas análises críticas realizadas, este parecer consolida as principais observações.", normal_style))
+    story.append(Spacer(1, 20))
+    
+    for i in range(5):
+        story.append(Paragraph(f"Recomendação {i+1}: _________________________________________________", normal_style))
+        story.append(Spacer(1, 15))
+    
+    # Várias linhas para o auditor escrever
+    story.append(Paragraph("<b>Conclusão Final do Auditor:</b>", normal_style))
+    story.append(Spacer(1, 5))
+
+    # Criar várias linhas em branco
+    for i in range(10):  # 15 linhas em branco
+        story.append(Paragraph("________________________________________________________________________________", normal_style))
+        story.append(Spacer(1, 8))
+    
+    story.append(Spacer(1, 30))
+    
+    # Assinaturas
+    assinatura_data = [
+        ["", ""],
+        ["Auditor Responsável:", usuario_nome],
+        ["Data:", datetime.now().strftime('%d/%m/%Y')],
+        ["Assinatura:", "_________________________"],
+        ["", ""],
+        ["Ciência do Gestor:", ""],
+        ["Gestor:", gestor],
+        ["Data:", "___/___/_______"],
+        ["Assinatura:", "_________________________"],
+    ]
+    
+    tabela_assinaturas = Table(assinatura_data, colWidths=[5*cm, 10*cm])
+    tabela_assinaturas.setStyle(TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FAFAFA')),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#E0E0E0')),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(tabela_assinaturas)
+    
+    # ===== RODAPÉ =====
+    def rodape(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#999999'))
+        canvas.drawCentredString(pagesize[0]/2, 1*cm, f"Parecer da Auditoria - Página {doc.page}")
+        canvas.restoreState()
+    
+    doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
+    buffer.seek(0)
+    return buffer.getvalue()

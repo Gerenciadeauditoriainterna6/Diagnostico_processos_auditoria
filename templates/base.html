@@ -1457,20 +1457,22 @@
                         </a>
                     </div>
                     <div class="submenu" id="detalhamentoSubmenu">
+                        <!-- NOVO: Processos Detalhados (página principal) -->
+                        <a href="{{ url_for('detalhamento') }}" class="submenu-item submenu-visao">
+                            <i class="fas fa-project-diagram"></i>
+                            <span>Detalhamento dos Processos</span>
+                        </a>
+                        <!-- Riscos das Etapas -->
                         <a href="{{ url_for('detalhamento_riscos') }}" class="submenu-item submenu-riscos">
                             <i class="fas fa-exclamation-triangle"></i>
                             <span>Riscos das Etapas</span>
                         </a>
+                        <!-- Controles das Etapas -->
                         <a href="{{ url_for('detalhamento_controles') }}" class="submenu-item submenu-controles">
                             <i class="fas fa-shield-alt"></i>
                             <span>Controles das Etapas</span>
                         </a>
                     </div>
-
-                        <a href="{{ url_for('checklists') }}" class="nav-item">
-                            <i class="fas fa-list-check"></i>
-                            <span>Matriz de Eficácia</span>
-                        </a>
                 </div>
 
                 <!-- SEÇÃO 3: COMUNICAÇÃO -->
@@ -1654,42 +1656,8 @@
             
             // Estado inicial
             updateSidebarState();
-
-            function atualizarIconesMenuPai() {
-                const currentUrl = window.location.pathname;
-                
-                // Configuração: URL do submenu → ID do toggle do menu pai
-                const submenuParaMenuPai = {
-                    '/detalhamento_riscos': 'toggleDetalhamentoSubmenu',
-                    '/detalhamento_controles': 'toggleDetalhamentoSubmenu',
-                    '/visao-geral': 'toggleDiagnosticoSubmenu'
-                };
-                
-                // Remover active de todos primeiro
-                document.querySelectorAll('.nav-item-parent .nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                
-                // Verificar cada submenu
-                for (const [urlSubmenu, toggleId] of Object.entries(submenuParaMenuPai)) {
-                    if (currentUrl.includes(urlSubmenu)) {
-                        const parentToggle = document.getElementById(toggleId);
-                        if (parentToggle) {
-                            parentToggle.classList.add('active');
-                            console.log('✅ Ícone do menu pai ativado:', toggleId);
-                        }
-                    }
-                }
-            }
-            atualizarIconesMenuPai();
-
-            // Reaplicar sempre que a sidebar mudar de estado
-            const sidebarObserver = new MutationObserver(() => atualizarIconesMenuPai());
-            sidebarObserver.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
             
         })();
-
-        
 
 
 
@@ -1746,63 +1714,92 @@
             });
         })();
 
-        // ====== DESTACAR ITEM ATIVO DO MENU (VERSÃO CORRIGIDA - APENAS SUBMENU) ======
-        (function() {
-            const currentUrl = window.location.pathname;
-            const allLinks = document.querySelectorAll('.nav-item, .submenu-item');
-            
-            // Lista de URLs que são "página principal" (não devem ativar submenus)
-            const mainPageUrls = ['/detalhamento', '/diagnostico'];
-            
-            allLinks.forEach(link => {
-
-                
-                const linkUrl = link.getAttribute('href');
-                if (!linkUrl || linkUrl === '#') return;
-                
-                // Verificar se é um link de submenu (está dentro de um submenu)
-                const isSubmenuItem = link.closest('.submenu') !== null;
-                
-                if (isSubmenuItem) {
-                    // Para submenu items: verifica se a URL atual contém o link do submenu
-                    if (currentUrl.includes(linkUrl)) {
-                        link.classList.add('active');
-
-                        const parentNavItem = link.closest('.nav-item-parent')?.querySelector('.nav-item');
-                        if (parentNavItem) {
-                            parentNavItem.classList.add('active');
-                        }
-                        
-                        // Mostrar o submenu pai
-                        const parentSubmenu = link.closest('.submenu');
-                        if (parentSubmenu) {
-                            parentSubmenu.classList.add('show');
-                            const parentToggle = parentSubmenu.previousElementSibling;
-                            if (parentToggle && parentToggle.querySelector('.submenu-arrow')) {
-                                parentToggle.querySelector('.submenu-arrow').classList.add('open');
-                            }
-                        }
-                        
-                    }
-                } else {
-                    // Para itens principais: SÓ marca como ativo se a URL for exatamente igual
-                    // E também não marca se for uma URL que tem submenu (exceto a página principal)
-                    const isMainPage = mainPageUrls.includes(linkUrl);
+                // ====== DESTACAR ITEM ATIVO DO MENU ======
+                (function() {
+                    const currentUrl = window.location.pathname;
                     
-                    if (isMainPage) {
-                        // Para páginas principais, marca apenas se for exatamente igual
-                        if (currentUrl === linkUrl) {
-                            link.classList.add('active');
+                    // Passo 1: Remover TODAS as classes 'active' de todos os itens
+                    document.querySelectorAll('.nav-item, .submenu-item').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    
+                    // Passo 2: Fechar todos os submenus primeiro
+                    document.querySelectorAll('.submenu').forEach(submenu => {
+                        submenu.classList.remove('show');
+                    });
+                    
+                    // Passo 3: Remover a classe 'open' de todas as setas
+                    document.querySelectorAll('.submenu-arrow').forEach(arrow => {
+                        arrow.classList.remove('open');
+                    });
+                    
+                    // ===== LÓGICA PARA MATRIZ DE DETALHAMENTO =====
+                    const urlsDetalhamento = ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles'];
+                    const isInDetalhamento = urlsDetalhamento.includes(currentUrl);
+                    
+                    if (isInDetalhamento) {
+                        // Marcar o item pai "Matriz de Detalhamento"
+                        const parentItem = document.getElementById('toggleDetalhamentoSubmenu');
+                        if (parentItem) {
+                            parentItem.classList.add('active');
                         }
-                    } else {
-                        // Para outros itens (sem submenu), mantém o comportamento original
-                        if (currentUrl.includes(linkUrl)) {
-                            link.classList.add('active');
+                        
+                        // Abrir o submenu
+                        const submenu = document.getElementById('detalhamentoSubmenu');
+                        if (submenu) {
+                            submenu.classList.add('show');
+                            const arrow = parentItem?.querySelector('.submenu-arrow');
+                            if (arrow) arrow.classList.add('open');
+                        }
+                        
+                        // Marcar o submenu específico baseado na URL
+                        if (currentUrl === '/detalhamento') {
+                            const submenuItem = document.querySelector('#detalhamentoSubmenu .submenu-visao');
+                            if (submenuItem) submenuItem.classList.add('active');
+                        } else if (currentUrl === '/detalhamento_riscos') {
+                            const submenuItem = document.querySelector('#detalhamentoSubmenu .submenu-riscos');
+                            if (submenuItem) submenuItem.classList.add('active');
+                        } else if (currentUrl === '/detalhamento_controles') {
+                            const submenuItem = document.querySelector('#detalhamentoSubmenu .submenu-controles');
+                            if (submenuItem) submenuItem.classList.add('active');
                         }
                     }
-                }
-            });
-        })();
+                    
+                    // ===== LÓGICA PARA MATRIZ DE PANORAMA =====
+                    const isInDiagnostico = currentUrl === '/diagnostico';
+                    const isInVisaoGeral = currentUrl === '/visao-geral';
+                    
+                    if (isInDiagnostico) {
+                        // Apenas marcar o item pai, NÃO marcar Visão Geral
+                        const parentItem = document.getElementById('toggleDiagnosticoSubmenu');
+                        if (parentItem) {
+                            parentItem.classList.add('active');
+                        }
+                        
+                        // NÃO abrir o submenu (diferente do detalhamento)
+                        // NÃO marcar Visão Geral
+                    }
+                    
+                    if (isInVisaoGeral) {
+                        // Marcar o item pai
+                        const parentItem = document.getElementById('toggleDiagnosticoSubmenu');
+                        if (parentItem) {
+                            parentItem.classList.add('active');
+                        }
+                        
+                        // Abrir o submenu
+                        const submenu = document.getElementById('diagnosticoSubmenu');
+                        if (submenu) {
+                            submenu.classList.add('show');
+                            const arrow = parentItem?.querySelector('.submenu-arrow');
+                            if (arrow) arrow.classList.add('open');
+                        }
+                        
+                        // Marcar Visão Geral
+                        const submenuItem = document.querySelector('#diagnosticoSubmenu .submenu-visao');
+                        if (submenuItem) submenuItem.classList.add('active');
+                    }
+                })();
         
 
         // ====== REDIMENSIONAR O SIDEBAR ======
