@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastro de Auditorias - Sistema de Auditoria Interna{% endblock %}
+
+{% block content %}
+<div class="auditorias-container">
+    <div class="page-header">
+        <h1><i class="fas fa-cube"></i> Cadastro de Auditorias</h1>
+        <p>Gerencie as auditorias realizadas por área</p>
+    </div>
+
+    <!-- Botão para Nova Auditoria -->
+    <div class="toolbar">
+        <button id="btn-nova-auditoria" class="btn-primary">
+            <i class="fas fa-plus"></i> Nova Auditoria
+        </button>
+    </div>
+
+    <!-- Lista de Auditorias -->
+    <div class="form-section">
+        <div class="section-header">
+            <div>
+                <h3>Auditorias Cadastradas</h3>
+                <p class="section-desc">Visualize e gerencie as auditorias existentes</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="auditorias-table" id="tabela-auditorias">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Título</th>
+                        <th>Área</th>
+                        <th>Ano/Trim</th>
+                        <th>Período</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7" class="loading-message">Carregando auditorias...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CADASTRO/EDIÇÃO -->
+<div id="modal-auditoria" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-titulo"><i class="fas fa-calendar-check"></i> Nova Auditoria</h3>
+            <button class="modal-fechar" onclick="fecharModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-building"></i> Área:</label>
+                    <select id="area_auditoria" class="form-control" required>
+                        <option value="">Selecione uma área...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-hashtag"></i> Código da Auditoria:</label>
+                    <input type="text" id="codigo_auditoria" class="form-control" placeholder="Ex: AUD-3SIGLASAREA-ANO-TRIM" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-tag"></i> Escopo:</label>
+                    <input type="text" id="titulo_auditoria" class="form-control" placeholder="Título da auditoria" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Ano:</label>
+                    <input type="number" id="ano_auditoria" class="form-control" placeholder="Ex: 2024" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-chart-line"></i> Trimestre:</label>
+                    <select id="trimestre_auditoria" class="form-control" required>
+                        <option value="">Selecione...</option>
+                        <option value="1">1º Trimestre</option>
+                        <option value="2">2º Trimestre</option>
+                        <option value="3">3º Trimestre</option>
+                        <option value="4">4º Trimestre</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Data Início:</label>
+                    <input type="date" id="data_inicio" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-check"></i> Data Fim:</label>
+                    <input type="date" id="data_fim" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-flag"></i> Status:</label>
+                    <select id="status_auditoria" class="form-control">
+                        <option value="Em Execução">Em Execução</option>
+                        <option value="Concluída">Concluída</option>
+                        <option value="Concluída Avaliação">Concluída Avaliação</option>
+                        <option value="Concluída com Follow-Up">Concluída com Follow-Up</option>
+                        <option value="Em Atraso">Em Atraso</option>
+                        <option value="Inconclusiva">Inconclusiva</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-users"></i> Responsáveis (Equipe):</label>
+                    <select id="responsaveis_equipe" class="form-control" multiple>
+                        <option value="">Carregando usuários...</option>
+                    </select>
+                    <small class="form-text text-muted">Segure Ctrl para selecionar múltiplos</small>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-building"></i> Unidade:</label>
+                    <input type="text" id="unidade_auditoria" class="form-control" placeholder="Ex: FUSVE, HMK...">
+                </div>
+            </div>
+
+            <input type="hidden" id="auditoria_id" value="">
+
+            <div id="mensagem-modal" style="display: none; margin-top: 10px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="fecharModal()">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button id="btn-salvar-auditoria" class="btn-primary">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .auditorias-container {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        margin-bottom: 25px;
+    }
+
+    .page-header h1 {
+        color: #184145;
+        font-size: 32px;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-header h1 i {
+        background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
+        color: #e4e4e4;
+        padding: 12px;
+        border-radius: 14px;
+        font-size: 28px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 14px;
+        margin-left: 52px;
+    }
+
+    .toolbar {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .section-header {
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .section-header h3 {
+        margin: 0;
+        color: #184145;
+        font-size: 18px;
+    }
+
+    .section-desc {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 13px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 25px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #184145;
+        font-size: 13px;
+    }
+
+    .form-group label i {
+        margin-right: 6px;
+        color: #0b5b99;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    select[multiple] {
+        height: auto;
+        min-height: 100px;
+    }
+
+    .form-text {
+        font-size: 11px;
+        color: #999;
+        margin-top: 5px;
+    }
+
+    .btn-primary {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #0b5b99;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .auditorias-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .auditorias-table th,
+    .auditorias-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .auditorias-table th {
+        background: #f8f9fa;
+        color: #184145;
+        font-weight: 600;
+    }
+
+    .auditorias-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .loading-message {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .status-planejamento { background: #e3f2fd; color: #0b5b99; }
+    .status-execucao { background: #fff3e0; color: #fd6a14; }
+    .status-concluida { background: #d4edda; color: #28a745; }
+    .status-atraso { background: #f8d7da; color: #dc3545; }
+    .status-cancelada { background: #f5f5f5; color: #757575; }
+
+    /* Botões de ação padronizados */
+    .btn-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .btn-editar-icon {
+        background: transparent;
+        color: #ffc107;
+        border: none;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-editar-icon:hover {
+        background: rgba(255,193,7,0.1);
+        transform: scale(1.05);
+        color: #e0a800;
+    }
+
+    .btn-excluir-icon {
+        background: transparent;
+        color: #dc3545;
+        border: none;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-excluir-icon:hover {
+        background: rgba(220,53,69,0.1);
+        transform: scale(1.05);
+        color: #c82333;
+    }
+
+    /* Modal Styles */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-bottom: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 20px 20px 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #184145;
+        font-size: 18px;
+    }
+
+    .modal-header h3 i {
+        margin-right: 8px;
+        color: #0b5b99;
+    }
+
+    .modal-fechar {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s;
+    }
+
+    .modal-fechar:hover {
+        color: #dc3545;
+    }
+
+    .modal-body {
+        padding: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        padding: 15px 25px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 0 0 20px 20px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border-left: 4px solid #28a745;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #155724;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #721c24;
+    }
+</style>
+
+<script>
+    let editandoId = null;
+
+    async function carregarAreas() {
+        const selectArea = document.getElementById('area_auditoria');
+        if (!selectArea) return;
+
+        try {
+            const response = await fetch('/api/areas');
+            const areas = await response.json();
+
+            selectArea.innerHTML = '<option value="">Selecione uma área...</option>';
+            areas.forEach(area => {
+                const option = document.createElement('option');
+                option.value = area.id_area;
+                option.textContent = area.nome_area;
+                selectArea.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar áreas:', error);
+        }
+    }
+
+    async function carregarUsuarios() {
+        const selectResponsaveis = document.getElementById('responsaveis_equipe');
+        if (!selectResponsaveis) return;
+
+        selectResponsaveis.innerHTML = '<option value="">Carregando usuários...</option>';
+
+        try {
+            const response = await fetch('/api/usuarios-para-select');
+            const usuarios = await response.json();
+
+            selectResponsaveis.innerHTML = '';
+            usuarios.forEach(usuario => {
+                const option = document.createElement('option');
+                option.value = usuario.nome;
+                option.textContent = `${usuario.nome} (${usuario.perfil || 'Usuário'})`;
+                selectResponsaveis.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar usuários:', error);
+            selectResponsaveis.innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+    }
+
+    async function carregarAuditorias() {
+        const tbody = document.querySelector('#tabela-auditorias tbody');
+
+        try {
+            const response = await fetch('/api/auditorias');
+            const auditorias = await response.json();
+
+            if (auditorias.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading-message">Nenhuma auditoria cadastrada</td>';
+                return;
+            }
+
+            tbody.innerHTML = auditorias.map(aud => {
+                let statusClass = '';
+                if (aud.status === 'Planejamento') statusClass = 'status-planejamento';
+                else if (aud.status === 'Em Execução') statusClass = 'status-execucao';
+                else if (aud.status === 'Concluída' || aud.status === 'Concluída Avaliação' || aud.status === 'Concluída com Follow-Up') statusClass = 'status-concluida';
+                else if (aud.status === 'Em Atraso') statusClass = 'status-atraso';
+                else statusClass = 'status-planejamento';
+                
+                const tituloTruncado = aud.titulo && aud.titulo.length > 40 ? aud.titulo.substring(0, 40) + '...' : (aud.titulo || '-');
+
+                return `
+                    <tr>
+                        <td><strong>${aud.codigo_auditoria || '-'}</strong></td>
+                        <td>${tituloTruncado}</td>
+                        <td>${aud.area_nome || '-'}</td>
+                        <td>${aud.ano}/${aud.trimestre}º</td>
+                        <td>${aud.data_inicio || '-'}<br/><small>a</small><br/>${aud.data_fim || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${aud.status || '-'}</span></td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn-editar-icon" onclick="abrirModalEditar(${aud.id})" title="Editar">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                                <button class="btn-excluir-icon" onclick="excluirAuditoria(${aud.id})" title="Excluir">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Erro ao carregar auditorias:', error);
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-message">Erro ao carregar auditorias</td>';
+        }
+    }
+
+    async function abrirModalNovo() {
+        editandoId = null;
+        document.getElementById('modal-titulo').innerHTML = '<i class="fas fa-plus"></i> Nova Auditoria';
+        document.getElementById('auditoria_id').value = '';
+        limparFormularioModal();
+        await carregarUsuarios();  // ← Carrega usuários ao abrir o modal
+        document.getElementById('modal-auditoria').style.display = 'flex';
+    }
+
+    async function abrirModalEditar(id) {
+        editandoId = id;
+        document.getElementById('modal-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Auditoria';
+        
+        try {
+            const response = await fetch(`/api/auditorias/${id}`);
+            const data = await response.json();
+
+            if (data.success) {
+                const aud = data.auditoria;
+                
+                document.getElementById('auditoria_id').value = aud.id;
+                document.getElementById('area_auditoria').value = aud.id_area;
+                document.getElementById('codigo_auditoria').value = aud.codigo_auditoria;
+                document.getElementById('titulo_auditoria').value = aud.titulo;
+                document.getElementById('ano_auditoria').value = aud.ano;
+                document.getElementById('trimestre_auditoria').value = aud.trimestre;
+                document.getElementById('data_inicio').value = aud.data_inicio || '';
+                document.getElementById('data_fim').value = aud.data_fim || '';
+                document.getElementById('status_auditoria').value = aud.status || 'Planejamento';
+                document.getElementById('unidade_auditoria').value = aud.unidade || '';
+                
+                await carregarUsuarios();  // ← Carrega usuários antes de selecionar
+                
+                if (aud.responsavel_equipe && aud.responsavel_equipe.length > 0) {
+                    const select = document.getElementById('responsaveis_equipe');
+                    // Aguarda um pequeno delay para o select ser preenchido
+                    setTimeout(() => {
+                        Array.from(select.options).forEach(opt => {
+                            if (aud.responsavel_equipe.includes(opt.value)) {
+                                opt.selected = true;
+                            }
+                        });
+                    }, 100);
+                }
+                
+                document.getElementById('modal-auditoria').style.display = 'flex';
+            } else {
+                mostrarMensagemModal('Erro ao carregar dados', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarMensagemModal('Erro ao carregar auditoria', 'error');
+        }
+    }
+
+    function fecharModal() {
+        document.getElementById('modal-auditoria').style.display = 'none';
+        limparFormularioModal();
+        editandoId = null;
+    }
+
+    function limparFormularioModal() {
+        document.getElementById('area_auditoria').value = '';
+        document.getElementById('codigo_auditoria').value = '';
+        document.getElementById('titulo_auditoria').value = '';
+        document.getElementById('ano_auditoria').value = '';
+        document.getElementById('trimestre_auditoria').value = '';
+        document.getElementById('data_inicio').value = '';
+        document.getElementById('data_fim').value = '';
+        document.getElementById('status_auditoria').value = 'Planejamento';
+        document.getElementById('unidade_auditoria').value = '';
+        // Não limpar o select aqui, apenas resetar para o estado inicial
+        const selectResponsaveis = document.getElementById('responsaveis_equipe');
+        if (selectResponsaveis) {
+            selectResponsaveis.innerHTML = '<option value="">Carregando usuários...</option>';
+        }
+        document.getElementById('mensagem-modal').style.display = 'none';
+    }
+
+    function mostrarMensagemModal(mensagem, tipo) {
+        const msgDiv = document.getElementById('mensagem-modal');
+        msgDiv.className = tipo === 'success' ? 'alert-success' : 'alert-error';
+        msgDiv.innerHTML = `<i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${mensagem}`;
+        msgDiv.style.display = 'block';
+        setTimeout(() => {
+            msgDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    async function salvarAuditoria() {
+        const areaId = document.getElementById('area_auditoria').value;
+        const codigo = document.getElementById('codigo_auditoria').value;
+        const titulo = document.getElementById('titulo_auditoria').value;
+        const ano = document.getElementById('ano_auditoria').value;
+        const trimestre = document.getElementById('trimestre_auditoria').value;
+        const dataInicio = document.getElementById('data_inicio').value;
+        const dataFim = document.getElementById('data_fim').value;
+        const status = document.getElementById('status_auditoria').value;
+        const unidade = document.getElementById('unidade_auditoria').value;
+        const auditoriaId = document.getElementById('auditoria_id').value;
+        
+        const selectResponsaveis = document.getElementById('responsaveis_equipe');
+        const responsaveis = Array.from(selectResponsaveis.selectedOptions).map(opt => opt.value);
+
+        if (!areaId || !codigo || !titulo || !ano || !trimestre) {
+            mostrarMensagemModal('Preencha todos os campos obrigatórios!', 'error');
+            return;
+        }
+
+        const btnSalvar = document.getElementById('btn-salvar-auditoria');
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+        try {
+            const url = auditoriaId ? `/api/auditorias/${auditoriaId}` : '/api/auditorias/salvar';
+            const method = auditoriaId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_area: areaId,
+                    codigo_auditoria: codigo,
+                    titulo: titulo,
+                    ano: parseInt(ano),
+                    trimestre: parseInt(trimestre),
+                    data_inicio: dataInicio || null,
+                    data_fim: dataFim || null,
+                    status: status,
+                    unidade: unidade || null,
+                    responsavel_equipe: responsaveis
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarMensagemModal('Auditoria salva com sucesso!', 'success');
+                fecharModal();
+                await carregarAuditorias();
+            } else {
+                mostrarMensagemModal('Erro: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarMensagemModal('Erro ao conectar com o servidor', 'error');
+        } finally {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar';
+        }
+    }
+
+    async function excluirAuditoria(id) {
+        if (!confirm('Tem certeza que deseja excluir esta auditoria? Esta ação não poderá ser desfeita.')) return;
+
+        try {
+            const response = await fetch(`/api/auditorias/${id}`, { method: 'DELETE' });
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarMensagemModal('Auditoria excluída com sucesso!', 'success');
+                await carregarAuditorias();
+            } else {
+                mostrarMensagemModal('Erro: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarMensagemModal('Erro ao excluir auditoria', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🚀 Página de cadastro de auditorias carregada');
+        await carregarAreas();
+        await carregarAuditorias();
+
+        document.getElementById('btn-nova-auditoria').addEventListener('click', abrirModalNovo);
+        document.getElementById('btn-salvar-auditoria').addEventListener('click', salvarAuditoria);
+        
+        // Fechar modal ao clicar fora
+        document.getElementById('modal-auditoria').addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModal();
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -204,6 +204,19 @@ def dashboard():
         return redirect(url_for('login'))
     return render_template('dashboard.html')
 
+@app.route('/auditorias')
+def auditorias():
+    """Página de cadastro de auditorias"""
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    # Verificar se é administrador (opcional)
+    if session.get('usuario_perfil') not in ['administrador', 'admin', 'auditor']:
+        flash('Acesso negado. Apenas administradores e auditores podem acessar.', 'error')
+        return redirect(url_for('home'))
+    
+    return render_template('auditorias.html')
+
 # ============================================================
 # API - PLANO ANUNAL
 # ============================================================
@@ -3743,6 +3756,256 @@ def api_dashboard_riscos_etapa_magnitude():
     except Exception as e:
         print(f"❌ Erro em /api/dashboard/riscos-etapa-magnitude: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+# ============================
+# ===== API - AUDITORIAS =====
+# ============================
+
+@app.route('/api/usuarios-para-select')
+def api_usuarios_para_select():
+    """Retorna lista de usuários ativos para seleção"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, nome, login, perfil
+                FROM usuarios
+                WHERE ativo = true
+                ORDER BY nome
+            """)
+            result = conn.execute(query).fetchall()
+            
+            usuarios = [{'id': row[0], 'nome': row[1], 'login': row[2], 'perfil': row[3]} for row in result]
+            
+            return jsonify(usuarios)
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar usuários: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auditorias')
+def api_auditorias_listar():
+    """Retorna todas as auditorias cadastradas"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT a.*, i.nome_area 
+                FROM auditorias a
+                LEFT JOIN informacoes_area i ON a.id_area = i.id_area
+                ORDER BY a.ano DESC, a.trimestre DESC
+            """)
+            result = conn.execute(query).fetchall()
+            
+            auditorias = []
+            for row in result:
+                auditorias.append({
+                    'id': row[0],
+                    'codigo_auditoria': row[1],
+                    'id_area': row[2],
+                    'area_nome': row[-1],
+                    'titulo': row[3],
+                    'ano': row[6],
+                    'trimestre': row[7],
+                    'data_inicio': row[8].strftime('%Y-%m-%d') if row[8] else None,
+                    'data_fim': row[9].strftime('%Y-%m-%d') if row[9] else None,
+                    'status': row[10],
+                    'unidade': row[13],
+                })
+            
+            return jsonify(auditorias)
+            
+    except Exception as e:
+        print(f"❌ Erro ao listar auditorias: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auditorias/salvar', methods=['POST'])
+def api_auditorias_salvar():
+    """Salva uma nova auditoria ou atualiza existente"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                INSERT INTO auditorias (
+                    codigo_auditoria, id_area, titulo, ano, trimestre, 
+                    data_inicio, data_fim, status, unidade, responsavel_equipe
+                ) VALUES (
+                    :codigo, :id_area, :titulo, :ano, :trimestre,
+                    :data_inicio, :data_fim, :status, :unidade, :responsaveis
+                )
+            """)
+            
+            conn.execute(query, {
+                'codigo': data.get('codigo_auditoria'),
+                'id_area': data.get('id_area'),
+                'titulo': data.get('titulo'),
+                'ano': data.get('ano'),
+                'trimestre': data.get('trimestre'),
+                'data_inicio': data.get('data_inicio'),
+                'data_fim': data.get('data_fim'),
+                'status': data.get('status', 'Planejamento'),
+                'unidade': data.get('unidade'),
+                'responsaveis': data.get('responsavel_equipe', [])
+            })
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Auditoria salva com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar auditoria: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auditorias/<int:auditoria_id>', methods=['DELETE'])
+def api_auditorias_excluir(auditoria_id):
+    """Exclui uma auditoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("DELETE FROM auditorias WHERE id = :id")
+            conn.execute(query, {'id': auditoria_id})
+            conn.commit()
+            
+            return jsonify({'success': True})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir auditoria: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/auditorias/<int:auditoria_id>', methods=['PUT'])
+def api_auditorias_atualizar(auditoria_id):
+    """Atualiza uma auditoria existente"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE auditorias 
+                SET codigo_auditoria = :codigo,
+                    id_area = :id_area,
+                    titulo = :titulo,
+                    ano = :ano,
+                    trimestre = :trimestre,
+                    data_inicio = :data_inicio,
+                    data_fim = :data_fim,
+                    status = :status,
+                    unidade = :unidade,
+                    responsavel_equipe = :responsaveis,
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            
+            result = conn.execute(query, {
+                'id': auditoria_id,
+                'codigo': data.get('codigo_auditoria'),
+                'id_area': data.get('id_area'),
+                'titulo': data.get('titulo'),
+                'ano': data.get('ano'),
+                'trimestre': data.get('trimestre'),
+                'data_inicio': data.get('data_inicio'),
+                'data_fim': data.get('data_fim'),
+                'status': data.get('status', 'Planejamento'),
+                'unidade': data.get('unidade'),
+                'responsaveis': data.get('responsavel_equipe', [])
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            
+            return jsonify({'success': True, 'message': 'Auditoria atualizada com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao atualizar auditoria: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auditorias/<int:auditoria_id>')
+def api_auditorias_buscar(auditoria_id):
+    """Retorna uma auditoria específica para edição"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Use SELECT com nomes das colunas para evitar problemas de índice
+            query = text("""
+                SELECT 
+                    id, 
+                    codigo_auditoria, 
+                    id_area, 
+                    titulo, 
+                    ano, 
+                    trimestre, 
+                    data_inicio, 
+                    data_fim, 
+                    status, 
+                    responsavel_equipe, 
+                    unidade
+                FROM auditorias 
+                WHERE id = :id
+            """)
+            result = conn.execute(query, {'id': auditoria_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            
+            # Mapeamento por posição (mais seguro que SELECT *)
+            auditoria = {
+                'id': result[0],
+                'codigo_auditoria': result[1],
+                'id_area': result[2],
+                'titulo': result[3],
+                'ano': result[4],
+                'trimestre': result[5],
+                'data_inicio': result[6].strftime('%Y-%m-%d') if result[6] else None,
+                'data_fim': result[7].strftime('%Y-%m-%d') if result[7] else None,
+                'status': result[8],
+                'responsavel_equipe': result[9] or [],
+                'unidade': result[10] or '',  # ← Agora no índice correto
+            }
+            
+            return jsonify({'success': True, 'auditoria': auditoria})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar auditoria: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================
+# ===== FIM API - AUDITORIAS =====
+# ============================
 
 @app.route('/api/auditorias/situacao')
 def api_auditorias_situacao():
