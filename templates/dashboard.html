@@ -915,6 +915,20 @@
             .replace(/'/g, '&#39;');
     }
 
+    // ====== VERIFICAR SE ÁREA TEM AUDITORIAS ======
+    async function areaTemAuditorias(areaId) {
+        if (!areaId) return false;
+        
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+            return data.auditorias && data.auditorias.length > 0;
+        } catch (error) {
+            console.error('Erro ao verificar auditorias da área:', error);
+            return false;
+        }
+    }
+
     // ====== FUNÇÃO AUXILIAR PARA MONTAR URL COM FILTROS ======
     async function montarUrlComFiltros(baseUrl, tipo) {
         const params = new URLSearchParams();
@@ -1106,10 +1120,20 @@
     }
 
     // ====== CARREGAR TOTAL DE PROCESSOS ======
+    // Exemplo para carregarTotalProcessos
     async function carregarTotalProcessos() {
         try {
             let url = '/api/processos/total';
             const params = new URLSearchParams();
+            
+            // Se tem área selecionada mas não tem auditorias, retorna 0
+            if (filtroAreaId && !filtroAuditoriaId) {
+                const temAuditorias = await areaTemAuditorias(filtroAreaId);
+                if (!temAuditorias) {
+                    document.getElementById('total-processos').textContent = '0';
+                    return;
+                }
+            }
             
             if (filtroAuditoriaId) {
                 params.append('auditoria_id', filtroAuditoriaId);
@@ -1119,6 +1143,10 @@
                 if (data.auditorias && data.auditorias.length > 0) {
                     const ids = data.auditorias.map(a => a.id).join(',');
                     params.append('auditoria_ids', ids);
+                } else {
+                    // Se não tem auditorias, retorna 0
+                    document.getElementById('total-processos').textContent = '0';
+                    return;
                 }
             }
             
@@ -1166,8 +1194,17 @@
         try {
             let url = '/api/auditorias/total';
             const params = new URLSearchParams();
-            if (filtroAuditoriaId) params.append('auditoria_id', filtroAuditoriaId);
-            if (filtroAreaId) params.append('area_id', filtroAreaId);  // ← ADICIONAR ESTA LINHA
+            
+            if (filtroAreaId) {
+                // Verificar se a área tem auditorias
+                const temAuditorias = await areaTemAuditorias(filtroAreaId);
+                if (!temAuditorias) {
+                    document.getElementById('total-auditorias').textContent = '0';
+                    return;
+                }
+                params.append('area_id', filtroAreaId);
+            }
+            
             if (params.toString()) url += `?${params.toString()}`;
             
             const response = await fetch(url);
@@ -1273,26 +1310,11 @@
     // ====== CARREGAR TOP ÁREAS ======
     async function carregarTopAreas() {
         try {
+            // ⭐ NÃO APLICA NENHUM FILTRO - Mostra a visão geral do sistema
             let url = '/api/dashboard/top-areas';
-            const params = new URLSearchParams();
+            // Remove qualquer parâmetro de filtro
             
-            // ⭐ NOVA LÓGICA
-            if (filtroAuditoriaId) {
-                // Caso 1: Auditoria específica selecionada
-                params.append('auditoria_id', filtroAuditoriaId);
-            } else if (filtroAreaId) {
-                // Caso 2: Apenas área selecionada - buscar TODAS as auditorias da área
-                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
-                const data = await response.json();
-                if (data.auditorias && data.auditorias.length > 0) {
-                    const ids = data.auditorias.map(a => a.id).join(',');
-                    params.append('auditoria_ids', ids);
-                }
-            }
-            
-            if (params.toString()) url += `?${params.toString()}`;
-            
-            console.log('🔍 URL top-areas:', url);  // Debug
+            console.log('🔍 URL top-areas (sem filtros):', url);
             
             const response = await fetch(url);
             const data = await response.json();
@@ -1384,6 +1406,47 @@
 
     // ====== RECARREGAR TODOS OS DADOS COM FILTROS ======
     async function carregarDashboardComFiltros() {
+        // Caso especial: área selecionada mas sem auditorias
+        if (filtroAreaId && !filtroAuditoriaId) {
+            const temAuditorias = await areaTemAuditorias(filtroAreaId);
+            if (!temAuditorias) {
+                // Área sem auditorias - mostrar tudo zero
+                document.getElementById('total-processos').textContent = '0';
+                document.getElementById('total-riscos').textContent = '0';
+                document.getElementById('total-auditorias').textContent = '0';
+                document.getElementById('total-controles').textContent = '0';
+                
+                document.getElementById('riscos-baixo').textContent = '0';
+                document.getElementById('riscos-medio').textContent = '0';
+                document.getElementById('riscos-alto').textContent = '0';
+                document.getElementById('riscos-critico').textContent = '0';
+                
+                document.getElementById('bar-baixo').style.width = '0%';
+                document.getElementById('bar-medio').style.width = '0%';
+                document.getElementById('bar-alto').style.width = '0%';
+                document.getElementById('bar-critico').style.width = '0%';
+                
+                document.getElementById('status-concluida').textContent = '0';
+                document.getElementById('status-execucao').textContent = '0';
+                document.getElementById('status-planejamento').textContent = '0';
+                
+                document.getElementById('progress-concluida').style.width = '0%';
+                document.getElementById('progress-execucao').style.width = '0%';
+                document.getElementById('progress-planejamento').style.width = '0%';
+                
+                const tbody = document.querySelector('#resumo-table tbody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="loading-message">Nenhuma auditoria encontrada para esta área</td><tr>';
+                }
+                
+                // ⭐⭐⭐ CARREGAR TOP ÁREAS MESMO ASSIM ⭐⭐⭐
+                await carregarTopAreas();
+                
+                return;
+            }
+        }
+        
+        // Carrega os dados filtrados
         await Promise.all([
             carregarTotalControles(),
             carregarTotalProcessos(),
@@ -1391,9 +1454,11 @@
             carregarTotalAuditorias(),
             carregarRiscosPorMagnitude(),
             carregarStatusAuditorias(),
-            carregarTopAreas(),
             carregarResumoRiscosProcessos()
         ]);
+        
+        // ⭐⭐⭐ CARREGAR TOP ÁREAS SEPARADAMENTE (sempre, sem filtro) ⭐⭐⭐
+        await carregarTopAreas();
     }
 
     // ====== CONFIGURAR EVENTOS DOS FILTROS ======
