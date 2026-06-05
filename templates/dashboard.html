@@ -120,6 +120,7 @@
     </div>
 
     <!-- ===== SEÇÃO DE ANÁLISES, GRÁFICOS E MÉTRICAS ===== -->
+    
     <div class="section-divider">
         <div class="section-divider-line"></div>
         <div class="section-divider-icon">
@@ -127,6 +128,30 @@
         </div>
         <div class="section-divider-text">ANÁLISES, GRÁFICOS E MÉTRICAS</div>
         <div class="section-divider-line"></div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filtros-card">
+        <div class="filtros-header">
+            <h3><i class="fas fa-filter"></i> Filtrar Dados</h3>
+            <button id="btn-limpar-filtros" class="btn-limpar-filtros">
+                <i class="fas fa-eraser"></i> Limpar Filtros
+            </button>
+        </div>
+        <div class="filtros-row">
+            <div class="form-group">
+                <label for="filtro-area-dash"><i class="fas fa-building"></i> Área</label>
+                <select id="filtro-area-dash" class="form-control">
+                    <option value="">Todas as áreas</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="filtro-auditoria-dash"><i class="fas fa-clipboard-list"></i> Auditoria</label>
+                <select id="filtro-auditoria-dash" class="form-control" disabled>
+                    <option value="">Selecione uma área primeiro</option>
+                </select>
+            </div>
+        </div>
     </div>
 
     <!-- Métricas Dinâmicas (movidas para cá) -->
@@ -169,9 +194,9 @@
                 <i class="fas fa-building"></i>
             </div>
             <div class="stat-info">
-                <h3>Áreas</h3>
-                <p>Cadastradas</p>
-                <span class="stat-number" id="total-areas">0</span>
+                <h3>Controles</h3>
+                <p>Mapeados</p>
+                <span class="stat-number" id="total-controles">0</span>
             </div>
         </div>
     </div>
@@ -799,78 +824,432 @@
             margin: 0 8px;
         }
     }
+
+    /* Filtros Card */
+    .filtros-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e0e0e0;
+    }
+
+    .filtros-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .filtros-header h3 {
+        color: #184145;
+        font-size: 16px;
+        margin: 0;
+    }
+
+    .filtros-header h3 i {
+        color: #0b5b99;
+        margin-right: 8px;
+    }
+
+    .btn-limpar-filtros {
+        background: #e9ecef;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #666;
+        transition: all 0.2s;
+    }
+
+    .btn-limpar-filtros:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .filtros-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 0;
+    }
+
+    .filtros-row .form-group {
+        flex: 1;
+        margin-bottom: 0;
+    }
+
+    .filtros-row label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .filtros-row .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 13px;
+    }
 </style>
 
 <script>
-    // ====== CARREGAR DADOS DO DASHBOARD ======
-    async function carregarDashboard() {
-        await Promise.all([
-            carregarMetricas(),
-            carregarRiscosPorMagnitude(),
-            carregarStatusAuditorias(),
-            carregarTopAreas(),
-            carregarResumoRiscosProcessos()
-        ]);
+    // ====== VARIÁVEIS GLOBAIS DE FILTRO ======
+    let filtroAreaId = '';
+    let filtroAuditoriaId = '';
+
+    // ====== FUNÇÃO AUXILIAR ======
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
-    // ====== MÉTRICAS PRINCIPAIS ======
-    async function carregarMetricas() {
+    // ====== FUNÇÃO AUXILIAR PARA MONTAR URL COM FILTROS ======
+    async function montarUrlComFiltros(baseUrl, tipo) {
+        const params = new URLSearchParams();
+        
+        // tipo = 'auditoria' -> usa filtro de auditoria ou todas da área
+        // tipo = 'area' -> usa filtro de área
+        // tipo = 'ambos' -> usa ambos (prioriza auditoria)
+        
+        if (tipo === 'auditoria') {
+            // Para gráficos que filtram por auditoria
+            if (filtroAuditoriaId) {
+                // Tem auditoria específica
+                params.append('auditoria_id', filtroAuditoriaId);
+            } else if (filtroAreaId) {
+                // Só tem área - buscar todas as auditorias da área
+                try {
+                    const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                    const data = await response.json();
+                    if (data.auditorias && data.auditorias.length > 0) {
+                        const ids = data.auditorias.map(a => a.id).join(',');
+                        params.append('auditoria_ids', ids);
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar auditorias:', error);
+                }
+            }
+        } else if (tipo === 'area') {
+            // Para gráficos que filtram por área (status das auditorias)
+            if (filtroAreaId) {
+                params.append('area_id', filtroAreaId);
+            }
+        }
+        
+        const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+        return url;
+    }
+
+    function mostrarToast(mensagem, tipo = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 999999;
+            `;
+            document.body.appendChild(toastContainer);
+        }
+        
+        const cores = {
+            success: { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '✅' },
+            error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '❌' },
+            warning: { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '⚠️' },
+            info: { bg: '#d1ecf1', border: '#17a2b8', text: '#0c5460', icon: 'ℹ️' }
+        };
+        
+        const cor = cores[tipo] || cores.info;
+        
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${cor.bg};
+            border-left: 4px solid ${cor.border};
+            color: ${cor.text};
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
+        toast.innerHTML = `
+            <span style="font-size: 18px;">${cor.icon}</span>
+            <span>${mensagem}</span>
+            <span style="margin-left: auto; cursor: pointer; opacity: 0.7;" onclick="this.parentElement.remove()">✕</span>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast && toast.parentElement) {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
+
+    // ====== CARREGAR ÁREAS PARA O FILTRO ======
+    async function carregarAreasFiltro() {
         try {
-            // Buscar total de áreas
-            const areasResponse = await fetch('/api/areas');
-            const areas = await areasResponse.json();
-            document.getElementById('total-areas').textContent = areas.length || 0;
+            const response = await fetch('/api/areas');
+            const areas = await response.json();
+            const selectArea = document.getElementById('filtro-area-dash');
             
-            // Buscar total de processos (ativos)
-            const processosResponse = await fetch('/api/processos/total');
-            const processosData = await processosResponse.json();
-            document.getElementById('total-processos').textContent = processosData.total || 0;
-            
-            // Buscar total de riscos (de todas as fontes)
-            const riscosResponse = await fetch('/api/riscos/total');
-            const riscosData = await riscosResponse.json();
-            document.getElementById('total-riscos').textContent = riscosData.total || 0;
-            
-            // Buscar total de auditorias
-            const auditoriasResponse = await fetch('/api/auditorias/total');
-            const auditoriasData = await auditoriasResponse.json();
-            document.getElementById('total-auditorias').textContent = auditoriasData.total || 0;
-            
+            if (selectArea && areas && areas.length > 0) {
+                const todasOption = selectArea.querySelector('option[value=""]');
+                selectArea.innerHTML = '';
+                selectArea.appendChild(todasOption);
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id_area;
+                    option.textContent = area.nome_area;
+                    selectArea.appendChild(option);
+                });
+            }
         } catch (error) {
-            console.error('Erro ao carregar métricas:', error);
+            console.error('Erro ao carregar áreas:', error);
         }
     }
 
-    // ====== RISCOS POR MAGNITUDE ======
+    // ====== CARREGAR AUDITORIAS PARA O FILTRO ======
+    async function carregarAuditoriasFiltro(areaId) {
+        const selectAuditoria = document.getElementById('filtro-auditoria-dash');
+        
+        if (!areaId) {
+            selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro</option>';
+            selectAuditoria.disabled = true;
+            return;
+        }
+
+        selectAuditoria.innerHTML = '<option value="">Carregando auditorias...</option>';
+        selectAuditoria.disabled = true;
+
+        try {
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const data = await response.json();
+
+            if (data.auditorias && data.auditorias.length > 0) {
+                selectAuditoria.innerHTML = '<option value="">Todas as auditorias</option>';
+                data.auditorias.forEach(aud => {
+                    const option = document.createElement('option');
+                    option.value = aud.id;
+                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim)`;
+                    selectAuditoria.appendChild(option);
+                });
+                selectAuditoria.disabled = false;
+            } else {
+                selectAuditoria.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
+                selectAuditoria.disabled = true;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar auditorias:', error);
+            selectAuditoria.innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+    }
+
+    // ====== CARREGAR TOTAL DE CONTROLES ======
+    async function carregarTotalControles() {
+        try {
+            let url = '/api/controles/total';
+            const params = new URLSearchParams();
+            
+            // ⭐ LÓGICA CORRIGIDA:
+            // Caso 1: Tem auditoria específica selecionada
+            if (filtroAuditoriaId) {
+                params.append('auditoria_id', filtroAuditoriaId);
+            } 
+            // Caso 2: Tem apenas área selecionada - pega TODAS as auditorias da área
+            else if (filtroAreaId) {
+                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                const data = await response.json();
+                if (data.auditorias && data.auditorias.length > 0) {
+                    // ⭐ PEGA TODOS OS IDs e junta com vírgula: "1,9"
+                    const ids = data.auditorias.map(a => a.id).join(',');
+                    params.append('auditoria_ids', ids);
+                }
+            }
+            
+            // Se tem parâmetros, adiciona à URL
+            if (params.toString()) {
+                url += `?${params.toString()}`;
+            }
+            
+            console.log('🔍 URL controles:', url);  // Para debug
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            document.getElementById('total-controles').textContent = data.total || 0;
+            
+        } catch (error) {
+            console.error('Erro ao carregar total de controles:', error);
+            document.getElementById('total-controles').textContent = '0';
+        }
+    }
+
+    // ====== CARREGAR TOTAL DE PROCESSOS ======
+    async function carregarTotalProcessos() {
+        try {
+            let url = '/api/processos/total';
+            const params = new URLSearchParams();
+            
+            if (filtroAuditoriaId) {
+                params.append('auditoria_id', filtroAuditoriaId);
+            } else if (filtroAreaId) {
+                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                const data = await response.json();
+                if (data.auditorias && data.auditorias.length > 0) {
+                    const ids = data.auditorias.map(a => a.id).join(',');
+                    params.append('auditoria_ids', ids);
+                }
+            }
+            
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            document.getElementById('total-processos').textContent = data.total || 0;
+        } catch (error) {
+            console.error('Erro ao carregar total de processos:', error);
+            document.getElementById('total-processos').textContent = '0';
+        }
+    }
+
+    // ====== CARREGAR TOTAL DE RISCOS ======
+    async function carregarTotalRiscos() {
+        try {
+            let url = '/api/riscos/total';
+            const params = new URLSearchParams();
+            
+            if (filtroAuditoriaId) {
+                params.append('auditoria_id', filtroAuditoriaId);
+            } else if (filtroAreaId) {
+                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                const data = await response.json();
+                if (data.auditorias && data.auditorias.length > 0) {
+                    const ids = data.auditorias.map(a => a.id).join(',');
+                    params.append('auditoria_ids', ids);
+                }
+            }
+            
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            document.getElementById('total-riscos').textContent = data.total || 0;
+        } catch (error) {
+            console.error('Erro ao carregar total de riscos:', error);
+            document.getElementById('total-riscos').textContent = '0';
+        }
+    }
+
+    // ====== CARREGAR TOTAL DE AUDITORIAS ======
+    async function carregarTotalAuditorias() {
+        try {
+            let url = '/api/auditorias/total';
+            const params = new URLSearchParams();
+            if (filtroAuditoriaId) params.append('auditoria_id', filtroAuditoriaId);
+            if (filtroAreaId) params.append('area_id', filtroAreaId);  // ← ADICIONAR ESTA LINHA
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            document.getElementById('total-auditorias').textContent = data.total || 0;
+        } catch (error) {
+            console.error('Erro ao carregar total de auditorias:', error);
+            document.getElementById('total-auditorias').textContent = '0';
+        }
+    }
+
+    // ====== CARREGAR RISCOS POR MAGNITUDE ======
     async function carregarRiscosPorMagnitude() {
         try {
-            const response = await fetch('/api/dashboard/riscos-magnitude');
+            let url = '/api/dashboard/riscos-magnitude';
+            const params = new URLSearchParams();
+            
+            // ⭐ LÓGICA DO FILTRO:
+            // Se tem auditoria selecionada -> filtra por ela
+            // Se só tem área selecionada -> filtra por todas auditorias da área
+            if (filtroAuditoriaId) {
+                // Caso 1: Auditoria específica selecionada
+                params.append('auditoria_ids', filtroAuditoriaId);
+            } else if (filtroAreaId) {
+                // Caso 2: Apenas área selecionada - buscar todas as auditorias da área
+                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                const data = await response.json();
+                if (data.auditorias && data.auditorias.length > 0) {
+                    // Pega os IDs de todas as auditorias e junta com vírgula: "1,9"
+                    const ids = data.auditorias.map(a => a.id).join(',');
+                    params.append('auditoria_ids', ids);
+                }
+            }
+            
+            // Se tem parâmetros, adiciona à URL
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            // Buscar os dados da API
+            const response = await fetch(url);
             const data = await response.json();
             
+            // ⭐⭐ PARTE QUE FALTAVA - ATUALIZAR A TELA ⭐⭐
             if (data.success) {
-                const total = data.baixo + data.medio + data.alto + data.critico;
-                
+                // 1. Atualizar os números na tela
                 document.getElementById('riscos-baixo').textContent = data.baixo;
                 document.getElementById('riscos-medio').textContent = data.medio;
                 document.getElementById('riscos-alto').textContent = data.alto;
                 document.getElementById('riscos-critico').textContent = data.critico;
                 
+                // 2. Calcular o total de riscos para definir a largura das barras
+                const total = data.baixo + data.medio + data.alto + data.critico;
+                
+                // 3. Atualizar as barras de progresso (apenas se total > 0)
                 if (total > 0) {
                     document.getElementById('bar-baixo').style.width = `${(data.baixo / total) * 100}%`;
                     document.getElementById('bar-medio').style.width = `${(data.medio / total) * 100}%`;
                     document.getElementById('bar-alto').style.width = `${(data.alto / total) * 100}%`;
                     document.getElementById('bar-critico').style.width = `${(data.critico / total) * 100}%`;
+                } else {
+                    // Se não tem riscos, zera as barras
+                    document.getElementById('bar-baixo').style.width = '0%';
+                    document.getElementById('bar-medio').style.width = '0%';
+                    document.getElementById('bar-alto').style.width = '0%';
+                    document.getElementById('bar-critico').style.width = '0%';
                 }
             }
+            
         } catch (error) {
             console.error('Erro ao carregar riscos por magnitude:', error);
         }
     }
 
-    // ====== STATUS DAS AUDITORIAS ======
+    // ====== CARREGAR STATUS DAS AUDITORIAS ======
     async function carregarStatusAuditorias() {
         try {
-            const response = await fetch('/api/dashboard/auditorias-status');
+            let url = '/api/dashboard/auditorias-status';
+            const params = new URLSearchParams();
+            if (filtroAuditoriaId) params.append('auditoria_id', filtroAuditoriaId);
+            if (filtroAreaId) params.append('area_id', filtroAreaId);  // ← ADICIONAR ESTA LINHA
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const response = await fetch(url);
             const data = await response.json();
             
             if (data.success) {
@@ -891,10 +1270,31 @@
         }
     }
 
-    // ====== TOP ÁREAS COM MAIS PROCESSOS ======
+    // ====== CARREGAR TOP ÁREAS ======
     async function carregarTopAreas() {
         try {
-            const response = await fetch('/api/dashboard/top-areas');
+            let url = '/api/dashboard/top-areas';
+            const params = new URLSearchParams();
+            
+            // ⭐ NOVA LÓGICA
+            if (filtroAuditoriaId) {
+                // Caso 1: Auditoria específica selecionada
+                params.append('auditoria_id', filtroAuditoriaId);
+            } else if (filtroAreaId) {
+                // Caso 2: Apenas área selecionada - buscar TODAS as auditorias da área
+                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                const data = await response.json();
+                if (data.auditorias && data.auditorias.length > 0) {
+                    const ids = data.auditorias.map(a => a.id).join(',');
+                    params.append('auditoria_ids', ids);
+                }
+            }
+            
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            console.log('🔍 URL top-areas:', url);  // Debug
+            
+            const response = await fetch(url);
             const data = await response.json();
             const container = document.getElementById('top-areas-list');
             
@@ -919,10 +1319,29 @@
         }
     }
 
-    // ====== RESUMO DE RISCOS POR PROCESSO ======
+    // ====== CARREGAR RESUMO DE RISCOS ======
     async function carregarResumoRiscosProcessos() {
         try {
-            const response = await fetch('/api/dashboard/resumo-riscos');
+            let url = '/api/dashboard/resumo-riscos';
+            const params = new URLSearchParams();
+            
+            // ⭐ MESMA LÓGICA
+            if (filtroAuditoriaId) {
+                params.append('auditoria_id', filtroAuditoriaId);
+            } else if (filtroAreaId) {
+                const response = await fetch(`/api/auditorias-por-area?area_id=${filtroAreaId}`);
+                const data = await response.json();
+                if (data.auditorias && data.auditorias.length > 0) {
+                    const ids = data.auditorias.map(a => a.id).join(',');
+                    params.append('auditoria_ids', ids);
+                }
+            }
+            
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            console.log('🔍 URL resumo-riscos:', url);  // Debug
+            
+            const response = await fetch(url);
             const data = await response.json();
             const tbody = document.querySelector('#resumo-table tbody');
             
@@ -963,24 +1382,76 @@
         }
     }
 
-    // ====== FUNÇÃO AUXILIAR ======
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    // ====== RECARREGAR TODOS OS DADOS COM FILTROS ======
+    async function carregarDashboardComFiltros() {
+        await Promise.all([
+            carregarTotalControles(),
+            carregarTotalProcessos(),
+            carregarTotalRiscos(),
+            carregarTotalAuditorias(),
+            carregarRiscosPorMagnitude(),
+            carregarStatusAuditorias(),
+            carregarTopAreas(),
+            carregarResumoRiscosProcessos()
+        ]);
+    }
+
+    // ====== CONFIGURAR EVENTOS DOS FILTROS ======
+    function setupFiltros() {
+        const selectArea = document.getElementById('filtro-area-dash');
+        const selectAuditoria = document.getElementById('filtro-auditoria-dash');
+        const btnLimpar = document.getElementById('btn-limpar-filtros');
+        
+        if (selectArea) {
+            selectArea.addEventListener('change', async () => {
+                filtroAreaId = selectArea.value;
+                filtroAuditoriaId = '';
+                
+                if (selectAuditoria) {
+                    selectAuditoria.value = '';
+                }
+                
+                if (filtroAreaId) {
+                    await carregarAuditoriasFiltro(filtroAreaId);
+                } else {
+                    if (selectAuditoria) {
+                        selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro</option>';
+                        selectAuditoria.disabled = true;
+                    }
+                }
+                
+                await carregarDashboardComFiltros();
+            });
+        }
+        
+        if (selectAuditoria) {
+            selectAuditoria.addEventListener('change', async () => {
+                filtroAuditoriaId = selectAuditoria.value;
+                await carregarDashboardComFiltros();
+            });
+        }
+        
+        if (btnLimpar) {
+            btnLimpar.addEventListener('click', async () => {
+                if (selectArea) selectArea.value = '';
+                if (selectAuditoria) {
+                    selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro</option>';
+                    selectAuditoria.disabled = true;
+                }
+                filtroAreaId = '';
+                filtroAuditoriaId = '';
+                await carregarDashboardComFiltros();
+                mostrarToast('✅ Filtros limpos!', 'success');
+            });
+        }
     }
 
     // ====== INICIALIZAÇÃO ======
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         console.log('🚀 Dashboard carregado');
-        carregarDashboard();
-        
-        // Recarregar a cada 30 segundos (opcional)
-        // setInterval(carregarDashboard, 30000);
+        await carregarAreasFiltro();
+        setupFiltros();
+        await carregarDashboardComFiltros();
     });
 </script>
 {% endblock %}

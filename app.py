@@ -3537,54 +3537,115 @@ def api_anotacoes_excluir(anotacao_id):
 # API - DASHBOARD
 # ============================================================
 
-# ====== DASHBOARD APIS ======
-
 @app.route('/api/processos/total')
 def api_processos_total():
-    """Retorna o total de processos ativos"""
+    """Retorna o total de processos ativos (com suporte a múltiplas auditorias)"""
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            query = text("SELECT COUNT(*) FROM processos WHERE status = 'Ativo'")
-            total = conn.execute(query).fetchone()[0] or 0
+            # Pega os parâmetros
+            auditoria_ids = request.args.get('auditoria_ids', '')
+            auditoria_id = request.args.get('auditoria_id', '')
+            
+            # CASO 1: Múltiplas auditorias
+            if auditoria_ids:
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT COUNT(*) FROM processos 
+                    WHERE status = 'Ativo' 
+                    AND auditoria_id IN ({placeholders})
+                """)
+                total = conn.execute(query, params).fetchone()[0] or 0
+            
+            # CASO 2: Única auditoria
+            elif auditoria_id:
+                query = text("""
+                    SELECT COUNT(*) FROM processos 
+                    WHERE status = 'Ativo' AND auditoria_id = :auditoria_id
+                """)
+                total = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()[0] or 0
+            
+            # CASO 3: Nenhum filtro
+            else:
+                query = text("SELECT COUNT(*) FROM processos WHERE status = 'Ativo'")
+                total = conn.execute(query).fetchone()[0] or 0
+            
             return jsonify({'total': total})
+            
     except Exception as e:
+        print(f"❌ Erro em /api/processos/total: {e}")
         return jsonify({'total': 0, 'error': str(e)})
 
 @app.route('/api/auditorias/total')
 def api_auditorias_total():
-    """Retorna o total de auditorias"""
+    """Retorna o total de auditorias (com filtro por área)"""
     from database import engine
     from sqlalchemy import text
     
     try:
+        area_id = request.args.get('area_id')
+        
         with engine.connect() as conn:
-            query = text("SELECT COUNT(*) FROM auditorias")
-            total = conn.execute(query).fetchone()[0] or 0
+            if area_id:
+                query = text("SELECT COUNT(*) FROM auditorias WHERE id_area = :area_id")
+                total = conn.execute(query, {'area_id': area_id}).fetchone()[0] or 0
+            else:
+                query = text("SELECT COUNT(*) FROM auditorias")
+                total = conn.execute(query).fetchone()[0] or 0
+            
             return jsonify({'total': total})
     except Exception as e:
         return jsonify({'total': 0, 'error': str(e)})
 
 @app.route('/api/riscos/total')
 def api_riscos_total():
-    """Retorna o total de riscos (diagnóstico + etapas)"""
+    """Retorna o total de riscos (com suporte a múltiplas auditorias)"""
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            # Riscos do diagnóstico
-            q1 = text("SELECT COUNT(*) FROM riscos")
-            total1 = conn.execute(q1).fetchone()[0] or 0
+            auditoria_ids = request.args.get('auditoria_ids', '')
+            auditoria_id = request.args.get('auditoria_id', '')
             
-            # # Riscos das etapas
-            # q2 = text("SELECT COUNT(*) FROM riscos_etapa WHERE ativo = true")
-            # total2 = conn.execute(q2).fetchone()[0] or 0
+            # CASO 1: Múltiplas auditorias
+            if auditoria_ids:
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT COUNT(r.id) 
+                    FROM riscos r
+                    JOIN processos p ON r.processo_id = p.id
+                    WHERE p.auditoria_id IN ({placeholders})
+                """)
+                total = conn.execute(query, params).fetchone()[0] or 0
             
-            return jsonify({'total': total1})
+            # CASO 2: Única auditoria
+            elif auditoria_id:
+                query = text("""
+                    SELECT COUNT(r.id) 
+                    FROM riscos r
+                    JOIN processos p ON r.processo_id = p.id
+                    WHERE p.auditoria_id = :auditoria_id
+                """)
+                total = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()[0] or 0
+            
+            # CASO 3: Nenhum filtro
+            else:
+                query = text("SELECT COUNT(*) FROM riscos")
+                total = conn.execute(query).fetchone()[0] or 0
+            
+            return jsonify({'total': total})
+            
     except Exception as e:
+        print(f"❌ Erro em /api/riscos/total: {e}")
         return jsonify({'total': 0, 'error': str(e)})
 
 @app.route('/api/dashboard/riscos-magnitude')
@@ -3594,16 +3655,37 @@ def api_dashboard_riscos_magnitude():
     from sqlalchemy import text
     
     try:
+        auditoria_ids = request.args.get('auditoria_ids', '')
+        
         with engine.connect() as conn:
-            query = text("""
-                SELECT 
-                    SUM(CASE WHEN score_risco <= 3 THEN 1 ELSE 0 END) as baixo,
-                    SUM(CASE WHEN score_risco >= 4 AND score_risco <= 7 THEN 1 ELSE 0 END) as medio,
-                    SUM(CASE WHEN score_risco >= 8 AND score_risco <= 11 THEN 1 ELSE 0 END) as alto,
-                    SUM(CASE WHEN score_risco >= 12 THEN 1 ELSE 0 END) as critico
-                FROM riscos
-            """)
-            result = conn.execute(query).fetchone()
+            if auditoria_ids:
+                # Converter string "1,9" para lista de inteiros
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                # Criar placeholders para o SQL
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT 
+                        SUM(CASE WHEN r.score_risco <= 3 THEN 1 ELSE 0 END) as baixo,
+                        SUM(CASE WHEN r.score_risco >= 4 AND r.score_risco <= 7 THEN 1 ELSE 0 END) as medio,
+                        SUM(CASE WHEN r.score_risco >= 8 AND r.score_risco <= 11 THEN 1 ELSE 0 END) as alto,
+                        SUM(CASE WHEN r.score_risco >= 12 THEN 1 ELSE 0 END) as critico
+                    FROM riscos r
+                    JOIN processos p ON r.processo_id = p.id
+                    WHERE p.auditoria_id IN ({placeholders})
+                """)
+                result = conn.execute(query, params).fetchone()
+            else:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN score_risco <= 3 THEN 1 ELSE 0 END) as baixo,
+                        SUM(CASE WHEN score_risco >= 4 AND score_risco <= 7 THEN 1 ELSE 0 END) as medio,
+                        SUM(CASE WHEN score_risco >= 8 AND score_risco <= 11 THEN 1 ELSE 0 END) as alto,
+                        SUM(CASE WHEN score_risco >= 12 THEN 1 ELSE 0 END) as critico
+                    FROM riscos
+                """)
+                result = conn.execute(query).fetchone()
             
             return jsonify({
                 'success': True,
@@ -3613,24 +3695,38 @@ def api_dashboard_riscos_magnitude():
                 'critico': result[3] or 0
             })
     except Exception as e:
+        print(f"❌ Erro: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/dashboard/auditorias-status')
 def api_dashboard_auditorias_status():
-    """Retorna quantidade de auditorias por status"""
+    """Retorna quantidade de auditorias por status (com filtro por área)"""
     from database import engine
     from sqlalchemy import text
     
     try:
+        area_id = request.args.get('area_id')
+        
         with engine.connect() as conn:
-            query = text("""
-                SELECT 
-                    SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluida,
-                    SUM(CASE WHEN status = 'Em Execução' THEN 1 ELSE 0 END) as execucao,
-                    SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
-                FROM auditorias
-            """)
-            result = conn.execute(query).fetchone()
+            if area_id:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluida,
+                        SUM(CASE WHEN status = 'Em Execução' THEN 1 ELSE 0 END) as execucao,
+                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    FROM auditorias
+                    WHERE id_area = :area_id
+                """)
+                result = conn.execute(query, {'area_id': area_id}).fetchone()
+            else:
+                query = text("""
+                    SELECT 
+                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluida,
+                        SUM(CASE WHEN status = 'Em Execução' THEN 1 ELSE 0 END) as execucao,
+                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    FROM auditorias
+                """)
+                result = conn.execute(query).fetchone()
             
             return jsonify({
                 'success': True,
@@ -3643,52 +3739,139 @@ def api_dashboard_auditorias_status():
 
 @app.route('/api/dashboard/top-areas')
 def api_dashboard_top_areas():
-    """Retorna as áreas com mais processos"""
+    """Retorna as áreas com mais processos (com suporte a múltiplas auditorias)"""
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            query = text("""
-                SELECT i.nome_area, COUNT(p.id) as total
-                FROM informacoes_area i
-                LEFT JOIN processos p ON i.id_area = p.id_area AND p.status = 'Ativo'
-                GROUP BY i.id_area, i.nome_area
-                ORDER BY total DESC
-                LIMIT 5
-            """)
-            result = conn.execute(query).fetchall()
+            auditoria_ids = request.args.get('auditoria_ids', '')
+            auditoria_id = request.args.get('auditoria_id', '')
+            
+            # CASO 1: Múltiplas auditorias
+            if auditoria_ids:
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT i.nome_area, COUNT(p.id) as total
+                    FROM informacoes_area i
+                    LEFT JOIN processos p ON i.id_area = p.id_area 
+                        AND p.status = 'Ativo' 
+                        AND p.auditoria_id IN ({placeholders})
+                    GROUP BY i.id_area, i.nome_area
+                    ORDER BY total DESC
+                    LIMIT 5
+                """)
+                result = conn.execute(query, params).fetchall()
+            
+            # CASO 2: Única auditoria
+            elif auditoria_id:
+                query = text("""
+                    SELECT i.nome_area, COUNT(p.id) as total
+                    FROM informacoes_area i
+                    LEFT JOIN processos p ON i.id_area = p.id_area 
+                        AND p.status = 'Ativo' 
+                        AND p.auditoria_id = :auditoria_id
+                    GROUP BY i.id_area, i.nome_area
+                    ORDER BY total DESC
+                    LIMIT 5
+                """)
+                result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchall()
+            
+            # CASO 3: Nenhum filtro
+            else:
+                query = text("""
+                    SELECT i.nome_area, COUNT(p.id) as total
+                    FROM informacoes_area i
+                    LEFT JOIN processos p ON i.id_area = p.id_area AND p.status = 'Ativo'
+                    GROUP BY i.id_area, i.nome_area
+                    ORDER BY total DESC
+                    LIMIT 5
+                """)
+                result = conn.execute(query).fetchall()
             
             areas = [{'nome_area': row[0], 'total': row[1]} for row in result]
             
             return jsonify({'success': True, 'areas': areas})
+            
     except Exception as e:
+        print(f"❌ Erro em /api/dashboard/top-areas: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/dashboard/resumo-riscos')
 def api_dashboard_resumo_riscos():
-    """Retorna resumo de riscos por processo"""
+    """Retorna resumo de riscos por processo (com suporte a múltiplas auditorias)"""
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            query = text("""
-                SELECT 
-                    p.id,
-                    p.codigo_processo,
-                    p.nome_processo,
-                    COUNT(r.id) as total_riscos,
-                    MAX(r.score_risco) as score_maximo
-                FROM processos p
-                LEFT JOIN riscos r ON p.id = r.processo_id
-                WHERE p.status = 'Ativo'
-                GROUP BY p.id, p.codigo_processo, p.nome_processo
-                HAVING COUNT(r.id) > 0
-                ORDER BY score_maximo DESC NULLS LAST
-                LIMIT 10
-            """)
-            result = conn.execute(query).fetchall()
+            auditoria_ids = request.args.get('auditoria_ids', '')
+            auditoria_id = request.args.get('auditoria_id', '')
+            
+            # CASO 1: Múltiplas auditorias
+            if auditoria_ids:
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                query = text(f"""
+                    SELECT 
+                        p.id,
+                        p.codigo_processo,
+                        p.nome_processo,
+                        COUNT(r.id) as total_riscos,
+                        MAX(r.score_risco) as score_maximo
+                    FROM processos p
+                    LEFT JOIN riscos r ON p.id = r.processo_id
+                    WHERE p.status = 'Ativo' 
+                        AND p.auditoria_id IN ({placeholders})
+                    GROUP BY p.id, p.codigo_processo, p.nome_processo
+                    HAVING COUNT(r.id) > 0
+                    ORDER BY score_maximo DESC NULLS LAST
+                    LIMIT 10
+                """)
+                result = conn.execute(query, params).fetchall()
+            
+            # CASO 2: Única auditoria
+            elif auditoria_id:
+                query = text("""
+                    SELECT 
+                        p.id,
+                        p.codigo_processo,
+                        p.nome_processo,
+                        COUNT(r.id) as total_riscos,
+                        MAX(r.score_risco) as score_maximo
+                    FROM processos p
+                    LEFT JOIN riscos r ON p.id = r.processo_id
+                    WHERE p.status = 'Ativo' AND p.auditoria_id = :auditoria_id
+                    GROUP BY p.id, p.codigo_processo, p.nome_processo
+                    HAVING COUNT(r.id) > 0
+                    ORDER BY score_maximo DESC NULLS LAST
+                    LIMIT 10
+                """)
+                result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchall()
+            
+            # CASO 3: Nenhum filtro
+            else:
+                query = text("""
+                    SELECT 
+                        p.id,
+                        p.codigo_processo,
+                        p.nome_processo,
+                        COUNT(r.id) as total_riscos,
+                        MAX(r.score_risco) as score_maximo
+                    FROM processos p
+                    LEFT JOIN riscos r ON p.id = r.processo_id
+                    WHERE p.status = 'Ativo'
+                    GROUP BY p.id, p.codigo_processo, p.nome_processo
+                    HAVING COUNT(r.id) > 0
+                    ORDER BY score_maximo DESC NULLS LAST
+                    LIMIT 10
+                """)
+                result = conn.execute(query).fetchall()
             
             processos = []
             for row in result:
@@ -3701,13 +3884,70 @@ def api_dashboard_resumo_riscos():
                 })
             
             return jsonify({'success': True, 'processos': processos})
+            
     except Exception as e:
+        print(f"❌ Erro em /api/dashboard/resumo-riscos: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/controles/total')
+def api_controles_total():
+    """Retorna o total de controles cadastrados (com suporte a múltiplas auditorias)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # ⭐ NOVO: Pega o parâmetro de múltiplas auditorias
+            auditoria_ids = request.args.get('auditoria_ids', '')
+            # Mantém o antigo para compatibilidade
+            auditoria_id = request.args.get('auditoria_id', '')
+            
+            # ⭐ CASO 1: Múltiplas auditorias (ex: "1,9")
+            if auditoria_ids:
+                # Converter "1,9" para lista [1, 9]
+                ids_list = [int(x) for x in auditoria_ids.split(',') if x]
+                
+                # Criar placeholders para SQL (ex: ':id0, :id1')
+                placeholders = ','.join([':id' + str(i) for i in range(len(ids_list))])
+                
+                # Criar dicionário de parâmetros (ex: {'id0': 1, 'id1': 9})
+                params = {f'id{i}': id_val for i, id_val in enumerate(ids_list)}
+                
+                # Query com IN (ex: WHERE p.auditoria_id IN (:id0, :id1))
+                query = text(f"""
+                    SELECT COUNT(*) FROM controles_etapa ce
+                    JOIN riscos_etapa re ON ce.risco_id = re.id
+                    JOIN etapas_processo ep ON re.etapa_id = ep.id
+                    JOIN processos p ON ep.processo_id = p.id
+                    WHERE p.auditoria_id IN ({placeholders})
+                """)
+                total = conn.execute(query, params).fetchone()[0] or 0
+            
+            # ⭐ CASO 2: Uma única auditoria (compatibilidade)
+            elif auditoria_id:
+                query = text("""
+                    SELECT COUNT(*) FROM controles_etapa ce
+                    JOIN riscos_etapa re ON ce.risco_id = re.id
+                    JOIN etapas_processo ep ON re.etapa_id = ep.id
+                    JOIN processos p ON ep.processo_id = p.id
+                    WHERE p.auditoria_id = :auditoria_id
+                """)
+                total = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()[0] or 0
+            
+            # ⭐ CASO 3: Nenhum filtro - todos os controles
+            else:
+                query = text("SELECT COUNT(*) FROM controles_etapa")
+                total = conn.execute(query).fetchone()[0] or 0
+            
+            return jsonify({'total': total})
+            
+    except Exception as e:
+        print(f"❌ Erro em /api/controles/total: {e}")
+        return jsonify({'total': 0, 'error': str(e)})
 
 # ============================================================
 # FIM API - DASHBOARD
 # ============================================================
-
 
 # ============================================================
 # PONTO DE ENTRADA
