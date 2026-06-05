@@ -3533,6 +3533,181 @@ def api_anotacoes_excluir(anotacao_id):
         print(f"❌ Erro ao excluir anotação: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ============================================================
+# API - DASHBOARD
+# ============================================================
+
+# ====== DASHBOARD APIS ======
+
+@app.route('/api/processos/total')
+def api_processos_total():
+    """Retorna o total de processos ativos"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("SELECT COUNT(*) FROM processos WHERE status = 'Ativo'")
+            total = conn.execute(query).fetchone()[0] or 0
+            return jsonify({'total': total})
+    except Exception as e:
+        return jsonify({'total': 0, 'error': str(e)})
+
+@app.route('/api/auditorias/total')
+def api_auditorias_total():
+    """Retorna o total de auditorias"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("SELECT COUNT(*) FROM auditorias")
+            total = conn.execute(query).fetchone()[0] or 0
+            return jsonify({'total': total})
+    except Exception as e:
+        return jsonify({'total': 0, 'error': str(e)})
+
+@app.route('/api/riscos/total')
+def api_riscos_total():
+    """Retorna o total de riscos (diagnóstico + etapas)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Riscos do diagnóstico
+            q1 = text("SELECT COUNT(*) FROM riscos")
+            total1 = conn.execute(q1).fetchone()[0] or 0
+            
+            # # Riscos das etapas
+            # q2 = text("SELECT COUNT(*) FROM riscos_etapa WHERE ativo = true")
+            # total2 = conn.execute(q2).fetchone()[0] or 0
+            
+            return jsonify({'total': total1})
+    except Exception as e:
+        return jsonify({'total': 0, 'error': str(e)})
+
+@app.route('/api/dashboard/riscos-magnitude')
+def api_dashboard_riscos_magnitude():
+    """Retorna quantidade de riscos por faixa de magnitude"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    SUM(CASE WHEN score_risco <= 3 THEN 1 ELSE 0 END) as baixo,
+                    SUM(CASE WHEN score_risco >= 4 AND score_risco <= 7 THEN 1 ELSE 0 END) as medio,
+                    SUM(CASE WHEN score_risco >= 8 AND score_risco <= 11 THEN 1 ELSE 0 END) as alto,
+                    SUM(CASE WHEN score_risco >= 12 THEN 1 ELSE 0 END) as critico
+                FROM riscos
+            """)
+            result = conn.execute(query).fetchone()
+            
+            return jsonify({
+                'success': True,
+                'baixo': result[0] or 0,
+                'medio': result[1] or 0,
+                'alto': result[2] or 0,
+                'critico': result[3] or 0
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/dashboard/auditorias-status')
+def api_dashboard_auditorias_status():
+    """Retorna quantidade de auditorias por status"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluida,
+                    SUM(CASE WHEN status = 'Em Execução' THEN 1 ELSE 0 END) as execucao,
+                    SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                FROM auditorias
+            """)
+            result = conn.execute(query).fetchone()
+            
+            return jsonify({
+                'success': True,
+                'concluida': result[0] or 0,
+                'execucao': result[1] or 0,
+                'planejamento': result[2] or 0
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/dashboard/top-areas')
+def api_dashboard_top_areas():
+    """Retorna as áreas com mais processos"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT i.nome_area, COUNT(p.id) as total
+                FROM informacoes_area i
+                LEFT JOIN processos p ON i.id_area = p.id_area AND p.status = 'Ativo'
+                GROUP BY i.id_area, i.nome_area
+                ORDER BY total DESC
+                LIMIT 5
+            """)
+            result = conn.execute(query).fetchall()
+            
+            areas = [{'nome_area': row[0], 'total': row[1]} for row in result]
+            
+            return jsonify({'success': True, 'areas': areas})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/dashboard/resumo-riscos')
+def api_dashboard_resumo_riscos():
+    """Retorna resumo de riscos por processo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    p.id,
+                    p.codigo_processo,
+                    p.nome_processo,
+                    COUNT(r.id) as total_riscos,
+                    MAX(r.score_risco) as score_maximo
+                FROM processos p
+                LEFT JOIN riscos r ON p.id = r.processo_id
+                WHERE p.status = 'Ativo'
+                GROUP BY p.id, p.codigo_processo, p.nome_processo
+                HAVING COUNT(r.id) > 0
+                ORDER BY score_maximo DESC NULLS LAST
+                LIMIT 10
+            """)
+            result = conn.execute(query).fetchall()
+            
+            processos = []
+            for row in result:
+                processos.append({
+                    'id': row[0],
+                    'codigo_processo': row[1] or '',
+                    'nome_processo': row[2] or '',
+                    'total_riscos': row[3] or 0,
+                    'score_maximo': row[4] or 0
+                })
+            
+            return jsonify({'success': True, 'processos': processos})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# FIM API - DASHBOARD
+# ============================================================
+
 
 # ============================================================
 # PONTO DE ENTRADA
