@@ -3569,6 +3569,7 @@ def api_analises_auditor_por_processo():
     
     try:
         with engine.connect() as conn:
+            # Query simplificada listando todas as colunas explicitamente
             query = text("""
                 SELECT 
                     id,
@@ -3576,9 +3577,16 @@ def api_analises_auditor_por_processo():
                     sugestao_melhoria,
                     necessidade_implantacao,
                     ganho_previsto,
-                    categoria,
-                    tipo_analise,
                     observacoes,
+                    sugestao_sera_implantada,
+                    plano_acao,
+                    responsavel_implantacao,
+                    data_inicio_implantacao,
+                    data_conclusao_prevista,
+                    anexo_nome,
+                    efetivamente_implantada,
+                    data_implantacao_efetiva,
+                    status_implantacao,
                     created_at,
                     updated_at
                 FROM analises_criticas
@@ -3587,29 +3595,74 @@ def api_analises_auditor_por_processo():
                   AND (etapa_id IS NULL OR etapa_id = 0)
                 ORDER BY created_at ASC
             """)
+            
             result = conn.execute(query, {'processo_id': processo_id}).fetchall()
             
             analises = []
             for row in result:
-                analises.append({
+                analise = {
                     'id': row[0],
                     'analise_critica': row[1] or '',
                     'sugestao_melhoria': row[2] or '',
                     'necessidade_implantacao': row[3] or '',
                     'ganho_previsto': row[4] or '',
-                    'categoria': row[5] or 'geral',
-                    'tipo_analise': row[6],
-                    'observacoes': row[7] or '',
-                    'created_at': row[8].isoformat() if row[8] else None,
-                    'updated_at': row[9].isoformat() if row[9] else None
-                })
+                    'observacoes': row[5] or '',
+                    'sugestao_sera_implantada': row[6] if row[6] is not None else False,
+                    'plano_acao': row[7] or '',
+                    'responsavel_implantacao': row[8] or '',
+                    'data_inicio_implantacao': row[9].strftime('%Y-%m-%d') if row[9] else None,
+                    'data_conclusao_prevista': row[10].strftime('%Y-%m-%d') if row[10] else None,
+                    'anexo_nome': row[11] or '',
+                    'efetivamente_implantada': row[12] if len(row) > 12 else None,
+                    'data_implantacao_efetiva': row[13].strftime('%Y-%m-%d') if len(row) > 13 and row[13] else None,
+                    'status_implantacao': row[14] if len(row) > 14 else 'Aguardando implantação',
+                    'created_at': row[15].isoformat() if len(row) > 15 and row[15] else None,
+                    'updated_at': row[16].isoformat() if len(row) > 16 and row[16] else None
+                }
+                analises.append(analise)
             
+            print(f"✅ Buscadas {len(analises)} análises para o processo {processo_id}")
             return jsonify({'success': True, 'analises': analises})
             
     except Exception as e:
         print(f"❌ Erro ao buscar análises do auditor: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/analise-auditor/<int:analise_id>/anexo', methods=['GET'])
+def api_analise_auditor_anexo(analise_id):
+    """Baixa o anexo PDF da análise do auditor"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from flask import send_file
+    import io
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT anexo_validador, anexo_nome
+                FROM analises_criticas
+                WHERE id = :id AND tipo_analise = 'auditor'
+            """)
+            result = conn.execute(query, {'id': analise_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'error': 'Anexo não encontrado'}), 404
+            
+            return send_file(
+                io.BytesIO(result[0]),
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=result[1] or f'anexo_analise_{analise_id}.pdf'
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar anexo: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/analise-auditor/<int:analise_id>', methods=['PUT'])
 def api_analise_auditor_atualizar(analise_id):
@@ -3631,6 +3684,11 @@ def api_analise_auditor_atualizar(analise_id):
                     necessidade_implantacao = :necessidade_implantacao,
                     ganho_previsto = :ganho_previsto,
                     observacoes = :observacoes,
+                    sugestao_sera_implantada = :sugestao_sera_implantada,
+                    plano_acao = :plano_acao,
+                    responsavel_implantacao = :responsavel_implantacao,
+                    data_inicio_implantacao = :data_inicio_implantacao,
+                    data_conclusao_prevista = :data_conclusao_prevista,
                     updated_at = NOW()
                 WHERE id = :id AND tipo_analise = 'auditor'
             """)
@@ -3640,7 +3698,12 @@ def api_analise_auditor_atualizar(analise_id):
                 'sugestao_melhoria': data.get('sugestao_melhoria', ''),
                 'necessidade_implantacao': data.get('necessidade_implantacao', ''),
                 'ganho_previsto': data.get('ganho_previsto', ''),
-                'observacoes': data.get('observacoes', '')
+                'observacoes': data.get('observacoes', ''),
+                'sugestao_sera_implantada': data.get('sugestao_sera_implantada', False),
+                'plano_acao': data.get('plano_acao', ''),
+                'responsavel_implantacao': data.get('responsavel_implantacao', ''),
+                'data_inicio_implantacao': data.get('data_inicio_implantacao'),
+                'data_conclusao_prevista': data.get('data_conclusao_prevista')
             })
             conn.commit()
             
@@ -3684,18 +3747,30 @@ def api_analise_auditor_excluir(analise_id):
 
 @app.route('/api/analise-auditor/salvar', methods=['POST'])
 def api_analise_auditor_salvar():
-    """Salva uma nova análise do auditor"""
+    """Salva uma nova análise do auditor com plano de ação e anexo"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
     processo_id = data.get('processo_id')
+    
+    # Campos principais
     analise_critica = data.get('analise_critica', '')
     sugestao_melhoria = data.get('sugestao_melhoria', '')
     necessidade_implantacao = data.get('necessidade_implantacao', '')
     ganho_previsto = data.get('ganho_previsto', '')
     observacoes = data.get('observacoes', '')
-    categoria = data.get('categoria', 'geral')
+    
+    # Campos do plano de ação
+    sugestao_sera_implantada = data.get('sugestao_sera_implantada', False)
+    plano_acao = data.get('plano_acao', '')
+    responsavel_implantacao = data.get('responsavel_implantacao', '')
+    data_inicio_implantacao = data.get('data_inicio_implantacao')
+    data_conclusao_prevista = data.get('data_conclusao_prevista')
+    
+    # Anexo (se veio)
+    anexo_base64 = data.get('anexo_base64')
+    anexo_nome = data.get('anexo_nome')
     
     if not processo_id:
         return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
@@ -3705,31 +3780,52 @@ def api_analise_auditor_salvar():
     
     from database import engine
     from sqlalchemy import text
+    import base64
     
     try:
         with engine.connect() as conn:
+            # Processar anexo se existir
+            anexo_bytes = None
+            if anexo_base64:
+                if ',' in anexo_base64:
+                    anexo_base64 = anexo_base64.split(',')[1]
+                anexo_bytes = base64.b64decode(anexo_base64)
+            
             query = text("""
                 INSERT INTO analises_criticas (
                     processo_id, etapa_id, tipo_analise, categoria,
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
+                    sugestao_sera_implantada, plano_acao, responsavel_implantacao,
+                    data_inicio_implantacao, data_conclusao_prevista,
+                    anexo_validador, anexo_nome,
                     created_at, updated_at
                 ) VALUES (
-                    :processo_id, NULL, 'auditor', :categoria,
+                    :processo_id, NULL, 'auditor', 'geral',
                     :analise_critica, :sugestao_melhoria,
                     :necessidade_implantacao, :ganho_previsto, :observacoes,
+                    :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
+                    :data_inicio_implantacao, :data_conclusao_prevista,
+                    :anexo_validador, :anexo_nome,
                     NOW(), NOW()
                 )
                 RETURNING id
             """)
+            
             result = conn.execute(query, {
                 'processo_id': processo_id,
-                'categoria': categoria,
                 'analise_critica': analise_critica,
                 'sugestao_melhoria': sugestao_melhoria,
                 'necessidade_implantacao': necessidade_implantacao,
                 'ganho_previsto': ganho_previsto,
-                'observacoes': observacoes
+                'observacoes': observacoes,
+                'sugestao_sera_implantada': sugestao_sera_implantada,
+                'plano_acao': plano_acao,
+                'responsavel_implantacao': responsavel_implantacao,
+                'data_inicio_implantacao': data_inicio_implantacao,
+                'data_conclusao_prevista': data_conclusao_prevista,
+                'anexo_validador': anexo_bytes,
+                'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
             conn.commit()
@@ -3738,6 +3834,68 @@ def api_analise_auditor_salvar():
             
     except Exception as e:
         print(f"❌ Erro ao salvar análise do auditor: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/analise-auditor/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
+def api_analise_auditor_confirmar_implantacao(analise_id):
+    """Confirma se a melhoria foi efetivamente implantada"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    efetivamente_implantada = data.get('efetivamente_implantada')
+    data_implantacao_efetiva = data.get('data_implantacao_efetiva')
+    comentario_implantacao = data.get('comentario_implantacao', '')
+    
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    try:
+        with engine.connect() as conn:
+            status = 'Implantada' if efetivamente_implantada else 'Não implantada'
+            
+            query = text("""
+                UPDATE analises_criticas 
+                SET efetivamente_implantada = :efetivamente_implantada,
+                    data_implantacao_efetiva = :data_implantacao_efetiva,
+                    status_implantacao = :status,
+                    updated_at = NOW()
+                WHERE id = :id AND tipo_analise = 'auditor'
+            """)
+            result = conn.execute(query, {
+                'id': analise_id,
+                'efetivamente_implantada': efetivamente_implantada,
+                'data_implantacao_efetiva': data_implantacao_efetiva,
+                'status': status
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            # Se foi implantada, registrar no histórico de andamento
+            if efetivamente_implantada:
+                query_historico = text("""
+                    INSERT INTO analises_historico_andamento (
+                        analise_id, status, comentario, created_by, created_at
+                    ) VALUES (
+                        :analise_id, 'Concluído', :comentario, :created_by, NOW()
+                    )
+                """)
+                conn.execute(query_historico, {
+                    'analise_id': analise_id,
+                    'comentario': f'Melhoria implantada em {data_implantacao_efetiva}. {comentario_implantacao}',
+                    'created_by': session.get('usuario_nome', 'Sistema')
+                })
+                conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Implantação confirmada'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao confirmar implantação: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/analise/salvar', methods=['POST'])
@@ -3855,6 +4013,212 @@ def api_analise_excluir(analise_id):
             
     except Exception as e:
         print(f"❌ Erro ao excluir análise: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analise-follow-ups/criar', methods=['POST'])
+def api_analise_follow_ups_criar():
+    """Cria follow-ups automáticos para uma análise"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    analise_id = data.get('analise_id')
+    follow_ups = data.get('follow_ups', [])
+    
+    if not analise_id:
+        return jsonify({'success': False, 'error': 'analise_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    try:
+        with engine.connect() as conn:
+            for fu in follow_ups:
+                query = text("""
+                    INSERT INTO analises_follow_up (
+                        analise_id, etapa, data_prevista, status, 
+                        comentario, created_at, updated_at
+                    ) VALUES (
+                        :analise_id, :etapa, :data_prevista, 'Pendente',
+                        'Aguardando registro', NOW(), NOW()
+                    )
+                """)
+                conn.execute(query, {
+                    'analise_id': analise_id,
+                    'etapa': fu.get('etapa'),
+                    'data_prevista': fu.get('data_prevista')
+                })
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': f'{len(follow_ups)} follow-ups criados'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao criar follow-ups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# API - HISTÓRICO DE ANDAMENTO
+# ============================================================
+
+@app.route('/api/analise-historico/<int:analise_id>', methods=['GET'])
+def api_analise_historico_buscar(analise_id):
+    """Busca o histórico de andamento de uma análise"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, status, comentario, created_by, created_at
+                FROM analises_historico_andamento
+                WHERE analise_id = :analise_id
+                ORDER BY created_at DESC
+            """)
+            result = conn.execute(query, {'analise_id': analise_id}).fetchall()
+            
+            historico = []
+            for row in result:
+                historico.append({
+                    'id': row[0],
+                    'status': row[1],
+                    'comentario': row[2] or '',
+                    'created_by': row[3] or '',
+                    'data_registro': row[4].isoformat() if row[4] else None
+                })
+            
+            return jsonify({'success': True, 'historico': historico})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar histórico: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise-historico/salvar', methods=['POST'])
+def api_analise_historico_salvar():
+    """Salva um registro de andamento"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    analise_id = data.get('analise_id')
+    status = data.get('status')
+    comentario = data.get('comentario')
+    usuario_nome = session.get('usuario_nome', 'Sistema')
+    
+    if not analise_id:
+        return jsonify({'success': False, 'error': 'analise_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                INSERT INTO analises_historico_andamento (
+                    analise_id, status, comentario, created_by, created_at
+                ) VALUES (
+                    :analise_id, :status, :comentario, :created_by, NOW()
+                )
+            """)
+            conn.execute(query, {
+                'analise_id': analise_id,
+                'status': status,
+                'comentario': comentario,
+                'created_by': usuario_nome
+            })
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Andamento registrado'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar histórico: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise-follow-ups/<int:analise_id>', methods=['GET'])
+def api_analise_follow_ups_buscar(analise_id):
+    """Busca os follow-ups de uma análise"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, etapa, data_prevista, data_realizada, status, comentario, responsavel
+                FROM analises_follow_up
+                WHERE analise_id = :analise_id
+                ORDER BY data_prevista ASC
+            """)
+            result = conn.execute(query, {'analise_id': analise_id}).fetchall()
+            
+            follow_ups = []
+            for row in result:
+                follow_ups.append({
+                    'id': row[0],
+                    'etapa': row[1],
+                    'data_prevista': row[2].isoformat() if row[2] else None,
+                    'data_realizada': row[3].isoformat() if row[3] else None,
+                    'status': row[4] or 'Pendente',
+                    'comentario': row[5] or '',
+                    'responsavel': row[6] or ''
+                })
+            
+            return jsonify({'success': True, 'follow_ups': follow_ups})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar follow-ups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise-follow-up/<int:follow_up_id>', methods=['PUT'])
+def api_analise_follow_up_atualizar(follow_up_id):
+    """Atualiza um follow-up (registra resultado)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    status = data.get('status')
+    comentario = data.get('comentario')
+    usuario_nome = session.get('usuario_nome', 'Sistema')
+    
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE analises_follow_up 
+                SET status = :status,
+                    comentario = :comentario,
+                    data_realizada = NOW(),
+                    responsavel = :responsavel,
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            result = conn.execute(query, {
+                'id': follow_up_id,
+                'status': status,
+                'comentario': comentario,
+                'responsavel': usuario_nome
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Follow-up não encontrado'}), 404
+            
+            return jsonify({'success': True, 'message': 'Follow-up registrado'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao atualizar follow-up: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================
