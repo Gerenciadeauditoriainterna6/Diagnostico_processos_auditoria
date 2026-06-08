@@ -3862,6 +3862,7 @@ def limpar_binario(dados):
 def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
+    Inclui análises do auditado (etapas) e análises do auditor (checklists)
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
@@ -3901,12 +3902,18 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         textColor=colors.HexColor('#184145')
     )
     
+    subsecao_style = ParagraphStyle(
+        'SubSecaoStyle', parent=styles['Heading3'],
+        fontSize=12, spaceAfter=8, spaceBefore=10,
+        textColor=colors.HexColor('#0b5b99')
+    )
+    
     normal_style = styles['Normal']
     normal_style.fontSize = 9
     
     story = []
     
-    # ===== CABEÇALHO COM LOGOS (APENAS NA PRIMEIRA PÁGINA) =====
+    # ===== CABEÇALHO COM LOGOS =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
     logo_fusve_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
     logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
@@ -3948,7 +3955,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     story.append(Paragraph("PARECER DA AUDITORIA INTERNA", titulo_style))
     story.append(Spacer(1, 5))
     
-    # ===== BUSCAR TODOS OS DADOS EM UM ÚNICO BLOCO =====
+    # ===== BUSCAR TODOS OS DADOS =====
     with engine.connect() as conn:
         # Buscar dados da auditoria
         query_auditoria = text("""
@@ -3991,7 +3998,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         proc_codigo = processo[1]
         proc_nome = processo[2]
         
-        # Buscar etapas do processo
+        # ===== 1. BUSCAR ETAPAS E ANÁLISES DO AUDITADO =====
         query_etapas = text("""
             SELECT id, nome_etapa, codigo_etapa, descricao_etapa
             FROM etapas_processo 
@@ -4000,7 +4007,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         """)
         etapas_raw = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
         
-        # Buscar análises para cada etapa
         etapas = []
         for etapa in etapas_raw:
             etapa_id = etapa[0]
@@ -4008,31 +4014,62 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
             etapa_codigo = etapa[2] or ''
             etapa_desc = etapa[3] or ''
             
-            query_analises = text("""
-                SELECT tipo_analise, categoria, analise_critica, sugestao_melhoria, 
+            # Buscar análises do auditado para esta etapa (tipo_analise = 'entrevistado')
+            query_analises_auditado = text("""
+                SELECT categoria, analise_critica, sugestao_melhoria, 
                        necessidade_implantacao, ganho_previsto
                 FROM analises_criticas 
-                WHERE etapa_id = :etapa_id
-                ORDER BY tipo_analise, categoria
+                WHERE etapa_id = :etapa_id AND tipo_analise = 'entrevistado'
+                ORDER BY categoria
             """)
-            analises = conn.execute(query_analises, {"etapa_id": etapa_id}).fetchall()
+            analises_auditado = conn.execute(query_analises_auditado, {"etapa_id": etapa_id}).fetchall()
             
-            # Separar análises por tipo
-            analises_auditado = []
-            analises_auditor = []
-            for a in analises:
-                if a[0] == 'entrevistado':
-                    analises_auditado.append(a)
-                else:
-                    analises_auditor.append(a)
+            # Converter para lista de dicionários
+            analises_auditado_list = []
+            for a in analises_auditado:
+                analises_auditado_list.append({
+                    'categoria': a[0],
+                    'analise_critica': a[1] or '',
+                    'sugestao_melhoria': a[2] or '',
+                    'necessidade_implantacao': a[3] or '',
+                    'ganho_previsto': a[4] or ''
+                })
             
             etapas.append({
                 'id': etapa_id,
                 'nome': etapa_nome,
                 'codigo': etapa_codigo,
                 'descricao': etapa_desc,
-                'analises_auditado': analises_auditado,
-                'analises_auditor': analises_auditor
+                'analises_auditado': analises_auditado_list,
+            })
+        
+        # ===== 2. BUSCAR ANÁLISES DO AUDITOR PARA O PROCESSO =====
+        query_analises_auditor = text("""
+            SELECT 
+                analise_critica,
+                sugestao_melhoria,
+                necessidade_implantacao,
+                ganho_previsto,
+                observacoes,
+                categoria,
+                created_at
+            FROM analises_criticas 
+            WHERE processo_id = :processo_id 
+              AND tipo_analise = 'auditor'
+            ORDER BY created_at ASC
+        """)
+        analises_auditor_raw = conn.execute(query_analises_auditor, {"processo_id": proc_id}).fetchall()
+        
+        analises_auditor_list = []
+        for a in analises_auditor_raw:
+            analises_auditor_list.append({
+                'analise_critica': a[0] or '',
+                'sugestao_melhoria': a[1] or '',
+                'necessidade_implantacao': a[2] or '',
+                'ganho_previsto': a[3] or '',
+                'observacoes': a[4] or '',
+                'categoria': a[5] or 'geral',
+                'data': a[6].strftime('%d/%m/%Y') if a[6] else ''
             })
     
     # ===== INFORMAÇÕES EM TABELA =====
@@ -4060,15 +4097,17 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     story.append(info_table)
     story.append(Spacer(1, 20))
     
-    # ===== ETAPAS DO PROCESSO =====
+    # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
+    story.append(Paragraph("1. ANÁLISES DO AUDITADO", secao_style))
+    story.append(Paragraph("Análises realizadas pelo auditado durante o detalhamento das etapas", normal_style))
+    story.append(Spacer(1, 10))
+    
     if not etapas:
         story.append(Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style))
     else:
         for etapa_idx, etapa in enumerate(etapas):
             # Cabeçalho da etapa
-            story.append(Paragraph(f"<b>PROCESSO {proc_codigo}: {proc_nome}</b>", secao_style))
-            story.append(Spacer(1, 5))
-            story.append(Paragraph(f"<b>Etapa {etapa['codigo']}: {etapa['nome']}</b>", styles['Heading3']))
+            story.append(Paragraph(f"Etapa {etapa['codigo']}: {etapa['nome']}", subsecao_style))
             story.append(Spacer(1, 3))
             
             # Descrição
@@ -4076,82 +4115,109 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 story.append(Paragraph(f"<i>{etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}</i>", normal_style))
                 story.append(Spacer(1, 5))
             
-            # Análise do Auditado
+            # Análises do Auditado
             if etapa['analises_auditado']:
-                story.append(Paragraph("ANÁLISE DO AUDITADO", styles['Heading4']))
                 for a in etapa['analises_auditado']:
+                    # Categoria
+                    nome_categoria = {
+                        'governanca': 'Governança',
+                        'riscos': 'Riscos',
+                        'controles': 'Controles'
+                    }.get(a['categoria'], a['categoria'].upper())
+                    
+                    story.append(Paragraph(f"{nome_categoria}", normal_style))
+                    
                     dados = []
-                    if a[2]:
-                        dados.append([Paragraph("Análise Crítica:", normal_style), Paragraph(a[2], normal_style)])
-                    if a[3]:
-                        dados.append([Paragraph("Sugestão de Melhoria:", normal_style), Paragraph(a[3], normal_style)])
-                    if a[4]:
-                        dados.append([Paragraph("Necessidade para Implantação:", normal_style), Paragraph(a[4], normal_style)])
-                    if a[5]:
-                        dados.append([Paragraph("Ganho Previsto:", normal_style), Paragraph(a[5], normal_style)])
+                    if a['analise_critica']:
+                        dados.append([Paragraph("Análise Crítica:", normal_style), Paragraph(a['analise_critica'], normal_style)])
+                    if a['sugestao_melhoria']:
+                        dados.append([Paragraph("Sugestão de Melhoria:", normal_style), Paragraph(a['sugestao_melhoria'], normal_style)])
+                    if a['necessidade_implantacao']:
+                        dados.append([Paragraph("Necessidade para Implantação:", normal_style), Paragraph(a['necessidade_implantacao'], normal_style)])
+                    if a['ganho_previsto']:
+                        dados.append([Paragraph("Ganho Previsto:", normal_style), Paragraph(a['ganho_previsto'], normal_style)])
                     
                     if dados:
                         tabela_analise = Table(dados, colWidths=[4*cm, 11*cm])
                         tabela_analise.setStyle(TableStyle([
                             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFF8E7')),
                             ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                             ('TOPPADDING', (0, 0), (-1, -1), 4),
                             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                         ]))
                         story.append(tabela_analise)
                         story.append(Spacer(1, 5))
-            
-            # Análise do Auditor
-            if etapa['analises_auditor']:
-                story.append(Paragraph("ANÁLISE DO AUDITOR", styles['Heading4']))
-                for a in etapa['analises_auditor']:
-                    dados = []
-                    if a[2]:
-                        dados.append([Paragraph("Análise Crítica:", normal_style), Paragraph(a[2], normal_style)])
-                    if a[3]:
-                        dados.append([Paragraph("Sugestão de Melhoria:", normal_style), Paragraph(a[3], normal_style)])
-                    if a[4]:
-                        dados.append([Paragraph("Necessidade para Implantação:", normal_style), Paragraph(a[4], normal_style)])
-                    if a[5]:
-                        dados.append([Paragraph("Ganho Previsto:", normal_style), Paragraph(a[5], normal_style)])
-                    
-                    if dados:
-                        tabela_analise = Table(dados, colWidths=[4*cm, 11*cm])
-                        tabela_analise.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#E8F4F8')),
-                            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                            ('TOPPADDING', (0, 0), (-1, -1), 4),
-                            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                        ]))
-                        story.append(tabela_analise)
-                        story.append(Spacer(1, 5))
+            else:
+                story.append(Paragraph("<i>Nenhuma análise cadastrada para esta etapa.</i>", normal_style))
             
             story.append(Spacer(1, 8))
     
-    # ===== CONCLUSÃO =====
+    # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
     story.append(PageBreak())
-    story.append(Paragraph("CONCLUSÃO E RECOMENDAÇÕES", titulo_style))
-    story.append(Spacer(1, 15))
+    story.append(Paragraph("2. ANÁLISES DO AUDITOR", secao_style))
+    story.append(Paragraph("Análises realizadas pelo auditor durante a Matriz de Eficácia", normal_style))
+    story.append(Spacer(1, 10))
+    
+    if not analises_auditor_list:
+        story.append(Paragraph("<i>Nenhuma análise do auditor cadastrada para este processo.</i>", normal_style))
+    else:
+        for idx, analise in enumerate(analises_auditor_list, 1):
+            # Card da análise
+            story.append(Paragraph(f"Análise {idx}", subsecao_style))
+            story.append(Spacer(1, 2))
+            
+            if analise.get('data'):
+                story.append(Paragraph(f"<i>Data: {analise['data']}</i>", normal_style))
+                story.append(Spacer(1, 3))
+            
+            dados = []
+            if analise.get('analise_critica'):
+                dados.append([Paragraph("Análise Crítica:", normal_style), Paragraph(analise['analise_critica'], normal_style)])
+            if analise.get('sugestao_melhoria'):
+                dados.append([Paragraph("Sugestão de Melhoria:", normal_style), Paragraph(analise['sugestao_melhoria'], normal_style)])
+            if analise.get('necessidade_implantacao'):
+                dados.append([Paragraph("Necessidade para Implantação:", normal_style), Paragraph(analise['necessidade_implantacao'], normal_style)])
+            if analise.get('ganho_previsto'):
+                dados.append([Paragraph("Ganho Previsto:", normal_style), Paragraph(analise['ganho_previsto'], normal_style)])
+            if analise.get('observacoes'):
+                dados.append([Paragraph("Observações:", normal_style), Paragraph(analise['observacoes'], normal_style)])
+            
+            if dados:
+                tabela_analise = Table(dados, colWidths=[4*cm, 11*cm])
+                tabela_analise.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#E8F4F8')),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                story.append(tabela_analise)
+                story.append(Spacer(1, 8))
+    
+    # ===== SEÇÃO 3: CONCLUSÃO E RECOMENDAÇÕES =====
+    story.append(PageBreak())
+    story.append(Paragraph("3. CONCLUSÃO E RECOMENDAÇÕES", secao_style))
+    story.append(Spacer(1, 10))
     story.append(Paragraph(
-        f"Com base nas análises críticas realizadas para o processo <b>{proc_codigo} - {proc_nome}</b>, "
-        "este parecer consolida as principais observações.",
+        f"Com base nas análises realizadas para o processo {proc_codigo} - {proc_nome}, "
+        "este parecer consolida as principais observações e recomendações.",
         normal_style
     ))
-    story.append(Spacer(1, 20))
-    
-    # Várias linhas para o auditor escrever
-    story.append(Paragraph("<b>Conclusão Final do Auditor:</b>", normal_style))
     story.append(Spacer(1, 5))
-
-    for i in range(10):
+    
+    # Espaço para conclusão final
+    story.append(Paragraph("Conclusão Final do Auditor:", secao_style))
+    story.append(Spacer(1, 5))
+    
+    for i in range(8):
         story.append(Paragraph("________________________________________________________________________________", normal_style))
-        story.append(Spacer(1, 8))
+        story.append(Spacer(1, 7))
     
-    story.append(Spacer(1, 30))
+    story.append(Spacer(1, 10))
     
-    # Assinaturas
+    # ===== ASSINATURAS =====
     assinatura_data = [
-        ["", ""],
         ["Auditor Responsável pela emissão:", usuario_nome],
         ["Data:", datetime.now().strftime('%d/%m/%Y')],
         ["Assinatura:", "_________________________"],
@@ -4170,7 +4236,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         ["Assinatura:", "_________________________"],
     ]
     
-    tabela_assinaturas = Table(assinatura_data, colWidths=[7*cm, 10*cm])
+    tabela_assinaturas = Table(assinatura_data, colWidths=[5.5*cm, 10*cm])
     tabela_assinaturas.setStyle(TableStyle([
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FAFAFA')),

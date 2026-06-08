@@ -2575,63 +2575,72 @@ def api_checklist_analises_por_auditoria():
         print(f"❌ Erro ao buscar análises: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/checklist/carregar')
+@app.route('/api/checklist/carregar', methods=['GET'])
 def api_checklist_carregar():
-    """Carrega as respostas de um checklist para uma auditoria"""
+    """Carrega as respostas de um checklist para um processo ou auditoria"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
+    processo_id = request.args.get('processo_id')
     auditoria_id = request.args.get('auditoria_id')
-    tipo = request.args.get('tipo')  # governanca, riscos, controles
+    tipo = request.args.get('tipo')
     
-    if not auditoria_id or not tipo:
-        return jsonify({'success': False, 'error': 'auditoria_id e tipo são obrigatórios'}), 400
+    if not tipo:
+        return jsonify({'success': False, 'error': 'tipo é obrigatório'}), 400
     
-    # Mapeamento tipo -> nome da tabela e número de perguntas
-    TABELAS = {
-        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 13},
-        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 12},
-        'controles': {'tabela': 'checklist_controles_respostas', 'total': 12}
-    }
-    
-    if tipo not in TABELAS:
-        return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
+    # Prioridade: processo_id (novo) ou auditoria_id (legado)
+    identificador = None
+    if processo_id:
+        identificador = ('processo_id', processo_id)
+    elif auditoria_id:
+        identificador = ('auditoria_id', auditoria_id)
+    else:
+        return jsonify({'success': False, 'error': 'processo_id ou auditoria_id é obrigatório'}), 400
     
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            tabela = TABELAS[tipo]['tabela']
-            total_perguntas = TABELAS[tipo]['total']
+            # Mapeamento das tabelas por tipo
+            tabelas = {
+                'governanca': 'checklist_governanca_respostas',
+                'riscos': 'checklist_riscos_respostas',
+                'controles': 'checklist_controles_respostas'
+            }
             
-            # Buscar registro existente
+            tabela = tabelas.get(tipo)
+            if not tabela:
+                return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
+            
+            # Buscar sessão existente
+            campo, valor = identificador
             query = text(f"""
                 SELECT id, status, observacoes_gerais,
-                       {', '.join([f'p{i}_resposta, p{i}_comentario' for i in range(1, total_perguntas + 1)])}
+                       {', '.join([f'p{i}_resposta, p{i}_comentario' for i in range(1, 15)])}
                 FROM {tabela}
-                WHERE auditoria_id = :auditoria_id
+                WHERE {campo} = :valor
                 ORDER BY id DESC
                 LIMIT 1
             """)
             
-            result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+            result = conn.execute(query, {'valor': valor}).fetchone()
             
             if result:
-                resposta_id = result[0]  # ← PEGAR O ID DA RESPOSTA
+                resposta_id = result[0]
                 status = result[1] or 'Não iniciado'
                 observacoes = result[2] or ''
                 
-                # Montar respostas com evidências
+                # Montar respostas
                 respostas = []
-                for i in range(1, total_perguntas + 1):
+                for i in range(1, 15):
                     idx_resposta = 3 + (i - 1) * 2
                     idx_comentario = 4 + (i - 1) * 2
                     
                     resposta_valor = result[idx_resposta] if idx_resposta < len(result) else ''
                     comentario_valor = result[idx_comentario] if idx_comentario < len(result) else ''
                     
-                    # ⭐ BUSCAR EVIDÊNCIAS PARA ESTA RESPOSTA
+                    # Buscar evidências
                     evidencias = []
                     query_evidencias = text("""
                         SELECT id, nome_arquivo, tipo_arquivo, tamanho_bytes
@@ -2641,7 +2650,7 @@ def api_checklist_carregar():
                     ev_result = conn.execute(query_evidencias, {
                         'resposta_id': resposta_id,
                         'pergunta_numero': i
-                        }).fetchall()
+                    }).fetchall()
                     
                     for ev in ev_result:
                         evidencias.append({
@@ -2654,7 +2663,7 @@ def api_checklist_carregar():
                     respostas.append({
                         'resposta': resposta_valor,
                         'comentario': comentario_valor,
-                        'evidencias': evidencias  # ← INCLUI EVIDÊNCIAS
+                        'evidencias': evidencias
                     })
                 
                 return jsonify({
@@ -2665,9 +2674,8 @@ def api_checklist_carregar():
                     'respostas': respostas
                 })
             else:
-                # Nenhum registro encontrado - retornar vazio sem evidências
-                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(total_perguntas)]
-                
+                # Nenhum registro encontrado
+                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(15)]
                 return jsonify({
                     'success': True,
                     'id': None,
@@ -2682,29 +2690,33 @@ def api_checklist_carregar():
 
 @app.route('/api/checklist/salvar', methods=['POST'])
 def api_checklist_salvar():
-    """Salva as respostas de um checklist (com suporte a arquivos em Base64)"""
+    """Salva as respostas de um checklist (com suporte a processo_id)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    # Receber dados do JSON (não mais FormData)
     data = request.json
+    processo_id = data.get('processo_id')
     auditoria_id = data.get('auditoria_id')
     tipo = data.get('tipo')
     respostas = data.get('respostas')
     observacoes_gerais = data.get('observacoes_gerais', '')
     concluir = data.get('concluir', False)
-    arquivos = data.get('arquivos', {})  # Dicionário com arquivos por pergunta
+    arquivos = data.get('arquivos', {})
     
-    if not auditoria_id or not tipo or not respostas:
-        return jsonify({'success': False, 'error': 'auditoria_id, tipo e respostas são obrigatórios'}), 400
+    if not tipo or not respostas:
+        return jsonify({'success': False, 'error': 'tipo e respostas são obrigatórios'}), 400
     
-    TABELAS = {
-        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 14},
-        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 11},
-        'controles': {'tabela': 'checklist_controles_respostas', 'total': 11}
+    # Prioridade: processo_id (novo) ou auditoria_id (legado)
+    if not processo_id and not auditoria_id:
+        return jsonify({'success': False, 'error': 'processo_id ou auditoria_id é obrigatório'}), 400
+    
+    tabelas = {
+        'governanca': 'checklist_governanca_respostas',
+        'riscos': 'checklist_riscos_respostas',
+        'controles': 'checklist_controles_respostas'
     }
     
-    if tipo not in TABELAS:
+    if tipo not in tabelas:
         return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
     
     from database import engine
@@ -2713,12 +2725,24 @@ def api_checklist_salvar():
     
     try:
         with engine.connect() as conn:
-            tabela = TABELAS[tipo]['tabela']
-            total_perguntas = TABELAS[tipo]['total']
+            tabela = tabelas[tipo]
+            total_perguntas = len(respostas)
+            
+            # Definir qual campo usar (processo_id ou auditoria_id)
+            if processo_id:
+                campo_id = 'processo_id'
+                valor_id = processo_id
+            else:
+                campo_id = 'auditoria_id'
+                valor_id = auditoria_id
             
             # Verificar se já existe um registro
-            check_query = text(f"SELECT id FROM {tabela} WHERE auditoria_id = :auditoria_id")
-            existing = conn.execute(check_query, {'auditoria_id': auditoria_id}).fetchone()
+            check_query = text(f"""
+                SELECT id FROM {tabela} 
+                WHERE {campo_id} = :valor_id
+                ORDER BY id DESC LIMIT 1
+            """)
+            existing = conn.execute(check_query, {'valor_id': valor_id}).fetchone()
             
             resposta_id = None
             
@@ -2746,10 +2770,10 @@ def api_checklist_salvar():
                 
             else:
                 # INSERT
-                colunas = ['auditoria_id', 'status', 'observacoes_gerais']
-                valores_placeholders = [':auditoria_id', ':status', ':observacoes']
+                colunas = [campo_id, 'status', 'observacoes_gerais']
+                valores_placeholders = [':valor_id', ':status', ':observacoes']
                 params = {
-                    'auditoria_id': auditoria_id,
+                    'valor_id': valor_id,
                     'status': 'Concluído' if concluir else 'Em andamento',
                     'observacoes': observacoes_gerais
                 }
@@ -2771,16 +2795,15 @@ def api_checklist_salvar():
                 result = conn.execute(insert_query, params)
                 resposta_id = result.fetchone()[0]
             
-            # Processar arquivos enviados (apenas para controles)
-            if tipo == 'controles' and arquivos:
-                # Primeiro, remover evidências antigas desta resposta
+            # Processar arquivos (evidências)
+            if arquivos and not concluir:
+                # Remover evidências antigas
                 delete_evidencias = text("DELETE FROM checklist_evidencias WHERE resposta_id = :resposta_id")
                 conn.execute(delete_evidencias, {'resposta_id': resposta_id})
                 
-                # Depois, inserir as novas evidências
+                # Inserir novas evidências
                 for pergunta_index, lista_arquivos in arquivos.items():
                     for arquivo in lista_arquivos:
-                        # Converter Base64 para bytes
                         conteudo_base64 = arquivo['conteudo']
                         if ',' in conteudo_base64:
                             conteudo_base64 = conteudo_base64.split(',')[1]
@@ -2809,17 +2832,21 @@ def api_checklist_salvar():
             
     except Exception as e:
         print(f"❌ Erro ao salvar checklist: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/checklist/progresso')
 def api_checklist_progresso():
-    """Retorna o progresso dos 3 checklists para uma auditoria"""
+    """Retorna o progresso dos checklists para um processo ou auditoria"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
+    processo_id = request.args.get('processo_id')
     auditoria_id = request.args.get('auditoria_id')
-    if not auditoria_id:
-        return jsonify({'success': False, 'error': 'auditoria_id é obrigatório'}), 400
+    
+    if not processo_id and not auditoria_id:
+        return jsonify({'success': False, 'error': 'processo_id ou auditoria_id é obrigatório'}), 400
     
     from database import engine
     from sqlalchemy import text
@@ -2840,19 +2867,26 @@ def api_checklist_progresso():
                 total = config['total']
                 
                 # Buscar registro
-                query = text(f"""
-                    SELECT id, status, 
-                           {', '.join([f'p{i}_resposta' for i in range(1, total + 1)])}
-                    FROM {tabela}
-                    WHERE auditoria_id = :auditoria_id
-                    ORDER BY id DESC
-                    LIMIT 1
-                """)
-                
-                registro = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+                if processo_id:
+                    query = text(f"""
+                        SELECT id, status, 
+                               {', '.join([f'p{i}_resposta' for i in range(1, total + 1)])}
+                        FROM {tabela}
+                        WHERE processo_id = :processo_id
+                        ORDER BY id DESC LIMIT 1
+                    """)
+                    registro = conn.execute(query, {'processo_id': processo_id}).fetchone()
+                else:
+                    query = text(f"""
+                        SELECT id, status, 
+                               {', '.join([f'p{i}_resposta' for i in range(1, total + 1)])}
+                        FROM {tabela}
+                        WHERE auditoria_id = :auditoria_id
+                        ORDER BY id DESC LIMIT 1
+                    """)
+                    registro = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
                 
                 if not registro:
-                    # Nenhum registro - não iniciado
                     resultado[tipo] = {
                         'id': None,
                         'total': total,
@@ -2860,9 +2894,8 @@ def api_checklist_progresso():
                         'status': 'Não iniciado'
                     }
                 else:
-                    # Contar quantas perguntas têm resposta (não vazia)
+                    # Contar quantas perguntas têm resposta
                     respondidas = 0
-                    # As respostas começam no índice 2 (id=0, status=1, depois as respostas)
                     for i in range(2, 2 + total):
                         if registro[i] and registro[i] != '':
                             respondidas += 1
@@ -3459,10 +3492,257 @@ def api_etapa_analises(etapa_id):
         print(f"❌ Erro ao buscar análises: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/analises-criticas-por-processo', methods=['GET'])
+def api_analises_criticas_por_processo():
+    """Retorna as análises críticas do auditado para um processo específico"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    processo_id = request.args.get('processo_id')
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    ac.id,
+                    ac.analise_critica,
+                    ac.sugestao_melhoria,
+                    ac.necessidade_implantacao,
+                    ac.ganho_previsto,
+                    ac.categoria,
+                    ac.tipo_analise,
+                    ep.codigo_etapa,
+                    ep.nome_etapa,
+                    ep.processo_id
+                FROM analises_criticas ac
+                JOIN etapas_processo ep ON ac.etapa_id = ep.id
+                WHERE ep.processo_id = :processo_id
+                  AND ac.tipo_analise = 'entrevistado'
+                ORDER BY ep.codigo_etapa, ac.categoria
+            """)
+            result = conn.execute(query, {'processo_id': processo_id}).fetchall()
+            
+            analises = []
+            for row in result:
+                analises.append({
+                    'id': row[0],
+                    'analise_critica': row[1] or '',
+                    'sugestao_melhoria': row[2] or '',
+                    'necessidade_implantacao': row[3] or '',
+                    'ganho_previsto': row[4] or '',
+                    'categoria': row[5] or 'governanca',
+                    'tipo_analise': row[6],
+                    'codigo_etapa': row[7] or '',
+                    'nome_etapa': row[8] or '',
+                    'processo_id': row[9]
+                })
+            
+            print(f"✅ Buscadas {len(analises)} análises para o processo {processo_id}")
+            
+            return jsonify({'success': True, 'analises': analises})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar análises críticas: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ===== API - ANÁLISES DO AUDITOR (MÚLTIPLAS) =====
+
+@app.route('/api/analises-auditor/por-processo', methods=['GET'])
+def api_analises_auditor_por_processo():
+    """Retorna todas as análises do auditor para um processo específico"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    processo_id = request.args.get('processo_id')
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    id,
+                    analise_critica,
+                    sugestao_melhoria,
+                    necessidade_implantacao,
+                    ganho_previsto,
+                    categoria,
+                    tipo_analise,
+                    observacoes,
+                    created_at,
+                    updated_at
+                FROM analises_criticas
+                WHERE tipo_analise = 'auditor'
+                  AND processo_id = :processo_id
+                  AND (etapa_id IS NULL OR etapa_id = 0)
+                ORDER BY created_at ASC
+            """)
+            result = conn.execute(query, {'processo_id': processo_id}).fetchall()
+            
+            analises = []
+            for row in result:
+                analises.append({
+                    'id': row[0],
+                    'analise_critica': row[1] or '',
+                    'sugestao_melhoria': row[2] or '',
+                    'necessidade_implantacao': row[3] or '',
+                    'ganho_previsto': row[4] or '',
+                    'categoria': row[5] or 'geral',
+                    'tipo_analise': row[6],
+                    'observacoes': row[7] or '',
+                    'created_at': row[8].isoformat() if row[8] else None,
+                    'updated_at': row[9].isoformat() if row[9] else None
+                })
+            
+            return jsonify({'success': True, 'analises': analises})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar análises do auditor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise-auditor/<int:analise_id>', methods=['PUT'])
+def api_analise_auditor_atualizar(analise_id):
+    """Atualiza uma análise do auditor existente"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE analises_criticas 
+                SET analise_critica = :analise_critica,
+                    sugestao_melhoria = :sugestao_melhoria,
+                    necessidade_implantacao = :necessidade_implantacao,
+                    ganho_previsto = :ganho_previsto,
+                    observacoes = :observacoes,
+                    updated_at = NOW()
+                WHERE id = :id AND tipo_analise = 'auditor'
+            """)
+            result = conn.execute(query, {
+                'id': analise_id,
+                'analise_critica': data.get('analise_critica', ''),
+                'sugestao_melhoria': data.get('sugestao_melhoria', ''),
+                'necessidade_implantacao': data.get('necessidade_implantacao', ''),
+                'ganho_previsto': data.get('ganho_previsto', ''),
+                'observacoes': data.get('observacoes', '')
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao atualizar análise do auditor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analise-auditor/<int:analise_id>', methods=['DELETE'])
+def api_analise_auditor_excluir(analise_id):
+    """Exclui uma análise do auditor"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # ✅ CORRETO: usar a tabela analises_criticas
+            query = text("""
+                DELETE FROM analises_criticas 
+                WHERE id = :id AND tipo_analise = 'auditor'
+            """)
+            result = conn.execute(query, {'id': analise_id})
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            return jsonify({'success': True, 'message': 'Análise excluída com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir análise do auditor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analise-auditor/salvar', methods=['POST'])
+def api_analise_auditor_salvar():
+    """Salva uma nova análise do auditor"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    processo_id = data.get('processo_id')
+    analise_critica = data.get('analise_critica', '')
+    sugestao_melhoria = data.get('sugestao_melhoria', '')
+    necessidade_implantacao = data.get('necessidade_implantacao', '')
+    ganho_previsto = data.get('ganho_previsto', '')
+    observacoes = data.get('observacoes', '')
+    categoria = data.get('categoria', 'geral')
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
+    
+    if not analise_critica:
+        return jsonify({'success': False, 'error': 'Análise Crítica é obrigatória'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                INSERT INTO analises_criticas (
+                    processo_id, etapa_id, tipo_analise, categoria,
+                    analise_critica, sugestao_melhoria,
+                    necessidade_implantacao, ganho_previsto, observacoes,
+                    created_at, updated_at
+                ) VALUES (
+                    :processo_id, NULL, 'auditor', :categoria,
+                    :analise_critica, :sugestao_melhoria,
+                    :necessidade_implantacao, :ganho_previsto, :observacoes,
+                    NOW(), NOW()
+                )
+                RETURNING id
+            """)
+            result = conn.execute(query, {
+                'processo_id': processo_id,
+                'categoria': categoria,
+                'analise_critica': analise_critica,
+                'sugestao_melhoria': sugestao_melhoria,
+                'necessidade_implantacao': necessidade_implantacao,
+                'ganho_previsto': ganho_previsto,
+                'observacoes': observacoes
+            })
+            novo_id = result.fetchone()[0]
+            conn.commit()
+            
+            return jsonify({'success': True, 'id': novo_id, 'message': 'Análise salva com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar análise do auditor: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/analise/salvar', methods=['POST'])
 def api_analise_salvar():
-    """Salva ou atualiza uma análise crítica"""
+    """Salva ou atualiza uma análise crítica (auditado)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -3484,8 +3764,17 @@ def api_analise_salvar():
     
     try:
         with engine.connect() as conn:
+            # ⭐⭐⭐ BUSCAR O processo_id DA ETAPA ⭐⭐⭐
+            query_processo = text("""
+                SELECT processo_id FROM etapas_processo WHERE id = :etapa_id
+            """)
+            result_processo = conn.execute(query_processo, {'etapa_id': etapa_id}).fetchone()
+            processo_id = result_processo[0] if result_processo else None
+            
+            print(f"🔍 Etapa {etapa_id} pertence ao processo {processo_id}")
+            
             if analise_id:
-                # Atualizar
+                # Atualizar (mantém o processo_id existente)
                 query = text("""
                     UPDATE analises_criticas
                     SET tipo_analise = :tipo_analise,
@@ -3506,18 +3795,22 @@ def api_analise_salvar():
                     'necessidade_implantacao': necessidade_implantacao,
                     'ganho_previsto': ganho_previsto
                 })
+                print(f"✏️ Análise {analise_id} atualizada")
             else:
-                # Inserir nova
+                # Inserir nova (com processo_id)
                 query = text("""
                     INSERT INTO analises_criticas
-                    (etapa_id, tipo_analise, categoria, analise_critica,
-                     sugestao_melhoria, necessidade_implantacao, ganho_previsto)
-                    VALUES (:etapa_id, :tipo_analise, :categoria, :analise_critica,
-                            :sugestao_melhoria, :necessidade_implantacao, :ganho_previsto)
+                    (etapa_id, processo_id, tipo_analise, categoria, 
+                     analise_critica, sugestao_melhoria, 
+                     necessidade_implantacao, ganho_previsto)
+                    VALUES (:etapa_id, :processo_id, :tipo_analise, :categoria,
+                            :analise_critica, :sugestao_melhoria,
+                            :necessidade_implantacao, :ganho_previsto)
                     RETURNING id
                 """)
                 result = conn.execute(query, {
                     'etapa_id': etapa_id,
+                    'processo_id': processo_id,  # ⭐ AGORA PREENCHE!
                     'tipo_analise': tipo_analise,
                     'categoria': categoria,
                     'analise_critica': analise_critica,
@@ -3526,6 +3819,7 @@ def api_analise_salvar():
                     'ganho_previsto': ganho_previsto
                 })
                 analise_id = result.fetchone()[0]
+                print(f"✅ Nova análise criada! ID: {analise_id}, processo_id: {processo_id}")
             
             conn.commit()
             
@@ -3537,6 +3831,8 @@ def api_analise_salvar():
             
     except Exception as e:
         print(f"❌ Erro ao salvar análise: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

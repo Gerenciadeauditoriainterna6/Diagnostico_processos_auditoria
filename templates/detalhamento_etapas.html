@@ -171,21 +171,16 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Tipo de Análise</label>
-                            <select id="analise-tipo" class="form-control">
-                                <option value="entrevistado">Auditado</option>
-                                <option value="auditor">Auditor</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Categoria</label>
+                            <label><i class="fas fa-tags"></i> Categoria</label>
                             <select id="analise-categoria" class="form-control">
                                 <option value="governanca">Governança</option>
                                 <option value="riscos">Riscos</option>
                                 <option value="controles">Controles</option>
                             </select>
+                            <small class="text-muted">Selecione a categoria da análise crítica</small>
                         </div>
                     </div>
+                 
 
                     <div class="form-group">
                         <label>
@@ -2404,9 +2399,9 @@
                 <div class="analise-card" data-analise-temp="${isTemporaria}">
                     <div class="analise-card-info">
                         <div class="analise-card-header">
-                            <span class="analise-card-tipo ${analise.tipo_analise}">
-                                <i class="fas ${analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user'}"></i>
-                                ${analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado'}
+                            <span class="analise-card-tipo entrevistado">
+                                <i class="fas fa-user"></i>
+                                Auditado
                                 ${isTemporaria ? '<span style="background: #ffc107; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px;">(Não salvo)</span>' : ''}
                             </span>
                             <span class="analise-card-categoria">
@@ -2452,7 +2447,7 @@
             if (analise) {
                 document.getElementById('analise-id').value = analise.id || '';
                 document.getElementById('analise-temp-id').value = isTemporaria ? index : '';
-                document.getElementById('analise-tipo').value = analise.tipo_analise;
+                // ⭐ Não precisa mais carregar o tipo, pois é fixo
                 document.getElementById('analise-categoria').value = analise.categoria;
                 document.getElementById('analise-texto').value = analise.analise_critica || '';
                 document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
@@ -2462,7 +2457,6 @@
         } else {
             document.getElementById('analise-id').value = '';
             document.getElementById('analise-temp-id').value = '';
-            document.getElementById('analise-tipo').value = 'entrevistado';
             document.getElementById('analise-categoria').value = 'governanca';
             document.getElementById('analise-texto').value = '';
             document.getElementById('analise-sugestao').value = '';
@@ -2484,10 +2478,12 @@
         mostrarFormAnalise('editar', index, isTemporaria);
     }
 
-    // Salvar análise (suporta modo temporário)
     function salvarAnalise() {
+        // ⭐ FIXAR O TIPO COMO 'entrevistado' (sempre auditado)
+        const tipoAnalise = 'entrevistado';  // ← Fixo, não vem mais do select
+        
         const analiseData = {
-            tipo_analise: document.getElementById('analise-tipo').value,
+            tipo_analise: tipoAnalise,
             categoria: document.getElementById('analise-categoria').value,
             analise_critica: document.getElementById('analise-texto').value,
             sugestao_melhoria: document.getElementById('analise-sugestao').value,
@@ -2519,7 +2515,6 @@
         
         // Caso 3: Nova análise
         if (!etapaId || etapaId === '') {
-            // Etapa não salva - salvar como temporária
             const novaAnalise = {
                 ...analiseData,
                 _temporaria: true,
@@ -2530,11 +2525,9 @@
             esconderFormAnalise();
             renderizarAnalises();
         } else {
-            // Etapa já salva - salvar direto no banco
             salvarAnaliseNoBanco(null, analiseData, etapaId);
         }
     }
-
     // Salvar análise no banco
     async function salvarAnaliseNoBanco(analiseId, analiseData, etapaId) {
         if (!etapaId || etapaId === '') {
@@ -2545,7 +2538,7 @@
         const payload = {
             id: analiseId || null,
             etapa_id: parseInt(etapaId),
-            tipo_analise: analiseData.tipo_analise,
+            tipo_analise: 'entrevistado',  // ⭐ Fixo!
             categoria: analiseData.categoria,
             analise_critica: analiseData.analise_critica,
             sugestao_melhoria: analiseData.sugestao_melhoria,
