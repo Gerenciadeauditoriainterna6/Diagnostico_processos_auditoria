@@ -354,15 +354,26 @@
             transition: width 0.2s ease;
         }
 
-        .sidebar.sidebar-hidden .sidebar-logo {
-            padding: 15px 8px 10px 0;
+        /* Esconder textos do logo quando sidebar estiver colapsada */
+        .sidebar.sidebar-hidden .sidebar-logo h2,
+        .sidebar.sidebar-hidden .sidebar-logo h3,
+        .sidebar.sidebar-hidden .sidebar-logo h4 {
+            display: none;
         }
 
+        /* Ajustar largura da imagem quando colapsada */
         .sidebar.sidebar-hidden .sidebar-logo img {
             width: 30px;
+            margin: 0 auto;
         }
 
-        .sidebar.sidebar-hidden .sidebar-logo h3,
+        /* Centralizar a imagem quando colapsada */
+        .sidebar.sidebar-hidden .sidebar-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         .sidebar.sidebar-hidden .user-details,
         .sidebar.sidebar-hidden .nav-item span,
         .sidebar.sidebar-hidden .nav-section-title,
@@ -1443,14 +1454,13 @@
                             </span>
                             <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
+                        <div class="submenu" id="diagnosticoSubmenu">
+                            <a href="{{ url_for('visao_geral') }}" class="submenu-item submenu-visao">
+                                <i class="fas fa-eye"></i>
+                                <span>Visão Geral do Diagnóstico</span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="submenu" id="diagnosticoSubmenu">
-                        <a href="{{ url_for('visao_geral') }}" class="submenu-item submenu-visao">
-                            <i class="fas fa-eye"></i>
-                            <span>Visão Geral do Diagnóstico</span>
-                        </a>
-                    </div>
-                    
 
                     <!-- Detalhamento das Etapas com Submenu -->
                     <div class="nav-item-parent">
@@ -1461,34 +1471,27 @@
                             </span>
                             <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
+                        <div class="submenu" id="detalhamentoSubmenu">
+                            <a href="{{ url_for('detalhamento') }}" class="submenu-item submenu-visao">
+                                <i class="fas fa-project-diagram"></i>
+                                <span>Detalhamento das Etapas</span>
+                            </a>
+                            <a href="{{ url_for('detalhamento_riscos') }}" class="submenu-item submenu-riscos">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Riscos das Etapas</span>
+                            </a>
+                            <a href="{{ url_for('detalhamento_controles') }}" class="submenu-item submenu-controles">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Controles das Etapas</span>
+                            </a>
+                        </div>
                     </div>
 
-                    <!--Checklists de Eficácia-->
-                    <div class="nav-item-parent">
-                        <a href="{{ url_for('checklists') }}" class="nav-item">
-                            <span class="nav-item-content">
-                                <i class="fas fa-table-cells-large"></i>
-                                <span>Matriz de Eficácia</span>
-                            </span>
-                        </a>
-                    </div>
-                    <div class="submenu" id="detalhamentoSubmenu">
-                        <!-- NOVO: Processos Detalhados (página principal) -->
-                        <a href="{{ url_for('detalhamento') }}" class="submenu-item submenu-visao">
-                            <i class="fas fa-project-diagram"></i>
-                            <span>Detalhamento das Etapas</span>
-                        </a>
-                        <!-- Riscos das Etapas -->
-                        <a href="{{ url_for('detalhamento_riscos') }}" class="submenu-item submenu-riscos">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Riscos das Etapas</span>
-                        </a>
-                        <!-- Controles das Etapas -->
-                        <a href="{{ url_for('detalhamento_controles') }}" class="submenu-item submenu-controles">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Controles das Etapas</span>
-                        </a>
-                    </div>
+                    <!-- Matriz de Eficácia (SEM submenu) -->
+                    <a href="{{ url_for('checklists') }}" class="nav-item" id="checklistsItem">
+                        <i class="fas fa-table-cells-large"></i>
+                        <span>Matriz de Eficácia</span>
+                    </a>
                 </div>
 
                 <!-- SEÇÃO 3: COMUNICAÇÃO -->
@@ -1693,6 +1696,16 @@
                 }
             ];
             
+            // FUNÇÃO PARA FECHAR TODOS OS SUBMENUS
+            function fecharTodosSubmenus() {
+                submenus.forEach(menu => {
+                    const submenu = document.getElementById(menu.submenuId);
+                    const arrow = document.getElementById(menu.toggleId)?.querySelector('.submenu-arrow');
+                    if (submenu) submenu.classList.remove('show');
+                    if (arrow) arrow.classList.remove('open');
+                });
+            }
+            
             submenus.forEach(menu => {
                 const menuItem = document.getElementById(menu.toggleId);
                 const submenu = document.getElementById(menu.submenuId);
@@ -1728,93 +1741,133 @@
                     });
                 }
             });
+            
+            // FECHAR SUBMENUS AO CLICAR NA MATRIZ DE EFICÁCIA
+            const checklistsItem = document.getElementById('checklistsItem');
+            if (checklistsItem) {
+                checklistsItem.addEventListener('click', function(e) {
+                    // Fechar todos os submenus abertos
+                    fecharTodosSubmenus();
+                    // Permitir o clique normal
+                    return true;
+                });
+            }
+            
+            // FECHAR SUBMENUS AO CLICAR EM OUTROS ITENS DO MENU QUE NÃO TÊM SUBMENU
+            document.querySelectorAll('.nav-item:not(.nav-item-parent .nav-item)').forEach(item => {
+                item.addEventListener('click', function() {
+                    fecharTodosSubmenus();
+                });
+            });
         })();
 
+                
                 // ====== DESTACAR ITEM ATIVO DO MENU ======
                 (function() {
                     const currentUrl = window.location.pathname;
                     
-                    // Passo 1: Remover TODAS as classes 'active' de todos os itens
+                    // ===== CONFIGURAÇÃO CENTRALIZADA DOS MENUS =====
+                    const menuConfig = {
+                        // Itens simples (sem submenu)
+                        simpleItems: [
+                            { url: '/relatorios', selector: 'a[href="/relatorios"]' },
+                            { url: '/dashboard', selector: 'a[href="/dashboard"]' },
+                            { url: '/areas', selector: 'a[href="/areas"]' },
+                            { url: '/auditorias', selector: 'a[href="/auditorias"]' },      // ← NOVO: Cadastro de Auditorias
+                            { url: '/log-alteracoes', selector: 'a[href="/log-alteracoes"]' },
+                            { url: '/plano-anual', selector: 'a[href="/plano-anual"]' },
+                            { url: '/checklists', selector: 'a[href="/checklists"]' }
+                        ],
+                        // Itens com submenu
+                        submenuItems: [
+                            {
+                                name: 'detalhamento',
+                                parentId: 'toggleDetalhamentoSubmenu',
+                                submenuId: 'detalhamentoSubmenu',
+                                urls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles'],
+                                submenuSelectors: {
+                                    '/detalhamento': '#detalhamentoSubmenu .submenu-visao',
+                                    '/detalhamento_riscos': '#detalhamentoSubmenu .submenu-riscos',
+                                    '/detalhamento_controles': '#detalhamentoSubmenu .submenu-controles'
+                                }
+                            },
+                            {
+                                name: 'diagnostico',
+                                parentId: 'toggleDiagnosticoSubmenu',
+                                submenuId: 'diagnosticoSubmenu',
+                                urls: ['/diagnostico', '/visao-geral'],
+                                submenuSelectors: {
+                                    '/visao-geral': '#diagnosticoSubmenu .submenu-visao'
+                                },
+                                // Especial: não abrir submenu para /diagnostico
+                                openSubmenuOnlyFor: ['/visao-geral']
+                            }
+                        ]
+                    };
+                    
+                    // Passo 1: Limpar todas as classes ativas
                     document.querySelectorAll('.nav-item, .submenu-item').forEach(link => {
                         link.classList.remove('active');
                     });
-                    
-                    // Passo 2: Fechar todos os submenus primeiro
                     document.querySelectorAll('.submenu').forEach(submenu => {
                         submenu.classList.remove('show');
                     });
-                    
-                    // Passo 3: Remover a classe 'open' de todas as setas
                     document.querySelectorAll('.submenu-arrow').forEach(arrow => {
                         arrow.classList.remove('open');
                     });
                     
-                    // ===== LÓGICA PARA MATRIZ DE DETALHAMENTO =====
-                    const urlsDetalhamento = ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles'];
-                    const isInDetalhamento = urlsDetalhamento.includes(currentUrl);
+                    // Passo 2: Verificar itens simples primeiro
+                    let matched = false;
                     
-                    if (isInDetalhamento) {
-                        // Marcar o item pai "Matriz de Detalhamento"
-                        const parentItem = document.getElementById('toggleDetalhamentoSubmenu');
-                        if (parentItem) {
-                            parentItem.classList.add('active');
-                        }
-                        
-                        // Abrir o submenu
-                        const submenu = document.getElementById('detalhamentoSubmenu');
-                        if (submenu) {
-                            submenu.classList.add('show');
-                            const arrow = parentItem?.querySelector('.submenu-arrow');
-                            if (arrow) arrow.classList.add('open');
-                        }
-                        
-                        // Marcar o submenu específico baseado na URL
-                        if (currentUrl === '/detalhamento') {
-                            const submenuItem = document.querySelector('#detalhamentoSubmenu .submenu-visao');
-                            if (submenuItem) submenuItem.classList.add('active');
-                        } else if (currentUrl === '/detalhamento_riscos') {
-                            const submenuItem = document.querySelector('#detalhamentoSubmenu .submenu-riscos');
-                            if (submenuItem) submenuItem.classList.add('active');
-                        } else if (currentUrl === '/detalhamento_controles') {
-                            const submenuItem = document.querySelector('#detalhamentoSubmenu .submenu-controles');
-                            if (submenuItem) submenuItem.classList.add('active');
+                    for (const item of menuConfig.simpleItems) {
+                        if (currentUrl === item.url) {
+                            const menuItem = document.querySelector(item.selector);
+                            if (menuItem) {
+                                menuItem.classList.add('active');
+                                matched = true;
+                            }
+                            break;
                         }
                     }
                     
-                    // ===== LÓGICA PARA MATRIZ DE PANORAMA =====
-                    const isInDiagnostico = currentUrl === '/diagnostico';
-                    const isInVisaoGeral = currentUrl === '/visao-geral';
-                    
-                    if (isInDiagnostico) {
-                        // Apenas marcar o item pai, NÃO marcar Visão Geral
-                        const parentItem = document.getElementById('toggleDiagnosticoSubmenu');
-                        if (parentItem) {
-                            parentItem.classList.add('active');
+                    // Passo 3: Se não encontrou em itens simples, verificar submenus
+                    if (!matched) {
+                        for (const menu of menuConfig.submenuItems) {
+                            const isInMenu = menu.urls.includes(currentUrl);
+                            
+                            if (isInMenu) {
+                                const parentItem = document.getElementById(menu.parentId);
+                                const submenu = document.getElementById(menu.submenuId);
+                                const arrow = parentItem?.querySelector('.submenu-arrow');
+                                
+                                // Marcar item pai
+                                if (parentItem) parentItem.classList.add('active');
+                                
+                                // Verificar se deve abrir o submenu
+                                let shouldOpenSubmenu = true;
+                                if (menu.openSubmenuOnlyFor) {
+                                    shouldOpenSubmenu = menu.openSubmenuOnlyFor.includes(currentUrl);
+                                }
+                                
+                                if (shouldOpenSubmenu && submenu) {
+                                    submenu.classList.add('show');
+                                    if (arrow) arrow.classList.add('open');
+                                }
+                                
+                                // Marcar submenu específico
+                                const submenuSelector = menu.submenuSelectors[currentUrl];
+                                if (submenuSelector) {
+                                    const submenuItem = document.querySelector(submenuSelector);
+                                    if (submenuItem) submenuItem.classList.add('active');
+                                }
+                                
+                                matched = true;
+                                break;
+                            }
                         }
-                        
-                        // NÃO abrir o submenu (diferente do detalhamento)
-                        // NÃO marcar Visão Geral
                     }
                     
-                    if (isInVisaoGeral) {
-                        // Marcar o item pai
-                        const parentItem = document.getElementById('toggleDiagnosticoSubmenu');
-                        if (parentItem) {
-                            parentItem.classList.add('active');
-                        }
-                        
-                        // Abrir o submenu
-                        const submenu = document.getElementById('diagnosticoSubmenu');
-                        if (submenu) {
-                            submenu.classList.add('show');
-                            const arrow = parentItem?.querySelector('.submenu-arrow');
-                            if (arrow) arrow.classList.add('open');
-                        }
-                        
-                        // Marcar Visão Geral
-                        const submenuItem = document.querySelector('#diagnosticoSubmenu .submenu-visao');
-                        if (submenuItem) submenuItem.classList.add('active');
-                    }
+                    // Passo 4: Fallback - se nenhum match, não fazer nada
                 })();
         
 
