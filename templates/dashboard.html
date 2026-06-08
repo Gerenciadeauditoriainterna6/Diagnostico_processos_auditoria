@@ -311,7 +311,7 @@
         <!-- Gráfico 3: Situação das Auditorias (já existe) -->
         <div class="chart-card">
             <h3><i class="fas fa-chart-pie"></i> Situação das Auditorias</h3>
-            <canvas id="situacaoAuditoriasChart" width="400" height="300" style="max-height: 300px; width: 100%;"></canvas>
+            <canvas id="situacaoAuditoriasChart" width="400" height="350" style="max-height: 350px; width: 100%;"></canvas>
         </div>
     </div>
 
@@ -1085,15 +1085,10 @@
                 situacaoChart = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Concluídas', 'Em Execução', 'Fora do Prazo', 'Planejamento'],
+                        labels: data.labels,
                         datasets: [{
-                            data: [
-                                data.concluidas || 0,
-                                data.em_execucao || 0,
-                                data.fora_prazo || 0,
-                                data.planejamento || 0
-                            ],
-                            backgroundColor: ['#28a745', '#17a2b8', '#dc3545', '#ffc107'],
+                            data: data.dados,
+                            backgroundColor: data.cores,
                             borderWidth: 0,
                             hoverOffset: 10
                         }]
@@ -1102,7 +1097,15 @@
                         responsive: true,
                         maintainAspectRatio: true,
                         plugins: {
-                            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { 
+                                    font: { size: 10 },
+                                    padding: 8,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                } 
+                            },
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {

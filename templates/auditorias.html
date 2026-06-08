@@ -3,6 +3,10 @@
 {% block title %}Cadastro de Auditorias - Sistema de Auditoria Interna{% endblock %}
 
 {% block content %}
+<!-- Dados do usuário logado (passados do backend para o frontend) -->
+<input type="hidden" id="usuario_nome" value="{{ session.get('usuario_nome', '') }}">
+<input type="hidden" id="usuario_perfil" value="{{ session.get('usuario_perfil', '') }}">
+
 <div class="auditorias-container">
     <div class="page-header">
         <h1><i class="fas fa-cube"></i> Cadastro de Auditorias</h1>
@@ -307,7 +311,7 @@
 
     .auditorias-table th,
     .auditorias-table td {
-        padding: 12px;
+        padding: 10px 8px;;
         text-align: left;
         border-bottom: 1px solid #e0e0e0;
     }
@@ -330,10 +334,11 @@
 
     .status-badge {
         display: inline-block;
-        padding: 4px 12px;
+        padding: 3px 8px;
         border-radius: 20px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 500;
+        white-space: nowrap;
     }
 
     .status-planejamento { background: #e3f2fd; color: #0b5b99; }
@@ -477,11 +482,101 @@
         border-radius: 8px;
         color: #721c24;
     }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .auditorias-container {
+            padding: 0 10px;
+        }
+        
+        .auditorias-table th,
+        .auditorias-table td {
+            padding: 8px 6px;
+            font-size: 12px;
+        }
+        
+        .status-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+        }
+        
+        .btn-editar-icon,
+        .btn-excluir-icon {
+            padding: 4px 6px;
+            font-size: 12px;
+        }
+    }
 </style>
 
 <script>
     let editandoId = null;
 
+    // ⭐ PEGAR DADOS DO USUÁRIO DOS ELEMENTOS HIDDEN
+    const usuarioNome = document.getElementById('usuario_nome')?.value || '';
+    const usuarioPerfil = document.getElementById('usuario_perfil')?.value || '';
+    
+    console.log('👤 Usuário logado:', usuarioNome);
+    console.log('🔑 Perfil:', usuarioPerfil);
+    
+    function isAdministrador() {
+        return usuarioPerfil === 'administrador' || usuarioPerfil === 'admin';
+    }
+    
+    function isResponsavel(responsaveisEquipe) {
+        console.log('🔍 Verificando responsabilidade:', {
+            usuario: usuarioNome,
+            responsaveis: responsaveisEquipe
+        });
+        
+        if (!responsaveisEquipe) return false;
+        
+        // Garantir que é um array
+        let responsaveisArray = responsaveisEquipe;
+        if (!Array.isArray(responsaveisEquipe)) {
+            if (typeof responsaveisEquipe === 'string') {
+                // Tenta converter string para array
+                try {
+                    responsaveisArray = JSON.parse(responsaveisEquipe);
+                } catch {
+                    responsaveisArray = responsaveisEquipe.replace(/[{}]/g, '').split(',').map(r => r.trim());
+                }
+            } else {
+                responsaveisArray = [];
+            }
+        }
+        
+        // Comparação ignorando maiúsculas/minúsculas
+        const usuarioNormalizado = usuarioNome.trim().toLowerCase();
+        
+        return responsaveisArray.some(resp => {
+            const respNormalizado = String(resp).trim().toLowerCase();
+            return respNormalizado === usuarioNormalizado;
+        });
+    }
+    
+    function podeEditar(auditoria) {
+        // Administrador sempre pode
+        if (isAdministrador()) {
+            console.log('✅ Administrador - pode editar', auditoria.codigo_auditoria);
+            return true;
+        }
+        
+        // Auditoria cancelada não pode ser editada
+        if (auditoria.status === 'Cancelada') {
+            return false;
+        }
+        
+        // Verifica se é responsável
+        const isResp = isResponsavel(auditoria.responsavel_equipe);
+        console.log(`📝 Auditoria ${auditoria.codigo_auditoria}: responsável? ${isResp}`);
+        return isResp;
+    }
+    
+    function podeExcluir(auditoria) {
+        // Apenas administrador pode cancelar, e apenas se não estiver cancelada
+        return isAdministrador() && auditoria.status !== 'Cancelada';
+    }
+    
     async function carregarAreas() {
         const selectArea = document.getElementById('area_auditoria');
         if (!selectArea) return;
@@ -499,6 +594,26 @@
             });
         } catch (error) {
             console.error('Erro ao carregar áreas:', error);
+        }
+    }
+
+
+    // Função para formatar data de YYYY-MM-DD para DD/MM/YYYY
+    function formatarData(dataISO) {
+        if (!dataISO || dataISO === '-') return '-';
+        
+        try {
+            // Se já estiver no formato DD/MM/YYYY, retorna
+            if (dataISO.includes('/')) return dataISO;
+            
+            // Converte de YYYY-MM-DD para DD/MM/YYYY
+            const partes = dataISO.split('-');
+            if (partes.length === 3) {
+                return `${partes[2]}/${partes[1]}/${partes[0]}`;
+            }
+            return dataISO;
+        } catch (error) {
+            return dataISO;
         }
     }
 
@@ -525,6 +640,28 @@
         }
     }
 
+    async function cancelarAuditoria(id) {
+        if (!confirm('⚠️ ATENÇÃO: Esta ação irá CANCELAR a auditoria. O status será alterado para "Cancelada". Deseja continuar?')) return;
+
+        try {
+            const response = await fetch(`/api/auditorias/${id}/cancelar`, { 
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarMensagemModal('Auditoria cancelada com sucesso!', 'success');
+                await carregarAuditorias();
+            } else {
+                mostrarMensagemModal('Erro: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarMensagemModal('Erro ao cancelar auditoria', 'error');
+        }
+    }
+
     async function carregarAuditorias() {
         const tbody = document.querySelector('#tabela-auditorias tbody');
 
@@ -543,29 +680,44 @@
                 else if (aud.status === 'Em Execução') statusClass = 'status-execucao';
                 else if (aud.status === 'Concluída' || aud.status === 'Concluída Avaliação' || aud.status === 'Concluída com Follow-Up') statusClass = 'status-concluida';
                 else if (aud.status === 'Em Atraso') statusClass = 'status-atraso';
+                else if (aud.status === 'Cancelada') statusClass = 'status-cancelada';
                 else statusClass = 'status-planejamento';
                 
-                const tituloTruncado = aud.titulo && aud.titulo.length > 40 ? aud.titulo.substring(0, 40) + '...' : (aud.titulo || '-');
+                const tituloTruncado = aud.titulo && aud.titulo.length > 40 
+                    ? aud.titulo.substring(0, 40) + '...' 
+                    : (aud.titulo || '-');
+
+                // Verificar permissões para esta auditoria
+                const podeEditarAud = podeEditar(aud);
+                const podeExcluirAud = podeExcluir();
+
+                // Botão Editar (aparece se pode editar)
+                const botaoEditar = podeEditarAud ? 
+                    `<button class="btn-editar-icon" onclick="abrirModalEditar(${aud.id})" title="Editar">
+                        <i class="fas fa-pencil-alt"></i>
+                     </button>` : '';
+
+                // Botão Excluir/Cancelar (aparece apenas para administrador)
+                const botaoExcluir = podeExcluirAud && aud.status !== 'Cancelada' ?
+                    `<button class="btn-excluir-icon" onclick="cancelarAuditoria(${aud.id})" title="Cancelar Auditoria">
+                        <i class="fas fa-ban"></i>
+                     </button>` : '';
 
                 return `
                     <tr>
                         <td><strong>${aud.codigo_auditoria || '-'}</strong></td>
-                        <td>${tituloTruncado}</td>
+                        <td title="${aud.titulo || ''}">${tituloTruncado}</td>
                         <td>${aud.area_nome || '-'}</td>
                         <td>${aud.ano}/${aud.trimestre}º</td>
-                        <td>${aud.data_inicio || '-'}<br/><small>a</small><br/>${aud.data_fim || '-'}</td>
+                        <td>${formatarData(aud.data_inicio)}<br/><small>a</small><br/>${formatarData(aud.data_fim)}</td>
                         <td><span class="status-badge ${statusClass}">${aud.status || '-'}</span></td>
                         <td>
                             <div class="btn-group">
-                                <button class="btn-editar-icon" onclick="abrirModalEditar(${aud.id})" title="Editar">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
-                                <button class="btn-excluir-icon" onclick="excluirAuditoria(${aud.id})" title="Excluir">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                ${botaoEditar}
+                                ${botaoExcluir}
                             </div>
-                        </td>
-                    </tr>
+                         </td>
+                     </tr>
                 `;
             }).join('');
         } catch (error) {

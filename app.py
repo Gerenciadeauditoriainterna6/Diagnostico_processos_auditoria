@@ -3800,7 +3800,19 @@ def api_auditorias_listar():
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT a.*, i.nome_area 
+                SELECT 
+                    a.id,
+                    a.codigo_auditoria,
+                    a.id_area,
+                    a.titulo,
+                    a.ano,
+                    a.trimestre,
+                    a.data_inicio,
+                    a.data_fim,
+                    a.status,
+                    a.responsavel_equipe,
+                    a.unidade,
+                    i.nome_area
                 FROM auditorias a
                 LEFT JOIN informacoes_area i ON a.id_area = i.id_area
                 ORDER BY a.ano DESC, a.trimestre DESC
@@ -3809,24 +3821,38 @@ def api_auditorias_listar():
             
             auditorias = []
             for row in result:
+                # ⭐ RESPONSAVEL_EQUIPE está no índice 9 (décimo campo do SELECT)
+                responsaveis_raw = row[9]
+                
+                # Converter ARRAY do PostgreSQL para lista Python
+                if responsaveis_raw is None:
+                    responsaveis_lista = []
+                elif isinstance(responsaveis_raw, list):
+                    responsaveis_lista = responsaveis_raw
+                else:
+                    responsaveis_lista = []
+                
                 auditorias.append({
                     'id': row[0],
                     'codigo_auditoria': row[1],
                     'id_area': row[2],
-                    'area_nome': row[-1],
                     'titulo': row[3],
-                    'ano': row[6],
-                    'trimestre': row[7],
-                    'data_inicio': row[8].strftime('%Y-%m-%d') if row[8] else None,
-                    'data_fim': row[9].strftime('%Y-%m-%d') if row[9] else None,
-                    'status': row[10],
-                    'unidade': row[13],
+                    'ano': row[4],
+                    'trimestre': row[5],
+                    'data_inicio': row[6].strftime('%Y-%m-%d') if row[6] else None,
+                    'data_fim': row[7].strftime('%Y-%m-%d') if row[7] else None,
+                    'status': row[8],
+                    'responsavel_equipe': responsaveis_lista,
+                    'unidade': row[10] if len(row) > 10 else None,
+                    'area_nome': row[11] if len(row) > 11 else None,
                 })
             
             return jsonify(auditorias)
             
     except Exception as e:
         print(f"❌ Erro ao listar auditorias: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -3897,17 +3923,40 @@ def api_auditorias_excluir(auditoria_id):
     
 @app.route('/api/auditorias/<int:auditoria_id>', methods=['PUT'])
 def api_auditorias_atualizar(auditoria_id):
-    """Atualiza uma auditoria existente"""
+    """Atualiza uma auditoria existente (com validação de permissão)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
+    usuario_nome = session.get('usuario_nome')
+    usuario_perfil = session.get('usuario_perfil')
     
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
+            # Buscar a auditoria para verificar permissão
+            query_check = text("SELECT responsavel_equipe FROM auditorias WHERE id = :id")
+            result_check = conn.execute(query_check, {'id': auditoria_id}).fetchone()
+            
+            if not result_check:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            
+            responsaveis = result_check[0] or []
+            
+            # Verificar permissão: administrador OU responsável
+            if usuario_perfil not in ['administrador', 'admin'] and usuario_nome not in responsaveis:
+                return jsonify({'success': False, 'error': 'Você não tem permissão para editar esta auditoria'}), 403
+            
+            # Se a auditoria está cancelada, não permite editar
+            query_status = text("SELECT status FROM auditorias WHERE id = :id")
+            status_result = conn.execute(query_status, {'id': auditoria_id}).fetchone()
+            
+            if status_result and status_result[0] == 'Cancelada':
+                return jsonify({'success': False, 'error': 'Auditorias canceladas não podem ser editadas'}), 403
+            
+            # Atualizar
             query = text("""
                 UPDATE auditorias 
                 SET codigo_auditoria = :codigo,
@@ -3924,7 +3973,7 @@ def api_auditorias_atualizar(auditoria_id):
                 WHERE id = :id
             """)
             
-            result = conn.execute(query, {
+            conn.execute(query, {
                 'id': auditoria_id,
                 'codigo': data.get('codigo_auditoria'),
                 'id_area': data.get('id_area'),
@@ -3939,15 +3988,11 @@ def api_auditorias_atualizar(auditoria_id):
             })
             conn.commit()
             
-            if result.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
-            
             return jsonify({'success': True, 'message': 'Auditoria atualizada com sucesso'})
             
     except Exception as e:
         print(f"❌ Erro ao atualizar auditoria: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 @app.route('/api/auditorias/<int:auditoria_id>')
 def api_auditorias_buscar(auditoria_id):
@@ -3960,7 +4005,6 @@ def api_auditorias_buscar(auditoria_id):
     
     try:
         with engine.connect() as conn:
-            # Use SELECT com nomes das colunas para evitar problemas de índice
             query = text("""
                 SELECT 
                     id, 
@@ -3982,7 +4026,11 @@ def api_auditorias_buscar(auditoria_id):
             if not result:
                 return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
             
-            # Mapeamento por posição (mais seguro que SELECT *)
+            # responsavel_equipe está no índice 9
+            responsaveis = result[9] if result[9] else []
+            if not isinstance(responsaveis, list):
+                responsaveis = []
+            
             auditoria = {
                 'id': result[0],
                 'codigo_auditoria': result[1],
@@ -3993,8 +4041,8 @@ def api_auditorias_buscar(auditoria_id):
                 'data_inicio': result[6].strftime('%Y-%m-%d') if result[6] else None,
                 'data_fim': result[7].strftime('%Y-%m-%d') if result[7] else None,
                 'status': result[8],
-                'responsavel_equipe': result[9] or [],
-                'unidade': result[10] or '',  # ← Agora no índice correto
+                'responsavel_equipe': responsaveis,
+                'unidade': result[10] if len(result) > 10 else None,
             }
             
             return jsonify({'success': True, 'auditoria': auditoria})
@@ -4003,80 +4051,141 @@ def api_auditorias_buscar(auditoria_id):
         print(f"❌ Erro ao buscar auditoria: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/auditorias/<int:auditoria_id>/cancelar', methods=['PUT'])
+def api_auditorias_cancelar(auditoria_id):
+    """Cancela uma auditoria (soft delete) - apenas administrador"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    # Verificar se é administrador
+    if session.get('usuario_perfil') not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Apenas administradores podem cancelar auditorias'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE auditorias 
+                SET status = 'Cancelada', updated_at = NOW()
+                WHERE id = :id AND status != 'Cancelada'
+            """)
+            result = conn.execute(query, {'id': auditoria_id})
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada ou já cancelada'}), 404
+            
+            return jsonify({'success': True, 'message': 'Auditoria cancelada com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao cancelar auditoria: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ============================
 # ===== FIM API - AUDITORIAS =====
 # ============================
 
 @app.route('/api/auditorias/situacao')
 def api_auditorias_situacao():
-    """Retorna situação das auditorias: Concluídas, Em Execução, Fora do Prazo
-    Suporta filtro por área (area_id) e por auditoria específica (auditoria_id)
-    """
+    """Retorna situação das auditorias com todos os status existentes"""
     from database import engine
     from sqlalchemy import text
-    from datetime import date
     
     try:
         area_id = request.args.get('area_id')
-        auditoria_id = request.args.get('auditoria_id')  # ⭐ NOVO: suporte a auditoria única
         
         with engine.connect() as conn:
-            hoje = date.today()
-            
-            # CASO 1: Auditoria específica (mais específico)
-            if auditoria_id:
+            if area_id:
                 query = text("""
-                    SELECT 
-                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
-                        SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
-                        SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
-                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
-                    FROM auditorias
-                    WHERE id = :auditoria_id
-                """)
-                result = conn.execute(query, {
-                    'hoje': hoje,
-                    'auditoria_id': auditoria_id
-                }).fetchone()
-            
-            # CASO 2: Área específica
-            elif area_id:
-                query = text("""
-                    SELECT 
-                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
-                        SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
-                        SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
-                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    SELECT status, COUNT(*) as total
                     FROM auditorias
                     WHERE id_area = :area_id
+                    GROUP BY status
+                    ORDER BY 
+                        CASE status
+                            WHEN 'Planejamento' THEN 1
+                            WHEN 'Em Execução' THEN 2
+                            WHEN 'Concluída' THEN 3
+                            WHEN 'Concluída Avaliação' THEN 4
+                            WHEN 'Concluída com Follow-Up' THEN 5
+                            WHEN 'Em Atraso' THEN 6
+                            WHEN 'Inconclusiva' THEN 7
+                            ELSE 8
+                        END
                 """)
-                result = conn.execute(query, {
-                    'hoje': hoje,
-                    'area_id': area_id
-                }).fetchone()
-            
-            # CASO 3: Nenhum filtro - todas as auditorias
+                result = conn.execute(query, {'area_id': area_id}).fetchall()
             else:
                 query = text("""
-                    SELECT 
-                        SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) as concluidas,
-                        SUM(CASE WHEN status = 'Em Execução' AND data_fim >= :hoje THEN 1 ELSE 0 END) as em_execucao,
-                        SUM(CASE WHEN status = 'Em Execução' AND data_fim < :hoje THEN 1 ELSE 0 END) as fora_prazo,
-                        SUM(CASE WHEN status = 'Planejamento' THEN 1 ELSE 0 END) as planejamento
+                    SELECT status, COUNT(*) as total
                     FROM auditorias
+                    GROUP BY status
+                    ORDER BY 
+                        CASE status
+                            WHEN 'Planejamento' THEN 1
+                            WHEN 'Em Execução' THEN 2
+                            WHEN 'Concluída' THEN 3
+                            WHEN 'Concluída Avaliação' THEN 4
+                            WHEN 'Concluída com Follow-Up' THEN 5
+                            WHEN 'Em Atraso' THEN 6
+                            WHEN 'Inconclusiva' THEN 7
+                            ELSE 8
+                        END
                 """)
-                result = conn.execute(query, {'hoje': hoje}).fetchone()
+                result = conn.execute(query).fetchall()
+            
+            # Mapeamento de cores e ícones para cada status
+            cores_status = {
+                'Planejamento': '#ffc107',           # Amarelo
+                'Em Execução': '#17a2b8',             # Azul
+                'Concluída': '#28a745',               # Verde
+                'Concluída Avaliação': '#20c997',     # Verde menta
+                'Concluída com Follow-Up': '#34ce57', # Verde claro
+                'Em Atraso': '#dc3545',               # Vermelho
+                'Inconclusiva': '#6c757d'             # Cinza
+            }
+            
+            # Nomes amigáveis para exibição
+            nomes_status = {
+                'Planejamento': 'Planejamento',
+                'Em Execução': 'Em Execução',
+                'Concluída': 'Concluída',
+                'Concluída Avaliação': 'Concluída (Avaliação)',
+                'Concluída com Follow-Up': 'Concluída (Follow-Up)',
+                'Em Atraso': 'Em Atraso',
+                'Inconclusiva': 'Inconclusiva'
+            }
+            
+            labels = []
+            dados = []
+            cores = []
+            
+            for row in result:
+                status = row[0]
+                total = row[1]
+                labels.append(nomes_status.get(status, status))
+                dados.append(total)
+                cores.append(cores_status.get(status, '#6c757d'))
+            
+            # Se não houver dados, retorna vazio
+            if not dados:
+                return jsonify({
+                    'success': True,
+                    'labels': ['Nenhuma auditoria'],
+                    'dados': [1],
+                    'cores': ['#e0e0e0']
+                })
             
             return jsonify({
                 'success': True,
-                'concluidas': result[0] or 0,
-                'em_execucao': result[1] or 0,
-                'fora_prazo': result[2] or 0,
-                'planejamento': result[3] or 0
+                'labels': labels,
+                'dados': dados,
+                'cores': cores
             })
             
     except Exception as e:
-        print(f"❌ Erro em /api/auditorias/situacao: {e}")
+        print(f"❌ Erro ao buscar situação das auditorias: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/processos/detalhados')
