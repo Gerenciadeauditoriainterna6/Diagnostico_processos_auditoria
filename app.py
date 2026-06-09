@@ -3514,15 +3514,28 @@ def api_analises_criticas_por_processo():
                     ac.sugestao_melhoria,
                     ac.necessidade_implantacao,
                     ac.ganho_previsto,
+                    ac.observacoes,
                     ac.categoria,
                     ac.tipo_analise,
+                    ac.sugestao_sera_implantada,
+                    ac.plano_acao,
+                    ac.responsavel_implantacao,
+                    ac.data_inicio_implantacao,
+                    ac.data_conclusao_prevista,
+                    ac.anexo_nome,
+                    ac.efetivamente_implantada,
+                    ac.data_implantacao_efetiva,
+                    ac.status_implantacao,
+                    ac.created_at,
+                    ac.updated_at,
+                    ep.id as etapa_id,    
                     ep.codigo_etapa,
                     ep.nome_etapa,
                     ep.processo_id
                 FROM analises_criticas ac
                 JOIN etapas_processo ep ON ac.etapa_id = ep.id
                 WHERE ep.processo_id = :processo_id
-                  AND ac.tipo_analise = 'entrevistado'
+                AND ac.tipo_analise = 'entrevistado'
                 ORDER BY ep.codigo_etapa, ac.categoria
             """)
             result = conn.execute(query, {'processo_id': processo_id}).fetchall()
@@ -3535,11 +3548,24 @@ def api_analises_criticas_por_processo():
                     'sugestao_melhoria': row[2] or '',
                     'necessidade_implantacao': row[3] or '',
                     'ganho_previsto': row[4] or '',
-                    'categoria': row[5] or 'governanca',
-                    'tipo_analise': row[6],
-                    'codigo_etapa': row[7] or '',
-                    'nome_etapa': row[8] or '',
-                    'processo_id': row[9]
+                    'observacoes': row[5] or '',
+                    'categoria': row[6] or 'governanca',
+                    'tipo_analise': row[7],
+                    'sugestao_sera_implantada': row[8] or False,
+                    'plano_acao': row[9] or '',
+                    'responsavel_implantacao': row[10] or '',
+                    'data_inicio_implantacao': row[11].strftime('%Y-%m-%d') if row[11] else None,
+                    'data_conclusao_prevista': row[12].strftime('%Y-%m-%d') if row[12] else None,
+                    'anexo_nome': row[13] or '',
+                    'efetivamente_implantada': row[14] if row[14] is not None else None,
+                    'data_implantacao_efetiva': row[15].strftime('%Y-%m-%d') if row[15] else None,
+                    'status_implantacao': row[16] or 'Aguardando implantação',
+                    'created_at': row[17].isoformat() if row[17] else '',
+                    'updated_at': row[18].isoformat() if row[18] else '',
+                    'etapa_id': row[19],  # ← ajuste o índice conforme a posição
+                    'codigo_etapa': row[20] or '',
+                    'nome_etapa': row[21] or '',
+                    'processo_id': row[22]
                 })
             
             print(f"✅ Buscadas {len(analises)} análises para o processo {processo_id}")
@@ -3607,7 +3633,7 @@ def api_analises_auditor_por_processo():
                     'necessidade_implantacao': row[3] or '',
                     'ganho_previsto': row[4] or '',
                     'observacoes': row[5] or '',
-                    'sugestao_sera_implantada': row[6] if row[6] is not None else False,
+                    'sugestao_sera_implantada': row[6],
                     'plano_acao': row[7] or '',
                     'responsavel_implantacao': row[8] or '',
                     'data_inicio_implantacao': row[9].strftime('%Y-%m-%d') if row[9] else None,
@@ -3630,43 +3656,9 @@ def api_analises_auditor_por_processo():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/analise-auditor/<int:analise_id>/anexo', methods=['GET'])
-def api_analise_auditor_anexo(analise_id):
-    """Baixa o anexo PDF da análise do auditor"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    from database import engine
-    from sqlalchemy import text
-    from flask import send_file
-    import io
-    
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                SELECT anexo_validador, anexo_nome
-                FROM analises_criticas
-                WHERE id = :id AND tipo_analise = 'auditor'
-            """)
-            result = conn.execute(query, {'id': analise_id}).fetchone()
-            
-            if not result or not result[0]:
-                return jsonify({'error': 'Anexo não encontrado'}), 404
-            
-            return send_file(
-                io.BytesIO(result[0]),
-                mimetype='application/pdf',
-                as_attachment=True,
-                download_name=result[1] or f'anexo_analise_{analise_id}.pdf'
-            )
-            
-    except Exception as e:
-        print(f"❌ Erro ao baixar anexo: {e}")
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/analise-auditor/<int:analise_id>', methods=['PUT'])
 def api_analise_auditor_atualizar(analise_id):
-    """Atualiza uma análise do auditor existente"""
+    """Atualiza uma análise do auditor existente (incluindo anexo)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -3674,9 +3666,50 @@ def api_analise_auditor_atualizar(analise_id):
     
     from database import engine
     from sqlalchemy import text
+    import base64
+    from psycopg2 import Binary  # Para PostgreSQL
+    
+    # Verificar se deve remover o anexo
+    remover_anexo = data.get('remover_anexo', False)
+    
+    # Novo anexo (se veio)
+    anexo_base64 = data.get('anexo_base64')
+    anexo_nome = data.get('anexo_nome')
     
     try:
         with engine.connect() as conn:
+            # Buscar dados atuais para manter o anexo se não for alterado
+            result_current = conn.execute(text("""
+                SELECT anexo_validador, anexo_nome 
+                FROM analises_criticas 
+                WHERE id = :id
+            """), {'id': analise_id})
+            current = result_current.fetchone()
+            
+            anexo_bytes = None
+            anexo_nome_final = None
+            
+            if remover_anexo:
+                # Remover anexo existente
+                print(f"🗑️ Removendo anexo da análise {analise_id}")
+                anexo_bytes = None
+                anexo_nome_final = None
+            elif anexo_base64:
+                # Tem novo anexo
+                if ',' in anexo_base64:
+                    anexo_base64 = anexo_base64.split(',')[1]
+                anexo_bytes = base64.b64decode(anexo_base64)
+                anexo_nome_final = anexo_nome
+                print(f"📎 Atualizando anexo: {anexo_nome_final}, tamanho: {len(anexo_bytes)} bytes")
+            else:
+                # Manter anexo existente
+                if current and current[0]:
+                    anexo_bytes = current[0]  # mantém o mesmo
+                    anexo_nome_final = current[1]  # mantém o mesmo
+            
+            # Converter para Binary do PostgreSQL se tiver dados
+            anexo_param = Binary(anexo_bytes) if anexo_bytes else None
+            
             query = text("""
                 UPDATE analises_criticas 
                 SET analise_critica = :analise_critica,
@@ -3689,9 +3722,12 @@ def api_analise_auditor_atualizar(analise_id):
                     responsavel_implantacao = :responsavel_implantacao,
                     data_inicio_implantacao = :data_inicio_implantacao,
                     data_conclusao_prevista = :data_conclusao_prevista,
+                    anexo_validador = :anexo_validador,
+                    anexo_nome = :anexo_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo_analise = 'auditor'
             """)
+            
             result = conn.execute(query, {
                 'id': analise_id,
                 'analise_critica': data.get('analise_critica', ''),
@@ -3699,23 +3735,28 @@ def api_analise_auditor_atualizar(analise_id):
                 'necessidade_implantacao': data.get('necessidade_implantacao', ''),
                 'ganho_previsto': data.get('ganho_previsto', ''),
                 'observacoes': data.get('observacoes', ''),
-                'sugestao_sera_implantada': data.get('sugestao_sera_implantada', False),
+                'sugestao_sera_implantada': data.get('sugestao_sera_implantada'),
                 'plano_acao': data.get('plano_acao', ''),
                 'responsavel_implantacao': data.get('responsavel_implantacao', ''),
                 'data_inicio_implantacao': data.get('data_inicio_implantacao'),
-                'data_conclusao_prevista': data.get('data_conclusao_prevista')
+                'data_conclusao_prevista': data.get('data_conclusao_prevista'),
+                'anexo_validador': anexo_param,
+                'anexo_nome': anexo_nome_final
             })
             conn.commit()
             
             if result.rowcount == 0:
                 return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
             
+            print(f"✅ Análise {analise_id} atualizada com sucesso")
+            
             return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
             
     except Exception as e:
         print(f"❌ Erro ao atualizar análise do auditor: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 @app.route('/api/analise-auditor/<int:analise_id>', methods=['DELETE'])
 def api_analise_auditor_excluir(analise_id):
@@ -3762,7 +3803,7 @@ def api_analise_auditor_salvar():
     observacoes = data.get('observacoes', '')
     
     # Campos do plano de ação
-    sugestao_sera_implantada = data.get('sugestao_sera_implantada', False)
+    sugestao_sera_implantada = data.get('sugestao_sera_implantada')
     plano_acao = data.get('plano_acao', '')
     responsavel_implantacao = data.get('responsavel_implantacao', '')
     data_inicio_implantacao = data.get('data_inicio_implantacao')
@@ -3781,6 +3822,7 @@ def api_analise_auditor_salvar():
     from database import engine
     from sqlalchemy import text
     import base64
+    from psycopg2 import Binary  # Para PostgreSQL
     
     try:
         with engine.connect() as conn:
@@ -3790,6 +3832,10 @@ def api_analise_auditor_salvar():
                 if ',' in anexo_base64:
                     anexo_base64 = anexo_base64.split(',')[1]
                 anexo_bytes = base64.b64decode(anexo_base64)
+                print(f"📎 Anexo recebido: {anexo_nome}, tamanho: {len(anexo_bytes)} bytes")
+            
+            # Converter para Binary do PostgreSQL
+            anexo_param = Binary(anexo_bytes) if anexo_bytes else None
             
             query = text("""
                 INSERT INTO analises_criticas (
@@ -3824,11 +3870,13 @@ def api_analise_auditor_salvar():
                 'responsavel_implantacao': responsavel_implantacao,
                 'data_inicio_implantacao': data_inicio_implantacao,
                 'data_conclusao_prevista': data_conclusao_prevista,
-                'anexo_validador': anexo_bytes,
+                'anexo_validador': anexo_param,
                 'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
             conn.commit()
+            
+            print(f"✅ Análise salva com ID: {novo_id}, anexo: {anexo_nome if anexo_nome else 'sem anexo'}")
             
             return jsonify({'success': True, 'id': novo_id, 'message': 'Análise salva com sucesso'})
             
@@ -3837,6 +3885,49 @@ def api_analise_auditor_salvar():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/analise-auditor/<int:analise_id>/anexo')
+def api_analise_auditor_anexo(analise_id):
+    """Baixa o anexo PDF de uma análise do auditor"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from flask import make_response, send_file
+    import io
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT anexo_validador, anexo_nome 
+                FROM analises_criticas 
+                WHERE id = :id AND tipo_analise = 'auditor'
+            """), {'id': analise_id})
+            row = result.fetchone()
+            
+            if not row or not row[0]:
+                return jsonify({'error': 'Arquivo não encontrado'}), 404
+            
+            # Converter memoryview para bytes
+            anexo_bytes = bytes(row[0]) if hasattr(row[0], '__iter__') else row[0]
+            anexo_nome = row[1] or f'anexo_analise_{analise_id}.pdf'
+            
+            print(f"📎 Baixando anexo: {anexo_nome}, tipo: {type(anexo_bytes)}, tamanho: {len(anexo_bytes)} bytes")
+            
+            # Usar send_file com BytesIO
+            return send_file(
+                io.BytesIO(anexo_bytes),
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=anexo_nome
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar anexo: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
     
 @app.route('/api/analise-auditor/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
 def api_analise_auditor_confirmar_implantacao(analise_id):
@@ -4055,6 +4146,304 @@ def api_analise_follow_ups_criar():
             
     except Exception as e:
         print(f"❌ Erro ao criar follow-ups: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@app.route('/api/analise-auditado/salvar', methods=['POST'])
+def api_analise_auditado_salvar():
+    """Salva uma nova análise do auditado com plano de ação e anexo"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    processo_id = data.get('processo_id')
+    etapa_id = data.get('etapa_id')
+    categoria = data.get('categoria')
+    
+    # Campos principais
+    analise_critica = data.get('analise_critica', '')
+    sugestao_melhoria = data.get('sugestao_melhoria', '')
+    necessidade_implantacao = data.get('necessidade_implantacao', '')
+    ganho_previsto = data.get('ganho_previsto', '')
+    observacoes = data.get('observacoes', '')
+    
+    # Campos do plano de ação
+    sugestao_sera_implantada = data.get('sugestao_sera_implantada')
+    plano_acao = data.get('plano_acao', '')
+    responsavel_implantacao = data.get('responsavel_implantacao', '')
+    data_inicio_implantacao = data.get('data_inicio_implantacao')
+    data_conclusao_prevista = data.get('data_conclusao_prevista')
+    
+    # Anexo
+    anexo_base64 = data.get('anexo_base64')
+    anexo_nome = data.get('anexo_nome')
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
+    
+    if not etapa_id:
+        return jsonify({'success': False, 'error': 'etapa_id é obrigatório'}), 400
+    
+    if not categoria:
+        return jsonify({'success': False, 'error': 'categoria é obrigatória'}), 400
+    
+    if not analise_critica:
+        return jsonify({'success': False, 'error': 'Análise Crítica é obrigatória'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    from psycopg2 import Binary
+    
+    try:
+        with engine.connect() as conn:
+            # Processar anexo
+            anexo_bytes = None
+            if anexo_base64:
+                if ',' in anexo_base64:
+                    anexo_base64 = anexo_base64.split(',')[1]
+                anexo_bytes = base64.b64decode(anexo_base64)
+                print(f"📎 Anexo recebido: {anexo_nome}, tamanho: {len(anexo_bytes)} bytes")
+            
+            anexo_param = Binary(anexo_bytes) if anexo_bytes else None
+            
+            query = text("""
+                INSERT INTO analises_criticas (
+                    processo_id, etapa_id, tipo_analise, categoria,
+                    analise_critica, sugestao_melhoria,
+                    necessidade_implantacao, ganho_previsto, observacoes,
+                    sugestao_sera_implantada, plano_acao, responsavel_implantacao,
+                    data_inicio_implantacao, data_conclusao_prevista,
+                    anexo_validador, anexo_nome,
+                    created_at, updated_at
+                ) VALUES (
+                    :processo_id, :etapa_id, 'entrevistado', :categoria,
+                    :analise_critica, :sugestao_melhoria,
+                    :necessidade_implantacao, :ganho_previsto, :observacoes,
+                    :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
+                    :data_inicio_implantacao, :data_conclusao_prevista,
+                    :anexo_validador, :anexo_nome,
+                    NOW(), NOW()
+                )
+                RETURNING id
+            """)
+            
+            result = conn.execute(query, {
+                'processo_id': processo_id,
+                'etapa_id': etapa_id,
+                'categoria': categoria,
+                'analise_critica': analise_critica,
+                'sugestao_melhoria': sugestao_melhoria,
+                'necessidade_implantacao': necessidade_implantacao,
+                'ganho_previsto': ganho_previsto,
+                'observacoes': observacoes,
+                'sugestao_sera_implantada': sugestao_sera_implantada,
+                'plano_acao': plano_acao,
+                'responsavel_implantacao': responsavel_implantacao,
+                'data_inicio_implantacao': data_inicio_implantacao,
+                'data_conclusao_prevista': data_conclusao_prevista,
+                'anexo_validador': anexo_param,
+                'anexo_nome': anexo_nome
+            })
+            novo_id = result.fetchone()[0]
+            conn.commit()
+            
+            print(f"✅ Análise do auditado salva com ID: {novo_id}")
+            
+            return jsonify({'success': True, 'id': novo_id, 'message': 'Análise salva com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar análise do auditado: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analise-auditado/<int:analise_id>', methods=['PUT'])
+def api_analise_auditado_atualizar(analise_id):
+    """Atualiza uma análise do auditado existente (incluindo anexo)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    from psycopg2 import Binary
+    
+    remover_anexo = data.get('remover_anexo', False)
+    anexo_base64 = data.get('anexo_base64')
+    anexo_nome = data.get('anexo_nome')
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar dados atuais para manter o anexo se não for alterado
+            result_current = conn.execute(text("""
+                SELECT anexo_validador, anexo_nome 
+                FROM analises_criticas 
+                WHERE id = :id AND tipo_analise = 'entrevistado'
+            """), {'id': analise_id})
+            current = result_current.fetchone()
+            
+            anexo_bytes = None
+            anexo_nome_final = None
+            
+            if remover_anexo:
+                print(f"🗑️ Removendo anexo da análise {analise_id}")
+            elif anexo_base64:
+                if ',' in anexo_base64:
+                    anexo_base64 = anexo_base64.split(',')[1]
+                anexo_bytes = base64.b64decode(anexo_base64)
+                anexo_nome_final = anexo_nome
+                print(f"📎 Atualizando anexo: {anexo_nome_final}")
+            else:
+                if current and current[0]:
+                    anexo_bytes = current[0]
+                    anexo_nome_final = current[1]
+            
+            anexo_param = Binary(anexo_bytes) if anexo_bytes else None
+            
+            query = text("""
+                UPDATE analises_criticas 
+                SET analise_critica = :analise_critica,
+                    sugestao_melhoria = :sugestao_melhoria,
+                    necessidade_implantacao = :necessidade_implantacao,
+                    ganho_previsto = :ganho_previsto,
+                    observacoes = :observacoes,
+                    sugestao_sera_implantada = :sugestao_sera_implantada,
+                    plano_acao = :plano_acao,
+                    responsavel_implantacao = :responsavel_implantacao,
+                    data_inicio_implantacao = :data_inicio_implantacao,
+                    data_conclusao_prevista = :data_conclusao_prevista,
+                    anexo_validador = :anexo_validador,
+                    anexo_nome = :anexo_nome,
+                    updated_at = NOW()
+                WHERE id = :id AND tipo_analise = 'entrevistado'
+            """)
+            
+            result = conn.execute(query, {
+                'id': analise_id,
+                'analise_critica': data.get('analise_critica', ''),
+                'sugestao_melhoria': data.get('sugestao_melhoria', ''),
+                'necessidade_implantacao': data.get('necessidade_implantacao', ''),
+                'ganho_previsto': data.get('ganho_previsto', ''),
+                'observacoes': data.get('observacoes', ''),
+                'sugestao_sera_implantada': data.get('sugestao_sera_implantada', False),
+                'plano_acao': data.get('plano_acao', ''),
+                'responsavel_implantacao': data.get('responsavel_implantacao', ''),
+                'data_inicio_implantacao': data.get('data_inicio_implantacao'),
+                'data_conclusao_prevista': data.get('data_conclusao_prevista'),
+                'anexo_validador': anexo_param,
+                'anexo_nome': anexo_nome_final
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao atualizar análise do auditado: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analise-auditado/<int:analise_id>/anexo')
+def api_analise_auditado_anexo(analise_id):
+    """Baixa o anexo PDF de uma análise do auditado"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from flask import send_file
+    import io
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT anexo_validador, anexo_nome 
+                FROM analises_criticas 
+                WHERE id = :id AND tipo_analise = 'entrevistado'
+            """), {'id': analise_id})
+            row = result.fetchone()
+            
+            if not row or not row[0]:
+                return jsonify({'error': 'Arquivo não encontrado'}), 404
+            
+            anexo_bytes = bytes(row[0]) if hasattr(row[0], '__iter__') else row[0]
+            anexo_nome = row[1] or f'anexo_auditado_{analise_id}.pdf'
+            
+            return send_file(
+                io.BytesIO(anexo_bytes),
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=anexo_nome
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar anexo: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/analise-auditado/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
+def api_analise_auditado_confirmar_implantacao(analise_id):
+    """Confirma a implantação efetiva de uma análise do auditado"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    foi_implantada = data.get('efetivamente_implantada', False)
+    data_implantacao = data.get('data_implantacao_efetiva')
+    comentario = data.get('comentario_implantacao', '')
+    
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar dados atuais
+            result = conn.execute(text("""
+                SELECT sugestao_sera_implantada, data_conclusao_prevista
+                FROM analises_criticas 
+                WHERE id = :id AND tipo_analise = 'entrevistado'
+            """), {'id': analise_id})
+            analise = result.fetchone()
+            
+            if not analise:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            # Definir status de implantação
+            status_implantacao = 'Implantada' if foi_implantada else 'Não implantada'
+            
+            # Atualizar a análise
+            conn.execute(text("""
+                UPDATE analises_criticas 
+                SET efetivamente_implantada = :foi_implantada,
+                    data_implantacao_efetiva = :data_implantacao,
+                    status_implantacao = :status_implantacao,
+                    updated_at = NOW()
+                WHERE id = :id
+            """), {
+                'id': analise_id,
+                'foi_implantada': foi_implantada,
+                'data_implantacao': data_implantacao,
+                'status_implantacao': status_implantacao
+            })
+            conn.commit()
+            
+            # Se foi implantada, criar follow-ups automáticos
+            if foi_implantada and analise.sugestao_sera_implantada:
+                # Você pode chamar uma função para criar follow-ups
+                # Similar ao que existe para o auditor
+                pass
+            
+            return jsonify({'success': True, 'message': 'Implantação confirmada com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao confirmar implantação: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ============================================================
