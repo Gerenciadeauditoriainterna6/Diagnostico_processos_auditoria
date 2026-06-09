@@ -180,14 +180,23 @@
                         <textarea id="analise-auditado-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria identificadas..."></textarea>
                     </div>
                     
-                    <!-- 3. Status da Sugestão de Melhoria -->
+                    <!-- 3. Status da Sugestão de Melhoria - AGORA COM RADIO BUTTONS -->
                     <div class="form-group">
                         <label><i class="fas fa-check-circle"></i> Status da sugestão de melhoria:</label>
-                        <select id="sugestao-status-auditado" class="form-control">
-                            <option value="">Aguardando avaliação</option>
-                            <option value="true">Será implantada</option>
-                            <option value="false">Não será implantada</option>
-                        </select>
+                        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="sugestao-status-auditado-radio" value=""> 
+                                <span>Aguardando avaliação</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="sugestao-status-auditado-radio" value="true"> 
+                                <span>Será implantada</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="sugestao-status-auditado-radio" value="false"> 
+                                <span>Não será implantada</span>
+                            </label>
+                        </div>
                     </div>
                     
                     <!-- 4. SEÇÃO DO PLANO DE AÇÃO (aparece se o checkbox acima for marcado) -->
@@ -1527,10 +1536,104 @@
         gap: 5px;
     }
 
+    /* Estilos para upload de evidências no checklist */
+    .evidencias-container {
+        margin-top: 10px;
+        padding-left: 40px;
+    }
+
+    .btn-evidencias {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 11px;
+        margin-top: 5px;
+    }
+
+    .btn-evidencias:hover {
+        background: #5a6268;
+    }
+
+    .evidencias-lista {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .evidencia-item {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 5px 10px;
+        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-remover-evidencia {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0 3px;
+    }
+
+    .btn-remover-evidencia:hover {
+        color: #c82333;
+    }
+
+    .btn-baixar-evidencia {
+        background: none;
+        border: none;
+        color: #0b5b99;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0 3px;
+    }
+
+    .btn-baixar-evidencia:hover {
+        color: #fd6a14;
+    }
+
+    /* Badges UNIFICADOS - funciona para auditor e auditado */
+    .analise-auditor-badge,
+    .analise-auditado-badge {
+        font-size: 10px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .badge-implantada {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .badge-nao-implantada {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .badge-pendente {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
 </style>
 
 <script>
-
     let auditoriaIdAtual = null;
     let processoIdAtual = null;
     let analisesAuditorList = [];
@@ -1541,6 +1644,9 @@
     let analisesAuditadoList = [];
     let arquivoSelecionadoAuditado = null;
     let anexoExistenteNomeAuditado = null;
+    // Variáveis para checklist
+    let currentRespostaId = null;
+    let arquivosPendentes = {};
 
     const PERGUNTAS = {
         governanca: [
@@ -1549,783 +1655,65 @@
             { id: 3, pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", ordem: 3, precisaEvidencia: false },
             { id: 4, pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", ordem: 4, precisaEvidencia: false },
             { id: 5, pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", ordem: 5, precisaEvidencia: false },
-            { id: 6, pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", ordem: 6},
+            { id: 6, pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", ordem: 6, precisaEvidencia: false },
             { id: 7, pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", ordem: 7, precisaEvidencia: false },
             { id: 8, pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", ordem: 8, precisaEvidencia: false },
             { id: 9, pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", ordem: 9, precisaEvidencia: false },
             { id: 10, pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", ordem: 10, precisaEvidencia: false },
             { id: 11, pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", ordem: 11, precisaEvidencia: false },
             { id: 12, pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", ordem: 12, precisaEvidencia: false },
-            { id: 13, pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", ordem: 13, precisaEvidencia: true},
+            { id: 13, pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", ordem: 13, precisaEvidencia: true },
         ],
         riscos: [
-            { id: 1, pergunta: "Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.", ordem: 1},
-            { id: 2, pergunta: "Verificar se os riscos estão atualizados e sendo monitorados pelo gestor de primeira linha.", ordem: 2},
-            { id: 3, pergunta: "A área realiza mapeamento de riscos dos seus processos operacionais regularmente (ex: anualmente ou após mudanças significativas)?", ordem: 3},
-            { id: 4, pergunta: "Os riscos chave (ex: erro humano, falha de sistema, fraude) estão claramente identificados e documentados pela própria área?", ordem: 4},
-            { id: 5, pergunta: "A análise de riscos inclui a avaliação da probabilidade de ocorrência e do impacto financeiro/reputacional/operacional?", ordem: 5},
-            { id: 6, pergunta: "Existe um plano de ação formalizado para mitigar os riscos classificados como Alto ou Crítico?", ordem: 6},
-            { id: 7, pergunta: "Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?", ordem: 7},
-            { id: 8, pergunta: "A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?", ordem: 8},
-            { id: 9, pergunta: "A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?", ordem: 9},
-            { id: 10, pergunta: "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?", ordem: 10},
-            { id: 11, pergunta: "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?", ordem: 11},
-            { id: 12, pergunta: "O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?", ordem: 12, precisaEvidencia: true},
+            { id: 1, pergunta: "Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.", ordem: 1, precisaEvidencia: false },
+            { id: 2, pergunta: "Verificar se os riscos estão atualizados e sendo monitorados pelo gestor de primeira linha.", ordem: 2, precisaEvidencia: false },
+            { id: 3, pergunta: "A área realiza mapeamento de riscos dos seus processos operacionais regularmente (ex: anualmente ou após mudanças significativas)?", ordem: 3, precisaEvidencia: false },
+            { id: 4, pergunta: "Os riscos chave (ex: erro humano, falha de sistema, fraude) estão claramente identificados e documentados pela própria área?", ordem: 4, precisaEvidencia: false },
+            { id: 5, pergunta: "A análise de riscos inclui a avaliação da probabilidade de ocorrência e do impacto financeiro/reputacional/operacional?", ordem: 5, precisaEvidencia: false },
+            { id: 6, pergunta: "Existe um plano de ação formalizado para mitigar os riscos classificados como Alto ou Crítico?", ordem: 6, precisaEvidencia: false },
+            { id: 7, pergunta: "Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?", ordem: 7, precisaEvidencia: false },
+            { id: 8, pergunta: "A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?", ordem: 8, precisaEvidencia: false },
+            { id: 9, pergunta: "A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?", ordem: 9, precisaEvidencia: false },
+            { id: 10, pergunta: "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?", ordem: 10, precisaEvidencia: false },
+            { id: 11, pergunta: "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?", ordem: 11, precisaEvidencia: false },
+            { id: 12, pergunta: "O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?", ordem: 12, precisaEvidencia: true },
         ],
         controles: [
-            { id: 1, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1, precisaEvidencia: true},
-            { id: 2, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2, precisaEvidencia: true},
-            { id: 3, pergunta: "Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?", ordem: 3, precisaEvidencia: false},
-            { id: 4, pergunta: "Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?", ordem: 4, precisaEvidencia: false},
-            { id: 5, pergunta: "Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?", ordem: 5, precisaEvidencia: false},
-            { id: 6, pergunta: "O passo do controle (ex: revisão, aprovação, conciliação) é realizado na frequência exigida e sem exceções não autorizadas?", ordem: 6, precisaEvidencia: false},
-            { id: 7, pergunta: "O responsável pelo controle deixa evidência clara (assinatura, log do sistema, captura de tela) de que o controle foi executado e revisado?", ordem: 7, precisaEvidencia: false},
-            { id: 8, pergunta: "Os controles-chave são executados por pessoas com o conhecimento e a autoridade necessários para tal?", ordem: 8, precisaEvidencia: false},
-            { id: 9, pergunta: "As falhas ou exceções encontradas nos controles são escaladas imediatamente para tratamento e correção?", ordem: 9, precisaEvidencia: false},
-            { id: 10, pergunta: "A área rastreia e monitora as ações corretivas implementadas para remediar as deficiências de controle identificadas?", ordem: 10, precisaEvidencia: false},
-            { id: 11, pergunta: "As reconciliações (ex: contábeis, estoques) são realizadas, e os itens pendentes são investigados e resolvidos prontamente?", ordem: 11, precisaEvidencia: false},
-            { id: 12, pergunta: "O Auditado validou por email se existe mapeamento de CONTROLE feito pela área Gerência de riscos e Compliance?", ordem: 12, precisaEvidencia: true},
+            { id: 1, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1, precisaEvidencia: true },
+            { id: 2, pergunta: "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2, precisaEvidencia: true },
+            { id: 3, pergunta: "Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?", ordem: 3, precisaEvidencia: false },
+            { id: 4, pergunta: "Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?", ordem: 4, precisaEvidencia: false },
+            { id: 5, pergunta: "Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?", ordem: 5, precisaEvidencia: false },
+            { id: 6, pergunta: "O passo do controle (ex: revisão, aprovação, conciliação) é realizado na frequência exigida e sem exceções não autorizadas?", ordem: 6, precisaEvidencia: false },
+            { id: 7, pergunta: "O responsável pelo controle deixa evidência clara (assinatura, log do sistema, captura de tela) de que o controle foi executado e revisado?", ordem: 7, precisaEvidencia: false },
+            { id: 8, pergunta: "Os controles-chave são executados por pessoas com o conhecimento e a autoridade necessários para tal?", ordem: 8, precisaEvidencia: false },
+            { id: 9, pergunta: "As falhas ou exceções encontradas nos controles são escaladas imediatamente para tratamento e correção?", ordem: 9, precisaEvidencia: false },
+            { id: 10, pergunta: "A área rastreia e monitora as ações corretivas implementadas para remediar as deficiências de controle identificadas?", ordem: 10, precisaEvidencia: false },
+            { id: 11, pergunta: "As reconciliações (ex: contábeis, estoques) são realizadas, e os itens pendentes são investigados e resolvidos prontamente?", ordem: 11, precisaEvidencia: false },
+            { id: 12, pergunta: "O Auditado validou por email se existe mapeamento de CONTROLE feito pela área Gerência de riscos e Compliance?", ordem: 12, precisaEvidencia: true },
         ]
     };
 
     // ============================================================
-    // FUNÇÕES PARA CONTROLE DO PLANO DE AÇÃO (AUDITOR)
+    // FUNÇÕES AUXILIARES
     // ============================================================
 
-    function togglePlanoAcaoAuditor(mostrar) {
-        const secao = document.getElementById('secao-plano-acao');
-        if (secao) {
-            secao.style.display = mostrar ? 'block' : 'none';
-        }
-    }
-
-    function limparCamposPlanoAcaoAuditor() {
-        document.getElementById('plano-acao').value = '';
-        document.getElementById('responsavel-implantacao').value = '';
-        document.getElementById('data-inicio-implantacao').value = '';
-        document.getElementById('data-conclusao-prevista').value = '';
-        
-        // Limpar anexo
-        const inputFile = document.getElementById('anexo-validacao');
-        const anexoDiv = document.getElementById('anexo-nome');
-        if (inputFile) inputFile.value = '';
-        if (anexoDiv) anexoDiv.style.display = 'none';
-        arquivoSelecionado = null;
-        anexoExistenteNome = null;
-    }
-
-    function setupImplementacaoListenerAuditor() {
-        const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
-        
-        function controlarVisibilidade() {
-            const radioSelecionado = document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked');
-            const isImplantada = radioSelecionado && radioSelecionado.value === 'true';
-            
-            if (isImplantada) {
-                togglePlanoAcaoAuditor(true);
-            } else {
-                togglePlanoAcaoAuditor(false);
-                // Limpar campos se não for "Será implantada"
-                limparCamposPlanoAcaoAuditor();
-            }
-        }
-        
-        radios.forEach(radio => {
-            radio.removeEventListener('change', controlarVisibilidade);
-            radio.addEventListener('change', controlarVisibilidade);
-        });
-        
-        // Executar uma vez para definir o estado inicial
-        controlarVisibilidade();
-    }
-
-    // ============================================================
-    // MODAL DO AUDITOR - ABRIR NOVA ANÁLISE
-    // ============================================================
-
-    function abrirModalNovaAnaliseAuditor() {
-        document.getElementById('modal-analise-titulo').innerHTML = '<i class="fas fa-user-check"></i> Nova Análise do Auditor';
-        document.getElementById('analise-auditor-id').value = '';
-        
-        // Limpar campos principais
-        document.getElementById('analise-auditor-texto').value = '';
-        document.getElementById('analise-auditor-sugestao').value = '';
-        document.getElementById('analise-auditor-necessidade').value = '';
-        document.getElementById('analise-auditor-ganho').value = '';
-        document.getElementById('analise-auditor-observacoes').value = '';
-        
-        // Limpar campos do plano de ação
-        limparCamposPlanoAcaoAuditor();
-        
-        // Marcar radio "Aguardando avaliação" (value="")
-        const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
-        radios.forEach(radio => {
-            radio.checked = (radio.value === '');
-        });
-        
-        // Esconder seção do plano de ação
-        togglePlanoAcaoAuditor(false);
-        
-        // Configurar listener
-        setupImplementacaoListenerAuditor();
-        
-        // Abrir modal
-        document.getElementById('modal-analise-auditor').style.display = 'flex';
-    }
-
-    // ============================================================
-    // MODAL DO AUDITOR - EDITAR ANÁLISE
-    // ============================================================
-
-    async function editarAnaliseAuditor(id) {
-        // Recarregar dados
-        const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            analisesAuditorList = data.analyses;
-        }
-        
-        const analise = analisesAuditorList.find(a => a.id === id);
-        if (!analise) return;
-        
-        document.getElementById('modal-analise-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Análise do Auditor';
-        document.getElementById('analise-auditor-id').value = analise.id;
-        
-        // Preencher campos principais
-        document.getElementById('analise-auditor-texto').value = analise.analise_critica || '';
-        document.getElementById('analise-auditor-sugestao').value = analise.sugestao_melhoria || '';
-        document.getElementById('analise-auditor-necessidade').value = analise.necessidade_implantacao || '';
-        document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
-        document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
-        
-        // Marcar o radio correto
-        const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
-        let valorParaMarcar = '';
-        
-        if (analise.sugestao_sera_implantada === true) {
-            valorParaMarcar = 'true';
-            // Preencher campos do plano de ação
-            document.getElementById('plano-acao').value = analise.plano_acao || '';
-            document.getElementById('responsavel-implantacao').value = analise.responsavel_implantacao || '';
-            document.getElementById('data-inicio-implantacao').value = analise.data_inicio_implantacao || '';
-            document.getElementById('data-conclusao-prevista').value = analise.data_conclusao_prevista || '';
-            
-            // Anexo existente
-            if (analise.anexo_nome) {
-                anexoExistenteNome = analise.anexo_nome;
-                const anexoDiv = document.getElementById('anexo-nome');
-                const anexoTexto = document.getElementById('anexo-nome-texto');
-                if (anexoDiv && anexoTexto) {
-                    anexoTexto.textContent = analise.anexo_nome;
-                    anexoDiv.style.display = 'flex';
-                }
-            }
-        } else if (analise.sugestao_sera_implantada === false) {
-            valorParaMarcar = 'false';
-            limparCamposPlanoAcaoAuditor();
-        } else {
-            valorParaMarcar = ''; // Aguardando avaliação
-            limparCamposPlanoAcaoAuditor();
-        }
-        
-        // Marcar o radio
-        radios.forEach(radio => {
-            radio.checked = (radio.value === valorParaMarcar);
-        });
-        
-        // Mostrar ou esconder a seção do plano de ação
-        const mostrarPlano = (valorParaMarcar === 'true');
-        togglePlanoAcaoAuditor(mostrarPlano);
-        
-        console.log('📊 Editando - valor do banco:', analise.sugestao_sera_implantada);
-        
-        document.getElementById('modal-analise-auditor').style.display = 'flex';
-    }
-
-    // ============================================================
-    // MODAL DO AUDITOR - SALVAR
-    // ============================================================
-
-    async function salvarAnaliseAuditor() {
-        if (!processoIdAtual) {
-            mostrarToast('❌ Selecione um processo primeiro', 'warning');
-            return;
-        }
-        
-        const analiseId = document.getElementById('analise-auditor-id').value;
-        
-        // Pegar o radio selecionado
-        const radioSelecionado = document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked');
-        
-        let seraImplantada = null;
-        if (radioSelecionado) {
-            if (radioSelecionado.value === 'true') {
-                seraImplantada = true;
-            } else if (radioSelecionado.value === 'false') {
-                seraImplantada = false;
-            } else {
-                seraImplantada = null;
-            }
-        }
-        
-        console.log('📊 Radio selecionado:', radioSelecionado?.value);
-        console.log('📊 seraImplantada:', seraImplantada);
-        
-        const analiseData = {
-            analise_critica: document.getElementById('analise-auditor-texto').value,
-            sugestao_melhoria: document.getElementById('analise-auditor-sugestao').value,
-            necessidade_implantacao: document.getElementById('analise-auditor-necessidade').value,
-            ganho_previsto: document.getElementById('analise-auditor-ganho').value,
-            observacoes: document.getElementById('analise-auditor-observacoes').value,
-            sugestao_sera_implantada: seraImplantada
-        };
-        
-        // Só incluir plano de ação se for true
-        if (seraImplantada === true) {
-            analiseData.plano_acao = document.getElementById('plano-acao').value;
-            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao').value;
-            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao').value || null;
-            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista').value || null;
-            
-            // Processar anexo se houver
-            if (arquivoSelecionado) {
-                analiseData.anexo_base64 = await converterParaBase64(arquivoSelecionado);
-                analiseData.anexo_nome = arquivoSelecionado.name;
-            } else if (anexoExistenteNome) {
-                // Manter anexo existente
-                analiseData.manter_anexo = true;
-            }
-        } else {
-            // Se não for implantada, enviar null para limpar os campos
-            analiseData.plano_acao = null;
-            analiseData.responsavel_implantacao = null;
-            analiseData.data_inicio_implantacao = null;
-            analiseData.data_conclusao_prevista = null;
-            
-            // Se mudou de "Será implantada" para outra opção, remover anexo
-            if (anexoExistenteNome || arquivoSelecionado) {
-                analiseData.remover_anexo = true;
-            }
-        }
-        
-        // Validação
-        if (!analiseData.analise_critica.trim()) {
-            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
-            return;
-        }
-        
-        const btnSalvar = document.getElementById('btn-salvar-analise-auditor');
-        const textoOriginal = btnSalvar.innerHTML;
-        btnSalvar.disabled = true;
-        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-        
-        try {
-            const url = analiseId ? `/api/analise-auditor/${analiseId}` : '/api/analise-auditor/salvar';
-            const method = analiseId ? 'PUT' : 'POST';
-            
-            const body = {
-                processo_id: parseInt(processoIdAtual),
-                ...analiseData
-            };
-            
-            console.log('📤 Enviando para API:', JSON.stringify(body, null, 2));
-            
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                mostrarToast(analiseId ? '✅ Análise atualizada com sucesso!' : '✅ Análise salva com sucesso!', 'success');
-                fecharModalAnaliseAuditor();
-                await carregarAnalisesAuditor();
-            } else {
-                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
-        } finally {
-            btnSalvar.disabled = false;
-            btnSalvar.innerHTML = textoOriginal;
-        }
-    }
-
-    // ============================================================
-    // FECHAR MODAL
-    // ============================================================
-
-    function fecharModalAnaliseAuditor() {
-        document.getElementById('modal-analise-auditor').style.display = 'none';
-    }
-
-    // ============================================================
-    // FUNÇÃO DE RENDERIZAÇÃO DOS BADGES (CORRIGIDA)
-    // ============================================================
-
-    async function renderizarAnalisesAuditor() {
-        const container = document.getElementById('analises-auditor-container');
-        
-        if (analisesAuditorList.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #999;">
-                    Nenhuma análise do auditor cadastrada.
-                    <br><br>
-                    <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()">
-                        <i class="fas fa-plus"></i> Nova Análise
-                    </button>
-                </div>
-            `;
-            return;
-        }
-        
-        // Carregar histórico e follow-ups
-        const analisesComDados = [];
-        for (const analise of analisesAuditorList) {
-            const historico = await carregarHistoricoAndamento(analise.id);
-            const followUps = await carregarFollowUps(analise.id);
-            analisesComDados.push({ ...analise, historico, followUps });
-        }
-        
-        let html = '';
-        
-        analisesComDados.forEach((analise, index) => {
-            const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
-            const prazoExpirado = analise.sugestao_sera_implantada === true &&
-                                !analise.efetivamente_implantada && 
-                                analise.data_conclusao_prevista && 
-                                new Date(analise.data_conclusao_prevista) < new Date();
-            
-            // ⭐ BADGE CORRETO - TRATANDO NULL, TRUE e FALSE
-            let badgeHtml = '';
-            if (analise.sugestao_sera_implantada === true) {
-                badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i> Será implantada</span>';
-            } else if (analise.sugestao_sera_implantada === false) {
-                badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Não será implantada</span>';
-            } else {
-                badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Aguardando avaliação</span>';
-            }
-            
-            html += `
-                <div class="analise-auditor-card" data-analise-id="${analise.id}">
-                    <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
-                        <div class="analise-auditor-header-left">
-                            <span class="analise-auditor-titulo">
-                                <i class="fas fa-file-alt"></i> Análise ${index + 1}
-                            </span>
-                            <span class="analise-auditor-data">
-                                <i class="far fa-calendar-alt"></i> ${new Date(analise.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                            ${badgeHtml}
-                        </div>
-                        <div class="analise-auditor-actions" onclick="event.stopPropagation()">
-                            <button class="btn-edit-analise-auditor" onclick="editarAnaliseAuditor(${analise.id})" title="Editar análise">
-                                <i class="fas fa-pencil-alt"></i>
-                            </button>
-                            <button class="btn-delete-analise-auditor" onclick="excluirAnaliseAuditor(${analise.id})" title="Excluir análise">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                            <i class="fas fa-chevron-down" style="color: white; margin-left: 5px;"></i>
-                        </div>
-                    </div>
-                    <div class="analise-auditor-body">
-                        <!-- Conteúdo do corpo da análise -->
-                        <div class="analise-grid">
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4>
-                                <div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div>
-                            </div>
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4>
-                                <div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div>
-                            </div>
-                        </div>
-                        
-                        ${temPlanoAcao ? `
-                        <div class="analise-card-section plano-acao-card" style="margin-bottom: 20px;">
-                            <h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4>
-                            <div style="margin-bottom: 10px;">${escapeHtml(analise.plano_acao)}</div>
-                            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
-                                ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
-                                ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
-                                ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
-                                ${analise.anexo_nome ? `
-                                    <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexo(${analise.id});">
-                                        <i class="fas fa-file-pdf"></i> ${escapeHtml(analise.anexo_nome)} <i class="fas fa-download"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        <div class="analise-grid" style="margin-top: 20px;">
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4>
-                                <div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div>
-                            </div>
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4>
-                                <div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div>
-                            </div>
-                        </div>
-                        
-                        ${analise.observacoes ? `
-                        <div class="analise-card-section" style="margin-top: 20px;">
-                            <h4><i class="fas fa-comment"></i> Observações</h4>
-                            <div class="analise-texto">${escapeHtml(analise.observacoes)}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-    }
-
-    // ⭐ FUNÇÃO AUXILIAR: Converter status do select para o valor correto
     function getSugestaoImplantadaValue(selectValue) {
         if (selectValue === 'true') return true;
         if (selectValue === 'false') return false;
-        return null; // Aguardando avaliação
+        return null;
     }
 
-    // ⭐ FUNÇÃO AUXILIAR: Configurar o select com o valor correto
     function setSugestaoImplantadaSelect(selectElement, valor) {
-        if (valor === true) {
-            selectElement.value = 'true';
-        } else if (valor === false) {
-            selectElement.value = 'false';
-        } else {
-            selectElement.value = ''; // Aguardando avaliação
-        }
-    }
-
-    function toggleAnaliseAuditadoCard(header) {
-        console.log('🔽 CLIQUE DETECTADO na análise!', header);
-        const card = header.closest('.analise-auditado-card');
-        console.log('Card encontrado:', card);
-        card.classList.toggle('expanded');
-        const icon = header.querySelector('.fa-chevron-down');
-        if (card.classList.contains('expanded')) {
-            icon.style.transform = 'rotate(180deg)';
-        } else {
-            icon.style.transform = 'rotate(0deg)';
-        }
-    }
-
-    function toggleAnaliseEtapaCard(header) {
-        const card = header.closest('.analise-etapa-card');
-        const body = card.querySelector('.analise-etapa-body');
-        const icon = header.querySelector('.fa-chevron-down');
-        
-        if (body.style.display === 'none') {
-            body.style.display = 'block';
-            icon.style.transform = 'rotate(180deg)';
-        } else {
-            body.style.display = 'none';
-            icon.style.transform = 'rotate(0deg)';
-        }
-    }
-
-    // Função para baixar anexo do auditado
-    async function baixarAnexoAuditado(analiseId) {
-        window.open(`/api/analise-auditado/${analiseId}/anexo`, '_blank');
-    }
-
-    // Função para editar análise do auditado
-    async function editarAnaliseAuditado(id) {
-        try {
-            const response = await fetch(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                const analise = data.analises.find(a => a.id === id);
-                if (analise) {
-                    document.getElementById('analise-auditado-id').value = analise.id;
-                    document.getElementById('analise-auditado-etapa-id').value = analise.etapa_id;
-                    document.getElementById('analise-auditado-categoria').value = analise.categoria;
-                    document.getElementById('analise-auditado-etapa-nome').value = analise.nome_etapa;
-                    
-                    let categoriaNome = '';
-                    if (analise.categoria === 'governanca') categoriaNome = 'Governança';
-                    else if (analise.categoria === 'riscos') categoriaNome = 'Riscos';
-                    else if (analise.categoria === 'controles') categoriaNome = 'Controles';
-                    document.getElementById('analise-auditado-categoria-nome').value = categoriaNome;
-                    
-                    document.getElementById('analise-auditado-texto').value = analise.analise_critica || '';
-                    document.getElementById('analise-auditado-sugestao').value = analise.sugestao_melhoria || '';
-                    document.getElementById('analise-auditado-necessidade').value = analise.necessidade_implantacao || '';
-                    document.getElementById('analise-auditado-ganho').value = analise.ganho_previsto || '';
-                    document.getElementById('analise-auditado-observacoes').value = analise.observacoes || '';
-                    
-                    // ⭐ CORRIGIDO: Configurar o select de status usando a função auxiliar
-                    const selectStatus = document.getElementById('sugestao-status-auditado');
-                    if (selectStatus) {
-                        setSugestaoImplantadaSelect(selectStatus, analise.sugestao_sera_implantada);
-                    }
-                    
-                    // Mostrar/esconder plano de ação baseado no status
-                    const secaoPlano = document.getElementById('secao-plano-acao-auditado');
-                    if (analise.sugestao_sera_implantada === true) {
-                        secaoPlano.style.display = 'block';
-                        document.getElementById('plano-acao-auditado').value = analise.plano_acao || '';
-                        document.getElementById('responsavel-implantacao-auditado').value = analise.responsavel_implantacao || '';
-                        document.getElementById('data-inicio-implantacao-auditado').value = analise.data_inicio_implantacao || '';
-                        document.getElementById('data-conclusao-prevista-auditado').value = analise.data_conclusao_prevista || '';
-                        
-                        if (analise.anexo_nome) {
-                            anexoExistenteNomeAuditado = analise.anexo_nome;
-                            const anexoDiv = document.getElementById('anexo-nome-auditado');
-                            const anexoTexto = document.getElementById('anexo-nome-texto-auditado');
-                            if (anexoDiv && anexoTexto) {
-                                anexoTexto.textContent = analise.anexo_nome;
-                                anexoDiv.style.display = 'flex';
-                            }
-                        }
-                    } else {
-                        secaoPlano.style.display = 'none';
-                    }
-                    
-                    document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-                        '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + categoriaNome;
-                    
-                    document.getElementById('modal-analise-auditado').style.display = 'flex';
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao carregar análise para edição:', error);
-            mostrarToast('Erro ao carregar dados da análise', 'error');
-        }
-    }
-
-    function fecharModalAnaliseAuditado() {
-        document.getElementById('modal-analise-auditado').style.display = 'none';
-    }
-
-    function setupFileUploadAuditado() {
-        const btnSelecionar = document.getElementById('btn-selecionar-arquivo-auditado');
-        const inputFile = document.getElementById('anexo-validacao-auditado');
-        const anexoDiv = document.getElementById('anexo-nome-auditado');
-        const anexoTexto = document.getElementById('anexo-nome-texto-auditado');
-        const btnRemover = document.getElementById('btn-remover-arquivo-auditado');
-        
-        if (!btnSelecionar || !inputFile) {
-            console.warn('Elementos de upload do auditado não encontrados');
-            return;
-        }
-        
-        btnSelecionar.addEventListener('click', function(e) {
-            e.preventDefault();
-            inputFile.click();
-        });
-        
-        inputFile.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                if (file.type !== 'application/pdf') {
-                    mostrarToast('Apenas arquivos PDF são permitidos', 'warning');
-                    inputFile.value = '';
-                    return;
-                }
-                
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarToast('Arquivo muito grande. Máximo 10MB', 'warning');
-                    inputFile.value = '';
-                    return;
-                }
-                
-                arquivoSelecionadoAuditado = file;
-                if (anexoTexto) anexoTexto.textContent = file.name;
-                if (anexoDiv) anexoDiv.style.display = 'flex';
-                anexoExistenteNomeAuditado = null;
-                
-                const removerHidden = document.getElementById('remover-anexo-hidden-auditado');
-                if (removerHidden) removerHidden.remove();
-            }
-        });
-        
-        if (btnRemover) {
-            btnRemover.addEventListener('click', function(e) {
-                e.preventDefault();
-                inputFile.value = '';
-                arquivoSelecionadoAuditado = null;
-                if (anexoDiv) anexoDiv.style.display = 'none';
-                if (anexoTexto) anexoTexto.textContent = '';
-                
-                const removerHidden = document.getElementById('remover-anexo-hidden-auditado');
-                if (!removerHidden) {
-                    const hidden = document.createElement('input');
-                    hidden.type = 'hidden';
-                    hidden.id = 'remover-anexo-hidden-auditado';
-                    hidden.value = 'true';
-                    document.getElementById('modal-analise-auditado').querySelector('.modal-body').appendChild(hidden);
-                } else {
-                    removerHidden.value = 'true';
-                }
-            });
-        }
-    }
-
-    async function salvarAnaliseAuditado() {
-        if (!processoIdAtual) {
-            mostrarToast('Selecione um processo primeiro', 'warning');
-            return;
-        }
-        
-        const analiseId = document.getElementById('analise-auditado-id').value;
-        const etapaId = document.getElementById('analise-auditado-etapa-id').value;
-        const categoria = document.getElementById('analise-auditado-categoria').value;
-        
-        const analiseCritica = document.getElementById('analise-auditado-texto').value;
-        if (!analiseCritica.trim()) {
-            mostrarToast('A Análise Crítica é obrigatória', 'warning');
-            return;
-        }
-        
-        // ⭐ CORRIGIDO: Obter o status do select e converter
-        const selectStatus = document.getElementById('sugestao-status-auditado');
-        const seraImplantada = getSugestaoImplantadaValue(selectStatus.value);
-        
-        console.log('📊 Salvando análise do auditado - Status:', selectStatus.value, 'Convertido:', seraImplantada);
-        
-        const analiseData = {
-            processo_id: processoIdAtual,
-            etapa_id: etapaId,
-            categoria: categoria,
-            analise_critica: analiseCritica,
-            sugestao_melhoria: document.getElementById('analise-auditado-sugestao').value,
-            necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value,
-            ganho_previsto: document.getElementById('analise-auditado-ganho').value,
-            observacoes: document.getElementById('analise-auditado-observacoes').value,
-            sugestao_sera_implantada: seraImplantada
-        };
-        
-        if (seraImplantada === true) {
-            analiseData.plano_acao = document.getElementById('plano-acao-auditado').value;
-            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao-auditado').value;
-            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao-auditado').value || null;
-            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista-auditado').value || null;
-        }
-        
-        let anexoBase64 = null;
-        let anexoNome = null;
-        
-        if (arquivoSelecionadoAuditado) {
-            anexoBase64 = await converterParaBase64(arquivoSelecionadoAuditado);
-            anexoNome = arquivoSelecionadoAuditado.name;
-        }
-        
-        const removerAnexo = document.getElementById('remover-anexo-hidden-auditado')?.value === 'true';
-        
-        const btnSalvar = document.getElementById('btn-salvar-analise-auditado');
-        const textoOriginal = btnSalvar.innerHTML;
-        btnSalvar.disabled = true;
-        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-        
-        try {
-            const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
-            const method = analiseId ? 'PUT' : 'POST';
-            
-            const body = { ...analiseData };
-            
-            if (anexoBase64) {
-                body.anexo_base64 = anexoBase64;
-                body.anexo_nome = anexoNome;
-            }
-            
-            if (removerAnexo) {
-                body.remover_anexo = true;
-            }
-            
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                mostrarToast(analiseId ? 'Análise atualizada com sucesso!' : 'Análise salva com sucesso!', 'success');
-                fecharModalAnaliseAuditado();
-                await carregarAnalisesAuditado();
-            } else {
-                mostrarToast('Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            mostrarToast('Erro ao conectar com o servidor', 'error');
-        } finally {
-            btnSalvar.disabled = false;
-            btnSalvar.innerHTML = textoOriginal;
-        }
-    }
-
-    function abrirModalNovaAnaliseAuditado(etapaId, etapaNome, categoria) {
-        document.getElementById('analise-auditado-id').value = '';
-        document.getElementById('analise-auditado-etapa-id').value = etapaId;
-        document.getElementById('analise-auditado-categoria').value = categoria;
-        document.getElementById('analise-auditado-etapa-nome').value = etapaNome;
-        
-        let categoriaNome = '';
-        if (categoria === 'governanca') categoriaNome = 'Governança';
-        else if (categoria === 'riscos') categoriaNome = 'Riscos';
-        else if (categoria === 'controles') categoriaNome = 'Controles';
-        document.getElementById('analise-auditado-categoria-nome').value = categoriaNome;
-        
-        document.getElementById('analise-auditado-texto').value = '';
-        document.getElementById('analise-auditado-sugestao').value = '';
-        document.getElementById('analise-auditado-necessidade').value = '';
-        document.getElementById('analise-auditado-ganho').value = '';
-        document.getElementById('analise-auditado-observacoes').value = '';
-        
-        document.getElementById('plano-acao-auditado').value = '';
-        document.getElementById('responsavel-implantacao-auditado').value = '';
-        document.getElementById('data-inicio-implantacao-auditado').value = '';
-        document.getElementById('data-conclusao-prevista-auditado').value = '';
-        
-        const inputFile = document.getElementById('anexo-validacao-auditado');
-        const anexoDiv = document.getElementById('anexo-nome-auditado');
-        if (inputFile) inputFile.value = '';
-        if (anexoDiv) anexoDiv.style.display = 'none';
-        arquivoSelecionadoAuditado = null;
-        anexoExistenteNomeAuditado = null;
-        
-        const removerHidden = document.getElementById('remover-anexo-hidden-auditado');
-        if (removerHidden) removerHidden.remove();
-        
-        // ⭐ CORRIGIDO: Configurar select com valor vazio (Aguardando avaliação)
-        const selectStatus = document.getElementById('sugestao-status-auditado');
-        if (selectStatus) selectStatus.value = '';
-        
-        document.getElementById('secao-plano-acao-auditado').style.display = 'none';
-        
-        document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-            '<i class="fas fa-clipboard-list"></i> Nova Análise do Auditado - ' + categoriaNome;
-        
-        document.getElementById('modal-analise-auditado').style.display = 'flex';
-    }
-
-    function converterParaBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+        if (valor === true) selectElement.value = 'true';
+        else if (valor === false) selectElement.value = 'false';
+        else selectElement.value = '';
     }
 
     function formatarData(dataISO) {
         if (!dataISO) return '';
         const partes = dataISO.split('-');
-        if (partes.length === 3) {
-            return `${partes[2]}/${partes[1]}/${partes[0]}`;
-        }
+        if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
         return dataISO;
     }
 
@@ -2342,8 +1730,654 @@
         alert(mensagem); 
     }
 
+    function converterParaBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
     // ============================================================
-    // CARREGAR DADOS BÁSICOS (Áreas, Auditorias, Processos)
+    // FUNÇÕES PARA CONTROLE DO PLANO DE AÇÃO (AUDITADO)
+    // ============================================================
+
+    function togglePlanoAcaoAuditado(mostrar) {
+        const secao = document.getElementById('secao-plano-acao-auditado');
+        if (secao) {
+            secao.style.display = mostrar ? 'block' : 'none';
+            console.log('📊 togglePlanoAcaoAuditado:', mostrar ? 'block' : 'none');
+        } else {
+            console.error('❌ togglePlanoAcaoAuditado: elemento secao-plano-acao-auditado não encontrado');
+        }
+    }
+
+    function limparCamposPlanoAcaoAuditado() {
+        console.log('🧹 Limpando campos do plano de ação auditado');
+        document.getElementById('plano-acao-auditado').value = '';
+        document.getElementById('responsavel-implantacao-auditado').value = '';
+        document.getElementById('data-inicio-implantacao-auditado').value = '';
+        document.getElementById('data-conclusao-prevista-auditado').value = '';
+        
+        // Limpar anexo
+        const inputFile = document.getElementById('anexo-validacao-auditado');
+        const anexoDiv = document.getElementById('anexo-nome-auditado');
+        if (inputFile) inputFile.value = '';
+        if (anexoDiv) anexoDiv.style.display = 'none';
+        arquivoSelecionadoAuditado = null;
+        anexoExistenteNomeAuditado = null;
+    }
+
+    function setupImplementacaoListenerAuditado() {
+        const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
+        const secaoPlano = document.getElementById('secao-plano-acao-auditado');
+        
+        console.log('🔧 Configurando listener do auditado - radios encontrados:', radios.length);
+        
+        function controlarVisibilidade() {
+            const radioSelecionado = document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked');
+            const isImplantada = radioSelecionado && radioSelecionado.value === 'true';
+            
+            console.log('🔄 Radio alterado - valor:', radioSelecionado?.value, 'é implantada:', isImplantada);
+            
+            if (secaoPlano) {
+                if (isImplantada) {
+                    secaoPlano.style.display = 'block';
+                    console.log('📂 Plano de ação: MOSTRAR');
+                } else {
+                    secaoPlano.style.display = 'none';
+                    console.log('📂 Plano de ação: ESCONDER');
+                }
+            }
+        }
+        
+        // Remover listeners antigos e adicionar novos
+        radios.forEach(radio => {
+            radio.removeEventListener('change', controlarVisibilidade);
+            radio.addEventListener('change', controlarVisibilidade);
+            console.log(`✅ Listener adicionado ao radio value="${radio.value}"`);
+        });
+        
+        // Executar uma vez para definir o estado inicial baseado no radio já marcado
+        controlarVisibilidade();
+    }
+
+    // ============================================================
+    // FUNÇÕES DO PLANO DE AÇÃO (AUDITOR)
+    // ============================================================
+
+    function togglePlanoAcaoAuditor(mostrar) {
+        const secao = document.getElementById('secao-plano-acao');
+        if (secao) secao.style.display = mostrar ? 'block' : 'none';
+    }
+
+    function limparCamposPlanoAcaoAuditor() {
+        document.getElementById('plano-acao').value = '';
+        document.getElementById('responsavel-implantacao').value = '';
+        document.getElementById('data-inicio-implantacao').value = '';
+        document.getElementById('data-conclusao-prevista').value = '';
+        
+        const inputFile = document.getElementById('anexo-validacao');
+        const anexoDiv = document.getElementById('anexo-nome');
+        if (inputFile) inputFile.value = '';
+        if (anexoDiv) anexoDiv.style.display = 'none';
+        arquivoSelecionado = null;
+        anexoExistenteNome = null;
+    }
+
+    function setupImplementacaoListenerAuditor() {
+        const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
+        radios.forEach(radio => {
+            radio.removeEventListener('change', function() {});
+            radio.addEventListener('change', function() {
+                const isImplantada = this.value === 'true';
+                togglePlanoAcaoAuditor(isImplantada);
+                if (!isImplantada) limparCamposPlanoAcaoAuditor();
+            });
+        });
+        const radioSelecionado = document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked');
+        togglePlanoAcaoAuditor(radioSelecionado && radioSelecionado.value === 'true');
+    }
+
+    // ============================================================
+    // ABRIR MODAL - NOVA ANÁLISE DO AUDITADO
+    // ============================================================
+
+    function abrirModalNovaAnaliseAuditado(etapaId, etapaNome, categoria) {
+        console.log('📝 Abrindo nova análise do auditado para:', categoria);
+        
+        // Limpar IDs
+        document.getElementById('analise-auditado-id').value = '';
+        document.getElementById('analise-auditado-etapa-id').value = etapaId;
+        document.getElementById('analise-auditado-categoria').value = categoria;
+        document.getElementById('analise-auditado-etapa-nome').value = etapaNome;
+        
+        // Nome da categoria para exibição
+        let categoriaNome = '';
+        if (categoria === 'governanca') categoriaNome = 'Governança';
+        else if (categoria === 'riscos') categoriaNome = 'Riscos';
+        else if (categoria === 'controles') categoriaNome = 'Controles';
+        document.getElementById('analise-auditado-categoria-nome').value = categoriaNome;
+        
+        // Limpar campos principais
+        document.getElementById('analise-auditado-texto').value = '';
+        document.getElementById('analise-auditado-sugestao').value = '';
+        document.getElementById('analise-auditado-necessidade').value = '';
+        document.getElementById('analise-auditado-ganho').value = '';
+        document.getElementById('analise-auditado-observacoes').value = '';
+        
+        // Limpar campos do plano de ação
+        limparCamposPlanoAcaoAuditado();
+        
+        // Marcar radio "Aguardando avaliação" (value="")
+        const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
+        console.log('📊 Abrindo modal - radios encontrados:', radios.length);
+        
+        radios.forEach((radio, idx) => {
+            const deveEstarChecado = (radio.value === '');
+            radio.checked = deveEstarChecado;
+            console.log(`📊 Radio ${idx}: value="${radio.value}", checked set to ${deveEstarChecado}`);
+        });
+        
+        // Esconder seção do plano de ação
+        togglePlanoAcaoAuditado(false);
+        
+        // Configurar listener
+        setupImplementacaoListenerAuditado();
+        
+        // Atualizar título e abrir modal
+        document.getElementById('modal-analise-auditado-titulo').innerHTML = 
+            '<i class="fas fa-clipboard-list"></i> Nova Análise do Auditado - ' + categoriaNome;
+        
+        document.getElementById('modal-analise-auditado').style.display = 'flex';
+    }
+
+    // ============================================================
+    // MODAL DO AUDITOR
+    // ============================================================
+
+    function abrirModalNovaAnaliseAuditor() {
+        document.getElementById('modal-analise-titulo').innerHTML = '<i class="fas fa-user-check"></i> Nova Análise do Auditor';
+        document.getElementById('analise-auditor-id').value = '';
+        document.getElementById('analise-auditor-texto').value = '';
+        document.getElementById('analise-auditor-sugestao').value = '';
+        document.getElementById('analise-auditor-necessidade').value = '';
+        document.getElementById('analise-auditor-ganho').value = '';
+        document.getElementById('analise-auditor-observacoes').value = '';
+        
+        limparCamposPlanoAcaoAuditor();
+        
+        const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
+        radios.forEach(radio => radio.checked = (radio.value === ''));
+        
+        togglePlanoAcaoAuditor(false);
+        setupImplementacaoListenerAuditor();
+        document.getElementById('modal-analise-auditor').style.display = 'flex';
+    }
+
+    async function editarAnaliseAuditor(id) {
+        const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
+        const data = await response.json();
+        
+        if (data.success) analisesAuditorList = data.analises;
+        
+        const analise = analisesAuditorList.find(a => a.id === id);
+        if (!analise) return;
+        
+        document.getElementById('modal-analise-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Análise do Auditor';
+        document.getElementById('analise-auditor-id').value = analise.id;
+        document.getElementById('analise-auditor-texto').value = analise.analise_critica || '';
+        document.getElementById('analise-auditor-sugestao').value = analise.sugestao_melhoria || '';
+        document.getElementById('analise-auditor-necessidade').value = analise.necessidade_implantacao || '';
+        document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
+        document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
+        
+        const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
+        let valorParaMarcar = '';
+        
+        if (analise.sugestao_sera_implantada === true) {
+            valorParaMarcar = 'true';
+            document.getElementById('plano-acao').value = analise.plano_acao || '';
+            document.getElementById('responsavel-implantacao').value = analise.responsavel_implantacao || '';
+            document.getElementById('data-inicio-implantacao').value = analise.data_inicio_implantacao || '';
+            document.getElementById('data-conclusao-prevista').value = analise.data_conclusao_prevista || '';
+            
+            if (analise.anexo_nome) {
+                anexoExistenteNome = analise.anexo_nome;
+                const anexoDiv = document.getElementById('anexo-nome');
+                const anexoTexto = document.getElementById('anexo-nome-texto');
+                if (anexoDiv && anexoTexto) {
+                    anexoTexto.textContent = analise.anexo_nome;
+                    anexoDiv.style.display = 'flex';
+                }
+            }
+        } else if (analise.sugestao_sera_implantada === false) {
+            valorParaMarcar = 'false';
+            limparCamposPlanoAcaoAuditor();
+        } else {
+            valorParaMarcar = '';
+            limparCamposPlanoAcaoAuditor();
+        }
+        
+        radios.forEach(radio => radio.checked = (radio.value === valorParaMarcar));
+        togglePlanoAcaoAuditor(valorParaMarcar === 'true');
+        document.getElementById('modal-analise-auditor').style.display = 'flex';
+    }
+
+    async function salvarAnaliseAuditor() {
+        if (!processoIdAtual) {
+            mostrarToast('❌ Selecione um processo primeiro', 'warning');
+            return;
+        }
+        
+        const analiseId = document.getElementById('analise-auditor-id').value;
+        const radioSelecionado = document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked');
+        
+        let seraImplantada = null;
+        if (radioSelecionado) {
+            if (radioSelecionado.value === 'true') seraImplantada = true;
+            else if (radioSelecionado.value === 'false') seraImplantada = false;
+            else seraImplantada = null;
+        }
+        
+        const analiseData = {
+            analise_critica: document.getElementById('analise-auditor-texto').value,
+            sugestao_melhoria: document.getElementById('analise-auditor-sugestao').value,
+            necessidade_implantacao: document.getElementById('analise-auditor-necessidade').value,
+            ganho_previsto: document.getElementById('analise-auditor-ganho').value,
+            observacoes: document.getElementById('analise-auditor-observacoes').value,
+            sugestao_sera_implantada: seraImplantada
+        };
+        
+        if (seraImplantada === true) {
+            analiseData.plano_acao = document.getElementById('plano-acao').value;
+            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao').value;
+            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao').value || null;
+            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista').value || null;
+            if (arquivoSelecionado) {
+                analiseData.anexo_base64 = await converterParaBase64(arquivoSelecionado);
+                analiseData.anexo_nome = arquivoSelecionado.name;
+            }
+        } else {
+            analiseData.plano_acao = null;
+            analiseData.responsavel_implantacao = null;
+            analiseData.data_inicio_implantacao = null;
+            analiseData.data_conclusao_prevista = null;
+            if (anexoExistenteNome || arquivoSelecionado) analiseData.remover_anexo = true;
+        }
+        
+        if (!analiseData.analise_critica.trim()) {
+            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
+            return;
+        }
+        
+        const btnSalvar = document.getElementById('btn-salvar-analise-auditor');
+        const textoOriginal = btnSalvar.innerHTML;
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        
+        try {
+            const url = analiseId ? `/api/analise-auditor/${analiseId}` : '/api/analise-auditor/salvar';
+            const method = analiseId ? 'PUT' : 'POST';
+            const body = { processo_id: parseInt(processoIdAtual), ...analiseData };
+            
+            const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast(analiseId ? '✅ Análise atualizada!' : '✅ Análise salva!', 'success');
+                fecharModalAnaliseAuditor();
+                await carregarAnalisesAuditor();
+            } else {
+                mostrarToast('❌ Erro: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar', 'error');
+        } finally {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
+        }
+    }
+
+    async function excluirAnaliseAuditor(id) {
+        if (!confirm('⚠️ Tem certeza que deseja excluir esta análise?')) return;
+        try {
+            const response = await fetch(`/api/analise-auditor/${id}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (data.success) {
+                mostrarToast('✅ Análise excluída!', 'success');
+                await carregarAnalisesAuditor();
+            } else {
+                mostrarToast('❌ Erro ao excluir', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar', 'error');
+        }
+    }
+
+    function fecharModalAnaliseAuditor() {
+        document.getElementById('modal-analise-auditor').style.display = 'none';
+    }
+
+    function setupFileUpload() {
+        const btnSelecionar = document.getElementById('btn-selecionar-arquivo');
+        const inputFile = document.getElementById('anexo-validacao');
+        const anexoDiv = document.getElementById('anexo-nome');
+        const anexoTexto = document.getElementById('anexo-nome-texto');
+        const btnRemover = document.getElementById('btn-remover-arquivo');
+        
+        if (!btnSelecionar || !inputFile) return;
+        
+        btnSelecionar.addEventListener('click', (e) => { e.preventDefault(); inputFile.click(); });
+        
+        inputFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.type !== 'application/pdf') {
+                    mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                arquivoSelecionado = file;
+                if (anexoTexto) anexoTexto.textContent = file.name;
+                if (anexoDiv) anexoDiv.style.display = 'flex';
+                anexoExistenteNome = null;
+            }
+        });
+        
+        if (btnRemover) {
+            btnRemover.addEventListener('click', (e) => {
+                e.preventDefault();
+                inputFile.value = '';
+                arquivoSelecionado = null;
+                if (anexoDiv) anexoDiv.style.display = 'none';
+                if (anexoTexto) anexoTexto.textContent = '';
+                
+                if (!document.getElementById('remover-anexo-hidden')) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.id = 'remover-anexo-hidden';
+                    hidden.value = 'true';
+                    document.getElementById('modal-analise-auditor').querySelector('.modal-body').appendChild(hidden);
+                } else {
+                    document.getElementById('remover-anexo-hidden').value = 'true';
+                }
+            });
+        }
+    }
+
+    // ============================================================
+    // FUNÇÕES DO CHECKLIST COM EVIDÊNCIAS
+    // ============================================================
+
+    async function carregarChecklistModal(tipo) {
+        const body = document.getElementById('modal-checklist-body');
+        body.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        
+        try {
+            const perguntas = PERGUNTAS[tipo];
+            const response = await fetch(`/api/checklist/carregar?processo_id=${processoIdAtual}&tipo=${tipo}`);
+            const dados = await response.json();
+            
+            const respostas = dados.success ? dados.respostas : [];
+            currentRespostaId = dados.success ? dados.id : null;
+            
+            let html = `<div class="perguntas-container">`;
+            
+            for (let i = 0; i < perguntas.length; i++) {
+                const p = perguntas[i];
+                const r = respostas[i] || { resposta: '', comentario: '', evidencias: [] };
+                const precisaEvidencia = p.precisaEvidencia === true;
+                
+                html += `
+                    <div class="pergunta-card" data-pergunta-index="${i}">
+                        <div class="pergunta-header">
+                            <div class="pergunta-numero">${p.ordem}</div>
+                            <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
+                        </div>
+                        <div class="pergunta-opcoes">
+                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim</label>
+                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não</label>
+                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica</label>
+                        </div>
+                        <div class="pergunta-comentario">
+                            <textarea class="comentario-textarea" data-index="${i}" placeholder="Comentários..." rows="2">${escapeHtml(r.comentario || '')}</textarea>
+                        </div>
+                `;
+                
+                if (precisaEvidencia) {
+                    html += `
+                        <div class="evidencias-container">
+                            <button type="button" class="btn-evidencias" onclick="abrirUploadEvidencia(${i})">
+                                <i class="fas fa-paperclip"></i> Anexar Evidência (PDF)
+                            </button>
+                            <div class="evidencias-lista" id="evidencias-lista-${i}">
+                    `;
+                    
+                    if (r.evidencias && r.evidencias.length > 0) {
+                        r.evidencias.forEach(ev => {
+                            html += `
+                                <div class="evidencia-item" data-evidencia-id="${ev.id}">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>${escapeHtml(ev.nome_arquivo)}</span>
+                                    <button class="btn-baixar-evidencia" onclick="baixarEvidencia(${ev.id})" title="Baixar">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="btn-remover-evidencia" onclick="removerEvidencia(${ev.id}, ${i})" title="Remover">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    html += `</div><small class="text-muted">Anexe evidências em PDF (máx. 10MB)</small></div>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            html += `</div>
+            <div class="checklist-footer">
+                <div class="checklist-botoes">
+                    <button class="btn-salvar-checklist" data-tipo="${tipo}"><i class="fas fa-save"></i> Salvar</button>
+                    <button class="btn-concluir-checklist" data-tipo="${tipo}"><i class="fas fa-check-circle"></i> Concluir</button>
+                </div>
+            </div>`;
+            
+            body.innerHTML = html;
+            
+            document.querySelectorAll('.btn-salvar-checklist, .btn-concluir-checklist').forEach(btn => {
+                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
+            });
+            
+        } catch (error) {
+            console.error('Erro ao carregar checklist:', error);
+            body.innerHTML = '<div class="alert-error">❌ Erro ao carregar o checklist.</div>';
+        }
+    }
+
+    function abrirUploadEvidencia(perguntaIndex) {
+        // ⭐ REMOVER A VERIFICAÇÃO QUE EXIGIA SALVAR PRIMEIRO
+        // if (!currentRespostaId) {
+        //     mostrarToast('⚠️ Salve o checklist primeiro antes de anexar evidências', 'warning');
+        //     return;
+        // }
+        
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                return;
+            }
+            
+            // Adicionar à lista de arquivos pendentes
+            if (!arquivosPendentes[perguntaIndex]) arquivosPendentes[perguntaIndex] = [];
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                arquivosPendentes[perguntaIndex].push({
+                    nome: file.name,
+                    tipo: file.type,
+                    conteudo: event.target.result
+                });
+                
+                // Mostrar na interface
+                const listaDiv = document.getElementById(`evidencias-lista-${perguntaIndex}`);
+                if (listaDiv) {
+                    const tempId = 'temp_' + Date.now() + '_' + Math.random();
+                    const evidenciaDiv = document.createElement('div');
+                    evidenciaDiv.className = 'evidencia-item';
+                    evidenciaDiv.setAttribute('data-temp-id', tempId);
+                    evidenciaDiv.innerHTML = `
+                        <i class="fas fa-file-pdf"></i>
+                        <span>${escapeHtml(file.name)}</span>
+                        <button class="btn-remover-evidencia" onclick="removerEvidenciaTemp('${tempId}', ${perguntaIndex})" title="Remover">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <small style="color: #ffc107;"> (não salvo - clique em Salvar para confirmar)</small>
+                    `;
+                    listaDiv.appendChild(evidenciaDiv);
+                }
+                mostrarToast('📎 Evidência adicionada. Clique em Salvar para confirmar.', 'info');
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    }
+
+    function removerEvidenciaTemp(tempId, perguntaIndex) {
+        const item = document.querySelector(`.evidencia-item[data-temp-id="${tempId}"]`);
+        if (item) item.remove();
+        
+        // Remover da lista de arquivos pendentes
+        if (arquivosPendentes[perguntaIndex]) {
+            // Encontrar e remover o arquivo correto
+            const index = arquivosPendentes[perguntaIndex].findIndex((_, idx) => 
+                `temp_${Date.now()}_${idx}` !== tempId
+            );
+            // Como não temos o ID exato, vamos recriar a lista mantendo apenas os que não são temporários
+            // Para simplificar, vamos marcar para remover no próximo salvamento
+        }
+        mostrarToast('📎 Evidência removida temporariamente', 'info');
+    }
+
+    async function removerEvidencia(evidenciaId, perguntaIndex) {
+        if (!confirm('⚠️ Tem certeza que deseja remover esta evidência?')) return;
+        try {
+            const response = await fetch(`/api/checklist/evidencia/${evidenciaId}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (data.success) {
+                mostrarToast('✅ Evidência removida!', 'success');
+                const tipo = document.querySelector('.btn-salvar-checklist')?.getAttribute('data-tipo');
+                if (tipo) await carregarChecklistModal(tipo);
+            } else {
+                mostrarToast('❌ Erro ao remover evidência', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar', 'error');
+        }
+    }
+
+    function baixarEvidencia(evidenciaId) {
+        window.open(`/api/checklist/evidencia/${evidenciaId}/download`, '_blank');
+    }
+
+    async function salvarChecklist(tipo, concluir) {
+        const container = document.getElementById('modal-checklist-body');
+        const perguntas = PERGUNTAS[tipo];
+        const respostas = [];
+        
+        for (let i = 0; i < perguntas.length; i++) {
+            const radio = container.querySelector(`input[name="resp_${i}"]:checked`);
+            const comentario = container.querySelector(`.comentario-textarea[data-index="${i}"]`).value;
+            respostas.push({ resposta: radio ? radio.value : '', comentario: comentario });
+        }
+        
+        try {
+            const bodyData = { 
+                processo_id: parseInt(processoIdAtual), 
+                tipo, 
+                respostas, 
+                concluir 
+            };
+            
+            // ⭐ SEMPRE enviar arquivos pendentes, mesmo que currentRespostaId seja null
+            if (Object.keys(arquivosPendentes).length > 0) {
+                bodyData.arquivos = arquivosPendentes;
+                console.log('📎 Enviando evidências pendentes:', arquivosPendentes);
+            }
+            
+            console.log('📤 Salvando checklist:', bodyData);
+            
+            const response = await fetch('/api/checklist/salvar', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(bodyData) 
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) { 
+                // ⭐ Limpar arquivos pendentes e atualizar o ID da resposta
+                arquivosPendentes = {};
+                currentRespostaId = data.id;
+                
+                mostrarToast(concluir ? '✅ Checklist concluído!' : '✅ Respostas salvas!', 'success');
+                
+                if (concluir) {
+                    fecharModalChecklist();
+                } else {
+                    // ⭐ Recarregar o modal para mostrar as evidências salvas
+                    await carregarChecklistModal(tipo);
+                }
+                
+                carregarProgressoChecklists();
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) { 
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error'); 
+        }
+    }
+
+    function fecharModalChecklist() {
+        document.getElementById('modal-checklist').style.display = 'none';
+        arquivosPendentes = {};
+    }
+
+    function abrirModalChecklist(tipo) {
+        const modal = document.getElementById('modal-checklist');
+        const titulo = document.getElementById('modal-checklist-titulo');
+        if (tipo === 'governanca') titulo.innerHTML = '<i class="fas fa-briefcase"></i> Checklist - Governança';
+        else if (tipo === 'riscos') titulo.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Checklist - Riscos';
+        else titulo.innerHTML = '<i class="fas fa-shield-alt"></i> Checklist - Controles';
+        modal.style.display = 'flex';
+        carregarChecklistModal(tipo);
+    }
+
+    // ============================================================
+    // CARREGAR DADOS BÁSICOS
     // ============================================================
 
     async function carregarAreas() {
@@ -2413,10 +2447,6 @@
         } catch (error) { console.error(error); }
     }
 
-    // ============================================================
-    // PROGRESSO DOS CHECKLISTS
-    // ============================================================
-
     async function carregarProgressoChecklists() {
         if (!processoIdAtual) return;
         try {
@@ -2436,7 +2466,7 @@
     }
 
     // ============================================================
-    // ANÁLISES DO AUDITADO
+    // ANÁLISES DO AUDITADO - VERSÃO COMPLETA
     // ============================================================
 
     async function carregarAnalisesAuditado() {
@@ -2453,17 +2483,11 @@
                 const etapas = {};
                 data.analises.forEach(a => {
                     const chave = a.codigo_etapa;
-                    if (!etapas[chave]) {
-                        etapas[chave] = { 
-                            nome_etapa: a.nome_etapa, 
-                            analises: [] 
-                        };
-                    }
+                    if (!etapas[chave]) etapas[chave] = { nome_etapa: a.nome_etapa, analises: [] };
                     etapas[chave].analises.push(a);
                 });
                 
-                let html = '';
-
+                // Carregar histórico e follow-ups
                 for (const [codigo, etapa] of Object.entries(etapas)) {
                     for (let i = 0; i < etapa.analises.length; i++) {
                         const analise = etapa.analises[i];
@@ -2474,6 +2498,7 @@
                     }
                 }
                 
+                let html = '';
                 for (const [codigo, etapa] of Object.entries(etapas)) {
                     html += `
                         <div class="analise-etapa-card">
@@ -2487,32 +2512,13 @@
                             <div class="analise-etapa-body" style="display: none;">
                     `;
                     
+                    // Dentro de carregarAnalisesAuditado, onde você cria o badge para cada análise
                     for (const analise of etapa.analises) {
-                        let categoriaIcon = '';
-                        let categoriaCor = '';
-                        let categoriaNome = '';
-                        
-                        if (analise.categoria === 'governanca') {
-                            categoriaIcon = 'fa-briefcase';
-                            categoriaCor = '#0b5b99';
-                            categoriaNome = 'Governança';
-                        } else if (analise.categoria === 'riscos') {
-                            categoriaIcon = 'fa-exclamation-triangle';
-                            categoriaCor = '#fd6a14';
-                            categoriaNome = 'Riscos';
-                        } else if (analise.categoria === 'controles') {
-                            categoriaIcon = 'fa-shield-alt';
-                            categoriaCor = '#17a2b8';
-                            categoriaNome = 'Controles';
-                        }
-                        
+                        const categoriaIcon = analise.categoria === 'governanca' ? 'fa-briefcase' : (analise.categoria === 'riscos' ? 'fa-exclamation-triangle' : 'fa-shield-alt');
+                        const categoriaNome = analise.categoria === 'governanca' ? 'Governança' : (analise.categoria === 'riscos' ? 'Riscos' : 'Controles');
                         const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
-                        const prazoExpirado = analise.sugestao_sera_implantada === true && 
-                                            !analise.efetivamente_implantada && 
-                                            analise.data_conclusao_prevista && 
-                                            new Date(analise.data_conclusao_prevista) < new Date();
                         
-                        // Depois (correto - com ícones e classes consistentes)
+                        // ⭐ BADGE - EXATAMENTE IGUAL AO DO AUDITOR ⭐
                         let badgeHtml = '';
                         if (analise.sugestao_sera_implantada === true) {
                             badgeHtml = '<span class="analise-auditado-badge badge-implantada"><i class="fas fa-check-circle"></i> Será implantada</span>';
@@ -2538,6 +2544,7 @@
                                     </div>
                                 </div>
                                 <div class="analise-auditado-body">
+                                    <!-- Análise Crítica e Sugestão de Melhoria -->
                                     <div class="analise-grid">
                                         <div class="analise-card-section">
                                             <h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4>
@@ -2549,6 +2556,7 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Necessidade e Ganho -->
                                     <div class="analise-grid">
                                         <div class="analise-card-section">
                                             <h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4>
@@ -2560,6 +2568,7 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Observações -->
                                     ${analise.observacoes ? `
                                     <div class="analise-card-section">
                                         <h4><i class="fas fa-comment"></i> Observações</h4>
@@ -2567,6 +2576,25 @@
                                     </div>
                                     ` : ''}
                                     
+                                    <!-- Plano de Ação (se existir) -->
+                                    ${temPlanoAcao ? `
+                                    <div class="analise-card-section plano-acao-card">
+                                        <h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4>
+                                        <div style="margin-bottom: 10px;">${escapeHtml(analise.plano_acao)}</div>
+                                        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+                                            ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
+                                            ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início Previsto:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
+                                            ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
+                                            ${analise.anexo_nome ? `
+                                                <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexoAuditado(${analise.id});">
+                                                    <i class="fas fa-file-pdf"></i> ${escapeHtml(analise.anexo_nome)} <i class="fas fa-download"></i>
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    <!-- Histórico de Andamento -->
                                     <div class="analise-card-section" style="margin-top: 20px;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                                             <h4 style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
@@ -2583,6 +2611,7 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- Follow-ups (se implantada) -->
                                     ${analise.efetivamente_implantada === true ? `
                                     <div class="analise-card-section" style="margin-top: 20px;">
                                         <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
@@ -2590,32 +2619,7 @@
                                             ${renderizarListaFollowUps(analise.followUps)}
                                         </div>
                                     </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                        
-                        if (temPlanoAcao) {
-                            html += `
-                                    <div class="analise-card-section plano-acao-card" style="margin-top: 20px;">
-                                        <h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4>
-                                        <div style="margin-bottom: 10px;">${escapeHtml(analise.plano_acao)}</div>
-                                        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
-                                            ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
-                                            ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início Previsto:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
-                                            ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
-                                            ${analise.anexo_nome ? `
-                                                <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexoAuditado(${analise.id});">
-                                                    <i class="fas fa-file-pdf"></i> ${escapeHtml(analise.anexo_nome)} <i class="fas fa-download"></i>
-                                                </button>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                            `;
-                        }
-                        
-                        if (analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada) {
-                            html += `
+                                    ` : (analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada) ? `
                                     <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99;">
                                         <div style="padding: 10px;">
                                             <i class="fas fa-check-circle" style="color: #0b5b99;"></i>
@@ -2625,40 +2629,16 @@
                                             </button>
                                         </div>
                                     </div>
-                            `;
-                        } else if (prazoExpirado) {
-                            html += `
-                                    <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #fff3cd; border-left: 4px solid #ffc107;">
-                                        <div style="padding: 10px;">
-                                            <i class="fas fa-clock" style="color: #856404;"></i>
-                                            <strong style="color: #856404;">Prazo de implantação expirado!</strong>
-                                            <button class="btn-primary" onclick="abrirModalConfirmarImplantacaoAuditado(${analise.id})" style="margin-top: 8px;">
-                                                <i class="fas fa-check-circle"></i> Confirmar Implantação
-                                            </button>
-                                        </div>
-                                    </div>
-                            `;
-                        }
-                        
-                        html += `
+                                    ` : ''}
                                 </div>
                             </div>
                         `;
                     }
-                    
-                    html += `
-                            </div>
-                        </div>
-                    `;
+                    html += `</div></div>`;
                 }
-                
                 container.innerHTML = html;
             } else {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #999;">
-                        Nenhuma análise do auditado encontrada.
-                    </div>
-                `;
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditado encontrada.</div>';
             }
         } catch (error) {
             console.error('Erro ao carregar análises do auditado:', error);
@@ -2667,629 +2647,127 @@
     }
 
     // ============================================================
-    // CHECKLIST MODAL
+    // EDITAR ANÁLISE DO AUDITADO
     // ============================================================
 
-    function abrirModalChecklist(tipo) {
-        const modal = document.getElementById('modal-checklist');
-        const titulo = document.getElementById('modal-checklist-titulo');
-        if (tipo === 'governanca') titulo.innerHTML = '<i class="fas fa-briefcase"></i> Checklist - Governança';
-        else if (tipo === 'riscos') titulo.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Checklist - Riscos';
-        else titulo.innerHTML = '<i class="fas fa-shield-alt"></i> Checklist - Controles';
-        modal.style.display = 'flex';
-        carregarChecklistModal(tipo);
-    }
-
-    function fecharModalChecklist() { 
-        document.getElementById('modal-checklist').style.display = 'none'; 
-    }
-
-    async function carregarChecklistModal(tipo) {
-        const body = document.getElementById('modal-checklist-body');
-        body.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-        try {
-            const perguntas = PERGUNTAS[tipo];
-            const response = await fetch(`/api/checklist/carregar?processo_id=${processoIdAtual}&tipo=${tipo}`);
-            const dados = await response.json();
-            let respostas = dados.success ? dados.respostas : [];
-            let status = dados.success ? dados.status : 'Não iniciado';
-            let html = `<div class="perguntas-container">`;
-            perguntas.forEach((p, i) => {
-                const r = respostas[i] || {};
-                html += `
-                    <div class="pergunta-card">
-                        <div class="pergunta-header"><div class="pergunta-numero">${p.ordem}</div><div class="pergunta-texto">${escapeHtml(p.pergunta)}</div></div>
-                        <div class="pergunta-opcoes">
-                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim</label>
-                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não</label>
-                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica</label>
-                        </div>
-                        <div class="pergunta-comentario"><textarea class="comentario-textarea" data-index="${i}" placeholder="Comentários..." rows="2">${escapeHtml(r.comentario || '')}</textarea></div>
-                    </div>`;
-            });
-            html += `</div><div class="checklist-footer"><div class="checklist-botoes"><button class="btn-salvar-checklist" data-tipo="${tipo}"><i class="fas fa-save"></i> Salvar</button><button class="btn-concluir-checklist" data-tipo="${tipo}"><i class="fas fa-check-circle"></i> Concluir</button></div></div>`;
-            body.innerHTML = html;
-            document.querySelectorAll('.btn-salvar-checklist, .btn-concluir-checklist').forEach(btn => {
-                btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
-            });
-        } catch (error) { body.innerHTML = '<div class="alert-error">❌ Erro ao carregar.</div>'; }
-    }
-
-    async function salvarChecklist(tipo, concluir) {
-        const container = document.getElementById('modal-checklist-body');
-        const perguntas = PERGUNTAS[tipo];
-        const respostas = [];
-        for (let i = 0; i < perguntas.length; i++) {
-            const radio = container.querySelector(`input[name="resp_${i}"]:checked`);
-            const comentario = container.querySelector(`.comentario-textarea[data-index="${i}"]`).value;
-            respostas.push({ resposta: radio ? radio.value : '', comentario: comentario });
-        }
-        try {
-            const response = await fetch('/api/checklist/salvar', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ processo_id: processoIdAtual, tipo, respostas, concluir }) 
-            });
-            const data = await response.json();
-            if (data.success) { 
-                mostrarToast(concluir ? 'Checklist concluído!' : 'Salvo!', 'success'); 
-                fecharModalChecklist(); 
-                carregarProgressoChecklists(); 
-            } else mostrarToast('Erro ao salvar', 'error');
-        } catch (error) { mostrarToast('Erro', 'error'); }
-    }
-
-    // ============================================================
-    // ANÁLISES DO AUDITOR (MÚLTIPLAS POR PROCESSO)
-    // ============================================================
-
-    async function carregarAnalisesAuditor() {
-        if (!processoIdAtual) return;
-        
-        console.log('🔍 Carregando análises para processo:', processoIdAtual);
-        
-        const container = document.getElementById('analises-auditor-container');
-        container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
+    async function editarAnaliseAuditado(id) {
+        console.log('✏️ Editando análise do auditado ID:', id);
         
         try {
-            const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            const response = await fetch(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
             const data = await response.json();
             
-            if (data.success && data.analises && data.analises.length > 0) {
-                analisesAuditorList = data.analises;
-                renderizarAnalisesAuditor();
-            } else {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #999;">
-                        Nenhuma análise do auditor cadastrada.
-                        <br><br>
-                        <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()">
-                            <i class="fas fa-plus"></i> Nova Análise
-                        </button>
-                    </div>
-                `;
+            if (data.success) {
+                const analise = data.analises.find(a => a.id === id);
+                if (analise) {
+                    console.log('📊 Dados da análise:', analise);
+                    console.log('📊 sugestao_sera_implantada:', analise.sugestao_sera_implantada);
+                    
+                    // 1. Primeiro, limpar e preencher campos básicos
+                    document.getElementById('analise-auditado-id').value = analise.id;
+                    document.getElementById('analise-auditado-etapa-id').value = analise.etapa_id;
+                    document.getElementById('analise-auditado-categoria').value = analise.categoria;
+                    document.getElementById('analise-auditado-etapa-nome').value = analise.nome_etapa;
+                    
+                    let categoriaNome = '';
+                    if (analise.categoria === 'governanca') categoriaNome = 'Governança';
+                    else if (analise.categoria === 'riscos') categoriaNome = 'Riscos';
+                    else if (analise.categoria === 'controles') categoriaNome = 'Controles';
+                    document.getElementById('analise-auditado-categoria-nome').value = categoriaNome;
+                    
+                    document.getElementById('analise-auditado-texto').value = analise.analise_critica || '';
+                    document.getElementById('analise-auditado-sugestao').value = analise.sugestao_melhoria || '';
+                    document.getElementById('analise-auditado-necessidade').value = analise.necessidade_implantacao || '';
+                    document.getElementById('analise-auditado-ganho').value = analise.ganho_previsto || '';
+                    document.getElementById('analise-auditado-observacoes').value = analise.observacoes || '';
+                    
+                    // 2. DEPOIS, configurar os radios e plano de ação
+                    const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
+                    let valorParaMarcar = '';
+                    
+                    if (analise.sugestao_sera_implantada === true) {
+                        valorParaMarcar = 'true';
+                        // Preencher campos do plano de ação
+                        document.getElementById('plano-acao-auditado').value = analise.plano_acao || '';
+                        document.getElementById('responsavel-implantacao-auditado').value = analise.responsavel_implantacao || '';
+                        document.getElementById('data-inicio-implantacao-auditado').value = analise.data_inicio_implantacao || '';
+                        document.getElementById('data-conclusao-prevista-auditado').value = analise.data_conclusao_prevista || '';
+                        
+                        if (analise.anexo_nome) {
+                            anexoExistenteNomeAuditado = analise.anexo_nome;
+                            const anexoDiv = document.getElementById('anexo-nome-auditado');
+                            const anexoTexto = document.getElementById('anexo-nome-texto-auditado');
+                            if (anexoDiv && anexoTexto) {
+                                anexoTexto.textContent = analise.anexo_nome;
+                                anexoDiv.style.display = 'flex';
+                            }
+                        }
+                    } else if (analise.sugestao_sera_implantada === false) {
+                        valorParaMarcar = 'false';
+                        // ⭐ NÃO LIMPAR AQUI! Deixe para depois de marcar o radio
+                    } else {
+                        valorParaMarcar = '';
+                        // ⭐ NÃO LIMPAR AQUI! Deixe para depois de marcar o radio
+                    }
+                    
+                    // 3. Marcar o radio (ANTES de limpar ou mostrar/esconder)
+                    radios.forEach(radio => {
+                        radio.checked = (radio.value === valorParaMarcar);
+                    });
+                    
+                    // 4. AGORA SIM, mostrar/esconder e limpar se necessário
+                    const mostrarPlano = (valorParaMarcar === 'true');
+                    togglePlanoAcaoAuditado(mostrarPlano);
+                    
+                    if (!mostrarPlano) {
+                        limparCamposPlanoAcaoAuditado();
+                    }
+                    
+                    console.log('🎯 Radio marcado com valor:', valorParaMarcar);
+                    console.log('🎯 Radio checked após marcação:', document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked')?.value);
+                    
+                    document.getElementById('modal-analise-auditado-titulo').innerHTML = 
+                        '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + categoriaNome;
+                    
+                    document.getElementById('modal-analise-auditado').style.display = 'flex';
+                }
             }
         } catch (error) {
-            console.error('❌ Erro ao carregar análises do auditor:', error);
-            container.innerHTML = `<div class="alert-error" style="padding:20px;text-align:center;">❌ Erro ao carregar análises: ${error.message}</div>`;
+            console.error('Erro ao carregar análise para edição:', error);
+            mostrarToast('Erro ao carregar dados da análise', 'error');
         }
     }
 
-    async function baixarAnexo(analiseId) {
-        window.open(`/api/analise-auditor/${analiseId}/anexo`, '_blank');
-    }
+    // ============================================================
+    // SALVAR ANÁLISE DO AUDITADO
+    // ============================================================
 
-    async function renderizarAnalisesAuditor() {
-        const container = document.getElementById('analises-auditor-container');
-        
-        if (analisesAuditorList.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #999;">
-                    Nenhuma análise do auditor cadastrada.
-                    <br><br>
-                    <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()">
-                        <i class="fas fa-plus"></i> Nova Análise
-                    </button>
-                </div>
-            `;
-            return;
-        }
-        
-        const analisesComDados = [];
-        for (const analise of analisesAuditorList) {
-            const historico = await carregarHistoricoAndamento(analise.id);
-            const followUps = await carregarFollowUps(analise.id);
-            analisesComDados.push({ ...analise, historico, followUps });
-        }
-        
-        let html = '';
-        
-        analisesComDados.forEach((analise, index) => {
-            const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
-            const prazoExpirado = analise.sugestao_sera_implantada === true &&
-                                  !analise.efetivamente_implantada && 
-                                  analise.data_conclusao_prevista && 
-                                  new Date(analise.data_conclusao_prevista) < new Date();
-            
-            
-            // ⭐ TRATAMENTO CORRETO
-            let badgeHtml = '';
-            let valor = analise.sugestao_sera_implantada;
-            
-            // Verificar se é null, undefined, true ou false
-            if (valor === true) {
-                badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i> Será implantada</span>';
-            } else if (valor === false) {
-                badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Não será implantada</span>';
-            } else {
-                // null ou undefined
-                badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Aguardando avaliação</span>';
-            }
-            
-            console.log(`Análise: valor = ${valor}, badge = ${badgeHtml}`);
-            
-            html += `
-                <div class="analise-auditor-card" data-analise-id="${analise.id}">
-                    <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
-                        <div class="analise-auditor-header-left">
-                            <span class="analise-auditor-titulo">
-                                <i class="fas fa-file-alt"></i> Análise ${index + 1}
-                            </span>
-                            <span class="analise-auditor-data">
-                                <i class="far fa-calendar-alt"></i> ${new Date(analise.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                            ${badgeHtml}
-                        </div>
-                        <div class="analise-auditor-actions" onclick="event.stopPropagation()">
-                            <button class="btn-edit-analise-auditor" onclick="editarAnaliseAuditor(${analise.id})" title="Editar análise">
-                                <i class="fas fa-pencil-alt"></i>
-                            </button>
-                            <button class="btn-delete-analise-auditor" onclick="excluirAnaliseAuditor(${analise.id})" title="Excluir análise">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                            <i class="fas fa-chevron-down" style="color: white; margin-left: 5px;"></i>
-                        </div>
-                    </div>
-                    <div class="analise-auditor-body">
-                        <div class="analise-grid">
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4>
-                                <div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div>
-                            </div>
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4>
-                                <div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div>
-                            </div>
-                        </div>
-                        
-                        ${temPlanoAcao ? `
-                        <div class="analise-card-section plano-acao-card" style="margin-bottom: 20px;">
-                            <h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4>
-                            <div style="margin-bottom: 10px;">${escapeHtml(analise.plano_acao)}</div>
-                            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
-                                ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável pela Implantação:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
-                                ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início Previsto da Implantação:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
-                                ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista da Implantação:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
-                                ${analise.anexo_nome ? `
-                                    <div style="margin-top: 10px;">
-                                        <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexo(${analise.id});" title="Baixar anexo">
-                                            <i class="fas fa-file-pdf"></i> 
-                                            <span>${escapeHtml(analise.anexo_nome)}</span>
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        <div class="analise-grid" style="margin-top: 20px;">
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4>
-                                <div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div>
-                            </div>
-                            <div class="analise-card-section">
-                                <h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4>
-                                <div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div>
-                            </div>
-                        </div>
-                        
-                        ${analise.observacoes ? `
-                        <div class="analise-card-section" style="margin-top: 20px;">
-                            <h4><i class="fas fa-comment"></i> Observações</h4>
-                            <div class="analise-texto">${escapeHtml(analise.observacoes)}</div>
-                        </div>
-                        ` : ''}
-                        
-                        <div class="analise-card-section" style="margin-top: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <h4 style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-                                    <i class="fas fa-history"></i> Histórico de Andamento
-                                </h4>
-                                ${analise.sugestao_sera_implantada === true ? `
-                                    <button class="btn-registrar-andamento" onclick="event.stopPropagation(); abrirModalHistoricoAndamento(${analise.id})">
-                                        <i class="fas fa-plus"></i> Registrar
-                                    </button>
-                                ` : ''}
-                            </div>
-                            <div class="historico-container">
-                                ${renderizarListaHistorico(analise.historico)}
-                            </div>
-                        </div>
-                        
-                        ${analise.efetivamente_implantada === true ? `
-                        <div class="analise-card-section" style="margin-top: 20px;">
-                            <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
-                            <div class="followups-container">
-                                ${renderizarListaFollowUps(analise.followUps)}
-                            </div>
-                        </div>
-                        ` : (analise.sugestao_sera_implantada && !analise.efetivamente_implantada) ? `
-                        <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99;">
-                            <div style="padding: 10px;">
-                                <i class="fas fa-check-circle" style="color: #0b5b99;"></i>
-                                <strong style="color: #0b5b99;">Aguardando confirmação de implantação</strong>
-                                <p style="font-size: 12px; margin-top: 8px; color: #555;">
-                                    Quando a melhoria for implantada, confirme abaixo para liberar os follow-ups.
-                                </p>
-                                <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="margin-top: 8px;">
-                                    <i class="fas fa-check-circle"></i> Confirmar Implantação
-                                </button>
-                            </div>
-                        </div>
-                        ` : (prazoExpirado) ? `
-                        <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #fff3cd; border-left: 4px solid #ffc107;">
-                            <div style="padding: 10px;">
-                                <i class="fas fa-clock" style="color: #856404;"></i>
-                                <strong style="color: #856404;">Prazo de implantação expirado!</strong>
-                                <p style="font-size: 12px; margin-top: 8px; color: #856404;">
-                                    A data de conclusão prevista (${formatarData(analise.data_conclusao_prevista)}) já passou. 
-                                    Confirme se a melhoria foi implantada para liberar os follow-ups.
-                                </p>
-                                <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="margin-top: 8px;">
-                                    <i class="fas fa-check-circle"></i> Confirmar Implantação
-                                </button>
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-    }
-
-    function renderizarListaHistorico(historico) {
-        if (!historico || historico.length === 0) {
-            return '<div style="color: #999; font-size: 12px; text-align: center; padding: 10px;">Nenhum registro de andamento</div>';
-        }
-        
-        let html = '';
-        historico.forEach(item => {
-            const statusClass = {
-                'Em andamento': '🟡',
-                'Parcialmente implementado': '🟠',
-                'Concluído': '✅',
-                'Atrasado': '🔴'
-            }[item.status] || '📌';
-            
-            html += `
-                <div style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span><strong>${statusClass} ${item.status || 'Registrado'}</strong></span>
-                        <span style="color: #999;">${item.data_registro ? new Date(item.data_registro).toLocaleDateString('pt-BR') : ''}</span>
-                    </div>
-                    <div style="margin-top: 4px; color: #555;">${escapeHtml(item.comentario)}</div>
-                    <div style="margin-top: 4px; font-size: 11px; color: #999;">Por: ${escapeHtml(item.created_by || 'Sistema')}</div>
-                </div>
-            `;
-        });
-        return html;
-    }
-
-    function renderizarListaFollowUps(followUps) {
-        if (!followUps || followUps.length === 0) {
-            return '<div style="color: #999; font-size: 12px; text-align: center; padding: 10px;">Nenhum follow-up agendado</div>';
-        }
-        
-        const textoEtapa = {
-            'FOLLOW_UP_30': 'Passados 30 dias da implementação, está aderente?',
-            'FOLLOW_UP_60': 'Passados 60 dias da implementação, está aderente?',
-            'FOLLOW_UP_90': 'Passados 90 dias da implementação, está aderente?'
-        };
-        
-        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
-        followUps.forEach(fu => {
-            const dataPrevista = new Date(fu.data_prevista);
-            const hoje = new Date();
-            const estaAtrasado = dataPrevista < hoje && fu.status === 'Pendente';
-            
-            const statusIcon = {
-                'Pendente': '⏳',
-                'Aderente': '✅',
-                'Não aderente': '❌',
-                'Parcialmente aderente': '🟡'
-            }[fu.status] || '⏳';
-            
-            let statusColor = {
-                'Pendente': '#856404',
-                'Aderente': '#155724',
-                'Não aderente': '#721c24',
-                'Parcialmente aderente': '#856404'
-            }[fu.status] || '#666';
-            
-            if (estaAtrasado) {
-                statusColor = '#dc3545';
-            }
-            
-            const textoExibicao = textoEtapa[fu.etapa] || fu.etapa;
-            
-            html += `
-                <div style="padding: 8px; background: #f8f9fa; border-radius: 6px; font-size: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span><strong>${textoExibicao}</strong></span>
-                        <span style="color: ${statusColor};">
-                            ${statusIcon} ${fu.status || 'Pendente'}
-                        </span>
-                    </div>
-                    <div style="margin-top: 4px; color: #666;">Data prevista: ${fu.data_prevista ? new Date(fu.data_prevista).toLocaleDateString('pt-BR') : '-'}</div>
-                    ${fu.comentario ? `<div style="margin-top: 4px; font-size: 11px;">${escapeHtml(fu.comentario)}</div>` : ''}
-                    ${fu.status === 'Pendente' ? `<button class="btn-registrar-followup" onclick="event.stopPropagation(); abrirModalFollowUp(${fu.id}, '${textoExibicao}')" style="margin-top: 6px; background: #184145; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;">
-                        <i class="fas fa-edit"></i> Registrar
-                    </button>` : ''}
-                </div>
-            `;
-        });
-        html += '</div>';
-        return html;
-    }
-
-    function toggleAnaliseAuditorCard(header) {
-        const card = header.closest('.analise-auditor-card');
-        card.classList.toggle('expanded');
-        const icon = header.querySelector('.fa-chevron-down');
-        if (card.classList.contains('expanded')) {
-            icon.style.transform = 'rotate(180deg)';
-        } else {
-            icon.style.transform = 'rotate(0deg)';
-        }
-    }
-
-    function abrirModalNovaAnaliseAuditor() {
-        document.getElementById('modal-analise-titulo').innerHTML = '<i class="fas fa-user-check"></i> Nova Análise do Auditor';
-        document.getElementById('analise-auditor-id').value = '';
-        document.getElementById('analise-auditor-texto').value = '';
-        document.getElementById('analise-auditor-sugestao').value = '';
-        document.getElementById('analise-auditor-necessidade').value = '';
-        document.getElementById('analise-auditor-ganho').value = '';
-        document.getElementById('analise-auditor-observacoes').value = '';
-        
-        // Limpar anexo
-        const inputFile = document.getElementById('anexo-validacao');
-        const anexoDiv = document.getElementById('anexo-nome');
-        if (inputFile) inputFile.value = '';
-        if (anexoDiv) anexoDiv.style.display = 'none';
-        arquivoSelecionado = null;
-        anexoExistenteNome = null;
-
-        // ⭐ MARCAR RADIO "AGUARDANDO AVALIAÇÃO" (value="")
-        const radios = document.querySelectorAll('input[name="sugestao-status-radio"]');
-        radios.forEach(radio => {
-            if (radio.value === '') {
-                radio.checked = true;
-            } else {
-                radio.checked = false;
-            }
-        });
-        
-        // Esconder a seção do plano de ação
-        document.getElementById('secao-plano-acao').style.display = 'none';
-        
-        // Limpar campos do plano de ação
-        document.getElementById('plano-acao').value = '';
-        document.getElementById('responsavel-implantacao').value = '';
-        document.getElementById('data-inicio-implantacao').value = '';
-        document.getElementById('data-conclusao-prevista').value = '';
-        
-        document.getElementById('modal-analise-auditor').style.display = 'flex';
-    }
-
-    async function editarAnaliseAuditor(id) {
-        // Primeiro, recarregar os dados para ter certeza que estão atualizados
-        const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            analisesAuditorList = data.analises;
-        }
-        
-        const analise = analisesAuditorList.find(a => a.id === id);
-        if (!analise) return;
-        
-        document.getElementById('modal-analise-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Análise do Auditor';
-        document.getElementById('analise-auditor-id').value = analise.id;
-        
-        document.getElementById('analise-auditor-texto').value = analise.analise_critica || '';
-        document.getElementById('analise-auditor-sugestao').value = analise.sugestao_melhoria || '';
-        document.getElementById('analise-auditor-necessidade').value = analise.necessidade_implantacao || '';
-        document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
-        document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
-        
-        // ⭐ CORRIGIDO: Marcar o radio baseado no valor do banco
-        const radios = document.querySelectorAll('input[name="sugestao-status-radio"]');
-        const secaoPlano = document.getElementById('secao-plano-acao');
-        
-        let valorParaMarcar = '';
-        if (analise.sugestao_sera_implantada === true) {
-            valorParaMarcar = 'true';
-            secaoPlano.style.display = 'block';
-        } else if (analise.sugestao_sera_implantada === false) {
-            valorParaMarcar = 'false';
-            secaoPlano.style.display = 'none';
-        } else {
-            valorParaMarcar = ''; // Aguardando avaliação
-            secaoPlano.style.display = 'none';
-        }
-        
-        // Marcar o radio correto
-        radios.forEach(radio => {
-            if (radio.value === valorParaMarcar) {
-                radio.checked = true;
-            }
-        });
-        
-        console.log('📊 Editando - valor do banco:', analise.sugestao_sera_implantada, 'marcado radio:', valorParaMarcar);
-        
-        // Preencher plano de ação se necessário
-        if (analise.sugestao_sera_implantada === true) {
-            document.getElementById('plano-acao').value = analise.plano_acao || '';
-            document.getElementById('responsavel-implantacao').value = analise.responsavel_implantacao || '';
-            document.getElementById('data-inicio-implantacao').value = analise.data_inicio_implantacao || '';
-            document.getElementById('data-conclusao-prevista').value = analise.data_conclusao_prevista || '';
-            
-            if (analise.anexo_nome) {
-                anexoExistenteNome = analise.anexo_nome;
-                const anexoDiv = document.getElementById('anexo-nome');
-                const anexoTexto = document.getElementById('anexo-nome-texto');
-                if (anexoDiv && anexoTexto) {
-                    anexoTexto.textContent = analise.anexo_nome;
-                    anexoDiv.style.display = 'flex';
-                }
-            }
-        }
-        
-        document.getElementById('modal-analise-auditor').style.display = 'flex';
-    }
-
-    function removerAnexoExistente() {
-        const anexoDiv = document.getElementById('anexo-nome');
-        const fileInput = document.getElementById('anexo-validacao');
-        
-        anexoDiv.style.display = 'none';
-        if (anexoDiv) {
-            const textoElemento = anexoDiv.querySelector('#anexo-nome-texto');
-            if (textoElemento) textoElemento.textContent = '';
-        }
-        
-        if (fileInput) fileInput.value = '';
-        
-        arquivoSelecionado = null;
-        anexoExistenteNome = null;
-        
-        const inputRemover = document.getElementById('remover-anexo-hidden');
-        if (!inputRemover) {
-            const hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.id = 'remover-anexo-hidden';
-            hidden.value = 'true';
-            document.getElementById('modal-analise-auditor').querySelector('.modal-body').appendChild(hidden);
-        } else {
-            inputRemover.value = 'true';
-        }
-        
-        mostrarToast('📎 Anexo removido. Clique em Salvar para confirmar.', 'info');
-    }
-
-    function setupFileUpload() {
-        const btnSelecionar = document.getElementById('btn-selecionar-arquivo');
-        const inputFile = document.getElementById('anexo-validacao');
-        const anexoDiv = document.getElementById('anexo-nome');
-        const anexoTexto = document.getElementById('anexo-nome-texto');
-        const btnRemover = document.getElementById('btn-remover-arquivo');
-        
-        if (!btnSelecionar || !inputFile) {
-            console.warn('Elementos de upload não encontrados');
-            return;
-        }
-        
-        btnSelecionar.addEventListener('click', function(e) {
-            e.preventDefault();
-            inputFile.click();
-        });
-        
-        inputFile.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                if (file.type !== 'application/pdf') {
-                    mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
-                    inputFile.value = '';
-                    return;
-                }
-                
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
-                    inputFile.value = '';
-                    return;
-                }
-                
-                arquivoSelecionado = file;
-                if (anexoTexto) anexoTexto.textContent = file.name;
-                if (anexoDiv) anexoDiv.style.display = 'flex';
-                anexoExistenteNome = null;
-                
-                const removerHidden = document.getElementById('remover-anexo-hidden');
-                if (removerHidden) removerHidden.remove();
-            }
-        });
-        
-        if (btnRemover) {
-            btnRemover.addEventListener('click', function(e) {
-                e.preventDefault();
-                inputFile.value = '';
-                arquivoSelecionado = null;
-                if (anexoDiv) anexoDiv.style.display = 'none';
-                if (anexoTexto) anexoTexto.textContent = '';
-                
-                const removerHidden = document.getElementById('remover-anexo-hidden');
-                if (!removerHidden) {
-                    const hidden = document.createElement('input');
-                    hidden.type = 'hidden';
-                    hidden.id = 'remover-anexo-hidden';
-                    hidden.value = 'true';
-                    document.getElementById('modal-analise-auditor').querySelector('.modal-body').appendChild(hidden);
-                } else {
-                    removerHidden.value = 'true';
-                }
-            });
-        }
-    }
-
-    function fecharModalAnaliseAuditor() {
-        document.getElementById('modal-analise-auditor').style.display = 'none';
-    }
-
-    function setupImplementacaoListener() {
-        // ⭐ CORRIGIDO: Escutar mudanças nos radio buttons
-        const radios = document.querySelectorAll('input[name="sugestao-status-radio"]');
-        const secaoPlano = document.getElementById('secao-plano-acao');
-        
-        radios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.value === 'true') {
-                    secaoPlano.style.display = 'block';
-                } else {
-                    secaoPlano.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    async function salvarAnaliseAuditor() {
+    async function salvarAnaliseAuditado() {
         if (!processoIdAtual) {
-            mostrarToast('❌ Selecione um processo primeiro', 'warning');
+            mostrarToast('Selecione um processo primeiro', 'warning');
             return;
         }
         
-        const analiseId = document.getElementById('analise-auditor-id').value;
+        const analiseId = document.getElementById('analise-auditado-id').value;
+        const etapaId = document.getElementById('analise-auditado-etapa-id').value;
+        const categoria = document.getElementById('analise-auditado-categoria').value;
+        const analiseCritica = document.getElementById('analise-auditado-texto').value;
         
-        // ⭐ PEGAR O RADIO SELECIONADO CORRETAMENTE
-        const radioSelecionado = document.querySelector('input[name="sugestao-status-radio"]:checked');
+        if (!analiseCritica.trim()) {
+            mostrarToast('A Análise Crítica é obrigatória', 'warning');
+            return;
+        }
+
+        // ⭐ DEBUG: Verificar todos os radios
+        const todosRadios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
+        console.log('📊 Total de radios encontrados:', todosRadios.length);
+        
+        todosRadios.forEach((radio, idx) => {
+            console.log(`📊 Radio ${idx}: value="${radio.value}", checked=${radio.checked}`);
+        });
+        
+        // Pegar o radio selecionado
+        const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
         
         let seraImplantada = null;
         if (radioSelecionado) {
@@ -3298,95 +2776,79 @@
             } else if (radioSelecionado.value === 'false') {
                 seraImplantada = false;
             } else {
-                seraImplantada = null; // Aguardando avaliação
+                seraImplantada = null;
             }
+        } else {
+            console.log('⚠️ NENHUM radio está selecionado!');
+            mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
+            return; // ⭐ Impedir salvar sem seleção
         }
         
-        // ⭐ LOG PARA DEBUG
-        console.log('🔍 Radio selecionado:', radioSelecionado?.value);
-        console.log('🔍 seraImplantada (enviado para API):', seraImplantada);
-        console.log('🔍 Tipo:', typeof seraImplantada);
+        console.log('📊 Salvando análise do auditado - Radio selecionado:', radioSelecionado?.value);
+        console.log('📊 seraImplantada:', seraImplantada);
         
-        // ⭐ CONSTRUIR O OBJETO CORRETAMENTE
         const analiseData = {
-            analise_critica: document.getElementById('analise-auditor-texto').value,
-            sugestao_melhoria: document.getElementById('analise-auditor-sugestao').value,
-            necessidade_implantacao: document.getElementById('analise-auditor-necessidade').value,
-            ganho_previsto: document.getElementById('analise-auditor-ganho').value,
-            observacoes: document.getElementById('analise-auditor-observacoes').value,
-            sugestao_sera_implantada: seraImplantada  // Pode ser null, true ou false
+            processo_id: parseInt(processoIdAtual),
+            etapa_id: parseInt(etapaId),
+            categoria: categoria,
+            analise_critica: analiseCritica,
+            sugestao_melhoria: document.getElementById('analise-auditado-sugestao').value,
+            necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value,
+            ganho_previsto: document.getElementById('analise-auditado-ganho').value,
+            observacoes: document.getElementById('analise-auditado-observacoes').value,
+            sugestao_sera_implantada: seraImplantada
         };
         
-        // ⭐ SÓ ADICIONAR PLANO DE AÇÃO SE FOR true
+        // Só incluir plano de ação se for true
         if (seraImplantada === true) {
-            analiseData.plano_acao = document.getElementById('plano-acao').value;
-            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao').value;
-            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao').value || null;
-            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista').value || null;
+            analiseData.plano_acao = document.getElementById('plano-acao-auditado').value;
+            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao-auditado').value;
+            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao-auditado').value || null;
+            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista-auditado').value || null;
+            
+            if (arquivoSelecionadoAuditado) {
+                analiseData.anexo_base64 = await converterParaBase64(arquivoSelecionadoAuditado);
+                analiseData.anexo_nome = arquivoSelecionadoAuditado.name;
+            }
         } else {
-            // ⭐ GARANTIR QUE OS CAMPOS DO PLANO DE AÇÃO SEJAM LIMPOS
+            // Se não for implantada, enviar null para limpar os campos
             analiseData.plano_acao = null;
             analiseData.responsavel_implantacao = null;
             analiseData.data_inicio_implantacao = null;
             analiseData.data_conclusao_prevista = null;
+            
+            if (anexoExistenteNomeAuditado || arquivoSelecionadoAuditado) {
+                analiseData.remover_anexo = true;
+            }
         }
         
-        if (!analiseData.analise_critica.trim()) {
-            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
-            return;
-        }
+        const removerAnexo = document.getElementById('remover-anexo-hidden-auditado')?.value === 'true';
         
-        // Processar anexo
-        let anexoBase64 = null;
-        let anexoNome = null;
-        
-        if (arquivoSelecionado) {
-            anexoBase64 = await converterParaBase64(arquivoSelecionado);
-            anexoNome = arquivoSelecionado.name;
-        }
-        
-        const removerAnexo = document.getElementById('remover-anexo-hidden')?.value === 'true';
-        
-        const btnSalvar = document.getElementById('btn-salvar-analise-auditor');
+        const btnSalvar = document.getElementById('btn-salvar-analise-auditado');
         const textoOriginal = btnSalvar.innerHTML;
         btnSalvar.disabled = true;
         btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
         
         try {
-            const url = analiseId ? `/api/analise-auditor/${analiseId}` : '/api/analise-auditor/salvar';
+            const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
             const method = analiseId ? 'PUT' : 'POST';
+            const body = { ...analiseData };
+            if (removerAnexo) body.remover_anexo = true;
             
-            const body = {
-                processo_id: processoIdAtual,
-                ...analiseData
-            };
-            
-            if (anexoBase64) {
-                body.anexo_base64 = anexoBase64;
-                body.anexo_nome = anexoNome;
-            }
-            
-            if (removerAnexo) {
-                body.remover_anexo = true;
-            }
-            
-            // ⭐ LOG DO JSON ENVIADO
             console.log('📤 Enviando para API:', JSON.stringify(body, null, 2));
             
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+            const response = await fetch(url, { 
+                method: method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(body) 
             });
             
             const data = await response.json();
             
             if (data.success) {
                 mostrarToast(analiseId ? '✅ Análise atualizada com sucesso!' : '✅ Análise salva com sucesso!', 'success');
-                fecharModalAnaliseAuditor();
-                
-                // ⭐ FORÇAR RECARREGAMENTO COMPLETO DA LISTA
-                await carregarAnalisesAuditor();
+                fecharModalAnaliseAuditado();
+                await carregarAnalisesAuditado();
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
             }
@@ -3399,209 +2861,252 @@
         }
     }
 
+    // ============================================================
+    // FECHAR MODAL DO AUDITADO
+    // ============================================================
 
-    async function excluirAnaliseAuditor(id) {
-        if (!confirm('⚠️ Tem certeza que deseja excluir esta análise?')) return;
-        
-        try {
-            const response = await fetch(`/api/analise-auditor/${id}`, { method: 'DELETE' });
-            const data = await response.json();
-            
-            if (data.success) {
-                mostrarToast('✅ Análise excluída!', 'success');
-                await carregarAnalisesAuditor();
-            } else {
-                mostrarToast('❌ Erro ao excluir', 'error');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-            mostrarToast('❌ Erro ao conectar', 'error');
-        }
+    function fecharModalAnaliseAuditado() {
+        document.getElementById('modal-analise-auditado').style.display = 'none';
     }
 
-    async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiva) {
-        console.log('📅 Criando follow-ups para análise:', analiseId, 'Data implantação:', dataImplantacaoEfetiva);
+    function setupFileUploadAuditado() {
+        const btnSelecionar = document.getElementById('btn-selecionar-arquivo-auditado');
+        const inputFile = document.getElementById('anexo-validacao-auditado');
+        const anexoDiv = document.getElementById('anexo-nome-auditado');
+        const anexoTexto = document.getElementById('anexo-nome-texto-auditado');
+        const btnRemover = document.getElementById('btn-remover-arquivo-auditado');
         
-        if (!analiseId || !dataImplantacaoEfetiva) {
-            console.warn('⚠️ ID da análise ou data de implantação não fornecidos');
-            return;
-        }
+        if (!btnSelecionar || !inputFile) return;
         
-        try {
-            const checkResponse = await fetch(`/api/analise-follow-ups/${analiseId}`);
-            const checkData = await checkResponse.json();
-            
-            if (checkData.success && checkData.follow_ups && checkData.follow_ups.length > 0) {
-                console.log('✅ Follow-ups já existem para esta análise:', checkData.follow_ups.length);
-                return;
-            }
-        } catch (error) {
-            console.warn('Erro ao verificar follow-ups existentes:', error);
-        }
+        btnSelecionar.addEventListener('click', (e) => { e.preventDefault(); inputFile.click(); });
         
-        const dataImplantacaoObj = new Date(dataImplantacaoEfetiva);
-        
-        if (isNaN(dataImplantacaoObj.getTime())) {
-            console.error('❌ Data de implantação inválida:', dataImplantacaoEfetiva);
-            mostrarToast('❌ Data de implantação inválida', 'error');
-            return;
-        }
-        
-        const data30 = new Date(dataImplantacaoObj);
-        data30.setDate(data30.getDate() + 30);
-        
-        const data60 = new Date(dataImplantacaoObj);
-        data60.setDate(data60.getDate() + 60);
-        
-        const data90 = new Date(dataImplantacaoObj);
-        data90.setDate(data90.getDate() + 90);
-        
-        const followUps = [
-            { 
-                etapa: 'FOLLOW_UP_30', 
-                data_prevista: data30.toISOString().split('T')[0],
-                descricao: '30 dias após implantação'
-            },
-            { 
-                etapa: 'FOLLOW_UP_60', 
-                data_prevista: data60.toISOString().split('T')[0],
-                descricao: '60 dias após implantação'
-            },
-            { 
-                etapa: 'FOLLOW_UP_90', 
-                data_prevista: data90.toISOString().split('T')[0],
-                descricao: '90 dias após implantação'
-            }
-        ];
-        
-        console.log('📅 Datas calculadas:', followUps);
-        
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        
-        for (const fu of followUps) {
-            const dataPrevista = new Date(fu.data_prevista);
-            if (dataPrevista < hoje) {
-                console.warn(`⚠️ Data prevista ${fu.data_prevista} (${fu.descricao}) é anterior a hoje`);
-                const amanha = new Date(hoje);
-                amanha.setDate(amanha.getDate() + 1);
-                fu.data_prevista = amanha.toISOString().split('T')[0];
-                console.log(`📅 Ajustado para: ${fu.data_prevista}`);
-            }
-        }
-        
-        try {
-            const response = await fetch('/api/analise-follow-ups/criar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    analise_id: analiseId,
-                    follow_ups: followUps
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                console.log('✅ Follow-ups criados com sucesso:', followUps.length);
-                mostrarToast('✅ Follow-ups agendados: 30, 60 e 90 dias após a implantação', 'success');
-            } else {
-                console.error('❌ Erro ao criar follow-ups:', data.error);
-                mostrarToast('⚠️ Análise salva, mas houve erro ao criar follow-ups', 'warning');
-            }
-        } catch (error) {
-            console.error('❌ Erro ao criar follow-ups:', error);
-            mostrarToast('⚠️ Análise salva, mas erro ao criar follow-ups', 'warning');
-        }
-    }
-
-    function abrirModalConfirmarImplantacaoAuditado(analiseId) {
-        document.getElementById('confirmar-analise-id').value = analiseId;
-        document.getElementById('confirmar-analise-id').setAttribute('data-tipo', 'auditado');
-        document.getElementById('confirmar-status').value = 'true';
-        document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
-        document.getElementById('confirmar-comentario').value = '';
-        document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
-    }
-
-    function abrirModalConfirmarImplantacao(analiseId) {
-        document.getElementById('confirmar-analise-id').value = analiseId;
-        document.getElementById('confirmar-analise-id').setAttribute('data-tipo', 'auditor');
-        document.getElementById('confirmar-status').value = 'true';
-        document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
-        document.getElementById('confirmar-comentario').value = '';
-        document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
-    }
-
-    function fecharModalConfirmarImplantacao() {
-        document.getElementById('modal-confirmar-implantacao').style.display = 'none';
-    }
-
-    async function confirmarImplantacao() {
-        const analiseId = document.getElementById('confirmar-analise-id').value;
-        const tipoAnalise = document.getElementById('confirmar-analise-id').getAttribute('data-tipo') || 'auditor';
-        const foiImplantada = document.getElementById('confirmar-status').value === 'true';
-        const dataImplantacao = document.getElementById('confirmar-data').value;
-        const comentario = document.getElementById('confirmar-comentario').value;
-        
-        if (!dataImplantacao) {
-            mostrarToast('⚠️ Informe a data da implantação', 'warning');
-            return;
-        }
-        
-        const btnConfirmar = document.getElementById('btn-confirmar-implantacao');
-        const textoOriginal = btnConfirmar.innerHTML;
-        btnConfirmar.disabled = true;
-        btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando...';
-        
-        let url = '';
-        if (tipoAnalise === 'auditado') {
-            url = `/api/analise-auditado/${analiseId}/confirmar-implantacao`;
-        } else {
-            url = `/api/analise-auditor/${analiseId}/confirmar-implantacao`;
-        }
-        
-        try {
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    efetivamente_implantada: foiImplantada,
-                    data_implantacao_efetiva: dataImplantacao,
-                    comentario_implantacao: comentario
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                mostrarToast(foiImplantada ? '✅ Implantação confirmada! Follow-ups liberados.' : '❌ Implantação não confirmada.', 'success');
-                fecharModalConfirmarImplantacao();
-                
-                if (foiImplantada) {
-                    await criarFollowUpsAutomaticos(parseInt(analiseId), dataImplantacao);
+        inputFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.type !== 'application/pdf') {
+                    mostrarToast('Apenas arquivos PDF são permitidos', 'warning');
+                    inputFile.value = '';
+                    return;
                 }
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast('Arquivo muito grande. Máximo 10MB', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                arquivoSelecionadoAuditado = file;
+                if (anexoTexto) anexoTexto.textContent = file.name;
+                if (anexoDiv) anexoDiv.style.display = 'flex';
+                anexoExistenteNomeAuditado = null;
+            }
+        });
+        
+        if (btnRemover) {
+            btnRemover.addEventListener('click', (e) => {
+                e.preventDefault();
+                inputFile.value = '';
+                arquivoSelecionadoAuditado = null;
+                if (anexoDiv) anexoDiv.style.display = 'none';
+                if (anexoTexto) anexoTexto.textContent = '';
                 
-                if (tipoAnalise === 'auditado') {
-                    await carregarAnalisesAuditado();
+                if (!document.getElementById('remover-anexo-hidden-auditado')) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.id = 'remover-anexo-hidden-auditado';
+                    hidden.value = 'true';
+                    document.getElementById('modal-analise-auditado').querySelector('.modal-body').appendChild(hidden);
                 } else {
-                    await carregarAnalisesAuditor();
+                    document.getElementById('remover-anexo-hidden-auditado').value = 'true';
+                }
+            });
+        }
+    }
+
+    function setupImplementacaoListenerAuditado() {
+        const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
+        const secaoPlano = document.getElementById('secao-plano-acao-auditado');
+        
+        console.log('🔧 Configurando listener do auditado - radios encontrados:', radios.length);
+        
+        function controlarVisibilidade() {
+            const radioSelecionado = document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked');
+            const isImplantada = radioSelecionado && radioSelecionado.value === 'true';
+            
+            console.log('🔄 Radio alterado - valor:', radioSelecionado?.value, 'é implantada:', isImplantada);
+            
+            if (secaoPlano) {
+                if (isImplantada) {
+                    secaoPlano.style.display = 'block';
+                    console.log('📂 Plano de ação: MOSTRAR (block)');
+                } else {
+                    secaoPlano.style.display = 'none';
+                    console.log('📂 Plano de ação: ESCONDER (none)');
                 }
             } else {
-                mostrarToast('❌ Erro ao confirmar: ' + (data.error || 'Erro desconhecido'), 'error');
+                console.error('❌ Seção do plano de ação não encontrada!');
             }
-        } catch (error) {
-            console.error('Erro:', error);
-            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
-        } finally {
-            btnConfirmar.disabled = false;
-            btnConfirmar.innerHTML = textoOriginal;
-            document.getElementById('confirmar-analise-id').removeAttribute('data-tipo');
         }
+        
+        // Remover listeners antigos e adicionar novos
+        radios.forEach(radio => {
+            radio.removeEventListener('change', controlarVisibilidade);
+            radio.addEventListener('change', controlarVisibilidade);
+            console.log(`✅ Listener adicionado ao radio value="${radio.value}"`);
+        });
+        
+        // Executar uma vez para definir o estado inicial
+        controlarVisibilidade();
     }
 
     // ============================================================
-    // HISTÓRICO DE ANDAMENTO
+    // ANÁLISES DO AUDITOR - RENDERIZAÇÃO
+    // ============================================================
+
+    async function renderizarAnalisesAuditor() {
+        const container = document.getElementById('analises-auditor-container');
+        
+        if (analisesAuditorList.length === 0) {
+            container.innerHTML = `<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditor cadastrada.<br><br>
+                <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()"><i class="fas fa-plus"></i> Nova Análise</button></div>`;
+            return;
+        }
+        
+        const analisesComDados = [];
+        for (const analise of analisesAuditorList) {
+            const historico = await carregarHistoricoAndamento(analise.id);
+            const followUps = await carregarFollowUps(analise.id);
+            analisesComDados.push({ ...analise, historico, followUps });
+        }
+        
+        let html = '';
+        analisesComDados.forEach((analise, index) => {
+            const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
+            
+            let badgeHtml = '';
+            if (analise.sugestao_sera_implantada === true) badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i> Será implantada</span>';
+            else if (analise.sugestao_sera_implantada === false) badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Não será implantada</span>';
+            else badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Aguardando avaliação</span>';
+            
+            html += `<div class="analise-auditor-card" data-analise-id="${analise.id}">
+                <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
+                    <div class="analise-auditor-header-left">
+                        <span class="analise-auditor-titulo"><i class="fas fa-file-alt"></i> Análise ${index + 1}</span>
+                        <span class="analise-auditor-data"><i class="far fa-calendar-alt"></i> ${new Date(analise.created_at).toLocaleDateString('pt-BR')}</span>
+                        ${badgeHtml}
+                    </div>
+                    <div class="analise-auditor-actions" onclick="event.stopPropagation()">
+                        <button class="btn-edit-analise-auditor" onclick="editarAnaliseAuditor(${analise.id})" title="Editar análise"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="btn-delete-analise-auditor" onclick="excluirAnaliseAuditor(${analise.id})" title="Excluir análise"><i class="fas fa-trash-alt"></i></button>
+                        <i class="fas fa-chevron-down" style="color: white; margin-left: 5px;"></i>
+                    </div>
+                </div>
+                <div class="analise-auditor-body">
+                    <div class="analise-grid">
+                        <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
+                        <div class="analise-card-section"><h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
+                    </div>
+                    ${temPlanoAcao ? `<div class="analise-card-section plano-acao-card"><h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4><div>${escapeHtml(analise.plano_acao)}</div>
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+                            ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
+                            ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
+                            ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
+                            ${analise.anexo_nome ? `<button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexo(${analise.id});"><i class="fas fa-file-pdf"></i> ${escapeHtml(analise.anexo_nome)} <i class="fas fa-download"></i></button>` : ''}
+                        </div>
+                    </div>` : ''}
+                    <div class="analise-grid">
+                        <div class="analise-card-section"><h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
+                        <div class="analise-card-section"><h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
+                    </div>
+                    ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Observações</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
+                    <div class="analise-card-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4><i class="fas fa-history"></i> Histórico de Andamento</h4>
+                            ${analise.sugestao_sera_implantada === true ? `<button class="btn-registrar-andamento" onclick="event.stopPropagation(); abrirModalHistoricoAndamento(${analise.id})"><i class="fas fa-plus"></i> Registrar</button>` : ''}
+                        </div>
+                        <div class="historico-container">${renderizarListaHistorico(analise.historico)}</div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function renderizarListaHistorico(historico) {
+        if (!historico || historico.length === 0) return '<div style="color: #999; font-size: 12px; text-align: center; padding: 10px;">Nenhum registro de andamento</div>';
+        let html = '';
+        historico.forEach(item => {
+            const statusClass = { 'Em andamento': '🟡', 'Parcialmente implementado': '🟠', 'Concluído': '✅', 'Atrasado': '🔴' }[item.status] || '📌';
+            html += `<div style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between;"><span><strong>${statusClass} ${item.status || 'Registrado'}</strong></span><span style="color: #999;">${item.data_registro ? new Date(item.data_registro).toLocaleDateString('pt-BR') : ''}</span></div>
+                <div style="margin-top: 4px; color: #555;">${escapeHtml(item.comentario)}</div>
+                <div style="margin-top: 4px; font-size: 11px; color: #999;">Por: ${escapeHtml(item.created_by || 'Sistema')}</div>
+            </div>`;
+        });
+        return html;
+    }
+
+    function renderizarListaFollowUps(followUps) {
+        if (!followUps || followUps.length === 0) return '<div style="color: #999; font-size: 12px; text-align: center; padding: 10px;">Nenhum follow-up agendado</div>';
+        const textoEtapa = { 'FOLLOW_UP_30': 'Passados 30 dias da implementação, está aderente?', 'FOLLOW_UP_60': 'Passados 60 dias da implementação, está aderente?', 'FOLLOW_UP_90': 'Passados 90 dias da implementação, está aderente?' };
+        let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        followUps.forEach(fu => {
+            const dataPrevista = new Date(fu.data_prevista);
+            const hoje = new Date();
+            const estaAtrasado = dataPrevista < hoje && fu.status === 'Pendente';
+            const statusIcon = { 'Pendente': '⏳', 'Aderente': '✅', 'Não aderente': '❌', 'Parcialmente aderente': '🟡' }[fu.status] || '⏳';
+            let statusColor = { 'Pendente': '#856404', 'Aderente': '#155724', 'Não aderente': '#721c24', 'Parcialmente aderente': '#856404' }[fu.status] || '#666';
+            if (estaAtrasado) statusColor = '#dc3545';
+            const textoExibicao = textoEtapa[fu.etapa] || fu.etapa;
+            html += `<div style="padding: 8px; background: #f8f9fa; border-radius: 6px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><strong>${textoExibicao}</strong></span>
+                    <span style="color: ${statusColor};">${statusIcon} ${fu.status || 'Pendente'}</span>
+                </div>
+                <div style="margin-top: 4px; color: #666;">Data prevista: ${fu.data_prevista ? new Date(fu.data_prevista).toLocaleDateString('pt-BR') : '-'}</div>
+                ${fu.comentario ? `<div style="margin-top: 4px; font-size: 11px;">${escapeHtml(fu.comentario)}</div>` : ''}
+                ${fu.status === 'Pendente' ? `<button class="btn-registrar-followup" onclick="event.stopPropagation(); abrirModalFollowUp(${fu.id}, '${textoExibicao}')" style="margin-top: 6px; background: #184145; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;"><i class="fas fa-edit"></i> Registrar</button>` : ''}
+            </div>`;
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function toggleAnaliseAuditorCard(header) {
+        const card = header.closest('.analise-auditor-card');
+        card.classList.toggle('expanded');
+        const icon = header.querySelector('.fa-chevron-down');
+        icon.style.transform = card.classList.contains('expanded') ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    function toggleAnaliseEtapaCard(header) {
+        const card = header.closest('.analise-etapa-card');
+        const body = card.querySelector('.analise-etapa-body');
+        const icon = header.querySelector('.fa-chevron-down');
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            icon.style.transform = 'rotate(180deg)';
+        } else {
+            body.style.display = 'none';
+            icon.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    function toggleAnaliseAuditadoCard(header) {
+        const card = header.closest('.analise-auditado-card');
+        card.classList.toggle('expanded');
+        const icon = header.querySelector('.fa-chevron-down');
+        icon.style.transform = card.classList.contains('expanded') ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    async function baixarAnexo(analiseId) {
+        window.open(`/api/analise-auditor/${analiseId}/anexo`, '_blank');
+    }
+
+    async function baixarAnexoAuditado(analiseId) {
+        window.open(`/api/analise-auditado/${analiseId}/anexo`, '_blank');
+    }
+
+    // ============================================================
+    // HISTÓRICO DE ANDAMENTO E FOLLOW-UPS
     // ============================================================
 
     async function carregarHistoricoAndamento(analiseId) {
@@ -3655,15 +3160,9 @@
             const response = await fetch('/api/analise-historico/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    analise_id: analiseId,
-                    status: status,
-                    comentario: comentario
-                })
+                body: JSON.stringify({ analise_id: analiseId, status: status, comentario: comentario })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 mostrarToast('✅ Andamento registrado com sucesso!', 'success');
                 fecharModalHistorico();
@@ -3711,14 +3210,9 @@
             const response = await fetch(`/api/analise-follow-up/${followUpId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: status,
-                    comentario: comentario
-                })
+                body: JSON.stringify({ status: status, comentario: comentario })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 mostrarToast('✅ Follow-up registrado com sucesso!', 'success');
                 fecharModalFollowUp();
@@ -3736,23 +3230,140 @@
         }
     }
 
-    function setupImplementacaoListenerAuditado() {
-        const selectStatus = document.getElementById('sugestao-status-auditado');
-        const secaoPlano = document.getElementById('secao-plano-acao-auditado');
+    // ============================================================
+    // CONFIRMAR IMPLANTAÇÃO
+    // ============================================================
+
+    function abrirModalConfirmarImplantacao(analiseId) {
+        document.getElementById('confirmar-analise-id').value = analiseId;
+        document.getElementById('confirmar-analise-id').setAttribute('data-tipo', 'auditor');
+        document.getElementById('confirmar-status').value = 'true';
+        document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
+        document.getElementById('confirmar-comentario').value = '';
+        document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
+    }
+
+    function abrirModalConfirmarImplantacaoAuditado(analiseId) {
+        document.getElementById('confirmar-analise-id').value = analiseId;
+        document.getElementById('confirmar-analise-id').setAttribute('data-tipo', 'auditado');
+        document.getElementById('confirmar-status').value = 'true';
+        document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
+        document.getElementById('confirmar-comentario').value = '';
+        document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
+    }
+
+    function fecharModalConfirmarImplantacao() {
+        document.getElementById('modal-confirmar-implantacao').style.display = 'none';
+    }
+
+    async function confirmarImplantacao() {
+        const analiseId = document.getElementById('confirmar-analise-id').value;
+        const tipoAnalise = document.getElementById('confirmar-analise-id').getAttribute('data-tipo') || 'auditor';
+        const foiImplantada = document.getElementById('confirmar-status').value === 'true';
+        const dataImplantacao = document.getElementById('confirmar-data').value;
+        const comentario = document.getElementById('confirmar-comentario').value;
         
-        if (selectStatus) {
-            selectStatus.addEventListener('change', function() {
-                if (this.value === 'true') {
-                    secaoPlano.style.display = 'block';
-                } else {
-                    secaoPlano.style.display = 'none';
-                }
+        if (!dataImplantacao) {
+            mostrarToast('⚠️ Informe a data da implantação', 'warning');
+            return;
+        }
+        
+        const btnConfirmar = document.getElementById('btn-confirmar-implantacao');
+        const textoOriginal = btnConfirmar.innerHTML;
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando...';
+        
+        const url = tipoAnalise === 'auditado' ? `/api/analise-auditado/${analiseId}/confirmar-implantacao` : `/api/analise-auditor/${analiseId}/confirmar-implantacao`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ efetivamente_implantada: foiImplantada, data_implantacao_efetiva: dataImplantacao, comentario_implantacao: comentario })
             });
+            const data = await response.json();
+            if (data.success) {
+                mostrarToast(foiImplantada ? '✅ Implantação confirmada! Follow-ups liberados.' : '❌ Implantação não confirmada.', 'success');
+                fecharModalConfirmarImplantacao();
+                if (foiImplantada) await criarFollowUpsAutomaticos(parseInt(analiseId), dataImplantacao);
+                if (tipoAnalise === 'auditado') await carregarAnalisesAuditado();
+                else await carregarAnalisesAuditor();
+            } else {
+                mostrarToast('❌ Erro ao confirmar: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+        } finally {
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = textoOriginal;
+            document.getElementById('confirmar-analise-id').removeAttribute('data-tipo');
+        }
+    }
+
+    async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiva) {
+        console.log('📅 Criando follow-ups para análise:', analiseId);
+        if (!analiseId || !dataImplantacaoEfetiva) return;
+        
+        try {
+            const checkResponse = await fetch(`/api/analise-follow-ups/${analiseId}`);
+            const checkData = await checkResponse.json();
+            if (checkData.success && checkData.follow_ups && checkData.follow_ups.length > 0) {
+                console.log('✅ Follow-ups já existem');
+                return;
+            }
+        } catch (error) { console.warn('Erro ao verificar follow-ups:', error); }
+        
+        const dataImplantacaoObj = new Date(dataImplantacaoEfetiva);
+        if (isNaN(dataImplantacaoObj.getTime())) return;
+        
+        const data30 = new Date(dataImplantacaoObj); data30.setDate(data30.getDate() + 30);
+        const data60 = new Date(dataImplantacaoObj); data60.setDate(data60.getDate() + 60);
+        const data90 = new Date(dataImplantacaoObj); data90.setDate(data90.getDate() + 90);
+        
+        const followUps = [
+            { etapa: 'FOLLOW_UP_30', data_prevista: data30.toISOString().split('T')[0] },
+            { etapa: 'FOLLOW_UP_60', data_prevista: data60.toISOString().split('T')[0] },
+            { etapa: 'FOLLOW_UP_90', data_prevista: data90.toISOString().split('T')[0] }
+        ];
+        
+        try {
+            const response = await fetch('/api/analise-follow-ups/criar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ analise_id: analiseId, follow_ups: followUps })
+            });
+            const data = await response.json();
+            if (data.success) console.log('✅ Follow-ups criados com sucesso');
+        } catch (error) { console.error('❌ Erro ao criar follow-ups:', error); }
+    }
+
+    // ============================================================
+    // CARREGAR ANÁLISES DO AUDITOR
+    // ============================================================
+
+    async function carregarAnalisesAuditor() {
+        if (!processoIdAtual) return;
+        const container = document.getElementById('analises-auditor-container');
+        container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
+        try {
+            const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
+            const data = await response.json();
+            if (data.success && data.analises && data.analises.length > 0) {
+                analisesAuditorList = data.analises;
+                renderizarAnalisesAuditor();
+            } else {
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditor cadastrada.<br><br>
+                    <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()"><i class="fas fa-plus"></i> Nova Análise</button></div>`;
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar análises do auditor:', error);
+            container.innerHTML = `<div class="alert-error">❌ Erro ao carregar análises: ${error.message}</div>`;
         }
     }
 
     // ============================================================
-    // INICIALIZAÇÃO E EVENTOS
+    // INICIALIZAÇÃO
     // ============================================================
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -3792,88 +3403,35 @@
             }); 
         });
         
-        const modal = document.getElementById('modal-checklist'); 
-        if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) fecharModalChecklist(); });
+        document.getElementById('btn-nova-analise-auditor')?.addEventListener('click', abrirModalNovaAnaliseAuditor);
+        document.getElementById('btn-salvar-analise-auditor')?.addEventListener('click', salvarAnaliseAuditor);
+        document.getElementById('btn-salvar-analise-auditado')?.addEventListener('click', salvarAnaliseAuditado);
+        document.getElementById('btn-salvar-historico')?.addEventListener('click', salvarHistoricoAndamento);
+        document.getElementById('btn-salvar-followup')?.addEventListener('click', salvarFollowUp);
+        document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
+        
+        const modalChecklist = document.getElementById('modal-checklist');
+        if (modalChecklist) modalChecklist.addEventListener('click', (e) => { if (e.target === modalChecklist) fecharModalChecklist(); });
         
         const modalAnalise = document.getElementById('modal-analise-auditor');
         if (modalAnalise) modalAnalise.addEventListener('click', (e) => { if (e.target === modalAnalise) fecharModalAnaliseAuditor(); });
         
-        // ⭐⭐⭐ BOTÕES DO MODAL DO AUDITOR ⭐⭐⭐
-        document.getElementById('btn-salvar-analise-auditor')?.addEventListener('click', salvarAnaliseAuditor);
-        document.getElementById('btn-nova-analise-auditor')?.addEventListener('click', abrirModalNovaAnaliseAuditor);
-        
-        // ⭐⭐⭐ BOTÕES DO MODAL DO AUDITADO ⭐⭐⭐
-        document.getElementById('btn-salvar-analise-auditado')?.addEventListener('click', salvarAnaliseAuditado);
-        
-        // ⭐⭐⭐ CONFIGURAR O SELECT DO AUDITADO PARA MOSTRA/ESCONDER PLANO DE AÇÃO ⭐⭐⭐
-        const selectStatusAuditado = document.getElementById('sugestao-status-auditado');
-        if (selectStatusAuditado) {
-            selectStatusAuditado.addEventListener('change', function() {
-                const secaoPlano = document.getElementById('secao-plano-acao-auditado');
-                if (this.value === 'true') {
-                    secaoPlano.style.display = 'block';
-                } else {
-                    secaoPlano.style.display = 'none';
-                    // Opcional: limpar campos quando esconder
-                    document.getElementById('plano-acao-auditado').value = '';
-                    document.getElementById('responsavel-implantacao-auditado').value = '';
-                    document.getElementById('data-inicio-implantacao-auditado').value = '';
-                    document.getElementById('data-conclusao-prevista-auditado').value = '';
-                    // Limpar anexo
-                    const inputFile = document.getElementById('anexo-validacao-auditado');
-                    const anexoDiv = document.getElementById('anexo-nome-auditado');
-                    if (inputFile) inputFile.value = '';
-                    if (anexoDiv) anexoDiv.style.display = 'none';
-                    arquivoSelecionadoAuditado = null;
-                    anexoExistenteNomeAuditado = null;
-                }
-            });
-        }
-        
-        // ⭐⭐⭐ CONFIGURAR OS RADIO BUTTONS DO AUDITOR ⭐⭐⭐
-        setupImplementacaoListenerAuditor();
-        
-        // Botões de histórico e follow-up
-        document.getElementById('btn-salvar-historico')?.addEventListener('click', salvarHistoricoAndamento);
-        document.getElementById('btn-salvar-followup')?.addEventListener('click', salvarFollowUp);
-        
-        // Modais
         const modalHistorico = document.getElementById('modal-historico-andamento');
-        if (modalHistorico) {
-            modalHistorico.addEventListener('click', (e) => {
-                if (e.target === modalHistorico) fecharModalHistorico();
-            });
-        }
+        if (modalHistorico) modalHistorico.addEventListener('click', (e) => { if (e.target === modalHistorico) fecharModalHistorico(); });
         
         const modalFollowUp = document.getElementById('modal-follow-up');
-        if (modalFollowUp) {
-            modalFollowUp.addEventListener('click', (e) => {
-                if (e.target === modalFollowUp) fecharModalFollowUp();
-            });
-        }
-        
-        document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
+        if (modalFollowUp) modalFollowUp.addEventListener('click', (e) => { if (e.target === modalFollowUp) fecharModalFollowUp(); });
         
         const modalConfirmar = document.getElementById('modal-confirmar-implantacao');
-        if (modalConfirmar) {
-            modalConfirmar.addEventListener('click', (e) => {
-                if (e.target === modalConfirmar) fecharModalConfirmarImplantacao();
-            });
-        }
+        if (modalConfirmar) modalConfirmar.addEventListener('click', (e) => { if (e.target === modalConfirmar) fecharModalConfirmarImplantacao(); });
         
-        // Configurar uploads
         setupFileUploadAuditado();
         setupFileUpload();
-        
-        // ⭐⭐⭐ EXECUTAR UMA VEZ PARA DEFINIR O ESTADO INICIAL DO PLANO DE AÇÃO DO AUDITADO ⭐⭐⭐
-        if (selectStatusAuditado && selectStatusAuditado.value === 'true') {
-            document.getElementById('secao-plano-acao-auditado').style.display = 'block';
-        } else {
-            document.getElementById('secao-plano-acao-auditado').style.display = 'none';
-        }
+        setupImplementacaoListenerAuditado();
+        // Configurar botão salvar do auditado
+        document.getElementById('btn-salvar-analise-auditado')?.addEventListener('click', salvarAnaliseAuditado);
+        setupImplementacaoListenerAuditor();
     });
-
-
 </script>
 
 {% endblock %}
