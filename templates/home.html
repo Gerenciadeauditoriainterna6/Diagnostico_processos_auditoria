@@ -1,143 +1,677 @@
 {% extends "base.html" %}
 
-{% block title %}Visão Geral - Sistema de Auditoria Interna{% endblock %}
+{% block title %}Home - Sistema de Auditoria Interna{% endblock %}
 
 {% block content %}
 <div class="home-container">
-    <div class="page-header">
-        <h1><i class="fas fa-home"></i> Home</h1>
+    
+    <!-- SAUDAÇÃO -->
+    <div class="welcome-section">
+        <div class="welcome-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <h1>Olá, <span class="user-name">{{ session.get('usuario_nome', 'Auditor').split()[0] }}</span></h1>
+        <p>Sistema de Gestão de Auditoria Interna - FUSVE</p>
     </div>
 
-    <div class="em-desenvolvimento-card">
-        <div class="em-desenvolvimento-icon">
-            <i class="fas fa-home"></i>
+    <!-- SEÇÃO 1: RECURSOS -->
+    <div class="features-section">
+        <div class="section-header">
+            <div class="section-line"></div>
+            <h2>O que o sistema oferece</h2>
         </div>
-        <h2>Funcionalidade em Desenvolvimento</h2>
         
-        <p class="text-muted">Em breve, você poderá conhecer aqui as funcionalidades do sistema</p>
-        <ul class="recursos-lista">
-            <li><i class="fas fa-search"></i> Diagnóstico dos processos e detalhamento dos processos em etapas</li>
-            <li><i class="fas fa-exclamation-triangle"></i> Gerenciamento de riscos e controles.</li>
-            <li><i class="fas fa-file-alt"></i> Geração de relatórios gerenciais.</li>
-        </ul>
+        <div class="features-grid">
+            <!-- Recurso 1 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #184145;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #184145;">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Plano Anual de Auditoria</h3>
+                    <p>Consulte o plano anual de auditoria e veja os pontos que a fundamentaram.</p>
+                </div>
+            </div>
 
-        <!--<button class="btn-primary btn-voltar" onclick="history.back()">
-            <i class="fas fa-arrow-left"></i> Voltar
-        </button>-->
+            <!-- Recurso 2 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #0b5b99;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #0b5b99;">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3>Diagnóstico dos Processos</h3>
+                    <p>Na Matriz de Panorama, mapeie os processos e identifique seus riscos.</p>
+                </div>
+            </div>
+
+            <!-- Recurso 3 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #fd6a14;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #fd6a14;">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <h3>Detalhamento dos Processos</h3>
+                    <p>Detalhe os processos minuciosamente por etapas.</p>
+                </div>
+            </div>
+
+            <!-- Recurso 4 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #17a2b8;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #17a2b8;">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Riscos e Controles</h3>
+                    <p>Identifique os riscos e controles de cada etapa do processo.</p>
+                </div>
+            </div>
+
+            <!-- Recurso 5 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #28a745;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #28a745;">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <h3>Comunicação dos Resultados</h3>
+                    <p>Divulgação transparente de resultados das auditorias para os stakeholders.</p>
+                </div>
+            </div>
+
+            <!-- Recurso 6 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #c2c510;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #c2c510;">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h3>Relatórios</h3>
+                    <p>Geração automática de relatórios consolidados da auditoria e pareceres das auditorias.</p>
+                </div>
+            </div>
+
+            <!-- Recurso 7 -->
+            <div class="feature-card">
+                <div class="card-top" style="background: #6f42c1;"></div>
+                <div class="card-body">
+                    <div class="card-icon" style="background: #6f42c1;">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3>Dashboard</h3>
+                    <p>Visualização interativa de KPIs e métricas de desempenho.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEÇÃO 2: TIMELINE HORIZONTAL COM IMAGENS NO HOVER -->
+    <div class="journey-section">
+        <div class="section-header">
+            <div class="section-line"></div>
+            <h2>Nossa jornada</h2>
+            <span class="journey-hint"><i class="fas fa-mouse-pointer"></i> Passe o mouse para ver imagens</span>
+        </div>
+        
+        <div class="timeline-horizontal">
+            <!-- PONTO 1 -->
+            <div class="timeline-node" data-image="/static/images/sistema-v1.jpg">
+                <div class="node-marker" style="background: #184145;">
+                    <div class="marker-dot"></div>
+                    <div class="marker-line"></div>
+                </div>
+                <div class="node-content">
+                    <div class="node-date">FEV / 2026</div>
+                    <h4>Início do Projeto</h4>
+                    <p>Desenvolvimento da primeira solução para automatizar e integrar a metodologia de trabalho.</p>
+                </div>
+                <div class="node-preview">
+                    <div class="preview-content">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PONTO 2 -->
+            <div class="timeline-node" data-image="/static/images/streamlit-v1.jpg">
+                <div class="node-marker" style="background: #fd6a14;">
+                    <div class="marker-dot"></div>
+                    <div class="marker-line"></div>
+                </div>
+                <div class="node-content">
+                    <div class="node-date">MAR / 2026</div>
+                    <h4>Desenvolvimento da V.1</h4>
+                    <p>
+                        Desenvolvimento do sistema na V.1 utilizando Python como linguagem de programação
+                        e a biblioteca streamlit para a interface.
+                    </p>
+                </div>
+                <div class="node-preview">
+                    <div class="preview-content">
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- PONTO 3 -->
+            <div class="timeline-node" data-image="/static/images/streamlit-v2.jpg">
+                <div class="node-marker" style="background: #6f42c1;">
+                    <div class="marker-dot"></div>
+                    <div class="marker-line"></div>
+                </div>
+                <div class="node-content">
+                    <div class="node-date">ABR / 2026</div>
+                    <h4>Aprimoramento da V.1</h4>
+                    <p>
+                        Aprimoranto a V.1 para a V.2 ainda utilizando Python + Streamlit, mas devido às complexidades que foram
+                        sendo agregadas no desenvolvimento do projeto, foi necessário implementar uma nova interface.
+                    </p>
+                </div>
+                <div class="node-preview">
+                    <div class="preview-content">
+                        
+                    </div>
+                </div>
+            </div>
+
+            <!-- PONTO 4 -->
+            <div class="timeline-node" data-image="/static/images/flask-v2.jpg">
+                <div class="node-marker" style="background: #17a2b8;">
+                    <div class="marker-dot"></div>
+                    <div class="marker-line"></div>
+                </div>
+                <div class="node-content">
+                    <div class="node-date">MAI / 2026</div>
+                    <h4>Desenvolvimento da V.2</h4>
+                    <p>
+                        Estabelecimento da V.2 utilizando linguagens de programação como Python para o Backend e 
+                        HTML + CSS + Javascript para o Frontend, melhorando a interface e possibilitando a geração de valor conforme
+                        novas complexidades foram sendo agregadas ao projeto.
+                    </p>
+                </div>
+                <div class="node-preview">
+                    <div class="preview-content">
+                        
+                    </div>
+                </div>
+            </div>
+
+            <!-- PONTO 5 -->
+            <div class="timeline-node" data-image="/static/images/producao.jpg">
+                <div class="node-marker" style="background: #28a745;">
+                    <div class="marker-dot"></div>
+                    <div class="marker-line"></div>
+                </div>
+                <div class="node-content">
+                    <div class="node-date">JUN / 2026</div>
+                    <h4>Estabelecimento da versão para produção</h4>
+                    <p>
+                        A estimativa é que até o final do mês, o sistema já esteja funcionando em ambiente de produção, capaz de
+                        colher dados de cada auditoria em execução e a que estão por vir.
+                    </p>
+                </div>
+                <div class="node-preview">
+                    <div class="preview-content">
+                        
+                    </div>
+                </div>
+            </div>
+
+            <!-- PONTO 6 -->
+            <div class="timeline-node" data-image="/static/images/futuro-ia.jpg">
+                <div class="node-marker" style="background: #c2c510;">
+                    <div class="marker-dot"></div>
+                    <div class="marker-line"></div>
+                </div>
+                <div class="node-content">
+                    <div class="node-date">2026...</div>
+                    <h4>Melhoria Contínua</h4>
+                    <p>
+                        Estimamos a implementação de uma inteligência artificial no sistema, de modo que possa contribuir positivamente
+                        com o auditor, auxiliando nas identificação de riscos, análises e geração de conclusões à respeito de cada auditoria.
+                    </p>
+                </div>
+                <div class="node-preview">
+                    <div class="preview-content">
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
     .home-container {
-        max-width: 100%;
-        padding: 0 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 24px;
     }
 
-    .page-header {
-        margin-bottom: 25px;
-    }
-
-    .page-header h1 {
-        color: #184145;
-        font-size: 32px;
-        margin-bottom: 5px;
-    }
-
-    .page-header h1 i {
-        background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
-        color: #e4e4e4;
-        margin-right: 10px;
-        padding: 10px;
-        border-radius: 12px;
+    /* SAUDAÇÃO */
+    .welcome-section {
         text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .welcome-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #184145 0%, #0b5b99 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        animation: gentlePulse 3s ease-in-out infinite;
+    }
+
+    .welcome-icon i {
         font-size: 32px;
+        color: white;
     }
 
-    .page-header p {
-        color: #666;
-        font-size: 14px;
+    @keyframes gentlePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
     }
 
-    .em-desenvolvimento-card {
+    .welcome-section h1 {
+        font-size: 36px;
+        font-weight: 400;
+        color: #184145;
+        margin-bottom: 8px;
+    }
+
+    .welcome-section .user-name {
+        font-weight: 600;
+        color: #fd6a14;
+        position: relative;
+    }
+
+    .welcome-section .user-name::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: #fd6a14;
+        border-radius: 2px;
+    }
+
+    .welcome-section p {
+        font-size: 15px;
+        color: #888;
+    }
+
+    /* CABEÇALHO */
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+
+    .section-line {
+        width: 40px;
+        height: 3px;
+        background: linear-gradient(90deg, #fd6a14, #184145);
+        border-radius: 3px;
+    }
+
+    .section-header h2 {
+        font-size: 22px;
+        font-weight: 500;
+        color: #184145;
+        margin: 0;
+    }
+
+    .journey-hint {
+        margin-left: auto;
+        font-size: 11px;
+        color: #999;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .journey-hint i {
+        font-size: 12px;
+    }
+
+    /* GRID DE RECURSOS */
+    .features-section {
+        margin-bottom: 60px;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+    }
+
+    .feature-card {
         background: white;
         border-radius: 20px;
-        padding: 50px 30px;
-        text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        max-width: 700px;
-        margin: 40px auto;
-    }
-
-    .em-desenvolvimento-icon {
-        font-size: 70px;
-        color: #0b5b99;
-        margin-bottom: 20px;
-        animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-        50% {
-            transform: scale(1.05);
-            opacity: 0.9;
-        }
-    }
-
-    .em-desenvolvimento-card h2 {
-        color: #184145;
-        font-size: 24px;
-        margin-bottom: 15px;
-    }
-
-    .em-desenvolvimento-card p {
-        color: #666;
-        font-size: 16px;
-        margin-bottom: 20px;
-    }
-
-    .recursos-lista {
-        list-style: none;
-        padding: 0;
-        margin: 25px 0;
-        text-align: left;
-        display: block;
-        width: 100%;
-    }
-
-    .recursos-lista li {
-        padding: 8px 0;
-        color: #555;
-        font-size: 14px;
-    }
-
-    .recursos-lista li i {
-        color: #0b5b99;
-        margin-right: 10px;
-        width: 20px;
-    }
-
-    .btn-voltar {
-        background: #0b5b99;
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
         cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s;
-        display: inline-flex !important;
-        align-items: center;
-        gap: 8px;
-        margin-top: 20px;
-        clear: both;
+        border: 1px solid rgba(0,0,0,0.04);
     }
 
-    .btn-voltar:hover {
-        background: #0d2e31;
-        transform: translateY(-2px);
+    .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        border-color: transparent;
+    }
+
+    .card-top {
+        height: 4px;
+    }
+
+    .card-body {
+        padding: 24px 20px 20px;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .card-icon i {
+        font-size: 22px;
+        color: white;
+    }
+
+    .card-body h3 {
+        font-size: 17px;
+        font-weight: 600;
+        color: #1a2a3a;
+        margin-bottom: 8px;
+    }
+
+    .card-body p {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    /* ============================================ */
+    /* TIMELINE HORIZONTAL COM PREVIEW */
+    /* ============================================ */
+    .journey-section {
+        margin-bottom: 40px;
+        position: relative;
+        overflow: visible;
+    }
+
+    .timeline-horizontal {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        min-width: 800px;
+        padding: 30px 0 40px;
+        position: relative;
+        overflow: visible;
+    }
+
+    /* Linha de fundo */
+    .timeline-horizontal::before {
+        content: '';
+        position: absolute;
+        top: 35px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #184145, #fd6a14, #17a2b8, #28a745, #c2c510);
+        border-radius: 3px;
+        z-index: 0;
+    }
+
+    .timeline-node {
+        flex: 1;
+        position: relative;
+        text-align: center;
+        padding: 0 10px;
+        cursor: pointer;
+        z-index: 1;
+    }
+
+    .node-marker {
+        position: relative;
+        width: 50px;
+        margin: 0 auto 20px;
+    }
+
+    .marker-dot {
+        width: 18px;
+        height: 18px;
+        background: inherit;
+        border-radius: 50%;
+        margin: 0 auto;
+        border: 3px solid white;
+        box-shadow: 0 0 0 2px currentColor;
+        position: relative;
+        z-index: 2;
+        transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        cursor: pointer;
+    }
+
+    .timeline-node:hover .marker-dot {
+        transform: scale(1.4);
+        box-shadow: 0 0 0 3px rgba(253,106,20,0.3);
+    }
+
+    .marker-line {
+        position: absolute;
+        top: 9px;
+        left: 50%;
+        width: calc(100% + 20px);
+        height: 2px;
+        z-index: 1;
+    }
+
+    .timeline-node:last-child .marker-line {
+        display: none;
+    }
+
+    .node-content {
+        text-align: center;
+        padding: 0 8px;
+    }
+
+    .node-date {
+        font-size: 11px;
+        font-weight: 700;
+        color: #fd6a14;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .node-content h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: #184145;
+        margin-bottom: 8px;
+    }
+
+    .node-content p {
+        font-size: 12px;
+        color: #777;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    /* Tooltip de imagem - VERSÃO OTIMIZADA */
+    .timeline-node .image-tooltip {
+        position: fixed;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        overflow: hidden;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.25s ease;
+        pointer-events: none;
+        z-index: 99999;
+        width: 260px;
+        border: 2px solid white;
+    }
+
+    .timeline-node .image-tooltip img {
+        width: 100%;
+        height: auto;
+        max-height: 150px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .timeline-node .image-tooltip .tooltip-caption {
+        padding: 6px 10px;
+        background: #184145;
+        color: white;
+        font-size: 10px;
+        text-align: center;
+    }
+
+    .timeline-node:hover .image-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Preview flutuante */
+    .node-preview {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: #184145;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        z-index: 10001;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        pointer-events: none;
+    }
+
+    .timeline-node:hover .node-preview {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(-10px);
+    }
+
+    /* RESPONSIVO */
+    @media (max-width: 768px) {
+        .timeline-node .image-tooltip {
+            width: 220px;
+        }
+        
+        .timeline-node .image-tooltip img {
+            max-height: 120px;
+        }
+        
+        .node-preview {
+            display: none;
+        }
     }
 </style>
+
+<script>
+    // Adiciona tooltips com imagens para cada ponto da timeline
+    document.addEventListener('DOMContentLoaded', () => {
+        const timelineNodes = document.querySelectorAll('.timeline-node');
+        
+        timelineNodes.forEach((node, index) => {
+            // Cria o elemento da tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'image-tooltip';
+            
+            // Define a imagem baseada no ponto
+            const images = [
+                '/static/images/sistema-v1.jpg',
+                '/static/images/streamlit-v1.jpg',
+                '/static/images/streamlit-v2.jpg',
+                '/static/images/flask-v2.jpg',
+                '/static/images/producao.jpg',
+                '/static/images/futuro-ia.jpg'
+            ];
+            
+            const captions = [
+                'Primeira versão do sistema',
+                'Versão 1.0 - Interface Streamlit',
+                'Aprimoramento da V.1',
+                'Versão 2.0 - Interface Flask',
+                'Sistema em produção',
+                'Visão futura com Inteligência Artificial'
+            ];
+            
+            tooltip.innerHTML = `
+                <img src="${images[index]}" alt="${captions[index]}" onerror="this.src='/static/images/placeholder.jpg'">
+                <div class="tooltip-caption">${captions[index]}</div>
+            `;
+            
+            node.appendChild(tooltip);
+            
+            // Posiciona a tooltip dinamicamente no hover
+            node.addEventListener('mouseenter', (e) => {
+                const rect = node.getBoundingClientRect();
+                const tooltipWidth = 260;
+                const tooltipHeight = tooltip.offsetHeight;
+                
+                // Calcula posição horizontal (centralizada)
+                let leftPos = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                
+                // Garante que não saia da tela à esquerda
+                if (leftPos < 10) leftPos = 10;
+                
+                // Garante que não saia da tela à direita
+                if (leftPos + tooltipWidth > window.innerWidth - 10) {
+                    leftPos = window.innerWidth - tooltipWidth - 10;
+                }
+                
+                // Posiciona acima do ponto
+                let topPos = rect.top - tooltipHeight - 10;
+                
+                // Se não couber acima, posiciona abaixo
+                if (topPos < 10) {
+                    topPos = rect.bottom + 10;
+                }
+                
+                tooltip.style.left = leftPos + 'px';
+                tooltip.style.top = topPos + 'px';
+            });
+        });
+        
+        // Animações dos cards
+        const cards = document.querySelectorAll('.feature-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = `opacity 0.4s ease ${index * 0.05}s, transform 0.4s ease ${index * 0.05}s`;
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    });
+</script>
 {% endblock %}
