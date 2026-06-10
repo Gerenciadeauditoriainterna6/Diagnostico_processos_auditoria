@@ -4267,7 +4267,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                     if dados:
                         tabela_analise = Table(dados, colWidths=[4*cm, 11*cm])
                         tabela_analise.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFF8E7')),
+                            # ⭐ Background amarelo claro com transparência
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(1.0, 0.97, 0.90, alpha=0.60)),  # #FFF8E7
                             ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
                             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                             ('TOPPADDING', (0, 0), (-1, -1), 4),
@@ -4333,7 +4334,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                     tabela_plano = Table(dados_plano, colWidths=[4*cm, 11*cm])
                     tabela_plano.setStyle(TableStyle([
                         ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#E8F5E9')),
+                        # ⭐ Background verde claro com transparência
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.91, 0.96, 0.91, alpha=0.60)),  # #E8F5E9
                         ('TOPPADDING', (0, 0), (-1, -1), 4),
                         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                     ]))
@@ -4388,7 +4390,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 # Permitir que a tabela quebre entre linhas, mas mantendo cabeçalho
                 tabela_historico_split = Table(historico_data, colWidths=[3*cm, 3.5*cm, 7*cm, 3.5*cm], repeatRows=1)
                 tabela_historico_split.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#184145')),
+                    # ⭐ Cabeçalho com transparência
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.09, 0.25, 0.27, alpha=0.60)),  # #184145
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
@@ -4437,7 +4440,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 # ⭐ IMPORTANTE: Usar repeatRows=1 para repetir o cabeçalho quando a tabela quebrar
                 tabela_followup = Table(followup_data, colWidths=[3.5*cm, 3*cm, 3*cm, 3*cm, 4.5*cm], repeatRows=1)
                 tabela_followup.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
+                    # ⭐ Cabeçalho azul com transparência
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.04, 0.36, 0.60, alpha=0.60)),  # #0b5b99
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
@@ -4499,21 +4503,35 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     tabela_assinaturas = Table(assinatura_data, colWidths=[5.5*cm, 10*cm])
     tabela_assinaturas.setStyle(TableStyle([
         ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FAFAFA')),
         ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#E0E0E0')),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
     story.append(tabela_assinaturas)
     
-    # ===== RODAPÉ =====
-    def rodape(canvas, doc):
+    # ===== RODAPÉ COM TARJA DE STATUS =====
+    def rodape_com_status(canvas, doc):
         canvas.saveState()
+        
+        # Rodapé normal
         canvas.setFont('Helvetica', 8)
         canvas.setFillColor(colors.HexColor('#999999'))
         canvas.drawCentredString(pagesize[0]/2, 1*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
+        
+        # ⭐ Tarja de status apenas para auditorias Inconclusivas
+        if status == "Inconclusiva":
+            canvas.setFont('Helvetica-Bold', 42)
+            # Usar RGB com alpha (0.0 a 1.0)
+            canvas.setFillColorRGB(0.86, 0.08, 0.24, alpha=0.36)  # #DC3545 em RGB
+            
+            canvas.saveState()
+            canvas.translate(pagesize[0] / 2, pagesize[1] / 2)
+            canvas.rotate(45)
+            canvas.drawCentredString(0, 0, "INCONCLUSIVA")
+            canvas.restoreState()
+        
         canvas.restoreState()
     
-    doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
+    doc.build(story, onFirstPage=rodape_com_status, onLaterPages=rodape_com_status)
     buffer.seek(0)
     return buffer.getvalue()

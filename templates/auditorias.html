@@ -113,9 +113,8 @@
                     <label><i class="fas fa-flag"></i> Status:</label>
                     <select id="status_auditoria" class="form-control">
                         <option value="Em Execução">Em Execução</option>
-                        <option value="Concluída">Concluída</option>
-                        <option value="Concluída Avaliação">Concluída Avaliação</option>
-                        <option value="Concluída com Follow-Up">Concluída com Follow-Up</option>
+                        <option value="Eficácia Validada">Eficácia Validada</option>
+                        <option value="Follow-up">Follow-up</option>
                         <option value="Em Atraso">Em Atraso</option>
                         <option value="Inconclusiva">Inconclusiva</option>
                     </select>
@@ -343,8 +342,11 @@
 
     .status-planejamento { background: #e3f2fd; color: #0b5b99; }
     .status-execucao { background: #fff3e0; color: #fd6a14; }
+    .status-eficacia { background: #c8e6c9; color: #2e7d32; }      /* ⭐ NOVO */
+    .status-followup { background: #e1bee7; color: #6a1b9a; }      /* ⭐ NOVO */
     .status-concluida { background: #d4edda; color: #28a745; }
     .status-atraso { background: #f8d7da; color: #dc3545; }
+    .status-inconclusiva { background: #ffccbc; color: #bf360c; }  /* ⭐ NOVO */
     .status-cancelada { background: #f5f5f5; color: #757575; }
 
     /* Botões de ação padronizados */
@@ -688,11 +690,14 @@
                 
                 let statusClass = '';
                 const status = aud.status || '';
-                
+
                 if (status === 'Planejamento') statusClass = 'status-planejamento';
                 else if (status === 'Em Execução') statusClass = 'status-execucao';
-                else if (status === 'Concluída' || status === 'Concluída Avaliação' || status === 'Concluída com Follow-Up') statusClass = 'status-concluida';
+                else if (status === 'Eficácia Validada') statusClass = 'status-eficacia';      // ⭐ NOVO
+                else if (status === 'Follow-up') statusClass = 'status-followup';              // ⭐ NOVO
+                else if (status === 'Concluída') statusClass = 'status-concluida';
                 else if (status === 'Em Atraso') statusClass = 'status-atraso';
+                else if (status === 'Inconclusiva') statusClass = 'status-inconclusiva';       // ⭐ NOVO
                 else if (status === 'Cancelada') statusClass = 'status-cancelada';
                 else statusClass = 'status-planejamento';
                 
@@ -806,7 +811,7 @@
         document.getElementById('trimestre_auditoria').value = '';
         document.getElementById('data_inicio').value = '';
         document.getElementById('data_fim').value = '';
-        document.getElementById('status_auditoria').value = 'Planejamento';
+        document.getElementById('status_auditoria').value = 'Em Execução';
         document.getElementById('unidade_auditoria').value = '';
         // Não limpar o select aqui, apenas resetar para o estado inicial
         const selectResponsaveis = document.getElementById('responsaveis_equipe');

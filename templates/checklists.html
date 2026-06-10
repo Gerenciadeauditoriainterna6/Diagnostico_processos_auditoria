@@ -2980,6 +2980,10 @@
         let html = '';
         analisesComDados.forEach((analise, index) => {
             const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
+            const prazoExpirado = analise.sugestao_sera_implantada === true &&
+                                !analise.efetivamente_implantada && 
+                                analise.data_conclusao_prevista && 
+                                new Date(analise.data_conclusao_prevista) < new Date();
             
             let badgeHtml = '';
             if (analise.sugestao_sera_implantada === true) badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i> Será implantada</span>';
@@ -3017,6 +3021,43 @@
                         <div class="analise-card-section"><h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
                     </div>
                     ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Observações</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
+                    
+                    <!-- ⭐ BOTÃO DE CONFIRMAÇÃO DE IMPLANTAÇÃO -->
+                    ${analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada ? `
+                    <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99; border-radius: 12px;">
+                        <div style="padding: 15px;">
+                            <i class="fas fa-check-circle" style="color: #0b5b99; font-size: 24px;"></i>
+                            <p style="margin: 10px 0; color: #0b5b99; font-weight: 500;">Esta melhoria está aguardando confirmação de implantação</p>
+                            <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="background: #0b5b99; border-radius: 30px;">
+                                <i class="fas fa-check-circle"></i> Confirmar Implantação
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- ⭐ BOTÃO DE PRAZO EXPIRADO -->
+                    ${prazoExpirado ? `
+                    <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 12px;">
+                        <div style="padding: 15px;">
+                            <i class="fas fa-clock" style="color: #856404; font-size: 24px;"></i>
+                            <p style="margin: 10px 0; color: #856404; font-weight: 500;">Prazo de implantação expirado em ${formatarData(analise.data_conclusao_prevista)}</p>
+                            <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="background: #856404; border-radius: 30px;">
+                                <i class="fas fa-check-circle"></i> Confirmar Situação
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- ⭐ FOLLOW-UPS (APENAS SE IMPLANTADA) -->
+                    ${analise.efetivamente_implantada === true ? `
+                    <div class="analise-card-section" style="margin-top: 20px;">
+                        <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
+                        <div class="followups-container">
+                            ${renderizarListaFollowUps(analise.followUps)}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div class="analise-card-section">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <h4><i class="fas fa-history"></i> Histórico de Andamento</h4>
