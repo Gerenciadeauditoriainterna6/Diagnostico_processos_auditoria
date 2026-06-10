@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trocar Senha - Sistema de Auditoria Interna</title>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* ========== ESTILOS DO TROCAR SENHA (mesmo padrão do login) ========== */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #184145 0%, #0a2a2e 100%);
+            background-image: url("{{ url_for('static', filename='assets/imagem_fundo.png')}}");
+            background-size: 110% 120%;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .trocar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .trocar-card {
+            position: relative;
+            background: linear-gradient(180deg, #6d8285 0%, #406064 100%);
+            border: 3px solid #042e57;
+            border-radius: 20px;
+            padding: 60px 45px 35px 45px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.3);
+        }
+
+        .logo-flutuante {
+            position: absolute;
+            top: -70px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .logo-flutuante img {
+            width: 80%;
+            height: auto;
+        }
+
+        .title {
+            text-align: center;
+            color: white;
+            margin-bottom: 15px;
+            margin-top: 10px;
+        }
+
+        .title span:first-child {
+            font-size: 13px;
+            display: block;
+        }
+
+        .title span:nth-child(2) {
+            font-size: 16px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .info-message {
+            text-align: center;
+            color: #fd6a14;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            color: #184145;
+            font-size: 15px;
+            z-index: 1;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 13px 15px 13px 42px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.95);
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(11, 91, 153, 0.3);
+        }
+
+        .btn-trocar {
+            width: 100%;
+            padding: 13px;
+            background-color: #153e5a;
+            border: 1.5px solid #184145;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-trocar:hover {
+            background-color: rgba(11, 91, 153, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+
+        .footer-logo {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .footer-logo img {
+            width: 120px;
+            height: auto;
+            opacity: 0.70;
+            transition: opacity 0.2s;
+        }
+
+        .footer-logo img:hover {
+            opacity: 1;
+        }
+
+        /* SPINNER */
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #153e5a;
+            border-radius: 50%;
+            margin: 0 auto;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* NOTIFICAÇÕES */
+        .notification {
+            background-color: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification.erro {
+            background-color: #dc3545;
+            border-left: 4px solid #ffc107;
+        }
+
+        .notification.sucesso {
+            background-color: #28a745;
+            border-left: 4px solid #ffc107;
+        }
+
+        @media (max-width: 520px) {
+            .trocar-card {
+                padding: 60px 25px 30px 25px;
+                max-width: 95%;
+                margin: 20px;
+            }
+            .logo-flutuante {
+                width: 80px;
+                height: 80px;
+                top: -40px;
+            }
+            .input-group input {
+                padding: 11px 12px 11px 38px;
+                font-size: 14px;
+            }
+            .btn-trocar {
+                padding: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Container para notificações flutuantes -->
+    <div id="notification-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;"></div>
+
+    <div class="trocar-wrapper">
+        <div class="trocar-card">
+            <div class="logo-flutuante">
+                <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo Auditoria">
+            </div>
+
+            <div class="title">
+                <span>SISTEMA</span>
+                <span>GERÊNCIA DE AUDITORIA INTERNA</span>
+            </div>
+
+            <div class="info-message">
+                <i class="fas fa-key"></i> Olá, {{ nome }}! Crie sua nova senha
+            </div>
+
+            <div class="input-group">
+                <span class="input-icon"><i class="fas fa-lock"></i></span>
+                <input type="password" id="nova_senha" placeholder="Digite sua nova senha" required>
+            </div>
+
+            <div class="input-group password-group">
+                <span class="input-icon"><i class="fas fa-lock"></i></span>
+                <input type="password" id="confirmar_senha" placeholder="Confirme sua nova senha" required>
+            </div>
+
+            <button class="btn-trocar" id="btn-trocar">REDEFINIR SENHA</button>
+            <div id="spinner" style="display: none; text-align: center; margin-top: 15px;">
+                <div class="spinner"></div>
+                <p style="color: white; margin-top: 8px; font-size: 12px;">Processando...</p>
+            </div>
+        </div>
+
+        <div class="footer-logo">
+            <img src="{{ url_for('static', filename='assets/logo_fusve.png') }}" alt="Logo FUSVE">
+        </div>
+    </div>
+
+    <script>
+        const btnTrocar = document.getElementById('btn-trocar');
+        const spinner = document.getElementById('spinner');
+        const notificationContainer = document.getElementById('notification-container');
+
+        function mostrarNotificacao(mensagem, tipo) {
+            const notif = document.createElement('div');
+            notif.className = `notification ${tipo}`;
+            notif.innerHTML = mensagem;
+            notificationContainer.appendChild(notif);
+
+            setTimeout(() => notif.classList.add('show'), 10);
+
+            setTimeout(() => {
+                notif.classList.remove('show');
+                setTimeout(() => notif.remove(), 300);
+            }, 5000);
+        }
+
+        async function trocarSenha() {
+            const nova_senha = document.getElementById('nova_senha').value;
+            const confirmar_senha = document.getElementById('confirmar_senha').value;
+            
+            if (!nova_senha || !confirmar_senha) {
+                mostrarNotificacao('❌ Preencha todos os campos', 'erro');
+                return;
+            }
+            
+            if (nova_senha !== confirmar_senha) {
+                mostrarNotificacao('❌ As senhas não coincidem', 'erro');
+                return;
+            }
+            
+            if (nova_senha.length < 6) {
+                mostrarNotificacao('❌ A senha deve ter no mínimo 6 caracteres', 'erro');
+                return;
+            }
+            
+            btnTrocar.style.display = 'none';
+            spinner.style.display = 'block';
+            
+            try {
+                const response = await fetch('/trocar-senha', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nova_senha, confirmar_senha })
+                });
+                
+                const data = await response.json();
+                mostrarNotificacao(data.message, data.success ? 'sucesso' : 'erro');
+                
+                if (data.success) {
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 3000);
+                } else {
+                    btnTrocar.style.display = 'block';
+                    spinner.style.display = 'none';
+                }
+            } catch (error) {
+                mostrarNotificacao('❌ Erro ao processar solicitação', 'erro');
+                btnTrocar.style.display = 'block';
+                spinner.style.display = 'none';
+            }
+        }
+
+        btnTrocar.addEventListener('click', trocarSenha);
+    </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ import io
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
@@ -125,38 +126,254 @@ def configurar_auditoria():
 # ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
 # ============================================================
 
+@app.route('/cadastro', methods=["GET", "POST"])
+def cadastro():
+    """Tela de cadastro de novos usuários"""
+    if request.method == 'GET':
+        return render_template('cadastro.html')
+
+    # POST - processar cadastro
+    data = request.json
+    login = data.get('login')
+    nome = data.get('nome')
+    senha = data.get('senha')
+
+    if not login or not nome or not senha:
+        return jsonify({'success': False, 'error': 'Todos os campos são obrigatórios'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    from werkzeug.security import generate_password_hash
+
+    try:
+        with engine.connect() as conn:
+            # Verifica se email já existe
+            check_query = text("SELECT id FROM usuarios WHERE login = :login")
+            existing = conn.execute(check_query, {'login': login}).fetchone()
+
+            if existing:
+                return jsonify({'success': False, 'error': 'E-mail já cadastrado. Faça login ou recupere sua senha.'}), 400
+
+            # Hash da senha
+            senha_hash = generate_password_hash(senha)
+
+            # Inserir novo usuário (ativo = false, perfil 'auditor', area = 'Gerência de Auditoria Interna')
+            insert_query = text("""
+                INSERT INTO usuarios (login, senha, nome, area, ativo, perfil)
+                VALUES (:login, :senha, :nome, :area, :ativo, :perfil)
+            """)
+
+            conn.execute(insert_query, {
+                'login': login,
+                'senha': senha_hash,
+                'nome': nome,
+                'area': 'Gerência de Auditoria Interna',
+                'ativo': False,
+                'perfil': 'auditor'
+            })
+            conn.commit()
+
+            return jsonify({'success': True, 'message': 'Cadastro realizado! Aguarde aprovação do administrador.'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao cadastrar usuário: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
 @app.route('/login', methods=["GET", "POST"])
 def login():
-    """Tela de login do sistema"""
     if session.get('autenticado'):
         return redirect(url_for('home'))
     
-    erro = None
-    if request.method == 'POST':
-        usuario = request.form.get('usuario')
-        senha = request.form.get('senha')
-        
-        sucesso, usuario_id, usuario_nome, usuario_perfil = validar_login_no_banco(usuario, senha)
-        
-        if sucesso:
-            session['autenticado'] = True
-            session['usuario_logado'] = usuario
-            session['usuario_nome'] = usuario_nome
-            session['usuario_id'] = usuario_id
-            session['usuario_perfil'] = usuario_perfil
-            session['login_timestamp'] = datetime.now().isoformat()
-            session.permanent = True
-            return redirect(url_for('home'))
-        else:
-            erro = "❌ Usuário ou senha incorretos."
+    if request.method == 'GET':
+        return render_template('login.html', mostrar_botao_esqueci=False)
     
-    return render_template('login.html', erro=erro)
+    data = request.json
+    usuario = data.get('usuario')
+    senha = data.get('senha')
+    
+    resultado = validar_login_no_banco(usuario, senha)
+    
+    # Desempacota (agora pode ter 8 valores)
+    if len(resultado) == 8:
+        sucesso, usuario_id, usuario_nome, usuario_perfil, tentativas_restantes, bloqueado, minutos_restantes, precisa_trocar = resultado
+    else:
+        sucesso, usuario_id, usuario_nome, usuario_perfil, tentativas_restantes, bloqueado, minutos_restantes = resultado
+        precisa_trocar = False
+    
+    if sucesso:
+        if precisa_trocar:
+            # Login com senha temporária - força troca
+            session['trocar_senha'] = True
+            session['usuario_id_temp'] = usuario_id
+            session['usuario_nome_temp'] = usuario_nome
+            return jsonify({'success': True, 'trocar_senha': True, 'redirect': url_for('trocar_senha')})
+        
+        # Login normal
+        session['autenticado'] = True
+        session['usuario_logado'] = usuario
+        session['usuario_nome'] = usuario_nome
+        session['usuario_id'] = usuario_id
+        session['usuario_perfil'] = usuario_perfil
+        session.permanent = True
+        return jsonify({'success': True, 'redirect': url_for('home')})
+    
+    if bloqueado:
+        return jsonify({
+            'success': False, 
+            'bloqueado': True, 
+            'minutos': minutos_restantes,
+            'error': f'Conta bloqueada por {minutos_restantes} minutos.'
+        })
+    
+    if tentativas_restantes > 0:
+        mostrar_esqueci = tentativas_restantes <= 1
+        return jsonify({
+            'success': False, 
+            'tentativas_restantes': tentativas_restantes,
+            'error': f'Usuário ou senha incorretos. Você tem mais {tentativas_restantes} tentativa(s).',
+            'mostrar_esqueci': mostrar_esqueci
+        })
+    
+    return jsonify({'success': False, 'error': 'Usuário ou senha incorretos'})
+
+@app.route('/trocar-senha', methods=['GET', 'POST'])
+def trocar_senha():
+    """Página para forçar troca de senha"""
+    if not session.get('trocar_senha'):
+        return redirect(url_for('login'))
+    
+    if request.method == 'GET':
+        return render_template('trocar_senha.html', nome=session.get('usuario_nome_temp', 'Usuário'))
+    
+    # POST - processar nova senha
+    from database import engine
+    from sqlalchemy import text
+    from werkzeug.security import generate_password_hash
+    
+    data = request.json
+    nova_senha = data.get('nova_senha')
+    confirmar_senha = data.get('confirmar_senha')
+    
+    if not nova_senha or not confirmar_senha:
+        return jsonify({'success': False, 'message': 'Preencha todos os campos'}), 400
+    
+    if nova_senha != confirmar_senha:
+        return jsonify({'success': False, 'message': 'As senhas não coincidem'}), 400
+    
+    if len(nova_senha) < 6:
+        return jsonify({'success': False, 'message': 'A senha deve ter no mínimo 6 caracteres'}), 400
+    
+    try:
+        usuario_id = session.get('usuario_id_temp')
+        nova_senha_hash = generate_password_hash(nova_senha)
+        
+        print(f"🔍 DEBUG - Usuário ID: {usuario_id}")
+        
+        with engine.connect() as conn:
+            # Verificar estado ANTES
+            before = conn.execute(text("SELECT solicitou_recuperacao, forcar_troca_senha, senha_temporaria FROM usuarios WHERE id = :id"), {'id': usuario_id}).fetchone()
+            print(f"🔍 ANTES: solicitou_recuperacao={before[0]}, forcar_troca_senha={before[1]}, senha_temporaria={before[2]}")
+            
+            # ⭐ ATUALIZAR todos os campos de recuperação
+            update = text("""
+                UPDATE usuarios 
+                SET senha = :senha, 
+                    forcar_troca_senha = FALSE, 
+                    senha_temporaria = NULL,
+                    solicitou_recuperacao = FALSE,
+                    tentativas_login = 0,
+                    bloqueado_ate = NULL
+                WHERE id = :id
+            """)
+            result = conn.execute(update, {
+                'senha': nova_senha_hash, 
+                'id': usuario_id
+            })
+            conn.commit()
+            print(f"🔍 Linhas afetadas: {result.rowcount}")
+            
+            # Verificar estado DEPOIS
+            after = conn.execute(text("SELECT solicitou_recuperacao, forcar_troca_senha, senha_temporaria FROM usuarios WHERE id = :id"), {'id': usuario_id}).fetchone()
+            print(f"🔍 DEPOIS: solicitou_recuperacao={after[0]}, forcar_troca_senha={after[1]}, senha_temporaria={after[2]}")
+        
+        # Limpa sessão temporária
+        session.pop('trocar_senha', None)
+        session.pop('usuario_id_temp', None)
+        session.pop('usuario_nome_temp', None)
+        
+        return jsonify({'success': True, 'message': 'Senha alterada com sucesso! Faça login.'})
+        
+    except Exception as e:
+        print(f"Erro ao trocar senha: {e}")
+        return jsonify({'success': False, 'message': 'Erro ao processar solicitação'}), 500
 
 @app.route('/logout')
 def logout():
     """Remove os dados da sessão e desloga o usuário"""
     session.clear()
     return redirect(url_for('login'))
+
+
+
+@app.route('/admin/usuario/<int:usuario_id>/resetar-senha', methods=['POST'])
+def admin_resetar_senha(usuario_id):
+    # Verifica se é ADMIN
+    if session.get('usuario_perfil') not in ['administrador', 'admin']:
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    from werkzeug.security import generate_password_hash
+    
+    senha_temp = f"temp{usuario_id}{datetime.now().strftime('%d%m')}"
+    senha_hash = generate_password_hash(senha_temp)
+    
+    with engine.connect() as conn:
+        conn.execute(text("""
+            UPDATE usuarios 
+            SET senha = :senha, 
+                forcar_troca_senha = TRUE,
+                senha_temporaria = :temp
+            WHERE id = :id
+        """), {'senha': senha_hash, 'temp': senha_temp, 'id': usuario_id})
+        conn.commit()
+    
+    return jsonify({'success': True, 'senha_temporaria': senha_temp})
+
+@app.route('/solicitar-recuperacao', methods=['POST'])
+def solicitar_recuperacao():
+    """Usuário solicita recuperação de senha"""
+    data = request.json
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'success': False, 'message': 'E-mail é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # Verifica se email existe
+            user = conn.execute(text("SELECT id FROM usuarios WHERE login = :email"), {'email': email}).fetchone()
+            
+            if not user:
+                # Por segurança, não informamos que o email não existe
+                return jsonify({'success': True, 'message': 'Solicitação enviada ao administrador.'})
+            
+            # Marca que o usuário solicitou recuperação
+            conn.execute(text("""
+                UPDATE usuarios 
+                SET solicitou_recuperacao = TRUE 
+                WHERE id = :id
+            """), {'id': user[0]})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Solicitação enviada ao administrador.'})
+            
+    except Exception as e:
+        print(f"Erro: {e}")
+        return jsonify({'success': False, 'message': 'Erro ao processar solicitação'}), 500
 
 @app.route('/ping')
 def ping():
@@ -180,10 +397,6 @@ def home():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     return render_template('home.html')
-
-# ============================================================
-# ROTAS PRINCIPAIS (PÁGINAS)
-# ============================================================
 
 @app.route('/plano-anual')
 def plano_anual():

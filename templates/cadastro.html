@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistema de Auditoria Interna</title>
+    <title>Cadastro - Sistema de Auditoria Interna</title>
     
     <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
-        /* ========== ESTILOS DO LOGIN ========== */
+        /* ========== ESTILOS DO CADASTRO (mesmo estilo do login) ========== */
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-
         }
 
         html, body {
@@ -40,8 +39,7 @@
             justify-content: center;
         }
 
-        /* Container centralizador */
-        .login-wrapper {
+        .cadastro-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -49,23 +47,21 @@
             width: 100%;
         }
 
-        /* Card principal com posição relativa para o logo absoluto */
-        .login-card {
+        .cadastro-card {
             position: relative;
             background: linear-gradient(180deg, #6d8285 0%, #406064 100%);
             border: 3px solid #042e57;
             border-radius: 20px;
-            padding: 60px 45px 35px 45px;  /* Aumentado o padding-top para dar espaço à logo */
+            padding: 60px 45px 35px 45px;
             width: 100%;
-            max-width: 420px;               /* Aumentado para campos mais largos */
+            max-width: 450px;
             box-shadow: 0 15px 25px rgba(0,0,0,0.3);
-
+            margin-top: 40px;
         }
 
-        /* Logo flutuante - metade dentro, metade fora */
         .logo-flutuante {
             position: absolute;
-            top: -70px;                     /* Metade da altura (100px) para fora */
+            top: -70px;
             left: 50%;
             transform: translateX(-50%);
             width: 140px;
@@ -78,7 +74,6 @@
             z-index: 10;
         }
 
-        /* Para quando você tiver a imagem real */
         .logo-flutuante img {
             width: 80%;
             height: auto;
@@ -110,7 +105,6 @@
             margin-bottom: 15px;
         }
 
-        /* Grupo de input com ícone */
         .input-group {
             position: relative;
             margin-bottom: 18px;
@@ -128,9 +122,9 @@
 
         .input-group input {
             width: 100%;
-            padding: 13px 15px 13px 42px;   /* Aumentado para campos mais altos */
+            padding: 13px 15px 13px 42px;
             border: none;
-            border-radius: 12px;             /* Bordas um pouco maiores */
+            border-radius: 12px;
             background: rgba(255,255,255,0.95);
             font-size: 15px;
             transition: all 0.3s ease;
@@ -142,7 +136,6 @@
             box-shadow: 0 0 0 3px rgba(11, 91, 153, 0.3);
         }
 
-        /* Grupo específico para senha (com botão do olho) */
         .password-group input {
             padding-right: 48px;
         }
@@ -162,44 +155,50 @@
             color: #0b5b99;
         }
 
-        .btn-login {
+        .btn-cadastrar {
             width: 100%;
-            padding: 13px;                  /* Aumentado */
+            padding: 13px;
             background-color: #153e5a;
             border: 1.5px solid #184145;
             color: white;
             font-size: 16px;
             font-weight: bold;
-            border-radius: 12px;            /* Aumentado */
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 10px;
         }
 
-        .btn-login:hover {
+        .btn-cadastrar:hover {
             background-color: rgba(11, 91, 153, 0.8);
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.25);
         }
 
-        .alert {
-            background-color: rgba(220, 53, 69, 0.9);
-            color: white;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+        .login-link {
             text-align: center;
+            margin-top: 20px;
+            color: white;
             font-size: 13px;
         }
 
-        /* Logo FUSVE fora do card (rodapé separado) */
+        .login-link a {
+            color: #fd6a14;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
         .footer-logo {
             text-align: center;
-            margin-top: 15px;
+            margin-top: 30px;
         }
 
         .footer-logo img {
-            width: 120px;  /* -> Ajuste conforme o tamanho desejado */
+            width: 120px;
             height: auto;
             opacity: 0.70;
             transition: opacity 0.2s;
@@ -210,7 +209,7 @@
         }
 
         @media (max-width: 520px) {
-            .login-card {
+            .cadastro-card {
                 padding: 60px 25px 30px 25px;
                 max-width: 95%;
                 margin: 20px;
@@ -225,16 +224,11 @@
                 padding: 11px 12px 11px 38px;
                 font-size: 14px;
             }
-            .btn-login {
+            .btn-cadastrar {
                 padding: 11px;
-            }
-            .footer-logo-placeholder {
-                width: 100px;
-                height: 35px;
             }
         }
 
-        /* ========== SPINNER (funciona em todas as telas) ========== */
         .spinner {
             width: 30px;
             height: 30px;
@@ -249,7 +243,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ========== NOTIFICAÇÕES FLUTUANTES ========== */
         .notification {
             background-color: #333;
             color: white;
@@ -279,16 +272,13 @@
             background-color: #28a745;
             border-left: 4px solid #ffc107;
         }
-    
     </style>
 </head>
 <body>
-    <!-- Container para notificações flutuantes (não afeta o layout) -->
     <div id="notification-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;"></div>
 
-    <div class="login-wrapper">
-        <div class="login-card">
-            <!-- Logo flutuante (metade dentro, metade fora) -->
+    <div class="cadastro-wrapper">
+        <div class="cadastro-card">
             <div class="logo-flutuante">
                 <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo Auditoria">
             </div>
@@ -298,60 +288,56 @@
                 <span>GERÊNCIA DE AUDITORIA INTERNA</span>
             </div>
 
-            <div class="acesso-restrito">ACESSO RESTRITO!</div>
+            <div class="acesso-restrito">CADASTRO DE NOVO USUÁRIO</div>
 
-            <form method="POST">
-                <!-- Campo de usuário com ícone -->
+            <form id="cadastroForm">
                 <div class="input-group">
-                    <span class="input-icon"><i class="fas fa-user"></i></span>
-                    <input type="text" name="usuario" placeholder="Digite seu usuário" required autofocus>
+                    <span class="input-icon"><i class="fas fa-envelope"></i></span>
+                    <input type="email" name="login" id="login" placeholder="Digite seu e-mail" required autofocus>
                 </div>
 
-                <!-- Campo de senha com ícone e botão olho -->
+                <div class="input-group">
+                    <span class="input-icon"><i class="fas fa-user"></i></span>
+                    <input type="text" name="nome" id="nome" placeholder="Digite seu nome completo" required>
+                </div>
+
                 <div class="input-group password-group">
                     <span class="input-icon"><i class="fas fa-lock"></i></span>
                     <input type="password" name="senha" id="senha" placeholder="Digite sua senha" required>
-                    <button type="button" class="toggle-password" onclick="toggleSenha()">
+                    <button type="button" class="toggle-password" onclick="toggleSenha('senha')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
 
-                <button type="submit" class="btn-login">ENTRAR</button>
+                <div class="input-group password-group">
+                    <span class="input-icon"><i class="fas fa-lock"></i></span>
+                    <input type="password" name="confirmar_senha" id="confirmar_senha" placeholder="Confirme sua senha" required>
+                    <button type="button" class="toggle-password" onclick="toggleSenha('confirmar_senha')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                <button type="submit" class="btn-cadastrar">SOLICITAR ACESSO</button>
                 <div id="spinner" style="display: none; text-align: center; margin-top: 15px;">
                     <div class="spinner"></div>
-                    <p style="color: white; margin-top: 8px; font-size: 12px;">Verificando credenciais...</p>
+                    <p style="color: white; margin-top: 8px; font-size: 12px;">Processando cadastro...</p>
                 </div>
             </form>
 
-             <!-- Link para cadastro - ADICIONE AQUI -->
-            <div style="text-align: center; margin-top: 10px;">
-                <a href="{{ url_for('cadastro') }}" style="color: rgba(253, 106, 20, 0.8); text-decoration: none; font-size: 13px; font-weight: 500;">
-                    <strong>Solicitar acesso</strong>
-                </a>
+            <div class="login-link">
+                Já tem uma conta? <a href="{{ url_for('login') }}">Faça login</a>
             </div>
-
-            <!--- Botão Esqueci minha senha (aparece APENAS se a condição for verdadeira) -->
-            {% if mostrar_botao_esqueci %}
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="#" onclick="contatarAdmin()" style="color: #fd6a14; text-decoration: none; font-size: 12px;">
-                    <i class="fas fa-question-circle"></i> Esqueci minha senha
-                </a>
-            </div>
-            {% endif %}
         </div>
 
-        <!-- Logo FUSVE fora do card -->
         <div class="footer-logo">
             <img src="{{ url_for('static', filename='assets/logo_fusve.png') }}" alt="Logo FUSVE">
         </div>
     </div>
 
-
-
     <script>
-        function toggleSenha() {
-            const senhaInput = document.getElementById('senha');
-            const olhoIcon = document.querySelector('.toggle-password i');
+        function toggleSenha(campoId) {
+            const senhaInput = document.getElementById(campoId);
+            const olhoIcon = senhaInput.parentElement.querySelector('.toggle-password i');
             
             if (senhaInput.type === 'password') {
                 senhaInput.type = 'text';
@@ -364,73 +350,8 @@
             }
         }
 
-        function contatarAdmin() {
-            abrirModalSolicitarRecuperacao();
-        }
-
-        function abrirModalSolicitarRecuperacao() {
-            const modal = document.createElement('div');
-            modal.style.position = 'fixed';
-            modal.style.top = '0';
-            modal.style.left = '0';
-            modal.style.width = '100%';
-            modal.style.height = '100%';
-            modal.style.background = 'rgba(0,0,0,0.8)';
-            modal.style.display = 'flex';
-            modal.style.alignItems = 'center';
-            modal.style.justifyContent = 'center';
-            modal.style.zIndex = '100000';
-            
-            modal.innerHTML = `
-                <div style="background: white; border-radius: 20px; padding: 30px; width: 90%; max-width: 400px;">
-                    <h3 style="color: #184145; margin-bottom: 20px;">Recuperar Senha</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Informe seu e-mail cadastrado</p>
-                    <input type="email" id="email-recuperacao" placeholder="Digite seu e-mail" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px;">
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="fecharModal()" style="flex:1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 10px; cursor: pointer;">Cancelar</button>
-                        <button onclick="enviarSolicitacaoRecuperacao()" style="flex:1; padding: 12px; background: #184145; color: white; border: none; border-radius: 10px; cursor: pointer;">Solicitar</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-        }
-
-        async function enviarSolicitacaoRecuperacao() {
-            const email = document.getElementById('email-recuperacao').value;
-            
-            if (!email) {
-                mostrarNotificacao('❌ Informe seu e-mail', 'erro');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/solicitar-recuperacao', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                
-                const data = await response.json();
-                mostrarNotificacao(data.message, data.success ? 'sucesso' : 'erro');
-                
-                if (data.success) {
-                    fecharModal();
-                }
-            } catch (error) {
-                mostrarNotificacao('❌ Erro ao processar solicitação', 'erro');
-            }
-        }
-
-        function fecharModal() {
-            const modal = document.querySelector('div[style*="position: fixed"][style*="z-index: 100000"]');
-            if (modal) modal.remove();
-        }
-
-        // ======== JAVASCRIPT ========
-
-        const form = document.querySelector('form');
-        const btnSubmit = document.querySelector('.btn-login');
+        const form = document.getElementById('cadastroForm');
+        const btnSubmit = document.querySelector('.btn-cadastrar');
         const notificationContainer = document.getElementById('notification-container');
         const spinner = document.getElementById('spinner');
 
@@ -448,79 +369,61 @@
             }, 5000);
         }
 
-        let tentativasExibidas = false;
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const login = document.getElementById('login').value;
+            const nome = document.getElementById('nome').value;
+            const senha = document.getElementById('senha').value;
+            const confirmarSenha = document.getElementById('confirmar_senha').value;
+
+            // Validação básica
+            if (!login || !nome || !senha || !confirmarSenha) {
+                mostrarNotificacao('❌ Todos os campos são obrigatórios', 'erro');
+                return;
+            }
+
+            if (senha !== confirmarSenha) {
+                mostrarNotificacao('❌ As senhas não coincidem', 'erro');
+                return;
+            }
+
+            if (senha.length < 6) {
+                mostrarNotificacao('❌ A senha deve ter no mínimo 6 caracteres', 'erro');
+                return;
+            }
 
             btnSubmit.style.display = 'none';
             spinner.style.display = 'block';
 
-            const usuario = document.querySelector('input[name="usuario"]').value;
-            const senha = document.querySelector('input[name="senha"]').value;
-
             try {
-                const response = await fetch('/login', {
+                const response = await fetch('/cadastro', {
                     method: "POST",
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ usuario, senha })
+                    body: JSON.stringify({ login, nome, senha })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    if (data.trocar_senha) {
-                        mostrarNotificacao('⚠️ Você precisa redefinir sua senha. Redirecionando...', 'sucesso');
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 2000);
-                    } else {
-                        mostrarNotificacao('✅ Login realizado! Redirecionando...', 'sucesso');
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 2500);
-                    }
-                } else if (data.bloqueado) {
-                    mostrarNotificacao(`🔒 ${data.error}`, 'erro');
-                    btnSubmit.style.display = 'block';
-                    spinner.style.display = 'none';
-                } else {
-                    mostrarNotificacao(`❌ ${data.error}`, 'erro');
-                    btnSubmit.style.display = 'block';
-                    spinner.style.display = 'none';
+                    mostrarNotificacao('✅ ' + data.message, 'sucesso');
                     
-                    if (data.mostrar_esqueci && !tentativasExibidas) {
-                        tentativasExibidas = true;
-                        adicionarBotaoEsqueciSenha();
-                    }
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 3000);
+                } else {
+                    mostrarNotificacao('❌ ' + data.error, 'erro');
+                    btnSubmit.style.display = 'block';
+                    spinner.style.display = 'none';
                 }
             } catch (error) {
-                mostrarNotificacao('❌ Erro de conexão. Verifique sua internet.', 'erro');
+                mostrarNotificacao('❌ Erro de conexão. Tente novamente.', 'erro');
                 btnSubmit.style.display = 'block';
                 spinner.style.display = 'none';
             }
         });
-
-        function adicionarBotaoEsqueciSenha() {
-            if (document.getElementById('esqueci-senha')) return;
-            
-            const loginCard = document.querySelector('.login-card');
-            const form = document.querySelector('form');
-            
-            const div = document.createElement('div');
-            div.id = 'esqueci-senha';
-            div.style.textAlign = 'center';
-            div.style.marginTop = '15px';
-            div.innerHTML = `
-                <a href="#" onclick="contatarAdmin()" style="color: #fd6a14; text-decoration: none; font-size: 12px;">
-                    <i class="fas fa-question-circle"></i> Esqueci minha senha
-                </a>
-            `;
-            
-            form.parentNode.insertBefore(div, form.nextSibling);
-        }
     </script>
 </body>
 </html>

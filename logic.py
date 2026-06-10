@@ -1600,34 +1600,102 @@ def listar_controles_da_etapa(etapa_id, auditoria_id=None):
 
 
 def validar_login_no_banco(usuario_digitado, senha_digitada):
-    """
-    Verifica se as credenciais existem e estão corretas.
-    
-    Retorna: (sucesso, id, nome, perfil)
-    """
-    query = text("""
-        SELECT id, login, nome, perfil
-        FROM usuarios 
-        WHERE login = :u AND senha = :s AND ativo = True
-    """)
+    from datetime import datetime, timedelta
+    from werkzeug.security import check_password_hash
+    from database import engine
+    from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            result = conn.execute(query, {"u": usuario_digitado, "s": senha_digitada}).fetchone()
+            query = text("""
+                SELECT id, login, nome, perfil, senha, ativo, 
+                       tentativas_login, bloqueado_ate, forcar_troca_senha, senha_temporaria
+                FROM usuarios 
+                WHERE login = :u
+            """)
+            result = conn.execute(query, {"u": usuario_digitado}).fetchone()
             
-            # Se encontrou um registro, retorna True
-            if result:
-                usuario_id = result[0]
-                usuario_login = result[1]
-                usuario_nome = result[2]
-                usuario_perfil = result[3] if result[3] else 'auditor' # Padrão: auditor
-
-                return True, usuario_id, usuario_nome, usuario_perfil
+            if not result:
+                return (False, None, None, None, 0, False, 0, False)
             
-            return False, None, None, None
+            usuario_id = result[0]
+            usuario_login = result[1]
+            usuario_nome = result[2]
+            usuario_perfil = result[3] if result[3] else 'auditor'
+            senha_hash = result[4]
+            ativo = result[5]
+            tentativas = result[6] or 0
+            bloqueado_ate = result[7]
+            forcar_troca = result[8] or False
+            senha_temporaria = result[9]
+            
+            # Verifica bloqueio temporário
+            if bloqueado_ate and datetime.now() < bloqueado_ate:
+                minutos_restantes = int((bloqueado_ate - datetime.now()).total_seconds() / 60) + 1
+                return (False, None, None, None, 0, True, minutos_restantes, False)
+            
+            # Verifica se está ativo
+            if not ativo:
+                return (False, None, None, None, 0, False, 0, False)
+            
+            # ⭐ PRIORIDADE 1: Verificar se é senha temporária (recuperação)
+            if forcar_troca and senha_temporaria and senha_digitada == senha_temporaria:
+                # Login com senha temporária - força trocar senha
+                # Reseta tentativas e bloqueio
+                conn.execute(text("""
+                    UPDATE usuarios 
+                    SET tentativas_login = 0, bloqueado_ate = NULL 
+                    WHERE id = :id
+                """), {'id': usuario_id})
+                conn.commit()
+                return (True, usuario_id, usuario_nome, usuario_perfil, 0, False, 0, True)  # precisa_trocar = True
+            
+            # ⭐ PRIORIDADE 2: Verificar senha normal (hash)
+            if check_password_hash(senha_hash, senha_digitada):
+                # Resetar tentativas
+                conn.execute(text("""
+                    UPDATE usuarios 
+                    SET tentativas_login = 0, bloqueado_ate = NULL 
+                    WHERE id = :id
+                """), {'id': usuario_id})
+                conn.commit()
+                
+                # Se tinha solicitação de recuperação, limpar
+                if forcar_troca:
+                    conn.execute(text("""
+                        UPDATE usuarios 
+                        SET forcar_troca_senha = FALSE, 
+                            senha_temporaria = NULL, 
+                            solicitou_recuperacao = FALSE 
+                        WHERE id = :id
+                    """), {'id': usuario_id})
+                    conn.commit()
+                
+                return (True, usuario_id, usuario_nome, usuario_perfil, 0, False, 0, False)
+            
+            # Falha: incrementar tentativas
+            tentativas += 1
+            bloqueado = False
+            minutos_restantes = 0
+            
+            if tentativas >= 3:
+                bloqueado_ate = datetime.now() + timedelta(minutes=5)
+                bloqueado = True
+                minutos_restantes = 5
+            
+            conn.execute(text("""
+                UPDATE usuarios 
+                SET tentativas_login = :tentativas, bloqueado_ate = :bloqueado_ate 
+                WHERE id = :id
+            """), {'tentativas': tentativas, 'bloqueado_ate': bloqueado_ate if bloqueado else None, 'id': usuario_id})
+            conn.commit()
+            
+            tentativas_restantes = max(0, 3 - tentativas)
+            return (False, None, None, None, tentativas_restantes, bloqueado, minutos_restantes, False)
+            
     except Exception as e:
         print(f"Erro ao validar login: {e}")
-        return False, None, None, None
+        return (False, None, None, None, 0, False, 0, False)
 
 def atualizar_status_processo(id_processo, novo_status, coluna):
     """Atualiza link_diagrama ou aprovacao na tabela processos"""

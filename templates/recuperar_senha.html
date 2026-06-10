@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Senha - Sistema de Auditoria Interna</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #184145 0%, #0a2a2e 100%);
+            background-image: url("{{ url_for('static', filename='assets/imagem_fundo.png')}}");
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .recuperar-card {
+            background: linear-gradient(180deg, #6d8285 0%, #406064 100%);
+            border: 3px solid #042e57;
+            border-radius: 20px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: -80px auto 20px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .logo img {
+            width: 80%;
+            height: auto;
+        }
+
+        h2 {
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #184145;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.95);
+            font-size: 15px;
+        }
+
+        input:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(11, 91, 153, 0.3);
+        }
+
+        .btn-enviar {
+            width: 100%;
+            padding: 14px;
+            background-color: #153e5a;
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-enviar:hover {
+            background-color: #0b5b99;
+            transform: translateY(-2px);
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .back-link:hover {
+            color: #fd6a14;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 9999;
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .notification.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="recuperar-card">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='assets/logo_auditoria_recortada_circulo.png') }}" alt="Logo">
+        </div>
+        
+        <h2>Recuperar Senha</h2>
+        <p class="subtitle">Digite seu e-mail cadastrado</p>
+        
+        <div class="input-group">
+            <span class="input-icon"><i class="fas fa-envelope"></i></span>
+            <input type="email" id="email" placeholder="seu@email.com">
+        </div>
+        
+        <button class="btn-enviar" onclick="enviarRecuperacao()">Enviar</button>
+        
+        <a href="{{ url_for('login') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Voltar para o login
+        </a>
+    </div>
+
+    <script>
+        async function enviarRecuperacao() {
+            const email = document.getElementById('email').value;
+            
+            if (!email) {
+                mostrarNotificacao('❌ Informe seu e-mail', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/recuperar-senha', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                mostrarNotificacao(data.message, data.success ? 'success' : 'error');
+                
+                if (data.success) {
+                    // Opcional: mostrar o link em produção (apenas para teste)
+                    if (data.link) {
+                        console.log('Link de recuperação:', data.link);
+                    }
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 3000);
+                }
+            } catch (error) {
+                mostrarNotificacao('❌ Erro ao processar solicitação', 'error');
+            }
+        }
+        
+        function mostrarNotificacao(mensagem, tipo) {
+            const notif = document.createElement('div');
+            notif.className = `notification ${tipo}`;
+            notif.textContent = mensagem;
+            document.body.appendChild(notif);
+            
+            setTimeout(() => {
+                notif.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
