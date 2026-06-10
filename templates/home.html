@@ -7,11 +7,8 @@
     
     <!-- SAUDAÇÃO -->
     <div class="welcome-section">
-        <div class="welcome-icon">
-            <i class="fas fa-chart-line"></i>
-        </div>
         <h1>Olá, <span class="user-name">{{ session.get('usuario_nome', 'Auditor').split()[0] }}</span></h1>
-        <p>Sistema de Gestão de Auditoria Interna - FUSVE</p>
+        <p>Bem vindo ao MAPA!</p>
     </div>
 
     <!-- SEÇÃO 1: RECURSOS -->
@@ -27,7 +24,7 @@
                 <div class="card-top" style="background: #184145;"></div>
                 <div class="card-body">
                     <div class="card-icon" style="background: #184145;">
-                        <i class="fas fa-chart-line"></i>
+                        <i class="fas fa-calendar-alt"></i>
                     </div>
                     <h3>Plano Anual de Auditoria</h3>
                     <p>Consulte o plano anual de auditoria e veja os pontos que a fundamentaram.</p>
@@ -87,7 +84,7 @@
                 <div class="card-top" style="background: #c2c510;"></div>
                 <div class="card-body">
                     <div class="card-icon" style="background: #c2c510;">
-                        <i class="fas fa-lightbulb"></i>
+                        <i class="fas fa-file-lines"></i>
                     </div>
                     <h3>Relatórios</h3>
                     <p>Geração automática de relatórios consolidados da auditoria e pareceres das auditorias.</p>
@@ -99,7 +96,7 @@
                 <div class="card-top" style="background: #6f42c1;"></div>
                 <div class="card-body">
                     <div class="card-icon" style="background: #6f42c1;">
-                        <i class="fas fa-chart-pie"></i>
+                        <i class="fas fa-chart-line"></i>
                     </div>
                     <h3>Dashboard</h3>
                     <p>Visualização interativa de KPIs e métricas de desempenho.</p>
@@ -108,12 +105,42 @@
         </div>
     </div>
 
-    <!-- SEÇÃO 2: TIMELINE HORIZONTAL COM IMAGENS NO HOVER -->
+        <!-- SEÇÃO 2: SOBRE O SISTEMA -->
+    <div class="about-section">
+        <div class="section-header">
+            <div class="section-line"></div>
+            <h2>Sobre o sistema</h2>
+        </div>
+        
+        <div class="about-content">
+            <div class="about-text">
+                <p>
+                    O <strong>MAPA</strong> (<strong>M</strong>apeamento, <strong style="text-transform: uppercase;">a</strong>uditoria e <strong style="text-transform: uppercase;">p</strong>rocessos <strong style="text-transform: uppercase;">A</strong>valiados) é um sistema centralizado e desenvolvido para otimizar, autorizar e 
+                    simplificar a gestão da Gerência de Auditoria Interna FUSVE. Através de uma interface intuitiva, 
+                    a plataforma reúne as ferramentas necessárias para os auditores armazenar os dados informados 
+                    e coletados pelas áreas auditadas. Atua como uma engrenagem integrada onde pessoas, processos 
+                    e produtos estão intercalados.
+                </p>
+                <p>
+                    A implementação desse sistema elimina tarefas manuais repetitivas, reduz a margem de erros 
+                    e garante que toda a equipe trabalhe em sintonia. Com a centralização das informações, 
+                    ganha agilidade nas operações, melhora a comunicação interna e tem total controle sobre os 
+                    resultados, transformando dados em decisões estratégicas.
+                </p>
+            </div>
+            <div class="about-icon">
+                <img src="/static/assets/logo_auditoria_recortada_circulo.png" alt="Logo Gerência de Auditoria Interna FUSVE" class="about-logo">
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SEÇÃO 3: TIMELINE HORIZONTAL COM IMAGENS NO HOVER -->
     <div class="journey-section">
         <div class="section-header">
             <div class="section-line"></div>
-            <h2>Nossa jornada</h2>
-            <span class="journey-hint"><i class="fas fa-mouse-pointer"></i> Passe o mouse para ver imagens</span>
+            <h2>História do sistema</h2>
+            <span class="journey-hint"><i class="fas fa-mouse-pointer"></i> Passe o mouse sobre os pontos para ver imagens</span>
         </div>
         
         <div class="timeline-horizontal">
@@ -136,7 +163,7 @@
 
             <!-- PONTO 2 -->
             <div class="timeline-node" data-image="/static/images/streamlit-v1.jpg">
-                <div class="node-marker" style="background: #fd6a14;">
+                <div class="node-marker" style="background: #17a2b8;">
                     <div class="marker-dot"></div>
                     <div class="marker-line"></div>
                 </div>
@@ -157,7 +184,7 @@
 
             <!-- PONTO 3 -->
             <div class="timeline-node" data-image="/static/images/streamlit-v2.jpg">
-                <div class="node-marker" style="background: #6f42c1;">
+                <div class="node-marker" style="background: #184145;">
                     <div class="marker-dot"></div>
                     <div class="marker-line"></div>
                 </div>
@@ -200,7 +227,7 @@
 
             <!-- PONTO 5 -->
             <div class="timeline-node" data-image="/static/images/producao.jpg">
-                <div class="node-marker" style="background: #28a745;">
+                <div class="node-marker" style="background: #184145;">
                     <div class="marker-dot"></div>
                     <div class="marker-line"></div>
                 </div>
@@ -221,7 +248,7 @@
 
             <!-- PONTO 6 -->
             <div class="timeline-node" data-image="/static/images/futuro-ia.jpg">
-                <div class="node-marker" style="background: #c2c510;">
+                <div class="node-marker" style="background: #17a2b8;">
                     <div class="marker-dot"></div>
                     <div class="marker-line"></div>
                 </div>
@@ -256,23 +283,6 @@
         margin-bottom: 60px;
     }
 
-    .welcome-icon {
-        width: 70px;
-        height: 70px;
-        background: linear-gradient(135deg, #184145 0%, #0b5b99 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 20px;
-        animation: gentlePulse 3s ease-in-out infinite;
-    }
-
-    .welcome-icon i {
-        font-size: 32px;
-        color: white;
-    }
-
     @keyframes gentlePulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.03); }
@@ -287,7 +297,7 @@
 
     .welcome-section .user-name {
         font-weight: 600;
-        color: #fd6a14;
+        color: #0b5b99;
         position: relative;
     }
 
@@ -298,7 +308,7 @@
         left: 0;
         right: 0;
         height: 3px;
-        background: #fd6a14;
+        background: #0b5b99;
         border-radius: 2px;
     }
 
@@ -318,7 +328,7 @@
     .section-line {
         width: 40px;
         height: 3px;
-        background: linear-gradient(90deg, #fd6a14, #184145);
+        background: linear-gradient(90deg, #184145, #0b5b99);
         border-radius: 3px;
     }
 
@@ -359,12 +369,11 @@
         overflow: hidden;
         box-shadow: 0 2px 12px rgba(0,0,0,0.04);
         transition: all 0.3s ease;
-        cursor: pointer;
         border: 1px solid rgba(0,0,0,0.04);
     }
 
     .feature-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-4px) !important;
         box-shadow: 0 12px 24px rgba(0,0,0,0.08);
         border-color: transparent;
     }
@@ -433,7 +442,7 @@
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #184145, #fd6a14, #17a2b8, #28a745, #c2c510);
+        background: linear-gradient(90deg, #184145, #17a2b8);
         border-radius: 3px;
         z-index: 0;
     }
@@ -493,7 +502,7 @@
     .node-date {
         font-size: 11px;
         font-weight: 700;
-        color: #fd6a14;
+        color: #0b5b99;
         text-transform: uppercase;
         letter-spacing: 1px;
         margin-bottom: 8px;
@@ -524,7 +533,7 @@
         visibility: hidden;
         transition: all 0.25s ease;
         pointer-events: none;
-        z-index: 99999;
+        z-index: 999999;
         width: 260px;
         border: 2px solid white;
     }
@@ -556,7 +565,7 @@
         bottom: 100%;
         left: 50%;
         transform: translateX(-50%) translateY(10px);
-        background: #184145;
+        background: none;
         color: white;
         padding: 4px 12px;
         border-radius: 20px;
@@ -569,7 +578,6 @@
         transition: all 0.3s ease;
         white-space: nowrap;
         z-index: 10001;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         pointer-events: none;
     }
 
@@ -593,75 +601,634 @@
             display: none;
         }
     }
+
+    /* ============================================ */
+    /* MODAL DE IMAGEM AMPLIADA */
+    /* ============================================ */
+    .image-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+        cursor: pointer;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .image-modal.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .image-modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+    }
+
+    .image-modal-content img {
+        width: 100%;
+        height: auto;
+        max-height: 90vh;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .image-modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .image-modal-close:hover {
+        color: #fd6a14;
+        transform: scale(1.1);
+    }
+
+    .image-modal-caption {
+        position: absolute;
+        bottom: -40px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: white;
+        font-size: 14px;
+        padding: 8px;
+        background: rgba(0,0,0,0.5);
+        border-radius: 8px;
+    }
+
+    /* ============================================ */
+    /* CARROSSEL PARA IMAGENS MÚLTIPLAS */
+    /* ============================================ */
+
+    .tooltip-carousel {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .carousel-container {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .carousel-slides {
+        display: flex;
+        transition: transform 0.3s ease;
+    }
+
+    .carousel-slide {
+        width: 100%;
+        flex-shrink: 0;
+        max-height: 150px;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Botões de navegação */
+    .carousel-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+
+    .carousel-btn:hover {
+        background: #0b5b99;
+    }
+
+    .carousel-prev {
+        left: 8px;
+    }
+
+    .carousel-next {
+        right: 8px;
+    }
+
+    /* Dots (indicadores) */
+    .carousel-dots {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 0;
+        background: #184145;
+    }
+
+    .carousel-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ccc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .carousel-dot.active {
+        background: #0b5b99;
+        width: 20px;
+        border-radius: 4px;
+    }
+
+    .carousel-dot:hover {
+        background: #fd6a14;
+    }
+
+    /* Conecta o ponto à tooltip */
+    .timeline-node {
+        position: relative;
+    }
+
+    .image-tooltip {
+        position: fixed !important;
+        pointer-events: auto !important;
+    }
+
+    /* Cria uma zona de conexão invisível */
+    .timeline-node .image-tooltip::before {
+        content: '';
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        height: 20px;
+    }
+
+    /* Botões de navegação do modal */
+    .image-modal-prev,
+    .image-modal-next {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+
+    .image-modal-prev { left: 20px; }
+    .image-modal-next { right: 20px; }
+
+    .image-modal-prev:hover,
+    .image-modal-next:hover {
+        background: #fd6a14;
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .image-modal-counter {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.5);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    /* ============================================ */
+    /* SEÇÃO SOBRE O SISTEMA */
+    /* ============================================ */
+    .about-section {
+        margin-bottom: 60px;
+    }
+
+    .about-content {
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        border-radius: 24px;
+        padding: 32px;
+        display: flex;
+        gap: 40px;
+        align-items: center;
+        border: 1px solid rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
+    }
+
+    .about-content:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+
+    .about-text {
+        flex: 1;
+    }
+
+    .about-text p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #444;
+        margin-bottom: 16px;
+    }
+
+    .about-text p:last-child {
+        margin-bottom: 0;
+    }
+
+    .about-text strong {
+        color: #17a2b8;
+        font-weight: 600;
+    }
+
+    .about-icon {
+        width: 120px;
+        height: 120px;
+        background: transparent;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 10px;
+    }
+
+    .about-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 50%;
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .about-content {
+            flex-direction: column;
+            text-align: center;
+            padding: 24px;
+        }
+        
+        .about-icon {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .about-icon i {
+            font-size: 36px;
+        }
+        
+        .about-text p {
+            font-size: 14px;
+        }
+    }
 </style>
 
 <script>
     // Adiciona tooltips com imagens para cada ponto da timeline
     document.addEventListener('DOMContentLoaded', () => {
+        // ========== FUNÇÃO PARA ABRIR MODAL DE IMAGEM ==========
+        function openImageModal(images, captions, currentIndex) {
+            // Remove modal existente
+            const existingModal = document.querySelector('.image-modal');
+            if (existingModal) existingModal.remove();
+            
+            // Cria o modal
+            const modal = document.createElement('div');
+            modal.className = 'image-modal';
+            
+            let currentIdx = currentIndex;
+            const total = images.length;
+            const temMultiplas = total > 1;
+            
+            modal.innerHTML = `
+                <div class="image-modal-content">
+                    <button class="image-modal-close">✕</button>
+                    ${temMultiplas ? '<button class="image-modal-prev">◀</button>' : ''}
+                    <img id="modal-image" src="${images[currentIdx]}" alt="${captions[currentIdx]}">
+                    ${temMultiplas ? '<button class="image-modal-next">▶</button>' : ''}
+                    <div class="image-modal-caption">${captions[currentIdx]}</div>
+                    ${temMultiplas ? `<div class="image-modal-counter">${currentIdx + 1} / ${total}</div>` : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Função para atualizar a imagem
+            function updateModalImage(newIndex) {
+                currentIdx = newIndex;
+                const imgElement = modal.querySelector('#modal-image');
+                const captionElement = modal.querySelector('.image-modal-caption');
+                const counterElement = modal.querySelector('.image-modal-counter');
+                
+                imgElement.src = images[currentIdx];
+                captionElement.textContent = captions[currentIdx];
+                if (counterElement) counterElement.textContent = `${currentIdx + 1} / ${total}`;
+            }
+            
+            // Evento do botão anterior
+            const prevBtn = modal.querySelector('.image-modal-prev');
+            if (prevBtn) {
+                prevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    let newIndex = currentIdx - 1;
+                    if (newIndex < 0) newIndex = total - 1;
+                    updateModalImage(newIndex);
+                });
+            }
+            
+            // Evento do botão próximo
+            const nextBtn = modal.querySelector('.image-modal-next');
+            if (nextBtn) {
+                nextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    let newIndex = currentIdx + 1;
+                    if (newIndex >= total) newIndex = 0;
+                    updateModalImage(newIndex);
+                });
+            }
+            
+            // Fecha o modal ao clicar fora da imagem
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal || e.target.classList.contains('image-modal-close')) {
+                    modal.classList.remove('active');
+                    setTimeout(() => modal.remove(), 300);
+                }
+            });
+            
+            // Teclado: setas esquerda/direita
+            function handleKeydown(e) {
+                if (!modal.classList.contains('active')) return;
+                if (e.key === 'ArrowLeft') {
+                    let newIndex = currentIdx - 1;
+                    if (newIndex < 0) newIndex = total - 1;
+                    updateModalImage(newIndex);
+                } else if (e.key === 'ArrowRight') {
+                    let newIndex = currentIdx + 1;
+                    if (newIndex >= total) newIndex = 0;
+                    updateModalImage(newIndex);
+                } else if (e.key === 'Escape') {
+                    modal.classList.remove('active');
+                    setTimeout(() => modal.remove(), 300);
+                    document.removeEventListener('keydown', handleKeydown);
+                }
+            }
+            
+            document.addEventListener('keydown', handleKeydown);
+            
+            // Abre o modal com animação
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
         const timelineNodes = document.querySelectorAll('.timeline-node');
         
+        // Dados das imagens para cada ponto
+        const slidesData = [
+            {   // PONTO 1 - FEV/2026 (Início do Projeto)
+                images: [
+                    '/static/images/sistema-v1.jpg',
+                    '/static/images/sistema-v1-powerautomate.jpg',
+                ],
+                captions: [
+                    'Desenho inicial - Criação do microsoft forms',
+                    'Desenho inicial - Automação do formulário com PowerAutomate',
+                ]
+            },
+            {   // PONTO 2 - MAR/2026 (Streamlit V.1)
+                images: [
+                    '/static/images/streamlitlogin-v1.jpg',
+                    '/static/images/streamlitlogado-v1.jpg'
+                ],
+                captions: [
+                    'Versão 1.0 - Tela de login com suas limitações de margem',
+                    'Versão 1.0 - Tela de diagnóstico dos processos no streamlit'
+                ]
+            },
+            {   // PONTO 3 - ABR/2026 (Aprimoramento V.1)
+                images: [
+                    '/static/images/aprimoramentov1.jpg'
+                ],
+                captions: [
+                    'Ambiente de desenvolvimento do código para o aprimoramento no streamlit'
+                ]
+            },
+            {   // PONTO 4 - MAI/2026 (Flask V.2)
+                images: [
+                    '/static/images/criacaoambienteflaskbackendv2.jpg',
+                    '/static/images/criacaopaginahomev2.jpg',
+                    '/static/images/paginaqualquerv2.jpg',
+                ],
+                captions: [
+                    'Versão 2.0 - Nova arquitetura no flask, criando rotas de acesso',
+                    'Versão 2.0 - Criação das páginas em html, css e javascript',
+                    'Versão 2.0 - Interface do sistema na nova arquitetura.'
+                ]
+            }
+        ];
+        
         timelineNodes.forEach((node, index) => {
+            // Verifica se o ponto tem imagens (apenas pontos 0,1,2,3)
+            if (!slidesData[index]) {
+                return; // Pontos 5 e 6 - não cria tooltip
+            }
+            
             // Cria o elemento da tooltip
             const tooltip = document.createElement('div');
             tooltip.className = 'image-tooltip';
             
-            // Define a imagem baseada no ponto
-            const images = [
-                '/static/images/sistema-v1.jpg',
-                '/static/images/streamlit-v1.jpg',
-                '/static/images/streamlit-v2.jpg',
-                '/static/images/flask-v2.jpg',
-                '/static/images/producao.jpg',
-                '/static/images/futuro-ia.jpg'
-            ];
+            const totalImagens = slidesData[index].images.length;
+            const temMultiplasImagens = totalImagens > 1;
             
-            const captions = [
-                'Primeira versão do sistema',
-                'Versão 1.0 - Interface Streamlit',
-                'Aprimoramento da V.1',
-                'Versão 2.0 - Interface Flask',
-                'Sistema em produção',
-                'Visão futura com Inteligência Artificial'
-            ];
+            if (temMultiplasImagens) {
+                // ========== ESTRUTURA COM CARROSSEL ==========
+                tooltip.innerHTML = `
+                    <div class="tooltip-carousel">
+                        <div class="carousel-container">
+                            <div class="carousel-slides" id="carousel-slides-${index}">
+                            </div>
+                        </div>
+                        <button class="carousel-prev carousel-btn" data-idx="${index}">‹</button>
+                        <button class="carousel-next carousel-btn" data-idx="${index}">›</button>
+                    </div>
+                    <div class="tooltip-caption" id="tooltip-caption-${index}"></div>
+                    <div class="carousel-dots" id="carousel-dots-${index}"></div>
+                `;
+                const slidesContainer = tooltip.querySelector(`#carousel-slides-${index}`);
+                
+                
+                // Legenda inicial
+                const captionEl = tooltip.querySelector(`#tooltip-caption-${index}`);
+                captionEl.textContent = slidesData[index].captions[0];
+                
+                // Cria os dots (indicadores)
+                const dotsContainer = tooltip.querySelector(`#carousel-dots-${index}`);
+                slidesData[index].images.forEach((_, imgIdx) => {
+                    const dot = document.createElement('span');
+                    dot.className = 'carousel-dot';
+                    if (imgIdx === 0) dot.classList.add('active');
+                    dot.setAttribute('data-slide', imgIdx);
+                    dot.setAttribute('data-point', index);
+                    dotsContainer.appendChild(dot);
+                });
+                
+                // ========== LÓGICA DE NAVEGAÇÃO DO CARROSSEL ==========
+                let currentSlide = 0;
+                
+                function updateSlide(newIndex) {
+                    if (newIndex < 0) newIndex = 0;
+                    if (newIndex >= totalImagens) newIndex = totalImagens - 1;
+                    currentSlide = newIndex;
+                    
+                    const allSlides = slidesContainer.querySelectorAll('.carousel-slide');
+                    allSlides.forEach((slide, i) => {
+                        slide.style.display = i === currentSlide ? 'block' : 'none';
+                    });
+                    
+                    captionEl.textContent = slidesData[index].captions[currentSlide];
+                    
+                    const dots = dotsContainer.querySelectorAll('.carousel-dot');
+                    dots.forEach((dot, i) => {
+                        if (i === currentSlide) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+                }
+                
+                // Botão próximo
+                const nextBtn = tooltip.querySelector('.carousel-next');
+                nextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateSlide(currentSlide + 1);
+                });
+                
+                // Botão anterior
+                const prevBtn = tooltip.querySelector('.carousel-prev');
+                prevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updateSlide(currentSlide - 1);
+                });
+                
+                // Clique nos dots
+                const dots = dotsContainer.querySelectorAll('.carousel-dot');
+                dots.forEach((dot, dotIndex) => {
+                    dot.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateSlide(dotIndex);
+                    });
+                });
+
+                // Após inserir as imagens, adicione evento de clique para ampliar
+                slidesData[index].images.forEach((imgSrc, imgIdx) => {
+                    const img = document.createElement('img');
+                    img.src = imgSrc;
+                    img.className = 'carousel-slide';
+                    img.style.width = '100%';
+                    img.style.display = imgIdx === 0 ? 'block' : 'none';
+                    img.style.cursor = 'pointer'; // Indica que é clicável
+                    img.setAttribute('data-img-index', imgIdx);
+                    img.setAttribute('data-caption', slidesData[index].captions[imgIdx]);
+                    
+                    // Evento de clique para ampliar
+                    img.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openImageModal(slidesData[index].images, slidesData[index].captions, imgIdx);
+                    });
+                    
+                    slidesContainer.appendChild(img);
+                });
+                
+            } else {
+                // ========== ESTRUTURA SIMPLES (UMA IMAGEM) ==========
+                const simpleImg = document.createElement('img');
+                simpleImg.src = slidesData[index].images[0];
+                simpleImg.style.width = '100%';
+                simpleImg.style.maxHeight = '150px';
+                simpleImg.style.objectFit = 'cover';
+                simpleImg.style.cursor = 'pointer';
+                simpleImg.style.borderRadius = '10px 10px 0 0';
+                
+                simpleImg.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openImageModal(slidesData[index].images, slidesData[index].captions, 0);
+                });
+                
+                tooltip.innerHTML = `
+                    <div class="tooltip-caption">${slidesData[index].captions[0]}</div>
+                `;
+                
+                tooltip.insertBefore(simpleImg, tooltip.firstChild);
+            }
             
-            tooltip.innerHTML = `
-                <img src="${images[index]}" alt="${captions[index]}" onerror="this.src='/static/images/placeholder.jpg'">
-                <div class="tooltip-caption">${captions[index]}</div>
-            `;
-            
+            // Adiciona a tooltip ao ponto
             node.appendChild(tooltip);
             
-            // Posiciona a tooltip dinamicamente no hover
-            node.addEventListener('mouseenter', (e) => {
+            // ========== VARIÁVEL DE TIMEOUT ESPECÍFICA PARA ESTA TOOLTIP ==========
+            let hoverTimeout;
+            
+            // ========== EVENTOS ==========
+            node.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+                
                 const rect = node.getBoundingClientRect();
                 const tooltipWidth = 260;
                 const tooltipHeight = tooltip.offsetHeight;
                 
-                // Calcula posição horizontal (centralizada)
                 let leftPos = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-                
-                // Garante que não saia da tela à esquerda
                 if (leftPos < 10) leftPos = 10;
-                
-                // Garante que não saia da tela à direita
                 if (leftPos + tooltipWidth > window.innerWidth - 10) {
                     leftPos = window.innerWidth - tooltipWidth - 10;
                 }
                 
-                // Posiciona acima do ponto
                 let topPos = rect.top - tooltipHeight - 10;
-                
-                // Se não couber acima, posiciona abaixo
                 if (topPos < 10) {
                     topPos = rect.bottom + 10;
                 }
                 
                 tooltip.style.left = leftPos + 'px';
                 tooltip.style.top = topPos + 'px';
+                tooltip.classList.add('active');
+            });
+            
+            node.addEventListener('mouseleave', () => {
+                hoverTimeout = setTimeout(() => {
+                    tooltip.classList.remove('active');
+                }, 300);
+            });
+            
+            tooltip.addEventListener('mouseenter', () => {
+                clearTimeout(hoverTimeout);
+            });
+            
+            tooltip.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('active');
             });
         });
         
-        // Animações dos cards
+        // ========== ANIMAÇÕES DOS CARDS ==========
         const cards = document.querySelectorAll('.feature-card');
         cards.forEach((card, index) => {
             card.style.opacity = '0';
