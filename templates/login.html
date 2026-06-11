@@ -49,6 +49,22 @@
             width: 100%;
         }
 
+        .solicitar-acesso-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .solicitar-acesso-link a {
+            color: #fd6a14;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .solicitar-acesso-link a:hover {
+            text-decoration: underline;
+        }
+
         /* Card principal com posição relativa para o logo absoluto */
         .login-card {
             position: relative;
@@ -324,8 +340,8 @@
             </form>
 
              <!-- Link para cadastro - ADICIONE AQUI -->
-            <div style="text-align: center; margin-top: 10px;">
-                <a href="{{ url_for('cadastro') }}" style="color: rgba(253, 106, 20, 0.8); text-decoration: none; font-size: 13px; font-weight: 500;">
+            <div class="solicitar-acesso-link">
+                <a href="{{ url_for('cadastro') }}">
                     <strong>Solicitar acesso</strong>
                 </a>
             </div>

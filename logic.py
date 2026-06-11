@@ -3317,35 +3317,48 @@ def buscar_processo_por_nome_e_area(nome_processo, id_area, auditoria_id):
             return {'id': result[0], 'codigo_processo': result[1]}
         return None
 
-def gerar_codigo_processo(id_area):
+def gerar_codigo_processo(id_area, auditoria_id):
     """
-    Gera o próximo código sequencial para um processo de uma área.
-    Busca o MAIOR número existente, independente da ordem de inserção.
+    Gera o próximo código sequencial para um processo de uma área em uma auditoria específica.
+    Formato: {id_area}.{sequencial} (ex: 4.01, 4.02, 4.03...)
     """
     from database import engine
     from sqlalchemy import text
     
-    # Solução usando SPLIT_PART (mais legível)
-    query = text("""
-        SELECT COALESCE(
-            MAX(CAST(SPLIT_PART(codigo_processo, '.', 2) AS INTEGER)), 
-            0
-        ) as max_sequencial
-        FROM processos 
-        WHERE id_area = :id_area
-        AND codigo_processo LIKE '%.%'
-        AND codigo_processo ~ '^[0-9]+\.[0-9]+$'
-    """)
-    
-    with engine.connect() as conn:
-        resultado = conn.execute(query, {"id_area": id_area}).fetchone()
-        max_sequencial = resultado[0] if resultado else 0
-        
-        novo_numero = max_sequencial + 1
-    
-    codigo = f"{id_area}.{novo_numero}"
-    
-    return codigo
+    try:
+        with engine.connect() as conn:
+            # Buscar o maior número sequencial para esta área E auditoria
+            query = text("""
+                SELECT COALESCE(
+                    MAX(CAST(SPLIT_PART(codigo_processo, '.', 2) AS INTEGER)), 
+                    0
+                ) as max_sequencial
+                FROM processos 
+                WHERE id_area = :id_area 
+                AND auditoria_id = :auditoria_id
+                AND codigo_processo ~ '^[0-9]+\.[0-9]+$'
+            """)
+            
+            resultado = conn.execute(query, {
+                "id_area": id_area,
+                "auditoria_id": auditoria_id
+            }).fetchone()
+            
+            max_sequencial = resultado[0] if resultado else 0
+            novo_numero = max_sequencial + 1
+            
+            # Formatar com 2 dígitos (01, 02, 03...)
+            codigo = f"{id_area}.{novo_numero}"
+            
+            print(f"✅ Código gerado: {codigo} (área: {id_area}, auditoria: {auditoria_id}, sequencial: {novo_numero})")
+            return codigo
+            
+    except Exception as e:
+        print(f"❌ Erro ao gerar código: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Fallback: código temporário
+        return f"{id_area}.01"
 
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""

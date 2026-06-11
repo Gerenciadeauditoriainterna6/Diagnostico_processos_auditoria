@@ -100,12 +100,13 @@
 
                 <div class="form-group">
                     <label for="unidade_area"><i class="fas fa-map-marker-alt"></i> Unidade</label>
-                    <select id="unidade_area" name="unidade" class="form-control">
+                    <select id="edit_unidade" name="unidade" class="form-control">
                         <option value="">Seleciona uma unidade...</option>
                         <option value="FUSVE">FUSVE</option>
-                        <option value="FUSVE">HMC</option>
-                        <option value="FUSVE">HMK</option>
-                        <option value="FUSVE">HUV</option>
+                        <option value="HMC">HMC</option>
+                        <option value="HMK">HMK</option>
+                        <option value="HUV">HUV</option>
+                        <option value="MARICÁ, FACMAR E CAMPUS SAQUAREMA">MARICÁ, FACMAR E CAMPUS SAQUAREMA</option>
                     </select>
                 </div>
 
@@ -1606,7 +1607,7 @@
                 
                 const dados = {
                     nome: document.getElementById('nome_area').value,
-                    unidade: document.getElementById('unidade_area').value,
+                    loc_unidade: document.getElementById('unidade_area').value,
                     email: document.getElementById('email').value,
                     telefone: limparMascaraTelefone(document.getElementById('telefone').value),
                     gestor: document.getElementById('gestor').value,
@@ -1846,11 +1847,25 @@
             const response = await fetch(`/api/area/${areaId}`);
             const area = await response.json();
             
+            console.log('=== DEBUG COMPLETO ===');
+            console.log('Area completa:', area);
+            console.log('loc_unidade:', area.loc_unidade);
+            console.log('unidade (se existir):', area.unidade);
+            console.log('======================');
+            
             document.getElementById('edit_area_id').value = area.id_area;
             document.getElementById('edit_nome_area').value = area.nome_area || '';
             
-            // ⭐ CORRIGIR: usar o ID correto do HTML
-            document.getElementById('unidade_area').value = area.unidade || '';  // ← mudar para 'unidade_area'
+            // Tenta pegar de onde vier
+            const valorUnidade = area.loc_unidade || area.unidade || '';
+            const selectUnidade = document.getElementById('edit_unidade');
+            
+            console.log('Valor que será selecionado:', valorUnidade);
+            
+            selectUnidade.value = valorUnidade;
+            
+            console.log('Valor após seleção:', selectUnidade.value);
+            console.log('Options disponíveis:', Array.from(selectUnidade.options).map(opt => `${opt.value} (${opt.text})`));
             
             document.getElementById('edit_email').value = area.email || '';
             document.getElementById('edit_telefone').value = area.telefone || '';
@@ -1880,13 +1895,15 @@
             const areaId = document.getElementById('edit_area_id').value;
             const dados = {
                 nome: document.getElementById('edit_nome_area').value,
-                unidade: document.getElementsByTagName('edit_unidade').value,
+                loc_unidade: document.getElementById('edit_unidade').value,
                 email: document.getElementById('edit_email').value,
                 telefone: limparMascaraTelefone(document.getElementById('edit_telefone').value),
                 gestor: document.getElementById('edit_gestor').value,
                 objetivo: document.getElementById('edit_objetivo').value,
                 status: 'Ativo'
             };
+
+            console.log('📤 Enviando dados para API:', dados);  // ← ADICIONE ESTE LOG
             
             try {
                 const response = await fetch(`/api/area/${areaId}`, {
@@ -1896,6 +1913,7 @@
                 });
                 
                 const resultado = await response.json();
+                console.log('📥 Resposta da API:', resultado);
                 
                 if (resultado.success) {
                     mostrarToast('Área atualizada com sucesso!', 'success');
@@ -2195,7 +2213,7 @@
                         <i class="fas fa-users"></i> <span class="count-number">...</span>
                     </span>
                 </h4>
-                <p><i class="fas fa-map-marker-alt"></i> ${area.unidade || 'Não informada'}</p>
+                <p><i class="fas fa-map-marker-alt"></i> ${area.loc_unidade || 'Não informada'}</p>
                 <p><i class="fas fa-user-tie"></i> Gestor: ${gestor}</p>
                 <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
                 <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
@@ -2393,11 +2411,12 @@
                     <div class="form-group">
                         <label for="unidade_area"><i class="fas fa-map-marker-alt"></i> Unidade</label>
                         <select id="unidade_area" name="unidade" class="form-control">
-                            <option value="">Seleciona uma unidade...</option>
+                            <option value="">Selecione uma unidade...</option>
                             <option value="FUSVE">FUSVE</option>
-                            <option value="FUSVE">HMC</option>
-                            <option value="FUSVE">HMK</option>
-                            <option value="FUSVE">HUV</option>
+                            <option value="HMC">HMC</option>
+                            <option value="HMK">HMK</option>
+                            <option value="HUV">HUV</option>
+                            <option value="MARICÁ, FACMAR E CAMPUS SAQUAREMA">MARICÁ, FACMAR E CAMPUS SAQUAREMA</option>
                         </select>
                     </div>
 

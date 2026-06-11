@@ -1700,7 +1700,13 @@ def api_area_detalhes(area_id):
     if area.empty:
         return jsonify({}), 404
     
-    return jsonify(area.iloc[0].to_dict())
+    # Converter para dicionário
+    area_dict = area.iloc[0].to_dict()
+    
+    # ⭐ ADICIONAR O CAMPO 'unidade' MApeADO DO 'loc_unidade'
+    area_dict['unidade'] = area_dict.get('loc_unidade', '')
+    
+    return jsonify(area_dict)
 
 @app.route('/api/area/<int:area_id>/funcionarios')
 def api_area_funcionarios(area_id):

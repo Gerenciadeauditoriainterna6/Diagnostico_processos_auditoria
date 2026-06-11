@@ -3913,9 +3913,13 @@
         }
         const nomeProcesso = nomeProcessoInput?.value.trim();
         const areaId = idAreaSelecionado?.value || areaSelect?.value;
+
+        // Buscar o auditoriaId do elemento select
+        const auditoriaSelectEl = document.getElementById('auditoria_select');
+        const auditoriaId = auditoriaSelectEl?.value;
         
         // Se não tem nome ou área, limpa o código
-        if (!nomeProcesso || !areaId) {
+        if (!nomeProcesso || !areaId || !auditoriaId) {
             if (codigoProcessoInput) {
                 codigoProcessoInput.value = '';
                 codigoProcessoInput.style.backgroundColor = '#e9ecef';
@@ -3928,6 +3932,7 @@
         
         timeoutId = setTimeout(async () => {
             try {
+                
                 // Verificar se o processo já existe com este nome
                 const response = await fetch(
                     `/api/processo/verificar?nome=${encodeURIComponent(nomeProcesso)}&id_area=${areaId}&auditoria_id=${auditoriaId}`
