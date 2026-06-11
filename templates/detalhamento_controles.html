@@ -834,6 +834,13 @@
             .replace(/'/g, "&#039;");
     }
 
+    // ====== FUNÇÃO PARA LIMITAR TAMANHO DO TEXTO ======
+    function limitarTexto(texto, limite = 60) {
+        if (!texto) return '';
+        if (texto.length <= limite) return texto;
+        return texto.substring(0, limite) + '...';
+    }
+
     // ====== CARREGAR AUDITORIAS POR ÁREA ======
     async function carregarAuditorias(areaId) {
         // Se não tem área selecionada, limpa o select de auditoria
@@ -1018,7 +1025,7 @@
                                     <div class="etapa-info">
                                         <i class="fas fa-step-forward"></i>
                                         <strong>${etapa.codigo_etapa}</strong>
-                                        <span>${etapa.nome_etapa}</span>
+                                        <span>${limitarTexto(etapa.nome_etapa, 80)}</span>
                                     </div>
                                     <div class="etapa-actions">
                                         <i class="fas fa-chevron-down etapa-arrow"></i>
@@ -1201,7 +1208,7 @@
                         <div class="risco-header">
                              <div class="risco-info">
                                 <span class="risco-icon">${badgeIcon}</span>
-                                <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
+                                <strong class="risco-nome">${limitarTexto(escapeHtml(risco.nome_risco), 60)}</strong>
                                 <span class="risco-score">Magnitude: ${risco.magnitude}</span>
                                 ${controlesBadge}  <!-- ⭐ SEMPRE APARECE ⭐ -->
                             </div>
@@ -1209,12 +1216,18 @@
                                 <span class="expandir-hint" title="Clique para ver controles">
                                     <i class="fas fa-chevron-down"></i> Controles
                                 </span>
-                                <button class="btn-add-controle" onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId})" title="Adicionar Controle">
+                                <button class="btn-add-controle" 
+                                    onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId}, '${escapeHtml(risco.fator_risco || '')}')" 
+                                    title="Adicionar Controle">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="risco-detalhes">
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Nome do Risco:</span>
+                                <span class="detalhe-valor">${risco.nome_risco}</span>
+                            </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Impacto:</span>
                                 <span class="detalhe-valor">${risco.impacto || 'Médio'}</span>
@@ -1416,7 +1429,7 @@
     let etapaIdAtualControle = null;  // Guarda o ID da etapa do risco
 
     // Modifique a função abrirModalControle:
-    function abrirModalControle(riscoId, riscoNome, etapaId) {
+    function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
         // Guardar o ID da etapa também
         etapaIdAtualControle = etapaId;
         riscoIdAtual = riscoId;
@@ -1429,6 +1442,10 @@
         }
         
         limparFormularioControle();
+
+        if (fatorRisco) {
+            document.getElementById('controle_causa_motivo').value = fatorRisco;
+        }
         
         const modal = document.getElementById('modal-controle');
         if (modal) {
