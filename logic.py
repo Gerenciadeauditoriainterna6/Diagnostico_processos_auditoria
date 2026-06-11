@@ -4056,6 +4056,58 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         status = auditoria_info[4]
         trimestre = auditoria_info[5]
         ano = auditoria_info[6]
+
+        def cabecalho_com_tarja(canvas, doc):
+            """Desenha tarja no cabeçalho baseada no status da auditoria"""
+            canvas.saveState()
+            
+            # Configurações por status
+            status_config = {
+                'Inconclusiva': {
+                    'cor': (0.86, 0.08, 0.24),      # Vermelho
+                    'alpha': 1,
+                    'texto_cor': (255,255,255),
+                    'texto': 'AUDITORIA INCONCLUSIVA'
+                },
+                'Em Atraso': {
+                    'cor': (0.86, 0.08, 0.24),      # Vermelho
+                    'alpha': 1,
+                    'texto_cor': (255,255,255),
+                    'texto': 'AUDITORIA EM ATRASO'
+                },
+                'Follow-up': {
+                    'cor': (0.99, 0.49, 0.08),      # Laranja
+                    'alpha': 1,
+                    'texto_cor': (255,255,255),
+                    'texto': 'AUDITORIA EM FOLLOW-UP'
+                },
+                'Eficácia Validada': {
+                    'cor': (0.16, 0.63, 0.27),      # Verde
+                    'alpha': 1,
+                    'texto_cor': (255,255,255),
+                    'texto': 'AUDITORIA COM EFICÁCIA VALIDADA'
+                },
+                'Em Execução': {
+                    'cor': (0.09, 0.63, 0.76),      # Azul
+                    'alpha': 1,
+                    'texto_cor': (255,255,255),
+                    'texto': 'AUDITORIA EM EXECUÇÃO'
+                }
+            }
+            
+            if status in status_config:
+                config = status_config[status]
+                
+                # Desenhar retângulo (tarja)
+                canvas.setFillColorRGB(config['cor'][0], config['cor'][1], config['cor'][2], config['alpha'])
+                canvas.rect(0, pagesize[1] - 1.2*cm, pagesize[0], 0.8*cm, fill=1, stroke=0)
+                
+                # ⭐ 2. Desenhar o texto com a cor do texto
+                canvas.setFont('Helvetica-Bold', 12)
+                canvas.setFillColorRGB(config['texto_cor'][0], config['texto_cor'][1], config['texto_cor'][2])
+                canvas.drawCentredString(pagesize[0] / 2, pagesize[1] - 0.9*cm, config['texto'])
+            
+            canvas.restoreState()
         
         # Buscar processo específico
         query_processo = text("""
@@ -4573,20 +4625,22 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         canvas.setFillColor(colors.HexColor('#999999'))
         canvas.drawCentredString(pagesize[0]/2, 1*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
         
-        # ⭐ Tarja de status apenas para auditorias Inconclusivas
-        if status == "Inconclusiva":
-            canvas.setFont('Helvetica-Bold', 42)
-            # Usar RGB com alpha (0.0 a 1.0)
-            canvas.setFillColorRGB(0.86, 0.08, 0.24, alpha=0.36)  # #DC3545 em RGB
+        # # ⭐ Tarja de status apenas para auditorias Inconclusivas
+        # if status == "Inconclusiva":
+        #     canvas.setFont('Helvetica-Bold', 42)
+        #     # Usar RGB com alpha (0.0 a 1.0)
+        #     canvas.setFillColorRGB(0.86, 0.08, 0.24, alpha=0.36)  # #DC3545 em RGB
             
-            canvas.saveState()
-            canvas.translate(pagesize[0] / 2, pagesize[1] / 2)
-            canvas.rotate(45)
-            canvas.drawCentredString(0, 0, "INCONCLUSIVA")
-            canvas.restoreState()
+        #     canvas.saveState()
+        #     canvas.translate(pagesize[0] / 2, pagesize[1] / 2)
+        #     canvas.rotate(45)
+        #     canvas.drawCentredString(0, 0, "INCONCLUSIVA")
+        #     canvas.restoreState()
         
         canvas.restoreState()
     
-    doc.build(story, onFirstPage=rodape_com_status, onLaterPages=rodape_com_status)
+    doc.build(story, 
+          onFirstPage=lambda canvas, doc: [cabecalho_com_tarja(canvas, doc), rodape_com_status(canvas, doc)],
+          onLaterPages=lambda canvas, doc: [cabecalho_com_tarja(canvas, doc), rodape_com_status(canvas, doc)])
     buffer.seek(0)
     return buffer.getvalue()
