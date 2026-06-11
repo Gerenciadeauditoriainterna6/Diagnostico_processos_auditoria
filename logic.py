@@ -3940,6 +3940,7 @@ def limpar_binario(dados):
     )
     return texto
 
+
 def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
@@ -4212,17 +4213,58 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 'followups': followups_list
             })
     
-    # ===== INFORMAÇÕES EM TABELA =====
+    status_colors = {
+        'Em Execução': colors.HexColor('#17a2b8'),      
+        'Eficácia Validada': colors.HexColor('#28a745'), 
+        'Follow-up': colors.HexColor("#fded14"),         
+        'Em Atraso': colors.HexColor("#dc7235"),         
+        'Inconclusiva': colors.HexColor("#ff0000")       
+    }
+
+    # Criar o parágrafo do status com a cor correspondente
+    status_color = status_colors.get(status, colors.black)
+
+    # Criar um Paragraph com a cor específica
+    status_paragraph = Paragraph(f'<font color="#{status_color.hexval()[2:]}"><b>{status}</b></font>', normal_style)  
+    status_text = f'<font color="{status_color}"><b>{status}</b></font>'      
+    
+    from reportlab.platypus import Paragraph
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    # Estilo para texto da tabela (já deve existir no seu código)
+    normal_style = styles['Normal']
+    normal_style.fontSize = 9
+
+    # Criar um estilo específico para células da tabela (com quebra de linha)
+    cell_style = ParagraphStyle(
+        'CellStyle',
+        parent=normal_style,
+        fontSize=9,
+        leading=12,  # Espaçamento entre linhas
+        wordWrap='CJK'  # Permite quebra de palavras longas
+    )
+
+    cell_style_2 = ParagraphStyle(
+        'CellStyle',
+        parent=normal_style,
+        fontSize=18,
+        leading=20,  # Espaçamento entre linhas
+        wordWrap='CJK'  # Permite quebra de palavras longas
+    )
+
+
+
+    # Montar a tabela com Paragraph
     info_data = [
-        ["Código:", codigo_auditoria],
-        ["Título:", titulo_auditoria],
-        ["Área:", area_nome],
-        ["Gestor:", gestor],
-        ["Cronograma Previsto:", f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}"],
-        ["Status da Auditoria:", f"{status}"],
+        ["Código:", Paragraph(codigo_auditoria, cell_style)],
+        ["Título:", Paragraph(titulo_auditoria, cell_style)],
+        ["Área:", Paragraph(area_nome, cell_style)],
+        ["Gestor:", Paragraph(gestor, cell_style)],
+        ["Cronograma Previsto:", Paragraph(f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}", cell_style)],
+        ["Status da Auditoria:", Paragraph(status_text, cell_style_2)],  # status_text já tem formatação
         ["", ""],
-        ["Processo Auditado:", f"{proc_codigo} - {proc_nome}"],
-        ["Data Emissão:", datetime.now().strftime('%d/%m/%Y')],
+        ["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)],
+        ["Data Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y'), cell_style)],
     ]
     
     info_table = Table(info_data, colWidths=[4*cm, 12*cm])
@@ -4485,13 +4527,13 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     
     # Espaço para conclusão final
     story.append(Paragraph("Conclusão Final do Auditor:", secao_style))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 8))
     
-    for i in range(8):
+    for i in range(6):
         story.append(Paragraph("________________________________________________________________________________", normal_style))
-        story.append(Spacer(1, 7))
+        story.append(Spacer(1, 5))
     
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 5))
     
     # ===== ASSINATURAS =====
     assinatura_data = [
