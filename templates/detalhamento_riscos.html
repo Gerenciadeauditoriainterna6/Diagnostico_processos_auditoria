@@ -225,7 +225,24 @@
                     <strong>Score calculado:</strong> <span id="preview-score">5</span> (Médio)
                 </div>
 
-                <!-- Impacto Financeiro -->
+                <!-- Motivo da Classificação -->
+                <div class="form-group">
+                <label>
+                    <i class="fas fa-comment"></i> Qual o motivo da classificação da probabilidade?
+                    <span class="help-icon" data-tooltip="Qual o motivo da classificação do nível da probabilidade?">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <textarea id="risco_motivo" class="form-control" rows="2" placeholder="Justifique o nível definido para a probabilidade..."></textarea>
+                </div>
+
+                <!-- Informações Adicionais -->
+                <div class="form-group">
+                    <label><i class="fas fa-info-circle"></i> Informações Adicionais</label>
+                    <textarea id="risco_info_adicional" class="form-control" rows="2" placeholder="Observações, contexto adicional, histórico..."></textarea>
+                </div>
+
+                <!-- Impacta Financeiramente? -->
                 <div class="form-group">
                     <label><i class="fas fa-dollar-sign"></i> Impacta financeiramente se o risco de materializar?</label>
                     <select id="risco_financeiro" class="form-control">
@@ -264,11 +281,30 @@
                     <textarea id="risco_desc_tratamento" class="form-control" rows="2" placeholder="Descrição detalhada do tratamento do risco"></textarea>
                 </div>
 
-                <!-- Informações Adicionais -->
+                <!-- ⭐ NOVOS CAMPOS - Prazo de Implantação -->
                 <div class="form-group">
-                    <label><i class="fas fa-info-circle"></i> Informações Adicionais</label>
-                    <textarea id="risco_info_adicional" class="form-control" rows="2" placeholder="Observações, contexto adicional, histórico..."></textarea>
+                    <label>
+                        <i class="fas fa-calendar-alt"></i> Prazo para Implantação
+                        <span class="help-icon" data-tooltip="Data prevista para implantação do tratamento">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <input type="date" id="risco_prazo_implantacao" class="form-control">
+                    <small class="text-muted">Deixe em branco se não houver prazo definido</small>
                 </div>
+
+                <!-- ⭐ NOVOS CAMPOS - Descrição do Prazo -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-comment"></i> Comentários sobre o prazo
+                        <span class="help-icon" data-tooltip="Detalhes sobre o prazo de implantação">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <textarea id="risco_descricao_prazo" class="form-control" rows="2" 
+                        placeholder="Descreva detalhes sobre o prazo de implantação..."></textarea>
+                </div>
+
             </div>
 
         </div>
@@ -742,8 +778,61 @@
         text-align: center;
     }
 
+    /* Tooltip - VERSÃO CORRIGIDA */
+    .help-icon {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: help;
+        margin-left: 4px;
+    }
+
+    .help-icon i {
+        font-size: 12px;
+        color: #0b5b99;
+    }
+
+    /* Tooltip que aparece em cima do ícone */
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;           /* ← FIXO: aparece ACIMA do ícone */
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        max-width: 300px;
+        min-width: 200px;
+        text-align: center;
+        white-space: normal;
+        word-wrap: break-word;
+        line-height: 1.4;
+        z-index: 100001;
+        margin-bottom: 8px;     /* ← FIXO: espaço entre tooltip e ícone */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Seta do tooltip (triângulo que aponta para o ícone) */
+    .help-icon:hover::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 6px;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+        margin-bottom: 2px;     /* ← FIXO: gruda no tooltip */
+        z-index: 100001;
+    }
+
     /* Help icon */
     .help-icon-categorias {
+        position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -809,39 +898,7 @@
         }
     }
 
-    /* Tooltip */
-    .help-icon:hover::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        background: #333;
-        color: white;
-        padding: 8px 12px;          /* Aumentei um pouco o padding vertical */
-        border-radius: 6px;
-        font-size: 12px;
-        max-width: 350px;           /* ← REDUZI de 300px para 250px (mais compacto) */
-        min-width: 250px;           /* ← NOVO: largura mínima (evita ficar muito estreito) */
-        text-align: center;
-        white-space: normal;        /* ← PERMITE QUEBRA */
-        word-wrap: break-word;      /* ← NOVO: quebra palavras longas */
-        word-break: break-word;     /* ← NOVO: quebra palavras muito longas */
-        line-height: 1.4;           /* ← NOVO: espaçamento entre linhas */
-        z-index: 9999;
-        margin-top: 20px;
-        margin-left: -10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);  /* ← NOVO: sombra suave */
-    }
 
-    /* Seta do tooltip */
-    .help-icon:hover::before {
-        content: '';
-        position: absolute;
-        border-width: 5px;
-        border-style: solid;
-        border-color: transparent transparent #333 transparent;
-        margin-top: 8px;
-        margin-left: 4px;
-        z-index: 1000;
-    }
 
     /* Badge de contagem de riscos - versão universal */
     .badge-riscos {
@@ -923,6 +980,15 @@
             carregarAuditorias(filtroAreaSelect.value);
         }
     });
+
+    function formatarDataParaExibicao(dataString) {
+        if (!dataString) return '-';
+        const partes = dataString.split('-');
+        if (partes.length === 3) {
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        return dataString;
+    }
 
     // ====== CARREGAR AUDITOIRAS POR ÁREA ======
     async function carregarAuditorias(areaId) {
@@ -1329,12 +1395,17 @@
                                 <span class="detalhe-label">Probabilidade:</span>
                                 <span class="detalhe-valor">${risco.probabilidade || 'Médio'}</span>
                             </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label"> Qual o motivo da classificação da probabilidade?</span>
+                                <span class="detalhe-valor">${escape(risco.motivo)}</span>
+                            </div>
                             ${risco.apetite ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Apetite ao Risco:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.apetite)}</span>
                             </div>
                             ` : ''}
+                            
                             ${risco.tratamento ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Tratamento:</span>
@@ -1347,18 +1418,33 @@
                                 <span class="detalhe-valor">${escapeHtml(risco.desc_tratamento)}</span>
                             </div>
                             ` : ''}
-                            ${risco.financeiro !== null ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Impacto Financeiro:</span>
-                                <span class="detalhe-valor">${risco.financeiro ? 'Sim' : 'Não'}</span>
-                            </div>
-                            ` : ''}
                             ${risco.info_adicional ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Informações Adicionais:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.info_adicional)}</span>
                             </div>
                             ` : ''}
+                            ${risco.financeiro !== null ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Impacta financeiramente se o risco se materializar?:</span>
+                                <span class="detalhe-valor">${risco.financeiro ? 'Sim' : 'Não'}</span>
+                            </div>
+                            ` : ''}
+
+                            ${risco.prazo_implantacao ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Prazo para Implantação:</span>
+                                <span class="detalhe-valor">${formatarDataParaExibicao(risco.prazo_implantacao)}</span>
+                            </div>
+                            ` : ''}
+
+                            ${risco.descricao_prazo ? `
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label">Descrição do Prazo:</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.descricao_prazo)}</span>
+                            </div>
+                            ` : ''}
+                            
                         </div>
                     </div>
                 `;
@@ -1410,6 +1496,9 @@
             document.getElementById('risco_origem').value = risco.origem;
             document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
             document.getElementById('risco_info_adicional').value = risco.info_adicional;
+            document.getElementById('risco_motivo').value = risco.motivo || '';
+            document.getElementById('risco_prazo_implantacao').value = risco.prazo_implantacao || '';
+            document.getElementById('risco_descricao_prazo').value = risco.descricao_prazo || '';
             
             // Categorias (checkboxes)
             const categorias = risco.categoria ? risco.categoria.split(', ') : [];
@@ -1550,6 +1639,9 @@
         document.getElementById('risco_origem').value = '';
         document.getElementById('risco_desc_tratamento').value = '';
         document.getElementById('risco_info_adicional').value = '';
+        document.getElementById('risco_motivo').value = '';
+        document.getElementById('risco_prazo_implantacao').value = '';
+        document.getElementById('risco_descricao_prazo').value = '';
         
         // Limpar checkboxes de categorias
         const categoriasCheckboxes = document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]');
@@ -1790,7 +1882,10 @@
             desc_tratamento: document.getElementById('risco_desc_tratamento').value,
             financeiro: document.getElementById('risco_financeiro').value === 'true',
             info_adicional: document.getElementById('risco_info_adicional').value,
-            causas: causasSelecionadas
+            causas: causasSelecionadas,
+            motivo: document.getElementById('risco_motivo').value,
+            prazo_implantacao: document.getElementById('risco_prazo_implantacao').value || null,
+            descricao_prazo: document.getElementById('risco_descricao_prazo').value
         };
 
         console.log('📦 Dados a serem enviados:', dados);

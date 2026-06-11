@@ -1873,21 +1873,31 @@ def api_risco_etapa_salvar():
     etapa_id = data.get('etapa_id')
     auditoria_id = data.get('auditoria_id')
 
-    # Dados do risco
+    # 1. Identificação do Risco
     nome_risco = data.get('nome_risco', '')
     categoria = data.get('categoria', '')
+
+    # 2. Causa e Análise
     fator_risco = data.get('fator_risco', '')
     consequencia = data.get('consequencia', '')
+    origem = data.get('origem', '')
+    apetite = data.get('apetite', '')
+
+    # 3. Avaliação do Risco
     impacto = data.get('impacto', 'Médio')
     probabilidade = data.get('probabilidade', 'Médio')
-    apetite = data.get('apetite', '')
-    tratamento = data.get('tratamento', '')
-    origem = data.get('origem', '')
-    desc_tratamento = data.get('desc_tratamento', '')
-    financeiro = data.get('financeiro', False)
+    motivo = data.get('motivo', '')
     info_adicional = data.get('info_adicional', '')
-    causas_lista = data.get('causas', [])
-    causas_str = ', '.join(causas_lista) if causas_lista else None
+    financeiro = data.get('financeiro', False)
+
+    # 4. Tratamento
+    tratamento = data.get('tratamento', '')
+    desc_tratamento = data.get('desc_tratamento', '')
+    prazo_implantacao = data.get('prazo_implantacao') or None
+    descricao_prazo = data.get('descricao_prazo', '')
+
+    # 5. Relacionamentos
+    causas_str = data.get('causas', [])
 
     # Validação básica
     if not etapa_id:
@@ -1928,6 +1938,9 @@ def api_risco_etapa_salvar():
                         desc_tratamento = :desc_tratamento,
                         financeiro = :financeiro,
                         info_adicional = :info_adicional,
+                        motivo_classificacao = :motivo,
+                        prazo_implantacao = :prazo_implantacao,
+                        descricao_prazo = :descricao_prazo,
                         causas = :causas,
                         updated_at = NOW()
                     WHERE id = :risco_id
@@ -1948,6 +1961,9 @@ def api_risco_etapa_salvar():
                     'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
                     'info_adicional': info_adicional,
+                    'motivo': motivo,
+                    'prazo_implantacao': prazo_implantacao,
+                    'descricao_prazo': descricao_prazo,
                     'causas': causas_str
                 })
 
@@ -1960,12 +1976,14 @@ def api_risco_etapa_salvar():
                         etapa_id, auditoria_id, nome_risco, categoria,
                         fator_risco, consequencia, impacto, probabilidade,
                         magnitude, apetite, tratamento, origem, causas,
-                        desc_tratamento, financeiro, info_adicional, ativo, created_at
+                        desc_tratamento, financeiro, info_adicional, 
+                        motivo_classificacao, prazo_implantacao, descricao_prazo, ativo, created_at
                     ) VALUES (
                         :etapa_id, :auditoria_id, :nome_risco, :categoria,
                         :fator_risco, :consequencia, :impacto, :probabilidade,
                         :magnitude, :apetite, :tratamento, :origem, :causas,
-                        :desc_tratamento, :financeiro, :info_adicional, true, NOW()
+                        :desc_tratamento, :financeiro, :info_adicional,
+                        :motivo, :prazo_implantacao, :descricao_prazo, true, NOW()
                     )
                     RETURNING id
                 """)
@@ -1986,6 +2004,9 @@ def api_risco_etapa_salvar():
                     'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
                     'info_adicional': info_adicional,
+                    'motivo': motivo,
+                    'prazo_implantacao': prazo_implantacao,
+                    'descricao_prazo': descricao_prazo,
                     'causas': causas_str
                 })
 
