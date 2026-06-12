@@ -463,11 +463,12 @@ def api_buscar_fundamentos_auditoria(auditoria_id):
     
     from database import engine
     from sqlalchemy import text
+    import json
     
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT COALESCE(fundamentos, '[]'::jsonb) as fundamentos
+                SELECT fundamentos
                 FROM auditorias
                 WHERE id = :auditoria_id
             """)
@@ -476,7 +477,31 @@ def api_buscar_fundamentos_auditoria(auditoria_id):
             if not result:
                 return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
             
-            fundamentos = result[0] if result[0] else []
+            fundamentos_raw = result[0]
+            
+            # ⭐ LOG PARA DEBUG ⭐
+            print(f"🔍 fundamentos_raw: {fundamentos_raw}")
+            print(f"🔍 tipo: {type(fundamentos_raw)}")
+            
+            # ⭐ TRATAMENTO CORRETO ⭐
+            if fundamentos_raw is None:
+                fundamentos = []
+            elif isinstance(fundamentos_raw, str):
+                if fundamentos_raw == '':
+                    fundamentos = []
+                else:
+                    try:
+                        fundamentos = json.loads(fundamentos_raw)
+                    except json.JSONDecodeError as e:
+                        print(f"❌ Erro ao fazer parse do JSON: {e}")
+                        fundamentos = []
+            elif isinstance(fundamentos_raw, list):
+                fundamentos = fundamentos_raw
+            else:
+                fundamentos = []
+            
+            print(f"🔍 fundamentos retornados: {fundamentos}")
+            print(f"🔍 tipo retornado: {type(fundamentos)}")
             
             return jsonify({
                 'success': True,
@@ -485,39 +510,48 @@ def api_buscar_fundamentos_auditoria(auditoria_id):
             
     except Exception as e:
         print(f"❌ Erro ao buscar fundamentos: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['POST'])
+@app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['POST', 'PUT'])
 def api_salvar_fundamentos_auditoria(auditoria_id):
-    """Salva a lista completa de fundamentos da auditoria"""
+    """Salva a lista de fundamentos da auditoria"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    data = request.json
-    fundamentos = data.get('fundamentos', [])
     
     from database import engine
     from sqlalchemy import text
     import json
     
     try:
-        with engine.connect() as conn:
-            # Converter para JSONB
+        dados = request.json
+        fundamentos = dados.get('fundamentos', [])
+        
+        # Converter para JSON string
+        if isinstance(fundamentos, (list, dict)):
             fundamentos_json = json.dumps(fundamentos)
-            
+        else:
+            fundamentos_json = fundamentos
+        
+        with engine.connect() as conn:
             query = text("""
                 UPDATE auditorias 
-                SET fundamentos = :fundamentos::jsonb,
+                SET fundamentos = :fundamentos,
                     updated_at = NOW()
                 WHERE id = :auditoria_id
             """)
-            conn.execute(query, {
+            
+            result = conn.execute(query, {
                 'fundamentos': fundamentos_json,
                 'auditoria_id': auditoria_id
             })
             conn.commit()
             
-            return jsonify({'success': True, 'message': 'Fundamentos salvos com sucesso'})
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            
+            return jsonify({'success': True})
             
     except Exception as e:
         print(f"❌ Erro ao salvar fundamentos: {e}")

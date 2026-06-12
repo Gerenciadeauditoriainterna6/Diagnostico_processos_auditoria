@@ -847,13 +847,31 @@
             const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`);
             const data = await response.json();
             
-            if (data.success) {
-                fundamentosLista = data.fundamentos || [];
-                renderizarFundamentos();
+            // ⭐ ADICIONAR LOGS PARA DEBUG ⭐
+            console.log('🔍 RESPOSTA COMPLETA DA API:', data);
+            console.log('🔍 data.success:', data.success);
+            console.log('🔍 data.fundamentos:', data.fundamentos);
+            console.log('🔍 tipo de data.fundamentos:', typeof data.fundamentos);
+            
+            // ⭐ Verificar se data.fundamentos é uma string (em vez de array)
+            if (typeof data.fundamentos === 'string') {
+                console.log('⚠️ fundamentos é uma string, convertendo...');
+                try {
+                    fundamentosLista = JSON.parse(data.fundamentos);
+                } catch(e) {
+                    fundamentosLista = [];
+                }
+            } else if (Array.isArray(data.fundamentos)) {
+                fundamentosLista = data.fundamentos;
             } else {
                 fundamentosLista = [];
-                renderizarFundamentos();
             }
+            
+            console.log('🔍 fundamentosLista FINAL:', fundamentosLista);
+            console.log('🔍 quantidade de fundamentos:', fundamentosLista.length);
+            
+            renderizarFundamentos();
+            
         } catch (error) {
             console.error('Erro ao carregar fundamentos:', error);
             fundamentosLista = [];
@@ -878,7 +896,7 @@
             <div class="fundamento-card" data-fundamento-idx="${idx}">
                 <div class="fundamento-header">
                     <div class="fundamento-titulo">
-                        <label><i class="fas fa-tag"></i> Risco que fundamento a auditoria: </label>
+                        <label><i class="fas fa-exclamation-triangle"></i> Risco que fundamentou a auditoria: </label>
                         <textarea class="fundamento-titulo-input" rows="2" placeholder="Descreva brevemente o risco que fundamentou a auditoria..." data-idx="${idx}">${escapeHtml(fundamento.titulo || '')}</textarea>
                     </div>
                     <button class="btn-remove-fundamento" data-idx="${idx}" title="Remover fundamento">

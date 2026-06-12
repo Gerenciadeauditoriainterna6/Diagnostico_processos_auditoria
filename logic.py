@@ -3474,6 +3474,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         ]))
         story.append(header_table)
         story.append(Spacer(1, 10))
+
+
     
     # ===== TÍTULO PRINCIPAL =====
     story.append(Paragraph("Relatório de Validação (Matrizes Panorama e Detalhamento)", titulo_style))
@@ -3977,6 +3979,12 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         fontSize=16, alignment=1, spaceAfter=20,
         textColor=colors.HexColor('#0b5b99')
     )
+
+    paragraph_style = ParagraphStyle(
+        'CustomParagraph', parent=styles['Normal'],
+        fontSize = 10, alignment=1, spaceAfter=10,
+        textColor=colors.HexColor('#0b5b99')
+    )
     
     secao_style = ParagraphStyle(
         'SecaoStyle', parent=styles['Heading2'],
@@ -3995,44 +4003,31 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     
     story = []
     
-    # ===== CABEÇALHO COM LOGOS =====
+    # ===== CABEÇALHO COM LOGO CENTRALIZADO =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_fusve_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
-    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
-    
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+
     header_data = []
-    tem_logo_esquerda = os.path.exists(logo_fusve_path)
-    tem_logo_direita = os.path.exists(logo_auditoria_path)
-    
-    if tem_logo_esquerda or tem_logo_direita:
-        logos_linha = []
-        if tem_logo_esquerda:
-            img_esquerda = Image(logo_fusve_path, width=4*cm, height=1.5*cm)
-            logos_linha.append(img_esquerda)
-        else:
-            logos_linha.append(Paragraph("", normal_style))
+    tem_logo = os.path.exists(logo_auditoria_path)
+
+    if tem_logo:
+        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
         
-        logos_linha.append(Paragraph("", normal_style))
+        header_data = [[img_central]]
         
-        if tem_logo_direita:
-            img_direita = Image(logo_auditoria_path, width=5.0*cm, height=1.8*cm)
-            logos_linha.append(img_direita)
-        else:
-            logos_linha.append(Paragraph("", normal_style))
-        
-        header_data.append(logos_linha)
-        
-        header_table = Table(header_data, colWidths=[4*cm, 8*cm, 4*cm])
+        header_table = Table(header_data, colWidths=[16*cm])
         header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
         ]))
         story.append(header_table)
         story.append(Spacer(1, 10))
     
+    story.append(Paragraph("MAPA", titulo_style))
+    story.append(Spacer(0, -20))
+    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
+    story.append(Spacer(1, 2))
     # ===== TÍTULO =====
     story.append(Paragraph("PARECER DA AUDITORIA INTERNA", titulo_style))
     story.append(Spacer(1, 5))
@@ -4041,7 +4036,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     with engine.connect() as conn:
         # Buscar dados da auditoria
         query_auditoria = text("""
-            SELECT codigo_auditoria, titulo, data_inicio, data_fim, status, trimestre, ano
+            SELECT codigo_auditoria, titulo, data_inicio, data_fim, status, trimestre, ano, fundamentos
             FROM auditorias WHERE id = :auditoria_id
         """)
         auditoria_info = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
@@ -4056,6 +4051,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         status = auditoria_info[4]
         trimestre = auditoria_info[5]
         ano = auditoria_info[6]
+        fundamentos = auditoria_info[7] if len(auditoria_info) > 7 and auditoria_info[7] else ''
 
         def cabecalho_com_tarja(canvas, doc):
             """Desenha tarja no cabeçalho baseada no status da auditoria"""
@@ -4299,12 +4295,21 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     cell_style_2 = ParagraphStyle(
         'CellStyle',
         parent=normal_style,
-        fontSize=18,
-        leading=20,  # Espaçamento entre linhas
+        fontSize=9,
+        leading=12,  # Espaçamento entre linhas
         wordWrap='CJK'  # Permite quebra de palavras longas
     )
 
+    # ====== VERIFICAR ATRASO DA AUDITORIA ======
+    hoje = datetime.now().date()
+    status_atraso = ""
 
+    if data_fim and data_fim < hoje:
+        status_atraso = " - Em Atraso"
+        status_atraso_html = '<font color="#dc3545"><b> - Em Atraso</b></font>'
+    else:
+        status_atraso = ""
+        status_atraso_html = ""
 
     # Montar a tabela com Paragraph
     info_data = [
@@ -4313,7 +4318,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         ["Área:", Paragraph(area_nome, cell_style)],
         ["Gestor:", Paragraph(gestor, cell_style)],
         ["Cronograma Previsto:", Paragraph(f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}", cell_style)],
-        ["Status da Auditoria:", Paragraph(status_text, cell_style_2)],  # status_text já tem formatação
+        ["Status da Auditoria:", Paragraph(f"{status_text}{status_atraso_html}", cell_style_2)],  # ← MODIFICADO
         ["", ""],
         ["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)],
         ["Data Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y'), cell_style)],
@@ -4330,6 +4335,44 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     ]))
     story.append(info_table)
     story.append(Spacer(1, 20))
+
+    # ===== SEÇÃO DE FUNDAMENTOS DA AUDITORIA =====
+    if fundamentos and len(fundamentos) > 0:
+        story.append(Paragraph("ABR - AUDITORIA BASEADA EM RISCO", secao_style))
+        story.append(Spacer(1, 5))
+        
+        # Estilo para o conteúdo
+        fundamentos_style = ParagraphStyle(
+            'FundamentosStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            alignment=0,
+            spaceAfter=8,
+            leftIndent=10
+        )
+        
+        # Percorrer cada fundamento
+        for idx, fund in enumerate(fundamentos, 1):
+            titulo = fund.get('titulo', '')
+            pontos = fund.get('pontos', [])
+            
+            if titulo:
+                story.append(Paragraph(f"<b>{idx}. {titulo}</b>", fundamentos_style))
+                story.append(Spacer(1, 3))
+            
+            # Listar os pontos
+            for ponto in pontos:
+                if ponto and ponto.strip():
+                    story.append(Paragraph(f"• {ponto}", fundamentos_style))
+                    story.append(Spacer(1, 2))
+            
+            story.append(Spacer(1, 5))
+        
+        story.append(Spacer(1, 10))
+    else:
+        story.append(Paragraph("<i>Nenhum fundamento cadastrado para esta auditoria.</i>", normal_style))
+        story.append(Spacer(1, 10))   
     
     # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
     story.append(Paragraph("1. ANÁLISES DO AUDITADO", secao_style))
@@ -4521,11 +4564,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 for f in analise['followups']:
                     status_texto = f['status']
                     if f['status'] == 'Aderente':
-                        status_texto = '✅ Aderente'
+                        status_texto = 'Aderente'
                     elif f['status'] == 'Nao aderente':
-                        status_texto = '❌ Não aderente'
+                        status_texto = 'Não aderente'
                     elif f['status'] == 'Parcialmente aderente':
-                        status_texto = '🟡 Parcialmente aderente'
+                        status_texto = 'Parcialmente aderente'
                     
                     # Texto amigável para a etapa
                     etapa_texto = f['etapa']
@@ -4617,25 +4660,83 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     story.append(tabela_assinaturas)
     
     # ===== RODAPÉ COM TARJA DE STATUS =====
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+    from PIL import Image as PILImage
+    import io
+
     def rodape_com_status(canvas, doc):
         canvas.saveState()
         
-        # Rodapé normal
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#999999'))
-        canvas.drawCentredString(pagesize[0]/2, 1*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
+        # ===== FUNDO DO RODAPÉ =====
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
         
-        # # ⭐ Tarja de status apenas para auditorias Inconclusivas
-        # if status == "Inconclusiva":
-        #     canvas.setFont('Helvetica-Bold', 42)
-        #     # Usar RGB com alpha (0.0 a 1.0)
-        #     canvas.setFillColorRGB(0.86, 0.08, 0.24, alpha=0.36)  # #DC3545 em RGB
+        # Fundo (opcional - pode deixar transparente)
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        
+        # ===== TEXTO DO PROCESSO =====
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
+        
+        # ===== LOGOS COM TRANSPARÊNCIA =====
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
+        logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
+        logo3_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
+        
+        y_logo = 0.8 * cm
+        altura_max_logo = 5 * cm
+        
+        # ⭐ Função para desenhar PNG com transparência
+        def desenhar_png_com_transparencia(caminho, x, y, largura_max, altura_max):
+            if not os.path.exists(caminho):
+                return False
             
-        #     canvas.saveState()
-        #     canvas.translate(pagesize[0] / 2, pagesize[1] / 2)
-        #     canvas.rotate(45)
-        #     canvas.drawCentredString(0, 0, "INCONCLUSIVA")
-        #     canvas.restoreState()
+            try:
+                # Abrir imagem com PIL para preservar transparência
+                pil_img = PILImage.open(caminho)
+                
+                # Converter para RGBA se necessário
+                if pil_img.mode != 'RGBA':
+                    pil_img = pil_img.convert('RGBA')
+                
+                # Calcular proporção
+                img_width, img_height = pil_img.size
+                proporcao = img_width / img_height
+                
+                largura = min(largura_max, 5*cm)
+                altura = largura / proporcao
+                if altura > altura_max:
+                    altura = altura_max
+                    largura = altura * proporcao
+                
+                # Salvar imagem temporária em memória
+                buffer = io.BytesIO()
+                pil_img.save(buffer, format='PNG')
+                buffer.seek(0)
+                
+                # Desenhar com transparência
+                img = ImageReader(buffer)
+                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
+                
+                return True
+            except Exception as e:
+                print(f"Erro ao desenhar logo: {e}")
+                return False
+        
+        # Posições
+        espacamento = pagesize[0] / 4
+        x1 = espacamento
+        x2 = pagesize[0] / 2
+        x3 = pagesize[0] - espacamento
+        largura_max = 2.5 * cm
+        
+        desenhar_png_com_transparencia(logo1_path, x2, y_logo, largura_max, altura_max_logo)
+        desenhar_png_com_transparencia(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
+        desenhar_png_com_transparencia(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
         
         canvas.restoreState()
     
