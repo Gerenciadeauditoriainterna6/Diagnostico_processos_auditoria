@@ -3320,13 +3320,17 @@
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ efetivamente_implantada: foiImplantada, data_implantacao_efetiva: dataImplantacao, comentario_implantacao: comentario })
+                body: JSON.stringify({ 
+                    efetivamente_implantada: foiImplantada, 
+                    data_implantacao_efetiva: dataImplantacao, 
+                    comentario_implantacao: comentario 
+                })
             });
             const data = await response.json();
             if (data.success) {
                 mostrarToast(foiImplantada ? '✅ Implantação confirmada! Follow-ups liberados.' : '❌ Implantação não confirmada.', 'success');
                 fecharModalConfirmarImplantacao();
-                if (foiImplantada) await criarFollowUpsAutomaticos(parseInt(analiseId), dataImplantacao);
+                // ⭐ REMOVIDO: criarFollowUpsAutomaticos (backend já faz isso)
                 if (tipoAnalise === 'auditado') await carregarAnalisesAuditado();
                 else await carregarAnalisesAuditor();
             } else {

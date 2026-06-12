@@ -3781,6 +3781,7 @@ def api_analises_criticas_por_processo():
     
     try:
         with engine.connect() as conn:
+            # ⭐ CORRIGIDO: nomes das colunas corretos para sua tabela
             query = text("""
                 SELECT 
                     ac.id,
@@ -3790,16 +3791,15 @@ def api_analises_criticas_por_processo():
                     ac.ganho_previsto,
                     ac.observacoes,
                     ac.categoria,
-                    ac.tipo_analise,
+                    ac.tipo,
                     ac.sugestao_sera_implantada,
                     ac.plano_acao,
                     ac.responsavel_implantacao,
-                    ac.data_inicio_implantacao,
+                    ac.data_inicio_prevista,
                     ac.data_conclusao_prevista,
                     ac.anexo_nome,
                     ac.efetivamente_implantada,
                     ac.data_implantacao_efetiva,
-                    ac.status_implantacao,
                     ac.created_at,
                     ac.updated_at,
                     ep.id as etapa_id,    
@@ -3809,7 +3809,7 @@ def api_analises_criticas_por_processo():
                 FROM analises_criticas ac
                 JOIN etapas_processo ep ON ac.etapa_id = ep.id
                 WHERE ep.processo_id = :processo_id
-                AND ac.tipo_analise = 'entrevistado'
+                AND ac.tipo = 'auditado'
                 ORDER BY ep.codigo_etapa, ac.categoria
             """)
             result = conn.execute(query, {'processo_id': processo_id}).fetchall()
@@ -3824,7 +3824,7 @@ def api_analises_criticas_por_processo():
                     'ganho_previsto': row[4] or '',
                     'observacoes': row[5] or '',
                     'categoria': row[6] or 'governanca',
-                    'tipo_analise': row[7],
+                    'tipo_analise': row[7],  # ← 'auditado'
                     'sugestao_sera_implantada': row[8],
                     'plano_acao': row[9] or '',
                     'responsavel_implantacao': row[10] or '',
@@ -3833,16 +3833,15 @@ def api_analises_criticas_por_processo():
                     'anexo_nome': row[13] or '',
                     'efetivamente_implantada': row[14] if row[14] is not None else None,
                     'data_implantacao_efetiva': row[15].strftime('%Y-%m-%d') if row[15] else None,
-                    'status_implantacao': row[16] or 'Aguardando implantação',
-                    'created_at': row[17].isoformat() if row[17] else '',
-                    'updated_at': row[18].isoformat() if row[18] else '',
-                    'etapa_id': row[19],  # ← ajuste o índice conforme a posição
-                    'codigo_etapa': row[20] or '',
-                    'nome_etapa': row[21] or '',
-                    'processo_id': row[22]
+                    'created_at': row[16].isoformat() if row[16] else '',
+                    'updated_at': row[17].isoformat() if row[17] else '',
+                    'etapa_id': row[18],
+                    'codigo_etapa': row[19] or '',
+                    'nome_etapa': row[20] or '',
+                    'processo_id': row[21]
                 })
             
-            print(f"✅ Buscadas {len(analises)} análises para o processo {processo_id}")
+            print(f"✅ Buscadas {len(analises)} análises do auditado para o processo {processo_id}")
             
             return jsonify({'success': True, 'analises': analises})
             
@@ -3869,7 +3868,7 @@ def api_analises_auditor_por_processo():
     
     try:
         with engine.connect() as conn:
-            # Query simplificada listando todas as colunas explicitamente
+            # ⭐ CORRIGIDO: nomes das colunas corretos
             query = text("""
                 SELECT 
                     id,
@@ -3881,16 +3880,15 @@ def api_analises_auditor_por_processo():
                     sugestao_sera_implantada,
                     plano_acao,
                     responsavel_implantacao,
-                    data_inicio_implantacao,
+                    data_inicio_prevista,
                     data_conclusao_prevista,
                     anexo_nome,
                     efetivamente_implantada,
                     data_implantacao_efetiva,
-                    status_implantacao,
                     created_at,
                     updated_at
                 FROM analises_criticas
-                WHERE tipo_analise = 'auditor'
+                WHERE tipo = 'auditor'
                   AND processo_id = :processo_id
                   AND (etapa_id IS NULL OR etapa_id = 0)
                 ORDER BY created_at ASC
@@ -3910,14 +3908,13 @@ def api_analises_auditor_por_processo():
                     'sugestao_sera_implantada': row[6],
                     'plano_acao': row[7] or '',
                     'responsavel_implantacao': row[8] or '',
-                    'data_inicio_implantacao': row[9].strftime('%Y-%m-%d') if row[9] else None,
+                    'data_inicio_implantacao': row[9].strftime('%Y-%m-%d') if row[9] else None,  # ← data_inicio_prevista
                     'data_conclusao_prevista': row[10].strftime('%Y-%m-%d') if row[10] else None,
                     'anexo_nome': row[11] or '',
                     'efetivamente_implantada': row[12] if len(row) > 12 else None,
                     'data_implantacao_efetiva': row[13].strftime('%Y-%m-%d') if len(row) > 13 and row[13] else None,
-                    'status_implantacao': row[14] if len(row) > 14 else 'Aguardando implantação',
-                    'created_at': row[15].isoformat() if len(row) > 15 and row[15] else None,
-                    'updated_at': row[16].isoformat() if len(row) > 16 and row[16] else None
+                    'created_at': row[14].isoformat() if len(row) > 14 and row[14] else None,
+                    'updated_at': row[15].isoformat() if len(row) > 15 and row[15] else None
                 }
                 analises.append(analise)
             
@@ -4205,7 +4202,7 @@ def api_analise_auditor_anexo(analise_id):
     
 @app.route('/api/analise-auditor/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
 def api_analise_auditor_confirmar_implantacao(analise_id):
-    """Confirma se a melhoria foi efetivamente implantada"""
+    """Confirma se a melhoria foi efetivamente implantada e CRIA FOLLOW-UPS automáticos"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -4214,53 +4211,175 @@ def api_analise_auditor_confirmar_implantacao(analise_id):
     data_implantacao_efetiva = data.get('data_implantacao_efetiva')
     comentario_implantacao = data.get('comentario_implantacao', '')
     
+    if efetivamente_implantada and not data_implantacao_efetiva:
+        return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
+    
     from database import engine
     from sqlalchemy import text
-    from datetime import datetime
+    from datetime import datetime, timedelta
     
     try:
         with engine.connect() as conn:
-            status = 'Implantada' if efetivamente_implantada else 'Não implantada'
+            # Buscar dados atuais da análise (usando 'tipo', não 'tipo_analise')
+            result = conn.execute(text("""
+                SELECT sugestao_sera_implantada, processo_id
+                FROM analises_criticas 
+                WHERE id = :id AND tipo = 'auditor'
+            """), {'id': analise_id})
+            analise = result.fetchone()
             
-            query = text("""
+            if not analise:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            # Atualizar a análise
+            conn.execute(text("""
                 UPDATE analises_criticas 
                 SET efetivamente_implantada = :efetivamente_implantada,
                     data_implantacao_efetiva = :data_implantacao_efetiva,
-                    status_implantacao = :status,
+                    comentario_implantacao = :comentario,
                     updated_at = NOW()
-                WHERE id = :id AND tipo_analise = 'auditor'
-            """)
-            result = conn.execute(query, {
+                WHERE id = :id
+            """), {
                 'id': analise_id,
                 'efetivamente_implantada': efetivamente_implantada,
                 'data_implantacao_efetiva': data_implantacao_efetiva,
-                'status': status
+                'comentario': comentario_implantacao
             })
+            
+            # Se foi implantada, criar follow-ups automáticos
+            if efetivamente_implantada:
+                data_base = datetime.strptime(data_implantacao_efetiva, '%Y-%m-%d')
+                
+                follow_ups = [
+                    {'etapa': 'FOLLOW_UP_30', 'dias': 30},
+                    {'etapa': 'FOLLOW_UP_60', 'dias': 60},
+                    {'etapa': 'FOLLOW_UP_90', 'dias': 90}
+                ]
+                
+                for fu in follow_ups:
+                    data_prevista = data_base + timedelta(days=fu['dias'])
+                    
+                    # Verificar se já existe follow-up
+                    check = conn.execute(text("""
+                        SELECT id FROM analises_follow_up 
+                        WHERE analise_id = :analise_id AND etapa = :etapa
+                    """), {'analise_id': analise_id, 'etapa': fu['etapa']}).fetchone()
+                    
+                    if not check:
+                        conn.execute(text("""
+                            INSERT INTO analises_follow_up (
+                                analise_id, etapa, data_prevista, status, created_by, created_at
+                            ) VALUES (
+                                :analise_id, :etapa, :data_prevista, 'Pendente', :created_by, NOW()
+                            )
+                        """), {
+                            'analise_id': analise_id,
+                            'etapa': fu['etapa'],
+                            'data_prevista': data_prevista.date(),
+                            'created_by': session.get('usuario_nome', 'Sistema')
+                        })
+                        print(f"✅ Follow-up {fu['etapa']} criado para {data_prevista.date()}")
+                
+                # Registrar no histórico de andamento (se a tabela existir)
+                try:
+                    conn.execute(text("""
+                        INSERT INTO analises_historico_andamento (
+                            analise_id, status, comentario, created_by, created_at
+                        ) VALUES (
+                            :analise_id, 'Concluido', :comentario, :created_by, NOW()
+                        )
+                    """), {
+                        'analise_id': analise_id,
+                        'comentario': f'✅ Melhoria implantada em {data_implantacao_efetiva}. Follow-ups criados para 30, 60 e 90 dias.',
+                        'created_by': session.get('usuario_nome', 'Sistema')
+                    })
+                except Exception as e:
+                    print(f"⚠️ Histórico: {e}")
+            
             conn.commit()
             
-            if result.rowcount == 0:
-                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
-            
-            # Se foi implantada, registrar no histórico de andamento
-            if efetivamente_implantada:
-                query_historico = text("""
-                    INSERT INTO analises_historico_andamento (
-                        analise_id, status, comentario, created_by, created_at
-                    ) VALUES (
-                        :analise_id, 'Concluído', :comentario, :created_by, NOW()
-                    )
-                """)
-                conn.execute(query_historico, {
-                    'analise_id': analise_id,
-                    'comentario': f'Melhoria implantada em {data_implantacao_efetiva}. {comentario_implantacao}',
-                    'created_by': session.get('usuario_nome', 'Sistema')
-                })
-                conn.commit()
-            
-            return jsonify({'success': True, 'message': 'Implantação confirmada'})
+            return jsonify({'success': True, 'message': 'Implantação confirmada e follow-ups criados'})
             
     except Exception as e:
         print(f"❌ Erro ao confirmar implantação: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/melhorias/ativas', methods=['GET'])
+def api_melhorias_ativas():
+    """Lista melhorias que estão em acompanhamento (mesmo após auditoria finalizada)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    auditoria_id = request.args.get('auditoria_id')
+    apenas_pendentes = request.args.get('apenas_pendentes', 'true').lower() == 'true'
+    
+    from database import engine
+    from sqlalchemy import text
+    from datetime import date
+    
+    try:
+        with engine.connect() as conn:
+            hoje = date.today()
+            
+            # Query corrigida: usa 'tipo' em vez de 'tipo_analise'
+            query = """
+                SELECT 
+                    a.id,
+                    a.tipo,
+                    a.sugestao_melhoria,
+                    a.responsavel_implantacao,
+                    a.data_conclusao_prevista,
+                    a.data_implantacao_efetiva,
+                    a.efetivamente_implantada,
+                    p.codigo_processo,
+                    p.nome_processo
+                FROM analises_criticas a
+                JOIN processos p ON a.processo_id = p.id
+                WHERE a.sugestao_sera_implantada = true
+                  AND (a.efetivamente_implantada = false OR a.efetivamente_implantada IS NULL)
+            """
+            
+            params = {}
+            
+            if auditoria_id:
+                query += " AND p.auditoria_id = :auditoria_id"
+                params['auditoria_id'] = auditoria_id
+            
+            if apenas_pendentes:
+                query += " AND (a.data_conclusao_prevista < :hoje OR a.data_conclusao_prevista IS NULL)"
+                params['hoje'] = hoje
+            
+            query += " ORDER BY a.data_conclusao_prevista ASC NULLS LAST"
+            
+            result = conn.execute(text(query), params).fetchall()
+            
+            melhorias = []
+            for row in result:
+                prazo_vencido = False
+                if row[4] and not row[6]:  # data_conclusao_prevista existe e não está implantada
+                    prazo_vencido = row[4] < hoje
+                
+                melhorias.append({
+                    'id': row[0],
+                    'tipo': row[1],
+                    'sugestao_melhoria': row[2] or '',
+                    'responsavel': row[3] or '',
+                    'data_conclusao_prevista': row[4].isoformat() if row[4] else None,
+                    'data_implantacao': row[5].isoformat() if row[5] else None,
+                    'efetivamente_implantada': row[6] or False,
+                    'prazo_vencido': prazo_vencido,
+                    'processo': f"{row[7]} - {row[8]}" if row[7] else row[8] or ''
+                })
+            
+            return jsonify({'success': True, 'melhorias': melhorias})
+            
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/analise/salvar', methods=['POST'])
@@ -4661,61 +4780,85 @@ def api_analise_auditado_anexo(analise_id):
 
 @app.route('/api/analise-auditado/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
 def api_analise_auditado_confirmar_implantacao(analise_id):
-    """Confirma a implantação efetiva de uma análise do auditado"""
+    """Confirma implantação de uma análise do auditado e cria follow-ups"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
-    foi_implantada = data.get('efetivamente_implantada', False)
-    data_implantacao = data.get('data_implantacao_efetiva')
-    comentario = data.get('comentario_implantacao', '')
+    efetivamente_implantada = data.get('efetivamente_implantada')
+    data_implantacao_efetiva = data.get('data_implantacao_efetiva')
+    comentario_implantacao = data.get('comentario_implantacao', '')
+    
+    if efetivamente_implantada and not data_implantacao_efetiva:
+        return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
     
     from database import engine
     from sqlalchemy import text
-    from datetime import datetime
+    from datetime import datetime, timedelta
     
     try:
         with engine.connect() as conn:
-            # Buscar dados atuais
+            # Verificar se existe e é do tipo 'auditado'
             result = conn.execute(text("""
-                SELECT sugestao_sera_implantada, data_conclusao_prevista
-                FROM analises_criticas 
-                WHERE id = :id AND tipo_analise = 'entrevistado'
+                SELECT id FROM analises_criticas 
+                WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
-            analise = result.fetchone()
-            
-            if not analise:
+            if not result.fetchone():
                 return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
             
-            # Definir status de implantação
-            status_implantacao = 'Implantada' if foi_implantada else 'Não implantada'
-            
-            # Atualizar a análise
+            # Atualizar
             conn.execute(text("""
                 UPDATE analises_criticas 
-                SET efetivamente_implantada = :foi_implantada,
-                    data_implantacao_efetiva = :data_implantacao,
-                    status_implantacao = :status_implantacao,
+                SET efetivamente_implantada = :efetivamente_implantada,
+                    data_implantacao_efetiva = :data_implantacao_efetiva,
+                    comentario_implantacao = :comentario,
                     updated_at = NOW()
                 WHERE id = :id
             """), {
                 'id': analise_id,
-                'foi_implantada': foi_implantada,
-                'data_implantacao': data_implantacao,
-                'status_implantacao': status_implantacao
+                'efetivamente_implantada': efetivamente_implantada,
+                'data_implantacao_efetiva': data_implantacao_efetiva,
+                'comentario': comentario_implantacao
             })
+            
+            # Criar follow-ups se implantada
+            if efetivamente_implantada:
+                data_base = datetime.strptime(data_implantacao_efetiva, '%Y-%m-%d')
+                
+                follow_ups = [
+                    {'etapa': 'FOLLOW_UP_30', 'dias': 30},
+                    {'etapa': 'FOLLOW_UP_60', 'dias': 60},
+                    {'etapa': 'FOLLOW_UP_90', 'dias': 90}
+                ]
+                
+                for fu in follow_ups:
+                    data_prevista = data_base + timedelta(days=fu['dias'])
+                    
+                    check = conn.execute(text("""
+                        SELECT id FROM analises_follow_up 
+                        WHERE analise_id = :analise_id AND etapa = :etapa
+                    """), {'analise_id': analise_id, 'etapa': fu['etapa']}).fetchone()
+                    
+                    if not check:
+                        conn.execute(text("""
+                            INSERT INTO analises_follow_up (
+                                analise_id, etapa, data_prevista, status, created_by, created_at
+                            ) VALUES (
+                                :analise_id, :etapa, :data_prevista, 'Pendente', :created_by, NOW()
+                            )
+                        """), {
+                            'analise_id': analise_id,
+                            'etapa': fu['etapa'],
+                            'data_prevista': data_prevista.date(),
+                            'created_by': session.get('usuario_nome', 'Sistema')
+                        })
+            
             conn.commit()
             
-            # Se foi implantada, criar follow-ups automáticos
-            if foi_implantada and analise.sugestao_sera_implantada:
-                # Você pode chamar uma função para criar follow-ups
-                # Similar ao que existe para o auditor
-                pass
-            
-            return jsonify({'success': True, 'message': 'Implantação confirmada com sucesso'})
+            return jsonify({'success': True, 'message': 'Implantação confirmada e follow-ups criados'})
             
     except Exception as e:
-        print(f"❌ Erro ao confirmar implantação: {e}")
+        print(f"❌ Erro: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500

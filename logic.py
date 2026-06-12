@@ -3437,40 +3437,26 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     
     story = []
     
-    # ===== CABEÇALHO COM LOGOS (APENAS NA PRIMEIRA PÁGINA) =====
+    # ===== CABEÇALHO COM LOGOS (APENAS NA PRIMEIRA PÁGINA) - PADRÃO PARECER =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    logo_iia_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
     logo_fusve_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
-    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
-        
+
     header_data = []
-    tem_logo_esquerda = os.path.exists(logo_fusve_path)
-    tem_logo_direita = os.path.exists(logo_auditoria_path)
-    
-    if tem_logo_esquerda or tem_logo_direita:
-        logos_linha = []
-        if tem_logo_esquerda:
-            img_esquerda = Image(logo_fusve_path, width=4*cm, height=1.5*cm)
-            logos_linha.append(img_esquerda)
-        else:
-            logos_linha.append(Paragraph("", normal_style))
+    tem_logo = os.path.exists(logo_auditoria_path)
+
+    if tem_logo:
+        # Logo centralizado (igual ao parecer)
+        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
         
-        logos_linha.append(Paragraph("", normal_style))
+        header_data = [[img_central]]
         
-        if tem_logo_direita:
-            img_direita = Image(logo_auditoria_path, width=5.0*cm, height=1.8*cm)
-            logos_linha.append(img_direita)
-        else:
-            logos_linha.append(Paragraph("", normal_style))
-        
-        header_data.append(logos_linha)
-        
-        header_table = Table(header_data, colWidths=[4*cm, 8*cm, 4*cm])
+        header_table = Table(header_data, colWidths=[16*cm])
         header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
         ]))
         story.append(header_table)
         story.append(Spacer(1, 10))
@@ -3838,27 +3824,74 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Spacer(1, 20))
     story.append(Paragraph("Assinatura: ________________________________", normal_style))
     
-    # ===== RODAPÉ EM TODAS AS PÁGINAS =====
+        # ===== RODAPÉ COM LOGOS (igual ao parecer) =====
+    from reportlab.lib.utils import ImageReader
+    from PIL import Image as PILImage
+    import io
+
     def rodape(canvas, doc):
         canvas.saveState()
         
-        # Linha separadora
-        canvas.setStrokeColor(colors.HexColor('#cccccc'))
-        canvas.line(leftMargin, bottomMargin + 0.3*cm, pagesize[0] - rightMargin, bottomMargin + 0.3*cm)
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
         
-        # Número da página
-        canvas.setFont('Helvetica', 9)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        canvas.drawCentredString(pagesize[0]/2, bottomMargin - 0.5*cm, f"Página {doc.page}")
+        # Fundo do rodapé
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
         
-        # Data
-        data_str = datetime.now().strftime('%d/%m/%Y %H:%M')
+        # Texto do processo
         canvas.setFont('Helvetica', 8)
-        canvas.drawString(leftMargin, bottomMargin - 0.5*cm, f"Gerado em: {data_str}")
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}")
         
-        # Área
-        area_abreviada = area_nome[:35] + "..." if len(area_nome) > 35 else area_nome
-        canvas.drawRightString(pagesize[0] - rightMargin, bottomMargin - 0.5*cm, f"Gerência de Auditoria Interna")
+        # Logos no rodapé
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
+        logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
+        logo3_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
+        
+        y_logo = 0.8 * cm
+        altura_max_logo = 5 * cm
+        
+        def desenhar_png_com_transparencia(caminho, x, y, largura_max, altura_max):
+            if not os.path.exists(caminho):
+                return False
+            
+            try:
+                pil_img = PILImage.open(caminho)
+                if pil_img.mode != 'RGBA':
+                    pil_img = pil_img.convert('RGBA')
+                
+                img_width, img_height = pil_img.size
+                proporcao = img_width / img_height
+                
+                largura = min(largura_max, 5*cm)
+                altura = largura / proporcao
+                if altura > altura_max:
+                    altura = altura_max
+                    largura = altura * proporcao
+                
+                buffer = io.BytesIO()
+                pil_img.save(buffer, format='PNG')
+                buffer.seek(0)
+                
+                img = ImageReader(buffer)
+                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
+                
+                return True
+            except Exception as e:
+                print(f"Erro ao desenhar logo: {e}")
+                return False
+        
+        espacamento = pagesize[0] / 4
+        x1 = espacamento
+        x2 = pagesize[0] / 2
+        x3 = pagesize[0] - espacamento
+        largura_max = 2.5 * cm
+        
+        desenhar_png_com_transparencia(logo1_path, x2, y_logo, largura_max, altura_max_logo)
+        desenhar_png_com_transparencia(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
+        desenhar_png_com_transparencia(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
         
         canvas.restoreState()
     
@@ -3982,7 +4015,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
 
     paragraph_style = ParagraphStyle(
         'CustomParagraph', parent=styles['Normal'],
-        fontSize = 10, alignment=1, spaceAfter=10,
+        fontSize=10, alignment=1, spaceAfter=10,
         textColor=colors.HexColor('#0b5b99')
     )
     
@@ -4053,58 +4086,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         ano = auditoria_info[6]
         fundamentos = auditoria_info[7] if len(auditoria_info) > 7 and auditoria_info[7] else ''
 
-        def cabecalho_com_tarja(canvas, doc):
-            """Desenha tarja no cabeçalho baseada no status da auditoria"""
-            canvas.saveState()
-            
-            # Configurações por status
-            status_config = {
-                'Inconclusiva': {
-                    'cor': (0.86, 0.08, 0.24),      # Vermelho
-                    'alpha': 1,
-                    'texto_cor': (255,255,255),
-                    'texto': 'AUDITORIA INCONCLUSIVA'
-                },
-                'Em Atraso': {
-                    'cor': (0.86, 0.08, 0.24),      # Vermelho
-                    'alpha': 1,
-                    'texto_cor': (255,255,255),
-                    'texto': 'AUDITORIA EM ATRASO'
-                },
-                'Follow-up': {
-                    'cor': (0.99, 0.49, 0.08),      # Laranja
-                    'alpha': 1,
-                    'texto_cor': (255,255,255),
-                    'texto': 'AUDITORIA EM FOLLOW-UP'
-                },
-                'Eficácia Validada': {
-                    'cor': (0.16, 0.63, 0.27),      # Verde
-                    'alpha': 1,
-                    'texto_cor': (255,255,255),
-                    'texto': 'AUDITORIA COM EFICÁCIA VALIDADA'
-                },
-                'Em Execução': {
-                    'cor': (0.09, 0.63, 0.76),      # Azul
-                    'alpha': 1,
-                    'texto_cor': (255,255,255),
-                    'texto': 'AUDITORIA EM EXECUÇÃO'
-                }
-            }
-            
-            if status in status_config:
-                config = status_config[status]
-                
-                # Desenhar retângulo (tarja)
-                canvas.setFillColorRGB(config['cor'][0], config['cor'][1], config['cor'][2], config['alpha'])
-                canvas.rect(0, pagesize[1] - 1.2*cm, pagesize[0], 0.8*cm, fill=1, stroke=0)
-                
-                # ⭐ 2. Desenhar o texto com a cor do texto
-                canvas.setFont('Helvetica-Bold', 12)
-                canvas.setFillColorRGB(config['texto_cor'][0], config['texto_cor'][1], config['texto_cor'][2])
-                canvas.drawCentredString(pagesize[0] / 2, pagesize[1] - 0.9*cm, config['texto'])
-            
-            canvas.restoreState()
-        
         # Buscar processo específico
         query_processo = text("""
             SELECT p.id, p.codigo_processo, p.nome_processo
@@ -4144,25 +4125,79 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
             etapa_codigo = etapa[2] or ''
             etapa_desc = etapa[3] or ''
             
-            # Buscar análises do auditado para esta etapa (tipo_analise = 'entrevistado')
+            # Buscar análises do auditado
             query_analises_auditado = text("""
-                SELECT categoria, analise_critica, sugestao_melhoria, 
-                       necessidade_implantacao, ganho_previsto
-                FROM analises_criticas 
-                WHERE etapa_id = :etapa_id AND tipo_analise = 'entrevistado'
-                ORDER BY categoria
+                SELECT 
+                    ac.id,
+                    ac.categoria,
+                    ac.analise_critica,
+                    ac.sugestao_melhoria,
+                    ac.sugestao_sera_implantada,
+                    ac.plano_acao,
+                    ac.responsavel_implantacao,
+                    ac.data_inicio_prevista,
+                    ac.data_conclusao_prevista,
+                    ac.efetivamente_implantada,
+                    ac.data_implantacao_efetiva
+                FROM analises_criticas ac
+                WHERE ac.etapa_id = :etapa_id AND ac.tipo = 'auditado'
+                ORDER BY ac.categoria
             """)
-            analises_auditado = conn.execute(query_analises_auditado, {"etapa_id": etapa_id}).fetchall()
+            analises_auditado_raw = conn.execute(query_analises_auditado, {"etapa_id": etapa_id}).fetchall()
             
-            # Converter para lista de dicionários
             analises_auditado_list = []
-            for a in analises_auditado:
+            for a in analises_auditado_raw:
+                # Buscar histórico de andamento
+                query_historico = text("""
+                    SELECT status, comentario, created_by, created_at
+                    FROM analises_historico_andamento
+                    WHERE analise_id = :analise_id
+                    ORDER BY created_at ASC
+                """)
+                historico_raw = conn.execute(query_historico, {"analise_id": a[0]}).fetchall()
+                
+                historico_list = []
+                for h in historico_raw:
+                    historico_list.append({
+                        'data': h[3].strftime('%d/%m/%Y') if h[3] else '',
+                        'status': h[0] or '',
+                        'comentario': h[1] or '',
+                        'created_by': h[2] or ''
+                    })
+                
+                # Buscar follow-ups
+                query_followups = text("""
+                    SELECT etapa, data_prevista, data_realizada, status, comentario
+                    FROM analises_follow_up
+                    WHERE analise_id = :analise_id
+                    ORDER BY data_prevista ASC
+                """)
+                followups_raw = conn.execute(query_followups, {"analise_id": a[0]}).fetchall()
+                
+                followups_list = []
+                for f in followups_raw:
+                    followups_list.append({
+                        'etapa': f[0] or '',
+                        'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '',
+                        'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '',
+                        'status': f[3] or 'Pendente',
+                        'comentario': f[4] or ''
+                    })
+                
                 analises_auditado_list.append({
-                    'categoria': a[0],
-                    'analise_critica': a[1] or '',
-                    'sugestao_melhoria': a[2] or '',
-                    'necessidade_implantacao': a[3] or '',
-                    'ganho_previsto': a[4] or ''
+                    'id': a[0],
+                    'categoria': a[1],
+                    'analise_critica': a[2] or '',
+                    'sugestao_melhoria': a[3] or '',
+                    'sugestao_sera_implantada': a[4],
+                    'plano_acao': a[5] or '',
+                    'responsavel_implantacao': a[6] or '',
+                    'data_inicio_prevista': a[7].strftime('%d/%m/%Y') if a[7] else None,
+                    'data_conclusao_prevista': a[8].strftime('%d/%m/%Y') if a[8] else None,
+                    'efetivamente_implantada': a[9] if a[9] is not None else None,
+                    'data_implantacao_efetiva': a[10].strftime('%d/%m/%Y') if a[10] else None,
+                    'historico': historico_list,
+                    'followups': followups_list
                 })
             
             etapas.append({
@@ -4176,29 +4211,24 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         # ===== 2. BUSCAR ANÁLISES DO AUDITOR PARA O PROCESSO =====
         query_analises_auditor = text("""
             SELECT 
-                id,
-                analise_critica,
-                sugestao_melhoria,
-                necessidade_implantacao,
-                ganho_previsto,
-                observacoes,
-                sugestao_sera_implantada,
-                plano_acao,
-                responsavel_implantacao,
-                data_inicio_implantacao,
-                data_conclusao_prevista,
-                efetivamente_implantada,
-                data_implantacao_efetiva,
-                status_implantacao,
-                created_at
-            FROM analises_criticas 
-            WHERE processo_id = :processo_id 
-            AND tipo_analise = 'auditor'
-            ORDER BY created_at ASC
+                ac.id,
+                ac.analise_critica,
+                ac.sugestao_melhoria,
+                ac.sugestao_sera_implantada,
+                ac.plano_acao,
+                ac.responsavel_implantacao,
+                ac.data_inicio_prevista,
+                ac.data_conclusao_prevista,
+                ac.efetivamente_implantada,
+                ac.data_implantacao_efetiva,
+                ac.created_at
+            FROM analises_criticas ac
+            WHERE ac.processo_id = :processo_id 
+            AND ac.tipo = 'auditor'
+            ORDER BY ac.created_at ASC
         """)
         analises_auditor_raw = conn.execute(query_analises_auditor, {"processo_id": proc_id}).fetchall()
         
-        # Buscar históricos e follow-ups para cada análise
         analises_auditor_list = []
         for a in analises_auditor_raw:
             analise_id = a[0]
@@ -4215,15 +4245,15 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
             historico_list = []
             for h in historico_raw:
                 historico_list.append({
+                    'data': h[3].strftime('%d/%m/%Y') if h[3] else '',
                     'status': h[0] or '',
                     'comentario': h[1] or '',
-                    'created_by': h[2] or '',
-                    'data': h[3].strftime('%d/%m/%Y') if h[3] else ''
+                    'created_by': h[2] or ''
                 })
             
             # Buscar follow-ups
             query_followups = text("""
-                SELECT etapa, data_prevista, data_realizada, status, comentario, responsavel
+                SELECT etapa, data_prevista, data_realizada, status, comentario
                 FROM analises_follow_up
                 WHERE analise_id = :analise_id
                 ORDER BY data_prevista ASC
@@ -4237,29 +4267,46 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                     'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '',
                     'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '',
                     'status': f[3] or 'Pendente',
-                    'comentario': f[4] or '',
-                    'responsavel': f[5] or ''
+                    'comentario': f[4] or ''
                 })
             
             analises_auditor_list.append({
                 'id': analise_id,
                 'analise_critica': a[1] or '',
                 'sugestao_melhoria': a[2] or '',
-                'necessidade_implantacao': a[3] or '',
-                'ganho_previsto': a[4] or '',
-                'observacoes': a[5] or '',
-                'sugestao_sera_implantada': a[6] or False,
-                'plano_acao': a[7] or '',
-                'responsavel_implantacao': a[8] or '',
-                'data_inicio_implantacao': a[9].strftime('%d/%m/%Y') if a[9] else None,
-                'data_conclusao_prevista': a[10].strftime('%d/%m/%Y') if a[10] else None,
-                'efetivamente_implantada': a[11] if len(a) > 11 else None,
-                'data_implantacao_efetiva': a[12].strftime('%d/%m/%Y') if len(a) > 12 and a[12] else None,
-                'status_implantacao': a[13] if len(a) > 13 else 'Aguardando implantação',
-                'data_criacao': a[14].strftime('%d/%m/%Y') if a[14] else '',
+                'sugestao_sera_implantada': a[3],
+                'plano_acao': a[4] or '',
+                'responsavel_implantacao': a[5] or '',
+                'data_inicio_prevista': a[6].strftime('%d/%m/%Y') if a[6] else None,
+                'data_conclusao_prevista': a[7].strftime('%d/%m/%Y') if a[7] else None,
+                'efetivamente_implantada': a[8] if a[8] is not None else None,
+                'data_implantacao_efetiva': a[9].strftime('%d/%m/%Y') if a[9] else None,
+                'data_criacao': a[10].strftime('%d/%m/%Y') if a[10] else '',
                 'historico': historico_list,
                 'followups': followups_list
             })
+    
+    # ===== FUNÇÃO PARA DESENHAR TARJA =====
+    def cabecalho_com_tarja(canvas, doc):
+        canvas.saveState()
+        
+        status_config = {
+            'Inconclusiva': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA INCONCLUSIVA'},
+            'Em Atraso': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA EM ATRASO'},
+            'Follow-up': {'cor': (0.99, 0.49, 0.08), 'texto': 'AUDITORIA EM FOLLOW-UP'},
+            'Eficácia Validada': {'cor': (0.16, 0.63, 0.27), 'texto': 'AUDITORIA COM EFICÁCIA VALIDADA'},
+            'Em Execução': {'cor': (0.09, 0.63, 0.76), 'texto': 'AUDITORIA EM EXECUÇÃO'}
+        }
+        
+        if status in status_config:
+            config = status_config[status]
+            canvas.setFillColorRGB(config['cor'][0], config['cor'][1], config['cor'][2], 1)
+            canvas.rect(0, pagesize[1] - 1.2*cm, pagesize[0], 0.8*cm, fill=1, stroke=0)
+            canvas.setFont('Helvetica-Bold', 12)
+            canvas.setFillColorRGB(1, 1, 1)
+            canvas.drawCentredString(pagesize[0] / 2, pagesize[1] - 0.9*cm, config['texto'])
+        
+        canvas.restoreState()
     
     status_colors = {
         'Em Execução': colors.HexColor('#17a2b8'),      
@@ -4268,61 +4315,90 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         'Em Atraso': colors.HexColor("#dc7235"),         
         'Inconclusiva': colors.HexColor("#ff0000")       
     }
-
-    # Criar o parágrafo do status com a cor correspondente
-    status_color = status_colors.get(status, colors.black)
-
-    # Criar um Paragraph com a cor específica
-    status_paragraph = Paragraph(f'<font color="#{status_color.hexval()[2:]}"><b>{status}</b></font>', normal_style)  
-    status_text = f'<font color="{status_color}"><b>{status}</b></font>'      
     
-    from reportlab.platypus import Paragraph
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-
-    # Estilo para texto da tabela (já deve existir no seu código)
-    normal_style = styles['Normal']
-    normal_style.fontSize = 9
-
-    # Criar um estilo específico para células da tabela (com quebra de linha)
+    status_color = status_colors.get(status, colors.black)
+    status_text = f'<font color="#{status_color.hexval()[2:]}"><b>{status}</b></font>'
+    
+    # ===== VERIFICAR ATRASO DA AUDITORIA =====
+    hoje = datetime.now().date()
+    status_atraso_html = ""
+    
+    if data_fim and data_fim < hoje:
+        status_atraso_html = '<font color="#dc3545"><b> - Em Atraso</b></font>'
+    
+    # Estilo para células da tabela
     cell_style = ParagraphStyle(
         'CellStyle',
         parent=normal_style,
         fontSize=9,
-        leading=12,  # Espaçamento entre linhas
-        wordWrap='CJK'  # Permite quebra de palavras longas
+        leading=12,
+        wordWrap='CJK'
     )
-
+    
     cell_style_2 = ParagraphStyle(
-        'CellStyle',
+        'CellStyle2',
         parent=normal_style,
         fontSize=9,
-        leading=12,  # Espaçamento entre linhas
-        wordWrap='CJK'  # Permite quebra de palavras longas
+        leading=12,
+        wordWrap='CJK'
     )
 
-    # ====== VERIFICAR ATRASO DA AUDITORIA ======
-    hoje = datetime.now().date()
-    status_atraso = ""
-
-    if data_fim and data_fim < hoje:
-        status_atraso = " - Em Atraso"
-        status_atraso_html = '<font color="#dc3545"><b> - Em Atraso</b></font>'
-    else:
-        status_atraso = ""
-        status_atraso_html = ""
-
-    # Montar a tabela com Paragraph
+    # ===== CONTAR FOLLOW-UPS ATIVOS NO PROCESSO =====
+    total_followups_pendentes = 0
+    total_followups_em_andamento = 0
+    total_melhorias_em_implantacao = 0
+    
+    # Contar follow-ups pendentes nas análises do auditor
+    for analise in analises_auditor_list:
+        if analise.get('sugestao_sera_implantada') == True:
+            if analise.get('efetivamente_implantada') == False:
+                total_melhorias_em_implantacao += 1
+            if analise.get('followups'):
+                for fu in analise['followups']:
+                    if fu['status'] == 'Pendente':
+                        total_followups_pendentes += 1
+                    elif fu['status'] in ['Aderente', 'Nao aderente', 'Parcialmente aderente']:
+                        total_followups_em_andamento += 1
+    
+    # Contar follow-ups pendentes nas análises do auditado
+    for etapa in etapas:
+        for analise in etapa['analises_auditado']:
+            if analise.get('sugestao_sera_implantada') == True:
+                if analise.get('efetivamente_implantada') == False:
+                    total_melhorias_em_implantacao += 1
+                if analise.get('followups'):
+                    for fu in analise['followups']:
+                        if fu['status'] == 'Pendente':
+                            total_followups_pendentes += 1
+                        elif fu['status'] in ['Aderente', 'Nao aderente', 'Parcialmente aderente']:
+                            total_followups_em_andamento += 1
+    
+    # Criar mensagem de alerta
+    alerta_followup = ""
+    if total_followups_pendentes > 0:
+        alerta_followup = f'<font color="#dc5a10"><b>ATENÇÃO: {total_followups_pendentes} follow-up(s) pendente(s) aguardando registro!</b></font>'
+    elif total_melhorias_em_implantacao > 0:
+        alerta_followup = f'<font color="#ffc107"><b>{total_melhorias_em_implantacao} melhoria(s) em processo de implantação</b></font>'
+    elif total_followups_em_andamento > 0:
+        alerta_followup = f'<font color="#28a745"><b>{total_followups_em_andamento} follow-up(s) já registrados</b></font>'
+    
     info_data = [
         ["Código:", Paragraph(codigo_auditoria, cell_style)],
         ["Título:", Paragraph(titulo_auditoria, cell_style)],
         ["Área:", Paragraph(area_nome, cell_style)],
         ["Gestor:", Paragraph(gestor, cell_style)],
         ["Cronograma Previsto:", Paragraph(f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}", cell_style)],
-        ["Status da Auditoria:", Paragraph(f"{status_text}{status_atraso_html}", cell_style_2)],  # ← MODIFICADO
-        ["", ""],
-        ["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)],
-        ["Data Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y'), cell_style)],
+        ["Status da Auditoria:", Paragraph(f"{status_text}{status_atraso_html}", cell_style_2)],
     ]
+    
+    # ⭐ ADICIONAR ALERTA DE FOLLOW-UP ⭐
+    if alerta_followup:
+        info_data.append(["", ""])
+        info_data.append(["Status dos Follow-ups:", Paragraph(alerta_followup, cell_style_2)])
+    
+    info_data.append(["", ""])
+    info_data.append(["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)])
+    info_data.append(["Data Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y'), cell_style)])
     
     info_table = Table(info_data, colWidths=[4*cm, 12*cm])
     info_table.setStyle(TableStyle([
@@ -4335,13 +4411,153 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     ]))
     story.append(info_table)
     story.append(Spacer(1, 20))
-
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXIBIR PLANO DE AÇÃO =====
+    def adicionar_plano_acao(analise):
+        dados_plano = []
+        if analise.get('responsavel_implantacao'):
+            dados_plano.append([Paragraph("<b>Responsável:</b>", normal_style), Paragraph(analise['responsavel_implantacao'], normal_style)])
+        if analise.get('data_inicio_prevista'):
+            dados_plano.append([Paragraph("<b>Início Previsto:</b>", normal_style), Paragraph(analise['data_inicio_prevista'], normal_style)])
+        if analise.get('data_conclusao_prevista'):
+            dados_plano.append([Paragraph("<b>Conclusão Prevista:</b>", normal_style), Paragraph(analise['data_conclusao_prevista'], normal_style)])
+        
+        if dados_plano:
+            story.append(Paragraph("<b>Plano de Ação:</b>", normal_style))
+            if analise.get('plano_acao'):
+                story.append(Paragraph(analise['plano_acao'], normal_style))
+                story.append(Spacer(1, 3))
+            
+            tabela_plano = Table(dados_plano, colWidths=[4*cm, 11*cm])
+            tabela_plano.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.91, 0.96, 0.91, alpha=0.60)),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            story.append(tabela_plano)
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXIBIR HISTÓRICO =====
+    def adicionar_historico(historico):
+        if historico and len(historico) > 0:
+            story.append(Paragraph("<b>Histórico de Andamento:</b>", normal_style))
+            story.append(Spacer(1, 3))
+            
+            hist_data = [["Data", "Status", "Comentário", "Registrado por"]]
+            for h in historico:
+                hist_data.append([
+                    Paragraph(h['data'], normal_style),
+                    Paragraph(h['status'], normal_style),
+                    Paragraph(h['comentario'][:60] + ('...' if len(h['comentario']) > 60 else ''), normal_style),
+                    Paragraph(h['created_by'], normal_style)
+                ])
+            
+            tabela_hist = Table(hist_data, colWidths=[2.5*cm, 3*cm, 8*cm, 3.5*cm], repeatRows=1)
+            tabela_hist.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.09, 0.25, 0.27, alpha=0.60)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            story.append(tabela_hist)
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXIBIR FOLLOW-UPS =====
+    def adicionar_followups(followups):
+        if followups and len(followups) > 0:
+            story.append(Spacer(1, 5))
+            story.append(Paragraph("<b>Follow-ups Pós-Implantação:</b>", normal_style))
+            story.append(Spacer(1, 3))
+            
+            fu_data = [["Etapa", "Data Prevista", "Data Realizada", "Status", "Comentário"]]
+            for fu in followups:
+                etapa_texto = fu['etapa']
+                if '30' in etapa_texto:
+                    etapa_texto = '30 dias após implantação'
+                elif '60' in etapa_texto:
+                    etapa_texto = '60 dias após implantação'
+                elif '90' in etapa_texto:
+                    etapa_texto = '90 dias após implantação'
+                
+                status_texto = fu['status']
+                if fu['status'] == 'Pendente':
+                    status_texto = 'Pendente'
+                elif fu['status'] == 'Aderente':
+                    status_texto = 'Aderente'
+                elif fu['status'] == 'Nao aderente':
+                    status_texto = 'Não aderente'
+                elif fu['status'] == 'Parcialmente aderente':
+                    status_texto = 'Parcialmente aderente'
+                
+                fu_data.append([
+                    Paragraph(etapa_texto, normal_style),
+                    Paragraph(fu['data_prevista'], normal_style),
+                    Paragraph(fu['data_realizada'] or '-', normal_style),
+                    Paragraph(status_texto, normal_style),
+                    Paragraph(fu['comentario'][:50] or '-', normal_style)
+                ])
+            
+            tabela_fu = Table(fu_data, colWidths=[3*cm, 2.5*cm, 2.5*cm, 3.5*cm, 5*cm], repeatRows=1)
+            tabela_fu.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            story.append(tabela_fu)
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
+    def adicionar_analise(analise, titulo):
+        story.append(Paragraph(titulo, subsecao_style))
+        story.append(Spacer(1, 5))
+        
+        # Análise Crítica
+        if analise.get('analise_critica'):
+            story.append(Paragraph("<b>Análise Crítica:</b>", normal_style))
+            story.append(Paragraph(analise['analise_critica'], normal_style))
+            story.append(Spacer(1, 5))
+        
+        # Sugestão de Melhoria
+        if analise.get('sugestao_melhoria'):
+            story.append(Paragraph("<b>Sugestão de Melhoria:</b>", normal_style))
+            story.append(Paragraph(analise['sugestao_melhoria'], normal_style))
+            story.append(Spacer(1, 5))
+        
+        # Decisão sobre implantação
+        if analise.get('sugestao_sera_implantada') == True:
+            story.append(Paragraph("<b>Esta melhoria será implantada</b>", normal_style))
+            story.append(Spacer(1, 3))
+            
+            # Plano de Ação
+            adicionar_plano_acao(analise)
+            story.append(Spacer(1, 5))
+            
+            # Histórico de Andamento
+            if analise.get('historico') and len(analise['historico']) > 0:
+                adicionar_historico(analise['historico'])
+                story.append(Spacer(1, 5))
+            
+            # Follow-ups (apenas se já implantada)
+            if analise.get('efetivamente_implantada') == True and analise.get('followups') and len(analise['followups']) > 0:
+                adicionar_followups(analise['followups'])
+                
+        elif analise.get('sugestao_sera_implantada') == False:
+            story.append(Paragraph("<b>Esta melhoria não será implantada</b>", normal_style))
+        else:
+            story.append(Paragraph("<b>Aguardando decisão sobre implantação</b>", normal_style))
+        
+        story.append(Spacer(1, 8))
+    
     # ===== SEÇÃO DE FUNDAMENTOS DA AUDITORIA =====
     if fundamentos and len(fundamentos) > 0:
         story.append(Paragraph("ABR - AUDITORIA BASEADA EM RISCO", secao_style))
         story.append(Spacer(1, 5))
         
-        # Estilo para o conteúdo
         fundamentos_style = ParagraphStyle(
             'FundamentosStyle',
             parent=normal_style,
@@ -4352,7 +4568,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
             leftIndent=10
         )
         
-        # Percorrer cada fundamento
         for idx, fund in enumerate(fundamentos, 1):
             titulo = fund.get('titulo', '')
             pontos = fund.get('pontos', [])
@@ -4361,7 +4576,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 story.append(Paragraph(f"<b>{idx}. {titulo}</b>", fundamentos_style))
                 story.append(Spacer(1, 3))
             
-            # Listar os pontos
             for ponto in pontos:
                 if ponto and ponto.strip():
                     story.append(Paragraph(f"• {ponto}", fundamentos_style))
@@ -4383,53 +4597,30 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         story.append(Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style))
     else:
         for etapa_idx, etapa in enumerate(etapas):
-            # Cabeçalho da etapa
             story.append(Paragraph(f"Etapa {etapa['codigo']}: {etapa['nome']}", subsecao_style))
             story.append(Spacer(1, 3))
             
-            # Descrição
             if etapa['descricao']:
                 story.append(Paragraph(f"<i>{etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}</i>", normal_style))
                 story.append(Spacer(1, 5))
             
-            # Análises do Auditado
             if etapa['analises_auditado']:
                 for a in etapa['analises_auditado']:
-                    # Categoria
                     nome_categoria = {
                         'governanca': 'Governança',
                         'riscos': 'Riscos',
                         'controles': 'Controles'
                     }.get(a['categoria'], a['categoria'].upper())
                     
-                    story.append(Paragraph(f"{nome_categoria}", normal_style))
-                    
-                    dados = []
-                    if a['analise_critica']:
-                        dados.append([Paragraph("Análise Crítica:", normal_style), Paragraph(a['analise_critica'], normal_style)])
-                    if a['sugestao_melhoria']:
-                        dados.append([Paragraph("Sugestão de Melhoria:", normal_style), Paragraph(a['sugestao_melhoria'], normal_style)])
-                    if a['necessidade_implantacao']:
-                        dados.append([Paragraph("Necessidade para Implantação:", normal_style), Paragraph(a['necessidade_implantacao'], normal_style)])
-                    if a['ganho_previsto']:
-                        dados.append([Paragraph("Ganho Previsto:", normal_style), Paragraph(a['ganho_previsto'], normal_style)])
-                    
-                    if dados:
-                        tabela_analise = Table(dados, colWidths=[4*cm, 11*cm])
-                        tabela_analise.setStyle(TableStyle([
-                            # ⭐ Background amarelo claro com transparência
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(1.0, 0.97, 0.90, alpha=0.60)),  # #FFF8E7
-                            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                            ('TOPPADDING', (0, 0), (-1, -1), 4),
-                            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                        ]))
-                        story.append(KeepTogether(tabela_analise))
-                        story.append(Spacer(1, 5))
+                    adicionar_analise(a, f"{nome_categoria}")
             else:
                 story.append(Paragraph("<i>Nenhuma análise cadastrada para esta etapa.</i>", normal_style))
             
-            story.append(Spacer(1, 8))
+            # ⭐ Separador entre etapas (com linha cinza)
+            if etapa_idx < len(etapas) - 1:
+                story.append(Spacer(1, 5))
+                story.append(Paragraph("<hr color='#CCCCCC'/>", normal_style))
+                story.append(Spacer(1, 5))
     
     # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
     story.append(PageBreak())
@@ -4441,173 +4632,54 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         story.append(Paragraph("<i>Nenhuma análise do auditor cadastrada para este processo.</i>", normal_style))
     else:
         for idx, analise in enumerate(analises_auditor_list, 1):
-            # Título da análise
-            story.append(Paragraph(f"2.{idx} Análise do Auditor - {analise['data_criacao']}", subsecao_style))
-            story.append(Spacer(1, 5))
+            adicionar_analise(analise, f"2.{idx} Análise do Auditor - {analise.get('data_criacao', '')}")
             
-            # Análise Crítica
-            if analise.get('analise_critica'):
-                story.append(Paragraph("<b>Análise Crítica:</b>", normal_style))
-                story.append(Paragraph(analise['analise_critica'], normal_style))
-                story.append(Spacer(1, 5))
-            
-            # Sugestão de Melhoria
-            if analise.get('sugestao_melhoria'):
-                story.append(Paragraph("<b>Sugestão de Melhoria:</b>", normal_style))
-                story.append(Paragraph(analise['sugestao_melhoria'], normal_style))
-                story.append(Spacer(1, 5))
-            
-            # Plano de Ação (se houver)
-            if analise.get('sugestao_sera_implantada') and analise.get('plano_acao'):
-                story.append(Paragraph("<b>Plano de Ação:</b>", normal_style))
-                story.append(Paragraph(analise['plano_acao'], normal_style))
-                story.append(Spacer(1, 3))
-                
-                # Dados do plano
-                dados_plano = []
-                if analise.get('responsavel_implantacao'):
-                    dados_plano.append([Paragraph("<b>Responsável:</b>", normal_style), Paragraph(analise['responsavel_implantacao'], normal_style)])
-                if analise.get('data_inicio_implantacao'):
-                    dados_plano.append([Paragraph("<b>Início Previsto:</b>", normal_style), Paragraph(analise['data_inicio_implantacao'], normal_style)])
-                if analise.get('data_conclusao_prevista'):
-                    dados_plano.append([Paragraph("<b>Conclusão Prevista:</b>", normal_style), Paragraph(analise['data_conclusao_prevista'], normal_style)])
-                if analise.get('efetivamente_implantada') is True:
-                    dados_plano.append([Paragraph("<b>Status:</b>", normal_style), Paragraph("Implantada", normal_style)])
-                    if analise.get('data_implantacao_efetiva'):
-                        dados_plano.append([Paragraph("<b>Data da Implantação:</b>", normal_style), Paragraph(analise['data_implantacao_efetiva'], normal_style)])
-                elif analise.get('efetivamente_implantada') is False:
-                    dados_plano.append([Paragraph("<b>Status:</b>", normal_style), Paragraph("Não implantada", normal_style)])
-                else:
-                    dados_plano.append([Paragraph("<b>Status:</b>", normal_style), Paragraph("Aguardando implantação", normal_style)])
-                
-                if dados_plano:
-                    tabela_plano = Table(dados_plano, colWidths=[4*cm, 11*cm])
-                    tabela_plano.setStyle(TableStyle([
-                        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                        # ⭐ Background verde claro com transparência
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.91, 0.96, 0.91, alpha=0.60)),  # #E8F5E9
-                        ('TOPPADDING', (0, 0), (-1, -1), 4),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                    ]))
-                    story.append(KeepTogether(tabela_plano))
-                    story.append(Spacer(1, 8))
-            
-            # Necessidade para Implantação
-            if analise.get('necessidade_implantacao'):
-                story.append(Paragraph("<b>Necessidade para Implantação:</b>", normal_style))
-                story.append(Paragraph(analise['necessidade_implantacao'], normal_style))
-                story.append(Spacer(1, 5))
-            
-            # Ganho Previsto
-            if analise.get('ganho_previsto'):
-                story.append(Paragraph("<b>Ganho Previsto:</b>", normal_style))
-                story.append(Paragraph(analise['ganho_previsto'], normal_style))
-                story.append(Spacer(1, 5))
-            
-            # Observações
-            if analise.get('observacoes'):
-                story.append(Paragraph("<b>Observações:</b>", normal_style))
-                story.append(Paragraph(analise['observacoes'], normal_style))
-                story.append(Spacer(1, 5))
-            
-            # ⭐ MELHORIA 1: Histórico de Andamento com KeepTogether
-            if analise.get('historico') and len(analise['historico']) > 0:
-                # Criar um container para o bloco completo do histórico
-                bloco_historico = []
-                bloco_historico.append(Paragraph("<b>Histórico de Andamento:</b>", normal_style))
-                bloco_historico.append(Spacer(1, 5))
-                
-                historico_data = [["Data", "Status", "Comentário", "Registrado por"]]
-                for h in analise['historico']:
-                    historico_data.append([
-                        Paragraph(h['data'], normal_style),
-                        Paragraph(h['status'], normal_style),
-                        Paragraph(h['comentario'][:60] + ('...' if len(h['comentario']) > 60 else ''), normal_style),
-                        Paragraph(h['created_by'], normal_style)
-                    ])
-                
-                tabela_historico = Table(historico_data, colWidths=[3*cm, 3.5*cm, 7*cm, 3.5*cm])
-                tabela_historico.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#184145')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ]))
-                
-                # Permitir que a tabela quebre entre linhas, mas mantendo cabeçalho
-                tabela_historico_split = Table(historico_data, colWidths=[3*cm, 3.5*cm, 7*cm, 3.5*cm], repeatRows=1)
-                tabela_historico_split.setStyle(TableStyle([
-                    # ⭐ Cabeçalho com transparência
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.09, 0.25, 0.27, alpha=0.60)),  # #184145
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ]))
-                
-                bloco_historico.append(tabela_historico_split)
-                story.append(KeepTogether(bloco_historico))
-                story.append(Spacer(1, 10))
-            
-            # ⭐ MELHORIA 2: Follow-ups com KeepTogether e split adequado
-            if analise.get('efetivamente_implantada') is True and analise.get('followups') and len(analise['followups']) > 0:
-                bloco_followup = []
-                bloco_followup.append(Paragraph("<b>Follow-ups Agendados:</b>", normal_style))
-                bloco_followup.append(Spacer(1, 5))
-                
-                followup_data = [["Etapa", "Data Prevista", "Data Realizada", "Status", "Comentário"]]
-                for f in analise['followups']:
-                    status_texto = f['status']
-                    if f['status'] == 'Aderente':
-                        status_texto = 'Aderente'
-                    elif f['status'] == 'Nao aderente':
-                        status_texto = 'Não aderente'
-                    elif f['status'] == 'Parcialmente aderente':
-                        status_texto = 'Parcialmente aderente'
-                    
-                    # Texto amigável para a etapa
-                    etapa_texto = f['etapa']
-                    if 'FOLLOW_UP_30' in etapa_texto:
-                        etapa_texto = '30 dias após implantação'
-                    elif 'FOLLOW_UP_60' in etapa_texto:
-                        etapa_texto = '60 dias após implantação'
-                    elif 'FOLLOW_UP_90' in etapa_texto:
-                        etapa_texto = '90 dias após implantação'
-                    
-                    followup_data.append([
-                        Paragraph(etapa_texto, normal_style),
-                        Paragraph(f['data_prevista'], normal_style),
-                        Paragraph(f['data_realizada'] or '-', normal_style),
-                        Paragraph(status_texto, normal_style),
-                        Paragraph(f['comentario'][:50] + ('...' if len(f['comentario']) > 50 else ''), normal_style)
-                    ])
-                
-                # ⭐ IMPORTANTE: Usar repeatRows=1 para repetir o cabeçalho quando a tabela quebrar
-                tabela_followup = Table(followup_data, colWidths=[3.5*cm, 3*cm, 3*cm, 3*cm, 4.5*cm], repeatRows=1)
-                tabela_followup.setStyle(TableStyle([
-                    # ⭐ Cabeçalho azul com transparência
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.04, 0.36, 0.60, alpha=0.60)),  # #0b5b99
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ]))
-                
-                bloco_followup.append(tabela_followup)
-                story.append(KeepTogether(bloco_followup))
-                story.append(Spacer(1, 8))
-            
-            story.append(Spacer(1, 5))
+            # ⭐ Separador entre análises (com linha cinza e mais espaçamento)
             if idx < len(analises_auditor_list):
-                story.append(Paragraph("<hr/>", normal_style))
-                story.append(Spacer(1, 5))
+                story.append(Spacer(1, 10))
+                story.append(Paragraph("<hr color='#CCCCCC'/>", normal_style))
+                story.append(Spacer(1, 10))
+    
+    # ===== SEÇÃO 2.5: RESUMO DAS MELHORIAS E FOLLOW-UPS =====
+    if total_melhorias_em_implantacao > 0 or total_followups_pendentes > 0:
+        story.append(PageBreak())
+        story.append(Paragraph("2.5. RESUMO DO ACOMPANHAMENTO", secao_style))
+        story.append(Spacer(1, 10))
+        
+        # Box de resumo
+        resumo_data = []
+        
+        if total_melhorias_em_implantacao > 0:
+            resumo_data.append([
+                Paragraph("Em implantação:", normal_style),
+                Paragraph(f"{total_melhorias_em_implantacao} melhoria(s) em andamento", normal_style)
+            ])
+        
+        if total_followups_pendentes > 0:
+            resumo_data.append([
+                Paragraph("Pendentes:", normal_style),
+                Paragraph(f"{total_followups_pendentes} follow-up(s) aguardando registro", normal_style)
+            ])
+        
+        if total_followups_em_andamento > 0:
+            resumo_data.append([
+                Paragraph("Realizados:", normal_style),
+                Paragraph(f"{total_followups_em_andamento} follow-up(s) já registrados", normal_style)
+            ])
+        
+        if resumo_data:
+            # Criar tabela resumo com fundo colorido
+            resumo_table = Table(resumo_data, colWidths=[5*cm, 11*cm])
+            resumo_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.95, 0.97, 1.0, alpha=0.80)),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            story.append(resumo_table)
+            story.append(Spacer(1, 15))
     
     # ===== SEÇÃO 3: CONCLUSÃO E RECOMENDAÇÕES =====
     story.append(PageBreak())
@@ -4620,7 +4692,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     ))
     story.append(Spacer(1, 5))
     
-    # Espaço para conclusão final
     story.append(Paragraph("Conclusão Final do Auditor:", secao_style))
     story.append(Spacer(1, 8))
     
@@ -4661,27 +4732,22 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     
     # ===== RODAPÉ COM TARJA DE STATUS =====
     from reportlab.lib.utils import ImageReader
-    from reportlab.pdfgen import canvas
     from PIL import Image as PILImage
     import io
 
     def rodape_com_status(canvas, doc):
         canvas.saveState()
         
-        # ===== FUNDO DO RODAPÉ =====
         altura_rodape = 1.8 * cm
         y_fundo = 0
         
-        # Fundo (opcional - pode deixar transparente)
         canvas.setFillColor(colors.HexColor('#F0F0F0'))
         canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
         
-        # ===== TEXTO DO PROCESSO =====
         canvas.setFont('Helvetica', 8)
         canvas.setFillColor(colors.HexColor('#666666'))
         canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
         
-        # ===== LOGOS COM TRANSPARÊNCIA =====
         root_dir = os.path.dirname(os.path.abspath(__file__))
         logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
         logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
@@ -4690,20 +4756,15 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         y_logo = 0.8 * cm
         altura_max_logo = 5 * cm
         
-        # ⭐ Função para desenhar PNG com transparência
         def desenhar_png_com_transparencia(caminho, x, y, largura_max, altura_max):
             if not os.path.exists(caminho):
                 return False
             
             try:
-                # Abrir imagem com PIL para preservar transparência
                 pil_img = PILImage.open(caminho)
-                
-                # Converter para RGBA se necessário
                 if pil_img.mode != 'RGBA':
                     pil_img = pil_img.convert('RGBA')
                 
-                # Calcular proporção
                 img_width, img_height = pil_img.size
                 proporcao = img_width / img_height
                 
@@ -4713,12 +4774,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                     altura = altura_max
                     largura = altura * proporcao
                 
-                # Salvar imagem temporária em memória
                 buffer = io.BytesIO()
                 pil_img.save(buffer, format='PNG')
                 buffer.seek(0)
                 
-                # Desenhar com transparência
                 img = ImageReader(buffer)
                 canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
                 
@@ -4727,7 +4786,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 print(f"Erro ao desenhar logo: {e}")
                 return False
         
-        # Posições
         espacamento = pagesize[0] / 4
         x1 = espacamento
         x2 = pagesize[0] / 2
