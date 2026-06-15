@@ -1685,6 +1685,83 @@ def api_processos_por_auditoria():
     except Exception as e:
         print(f"❌ Erro ao buscar processos: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/processos-por-area')
+def api_processos_por_area():
+    """Retorna todos os processos de uma área (com opção de filtrar por auditoria)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    area_id = request.args.get('area_id')
+    auditoria_id = request.args.get('auditoria_id')
+    
+    if not area_id:
+        return jsonify({'success': False, 'error': 'area_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            if auditoria_id:
+                # Se tem auditoria, filtrar por ela
+                query = text("""
+                    SELECT 
+                        p.id, 
+                        p.codigo_processo, 
+                        p.nome_processo, 
+                        p.objetivo,
+                        p.auditoria_id,
+                        a.codigo_auditoria
+                    FROM processos p
+                    LEFT JOIN auditorias a ON p.auditoria_id = a.id
+                    WHERE p.id_area = :area_id 
+                        AND p.status = 'Ativo'
+                        AND p.auditoria_id = :auditoria_id
+                    ORDER BY 
+                        CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
+                """)
+                result = conn.execute(query, {
+                    "area_id": area_id,
+                    "auditoria_id": auditoria_id
+                }).fetchall()
+            else:
+                # Sem auditoria - todos os processos da área
+                query = text("""
+                    SELECT 
+                        p.id, 
+                        p.codigo_processo, 
+                        p.nome_processo, 
+                        p.objetivo,
+                        p.auditoria_id,
+                        a.codigo_auditoria
+                    FROM processos p
+                    LEFT JOIN auditorias a ON p.auditoria_id = a.id
+                    WHERE p.id_area = :area_id 
+                        AND p.status = 'Ativo'
+                    ORDER BY 
+                        CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
+                """)
+                result = conn.execute(query, {"area_id": area_id}).fetchall()
+            
+            processos = []
+            for row in result:
+                processos.append({
+                    'id': row[0],
+                    'codigo_processo': row[1] or '',
+                    'nome_processo': row[2] or '',
+                    'objetivo': row[3] or '',
+                    'auditoria_id': row[4],
+                    'codigo_auditoria': row[5] or f'Auditoria {row[4]}' if row[4] else '-'
+                })
+            
+            return jsonify({'success': True, 'processos': processos})
+            
+    except Exception as e:
+        print(f"❌ Erro em /api/processos-por-area: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
                            
 
 # ============================================================
