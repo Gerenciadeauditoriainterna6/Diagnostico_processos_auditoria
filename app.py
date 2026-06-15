@@ -16,7 +16,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # CARREGAR CONFIGURAÇÕES
 # ============================================================
 
-load_dotenv()
+# Carrega .env apenas em desenvolvimento (local)
+# No Render, as variáveis já estão no ambiente
+if not os.environ.get('RENDER'):
+    load_dotenv()
 
 # ============================================================
 # IMPORTAR FUNÇÕES AUXILIARES
