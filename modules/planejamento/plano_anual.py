@@ -61,3 +61,4 @@ def tela_plano_anual():
     else:
         st.warning("⚠️ Arquivo não encontrado na pasta assets.")
         st.write(f"Caminho procurado: {caminho_pdf}")
+        
