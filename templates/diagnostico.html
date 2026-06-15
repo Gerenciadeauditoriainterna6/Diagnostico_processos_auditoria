@@ -2640,6 +2640,16 @@
         content: "Clique aqui";
     }
 
+    .auditoria-badge {
+        display: inline-block;
+        background: #e8f4f8;
+        color: #0b5b99;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
     
 
 
@@ -3351,10 +3361,16 @@
         let processosData = [];
         let ordenacaoAtual = { coluna: 'nenhuma', direcao: 'asc' };
 
-        async function carregarTabelaProcessos(auditoriaId) {
-            if (!auditoriaId) {
+        async function carregarTabelaProcessos(auditoriaId, areaId = null) {
+            // Se não veio areaId, pega do filtro
+            if (!areaId) {
+                areaId = filtroAreaSelect?.value;
+            }
+            
+            // Se não tem área selecionada, não carrega nada
+            if (!areaId) {
                 if (tabelaProcessosContainer) {
-                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área para visualizar os processos.</div>';
                 }
                 return;
             }
@@ -3371,11 +3387,20 @@
             `;
             
             try {
-                const response = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+                // Construir URL baseada nos filtros
+                let url = `/api/processos-por-area?area_id=${areaId}`;
+                if (auditoriaId) {
+                    url += `&auditoria_id=${auditoriaId}`;
+                }
+                
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (!data.success || !data.processos || data.processos.length === 0) {
-                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Nenhum processo encontrado para esta auditoria.</div>';
+                    let mensagem = auditoriaId 
+                        ? 'Nenhum processo encontrado para esta auditoria.'
+                        : 'Nenhum processo encontrado para esta área. Clique em "Novo Processo" para começar.';
+                    tabelaProcessosContainer.innerHTML = `<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> ${mensagem}</div>`;
                     return;
                 }
                 
@@ -3415,10 +3440,7 @@
                     processo.qtdRiscos = riscosData.riscos ? riscosData.riscos.length : 0;
                 }
                 
-                // Manter a ordem original do backend (já ordenada corretamente)
                 processosData = data.processos;
-                
-                // Resetar a ordenação (mostrar na ordem do backend)
                 ordenacaoAtual = { coluna: 'nenhuma', direcao: 'asc' };
                 
                 renderizarTabela();
@@ -3481,6 +3503,7 @@
                                 <th class="sortable" data-coluna="codigo">Código ${ordenacaoAtual.coluna === 'codigo' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
                                 <th class="sortable" data-coluna="nome">Nome do Processo ${ordenacaoAtual.coluna === 'nome' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
                                 <th>Objetivo</th>
+                                <th class="sortable" data-coluna="auditoria">Auditoria ${ordenacaoAtual.coluna === 'auditoria' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
                                 <th class="sortable" data-coluna="score">Score Máximo ${ordenacaoAtual.coluna === 'score' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
                                 <th class="sortable" data-coluna="riscos">Riscos ${ordenacaoAtual.coluna === 'riscos' ? (ordenacaoAtual.direcao === 'asc' ? '▲' : '▼') : '↕'}</th>
                                 <th>Ações</th>
@@ -3515,6 +3538,9 @@
                     }
                 }
                 
+                // Formatar código da auditoria para exibição
+                const auditoriaDisplay = processo.codigo_auditoria || (processo.auditoria_codigo || '-');
+                
                 html += `
                     <tr>
                         <td>
@@ -3525,6 +3551,7 @@
                         </td>
                         <td>${escapeHtml(processo.nome_processo)}</td>
                         <td>${escapeHtml(processo.objetivo || '-')}</td>
+                        <td><span class="auditoria-badge">${escapeHtml(auditoriaDisplay)}</span></td>
                         <td><span class="score-badge ${processo.textoScore}">${processo.corScore} ${processo.scoreMaximo}</span></td>
                         <td>${processo.qtdRiscos}</td>
                         <td>${botoesHtml}</td>
@@ -3582,7 +3609,7 @@
 
     // Evento de filtro da área
     if (filtroAreaSelect) {
-        filtroAreaSelect.addEventListener('change', () => {
+        filtroAreaSelect.addEventListener('change', async () => {
             const areaId = filtroAreaSelect.value;
 
             // SALVAR O FILTRO NO SESSIONSTORAGE
@@ -3593,10 +3620,33 @@
             }
             sessionStorage.removeItem('filtro_auditoria_id');
 
-            carregarAuditoriasFiltro(areaId);
-            // Limpar tabela quando mudar de área
-            if (tabelaProcessosContainer) {
-                tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.</div>'
+            // Limpar o select de auditoria
+            if (filtroAuditoriaSelect) {
+                filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                filtroAuditoriaSelect.disabled = false;
+            }
+            
+            // Carregar auditorias para o filtro
+            await carregarAuditoriasFiltro(areaId);
+            
+            // ⭐ NOVO: Carregar processos diretamente (sem precisar de auditoria)
+            if (areaId) {
+                // Resetar autorização
+                usuarioAutorizado = true;
+                
+                // Mostrar botão de novo processo
+                const btnNovoProcesso = document.getElementById('btn-novo-processo');
+                if (btnNovoProcesso) btnNovoProcesso.style.display = 'flex';
+                
+                // Carregar todos os processos da área
+                carregarTabelaProcessos(null, areaId);
+            } else {
+                // Se não tem área, limpar tabela
+                if (tabelaProcessosContainer) {
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área para visualizar os processos.</div>';
+                }
+                const btnNovoProcesso = document.getElementById('btn-novo-processo');
+                if (btnNovoProcesso) btnNovoProcesso.style.display = 'none';
             }
         });
     }
@@ -3614,24 +3664,36 @@
             }
 
             const btnNovoProcesso = document.getElementById('btn-novo-processo');
+            const areaId = filtroAreaSelect?.value;
             
-            if (auditoriaId) {
-                // Verificar responsável antes de mostrar o botão
-                verificarResponsavelEAcao(auditoriaId, () => {
+            if (areaId) {
+                // Se tem área, carregar processos (com ou sem auditoria)
+                const auditoriaParaVerificar = auditoriaId && auditoriaId !== '' ? auditoriaId : null;
+                
+                // ⭐ Se não tem auditoria, já estamos mostrando todos os processos
+                // Então só precisa verificar se o usuário tem permissão para alguma auditoria?
+                if (!auditoriaParaVerificar) {
+                    // Já está mostrando todos, não precisa verificar permissão específica
                     usuarioAutorizado = true;
                     if (btnNovoProcesso) btnNovoProcesso.style.display = 'flex';
-                    carregarTabelaProcessos(auditoriaId);
-                }, () => {
-                    usuarioAutorizado = false
-                    if (btnNovoProcesso) btnNovoProcesso.style.display = 'none';
-                    if (tabelaProcessosContainer) {
-                        tabelaProcessosContainer.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-lock"></i> Você não tem permissão para visualizar processos desta auditoria.</div>';
-                    }
-                });
+                    carregarTabelaProcessos(null, areaId);
+                } else {
+                    verificarResponsavelEAcao(auditoriaParaVerificar, () => {
+                        usuarioAutorizado = true;
+                        if (btnNovoProcesso) btnNovoProcesso.style.display = 'flex';
+                        carregarTabelaProcessos(auditoriaId, areaId);
+                    }, () => {
+                        usuarioAutorizado = false;
+                        if (btnNovoProcesso) btnNovoProcesso.style.display = 'none';
+                        if (tabelaProcessosContainer) {
+                            tabelaProcessosContainer.innerHTML = '<div class="alert-error" style="text-align: center; padding: 40px;"><i class="fas fa-lock"></i> Você não tem permissão para visualizar processos desta auditoria.</div>';
+                        }
+                    });
+                }
             } else {
                 if (btnNovoProcesso) btnNovoProcesso.style.display = 'none';
                 if (tabelaProcessosContainer) {
-                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar os processos.</div>';
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área para visualizar os processos.</div>';
                 }
             }
         });
@@ -5543,8 +5605,21 @@
 
     // ===== VERIFICAR RESPONSÁVEL PELA AUDITORIA (para o filtro) =====
     async function verificarResponsavelEAcao(auditoriaId, onAutorizado, onNaoAutorizado) {
+        // ⭐ SE NÃO TEM AUDITORIA, NÃO FAZ VERIFICAÇÃO
+        if (!auditoriaId || auditoriaId === '' || auditoriaId === 'null') {
+            console.log('ℹ️ Nenhuma auditoria selecionada - ignorando verificação');
+            if (onAutorizado) onAutorizado();
+            return;
+        }
+        
         try {
             const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            
+            // Verificar se a resposta é ok
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.autorizado) {
@@ -5555,6 +5630,7 @@
             }
         } catch (error) {
             console.error('Erro ao verificar responsável:', error);
+            // ⭐ Em caso de erro, assume que não está autorizado
             if (onNaoAutorizado) onNaoAutorizado();
             mostrarToast('Erro ao verificar permissão.', 'error');
         }
