@@ -7,7 +7,17 @@ import json
 from datetime import datetime
 from sqlalchemy import text
 from database import engine
-import streamlit as st
+# ===== MIGRAÇÃO PARA FLASK =====
+# Streamlit removido - sistema agora usa Flask
+# import streamlit as st  # REMOVIDO
+
+# Placeholder para evitar erros (as funções Streamlit não serão chamadas no Flask)
+class _DummyStreamlit:
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
+
+st = _DummyStreamlit()
+# ===== FIM DA MIGRAÇÃO =====
 import pandas as pd
 from flask import session, request
 
@@ -127,58 +137,58 @@ def exibir_log_interface():
             st.info("Nenhum registro encontrado")
 
 
-def tela_historico():
-    """
-    Tela para mostrar o histórico de alterações do sistema
-    """
+# def tela_historico():
+#     """
+#     Tela para mostrar o histórico de alterações do sistema
+#     """
 
-    # ===== CONTROLE DE ACESSO =====
-    usuario_perfil = st.session_state.get('usuario_perfil', 'auditor')
+#     # ===== CONTROLE DE ACESSO =====
+#     usuario_perfil = st.session_state.get('usuario_perfil', 'auditor')
 
-    if usuario_perfil != 'administrador':
-        st.error("⛔ Acesso negado! Esta área é restrita a administradores.")
-        st.info("Você não tem permissão para visualizar o histórico de alterações do sistema.")
-    else:
+#     if usuario_perfil != 'administrador':
+#         st.error("⛔ Acesso negado! Esta área é restrita a administradores.")
+#         st.info("Você não tem permissão para visualizar o histórico de alterações do sistema.")
+#     else:
     
-        # ==== TELA DE HISTÓRICO (apenas para adminsitradores) ====
+#         # ==== TELA DE HISTÓRICO (apenas para adminsitradores) ====
 
-        st.subheader("📜 Histórico de Alterações")
+#         st.subheader("📜 Histórico de Alterações")
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            tabela_filtro = st.selectbox("Filtrar por tabela:", 
-                ["Todas", "processos", "riscos", "auditorias", "funcionarios_area",
-                "etapas_processo", "controles_etapa", "checklist_sessoes"])
+#         col1, col2, col3 = st.columns(3)
+#         with col1:
+#             tabela_filtro = st.selectbox("Filtrar por tabela:", 
+#                 ["Todas", "processos", "riscos", "auditorias", "funcionarios_area",
+#                 "etapas_processo", "controles_etapa", "checklist_sessoes"])
             
-        with col2:
-            # CORRIGIDO: agora são opções de OPERAÇÃO
-            operacao_filtro = st.selectbox("Filtrar por operação:", 
-                ["Todas", "INSERT", "UPDATE", "DELETE"])
+#         with col2:
+#             # CORRIGIDO: agora são opções de OPERAÇÃO
+#             operacao_filtro = st.selectbox("Filtrar por operação:", 
+#                 ["Todas", "INSERT", "UPDATE", "DELETE"])
 
-        with col3:
-            limite = st.slider("Quantidade de registros:", 10, 500, 50)
+#         with col3:
+#             limite = st.slider("Quantidade de registros:", 10, 500, 50)
         
-        if st.button("🔍 Consultar"):
-            tabela = None if tabela_filtro == "Todas" else tabela_filtro
-            operacao = None if operacao_filtro == "Todas" else operacao_filtro
-            df = consultar_log(tabela=tabela, limite=limite)
+#         if st.button("🔍 Consultar"):
+#             tabela = None if tabela_filtro == "Todas" else tabela_filtro
+#             operacao = None if operacao_filtro == "Todas" else operacao_filtro
+#             df = consultar_log(tabela=tabela, limite=limite)
 
-            if operacao:
-                df = df[df['operacao'] == operacao]
+#             if operacao:
+#                 df = df[df['operacao'] == operacao]
             
-            if not df.empty:
-                st.dataframe(df, use_container_width=True)
+#             if not df.empty:
+#                 st.dataframe(df, use_container_width=True)
                 
-                # Ver detalhes
-                for _, row in df.iterrows():
-                    with st.expander(f"{row['data_hora']} - {row['usuario_nome']} - {row['operacao']}"):
-                        st.write(f"**Tabela:** {row['tabela_afetada']}")
-                        st.write(f"**Registro ID:** {row['registro_id']}")
-                        if row['dados_anteriores']:
-                            st.write("**Antes:**")
-                            st.json(row['dados_anteriores'])
-                        if row['dados_novos']:
-                            st.write("**Depois:**")
-                            st.json(row['dados_novos'])
-            else:
-                st.info("Nenhum registro encontrado")
+#                 # Ver detalhes
+#                 for _, row in df.iterrows():
+#                     with st.expander(f"{row['data_hora']} - {row['usuario_nome']} - {row['operacao']}"):
+#                         st.write(f"**Tabela:** {row['tabela_afetada']}")
+#                         st.write(f"**Registro ID:** {row['registro_id']}")
+#                         if row['dados_anteriores']:
+#                             st.write("**Antes:**")
+#                             st.json(row['dados_anteriores'])
+#                         if row['dados_novos']:
+#                             st.write("**Depois:**")
+#                             st.json(row['dados_novos'])
+#             else:
+#                 st.info("Nenhum registro encontrado")
