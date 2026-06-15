@@ -1,7 +1,16 @@
 """
 Módulo de Diagnóstico de Processos
 """
-import streamlit as st
+# ===== MIGRAÇÃO PARA FLASK =====
+# Streamlit removido - sistema agora usa Flask
+# import streamlit as st  # REMOVIDO
+
+# Placeholder para evitar erros (as funções Streamlit não serão chamadas no Flask)
+class _DummyStreamlit:
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
+
+st = _DummyStreamlit()
 from sqlalchemy import text
 from database import engine
 import pandas as pd
