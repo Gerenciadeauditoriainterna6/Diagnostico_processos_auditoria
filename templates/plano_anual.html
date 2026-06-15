@@ -10,6 +10,23 @@
         <p>Gerencie o plano anual de auditoria e os fundamentos que o justificam</p>
     </div>
 
+
+    <!-- SEÇÃO DO PDF (SEMPRE VISÍVEL) -->
+    <div class="form-section pdf-section">
+        <div class="section-header">
+            <h3><i class="fas fa-file-pdf"></i> Plano Anual de Auditoria</h3>
+            <div id="pdf-status" class="pdf-status"></div>
+        </div>
+        <div class="pdf-actions">
+            <button id="btn-download-pdf" class="btn-download-pdf">
+                <i class="fas fa-download"></i> Baixar Plano em PDF
+            </button>
+            <div id="pdf-nao-encontrado" class="alert-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i> Nenhum arquivo PDF encontrado para esta auditoria.
+            </div>
+        </div>
+    </div>
+
     <!-- FILTROS -->
     <div class="form-section filtros-section">
         <div class="form-row">
@@ -33,22 +50,6 @@
 
     <!-- CONTEÚDO PRINCIPAL (aparece após selecionar auditoria) -->
     <div id="conteudo-principal" style="display: none;">
-        
-        <!-- SEÇÃO DO PDF -->
-        <div class="form-section pdf-section">
-            <div class="section-header">
-                <h3><i class="fas fa-file-pdf"></i> Plano Anual de Auditoria</h3>
-                <div id="pdf-status" class="pdf-status"></div>
-            </div>
-            <div class="pdf-actions">
-                <button id="btn-download-pdf" class="btn-download-pdf" style="display: none;">
-                    <i class="fas fa-download"></i> Baixar Plano em PDF
-                </button>
-                <div id="pdf-nao-encontrado" class="alert-warning" style="display: none;">
-                    <i class="fas fa-exclamation-triangle"></i> Nenhum arquivo PDF encontrado para esta auditoria.
-                </div>
-            </div>
-        </div>
 
         <!-- SEÇÃO DOS FUNDAMENTOS -->
         <div class="form-section fundamentos-section">
