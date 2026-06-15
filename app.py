@@ -449,7 +449,7 @@ def api_plano_anual_pdf():
         return jsonify({'error': 'Código da auditoria é obrigatório'}), 400
     
     # Usar o código diretamente como nome do arquivo
-    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', f'{codigo_auditoria}.pdf')
+    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', f'plano_anual_2026.pdf')
     
     print(f"🔍 Buscando: {pdf_path}")
     
