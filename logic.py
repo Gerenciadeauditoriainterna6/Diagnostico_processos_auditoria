@@ -3336,7 +3336,7 @@ def gerar_codigo_processo(id_area, auditoria_id):
                 FROM processos 
                 WHERE id_area = :id_area 
                 AND auditoria_id = :auditoria_id
-                AND codigo_processo ~ '^[0-9]+\.[0-9]+$'
+                AND codigo_processo ~ r'^[0-9]+\.[0-9]+$'
             """)
             
             resultado = conn.execute(query, {
