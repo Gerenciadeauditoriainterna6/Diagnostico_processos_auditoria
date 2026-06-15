@@ -651,11 +651,11 @@ def api_processo_etapas(processo_id):
                     ep.manual_nome, ep.created_at, ep.auditoria_id,  -- ⭐ ADICIONADO auditoria_id
                     EXISTS(
                         SELECT 1 FROM analises_criticas ac 
-                        WHERE ac.etapa_id = ep.id AND ac.tipo_analise = 'entrevistado'
+                        WHERE ac.etapa_id = ep.id AND ac.tipo = 'auditado'
                     ) as tem_analise_auditado,
                     EXISTS(
                         SELECT 1 FROM analises_criticas ac 
-                        WHERE ac.etapa_id = ep.id AND ac.tipo_analise = 'auditor'
+                        WHERE ac.etapa_id = ep.id AND ac.tipo = 'auditor'
                     ) as tem_analise_auditor
                 FROM etapas_processo ep
                 WHERE ep.processo_id = :processo_id
@@ -2812,7 +2812,7 @@ def api_checklist_analises_por_auditoria():
         with engine.connect() as conn:
             query = text("""
                 SELECT 
-                    ac.id, ac.tipo_analise, ac.categoria,
+                    ac.id, ac.tipo, ac.categoria,
                     ac.analise_critica, ac.sugestao_melhoria,
                     ac.necessidade_implantacao, ac.ganho_previsto,
                     ep.codigo_etapa, ep.nome_etapa,
@@ -2822,7 +2822,7 @@ def api_checklist_analises_por_auditoria():
                 JOIN processos p ON ep.processo_id = p.id
                 WHERE p.auditoria_id = :auditoria_id   -- ← AGORA É DIRETO!
                 AND ac.categoria = :categoria
-                ORDER BY p.codigo_processo, ep.codigo_etapa, ac.tipo_analise
+                ORDER BY p.codigo_processo, ep.codigo_etapa, ac.tipo
             """)
             
             result = conn.execute(query, {
