@@ -2911,7 +2911,7 @@ def api_checklist_analises_por_auditoria():
             for row in result:
                 analises.append({
                     'id': row[0],
-                    'tipo_analise': row[1],
+                    'tipo': row[1],
                     'categoria': row[2],
                     'analise_critica': row[3] or '',
                     'sugestao_melhoria': row[4] or '',
@@ -3815,13 +3815,13 @@ def api_etapa_analises(etapa_id):
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT id, etapa_id, tipo_analise, categoria,
+                SELECT id, etapa_id, tipo, categoria,
                        analise_critica, sugestao_melhoria,
                        necessidade_implantacao, ganho_previsto,
                        created_at, updated_at
                 FROM analises_criticas
                 WHERE etapa_id = :etapa_id
-                ORDER BY tipo_analise, categoria
+                ORDER BY tipo, categoria
             """)
             result = conn.execute(query, {'etapa_id': etapa_id}).fetchall()
             
@@ -3830,7 +3830,7 @@ def api_etapa_analises(etapa_id):
                 analises.append({
                     'id': row[0],
                     'etapa_id': row[1],
-                    'tipo_analise': row[2],
+                    'tipo': row[2],
                     'categoria': row[3],
                     'analise_critica': row[4] or '',
                     'sugestao_melhoria': row[5] or '',
@@ -3904,7 +3904,7 @@ def api_analises_criticas_por_processo():
                     'ganho_previsto': row[4] or '',
                     'observacoes': row[5] or '',
                     'categoria': row[6] or 'governanca',
-                    'tipo_analise': row[7],  # ← 'auditado'
+                    'tipo': row[7],  # ← 'auditado'
                     'sugestao_sera_implantada': row[8],
                     'plano_acao': row[9] or '',
                     'responsavel_implantacao': row[10] or '',
@@ -4076,7 +4076,7 @@ def api_analise_auditor_atualizar(analise_id):
                     anexo_validador = :anexo_validador,
                     anexo_nome = :anexo_nome,
                     updated_at = NOW()
-                WHERE id = :id AND tipo_analise = 'auditor'
+                WHERE id = :id AND tipo = 'auditor'
             """)
             
             result = conn.execute(query, {
@@ -4123,7 +4123,7 @@ def api_analise_auditor_excluir(analise_id):
             # ✅ CORRETO: usar a tabela analises_criticas
             query = text("""
                 DELETE FROM analises_criticas 
-                WHERE id = :id AND tipo_analise = 'auditor'
+                WHERE id = :id AND tipo = 'auditor'
             """)
             result = conn.execute(query, {'id': analise_id})
             conn.commit()
@@ -4190,7 +4190,7 @@ def api_analise_auditor_salvar():
             
             query = text("""
                 INSERT INTO analises_criticas (
-                    processo_id, etapa_id, tipo_analise, categoria,
+                    processo_id, etapa_id, tipo, categoria,
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
                     sugestao_sera_implantada, plano_acao, responsavel_implantacao,
@@ -4253,7 +4253,7 @@ def api_analise_auditor_anexo(analise_id):
             result = conn.execute(text("""
                 SELECT anexo_validador, anexo_nome 
                 FROM analises_criticas 
-                WHERE id = :id AND tipo_analise = 'auditor'
+                WHERE id = :id AND tipo = 'auditor'
             """), {'id': analise_id})
             row = result.fetchone()
             
@@ -4300,7 +4300,7 @@ def api_analise_auditor_confirmar_implantacao(analise_id):
     
     try:
         with engine.connect() as conn:
-            # Buscar dados atuais da análise (usando 'tipo', não 'tipo_analise')
+            # Buscar dados atuais da análise (usando 'tipo', não 'tipo')
             result = conn.execute(text("""
                 SELECT sugestao_sera_implantada, processo_id
                 FROM analises_criticas 
@@ -4404,7 +4404,7 @@ def api_melhorias_ativas():
         with engine.connect() as conn:
             hoje = date.today()
             
-            # Query corrigida: usa 'tipo' em vez de 'tipo_analise'
+            # Query corrigida: usa 'tipo' em vez de 'tipo'
             query = """
                 SELECT 
                     a.id,
@@ -4471,7 +4471,7 @@ def api_analise_salvar():
     data = request.json
     analise_id = data.get('id')
     etapa_id = data.get('etapa_id')
-    tipo_analise = data.get('tipo_analise', 'entrevistado')
+    tipo = data.get('tipo', 'auditado')
     categoria = data.get('categoria', 'governanca')
     analise_critica = data.get('analise_critica', '')
     sugestao_melhoria = data.get('sugestao_melhoria', '')
@@ -4499,7 +4499,7 @@ def api_analise_salvar():
                 # Atualizar (mantém o processo_id existente)
                 query = text("""
                     UPDATE analises_criticas
-                    SET tipo_analise = :tipo_analise,
+                    SET tipo = :tipo,
                         categoria = :categoria,
                         analise_critica = :analise_critica,
                         sugestao_melhoria = :sugestao_melhoria,
@@ -4510,7 +4510,7 @@ def api_analise_salvar():
                 """)
                 conn.execute(query, {
                     'id': analise_id,
-                    'tipo_analise': tipo_analise,
+                    'tipo': tipo,
                     'categoria': categoria,
                     'analise_critica': analise_critica,
                     'sugestao_melhoria': sugestao_melhoria,
@@ -4522,10 +4522,10 @@ def api_analise_salvar():
                 # Inserir nova (com processo_id)
                 query = text("""
                     INSERT INTO analises_criticas
-                    (etapa_id, processo_id, tipo_analise, categoria, 
+                    (etapa_id, processo_id, tipo, categoria, 
                      analise_critica, sugestao_melhoria, 
                      necessidade_implantacao, ganho_previsto)
-                    VALUES (:etapa_id, :processo_id, :tipo_analise, :categoria,
+                    VALUES (:etapa_id, :processo_id, :tipo, :categoria,
                             :analise_critica, :sugestao_melhoria,
                             :necessidade_implantacao, :ganho_previsto)
                     RETURNING id
@@ -4533,7 +4533,7 @@ def api_analise_salvar():
                 result = conn.execute(query, {
                     'etapa_id': etapa_id,
                     'processo_id': processo_id,  # ⭐ AGORA PREENCHE!
-                    'tipo_analise': tipo_analise,
+                    'tipo': tipo,
                     'categoria': categoria,
                     'analise_critica': analise_critica,
                     'sugestao_melhoria': sugestao_melhoria,
@@ -4681,7 +4681,7 @@ def api_analise_auditado_salvar():
             
             query = text("""
                 INSERT INTO analises_criticas (
-                    processo_id, etapa_id, tipo_analise, categoria,
+                    processo_id, etapa_id, tipo, categoria,
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
                     sugestao_sera_implantada, plano_acao, responsavel_implantacao,
@@ -4689,7 +4689,7 @@ def api_analise_auditado_salvar():
                     anexo_validador, anexo_nome,
                     created_at, updated_at
                 ) VALUES (
-                    :processo_id, :etapa_id, 'entrevistado', :categoria,
+                    :processo_id, :etapa_id, 'auditado', :categoria,
                     :analise_critica, :sugestao_melhoria,
                     :necessidade_implantacao, :ganho_previsto, :observacoes,
                     :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
@@ -4753,7 +4753,7 @@ def api_analise_auditado_atualizar(analise_id):
             result_current = conn.execute(text("""
                 SELECT anexo_validador, anexo_nome 
                 FROM analises_criticas 
-                WHERE id = :id AND tipo_analise = 'entrevistado'
+                WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
             current = result_current.fetchone()
             
@@ -4790,7 +4790,7 @@ def api_analise_auditado_atualizar(analise_id):
                     anexo_validador = :anexo_validador,
                     anexo_nome = :anexo_nome,
                     updated_at = NOW()
-                WHERE id = :id AND tipo_analise = 'entrevistado'
+                WHERE id = :id AND tipo = 'auditado'
             """)
             
             result = conn.execute(query, {
@@ -4837,7 +4837,7 @@ def api_analise_auditado_anexo(analise_id):
             result = conn.execute(text("""
                 SELECT anexo_validador, anexo_nome 
                 FROM analises_criticas 
-                WHERE id = :id AND tipo_analise = 'entrevistado'
+                WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
             row = result.fetchone()
             
