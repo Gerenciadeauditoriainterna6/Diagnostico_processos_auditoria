@@ -1452,14 +1452,7 @@
                                 <i class="fas fa-search"></i>
                                 <span>Matriz de Panorama</span>
                             </span>
-                            <i class="fas fa-chevron-down submenu-arrow"></i>
                         </a>
-                        <div class="submenu" id="diagnosticoSubmenu">
-                            <a href="{{ url_for('visao_geral') }}" class="submenu-item submenu-visao">
-                                <i class="fas fa-eye"></i>
-                                <span>Visão Geral do Diagnóstico</span>
-                            </a>
-                        </div>
                     </div>
 
                     <!-- Detalhamento das Etapas com Submenu -->
@@ -1685,11 +1678,6 @@
             // Configuração dos submenus
             const submenus = [
                 {
-                    toggleId: 'toggleDiagnosticoSubmenu',
-                    submenuId: 'diagnosticoSubmenu',
-                    relatedUrls: ['/visao-geral', '/diagnostico']
-                },
-                {
                     toggleId: 'toggleDetalhamentoSubmenu',
                     submenuId: 'detalhamentoSubmenu',
                     relatedUrls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles']
@@ -1776,7 +1764,8 @@
                             { url: '/auditorias', selector: 'a[href="/auditorias"]' },      // ← NOVO: Cadastro de Auditorias
                             { url: '/log-alteracoes', selector: 'a[href="/log-alteracoes"]' },
                             { url: '/plano-anual', selector: 'a[href="/plano-anual"]' },
-                            { url: '/checklists', selector: 'a[href="/checklists"]' }
+                            { url: '/checklists', selector: 'a[href="/checklists"]' },
+                            { url: '/diagnostico', selector: 'a[href="/diagnostico"]' }
                         ],
                         // Itens com submenu
                         submenuItems: [
@@ -1790,17 +1779,6 @@
                                     '/detalhamento_riscos': '#detalhamentoSubmenu .submenu-riscos',
                                     '/detalhamento_controles': '#detalhamentoSubmenu .submenu-controles'
                                 }
-                            },
-                            {
-                                name: 'diagnostico',
-                                parentId: 'toggleDiagnosticoSubmenu',
-                                submenuId: 'diagnosticoSubmenu',
-                                urls: ['/diagnostico', '/visao-geral'],
-                                submenuSelectors: {
-                                    '/visao-geral': '#diagnosticoSubmenu .submenu-visao'
-                                },
-                                // Especial: não abrir submenu para /diagnostico
-                                openSubmenuOnlyFor: ['/visao-geral']
                             }
                         ]
                     };
