@@ -3987,7 +3987,7 @@ def limpar_binario(dados):
 def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
-    Inclui análises do auditado (etapas) e análises do auditor (checklists)
+    Inclui análises do auditado (etapas), análises do auditor e matrizes de checklist
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether
@@ -4293,6 +4293,56 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 'historico': historico_list,
                 'followups': followups_list
             })
+
+        # ===== 3. BUSCAR MATRIZES DE CHECKLIST (GOVERNANÇA, RISCOS, CONTROLES) =====
+        checklist_tipos = ['governanca', 'riscos', 'controles']
+        checklist_data = {}
+        
+        for tipo in checklist_tipos:
+            tabela = f'checklist_{tipo}_respostas'
+            
+            # Buscar respostas do checklist para este processo
+            query_checklist = text(f"""
+                SELECT 
+                    id,
+                    status,
+                    observacoes_gerais,
+                    {', '.join([f'p{i}_resposta' for i in range(1, 15)])},
+                    {', '.join([f'p{i}_comentario' for i in range(1, 15)])}
+                FROM {tabela}
+                WHERE processo_id = :processo_id
+                ORDER BY id DESC
+                LIMIT 1
+            """)
+            
+            try:
+                checklist_result = conn.execute(query_checklist, {"processo_id": proc_id}).fetchone()
+                
+                if checklist_result:
+                    respostas = []
+                    for i in range(1, 15):
+                        idx_resposta = 3 + (i - 1) * 2
+                        idx_comentario = 4 + (i - 1) * 2
+                        
+                        resposta_valor = checklist_result[idx_resposta] if idx_resposta < len(checklist_result) else ''
+                        comentario_valor = checklist_result[idx_comentario] if idx_comentario < len(checklist_result) else ''
+                        
+                        respostas.append({
+                            'resposta': resposta_valor or '',
+                            'comentario': comentario_valor or ''
+                        })
+                    
+                    checklist_data[tipo] = {
+                        'id': checklist_result[0],
+                        'status': checklist_result[1] or 'Não iniciado',
+                        'observacoes_gerais': checklist_result[2] or '',
+                        'respostas': respostas
+                    }
+                else:
+                    checklist_data[tipo] = None
+            except Exception as e:
+                print(f"Erro ao buscar checklist {tipo}: {e}")
+                checklist_data[tipo] = None
     
     # ===== FUNÇÃO PARA DESENHAR TARJA =====
     def cabecalho_com_tarja(canvas, doc):
@@ -4561,6 +4611,77 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         
         story.append(Spacer(1, 8))
     
+    # ===== FUNÇÃO PARA EXIBIR CHECKLIST =====
+    def adicionar_checklist(checklist, titulo, tipo):
+        """Adiciona uma matriz de checklist ao relatório"""
+        story.append(Paragraph(titulo, secao_style))
+        story.append(Spacer(1, 5))
+        
+        if not checklist:
+            story.append(Paragraph(
+                f"<i>Nenhuma resposta da matriz de {tipo} encontrada para este processo.</i>", 
+                normal_style
+            ))
+            story.append(Spacer(1, 10))
+            return
+        
+        # Status do checklist
+        status_text = checklist.get('status', 'Não iniciado')
+        status_color = {
+            'Concluído': '#28a745',
+            'Em andamento': '#ffc107',
+            'Não iniciado': '#6c757d'
+        }.get(status_text, '#6c757d')
+        
+        story.append(Paragraph(
+            f"<b>Status:</b> <font color='{status_color}'>{status_text}</font>", 
+            normal_style
+        ))
+        story.append(Spacer(1, 5))
+        
+        # Observações Gerais
+        if checklist.get('observacoes_gerais'):
+            story.append(Paragraph("<b>Observações Gerais:</b>", normal_style))
+            story.append(Paragraph(checklist['observacoes_gerais'], normal_style))
+            story.append(Spacer(1, 5))
+        
+        # Respostas
+        respostas = checklist.get('respostas', [])
+        if respostas:
+            # Criar tabela de respostas (apenas perguntas com resposta)
+            dados_tabela = [
+                [Paragraph("<b>Pergunta</b>", normal_style), 
+                 Paragraph("<b>Resposta</b>", normal_style),
+                 Paragraph("<b>Comentário</b>", normal_style)]
+            ]
+            
+            for idx, r in enumerate(respostas, 1):
+                if r.get('resposta') or r.get('comentario'):
+                    dados_tabela.append([
+                        Paragraph(f"{idx}.", normal_style),
+                        Paragraph(r.get('resposta') or '-', normal_style),
+                        Paragraph(r.get('comentario') or '-', normal_style)
+                    ])
+            
+            if len(dados_tabela) > 1:  # Se há respostas
+                tabela = Table(dados_tabela, colWidths=[1*cm, 6*cm, 9*cm])
+                tabela.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ]))
+                story.append(tabela)
+            else:
+                story.append(Paragraph("<i>Nenhuma resposta registrada.</i>", normal_style))
+        else:
+            story.append(Paragraph("<i>Nenhuma resposta registrada.</i>", normal_style))
+        
+        story.append(Spacer(1, 10))
+    
     # ===== SEÇÃO DE FUNDAMENTOS DA AUDITORIA =====
     if fundamentos and len(fundamentos) > 0:
         story.append(Paragraph("ABR - AUDITORIA BASEADA EM RISCO", secao_style))
@@ -4629,6 +4750,33 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 story.append(Spacer(1, 5))
                 story.append(Paragraph("<hr color='#CCCCCC'/>", normal_style))
                 story.append(Spacer(1, 5))
+    
+    # ===== SEÇÃO 1.5: MATRIZES DE CHECKLIST =====
+    story.append(PageBreak())
+    story.append(Paragraph("1.5. MATRIZES DE CHECKLIST", secao_style))
+    story.append(Paragraph("Avaliações realizadas através das matrizes de governança, riscos e controles", normal_style))
+    story.append(Spacer(1, 10))
+    
+    # Governança
+    adicionar_checklist(
+        checklist_data.get('governanca'), 
+        "Matriz de Governança", 
+        "Governança"
+    )
+    
+    # Riscos
+    adicionar_checklist(
+        checklist_data.get('riscos'), 
+        "Matriz de Riscos", 
+        "Riscos"
+    )
+    
+    # Controles
+    adicionar_checklist(
+        checklist_data.get('controles'), 
+        "Matriz de Controles", 
+        "Controles"
+    )
     
     # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
     story.append(PageBreak())
