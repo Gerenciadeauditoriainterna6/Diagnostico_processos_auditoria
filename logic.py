@@ -4763,6 +4763,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         "Matriz de Governança", 
         "Governança"
     )
+
+    story.append(PageBreak())
     
     # Riscos
     adicionar_checklist(
@@ -4770,6 +4772,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         "Matriz de Riscos", 
         "Riscos"
     )
+
+    story.append(PageBreak())
     
     # Controles
     adicionar_checklist(
@@ -4777,6 +4781,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         "Matriz de Controles", 
         "Controles"
     )
+
     
     # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
     story.append(PageBreak())
