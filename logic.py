@@ -3445,6 +3445,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     
     story = []
     
+    
     # ===== CABEÇALHO COM LOGOS (APENAS NA PRIMEIRA PÁGINA) - PADRÃO PARECER =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
     logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
@@ -3730,12 +3731,12 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         
         # ===== INFORMAÇÕES COMPLETAS DO PROCESSO =====
         info_data = [
-            ["Objetivo:", proc_objetivo],
-            ["O que é o processo?:", proc_descricao or 'Não informado'],
-            ["Onde começa?:", proc_etapa_ini or 'Não informado'],
-            ["Produto final:", proc_produto or 'Não informado'],
-            ["Para onde envia?:", proc_etapa_fim or 'Não informado'],
-            ["Executores:", executores_text]
+            [Paragraph("Objetivo:", normal_style), Paragraph(proc_objetivo, normal_style)],
+            [Paragraph("O que é o processo?:", normal_style), Paragraph(proc_descricao or 'Não informado', normal_style)],
+            [Paragraph("Onde começa?:", normal_style), Paragraph(proc_etapa_ini or 'Não informado', normal_style)],
+            [Paragraph("Produto final:", normal_style), Paragraph(proc_produto or 'Não informado', normal_style)],
+            [Paragraph("Para onde envia?:", normal_style), Paragraph(proc_etapa_fim or 'Não informado', normal_style)],
+            [Paragraph("Executores:", normal_style), Paragraph(executores_text, normal_style)]
         ]
 
         # Estilo para a tabela de informações
@@ -3743,7 +3744,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # ⭐ ALINHAMENTO AO TOPO
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
@@ -3887,14 +3888,15 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 etapa_conteudo.append([tabela_controles])
             
             # Montar tabela da etapa
-            etapa_table = Table(etapa_conteudo, colWidths=[pagesize[0] - leftMargin - rightMargin])
+            etapa_table = Table(etapa_conteudo, colWidths=[pagesize[0] - leftMargin - rightMargin - 20])
             etapa_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), bg_cor),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
                 ('TOPPADDING', (0, 0), (-1, -1), 6),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # ⭐ Alinhamento ao topo
             ]))
             
             story.append(etapa_header)
@@ -3921,31 +3923,16 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Paragraph("Data: ___/___/_______", normal_style))
     story.append(Spacer(1, 20))
     story.append(Paragraph("Assinatura: ________________________________", normal_style))
-    
-    # ===== RODAPÉ COM LOGOS (igual ao parecer) =====
+
+
+    # ===== RODAPÉ COM LOGOS E TOTAL DE PÁGINAS =====
     from reportlab.lib.utils import ImageReader
     from PIL import Image as PILImage
     import io
+    import tempfile
 
-    def rodape(canvas, doc):
-        canvas.saveState()
-        
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        
-        # Fundo do rodapé
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        
-        # Texto do processo
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        if processo_id:
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Processo {proc_codigo} - Página {doc.page}")
-        else:
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}")
-        
-        # Logos no rodapé
+    # ===== FUNÇÃO PARA DESENHAR AS LOGOS =====
+    def desenhar_logos(canvas):
         root_dir = os.path.dirname(os.path.abspath(__file__))
         logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
         logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
@@ -3954,52 +3941,28 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         y_logo = 0.8 * cm
         altura_max_logo = 5 * cm
         
-        def desenhar_png_com_transparencia(caminho, x, y, largura_max, altura_max):
+        def desenhar_png(caminho, x, y, largura_max, altura_max):
             if not os.path.exists(caminho):
                 return False
-            
             try:
-                # Abrir a imagem
                 pil_img = PILImage.open(caminho)
-                
-                # Converter para RGBA se necessário
                 if pil_img.mode != 'RGBA':
                     pil_img = pil_img.convert('RGBA')
-                
-                # Calcular dimensões mantendo proporção
                 img_width, img_height = pil_img.size
                 proporcao = img_width / img_height
-                
                 largura = min(largura_max, 5*cm)
                 altura = largura / proporcao
                 if altura > altura_max:
                     altura = altura_max
                     largura = altura * proporcao
-                
-                # ⭐ NOVA ABORDAGEM: Salvar em um arquivo temporário
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-                    # Salvar a imagem redimensionada no arquivo temporário
-                    img_resized = pil_img.resize((int(largura * 2), int(altura * 2)), PILImage.Resampling.LANCZOS)
-                    img_resized.save(tmp_file.name, format='PNG', optimize=True)
-                    
-                    # Usar o reportlab para carregar do arquivo
-                    from reportlab.lib.utils import ImageReader
-                    img = ImageReader(tmp_file.name)
-                    canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, preserveAspectRatio=True, mask='auto')
-                    
-                    # Limpar arquivo temporário
-                    try:
-                        os.unlink(tmp_file.name)
-                    except:
-                        pass
-                    
-                    return True
-                    
+                buffer_temp = io.BytesIO()
+                pil_img.save(buffer_temp, format='PNG')
+                buffer_temp.seek(0)
+                img = ImageReader(buffer_temp)
+                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
+                return True
             except Exception as e:
                 print(f"Erro ao desenhar logo: {e}")
-                import traceback
-                traceback.print_exc()
                 return False
         
         espacamento = pagesize[0] / 4
@@ -4008,16 +3971,64 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         x3 = pagesize[0] - espacamento
         largura_max = 2.5 * cm
         
-        desenhar_png_com_transparencia(logo1_path, x2, y_logo, largura_max, altura_max_logo)
-        desenhar_png_com_transparencia(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
-        desenhar_png_com_transparencia(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
-        
+        desenhar_png(logo1_path, x2, y_logo, largura_max, altura_max_logo)
+        desenhar_png(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
+        desenhar_png(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
+
+    # ===== CONTADOR DE PÁGINAS =====
+    page_counter = {'count': 0}
+
+    # ===== PRIMEIRA PASSADA: Contar páginas usando UMA CÓPIA DO STORY =====
+    # IMPORTANTE: Precisamos criar uma cópia do story para a primeira passada
+    story_copy = story.copy()  # <-- COPIA O STORY
+
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize, 
+                               topMargin=topMargin, bottomMargin=bottomMargin,
+                               leftMargin=leftMargin, rightMargin=rightMargin)
+
+    def rodape_temp(canvas, doc):
+        page_counter['count'] += 1
+        canvas.saveState()
         canvas.restoreState()
-    
-    # Construir o documento com rodapé em todas as páginas
-    doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
+
+    # ⭐ USAR A CÓPIA DO STORY NA PRIMEIRA PASSADA
+    doc_temp.build(story_copy, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
+    total_paginas = page_counter['count']
+
+    # ===== RESETAR O CONTADOR PARA A SEGUNDA PASSADA =====
+    page_counter['count'] = 0
+
+    # ===== SEGUNDA PASSADA: Gerar o PDF final com total =====
+    def rodape_final(canvas, doc):
+        page_counter['count'] += 1
+        canvas.saveState()
+        
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        
+        # ⭐ MOSTRAR PÁGINA ATUAL E TOTAL
+        if processo_id and 'proc_codigo' in locals():
+            canvas.drawCentredString(pagesize[0]/2, 2*cm, 
+                f"Relatório Gerencial - Processo {proc_codigo} - Página {page_counter['count']} de {total_paginas}")
+        else:
+            canvas.drawCentredString(pagesize[0]/2, 2*cm, 
+                f"Relatório Gerencial - Área: {area_nome[:50]} - Página {page_counter['count']} de {total_paginas}")
+        
+        desenhar_logos(canvas)
+        canvas.restoreState()
+
+    # ⭐ USAR O STORY ORIGINAL NA SEGUNDA PASSADA
+    doc.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
     buffer.seek(0)
     return buffer.getvalue()
+    
 
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
