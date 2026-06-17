@@ -106,7 +106,7 @@
                         <option value="HMC">HMC</option>
                         <option value="HMK">HMK</option>
                         <option value="HUV">HUV</option>
-                        <option value="MARICÁ, FACMAR E CAMPUS SAQUAREMA">MARICÁ, FACMAR E CAMPUS SAQUAREMA</option>
+                        <option value="MARICÁ/SAQUAREMA">MARICÁ/SAQUAREMA</option>
                     </select>
                 </div>
 
@@ -2199,6 +2199,7 @@
     // Renderizar cards da página atual
     container.innerHTML = areasPagina.map(area => {
         const nome = area.nome_area || 'Sem nome';
+        const locUnidade = area.loc_unidade || 'Não informado';
         const gestor = area.gestor || 'Não informado';
         const id = area.id_area;
         const status = area.status || 'Ativo';
@@ -2207,7 +2208,7 @@
         return `
             <div class="area-card ${!isAtivo ? 'inativa' : ''}" data-id="${id}">
                 <h4>
-                    <i class="fas fa-building"></i> ${nome}
+                    <i class="fas fa-building"></i> ${nome} ${locUnidade}
                     ${!isAtivo ? '<span class="badge-inativa">INATIVA</span>' : ''}
                     <span class="funcionarios-count" id="func-count-${id}">
                         <i class="fas fa-users"></i> <span class="count-number">...</span>
