@@ -31,7 +31,6 @@
                     <option value="">Primeiro selecione uma área...</option>
                 </select>
             </div>
-        </div>
 
         <!-- Tipo de Relatório -->
         <div class="form-row">
@@ -44,13 +43,16 @@
             </div>
         </div>
 
-        <!-- NOVO: Seleção de Processo (aparece só para Parecer) -->
+        <!-- NOVO: Seleção de Processo (aparece para ambos os tipos) -->
         <div class="form-row" id="row_processo" style="display: none;">
             <div class="form-group">
                 <label><i class="fas fa-project-diagram"></i> Processo:</label>
                 <select id="processo_relatorio" class="form-control" disabled>
-                    <option value="">Selecione uma auditoria primeiro...</option>
+                    <option value="">Todos os processos da auditoria</option>
                 </select>
+                <small class="text-muted" style="display: block; margin-top: 5px; color: #6c757d;">
+                    <i class="fas fa-info-circle"></i> Deixe em "Todos os processos" para gerar o relatório completo
+                </small>
             </div>
         </div>
 
@@ -555,7 +557,7 @@
 
         const areaId = selectArea?.value;
         const auditoriaId = selectAuditoria?.value;
-        const processoId = selectProcesso?.value;
+        const processoId = selectProcesso?.value;  // ⭐ PODE SER VAZIO ("")
         const orientacao = orientacaoSelecionada?.value || 'RETRATO';
         const tipoRelatorio = selectTipo?.value || 'gerencial';
 
@@ -564,11 +566,8 @@
             return;
         }
 
-        // Validar processo se for parecer
-        if (tipoRelatorio === 'parecer' && !processoId) {
-            mostrarToast('Selecione o processo para gerar o parecer', 'warning');
-            return;
-        }
+        // ⭐ REMOVE A VALIDAÇÃO OBRIGATÓRIA DO PROCESSO
+        // O processo é opcional - se não selecionado, gera para todos
 
         const btnGerar = document.getElementById('btn-gerar-relatorio');
         const btnLoading = btnGerar?.querySelector('.btn-loading');
@@ -589,11 +588,19 @@
         
         if (tipoRelatorio === 'gerencial') {
             url = '/api/relatorios/gerar-gerencial';
-            nomeBase = 'relatorio_gerencial';
+            nomeBase = processoId ? `relatorio_gerencial_processo_${processoId}` : 'relatorio_gerencial_todos';
+            // ⭐ SE TIVER PROCESSO, ADICIONA AO BODY
+            if (processoId) {
+                bodyData.processo_id = processoId;
+            }
         } else if (tipoRelatorio === 'parecer') {
             url = '/api/relatorios/gerar-parecer';
-            nomeBase = `parecer_auditoria_processo_${processoId}`;
-            bodyData.processo_id = processoId;  // ← ADICIONA O PROCESSO
+            nomeBase = processoId ? `parecer_auditoria_processo_${processoId}` : 'parecer_auditoria_todos';
+            // ⭐ SEMPRE ENVIA O PROCESSO_ID (SE TIVER)
+            if (processoId) {
+                bodyData.processo_id = processoId;
+            }
+            // ⭐ SE NÃO TIVER PROCESSO, O BACKEND DEVE GERAR PARA TODOS
         }
 
         try {
@@ -779,13 +786,14 @@
 
         const selectTipo = document.getElementById('tipo_relatorio');
         const rowProcesso = document.getElementById('row_processo');
-        
+
         if (selectTipo) {
             selectTipo.addEventListener('change', async () => {
                 const auditoriaId = selectAuditoria?.value;
                 const tipoSelecionado = selectTipo.value;
                 
-                if (tipoSelecionado === 'parecer' && auditoriaId) {
+                // ⭐ AGORA MOSTRA PARA AMBOS OS TIPOS
+                if ((tipoSelecionado === 'parecer' || tipoSelecionado === 'gerencial') && auditoriaId) {
                     rowProcesso.style.display = 'flex';
                     await carregarProcessosPorAuditoria(auditoriaId);
                 } else {
@@ -806,8 +814,8 @@
         
         if (!selectProcesso) return;
         
-        // Se não for parecer, não carrega
-        if (tipoRelatorio !== 'parecer') {
+        // Se não for parecer OU gerencial, não carrega
+        if (tipoRelatorio !== 'parecer' && tipoRelatorio !== 'gerencial') {
             rowProcesso.style.display = 'none';
             return;
         }
@@ -822,7 +830,8 @@
             const data = await response.json();
 
             if (data.success && data.processos && data.processos.length > 0) {
-                selectProcesso.innerHTML = '<option value="">Selecione um processo...</option>';
+                // ⭐ ADICIONA A OPÇÃO "TODOS OS PROCESSOS"
+                selectProcesso.innerHTML = '<option value="">Todos os processos da auditoria</option>';
                 data.processos.forEach(proc => {
                     const option = document.createElement('option');
                     option.value = proc.id;

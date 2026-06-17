@@ -3411,35 +3411,24 @@ def api_relatorios_gerar_gerencial():
         print(f"❌ Erro ao gerar relatório: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/relatorios/gerar-parecer', methods=['POST'])
-def api_relatorios_gerar_parecer():
-    """Gera o relatório de Parecer da Auditoria para um processo específico"""
+@app.route('/api/relatorios/gerar-gerencial', methods=['POST'])
+def api_relatorios_gerar_gerencial():
+    """Gera o relatório gerencial em PDF e retorna diretamente"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
-    print("=" * 50)
-    print("🔍 Dados recebidos na rota:")
-    print(f"   area_id: {data.get('area_id')}")
-    print(f"   auditoria_id: {data.get('auditoria_id')}")
-    print(f"   processo_id: {data.get('processo_id')}")
-    print(f"   orientacao: {data.get('orientacao')}")
-    print("=" * 50)
-    
     area_id = data.get('area_id')
     auditoria_id = data.get('auditoria_id')
-    processo_id = data.get('processo_id')
     orientacao = data.get('orientacao', 'RETRATO')
+    processo_id = data.get('processo_id')  # ⭐ NOVO: PODE SER NONE
     
     if not area_id or not auditoria_id:
         return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
     
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'processo_id é obrigatório para o parecer'}), 400
-    
     from database import engine
     from sqlalchemy import text
-    from logic import gerar_relatorio_parecer_auditoria
+    from logic import gerar_relatorio_gerencial_area
     
     try:
         # Buscar nome da área e gestor
@@ -3455,28 +3444,23 @@ def api_relatorios_gerar_parecer():
             area_nome = area_info[0] or 'Área sem nome'
             gestor = area_info[1] or 'Gestor não informado'
         
-        # Pegar o nome do usuário da sessão
-        usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Auditor'))
-        
-        print(f"📊 Área: {area_nome}, Gestor: {gestor}, Usuário: {usuario_nome}")
-        print(f"📊 Gerando parecer para processo_id: {processo_id}")
-        
-        # Gerar o PDF (passando o processo_id)
-        pdf_bytes = gerar_relatorio_parecer_auditoria(
+        # ⭐ GERAR O PDF - PASSANDO O processo_id
+        pdf_bytes = gerar_relatorio_gerencial_area(
             area_id=area_id,
             area_nome=area_nome,
             gestor=gestor,
+            orientacao=orientacao,
             auditoria_id=auditoria_id,
-            processo_id=processo_id,
-            usuario_nome=usuario_nome,
-            orientacao=orientacao
+            processo_id=processo_id  # ⭐ ADICIONADO
         )
         
-        print(f"✅ PDF gerado com sucesso! Tamanho: {len(pdf_bytes)} bytes")
+        # Criar nome do arquivo (incluir processo se selecionado)
+        if processo_id:
+            nome_arquivo = f"relatorio_gerencial_processo_{processo_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        else:
+            nome_arquivo = f"relatorio_gerencial_{area_nome}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         
-        # Criar nome do arquivo
-        nome_arquivo = f"parecer_auditoria_processo_{processo_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        
+        # Retornar o PDF diretamente
         return send_file(
             io.BytesIO(pdf_bytes),
             mimetype='application/pdf',
@@ -3485,7 +3469,7 @@ def api_relatorios_gerar_parecer():
         )
         
     except Exception as e:
-        print(f"❌ Erro ao gerar parecer: {e}")
+        print(f"❌ Erro ao gerar relatório: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
