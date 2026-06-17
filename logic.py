@@ -3481,7 +3481,7 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
 
 
 
-def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
     """Gera relatório gerencial da área (para validação do gestor)"""
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
@@ -3573,7 +3573,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     # Informações
     story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
     story.append(Paragraph(f"Área: {area_nome}", normal_style))
-    story.append(Paragraph(f"Gestor Responsável: {gestor}", normal_style))
+    story.append(Paragraph(f"Gestor Responsável: {gestor} - {cargo}", normal_style))
     story.append(Paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
@@ -4255,7 +4255,7 @@ def limpar_binario(dados):
     return texto
 
 
-def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
+def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
     Inclui análises do auditado (etapas) e análises do auditor (checklists)
@@ -4732,6 +4732,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         ["Título:", Paragraph(titulo_auditoria, cell_style)],
         ["Área:", Paragraph(area_nome, cell_style)],
         ["Gestor:", Paragraph(gestor, cell_style)],
+        ["Cargo:", Paragraph(cargo, cell_style)],
         ["Cronograma Previsto:", Paragraph(f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}", cell_style)],
         ["Status da Auditoria:", Paragraph(f"{status_text}{status_atraso_html}", cell_style_2)],
     ]
@@ -4743,7 +4744,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     
     info_data.append(["", ""])
     info_data.append(["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)])
-    info_data.append(["Data Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y'), cell_style)])
+    info_data.append(["Data/Hora Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y %H:%M'), cell_style)])
     
     info_table = Table(info_data, colWidths=[4*cm, 12*cm])
     info_table.setStyle(TableStyle([
