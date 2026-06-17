@@ -3959,10 +3959,14 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 return False
             
             try:
+                # Abrir a imagem
                 pil_img = PILImage.open(caminho)
+                
+                # Converter para RGBA se necessário
                 if pil_img.mode != 'RGBA':
                     pil_img = pil_img.convert('RGBA')
                 
+                # Calcular dimensões mantendo proporção
                 img_width, img_height = pil_img.size
                 proporcao = img_width / img_height
                 
@@ -3972,16 +3976,30 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                     altura = altura_max
                     largura = altura * proporcao
                 
-                buffer = io.BytesIO()
-                pil_img.save(buffer, format='PNG')
-                buffer.seek(0)
-                
-                img = ImageReader(buffer)
-                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
-                
-                return True
+                # ⭐ NOVA ABORDAGEM: Salvar em um arquivo temporário
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                    # Salvar a imagem redimensionada no arquivo temporário
+                    img_resized = pil_img.resize((int(largura * 2), int(altura * 2)), PILImage.Resampling.LANCZOS)
+                    img_resized.save(tmp_file.name, format='PNG', optimize=True)
+                    
+                    # Usar o reportlab para carregar do arquivo
+                    from reportlab.lib.utils import ImageReader
+                    img = ImageReader(tmp_file.name)
+                    canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, preserveAspectRatio=True, mask='auto')
+                    
+                    # Limpar arquivo temporário
+                    try:
+                        os.unlink(tmp_file.name)
+                    except:
+                        pass
+                    
+                    return True
+                    
             except Exception as e:
                 print(f"Erro ao desenhar logo: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
         
         espacamento = pagesize[0] / 4
