@@ -1882,28 +1882,21 @@
     }
 
 
+    /* Botão Editar (Amarelo - versão com texto) */
     .btn-editar-processo {
-        background: rgba(255, 248, 153, 0.25);
-        border: 1px solid #FFCF66;
-        color: #FFCF66;
-        padding: 5px 12px;
-        border-radius: 6px;
+        background: none;
+        border: none;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 16px;
+        padding: 5px;
+        border-radius: 5px;
         transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        margin-right: 12px;
+        color: #ffc107;
     }
 
     .btn-editar-processo:hover {
-        background: #FFCF66;
-        color: white;
-    }
-
-    .btn-editar-processo i {
-        font-size: 12px;
+        background: #fff3cd;
+        color: #856404;
     }
 
     .btn-excluir-processo {
@@ -3530,7 +3523,7 @@
                     if (usuarioAutorizado) {
                         botoesHtml = `
                             <button class="btn-editar-processo" data-processo-id="${processo.id}" data-processo-codigo="${processo.codigo_processo}">
-                                <i class="fas fa-edit"></i> Editar
+                                <i class="fas fa-pencil-alt"></i>
                             </button>
                         `;
                     } else {
@@ -3575,8 +3568,17 @@
                 });
             });
             
-            // Adicionar eventos aos botões de editar
+            // Adicionar eventos aos botões de editar (para ADMIN - ícone)
             document.querySelectorAll('.btn-edit-processo').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const processoId = btn.getAttribute('data-processo-id');
+                    const processoCodigo = btn.getAttribute('data-processo-codigo');
+                    abrirModalEdicao(processoId, processoCodigo);
+                });
+            });
+
+            // ⭐ ADICIONAR EVENTOS AOS BOTÕES DE EDITAR (para USUÁRIOS AUTORIZADOS - com texto)
+            document.querySelectorAll('.btn-editar-processo').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const processoId = btn.getAttribute('data-processo-id');
                     const processoCodigo = btn.getAttribute('data-processo-codigo');
