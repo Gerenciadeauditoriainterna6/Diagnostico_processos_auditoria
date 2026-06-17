@@ -3665,24 +3665,28 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     # ⭐ MODIFICAR QUERY PARA FILTRAR POR PROCESSO SE FORNECIDO
     if processo_id:
         query_processos = text("""
-            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo
+            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo,
+                p.descricao, p.etapa_ini, p.etapa_fim, p.produto
             FROM processos p
             WHERE p.auditoria_id = :auditoria_id 
-              AND p.id_area = :area_id 
-              AND p.status = 'Ativo'
-              AND p.id = :processo_id
-            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo
+            AND p.id_area = :area_id 
+            AND p.status = 'Ativo'
+            AND p.id = :processo_id
+            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo,
+                    p.descricao, p.etapa_ini, p.etapa_fim, p.produto
             ORDER BY string_to_array(p.codigo_processo, '.')::int[]
         """)
         params_processos = {"area_id": area_id, "auditoria_id": auditoria_id, "processo_id": processo_id}
     else:
         query_processos = text("""
-            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo
+            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo,
+                p.descricao, p.etapa_ini, p.etapa_fim, p.produto
             FROM processos p
             WHERE p.auditoria_id = :auditoria_id 
-              AND p.id_area = :area_id 
-              AND p.status = 'Ativo'
-            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo
+            AND p.id_area = :area_id 
+            AND p.status = 'Ativo'
+            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo,
+                    p.descricao, p.etapa_ini, p.etapa_fim, p.produto
             ORDER BY string_to_array(p.codigo_processo, '.')::int[]
         """)
         params_processos = {"area_id": area_id, "auditoria_id": auditoria_id}
@@ -3695,6 +3699,10 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         proc_codigo = proc[1]
         proc_nome = proc[2]
         proc_objetivo = proc[3] or 'Não informado'
+        proc_descricao = proc[4] or ''
+        proc_etapa_ini = proc[5] or ''
+        proc_etapa_fim = proc[6] or ''
+        proc_produto = proc[7] or ''
         
         # Cada processo começa em nova página (exceto o primeiro)
         if idx > 0:
@@ -3706,10 +3714,46 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             styles['Heading2']
         ))
         story.append(Spacer(1, 5))
+
+        # Buscar executores do processo
+        query_executores = text("""
+            SELECT f.nome_funcionario, f.cargo
+            FROM processo_executores pe
+            JOIN funcionarios_area f ON pe.funcionario_id = f.id
+            WHERE pe.processo_id = :processo_id
+            ORDER BY f.nome_funcionario
+        """)
+
+        with engine.connect() as conn:
+            executores = conn.execute(query_executores, {"processo_id": proc_id}).fetchall()
+        executores_text = ', '.join([f"{e[0]} ({e[1]})" if e[1] else e[0] for e in executores]) if executores else 'Não informado'
         
-        # Objetivo do processo
-        story.append(Paragraph(f"Objetivo: {proc_objetivo}", normal_style))
-        story.append(Spacer(1, 12))
+        # ===== INFORMAÇÕES COMPLETAS DO PROCESSO =====
+        info_data = [
+            ["Objetivo:", proc_objetivo],
+            ["O que é o processo?:", proc_descricao or 'Não informado'],
+            ["Onde começa?:", proc_etapa_ini or 'Não informado'],
+            ["Produto final:", proc_produto or 'Não informado'],
+            ["Para onde envia?:", proc_etapa_fim or 'Não informado'],
+            ["Executores:", executores_text]
+        ]
+
+        # Estilo para a tabela de informações
+        info_table_style = TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ])
+
+        info_table = Table(info_data, colWidths=[4*cm, 12*cm])
+        info_table.setStyle(info_table_style)
+        story.append(info_table)
+        story.append(Spacer(1, 10))
         
         # Buscar etapas (não precisa de auditoria, já está ligado ao processo)
         query_etapas = text("""

@@ -719,6 +719,8 @@
         const selectArea = document.getElementById('area_relatorio');
         const selectAuditoria = document.getElementById('auditoria_relatorio');
         const btnGerar = document.getElementById('btn-gerar-relatorio');
+        const selectTipo = document.getElementById('tipo_relatorio');
+        const rowProcesso = document.getElementById('row_processo');
 
         if (selectArea) {
             selectArea.addEventListener('change', () => {
@@ -732,6 +734,8 @@
                     selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
                     selectAuditoria.disabled = true;
                     if (btnGerar) btnGerar.disabled = true;
+                    // ⭐ ESCONDER PROCESSO QUANDO ÁREA FOR DESMARCADA
+                    if (rowProcesso) rowProcesso.style.display = 'none';
                 }
             });
         }
@@ -739,10 +743,9 @@
         if (selectAuditoria) {
             selectAuditoria.addEventListener('change', async () => {
                 const auditoriaId = selectAuditoria.value;
-                const tipoRelatorio = document.getElementById('tipo_relatorio')?.value;
+                const tipoRelatorio = selectTipo?.value || 'gerencial';
                 const infoBox = document.getElementById('info-box');
                 const infoMsg = document.getElementById('info-mensagem');
-                const rowProcesso = document.getElementById('row_processo');
                 const selectProcesso = document.getElementById('processo_relatorio');
                 
                 if (!auditoriaId) {
@@ -752,15 +755,15 @@
                     return;
                 }
                 
-                // Se for parecer, carrega os processos
-                if (tipoRelatorio === 'parecer') {
+                // ⭐ AGORA MOSTRA PARA AMBOS OS TIPOS
+                if (tipoRelatorio === 'parecer' || tipoRelatorio === 'gerencial') {
                     if (rowProcesso) rowProcesso.style.display = 'flex';
                     await carregarProcessosPorAuditoria(auditoriaId);
                 } else {
                     if (rowProcesso) rowProcesso.style.display = 'none';
                 }
                 
-                // Verificar permissão do usuário (código existente)
+                // Verificar permissão do usuário
                 try {
                     const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
                     const data = await response.json();
@@ -784,9 +787,6 @@
             });
         }
 
-        const selectTipo = document.getElementById('tipo_relatorio');
-        const rowProcesso = document.getElementById('row_processo');
-
         if (selectTipo) {
             selectTipo.addEventListener('change', async () => {
                 const auditoriaId = selectAuditoria?.value;
@@ -804,6 +804,16 @@
 
         if (btnGerar) {
             btnGerar.addEventListener('click', gerarRelatorio);
+        }
+
+        // ⭐ ===== VERIFICAÇÃO INICIAL =====
+        // Se já houver uma área e auditoria selecionadas, mostrar o campo de processo
+        if (selectAuditoria?.value && selectTipo?.value) {
+            const tipoAtual = selectTipo.value;
+            if (tipoAtual === 'gerencial' || tipoAtual === 'parecer') {
+                rowProcesso.style.display = 'flex';
+                await carregarProcessosPorAuditoria(selectAuditoria.value);
+            }
         }
     });
 
