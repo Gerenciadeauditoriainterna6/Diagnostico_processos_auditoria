@@ -4281,8 +4281,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     from database import engine
     from sqlalchemy import text
     from datetime import datetime
+    from zoneinfo import ZoneInfo
     
     buffer = io.BytesIO()
+
+    TZ_BRASILIA = ZoneInfo('America/Sao_Paulo')
     
     # Definir orientação
     if orientacao.upper() == "PAISAGEM":
@@ -4676,7 +4679,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     status_text = f'<font color="#{status_color.hexval()[2:]}"><b>{status}</b></font>'
     
     # ===== VERIFICAR ATRASO DA AUDITORIA =====
-    hoje = datetime.now().date()
+    hoje = datetime.now(TZ_BRASILIA).date()
     status_atraso_html = ""
     
     if data_fim and data_fim < hoje:
@@ -4755,7 +4758,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     
     info_data.append(["", ""])
     info_data.append(["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)])
-    info_data.append(["Data/Hora Emissão:", Paragraph(datetime.now().strftime('%d/%m/%Y %H:%M'), cell_style)])
+    info_data.append(["Data/Hora Emissão:", Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), cell_style)])
     
     info_table = Table(info_data, colWidths=[4*cm, 12*cm])
     info_table.setStyle(TableStyle([
@@ -5194,7 +5197,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     # ===== ASSINATURAS =====
     assinatura_data = [
         ["Auditor Responsável pela emissão:", usuario_nome],
-        ["Data:", datetime.now().strftime('%d/%m/%Y')],
+        ["Data:", datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y')],
         ["Assinatura:", "_________________________"],
         ["", ""],
         ["Auditor Revisor:", "_________________________"],
