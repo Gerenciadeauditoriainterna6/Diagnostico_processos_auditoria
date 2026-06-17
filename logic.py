@@ -3392,6 +3392,95 @@ def calcular_score_risco_etapa(impacto, probabilidade):
     
     return imp_val * prob_val
 
+def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMargin, rightMargin, 
+                                rodape_func, cabecalho_func=None):
+    """
+    Conta as páginas de um story e gera o PDF com o total correto no rodapé.
+    Retorna o PDF em bytes.
+    """
+    from reportlab.platypus import SimpleDocTemplate
+    import io
+    
+    # Primeira passada: contar páginas
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                topMargin=topMargin, bottomMargin=bottomMargin,
+                                leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    page_counter = {'count': 0}
+    
+    def rodape_temp(canvas, doc):
+        page_counter['count'] += 1
+    
+    doc_temp.build(story, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
+    total_paginas = page_counter['count']
+    
+    # Segunda passada: gerar o PDF final com o total
+    buffer_final = io.BytesIO()
+    doc_final = SimpleDocTemplate(buffer_final, pagesize=pagesize,
+                                 topMargin=topMargin, bottomMargin=bottomMargin,
+                                 leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    # Criar um novo rodapé que recebe o total
+    def rodape_com_total(canvas, doc):
+        # Chamar a função de rodapé original com o total
+        rodape_func(canvas, doc, total_paginas)
+    
+    if cabecalho_func:
+        doc_final.build(story, 
+                       onFirstPage=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)],
+                       onLaterPages=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)])
+    else:
+        doc_final.build(story, onFirstPage=rodape_com_total, onLaterPages=rodape_com_total)
+    
+    buffer_final.seek(0)
+    return buffer_final.getvalue()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRATO", auditoria_id=None, processo_id=None):
     """Gera relatório gerencial da área (para validação do gestor)"""
     from reportlab.lib.pagesizes import A4, landscape
@@ -3407,6 +3496,10 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     from sqlalchemy import text
     from datetime import datetime
     from logic import get_estilo_risco
+    from PyPDF2 import PdfReader
+    from PIL import Image as PILImage
+    from reportlab.lib.utils import ImageReader
+    import copy
     
     buffer = io.BytesIO()
     
@@ -3426,10 +3519,6 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         rightMargin = 2*cm
         col_widths = [2.2*cm, 4.5*cm, 7.5*cm, 2.2*cm]
     
-    doc = SimpleDocTemplate(buffer, pagesize=pagesize, 
-                           topMargin=topMargin, bottomMargin=bottomMargin,
-                           leftMargin=leftMargin, rightMargin=rightMargin)
-    
     styles = getSampleStyleSheet()
     
     titulo_style = ParagraphStyle(
@@ -3443,22 +3532,19 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     
     normal_style = styles['Normal']
     
+    # ===== CONSTRUIR O STORY (conteúdo do relatório) =====
     story = []
     
-    # ===== CABEÇALHO COM LOGOS (APENAS NA PRIMEIRA PÁGINA) - PADRÃO PARECER =====
+    # ===== CABEÇALHO COM LOGOS =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
     logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
-    logo_iia_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
-    logo_fusve_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
 
     header_data = []
     tem_logo = os.path.exists(logo_auditoria_path)
 
     if tem_logo:
         img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
-        
         header_data = [[img_central]]
-        
         header_table = Table(header_data, colWidths=[16*cm])
         header_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -3468,10 +3554,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         story.append(header_table)
         story.append(Spacer(1, 10))
 
-
-    
-    # ===== TÍTULO PRINCIPAL =====
-    # ⭐ MODIFICAR TÍTULO PARA INCLUIR PROCESSO SE FOR ESPECÍFICO
+    # ===== TÍTULO =====
     if processo_id:
         titulo = f"Relatório de Validação - Processo {processo_id}"
     else:
@@ -3494,8 +3577,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
-    # ===== BUSCAR PROCESSOS - COM FILTRO POR PROCESSO_ID SE FORNECIDO =====
-    # ⭐ MODIFICAR A QUERY PARA FILTRAR POR PROCESSO SE FORNECIDO
+    # ===== BUSCAR PROCESSOS =====
     if processo_id:
         query = text("""
             SELECT 
@@ -3543,13 +3625,11 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     with engine.connect() as conn:
         df = pd.read_sql(query, conn, params=params)
     
-    # ⭐ VERIFICAR SE HÁ DADOS
     if df.empty:
         raise Exception("Nenhum processo encontrado para os critérios selecionados.")
     
     total_riscos = df['risco_id'].notna().sum()
     
-    # ⭐ SE FOR PROCESSO ESPECÍFICO, MOSTRAR APENAS ELE
     if processo_id:
         story.append(Paragraph(f"Processo selecionado: {df.iloc[0]['codigo_processo']} - {df.iloc[0]['nome_processo']}", normal_style))
         story.append(Spacer(1, 10))
@@ -3615,21 +3695,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
 
     # ===== SEÇÃO 2: DETALHAMENTO POR PROCESSO =====
     story.append(PageBreak())
-    
-    # Título da seção
     story.append(Paragraph("Detalhamento dos Processos", styles['Heading1']))
     story.append(Spacer(1, 15))
-    
-    # Estilo para box de processo
-    processo_box_style = ParagraphStyle(
-        'ProcessoBox',
-        parent=styles['Normal'],
-        fontSize=12,
-        textColor=colors.white,
-        backColor=colors.HexColor('#184145'),
-        borderPadding=(8, 12, 8, 12),
-        spaceAfter=10,
-    )
     
     etapa_header_style = ParagraphStyle(
         'EtapaHeader',
@@ -3651,7 +3718,6 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         spaceAfter=4,
     )
     
-    # Linha separadora colorida
     def add_separador(cor=colors.HexColor('#cccccc'), espaco_antes=5, espaco_depois=5):
         story.append(Spacer(1, espaco_antes))
         sep_data = [['']]
@@ -3662,7 +3728,6 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         story.append(sep_table)
         story.append(Spacer(1, espaco_depois))
     
-    # ⭐ MODIFICAR QUERY PARA FILTRAR POR PROCESSO SE FORNECIDO
     if processo_id:
         query_processos = text("""
             SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo,
@@ -3704,18 +3769,16 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         proc_etapa_fim = proc[6] or ''
         proc_produto = proc[7] or ''
         
-        # Cada processo começa em nova página (exceto o primeiro)
         if idx > 0:
             story.append(PageBreak())
         
-        # ===== CABEÇALHO DO PROCESSO =====
         story.append(Paragraph(
             f"Processo: {proc_codigo} - {proc_nome}",
             styles['Heading2']
         ))
         story.append(Spacer(1, 5))
 
-        # Buscar executores do processo
+        # Buscar executores
         query_executores = text("""
             SELECT f.nome_funcionario, f.cargo
             FROM processo_executores pe
@@ -3728,17 +3791,15 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             executores = conn.execute(query_executores, {"processo_id": proc_id}).fetchall()
         executores_text = ', '.join([f"{e[0]} ({e[1]})" if e[1] else e[0] for e in executores]) if executores else 'Não informado'
         
-        # ===== INFORMAÇÕES COMPLETAS DO PROCESSO =====
         info_data = [
-            ["Objetivo:", proc_objetivo],
-            ["O que é o processo?:", proc_descricao or 'Não informado'],
-            ["Onde começa?:", proc_etapa_ini or 'Não informado'],
-            ["Produto final:", proc_produto or 'Não informado'],
-            ["Para onde envia?:", proc_etapa_fim or 'Não informado'],
-            ["Executores:", executores_text]
+            [Paragraph("Objetivo:", normal_style), Paragraph(proc_objetivo, normal_style)],
+            [Paragraph("O que é o processo?:", normal_style), Paragraph(proc_descricao or 'Não informado', normal_style)],
+            [Paragraph("Onde começa?:", normal_style), Paragraph(proc_etapa_ini or 'Não informado', normal_style)],
+            [Paragraph("Produto final:", normal_style), Paragraph(proc_produto or 'Não informado', normal_style)],
+            [Paragraph("Para onde envia?:", normal_style), Paragraph(proc_etapa_fim or 'Não informado', normal_style)],
+            [Paragraph("Executores:", normal_style), Paragraph(executores_text, normal_style)]
         ]
 
-        # Estilo para a tabela de informações
         info_table_style = TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
@@ -3755,7 +3816,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         story.append(info_table)
         story.append(Spacer(1, 10))
         
-        # Buscar etapas (não precisa de auditoria, já está ligado ao processo)
+        # Buscar etapas
         query_etapas = text("""
             SELECT ep.id, ep.nome_etapa, ep.descricao_etapa, ep.codigo_etapa
             FROM etapas_processo ep
@@ -3779,16 +3840,13 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
             etapa_desc = etapa[2] or ''
             etapa_codigo = etapa[3] or ''
             
-            # Fundo alternado para cada etapa
             bg_cor = colors.HexColor('#f8f9fa') if etapa_idx % 2 == 0 else colors.white
             
-            # Box da etapa
             etapa_header = Paragraph(
                 f"Etapa {etapa_codigo}: {etapa_nome}", 
                 etapa_header_style
             )
             
-            # Criar uma tabela de 1 coluna para a etapa (efeito de card)
             etapa_conteudo = []
             
             if etapa_desc:
@@ -3808,7 +3866,6 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 riscos_etapa = conn.execute(query_riscos_etapa, {"etapa_id": etapa_id}).fetchall()
             
             if riscos_etapa:
-                # Montar tabela de riscos
                 riscos_todas = [[
                     Paragraph("Risco", normal_style),
                     Paragraph("Impacto", normal_style),
@@ -3887,21 +3944,21 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
                 etapa_conteudo.append([tabela_controles])
             
             # Montar tabela da etapa
-            etapa_table = Table(etapa_conteudo, colWidths=[pagesize[0] - leftMargin - rightMargin])
+            etapa_table = Table(etapa_conteudo, colWidths=[pagesize[0] - leftMargin - rightMargin - 20])
             etapa_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), bg_cor),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
                 ('TOPPADDING', (0, 0), (-1, -1), 6),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ]))
             
             story.append(etapa_header)
             story.append(etapa_table)
             story.append(Spacer(1, 8))
         
-        # Separador entre processos (exceto último)
         if idx < len(processos) - 1:
             add_separador(colors.HexColor('#184145'), 10, 5)
     
@@ -3921,31 +3978,13 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
     story.append(Paragraph("Data: ___/___/_______", normal_style))
     story.append(Spacer(1, 20))
     story.append(Paragraph("Assinatura: ________________________________", normal_style))
-    
-    # ===== RODAPÉ COM LOGOS (igual ao parecer) =====
-    from reportlab.lib.utils import ImageReader
-    from PIL import Image as PILImage
-    import io
 
-    def rodape(canvas, doc):
-        canvas.saveState()
-        
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        
-        # Fundo do rodapé
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        
-        # Texto do processo
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        if processo_id:
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Processo {proc_codigo} - Página {doc.page}")
-        else:
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}")
-        
-        # Logos no rodapé
+    # ============================================================
+    # ⭐ AQUI ESTÁ A SOLUÇÃO DEFINITIVA ⭐
+    # ============================================================
+    
+    # ⭐ FUNÇÃO PARA DESENHAR LOGOS
+    def desenhar_logos(canvas):
         root_dir = os.path.dirname(os.path.abspath(__file__))
         logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
         logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
@@ -3954,52 +3993,28 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         y_logo = 0.8 * cm
         altura_max_logo = 5 * cm
         
-        def desenhar_png_com_transparencia(caminho, x, y, largura_max, altura_max):
+        def desenhar_png(caminho, x, y, largura_max, altura_max):
             if not os.path.exists(caminho):
                 return False
-            
             try:
-                # Abrir a imagem
                 pil_img = PILImage.open(caminho)
-                
-                # Converter para RGBA se necessário
                 if pil_img.mode != 'RGBA':
                     pil_img = pil_img.convert('RGBA')
-                
-                # Calcular dimensões mantendo proporção
                 img_width, img_height = pil_img.size
                 proporcao = img_width / img_height
-                
                 largura = min(largura_max, 5*cm)
                 altura = largura / proporcao
                 if altura > altura_max:
                     altura = altura_max
                     largura = altura * proporcao
-                
-                # ⭐ NOVA ABORDAGEM: Salvar em um arquivo temporário
-                import tempfile
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-                    # Salvar a imagem redimensionada no arquivo temporário
-                    img_resized = pil_img.resize((int(largura * 2), int(altura * 2)), PILImage.Resampling.LANCZOS)
-                    img_resized.save(tmp_file.name, format='PNG', optimize=True)
-                    
-                    # Usar o reportlab para carregar do arquivo
-                    from reportlab.lib.utils import ImageReader
-                    img = ImageReader(tmp_file.name)
-                    canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, preserveAspectRatio=True, mask='auto')
-                    
-                    # Limpar arquivo temporário
-                    try:
-                        os.unlink(tmp_file.name)
-                    except:
-                        pass
-                    
-                    return True
-                    
+                buffer_temp = io.BytesIO()
+                pil_img.save(buffer_temp, format='PNG')
+                buffer_temp.seek(0)
+                img = ImageReader(buffer_temp)
+                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
+                return True
             except Exception as e:
                 print(f"Erro ao desenhar logo: {e}")
-                import traceback
-                traceback.print_exc()
                 return False
         
         espacamento = pagesize[0] / 4
@@ -4008,16 +4023,161 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, orientacao="RETRA
         x3 = pagesize[0] - espacamento
         largura_max = 2.5 * cm
         
-        desenhar_png_com_transparencia(logo1_path, x2, y_logo, largura_max, altura_max_logo)
-        desenhar_png_com_transparencia(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
-        desenhar_png_com_transparencia(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
+        desenhar_png(logo1_path, x2, y_logo, largura_max, altura_max_logo)
+        desenhar_png(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
+        desenhar_png(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
+
+    # ⭐ PASSO 1: FAZER UMA CÓPIA DO STORY
+    story_copy = copy.deepcopy(story)
+    
+    # ⭐ PASSO 2: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS (USANDO A CÓPIA)
+    def rodape_contador(canvas, doc):
+        canvas.saveState()
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        if processo_id and 'proc_codigo' in locals():
+            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Processo {proc_codigo} - Página {doc.page}")
+        else:
+            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}")
+        desenhar_logos(canvas)
+        canvas.restoreState()
+
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                topMargin=topMargin, bottomMargin=bottomMargin,
+                                leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    doc_temp.build(story_copy, onFirstPage=rodape_contador, onLaterPages=rodape_contador)
+    
+    # ⭐ PASSO 3: CONTAR AS PÁGINAS
+    buffer_temp.seek(0)
+    pdf_reader = PdfReader(buffer_temp)
+    total_paginas = len(pdf_reader.pages)
+    
+    # ⭐ PASSO 4: GERAR O PDF FINAL COM O TOTAL (USANDO O STORY ORIGINAL)
+    def rodape_final(canvas, doc):
+        canvas.saveState()
         
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        
+        if processo_id and 'proc_codigo' in locals():
+            canvas.drawCentredString(pagesize[0]/2, 2*cm, 
+                f"Relatório Gerencial - Processo {proc_codigo} - Página {doc.page}/{total_paginas}")
+        else:
+            canvas.drawCentredString(pagesize[0]/2, 2*cm, 
+                f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}/{total_paginas}")
+        
+        desenhar_logos(canvas)
         canvas.restoreState()
     
-    # Construir o documento com rodapé em todas as páginas
-    doc.build(story, onFirstPage=rodape, onLaterPages=rodape)
+    # ⭐ CONSTRUIR O DOCUMENTO FINAL
+    doc = SimpleDocTemplate(buffer, pagesize=pagesize, 
+                           topMargin=topMargin, bottomMargin=bottomMargin,
+                           leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    doc.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
     buffer.seek(0)
     return buffer.getvalue()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
@@ -4098,7 +4258,7 @@ def limpar_binario(dados):
 def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
-    Inclui análises do auditado (etapas), análises do auditor e matrizes de checklist
+    Inclui análises do auditado (etapas) e análises do auditor (checklists)
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether
@@ -4404,22 +4564,33 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 'historico': historico_list,
                 'followups': followups_list
             })
-
+        
         # ===== 3. BUSCAR MATRIZES DE CHECKLIST (GOVERNANÇA, RISCOS, CONTROLES) =====
         checklist_tipos = ['governanca', 'riscos', 'controles']
         checklist_data = {}
         
+        # ⭐ DEFINIR O NÚMERO DE PERGUNTAS PARA CADA TIPO
+        perguntas_por_tipo = {
+            'governanca': 13,
+            'riscos': 12,
+            'controles': 12
+        }
+        
         for tipo in checklist_tipos:
             tabela = f'checklist_{tipo}_respostas'
+            num_perguntas = perguntas_por_tipo.get(tipo, 12)
             
-            # Buscar respostas do checklist para este processo
+            # ⭐ CONSTRUIR A LISTA DE COLUNAS DINAMICAMENTE
+            colunas_respostas = ', '.join([f'p{i}_resposta' for i in range(1, num_perguntas + 1)])
+            colunas_comentarios = ', '.join([f'p{i}_comentario' for i in range(1, num_perguntas + 1)])
+            
             query_checklist = text(f"""
                 SELECT 
                     id,
                     status,
                     observacoes_gerais,
-                    {', '.join([f'p{i}_resposta' for i in range(1, 15)])},
-                    {', '.join([f'p{i}_comentario' for i in range(1, 15)])}
+                    {colunas_respostas},
+                    {colunas_comentarios}
                 FROM {tabela}
                 WHERE processo_id = :processo_id
                 ORDER BY id DESC
@@ -4431,9 +4602,12 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 
                 if checklist_result:
                     respostas = []
-                    for i in range(1, 15):
-                        idx_resposta = 3 + (i - 1) * 2
-                        idx_comentario = 4 + (i - 1) * 2
+                    for i in range(1, num_perguntas + 1):
+                        # Índices: 0=id, 1=status, 2=observacoes
+                        # Depois vêm as respostas (num_perguntas colunas)
+                        # Depois os comentários (num_perguntas colunas)
+                        idx_resposta = 3 + (i - 1)
+                        idx_comentario = 3 + num_perguntas + (i - 1)
                         
                         resposta_valor = checklist_result[idx_resposta] if idx_resposta < len(checklist_result) else ''
                         comentario_valor = checklist_result[idx_comentario] if idx_comentario < len(checklist_result) else ''
@@ -4454,6 +4628,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
             except Exception as e:
                 print(f"Erro ao buscar checklist {tipo}: {e}")
                 checklist_data[tipo] = None
+
+
     
     # ===== FUNÇÃO PARA DESENHAR TARJA =====
     def cabecalho_com_tarja(canvas, doc):
@@ -4679,6 +4855,53 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             story.append(tabela_fu)
+
+    # ===== PERGUNTAS DOS CHECKLISTS =====
+    perguntas_governanca = [
+        "O fluxo das etapas e seus objetivos são de fato realizados? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
+        "O fluxo das etapas e seus objetivos são de fato realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?",
+        "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?",
+        "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?",
+        "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?",
+        "A gestão da área realiza monitoramento contínuo dos processos?",
+        "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?",
+        "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?",
+        "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?",
+        "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?",
+        "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?",
+        "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?",
+        "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?"
+    ]
+
+    perguntas_riscos = [
+        "Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.",
+        "Verificar se os riscos estão atualizados e sendo monitorados pelo gestor de primeira linha.",
+        "A área realiza mapeamento de riscos dos seus processos operacionais regularmente (ex: anualmente ou após mudanças significativas)?",
+        "Os riscos chave (ex: erro humano, falha de sistema, fraude) estão claramente identificados e documentados pela própria área?",
+        "A análise de riscos inclui a avaliação da probabilidade de ocorrência e do impacto financeiro/reputacional/operacional?",
+        "Existe um plano de ação formalizado para mitigar os riscos classificados como Alto ou Crítico?",
+        "Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?",
+        "A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?",
+        "A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?",
+        "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
+        "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?",
+        "O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?"
+    ]
+
+    perguntas_controles = [
+        "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
+        "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?",
+        "Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?",
+        "Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?",
+        "Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?",
+        "O passo do controle (ex: revisão, aprovação, conciliação) é realizado na frequência exigida e sem exceções não autorizadas?",
+        "O responsável pelo controle deixa evidência clara (assinatura, log do sistema, captura de tela) de que o controle foi executado e revisado?",
+        "Os controles-chave são executados por pessoas com o conhecimento e a autoridade necessários para tal?",
+        "As falhas ou exceções encontradas nos controles são escaladas imediatamente para tratamento e correção?",
+        "A área rastreia e monitora as ações corretivas implementadas para remediar as deficiências de controle identificadas?",
+        "As reconciliações (ex: contábeis, estoques) são realizadas, e os itens pendentes são investigados e resolvidos prontamente?",
+        "O Auditado validou por email se existe mapeamento de CONTROLE feito pela área Gerência de riscos e Compliance?"
+    ]
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
     def adicionar_analise(analise, titulo):
@@ -4722,73 +4945,69 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         
         story.append(Spacer(1, 8))
     
-    # ===== FUNÇÃO PARA EXIBIR CHECKLIST =====
-    def adicionar_checklist(checklist, titulo, tipo):
-        """Adiciona uma matriz de checklist ao relatório"""
+    # ===== FUNÇÃO PARA EXIBIR CHECKLIST (FORMATO LISTA) =====
+    def adicionar_checklist_simples(checklist, titulo, perguntas):
+        """Adiciona as respostas do checklist ao relatório em formato de lista"""
+        story.append(PageBreak())
         story.append(Paragraph(titulo, secao_style))
         story.append(Spacer(1, 5))
         
         if not checklist:
             story.append(Paragraph(
-                f"<i>Nenhuma resposta da matriz de {tipo} encontrada para este processo.</i>", 
+                f"<i>Nenhuma resposta encontrada para {titulo}.</i>", 
                 normal_style
             ))
             story.append(Spacer(1, 10))
             return
         
-        # Status do checklist
+        # Status
         status_text = checklist.get('status', 'Não iniciado')
-        status_color = {
-            'Concluído': '#28a745',
-            'Em andamento': '#ffc107',
-            'Não iniciado': '#6c757d'
-        }.get(status_text, '#6c757d')
+        story.append(Paragraph(f"<b>Status:</b> {status_text}", normal_style))
+        story.append(Spacer(1, 8))
         
-        story.append(Paragraph(
-            f"<b>Status:</b> <font color='{status_color}'>{status_text}</font>", 
-            normal_style
-        ))
-        story.append(Spacer(1, 5))
-        
-        # Observações Gerais
-        if checklist.get('observacoes_gerais'):
-            story.append(Paragraph("<b>Observações Gerais:</b>", normal_style))
-            story.append(Paragraph(checklist['observacoes_gerais'], normal_style))
-            story.append(Spacer(1, 5))
-        
-        # Respostas
+        # ⭐ EXIBIR PERGUNTAS E RESPOSTAS EM LISTA
         respostas = checklist.get('respostas', [])
-        if respostas:
-            # Criar tabela de respostas (apenas perguntas com resposta)
-            dados_tabela = [
-                [Paragraph("<b>Pergunta</b>", normal_style), 
-                 Paragraph("<b>Resposta</b>", normal_style),
-                 Paragraph("<b>Comentário</b>", normal_style)]
-            ]
-            
-            for idx, r in enumerate(respostas, 1):
-                if r.get('resposta') or r.get('comentario'):
-                    dados_tabela.append([
-                        Paragraph(f"{idx}.", normal_style),
-                        Paragraph(r.get('resposta') or '-', normal_style),
-                        Paragraph(r.get('comentario') or '-', normal_style)
-                    ])
-            
-            if len(dados_tabela) > 1:  # Se há respostas
-                tabela = Table(dados_tabela, colWidths=[1*cm, 6*cm, 9*cm])
-                tabela.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 5),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                story.append(tabela)
-            else:
-                story.append(Paragraph("<i>Nenhuma resposta registrada.</i>", normal_style))
-        else:
+        
+        # Criar estilo para perguntas com indentação
+        pergunta_style = ParagraphStyle(
+            'PerguntaStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            leftIndent=10,
+            spaceAfter=4
+        )
+        
+        resposta_style = ParagraphStyle(
+            'RespostaStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            leftIndent=30,
+            spaceAfter=10,
+            textColor=colors.HexColor('#0b5b99')
+        )
+        
+        contador = 0
+        for idx, r in enumerate(respostas, 1):
+            if r.get('resposta'):
+                contador += 1
+                pergunta_texto = perguntas[idx - 1] if idx - 1 < len(perguntas) else f"Pergunta {idx}"
+                
+                # Número da pergunta
+                story.append(Paragraph(
+                    f"<b>{contador}.</b> {pergunta_texto}", 
+                    pergunta_style
+                ))
+                
+                # Resposta com destaque
+                resposta = str(r.get('resposta'))
+                story.append(Paragraph(
+                    f"<b>Resposta:</b> {resposta}", 
+                    resposta_style
+                ))
+        
+        if contador == 0:
             story.append(Paragraph("<i>Nenhuma resposta registrada.</i>", normal_style))
         
         story.append(Spacer(1, 10))
@@ -4861,38 +5080,25 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
                 story.append(Spacer(1, 5))
                 story.append(Paragraph("<hr color='#CCCCCC'/>", normal_style))
                 story.append(Spacer(1, 5))
-    
+
     # ===== SEÇÃO 1.5: MATRIZES DE CHECKLIST =====
-    story.append(PageBreak())
-    story.append(Paragraph("1.5. MATRIZES DE CHECKLIST", secao_style))
-    story.append(Paragraph("Avaliações realizadas através das matrizes de governança, riscos e controles", normal_style))
-    story.append(Spacer(1, 10))
-    
-    # Governança
-    adicionar_checklist(
+    adicionar_checklist_simples(
         checklist_data.get('governanca'), 
-        "Matriz de Governança", 
-        "Governança"
+        "Matriz de Governança - Respostas",
+        perguntas_governanca
     )
-
-    story.append(PageBreak())
     
-    # Riscos
-    adicionar_checklist(
+    adicionar_checklist_simples(
         checklist_data.get('riscos'), 
-        "Matriz de Riscos", 
-        "Riscos"
+        "Matriz de Riscos - Respostas",
+        perguntas_riscos
     )
-
-    story.append(PageBreak())
     
-    # Controles
-    adicionar_checklist(
+    adicionar_checklist_simples(
         checklist_data.get('controles'), 
-        "Matriz de Controles", 
-        "Controles"
+        "Matriz de Controles - Respostas",
+        perguntas_controles
     )
-
     
     # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
     story.append(PageBreak())
@@ -5002,24 +5208,17 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
     ]))
     story.append(tabela_assinaturas)
     
-    # ===== RODAPÉ COM TARJA DE STATUS =====
+        # ============================================================
+    # ⭐ RODAPÉ COM TOTAL DE PÁGINAS (USANDO PyPDF2)
+    # ============================================================
     from reportlab.lib.utils import ImageReader
     from PIL import Image as PILImage
     import io
-
-    def rodape_com_status(canvas, doc):
-        canvas.saveState()
-        
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
-        
+    import copy
+    from PyPDF2 import PdfReader
+    
+    # Função para desenhar as logos
+    def desenhar_logos_parecer(canvas):
         root_dir = os.path.dirname(os.path.abspath(__file__))
         logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
         logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
@@ -5028,31 +5227,25 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         y_logo = 0.8 * cm
         altura_max_logo = 5 * cm
         
-        def desenhar_png_com_transparencia(caminho, x, y, largura_max, altura_max):
+        def desenhar_png(caminho, x, y, largura_max, altura_max):
             if not os.path.exists(caminho):
                 return False
-            
             try:
                 pil_img = PILImage.open(caminho)
                 if pil_img.mode != 'RGBA':
                     pil_img = pil_img.convert('RGBA')
-                
                 img_width, img_height = pil_img.size
                 proporcao = img_width / img_height
-                
                 largura = min(largura_max, 5*cm)
                 altura = largura / proporcao
                 if altura > altura_max:
                     altura = altura_max
                     largura = altura * proporcao
-                
-                buffer = io.BytesIO()
-                pil_img.save(buffer, format='PNG')
-                buffer.seek(0)
-                
-                img = ImageReader(buffer)
+                buffer_temp = io.BytesIO()
+                pil_img.save(buffer_temp, format='PNG')
+                buffer_temp.seek(0)
+                img = ImageReader(buffer_temp)
                 canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
-                
                 return True
             except Exception as e:
                 print(f"Erro ao desenhar logo: {e}")
@@ -5064,14 +5257,71 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, auditoria_id, 
         x3 = pagesize[0] - espacamento
         largura_max = 2.5 * cm
         
-        desenhar_png_com_transparencia(logo1_path, x2, y_logo, largura_max, altura_max_logo)
-        desenhar_png_com_transparencia(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
-        desenhar_png_com_transparencia(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
-        
+        desenhar_png(logo1_path, x2, y_logo, largura_max, altura_max_logo)
+        desenhar_png(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
+        desenhar_png(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
+
+    # ⭐ FAZER UMA CÓPIA DO STORY PARA A PRIMEIRA PASSADA
+    story_copy = copy.deepcopy(story)
+    
+    # ⭐ PRIMEIRA PASSADA: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                topMargin=1.5*cm, bottomMargin=2*cm,
+                                leftMargin=2*cm, rightMargin=2*cm)
+    
+    # Rodapé temporário para contagem
+    def rodape_contador(canvas, doc):
+        canvas.saveState()
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Parecer do Processo {proc_codigo} - Página {doc.page}")
+        desenhar_logos_parecer(canvas)
         canvas.restoreState()
     
+    # Tarja temporária (vazia para não interferir na contagem)
+    def tarja_temp(canvas, doc):
+        pass
+    
+    doc_temp.build(story_copy, 
+                   onFirstPage=lambda c, d: [tarja_temp(c, d), rodape_contador(c, d)],
+                   onLaterPages=lambda c, d: [tarja_temp(c, d), rodape_contador(c, d)])
+    
+    # ⭐ CONTAR AS PÁGINAS USANDO PyPDF2
+    buffer_temp.seek(0)
+    pdf_reader = PdfReader(buffer_temp)
+    total_paginas = len(pdf_reader.pages)
+    
+    # ⭐ SEGUNDA PASSADA: GERAR O PDF FINAL COM O TOTAL
+    def rodape_final(canvas, doc):
+        canvas.saveState()
+        
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        
+        canvas.drawCentredString(pagesize[0]/2, 2*cm, 
+            f"Parecer do Processo {proc_codigo} - Página {doc.page}/{total_paginas}")
+        
+        desenhar_logos_parecer(canvas)
+        canvas.restoreState()
+    
+    # ⭐ CONSTRUIR O DOCUMENTO FINAL
+    doc = SimpleDocTemplate(buffer, pagesize=pagesize,
+                           topMargin=1.5*cm, bottomMargin=2*cm,
+                           leftMargin=2*cm, rightMargin=2*cm)
+    
     doc.build(story, 
-          onFirstPage=lambda canvas, doc: [cabecalho_com_tarja(canvas, doc), rodape_com_status(canvas, doc)],
-          onLaterPages=lambda canvas, doc: [cabecalho_com_tarja(canvas, doc), rodape_com_status(canvas, doc)])
+          onFirstPage=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)],
+          onLaterPages=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)])
     buffer.seek(0)
     return buffer.getvalue()
