@@ -4181,13 +4181,24 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
 
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
-    query = text("SELECT id_area, nome_area FROM informacoes_area ORDER BY nome_area ASC")
+    query = text("""
+        SELECT id_area, nome_area, loc_unidade
+        FROM informacoes_area
+        ORDER BY nome_area ASC
+    """)
     with engine.connect() as conn:
         df = pd.read_sql(query, conn)
 
-    # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
-    # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
-    return dict(zip(df['nome_area'], df['id_area']))
+    def formatar_nome(row):
+        nome = row['nome_area']
+        unidade = row['loc_unidade']
+        if unidade and unidade.strip():
+            return f"{nome} - {unidade}"
+        return nome
+    
+    df['nome_completo'] = df.apply(formatar_nome, axis=1)
+
+    return dict(zip(df['nome_completo'], df['id_area']))
 
 import re
 import json
