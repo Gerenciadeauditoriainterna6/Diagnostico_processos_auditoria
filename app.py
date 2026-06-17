@@ -2967,11 +2967,26 @@ def api_checklist_carregar():
             if not tabela:
                 return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
             
+            # ⭐ DEFINIR O NÚMERO DE PERGUNTAS PARA CADA TIPO
+            num_perguntas = {
+                'governanca': 13,
+                'riscos': 12,
+                'controles': 12
+            }.get(tipo, 12)
+            
+            # ⭐ CONSTRUIR A LISTA DE COLUNAS DINAMICAMENTE
+            colunas = []
+            for i in range(1, num_perguntas + 1):
+                colunas.append(f"p{i}_resposta")
+                colunas.append(f"p{i}_comentario")
+            
+            colunas_sql = ', '.join(colunas)
+            
             # Buscar sessão existente
             campo, valor = identificador
             query = text(f"""
                 SELECT id, status, observacoes_gerais,
-                       {', '.join([f'p{i}_resposta, p{i}_comentario' for i in range(1, 15)])}
+                       {colunas_sql}
                 FROM {tabela}
                 WHERE {campo} = :valor
                 ORDER BY id DESC
@@ -2987,7 +3002,9 @@ def api_checklist_carregar():
                 
                 # Montar respostas
                 respostas = []
-                for i in range(1, 15):
+                for i in range(1, num_perguntas + 1):
+                    # Índices: 0=id, 1=status, 2=observacoes
+                    # Depois vêm as respostas e comentários alternados
                     idx_resposta = 3 + (i - 1) * 2
                     idx_comentario = 4 + (i - 1) * 2
                     
@@ -3029,7 +3046,7 @@ def api_checklist_carregar():
                 })
             else:
                 # Nenhum registro encontrado
-                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(15)]
+                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(num_perguntas)]
                 return jsonify({
                     'success': True,
                     'id': None,
@@ -3040,6 +3057,8 @@ def api_checklist_carregar():
             
     except Exception as e:
         print(f"❌ Erro ao carregar checklist: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/checklist/salvar', methods=['POST'])
@@ -3149,14 +3168,23 @@ def api_checklist_salvar():
                 result = conn.execute(insert_query, params)
                 resposta_id = result.fetchone()[0]
             
-            # Processar arquivos (evidências)
+            # ⭐⭐⭐ PROCESSAR ARQUIVOS - VERSÃO CORRIGIDA ⭐⭐⭐
             if arquivos and not concluir:
-                # Remover evidências antigas
-                delete_evidencias = text("DELETE FROM checklist_evidencias WHERE resposta_id = :resposta_id")
-                conn.execute(delete_evidencias, {'resposta_id': resposta_id})
-                
-                # Inserir novas evidências
                 for pergunta_index, lista_arquivos in arquivos.items():
+                    pergunta_numero = int(pergunta_index) + 1
+                    
+                    # ⭐ Remover evidências APENAS desta pergunta (não todas)
+                    delete_evidencias = text("""
+                        DELETE FROM checklist_evidencias 
+                        WHERE resposta_id = :resposta_id 
+                        AND pergunta_numero = :pergunta_numero
+                    """)
+                    conn.execute(delete_evidencias, {
+                        'resposta_id': resposta_id,
+                        'pergunta_numero': pergunta_numero
+                    })
+                    
+                    # Inserir novas evidências para esta pergunta
                     for arquivo in lista_arquivos:
                         conteudo_base64 = arquivo['conteudo']
                         if ',' in conteudo_base64:
@@ -3169,7 +3197,7 @@ def api_checklist_salvar():
                         """)
                         conn.execute(insert_evidencia, {
                             'resposta_id': resposta_id,
-                            'pergunta_numero': int(pergunta_index) + 1,
+                            'pergunta_numero': pergunta_numero,
                             'nome_arquivo': arquivo['nome'],
                             'tipo_arquivo': arquivo['tipo'],
                             'conteudo': conteudo_bytes,
@@ -3272,6 +3300,64 @@ def api_checklist_progresso():
             
     except Exception as e:
         print(f"❌ Erro ao buscar progresso: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/checklist/evidencia/<int:evidencia_id>/download')
+def api_checklist_evidencia_download(evidencia_id):
+    """Faz o download de uma evidência do checklist"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    import io
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT nome_arquivo, conteudo, tipo_arquivo
+                FROM checklist_evidencias
+                WHERE id = :id
+            """)
+            result = conn.execute(query, {'id': evidencia_id}).fetchone()
+            
+            if not result or not result[1]:
+                return jsonify({'error': 'Evidência não encontrada'}), 404
+            
+            nome_arquivo = result[0] or f'evidencia_{evidencia_id}.pdf'
+            conteudo = bytes(result[1]) if result[1] else b''
+            tipo_arquivo = result[2] or 'application/pdf'
+            
+            return send_file(
+                io.BytesIO(conteudo),
+                mimetype=tipo_arquivo,
+                as_attachment=True,
+                download_name=nome_arquivo
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar evidência: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/checklist/evidencia/<int:evidencia_id>', methods=['DELETE'])
+def api_checklist_evidencia_delete(evidencia_id):
+    """Remove uma evidência do checklist"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("DELETE FROM checklist_evidencias WHERE id = :id")
+            conn.execute(query, {'id': evidencia_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Evidência removida'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

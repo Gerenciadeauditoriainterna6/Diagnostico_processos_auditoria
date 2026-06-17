@@ -2152,16 +2152,38 @@
     // ============================================================
 
     async function carregarChecklistModal(tipo) {
+        console.log('🚀 carregarChecklistModal chamado para tipo:', tipo);
+        console.log('📌 processoIdAtual:', processoIdAtual);
+        
         const body = document.getElementById('modal-checklist-body');
+        if (!body) {
+            console.error('❌ Elemento modal-checklist-body não encontrado!');
+            return;
+        }
+        
         body.innerHTML = '<div style="text-align:center;padding:40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
         
         try {
             const perguntas = PERGUNTAS[tipo];
-            const response = await fetch(`/api/checklist/carregar?processo_id=${processoIdAtual}&tipo=${tipo}`);
+            if (!perguntas) {
+                console.error('❌ Perguntas não encontradas para o tipo:', tipo);
+                body.innerHTML = '<div class="alert-error">❌ Erro: Tipo de checklist inválido</div>';
+                return;
+            }
+            
+            const url = `/api/checklist/carregar?processo_id=${processoIdAtual}&tipo=${tipo}`;
+            console.log('📤 Fazendo requisição para:', url);
+            
+            const response = await fetch(url);
+            console.log('📥 Resposta recebida, status:', response.status);
+            
             const dados = await response.json();
+            console.log('📦 Dados recebidos do checklist:', dados);
             
             const respostas = dados.success ? dados.respostas : [];
             currentRespostaId = dados.success ? dados.id : null;
+            
+            console.log(`📊 Total de respostas: ${respostas.length}`);
             
             let html = `<div class="perguntas-container">`;
             
@@ -2169,6 +2191,13 @@
                 const p = perguntas[i];
                 const r = respostas[i] || { resposta: '', comentario: '', evidencias: [] };
                 const precisaEvidencia = p.precisaEvidencia === true;
+                
+                // ⭐ LOG PARA CADA PERGUNTA
+                console.log(`📎 Pergunta ${i+1} (${p.ordem}):`, {
+                    resposta: r.resposta,
+                    comentario: r.comentario,
+                    evidencias: r.evidencias ? r.evidencias.length : 0
+                });
                 
                 html += `
                     <div class="pergunta-card" data-pergunta-index="${i}">
@@ -2196,7 +2225,9 @@
                     `;
                     
                     if (r.evidencias && r.evidencias.length > 0) {
+                        console.log(`✅ Exibindo ${r.evidencias.length} evidências para pergunta ${i+1}`);
                         r.evidencias.forEach(ev => {
+                            console.log(`  - Evidência: ${ev.nome_arquivo} (ID: ${ev.id})`);
                             html += `
                                 <div class="evidencia-item" data-evidencia-id="${ev.id}">
                                     <i class="fas fa-file-pdf"></i>
@@ -2210,6 +2241,8 @@
                                 </div>
                             `;
                         });
+                    } else {
+                        console.log(`⚠️ Nenhuma evidência para pergunta ${i+1}`);
                     }
                     
                     html += `</div><small class="text-muted">Anexe evidências em PDF (máx. 10MB)</small></div>`;
@@ -2232,9 +2265,11 @@
                 btn.addEventListener('click', () => salvarChecklist(tipo, btn.classList.contains('btn-concluir-checklist')));
             });
             
+            console.log('✅ Checklist carregado com sucesso!');
+            
         } catch (error) {
-            console.error('Erro ao carregar checklist:', error);
-            body.innerHTML = '<div class="alert-error">❌ Erro ao carregar o checklist.</div>';
+            console.error('❌ Erro ao carregar checklist:', error);
+            body.innerHTML = `<div class="alert-error">❌ Erro ao carregar o checklist: ${error.message}</div>`;
         }
     }
 
@@ -2354,10 +2389,10 @@
                 concluir 
             };
             
-            // ⭐ SEMPRE enviar arquivos pendentes, mesmo que currentRespostaId seja null
+            // ⭐ ENVIAR APENAS OS ARQUIVOS PENDENTES (novos)
             if (Object.keys(arquivosPendentes).length > 0) {
                 bodyData.arquivos = arquivosPendentes;
-                console.log('📎 Enviando evidências pendentes:', arquivosPendentes);
+                console.log('📎 Enviando novas evidências:', arquivosPendentes);
             }
             
             console.log('📤 Salvando checklist:', bodyData);
@@ -2371,7 +2406,8 @@
             const data = await response.json();
             
             if (data.success) { 
-                // ⭐ Limpar arquivos pendentes e atualizar o ID da resposta
+                // ⭐ LIMPAR APENAS OS ARQUIVOS QUE FORAM ENVIADOS (não todos)
+                // Isso evita perder evidências de outras perguntas
                 arquivosPendentes = {};
                 currentRespostaId = data.id;
                 
@@ -2380,7 +2416,6 @@
                 if (concluir) {
                     fecharModalChecklist();
                 } else {
-                    // ⭐ Recarregar o modal para mostrar as evidências salvas
                     await carregarChecklistModal(tipo);
                 }
                 
