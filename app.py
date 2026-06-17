@@ -1995,12 +1995,14 @@ def api_risco_etapa_salvar():
     fator_risco = data.get('fator_risco', '')
     consequencia = data.get('consequencia', '')
     origem = data.get('origem', '')
-    apetite = data.get('apetite', '')
+    impacto_aceitavel = data.get('impacto_aceitavel', 'Médio')
+    probabilidade_aceitavel = data.get('probabilidade_aceitavel', 'Médio')
+    
 
     # 3. Avaliação do Risco
     impacto = data.get('impacto', 'Médio')
     probabilidade = data.get('probabilidade', 'Médio')
-    motivo = data.get('motivo', '')
+    motivo_classificacao = data.get('motivo_classificacao', '')
     info_adicional = data.get('info_adicional', '')
     financeiro = data.get('financeiro', False)
 
@@ -2046,13 +2048,14 @@ def api_risco_etapa_salvar():
                         impacto = :impacto,
                         probabilidade = :probabilidade,
                         magnitude = :magnitude,
-                        apetite = :apetite,
+                        impacto_aceitavel = :impacto_aceitavel,
+                        probabilidade_aceitavel = :probabilidade_aceitavel,
                         tratamento = :tratamento,
                         origem = :origem,
                         desc_tratamento = :desc_tratamento,
                         financeiro = :financeiro,
                         info_adicional = :info_adicional,
-                        motivo_classificacao = :motivo,
+                        motivo_classificacao = :motivo_classificacao,
                         prazo_implantacao = :prazo_implantacao,
                         descricao_prazo = :descricao_prazo,
                         causas = :causas,
@@ -2069,13 +2072,14 @@ def api_risco_etapa_salvar():
                     'impacto': impacto,
                     'probabilidade': probabilidade,
                     'magnitude': magnitude,
-                    'apetite': apetite,
+                    'impacto_aceitavel': impacto_aceitavel,
+                    'probabilidade_aceitavel': probabilidade_aceitavel,
                     'tratamento': tratamento,
                     'origem': origem,
                     'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
                     'info_adicional': info_adicional,
-                    'motivo': motivo,
+                    'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
                     'causas': causas_str
@@ -2089,15 +2093,16 @@ def api_risco_etapa_salvar():
                     INSERT INTO riscos_etapa (
                         etapa_id, auditoria_id, nome_risco, categoria,
                         fator_risco, consequencia, impacto, probabilidade,
-                        magnitude, apetite, tratamento, origem, causas,
+                        magnitude, impacto_aceitavel,
+                        probabilidade_aceitavel, tratamento, origem, causas,
                         desc_tratamento, financeiro, info_adicional, 
                         motivo_classificacao, prazo_implantacao, descricao_prazo, ativo, created_at
                     ) VALUES (
                         :etapa_id, :auditoria_id, :nome_risco, :categoria,
                         :fator_risco, :consequencia, :impacto, :probabilidade,
-                        :magnitude, :apetite, :tratamento, :origem, :causas,
+                        :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, :tratamento, :origem, :causas,
                         :desc_tratamento, :financeiro, :info_adicional,
-                        :motivo, :prazo_implantacao, :descricao_prazo, true, NOW()
+                        :motivo_classificacao, :prazo_implantacao, :descricao_prazo, true, NOW()
                     )
                     RETURNING id
                 """)
@@ -2112,13 +2117,14 @@ def api_risco_etapa_salvar():
                     'impacto': impacto,
                     'probabilidade': probabilidade,
                     'magnitude': magnitude,
-                    'apetite': apetite,
+                    'impacto_aceitavel': impacto_aceitavel,
+                    'probabilidade_aceitavel': probabilidade_aceitavel,
                     'tratamento': tratamento,
                     'origem': origem,
                     'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
                     'info_adicional': info_adicional,
-                    'motivo': motivo,
+                    'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
                     'causas': causas_str
@@ -2171,7 +2177,7 @@ def api_risco_etapa_detalhes(risco_id):
             query = text("""
                 SELECT id, etapa_id, nome_risco, categoria, fator_risco,
                        consequencia, impacto, probabilidade, magnitude,
-                       apetite, tratamento, origem, desc_tratamento, financeiro,
+                       impacto_aceitavel, probabilidade_aceitavel, tratamento, origem, desc_tratamento, motivo_classificacao, financeiro,
                        info_adicional, ativo, causas
                 FROM riscos_etapa
                 WHERE id = :risco_id
@@ -2191,14 +2197,16 @@ def api_risco_etapa_detalhes(risco_id):
                 'impacto': result[6] or 'Médio',
                 'probabilidade': result[7] or 'Médio',
                 'magnitude': result[8] or 0,
-                'apetite': result[9] or '',
-                'tratamento': result[10] or '',
-                'origem': result[11] or '',
-                'desc_tratamento': result[12] or '',
-                'financeiro': result[13] or False,
-                'info_adicional': result[14] or '',
-                'ativo': result[15] if result[15] is not None else True,
-                'causas': [c.strip() for c in result[16].split(',')] if result[16] else []
+                'impacto_aceitavel': result[9] or 'Médio',
+                'probabilidade_aceitavel': result[10] or 'Médio',
+                'tratamento': result[11] or '',
+                'origem': result[12] or '',
+                'desc_tratamento': result[13] or '',
+                'motivo_classificacao': result[14] or '',
+                'financeiro': result[15] or False,
+                'info_adicional': result[16] or '',
+                'ativo': result[16] if result[17] is not None else True,
+                'causas': [c.strip() for c in result[18].split(',')] if result[18] else []
             }
 
             return jsonify({'success': True, 'risco': risco})
@@ -2217,8 +2225,8 @@ def api_etapa_riscos(etapa_id):
         with engine.connect() as conn:
             query = text("""
                 SELECT id, nome_risco, categoria, fator_risco, consequencia,
-                       impacto, probabilidade, magnitude, apetite, tratamento,
-                       origem, desc_tratamento, financeiro, info_adicional, ativo, causas
+                       impacto, probabilidade, magnitude, impacto_aceitavel, probabilidade_aceitavel, tratamento,
+                       origem, desc_tratamento, motivo_classificacao, financeiro, info_adicional, ativo, causas
                 FROM riscos_etapa
                 WHERE etapa_id = :etapa_id AND (ativo IS NULL OR ativo = true)
                 ORDER BY id
@@ -2238,14 +2246,16 @@ def api_etapa_riscos(etapa_id):
                     'impacto': row[5] or 'Médio',
                     'probabilidade': row[6] or 'Médio',
                     'magnitude': row[7] or 0,
-                    'apetite': row[8] or '',
-                    'tratamento': row[9] or '',
-                    'origem': row[10] or '',
-                    'desc_tratamento': row[11] or '',
-                    'financeiro': row[12] or False,
-                    'info_adicional': row[13] or '',
-                    'ativo': row[14] if row[14] is not None else True,
-                    'causas': [c.strip() for c in row[15].split(',')] if row[15] else []
+                    'impacto_aceitavel': row[8] or 'Médio',
+                    'probabilidade_aceitavel': row[9] or 'Médio',
+                    'tratamento': row[10] or '',
+                    'origem': row[11] or '',
+                    'desc_tratamento': row[12] or '',
+                    'motivo_classificacao': row[13] or '',
+                    'financeiro': row[14] or False,
+                    'info_adicional': row[15] or '',
+                    'ativo': row[16] if row[16] is not None else True,
+                    'causas': [c.strip() for c in row[17].split(',')] if row[17] else []
                 })
 
             return jsonify({'success': True, 'riscos': riscos})
@@ -2967,11 +2977,26 @@ def api_checklist_carregar():
             if not tabela:
                 return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
             
+            # ⭐ DEFINIR O NÚMERO DE PERGUNTAS PARA CADA TIPO
+            num_perguntas = {
+                'governanca': 13,
+                'riscos': 12,
+                'controles': 12
+            }.get(tipo, 12)
+            
+            # ⭐ CONSTRUIR A LISTA DE COLUNAS DINAMICAMENTE
+            colunas = []
+            for i in range(1, num_perguntas + 1):
+                colunas.append(f"p{i}_resposta")
+                colunas.append(f"p{i}_comentario")
+            
+            colunas_sql = ', '.join(colunas)
+            
             # Buscar sessão existente
             campo, valor = identificador
             query = text(f"""
                 SELECT id, status, observacoes_gerais,
-                       {', '.join([f'p{i}_resposta, p{i}_comentario' for i in range(1, 15)])}
+                       {colunas_sql}
                 FROM {tabela}
                 WHERE {campo} = :valor
                 ORDER BY id DESC
@@ -2987,7 +3012,9 @@ def api_checklist_carregar():
                 
                 # Montar respostas
                 respostas = []
-                for i in range(1, 15):
+                for i in range(1, num_perguntas + 1):
+                    # Índices: 0=id, 1=status, 2=observacoes
+                    # Depois vêm as respostas e comentários alternados
                     idx_resposta = 3 + (i - 1) * 2
                     idx_comentario = 4 + (i - 1) * 2
                     
@@ -3029,7 +3056,7 @@ def api_checklist_carregar():
                 })
             else:
                 # Nenhum registro encontrado
-                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(15)]
+                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(num_perguntas)]
                 return jsonify({
                     'success': True,
                     'id': None,
@@ -3040,6 +3067,8 @@ def api_checklist_carregar():
             
     except Exception as e:
         print(f"❌ Erro ao carregar checklist: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/checklist/salvar', methods=['POST'])
@@ -3149,14 +3178,23 @@ def api_checklist_salvar():
                 result = conn.execute(insert_query, params)
                 resposta_id = result.fetchone()[0]
             
-            # Processar arquivos (evidências)
+            # ⭐⭐⭐ PROCESSAR ARQUIVOS - VERSÃO CORRIGIDA ⭐⭐⭐
             if arquivos and not concluir:
-                # Remover evidências antigas
-                delete_evidencias = text("DELETE FROM checklist_evidencias WHERE resposta_id = :resposta_id")
-                conn.execute(delete_evidencias, {'resposta_id': resposta_id})
-                
-                # Inserir novas evidências
                 for pergunta_index, lista_arquivos in arquivos.items():
+                    pergunta_numero = int(pergunta_index) + 1
+                    
+                    # ⭐ Remover evidências APENAS desta pergunta (não todas)
+                    delete_evidencias = text("""
+                        DELETE FROM checklist_evidencias 
+                        WHERE resposta_id = :resposta_id 
+                        AND pergunta_numero = :pergunta_numero
+                    """)
+                    conn.execute(delete_evidencias, {
+                        'resposta_id': resposta_id,
+                        'pergunta_numero': pergunta_numero
+                    })
+                    
+                    # Inserir novas evidências para esta pergunta
                     for arquivo in lista_arquivos:
                         conteudo_base64 = arquivo['conteudo']
                         if ',' in conteudo_base64:
@@ -3169,7 +3207,7 @@ def api_checklist_salvar():
                         """)
                         conn.execute(insert_evidencia, {
                             'resposta_id': resposta_id,
-                            'pergunta_numero': int(pergunta_index) + 1,
+                            'pergunta_numero': pergunta_numero,
                             'nome_arquivo': arquivo['nome'],
                             'tipo_arquivo': arquivo['tipo'],
                             'conteudo': conteudo_bytes,
@@ -3272,6 +3310,64 @@ def api_checklist_progresso():
             
     except Exception as e:
         print(f"❌ Erro ao buscar progresso: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/checklist/evidencia/<int:evidencia_id>/download')
+def api_checklist_evidencia_download(evidencia_id):
+    """Faz o download de uma evidência do checklist"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    import io
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT nome_arquivo, conteudo, tipo_arquivo
+                FROM checklist_evidencias
+                WHERE id = :id
+            """)
+            result = conn.execute(query, {'id': evidencia_id}).fetchone()
+            
+            if not result or not result[1]:
+                return jsonify({'error': 'Evidência não encontrada'}), 404
+            
+            nome_arquivo = result[0] or f'evidencia_{evidencia_id}.pdf'
+            conteudo = bytes(result[1]) if result[1] else b''
+            tipo_arquivo = result[2] or 'application/pdf'
+            
+            return send_file(
+                io.BytesIO(conteudo),
+                mimetype=tipo_arquivo,
+                as_attachment=True,
+                download_name=nome_arquivo
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar evidência: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/checklist/evidencia/<int:evidencia_id>', methods=['DELETE'])
+def api_checklist_evidencia_delete(evidencia_id):
+    """Remove uma evidência do checklist"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("DELETE FROM checklist_evidencias WHERE id = :id")
+            conn.execute(query, {'id': evidencia_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Evidência removida'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -3379,7 +3475,7 @@ def api_relatorios_gerar_gerencial():
         # Buscar nome da área e gestor
         with engine.connect() as conn:
             query_area = text("""
-                SELECT nome_area, gestor FROM informacoes_area WHERE id_area = :area_id
+                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
             """)
             area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
             
@@ -3388,12 +3484,14 @@ def api_relatorios_gerar_gerencial():
             
             area_nome = area_info[0] or 'Área sem nome'
             gestor = area_info[1] or 'Gestor não informado'
+            cargo = area_info[2] or 'Cargo não informado'
         
         # ⭐ GERAR O PDF - PASSANDO O processo_id
         pdf_bytes = gerar_relatorio_gerencial_area(
             area_id=area_id,
             area_nome=area_nome,
             gestor=gestor,
+            cargo=cargo,
             orientacao=orientacao,
             auditoria_id=auditoria_id,
             processo_id=processo_id  # ⭐ ADICIONADO
@@ -3415,6 +3513,87 @@ def api_relatorios_gerar_gerencial():
         
     except Exception as e:
         print(f"❌ Erro ao gerar relatório: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/relatorios/gerar-parecer', methods=['POST'])
+def api_relatorios_gerar_parecer():
+    """Gera o relatório de Parecer da Auditoria para um processo específico"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    print("=" * 50)
+    print("🔍 Dados recebidos na rota:")
+    print(f"   area_id: {data.get('area_id')}")
+    print(f"   auditoria_id: {data.get('auditoria_id')}")
+    print(f"   processo_id: {data.get('processo_id')}")
+    print(f"   orientacao: {data.get('orientacao')}")
+    print("=" * 50)
+    
+    area_id = data.get('area_id')
+    auditoria_id = data.get('auditoria_id')
+    processo_id = data.get('processo_id')
+    orientacao = data.get('orientacao', 'RETRATO')
+    
+    if not area_id or not auditoria_id:
+        return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório para o parecer'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    from logic import gerar_relatorio_parecer_auditoria
+    
+    try:
+        # Buscar nome da área e gestor
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
+            """)
+            area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
+            
+            if not area_info:
+                return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0] or 'Área sem nome'
+            gestor = area_info[1] or 'Gestor não informado'
+            cargo = area_info[2] or 'Cargo não informado'
+        
+        # Pegar o nome do usuário da sessão
+        usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Auditor'))
+        
+        print(f"📊 Área: {area_nome}, Gestor: {gestor}, Usuário: {usuario_nome}, Cargo: {cargo}")
+        print(f"📊 Gerando parecer para processo_id: {processo_id}")
+        
+        # Gerar o PDF (passando o processo_id)
+        pdf_bytes = gerar_relatorio_parecer_auditoria(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            cargo=cargo,
+            auditoria_id=auditoria_id,
+            processo_id=processo_id,
+            usuario_nome=usuario_nome,
+            orientacao=orientacao
+        )
+        
+        print(f"✅ PDF gerado com sucesso! Tamanho: {len(pdf_bytes)} bytes")
+        
+        # Criar nome do arquivo
+        nome_arquivo = f"parecer_auditoria_processo_{processo_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar parecer: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500

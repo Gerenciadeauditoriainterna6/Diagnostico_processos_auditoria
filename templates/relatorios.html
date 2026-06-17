@@ -566,9 +566,19 @@
             return;
         }
 
-        // ⭐ REMOVE A VALIDAÇÃO OBRIGATÓRIA DO PROCESSO
-        // O processo é opcional - se não selecionado, gera para todos
-
+        // ⭐ VALIDAÇÃO: Se for parecer, o processo é OBRIGATÓRIO
+        if (tipoRelatorio === 'parecer' && !processoId) {
+            mostrarToast('⚠️ Selecione um processo específico para gerar o Parecer da Auditoria Interna', 'warning');
+            // Destacar o select de processo
+            const selectProcessoEl = document.getElementById('processo_relatorio');
+            if (selectProcessoEl) {
+                selectProcessoEl.style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    selectProcessoEl.style.borderColor = '';
+                }, 3000);
+            }
+            return;
+        }
         const btnGerar = document.getElementById('btn-gerar-relatorio');
         const btnLoading = btnGerar?.querySelector('.btn-loading');
 
@@ -796,6 +806,26 @@
                 if ((tipoSelecionado === 'parecer' || tipoSelecionado === 'gerencial') && auditoriaId) {
                     rowProcesso.style.display = 'flex';
                     await carregarProcessosPorAuditoria(auditoriaId);
+                    
+                    // ⭐ SE FOR PARECER, REMOVE A OPÇÃO "TODOS OS PROCESSOS"
+                    const selectProcesso = document.getElementById('processo_relatorio');
+                    if (selectProcesso && tipoSelecionado === 'parecer') {
+                        // Remove a opção "Todos os processos" se existir
+                        const options = selectProcesso.options;
+                        for (let i = 0; i < options.length; i++) {
+                            if (options[i].value === '' && options[i].text === 'Todos os processos da auditoria') {
+                                selectProcesso.remove(i);
+                                break;
+                            }
+                        }
+                        // Adiciona a opção padrão se não existir
+                        if (selectProcesso.options.length > 0 && selectProcesso.options[0].value !== '') {
+                            const defaultOption = document.createElement('option');
+                            defaultOption.value = '';
+                            defaultOption.textContent = 'Selecione um processo...';
+                            selectProcesso.insertBefore(defaultOption, selectProcesso.firstChild);
+                        }
+                    }
                 } else {
                     rowProcesso.style.display = 'none';
                 }
@@ -840,8 +870,14 @@
             const data = await response.json();
 
             if (data.success && data.processos && data.processos.length > 0) {
-                // ⭐ ADICIONA A OPÇÃO "TODOS OS PROCESSOS"
-                selectProcesso.innerHTML = '<option value="">Todos os processos da auditoria</option>';
+                // ⭐ SE FOR PARECER, NÃO MOSTRA A OPÇÃO "TODOS OS PROCESSOS"
+                if (tipoRelatorio === 'parecer') {
+                    selectProcesso.innerHTML = '<option value="">Selecione um processo...</option>';
+                } else {
+                    // Gerencial: mostra "Todos os processos"
+                    selectProcesso.innerHTML = '<option value="">Todos os processos da auditoria</option>';
+                }
+                
                 data.processos.forEach(proc => {
                     const option = document.createElement('option');
                     option.value = proc.id;

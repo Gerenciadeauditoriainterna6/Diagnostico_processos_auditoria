@@ -56,13 +56,13 @@
                     <i class="fas fa-tag"></i> Identificação do Risco
                 </h4>
 
-                <!-- Nome do Risco -->
+                <!-- 1. Nome do Risco -->
                 <div class="form-group">
                     <label><i class="fas fa-font"></i> Nome do Risco *</label>
                     <input type="text" id="risco_nome" class="form-control" placeholder="Ex: Risco pela possibilidade de...">
                 </div>
 
-                <!-- Categorias do Risco -->
+                <!-- 2. Categorias do Risco -->
                 <div class="form-group">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                         <label><i class="fas fa-tags"></i> Categoria(s) do Risco</label>
@@ -99,10 +99,21 @@
             <!-- ===== SEÇÃO 2: CAUSA E ANÁLISE ===== -->
             <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
                 <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #17a2b8; padding-left: 10px;">
-                    <i class="fas fa-search"></i> Causa, Consequência e Análise
+                    <i class="fas fa-search"></i> Causa e Análise
                 </h4>
 
-                <!-- Categoria de Causa -->
+                <!-- 3. Fator de Risco (Causa) -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-exclamation-triangle"></i> Fator de Risco (Causa)
+                        <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <textarea id="risco_fator" class="form-control" rows="2" placeholder="O que causa este risco? Ex: Falta de revisão, dependência de terceiros..."></textarea>
+                </div>
+
+                <!-- 4. Categoria de Causa -->
                 <div class="form-group">
                     <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
                     <div id="causa-checkboxes" class="checkbox-grid">
@@ -116,49 +127,41 @@
                     <small class="text-muted">Selecione uma ou mais categorias de causa</small>
                 </div>
 
-                <!-- Fator de Risco (Causa) -->
+                <!-- 5. Consequência / Efeitos -->
                 <div class="form-group">
                     <label>
-                        <i class="fas fa-exclamation-triangle"></i> Fator de Risco (Causa)
-                        <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
-                            <i class="fas fa-question-circle"></i>
-                        </span>
-                    </label>
-                    <textarea id="risco_fator" class="form-control" rows="2" placeholder="O que causa este risco? Ex: Falta de revisão, dependência de terceiros..."></textarea>
-                </div>
-
-                <!-- Consequência -->
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-bullseye"></i> Consequência
+                        <i class="fas fa-bullseye"></i> Consequência / Efeitos
                         <span class="help-icon" data-tooltip="Consequências ou efeitos da materialização do risco">
                             <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
-
                     <textarea id="risco_consequencia" class="form-control" rows="2" placeholder="O que acontece se o risco se materializar? Ex: Atraso na entrega, multa, retrabalho..."></textarea>
                 </div>
 
-                <!-- Origem -->
+                <!-- 6. Informações Adicionais -->
+                <div class="form-group">
+                    <label><i class="fas fa-info-circle"></i> Informações Adicionais</label>
+                    <textarea id="risco_info_adicional" class="form-control" rows="2" placeholder="Observações, contexto adicional, histórico..."></textarea>
+                </div>
+
+                <!-- 7. Impacta Financeiramente? -->
+                <div class="form-group">
+                    <label><i class="fas fa-dollar-sign"></i> Impacta financeiramente se o risco se materializar?</label>
+                    <select id="risco_financeiro" class="form-control">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                    </select>
+                </div>
+
+                <!-- 9. Origem do Risco -->
                 <div class="form-group">
                     <label>
                         <i class="fas fa-map-marker-alt"></i> Origem do Risco
-                        <span class="help-icon" data-tooltip="Origem do risco(externo, interno ou área)">
+                        <span class="help-icon" data-tooltip="Origem do risco (externo, interno ou área)">
                             <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
                     <input type="text" id="risco_origem" class="form-control" placeholder="Ex: Entrevista com gestor, Análise documental, Auditoria anterior">
-                </div>
-
-                <!-- Apetite ao Risco -->
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-bullseye"></i> Apetite ao Risco
-                        <span class="help-icon" data-tooltip="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração às combinações para chegar ao risco bruto.">
-                            <i class="fas fa-question-circle"></i>
-                        </span>
-                    </label>
-                    <textarea id="risco_apetite" class="form-control" rows="2" placeholder="Qual o nível de risco aceitável para este processo?"></textarea>
                 </div>
             </div>
 
@@ -198,7 +201,7 @@
                     </div>
                 </div>
 
-                <!-- Impacto e Probabilidade -->
+                <!-- 10. Impacto e 11. Probabilidade -->
                 <div class="form-row">
                     <div class="form-group">
                         <label><i class="fas fa-chart-line"></i> Impacto *</label>
@@ -220,35 +223,60 @@
                     </div>
                 </div>
 
-                <!-- Score Preview -->
+                <!-- 12. Magnitude / Score -->
                 <div id="risco-score-preview" class="score-preview" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; text-align: center;">
                     <strong>Score calculado:</strong> <span id="preview-score">5</span> (Médio)
                 </div>
 
-                <!-- Motivo da Classificação -->
+                <!-- 13. Motivo da Classificação -->
                 <div class="form-group">
-                <label>
-                    <i class="fas fa-comment"></i> Qual o motivo da classificação da probabilidade?
-                    <span class="help-icon" data-tooltip="Qual o motivo da classificação do nível da probabilidade?">
-                        <i class="fas fa-question-circle"></i>
-                    </span>
-                </label>
-                <textarea id="risco_motivo" class="form-control" rows="2" placeholder="Justifique o nível definido para a probabilidade..."></textarea>
+                    <label>
+                        <i class="fas fa-comment"></i> Qual o motivo da classificação da probabilidade?
+                        <span class="help-icon" data-tooltip="Qual o motivo da classificação do nível da probabilidade?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <textarea id="risco_motivo" class="form-control" rows="2" placeholder="Justifique o nível definido para a probabilidade..."></textarea>
                 </div>
 
-                <!-- Informações Adicionais -->
+            
+                <!-- 14. Apetite ao Risco -->
                 <div class="form-group">
-                    <label><i class="fas fa-info-circle"></i> Informações Adicionais</label>
-                    <textarea id="risco_info_adicional" class="form-control" rows="2" placeholder="Observações, contexto adicional, histórico..."></textarea>
-                </div>
+                    <label>
+                        <i class="fas fa-bullseye"></i> Apetite ao Risco
+                        <span class="help-icon" data-tooltip="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração às combinações para chegar ao risco bruto.">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
 
-                <!-- Impacta Financeiramente? -->
-                <div class="form-group">
-                    <label><i class="fas fa-dollar-sign"></i> Impacta financeiramente se o risco de materializar?</label>
-                    <select id="risco_financeiro" class="form-control">
-                        <option value="false">Não</option>
-                        <option value="true">Sim</option>
-                    </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Impacto Aceitável para o Apetite ao Risco</label>
+                            <select id="apetite_impacto" class="form-control">
+                                <option value="Baixo">Baixo</option>
+                                <option value="Médio" selected>Médio</option>
+                                <option value="Alto">Alto</option>
+                                <option value="Muito Alto">Muito Alto</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Probabilidade Aceitável para o Apetite ao Risco</label>
+                            <select id="apetite_probabilidade" class="form-control">
+                                <option value="Baixo">Baixo</option>
+                                <option value="Médio" selected>Médio</option>
+                                <option value="Alto">Alto</option>
+                                <option value="Muito Alto">Muito Alto</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="apetite-score-preview"
+                        class="score-preview"
+                        style="margin:15px 0;padding:10px;background:#f8f9fa;border-radius:8px;text-align:center;">
+                        <strong>Score calculado:</strong>
+                        <span id="preview-apetite-score">5</span> (SOB OBSERVAÇÃO)
+                    </div>
                 </div>
             </div>
 
@@ -258,7 +286,7 @@
                     <i class="fas fa-shield-alt"></i> Tratamento e Documentação
                 </h4>
 
-                <!-- Como tratar o risco -->
+                <!-- 15. Como tratar o risco -->
                 <div class="form-group">
                     <label>
                         <i class="fas fa-handshake"></i> Tratamento do Risco
@@ -275,13 +303,13 @@
                     </select>
                 </div>
 
-                <!-- Documento Legal -->
+                <!-- 16. Descrição do Tratamento -->
                 <div class="form-group">
                     <label><i class="fas fa-gavel"></i> Descrição do Tratamento</label>
                     <textarea id="risco_desc_tratamento" class="form-control" rows="2" placeholder="Descrição detalhada do tratamento do risco"></textarea>
                 </div>
 
-                <!-- ⭐ NOVOS CAMPOS - Prazo de Implantação -->
+                <!-- 17. Prazo de Implantação -->
                 <div class="form-group">
                     <label>
                         <i class="fas fa-calendar-alt"></i> Prazo para Implantação
@@ -293,7 +321,7 @@
                     <small class="text-muted">Deixe em branco se não houver prazo definido</small>
                 </div>
 
-                <!-- ⭐ NOVOS CAMPOS - Descrição do Prazo -->
+                <!-- 18. Comentários sobre o Prazo -->
                 <div class="form-group">
                     <label>
                         <i class="fas fa-comment"></i> Comentários sobre o prazo
@@ -301,8 +329,7 @@
                             <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
-                    <textarea id="risco_descricao_prazo" class="form-control" rows="2" 
-                        placeholder="Descreva detalhes sobre o prazo de implantação..."></textarea>
+                    <textarea id="risco_descricao_prazo" class="form-control" rows="2" placeholder="Descreva detalhes sobre o prazo de implantação..."></textarea>
                 </div>
 
             </div>
@@ -1397,7 +1424,15 @@
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label"> Qual o motivo da classificação da probabilidade?</span>
-                                <span class="detalhe-valor">${escape(risco.motivo)}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao)}</span>
+                            </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label"> Impacto aceitável para o apetite</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel)}</span>
+                            </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label"> Probabilidade aceitável para o apetite</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel)}</span>
                             </div>
                             ${risco.apetite ? `
                             <div class="risco-detalhe">
@@ -1492,7 +1527,8 @@
             document.getElementById('risco_nome').value = risco.nome_risco;
             document.getElementById('risco_fator').value = risco.fator_risco;
             document.getElementById('risco_consequencia').value = risco.consequencia;
-            document.getElementById('risco_apetite').value = risco.apetite;
+            document.getElementById('apetite_impacto').value = risco.impacto_aceitavel;
+            document.getElementById('apetite_probabilidade').value = risco.probabilidade_aceitavel;
             document.getElementById('risco_origem').value = risco.origem;
             document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
             document.getElementById('risco_info_adicional').value = risco.info_adicional;
@@ -1527,7 +1563,8 @@
             document.getElementById('risco_financeiro').value = risco.financeiro ? 'true' : 'false';
             
             // Atualizar o preview do score
-            atualizarPreviewScore();
+            atualizarScoreRisco();
+            atualizarScoreApetite();
             
             // Mudar o título do modal
             const modalTitle = document.getElementById('modal-risco-title');
@@ -1612,7 +1649,8 @@
         
         // Garantir que o preview seja atualizado após limpar
         setTimeout(() => {
-            atualizarPreviewScore();
+            atualizarScoreRisco();
+            atualizarScoreApetite();
         }, 50);
         
         // 4. Mostrar o modal
@@ -1635,7 +1673,8 @@
         document.getElementById('risco_nome').value = '';
         document.getElementById('risco_fator').value = '';
         document.getElementById('risco_consequencia').value = '';
-        document.getElementById('risco_apetite').value = '';
+        document.getElementById('apetite_impacto').value = 'Médio';
+        document.getElementById('apetite_probabilidade').value = 'Médio';
         document.getElementById('risco_origem').value = '';
         document.getElementById('risco_desc_tratamento').value = '';
         document.getElementById('risco_info_adicional').value = '';
@@ -1658,53 +1697,90 @@
         document.getElementById('risco_financeiro').value = 'false';
         
         // Resetar preview do score
-        atualizarPreviewScore();
-    }
+        atualizarScoreRisco();
+        atualizarScoreApetite();
+        }
 
     // ====== FUNÇÃO PARA CALCULAR E MOSTRAR O SCORE ======
-    function atualizarPreviewScore() {
-        // 1. Pegar os valores selecionados
-        const impacto = document.getElementById('risco_impacto')?.value || 'Médio';
-        const probabilidade = document.getElementById('risco_probabilidade')?.value || 'Médio';
-        
-        console.log(`📊 Calculando score: Impacto=${impacto}, Probabilidade=${probabilidade}`);
-        
-        // 2. Calcular o score
+    function atualizarPreviewScore(
+        impactoId,
+        probabilidadeId,
+        previewDivId,
+        previewScoreId
+    ) {
+        const impactoSelect = document.getElementById(impactoId);
+        const probabilidadeSelect = document.getElementById(probabilidadeId);
+        const preview = document.getElementById(previewDivId);
+        const previewScore = document.getElementById(previewScoreId);
+
+        // Se qualquer elemento não existir, não faz nada
+        if (!impactoSelect || !probabilidadeSelect || !preview || !previewScore) {
+            console.warn("Elementos não encontrados:", {
+                impactoId,
+                probabilidadeId,
+                previewDivId,
+                previewScoreId,
+                impacto: impactoSelect,
+                probabilidade: probabilidadeSelect,
+                preview,
+                previewScore
+            });
+            return 0;
+        }
+
+        const impacto = impactoSelect.value;
+        const probabilidade = probabilidadeSelect.value;
+
         const score = calcularScoreRisco(impacto, probabilidade);
-        
-        // 3. Determinar o nível do score
-        let nivel = '';
-        let cor = '';
-        
+
+        let nivel = "";
+        let cor = "";
+
         if (score <= 3) {
-            nivel = 'BAIXA EXPOSIÇÃO';
-            cor = '#d4edda';
+            nivel = "BAIXA EXPOSIÇÃO";
+            cor = "#d4edda";
         } else if (score <= 7) {
-            nivel = 'SOB OBSERVAÇÃO';
-            cor = '#fff3cd';
+            nivel = "SOB OBSERVAÇÃO";
+            cor = "#fff3cd";
         } else if (score <= 11) {
-            nivel = 'ATENÇÃO';
-            cor = '#ffe5d0';
+            nivel = "ATENÇÃO";
+            cor = "#ffe5d0";
         } else {
-            nivel = 'Crítico';
-            cor = '#f8d7da';
+            nivel = "CRÍTICO";
+            cor = "#f8d7da";
         }
-        
-        // 4. Atualizar o preview na tela
-        const previewSpan = document.getElementById('preview-score');
-        const previewDiv = document.getElementById('risco-score-preview');
-        
-        if (previewSpan) {
-            previewSpan.textContent = score;
-        }
-        
-        if (previewDiv) {
-            previewDiv.innerHTML = `<strong>Score calculado:</strong> ${score} (${nivel})`;
-            previewDiv.style.backgroundColor = cor;
-        }
-        
+
+        previewScore.textContent = score;
+
+        preview.innerHTML = `
+            <strong>Score calculado:</strong>
+            <span id="${previewScoreId}">${score}</span>
+            (${nivel})
+        `;
+
+        preview.style.backgroundColor = cor;
+
         return score;
     }
+
+    function atualizarScoreRisco() {
+        return atualizarPreviewScore(
+            "risco_impacto",
+            "risco_probabilidade",
+            "risco-score-preview",
+            "preview-score"
+        );
+    }
+
+    function atualizarScoreApetite() {
+        return atualizarPreviewScore(
+            "apetite_impacto",
+            "apetite_probabilidade",
+            "apetite-score-preview",
+            "preview-apetite-score"
+        );
+    }
+
 
     // ====== MAPA PARA CÁLCULO DE SCORE (CORRETO) ======
     const MAPA_RISCO = {
@@ -1815,12 +1891,31 @@
         const impactoSelect = document.getElementById('risco_impacto');
         const probSelect = document.getElementById('risco_probabilidade');
         
-        if (impactoSelect) {
-            impactoSelect.addEventListener('change', atualizarPreviewScore);
-        }
-        if (probSelect) {
-            probSelect.addEventListener('change', atualizarPreviewScore);
-        }
+        impactoSelect.addEventListener(
+            'change',
+            atualizarScoreRisco
+        );
+
+        probSelect.addEventListener(
+            'change',
+            atualizarScoreRisco
+        );
+
+        const impactoApetite =
+            document.getElementById('apetite_impacto');
+
+            const probApetite =
+            document.getElementById('apetite_probabilidade');
+
+            impactoApetite?.addEventListener(
+                'change',
+                atualizarScoreApetite
+            );
+
+            probApetite?.addEventListener(
+                'change',
+                atualizarScoreApetite
+            );
         
         // Botão Salvar (vamos implementar depois)
         const btnSalvar = document.getElementById('btn-salvar-modal-risco');
@@ -1876,7 +1971,12 @@
             consequencia: document.getElementById('risco_consequencia').value,
             impacto: document.getElementById('risco_impacto').value,
             probabilidade: document.getElementById('risco_probabilidade').value,
-            apetite: document.getElementById('risco_apetite').value,
+            apetite_impacto: document.getElementById('apetite_impacto').value,
+            apetite_probabilidade:document.getElementById('apetite_probabilidade').value,
+            apetite_score:calcularScoreRisco(
+                document.getElementById('apetite_impacto').value,
+                document.getElementById('apetite_probabilidade').value
+            ),
             tratamento: document.getElementById('risco_tratamento').value,
             origem: document.getElementById('risco_origem').value,
             desc_tratamento: document.getElementById('risco_desc_tratamento').value,
