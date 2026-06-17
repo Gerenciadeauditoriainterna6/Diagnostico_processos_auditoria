@@ -1995,12 +1995,14 @@ def api_risco_etapa_salvar():
     fator_risco = data.get('fator_risco', '')
     consequencia = data.get('consequencia', '')
     origem = data.get('origem', '')
-    apetite = data.get('apetite', '')
+    impacto_aceitavel = data.get('impacto_aceitavel', 'Médio')
+    probabilidade_aceitavel = data.get('probabilidade_aceitavel', 'Médio')
+    
 
     # 3. Avaliação do Risco
     impacto = data.get('impacto', 'Médio')
     probabilidade = data.get('probabilidade', 'Médio')
-    motivo = data.get('motivo', '')
+    motivo_classificacao = data.get('motivo_classificacao', '')
     info_adicional = data.get('info_adicional', '')
     financeiro = data.get('financeiro', False)
 
@@ -2046,13 +2048,14 @@ def api_risco_etapa_salvar():
                         impacto = :impacto,
                         probabilidade = :probabilidade,
                         magnitude = :magnitude,
-                        apetite = :apetite,
+                        impacto_aceitavel = :impacto_aceitavel,
+                        probabilidade_aceitavel = :probabilidade_aceitavel,
                         tratamento = :tratamento,
                         origem = :origem,
                         desc_tratamento = :desc_tratamento,
                         financeiro = :financeiro,
                         info_adicional = :info_adicional,
-                        motivo_classificacao = :motivo,
+                        motivo_classificacao = :motivo_classificacao,
                         prazo_implantacao = :prazo_implantacao,
                         descricao_prazo = :descricao_prazo,
                         causas = :causas,
@@ -2069,13 +2072,14 @@ def api_risco_etapa_salvar():
                     'impacto': impacto,
                     'probabilidade': probabilidade,
                     'magnitude': magnitude,
-                    'apetite': apetite,
+                    'impacto_aceitavel': impacto_aceitavel,
+                    'probabilidade_aceitavel': probabilidade_aceitavel,
                     'tratamento': tratamento,
                     'origem': origem,
                     'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
                     'info_adicional': info_adicional,
-                    'motivo': motivo,
+                    'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
                     'causas': causas_str
@@ -2089,15 +2093,16 @@ def api_risco_etapa_salvar():
                     INSERT INTO riscos_etapa (
                         etapa_id, auditoria_id, nome_risco, categoria,
                         fator_risco, consequencia, impacto, probabilidade,
-                        magnitude, apetite, tratamento, origem, causas,
+                        magnitude, impacto_aceitavel,
+                        probabilidade_aceitavel, tratamento, origem, causas,
                         desc_tratamento, financeiro, info_adicional, 
                         motivo_classificacao, prazo_implantacao, descricao_prazo, ativo, created_at
                     ) VALUES (
                         :etapa_id, :auditoria_id, :nome_risco, :categoria,
                         :fator_risco, :consequencia, :impacto, :probabilidade,
-                        :magnitude, :apetite, :tratamento, :origem, :causas,
+                        :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, :tratamento, :origem, :causas,
                         :desc_tratamento, :financeiro, :info_adicional,
-                        :motivo, :prazo_implantacao, :descricao_prazo, true, NOW()
+                        :motivo_classificacao, :prazo_implantacao, :descricao_prazo, true, NOW()
                     )
                     RETURNING id
                 """)
@@ -2112,13 +2117,14 @@ def api_risco_etapa_salvar():
                     'impacto': impacto,
                     'probabilidade': probabilidade,
                     'magnitude': magnitude,
-                    'apetite': apetite,
+                    'impacto_aceitavel': impacto_aceitavel,
+                    'probabilidade_aceitavel': probabilidade_aceitavel,
                     'tratamento': tratamento,
                     'origem': origem,
                     'desc_tratamento': desc_tratamento,
                     'financeiro': financeiro,
                     'info_adicional': info_adicional,
-                    'motivo': motivo,
+                    'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
                     'causas': causas_str
@@ -2171,7 +2177,7 @@ def api_risco_etapa_detalhes(risco_id):
             query = text("""
                 SELECT id, etapa_id, nome_risco, categoria, fator_risco,
                        consequencia, impacto, probabilidade, magnitude,
-                       apetite, tratamento, origem, desc_tratamento, financeiro,
+                       impacto_aceitavel, probabilidade_aceitavel, tratamento, origem, desc_tratamento, motivo_classificacao, financeiro,
                        info_adicional, ativo, causas
                 FROM riscos_etapa
                 WHERE id = :risco_id
@@ -2191,14 +2197,16 @@ def api_risco_etapa_detalhes(risco_id):
                 'impacto': result[6] or 'Médio',
                 'probabilidade': result[7] or 'Médio',
                 'magnitude': result[8] or 0,
-                'apetite': result[9] or '',
-                'tratamento': result[10] or '',
-                'origem': result[11] or '',
-                'desc_tratamento': result[12] or '',
-                'financeiro': result[13] or False,
-                'info_adicional': result[14] or '',
-                'ativo': result[15] if result[15] is not None else True,
-                'causas': [c.strip() for c in result[16].split(',')] if result[16] else []
+                'impacto_aceitavel': result[9] or 'Médio',
+                'probabilidade_aceitavel': result[10] or 'Médio',
+                'tratamento': result[11] or '',
+                'origem': result[12] or '',
+                'desc_tratamento': result[13] or '',
+                'motivo_classificacao': result[14] or '',
+                'financeiro': result[15] or False,
+                'info_adicional': result[16] or '',
+                'ativo': result[16] if result[17] is not None else True,
+                'causas': [c.strip() for c in result[18].split(',')] if result[18] else []
             }
 
             return jsonify({'success': True, 'risco': risco})
@@ -2217,8 +2225,8 @@ def api_etapa_riscos(etapa_id):
         with engine.connect() as conn:
             query = text("""
                 SELECT id, nome_risco, categoria, fator_risco, consequencia,
-                       impacto, probabilidade, magnitude, apetite, tratamento,
-                       origem, desc_tratamento, financeiro, info_adicional, ativo, causas
+                       impacto, probabilidade, magnitude, impacto_aceitavel, probabilidade_aceitavel, tratamento,
+                       origem, desc_tratamento, motivo_classificacao, financeiro, info_adicional, ativo, causas
                 FROM riscos_etapa
                 WHERE etapa_id = :etapa_id AND (ativo IS NULL OR ativo = true)
                 ORDER BY id
@@ -2238,14 +2246,16 @@ def api_etapa_riscos(etapa_id):
                     'impacto': row[5] or 'Médio',
                     'probabilidade': row[6] or 'Médio',
                     'magnitude': row[7] or 0,
-                    'apetite': row[8] or '',
-                    'tratamento': row[9] or '',
-                    'origem': row[10] or '',
-                    'desc_tratamento': row[11] or '',
-                    'financeiro': row[12] or False,
-                    'info_adicional': row[13] or '',
-                    'ativo': row[14] if row[14] is not None else True,
-                    'causas': [c.strip() for c in row[15].split(',')] if row[15] else []
+                    'impacto_aceitavel': row[8] or 'Médio',
+                    'probabilidade_aceitavel': row[9] or 'Médio',
+                    'tratamento': row[10] or '',
+                    'origem': row[11] or '',
+                    'desc_tratamento': row[12] or '',
+                    'motivo_classificacao': row[13] or '',
+                    'financeiro': row[14] or False,
+                    'info_adicional': row[15] or '',
+                    'ativo': row[16] if row[16] is not None else True,
+                    'causas': [c.strip() for c in row[17].split(',')] if row[17] else []
                 })
 
             return jsonify({'success': True, 'riscos': riscos})
