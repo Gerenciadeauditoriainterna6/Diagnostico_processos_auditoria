@@ -251,7 +251,7 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Impacto Aceitável</label>
+                            <label>Impacto Aceitável para o Apetite ao Risco</label>
                             <select id="apetite_impacto" class="form-control">
                                 <option value="Baixo">Baixo</option>
                                 <option value="Médio" selected>Médio</option>
@@ -261,7 +261,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Probabilidade Aceitável</label>
+                            <label>Probabilidade Aceitável para o Apetite ao Risco</label>
                             <select id="apetite_probabilidade" class="form-control">
                                 <option value="Baixo">Baixo</option>
                                 <option value="Médio" selected>Médio</option>
@@ -1424,7 +1424,15 @@
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label"> Qual o motivo da classificação da probabilidade?</span>
-                                <span class="detalhe-valor">${escape(risco.motivo)}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao)}</span>
+                            </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label"> Impacto aceitável para o apetite</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel)}</span>
+                            </div>
+                            <div class="risco-detalhe">
+                                <span class="detalhe-label"> Probabilidade aceitável para o apetite</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel)}</span>
                             </div>
                             ${risco.apetite ? `
                             <div class="risco-detalhe">
@@ -1519,8 +1527,8 @@
             document.getElementById('risco_nome').value = risco.nome_risco;
             document.getElementById('risco_fator').value = risco.fator_risco;
             document.getElementById('risco_consequencia').value = risco.consequencia;
-            document.getElementById('apetite_impacto').value = 'Médio';
-            document.getElementById('apetite_probabilidade').value = 'Médio';
+            document.getElementById('apetite_impacto').value = risco.impacto_aceitavel;
+            document.getElementById('apetite_probabilidade').value = risco.probabilidade_aceitavel;
             document.getElementById('risco_origem').value = risco.origem;
             document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
             document.getElementById('risco_info_adicional').value = risco.info_adicional;
