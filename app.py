@@ -3465,7 +3465,7 @@ def api_relatorios_gerar_gerencial():
         # Buscar nome da área e gestor
         with engine.connect() as conn:
             query_area = text("""
-                SELECT nome_area, gestor FROM informacoes_area WHERE id_area = :area_id
+                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
             """)
             area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
             
@@ -3474,12 +3474,14 @@ def api_relatorios_gerar_gerencial():
             
             area_nome = area_info[0] or 'Área sem nome'
             gestor = area_info[1] or 'Gestor não informado'
+            cargo = area_info[2] or 'Cargo não informado'
         
         # ⭐ GERAR O PDF - PASSANDO O processo_id
         pdf_bytes = gerar_relatorio_gerencial_area(
             area_id=area_id,
             area_nome=area_nome,
             gestor=gestor,
+            cargo=cargo,
             orientacao=orientacao,
             auditoria_id=auditoria_id,
             processo_id=processo_id  # ⭐ ADICIONADO
@@ -3539,7 +3541,7 @@ def api_relatorios_gerar_parecer():
         # Buscar nome da área e gestor
         with engine.connect() as conn:
             query_area = text("""
-                SELECT nome_area, gestor FROM informacoes_area WHERE id_area = :area_id
+                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
             """)
             area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
             
@@ -3548,11 +3550,12 @@ def api_relatorios_gerar_parecer():
             
             area_nome = area_info[0] or 'Área sem nome'
             gestor = area_info[1] or 'Gestor não informado'
+            cargo = area_info[2] or 'Cargo não informado'
         
         # Pegar o nome do usuário da sessão
         usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Auditor'))
         
-        print(f"📊 Área: {area_nome}, Gestor: {gestor}, Usuário: {usuario_nome}")
+        print(f"📊 Área: {area_nome}, Gestor: {gestor}, Usuário: {usuario_nome}, Cargo: {cargo}")
         print(f"📊 Gerando parecer para processo_id: {processo_id}")
         
         # Gerar o PDF (passando o processo_id)
@@ -3560,6 +3563,7 @@ def api_relatorios_gerar_parecer():
             area_id=area_id,
             area_nome=area_nome,
             gestor=gestor,
+            cargo=cargo,
             auditoria_id=auditoria_id,
             processo_id=processo_id,
             usuario_nome=usuario_nome,
