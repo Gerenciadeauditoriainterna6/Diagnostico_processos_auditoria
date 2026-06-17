@@ -247,7 +247,35 @@
                             <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
-                    <textarea id="risco_apetite" class="form-control" rows="2" placeholder="Qual o nível de risco aceitável para este processo?"></textarea>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Impacto Aceitável</label>
+                            <select id="apetite_impacto" class="form-control">
+                                <option value="Baixo">Baixo</option>
+                                <option value="Médio" selected>Médio</option>
+                                <option value="Alto">Alto</option>
+                                <option value="Muito Alto">Muito Alto</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Probabilidade Aceitável</label>
+                            <select id="apetite_probabilidade" class="form-control">
+                                <option value="Baixo">Baixo</option>
+                                <option value="Médio" selected>Médio</option>
+                                <option value="Alto">Alto</option>
+                                <option value="Muito Alto">Muito Alto</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="apetite-score-preview"
+                        class="score-preview"
+                        style="margin:15px 0;padding:10px;background:#f8f9fa;border-radius:8px;text-align:center;">
+                        <strong>Score calculado:</strong>
+                        <span id="preview-apetite-score">5</span> (SOB OBSERVAÇÃO)
+                    </div>
                 </div>
             </div>
 
@@ -1490,7 +1518,8 @@
             document.getElementById('risco_nome').value = risco.nome_risco;
             document.getElementById('risco_fator').value = risco.fator_risco;
             document.getElementById('risco_consequencia').value = risco.consequencia;
-            document.getElementById('risco_apetite').value = risco.apetite;
+            document.getElementById('apetite_impacto').value = 'Médio';
+            document.getElementById('apetite_probabilidade').value = 'Médio';
             document.getElementById('risco_origem').value = risco.origem;
             document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
             document.getElementById('risco_info_adicional').value = risco.info_adicional;
@@ -1525,7 +1554,8 @@
             document.getElementById('risco_financeiro').value = risco.financeiro ? 'true' : 'false';
             
             // Atualizar o preview do score
-            atualizarPreviewScore();
+            atualizarScoreRisco();
+            atualizarScoreApetite();
             
             // Mudar o título do modal
             const modalTitle = document.getElementById('modal-risco-title');
@@ -1610,7 +1640,8 @@
         
         // Garantir que o preview seja atualizado após limpar
         setTimeout(() => {
-            atualizarPreviewScore();
+            atualizarScoreRisco();
+            atualizarScoreApetite();
         }, 50);
         
         // 4. Mostrar o modal
@@ -1633,7 +1664,8 @@
         document.getElementById('risco_nome').value = '';
         document.getElementById('risco_fator').value = '';
         document.getElementById('risco_consequencia').value = '';
-        document.getElementById('risco_apetite').value = '';
+        document.getElementById('apetite_impacto').value = 'Médio';
+        document.getElementById('apetite_probabilidade').value = 'Médio';
         document.getElementById('risco_origem').value = '';
         document.getElementById('risco_desc_tratamento').value = '';
         document.getElementById('risco_info_adicional').value = '';
@@ -1656,53 +1688,90 @@
         document.getElementById('risco_financeiro').value = 'false';
         
         // Resetar preview do score
-        atualizarPreviewScore();
-    }
+        atualizarScoreRisco();
+        atualizarScoreApetite();
+        }
 
     // ====== FUNÇÃO PARA CALCULAR E MOSTRAR O SCORE ======
-    function atualizarPreviewScore() {
-        // 1. Pegar os valores selecionados
-        const impacto = document.getElementById('risco_impacto')?.value || 'Médio';
-        const probabilidade = document.getElementById('risco_probabilidade')?.value || 'Médio';
-        
-        console.log(`📊 Calculando score: Impacto=${impacto}, Probabilidade=${probabilidade}`);
-        
-        // 2. Calcular o score
+    function atualizarPreviewScore(
+        impactoId,
+        probabilidadeId,
+        previewDivId,
+        previewScoreId
+    ) {
+        const impactoSelect = document.getElementById(impactoId);
+        const probabilidadeSelect = document.getElementById(probabilidadeId);
+        const preview = document.getElementById(previewDivId);
+        const previewScore = document.getElementById(previewScoreId);
+
+        // Se qualquer elemento não existir, não faz nada
+        if (!impactoSelect || !probabilidadeSelect || !preview || !previewScore) {
+            console.warn("Elementos não encontrados:", {
+                impactoId,
+                probabilidadeId,
+                previewDivId,
+                previewScoreId,
+                impacto: impactoSelect,
+                probabilidade: probabilidadeSelect,
+                preview,
+                previewScore
+            });
+            return 0;
+        }
+
+        const impacto = impactoSelect.value;
+        const probabilidade = probabilidadeSelect.value;
+
         const score = calcularScoreRisco(impacto, probabilidade);
-        
-        // 3. Determinar o nível do score
-        let nivel = '';
-        let cor = '';
-        
+
+        let nivel = "";
+        let cor = "";
+
         if (score <= 3) {
-            nivel = 'BAIXA EXPOSIÇÃO';
-            cor = '#d4edda';
+            nivel = "BAIXA EXPOSIÇÃO";
+            cor = "#d4edda";
         } else if (score <= 7) {
-            nivel = 'SOB OBSERVAÇÃO';
-            cor = '#fff3cd';
+            nivel = "SOB OBSERVAÇÃO";
+            cor = "#fff3cd";
         } else if (score <= 11) {
-            nivel = 'ATENÇÃO';
-            cor = '#ffe5d0';
+            nivel = "ATENÇÃO";
+            cor = "#ffe5d0";
         } else {
-            nivel = 'Crítico';
-            cor = '#f8d7da';
+            nivel = "CRÍTICO";
+            cor = "#f8d7da";
         }
-        
-        // 4. Atualizar o preview na tela
-        const previewSpan = document.getElementById('preview-score');
-        const previewDiv = document.getElementById('risco-score-preview');
-        
-        if (previewSpan) {
-            previewSpan.textContent = score;
-        }
-        
-        if (previewDiv) {
-            previewDiv.innerHTML = `<strong>Score calculado:</strong> ${score} (${nivel})`;
-            previewDiv.style.backgroundColor = cor;
-        }
-        
+
+        previewScore.textContent = score;
+
+        preview.innerHTML = `
+            <strong>Score calculado:</strong>
+            <span id="${previewScoreId}">${score}</span>
+            (${nivel})
+        `;
+
+        preview.style.backgroundColor = cor;
+
         return score;
     }
+
+    function atualizarScoreRisco() {
+        return atualizarPreviewScore(
+            "risco_impacto",
+            "risco_probabilidade",
+            "risco-score-preview",
+            "preview-score"
+        );
+    }
+
+    function atualizarScoreApetite() {
+        return atualizarPreviewScore(
+            "apetite_impacto",
+            "apetite_probabilidade",
+            "apetite-score-preview",
+            "preview-apetite-score"
+        );
+    }
+
 
     // ====== MAPA PARA CÁLCULO DE SCORE (CORRETO) ======
     const MAPA_RISCO = {
@@ -1813,12 +1882,31 @@
         const impactoSelect = document.getElementById('risco_impacto');
         const probSelect = document.getElementById('risco_probabilidade');
         
-        if (impactoSelect) {
-            impactoSelect.addEventListener('change', atualizarPreviewScore);
-        }
-        if (probSelect) {
-            probSelect.addEventListener('change', atualizarPreviewScore);
-        }
+        impactoSelect.addEventListener(
+            'change',
+            atualizarScoreRisco
+        );
+
+        probSelect.addEventListener(
+            'change',
+            atualizarScoreRisco
+        );
+
+        const impactoApetite =
+            document.getElementById('apetite_impacto');
+
+            const probApetite =
+            document.getElementById('apetite_probabilidade');
+
+            impactoApetite?.addEventListener(
+                'change',
+                atualizarScoreApetite
+            );
+
+            probApetite?.addEventListener(
+                'change',
+                atualizarScoreApetite
+            );
         
         // Botão Salvar (vamos implementar depois)
         const btnSalvar = document.getElementById('btn-salvar-modal-risco');
@@ -1874,7 +1962,12 @@
             consequencia: document.getElementById('risco_consequencia').value,
             impacto: document.getElementById('risco_impacto').value,
             probabilidade: document.getElementById('risco_probabilidade').value,
-            apetite: document.getElementById('risco_apetite').value,
+            apetite_impacto: document.getElementById('apetite_impacto').value,
+            apetite_probabilidade:document.getElementById('apetite_probabilidade').value,
+            apetite_score:calcularScoreRisco(
+                document.getElementById('apetite_impacto').value,
+                document.getElementById('apetite_probabilidade').value
+            ),
             tratamento: document.getElementById('risco_tratamento').value,
             origem: document.getElementById('risco_origem').value,
             desc_tratamento: document.getElementById('risco_desc_tratamento').value,
