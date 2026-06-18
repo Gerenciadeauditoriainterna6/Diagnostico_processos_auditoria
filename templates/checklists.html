@@ -1593,41 +1593,81 @@
         gap: 8px;
     }
 
-    .evidencia-item {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 5px;
-        padding: 5px 10px;
-        font-size: 11px;
-        display: inline-flex;
+   .evidencia-item {
+        background: #184145;
+        color: #fff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 5px;
+        gap: 12px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .evidencia-item:hover {
+        background: #21575c;
+        transform: translateY(-1px);
+    }
+
+    .evidencia-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .evidencia-info span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .evidencia-pendente {
+        color: #ffc107;
+        margin-left: 8px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    .evidencia-acoes {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-remover-evidencia,
+    .btn-baixar-evidencia {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 6px;
+        background: rgba(255,255,255,.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: .2s;
     }
 
     .btn-remover-evidencia {
-        background: none;
-        border: none;
-        color: #dc3545;
-        cursor: pointer;
-        font-size: 12px;
-        padding: 0 3px;
+        color: #ff6b6b;
     }
 
     .btn-remover-evidencia:hover {
-        color: #c82333;
+        background: rgba(220,53,69,.2);
+        color: #fff;
     }
 
     .btn-baixar-evidencia {
-        background: none;
-        border: none;
-        color: #0b5b99;
-        cursor: pointer;
-        font-size: 12px;
-        padding: 0 3px;
+        color: #7dd3fc;
     }
 
     .btn-baixar-evidencia:hover {
-        color: #fd6a14;
+        background: rgba(11,91,153,.25);
+        color: #fff;
     }
 
     /* Badges UNIFICADOS - funciona para auditor e auditado */
@@ -2316,12 +2356,22 @@
                     evidenciaDiv.className = 'evidencia-item';
                     evidenciaDiv.setAttribute('data-temp-id', tempId);
                     evidenciaDiv.innerHTML = `
-                        <i class="fas fa-file-pdf"></i>
-                        <span>${escapeHtml(file.name)}</span>
-                        <button class="btn-remover-evidencia" onclick="removerEvidenciaTemp('${tempId}', ${perguntaIndex})" title="Remover">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <small style="color: #ffc107;"> (não salvo - clique em Salvar para confirmar)</small>
+                        <div class="evidencia-info">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>${escapeHtml(file.name)}</span>
+                            <small class="evidencia-pendente">
+                                (não salvo - clique em Salvar para confirmar)
+                            </small>
+                        </div>
+
+                        <div class="evidencia-acoes">
+                            <button
+                                class="btn-remover-evidencia"
+                                onclick="removerEvidenciaTemp('${tempId}', ${perguntaIndex})"
+                                title="Remover">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     `;
                     listaDiv.appendChild(evidenciaDiv);
                 }
