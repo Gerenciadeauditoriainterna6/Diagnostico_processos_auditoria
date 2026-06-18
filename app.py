@@ -1279,64 +1279,49 @@ def api_processo_riscos(processo_id):
             query = text("""
                 SELECT 
                     id, nome_risco, fator_risco, melhoria,
-                    impacto, probabilidade, apetite_risco, motivo_risco,
+                    impacto, probabilidade, motivo_risco,
                     categoria, causas,
                     tratamento_risco, descricao_tratamento, prazo_implantacao,
-                    score_risco
+                    score_risco, apetite_impacto, apetite_probabilidade
                 FROM riscos
                 WHERE processo_id = :processo_id
             """)
             result = conn.execute(query, {'processo_id': processo_id}).fetchall()
             
             riscos = []
-            for row in result:
-                # MAPEAMENTO CORRETO DOS ÍNDICES (0 a 13)
-                # 0: id
-                # 1: nome_risco
-                # 2: fator_risco
-                # 3: melhoria
-                # 4: impacto
-                # 5: probabilidade
-                # 6: apetite_risco
-                # 7: motivo_risco
-                # 8: categoria
-                # 9: causas
-                # 10: tratamento_risco
-                # 11: descricao_tratamento
-                # 12: prazo_implantacao
-                # 13: score_risco
-                
+            for row in result:               
                 # Converter strings para listas
-                categorias_str = row[8] if len(row) > 8 else ''
-                causas_str = row[9] if len(row) > 9 else ''
+                categorias_str = row[7] if len(row) > 8 else ''
+                causas_str = row[7] if len(row) > 9 else ''
                 
                 categorias = categorias_str.split(',') if categorias_str else []
                 causas_list = causas_str.split(',') if causas_str else []
                 
                 # Formatar data
                 prazo = ''
-                if len(row) > 12 and row[12]:
-                    if hasattr(row[12], 'strftime'):
-                        prazo = row[12].strftime('%Y-%m-%d')
+                if len(row) > 11 and row[11]:
+                    if hasattr(row[11], 'strftime'):
+                        prazo = row[11].strftime('%Y-%m-%d')
                     else:
-                        prazo = str(row[12])
+                        prazo = str(row[11])
                 
                 risco = {
                     'id': row[0],
                     'nome_risco': row[1] if len(row) > 1 and row[1] else '',
                     'fator_risco': row[2] if len(row) > 2 and row[2] else '',
                     'melhoria': row[3] if len(row) > 3 and row[3] else '',
-                    'apetite_risco': row[6] if len(row) > 6 and row[6] else '',
                     'impacto': row[4] if len(row) > 4 and row[4] else 'Médio',
                     'probabilidade': row[5] if len(row) > 5 and row[5] else 'Médio',
-                    'motivo_risco': row[7] if len(row) > 7 and row[7] else '',
+                    'motivo_risco': row[6] if len(row) > 6 and row[6] else '',
                     'categorias': [c.strip() for c in categorias if c.strip()],
                     'categoria_causa': [c.strip() for c in causas_list if c.strip()],
-                    'score_risco': row[13] if len(row) > 13 and row[13] else 0,
+                    'score_risco': row[12] if len(row) > 12 and row[12] else 0,
                     # ⭐ CAMPOS DE TRATAMENTO CORRIGIDOS ⭐
-                    'como_tratar': row[10] if len(row) > 10 and row[10] else '',
-                    'desc_tratamento': row[11] if len(row) > 11 and row[11] else '',
-                    'prazo_implantacao': prazo
+                    'como_tratar': row[9] if len(row) > 9 and row[9] else '',
+                    'desc_tratamento': row[10] if len(row) > 10 and row[10] else '',
+                    'prazo_implantacao': prazo,
+                    'apetite_impacto': row[13] if len(row) > 13 and row[13] else 'Médio',
+                    'apetite_probabilidade': row[14] if len(row) > 14 and row[14] else 'Médio'
                 }
                 
                 riscos.append(risco)
@@ -1393,47 +1378,43 @@ def api_processo_dados(processo_id):
             
             # ===== 3. BUSCAR RISCOS =====
             query_riscos = text("""
-                SELECT id, nome_risco, fator_risco, melhoria, apetite_risco,
+                SELECT id, nome_risco, fator_risco, melhoria,
                        impacto, probabilidade, motivo_risco, categoria, causas,
-                       tratamento_risco, descricao_tratamento, prazo_implantacao
+                       tratamento_risco, descricao_tratamento, prazo_implantacao,
+                       apetite_impacto, apetite_probabilidade
                 FROM riscos
                 WHERE processo_id = :processo_id
             """)
             riscos_result = conn.execute(query_riscos, {'processo_id': processo_id}).fetchall()
             
             riscos = []
-            for r in riscos_result:
-                # Índices baseados na ordem do SELECT acima
-                # 0=id, 1=nome_risco, 2=fator_risco, 3=melhoria, 4=apetite_risco
-                # 5=impacto, 6=probabilidade, 7=motivo_risco, 8=categoria, 9=causas
-                # 10=tratamento_risco, 11=descricao_tratamento, 12=prazo_implantacao
-                
-                categorias = r[8].split(',') if r[8] else []
-                categoria_causa = r[9].split(',') if r[9] else []
+            for r in riscos_result:                
+                categorias = r[7].split(',') if r[7] else []
+                categoria_causa = r[8].split(',') if r[8] else []
                 
                 # Converter data
-                prazo = r[12]
-                prazo_str = ''
-                if prazo:
-                    if hasattr(prazo, 'strftime'):
-                        prazo_str = prazo.strftime('%Y-%m-%d')
-                    elif isinstance(prazo, str):
-                        prazo_str = prazo
+                prazo = ''
+                if r[11]:
+                    if hasattr(r[11], 'strftime'):
+                        prazo = r[11].strftime('%Y-%m-%d')
+                    elif isinstance(r[11], str):
+                        prazo = r[11]
                 
                 riscos.append({
                     'id': r[0],
                     'nome_risco': r[1] or '',
                     'fator_risco': r[2] or '',
                     'melhoria': r[3] or '',
-                    'apetite_risco': r[4] or '',
-                    'impacto': r[5] or 'Médio',
-                    'probabilidade': r[6] or 'Médio',
-                    'motivo_risco': r[7] or '',
+                    'impacto': r[4] or 'Médio',
+                    'probabilidade': r[5] or 'Médio',
+                    'motivo_risco': r[6] or '',
                     'categorias': [c.strip() for c in categorias if c.strip()],
                     'categoria_causa': [c.strip() for c in categoria_causa if c.strip()],
-                    'como_tratar': r[10] or '',
-                    'desc_tratamento': r[11] or '',
-                    'prazo_implantacao': prazo_str
+                    'como_tratar': r[9] or '',
+                    'desc_tratamento': r[10] or '',
+                    'prazo_implantacao': prazo,
+                    'apetite_impacto': r[12] or 'Médio',
+                    'apetite_probabilidade': r[13] or 'Médio'
                 })
             
             # ===== 4. RETORNAR TODOS OS DADOS =====
@@ -1605,15 +1586,17 @@ def api_salvar_processo_riscos():
             insert_query = text("""
                 INSERT INTO riscos (
                     processo_id, nome_risco, fator_risco, melhoria, 
-                    apetite_risco, impacto, probabilidade, motivo_risco, 
+                    impacto, probabilidade, motivo_risco, 
                     categoria, causas, score_risco,
-                    tratamento_risco, descricao_tratamento, prazo_implantacao
+                    tratamento_risco, descricao_tratamento, prazo_implantacao,
+                    apetite_impacto, apetite_probabilidade
                 )
                 VALUES (
                     :processo_id, :nome_risco, :fator_risco, :melhoria, 
-                    :apetite_risco, :impacto, :probabilidade, :motivo_risco, 
+                    :impacto, :probabilidade, :motivo_risco, 
                     :categoria, :causas, :score_risco,
-                    :tratamento_risco, :descricao_tratamento, :prazo_implantacao
+                    :tratamento_risco, :descricao_tratamento, :prazo_implantacao,
+                    :apetite_impacto, :apetite_probabilidade
                 )
             """)
             
@@ -1635,7 +1618,6 @@ def api_salvar_processo_riscos():
                     'nome_risco': risco.get('nome_risco', ''),
                     'fator_risco': risco.get('fator_risco', ''),
                     'melhoria': risco.get('melhoria', ''),
-                    'apetite_risco': risco.get('apetite_risco', ''),
                     'impacto': impacto,
                     'probabilidade': probabilidade,
                     'motivo_risco': risco.get('motivo_risco', ''),
@@ -1644,7 +1626,9 @@ def api_salvar_processo_riscos():
                     'score_risco': score,
                     'tratamento_risco': risco.get('como_tratar', ''),   # ← frontend → banco
                     'descricao_tratamento': risco.get('desc_tratamento', ''),
-                    'prazo_implantacao': risco.get('prazo_implantacao') or None
+                    'prazo_implantacao': risco.get('prazo_implantacao') or None,
+                    'apetite_impacto': risco.get('apetite_impacto', 'Médio'),
+                    'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio')
                 })
             
             conn.commit()

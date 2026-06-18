@@ -63,6 +63,96 @@
             </div>
         </div>
     </div>
+    <!-- MODAL DE VISUALIZAÇÃO DE RISCO (movido para fora do wizard) -->
+    <div id="modal-visualizar-risco" class="modal" style="display: none; z-index: 100001;">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> Visualizar Risco</h3>
+                <button type="button" class="modal-close" id="btn-fechar-visualizar-modal" onclick="fecharModalRisco()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="visualizar-risco-content">
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-tag"></i> Nome do Risco</div>
+                        <div class="vis-value" id="vis-nome_risco">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</div>
+                        <div class="vis-value" id="vis-fator_risco">-</div>
+                    </div>
+                    <!-- Categoria de causas -->
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</div>
+                        <div class="vis-value" id="vis-categoria-causa"></div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-lightbulb"></i> O que mais te incomoda nesse processo?</div>
+                        <div class="vis-value" id="vis-melhoria">-</div>
+                    </div>
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-tags"></i> Categoria(s)</div>
+                        <div class="vis-value" id="vis-categorias">-</div>
+                    </div>
+                    <div class="vis-row">
+                        <div class="vis-item half">
+                            <div class="vis-label"><i class="fas fa-chart-line"></i> Impacto</div>
+                            <div class="vis-value" id="vis-impacto">-</div>
+                        </div>
+                        <div class="vis-item half">
+                            <div class="vis-label"><i class="fas fa-chart-simple"></i> Probabilidade</div>
+                            <div class="vis-value" id="vis-probabilidade">-</div>
+                        </div>
+                    </div>
+                    <!-- ⭐ NOVOS CAMPOS: Apetite Impacto e Probabilidade -->
+                    <div class="vis-row">
+                        <div class="vis-item half">
+                            <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite Impacto</div>
+                            <div class="vis-value" id="vis-apetite-impacto">-</div>
+                        </div>
+                        <div class="vis-item half">
+                            <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite Probabilidade</div>
+                            <div class="vis-value" id="vis-apetite-probabilidade">-</div>
+                        </div>
+                    </div>
+
+                    <!-- ⭐ NOVO: Score do Apetite -->
+                    
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-calculator"></i> Score</div>
+                        <div class="vis-value" id="vis-score">-</div>
+                    </div>
+
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-calculator"></i> Score do Apetite</div>
+                        <div class="vis-value" id="vis-score-apetite">-</div>
+                    </div>
+
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-comment"></i> Motivo da Classificação</div>
+                        <div class="vis-value" id="vis-motivo_risco">-</div>
+                    </div>
+                    <!-- NOVOS CAMPOS - VISUALIZAÇÃO -->
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-shield-alt"></i> Como tratar o risco?</div>
+                        <div class="vis-value" id="vis-como-tratar">-</div>
+                    </div>
+
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-file-alt"></i> Descrição do tratamento</div>
+                        <div class="vis-value" id="vis-desc-tratamento">-</div>
+                    </div>
+
+                    <div class="vis-item">
+                        <div class="vis-label"><i class="fas fa-calendar-alt"></i> Prazo de implantação</div>
+                        <div class="vis-value" id="vis-prazo-implantacao">-</div>
+                    </div> 
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btn-fechar-visualizar" onclick="fecharModalRisco()">Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!--MODAL DO WIZARD -->
@@ -567,16 +657,7 @@
                                 <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="Descreva o que mais te incomoda nesse processo..."></textarea>
                             </div>
 
-                            <!-- Apetite ao Risco -->
-                            <div class="form-group">
-                                <label>
-                                    <i class="fas fa-bullseye"></i> Apetite ao Risco
-                                    <span class="help-icon" data-tooltip="Dentro do critério e classificação do risco, quanto o Gestor entende ser o mínimo aceitável de ocorrência de risco, levando em consideração as combinações para chegar ao risco bruto">
-                                        <i class="fas fa-question-circle"></i>
-                                    </span>
-                                </label>
-                                <textarea id="modal-apetite_risco" class="form-control" rows="2" placeholder="Descreva o nível do apetite ao risco"></textarea>
-                            </div>
+                    
                         </div>
 
                         <!-- ===== SEÇÃO 3: AVALIAÇÃO DO RISCO ===== -->
@@ -652,7 +733,43 @@
                                 </label>
                                 <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique o nível definido na probabilidade..."></textarea>
                             </div>
+
+                            <!-- ===== SEÇÃO 3.5: APETITE AO RISCO (RISCO RESIDUAL) ===== -->
+                            <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                                <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #0b5b99; padding-left: 10px;">
+                                    <i class="fas fa-bullseye"></i> Apetite ao Risco (Risco Residual)
+                                </h4>
+
+                                <!-- Impacto Aceitável e Probabilidade Aceitável -->
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label><i class="fas fa-sack-dollar"></i> Impacto Aceitável</label>
+                                        <select id="apetite_impacto" class="form-control">
+                                            <option value="Baixo">Baixo</option>
+                                            <option value="Médio" selected>Médio</option>
+                                            <option value="Alto">Alto</option>
+                                            <option value="Muito Alto">Muito Alto</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável</label>
+                                        <select id="apetite_probabilidade" class="form-control">
+                                            <option value="Baixo">Baixo</option>
+                                            <option value="Médio" selected>Médio</option>
+                                            <option value="Alto">Alto</option>
+                                            <option value="Muito Alto">Muito Alto</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Score Preview do Apetite -->
+                                <div id="apetite-score-preview" class="score-preview" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                                    <strong>Score do Apetite:</strong> <span id="preview-apetite-score">5</span> (SOB OBSERVAÇÃO)
+                                </div>
                         </div>
+
+
+
 
                         <!-- ===== SEÇÃO 4: TRATAMENTO DO RISCO ===== -->
                         <div class="form-section-inline" style="margin-bottom: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
@@ -704,80 +821,7 @@
     </div>
 </div>
 
-    <!-- MODAL DE VISUALIZAÇÃO DE RISCO (movido para fora do wizard) -->
-    <div id="modal-visualizar-risco" class="modal" style="display: none; z-index: 100001;">
-        <div class="modal-content" style="max-width: 550px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-eye"></i> Visualizar Risco</h3>
-                <button type="button" class="modal-close" id="btn-fechar-visualizar-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="visualizar-risco-content">
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-tag"></i> Nome do Risco</div>
-                        <div class="vis-value" id="vis-nome_risco">-</div>
-                    </div>
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</div>
-                        <div class="vis-value" id="vis-fator_risco">-</div>
-                    </div>
-                    <!-- Categoria de causas -->
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</div>
-                        <div class="vis-value" id="vis-categoria-causa"></div>
-                    </div>
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-lightbulb"></i> O que mais te incomoda nesse processo?</div>
-                        <div class="vis-value" id="vis-melhoria">-</div>
-                    </div>
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite ao Risco</div>
-                        <div class="vis-value" id="vis-apetite_risco">-</div>
-                    </div>
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-tags"></i> Categoria(s)</div>
-                        <div class="vis-value" id="vis-categorias">-</div>
-                    </div>
-                    <div class="vis-row">
-                        <div class="vis-item half">
-                            <div class="vis-label"><i class="fas fa-chart-line"></i> Impacto</div>
-                            <div class="vis-value" id="vis-impacto">-</div>
-                        </div>
-                        <div class="vis-item half">
-                            <div class="vis-label"><i class="fas fa-chart-simple"></i> Probabilidade</div>
-                            <div class="vis-value" id="vis-probabilidade">-</div>
-                        </div>
-                    </div>
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-calculator"></i> Score</div>
-                        <div class="vis-value" id="vis-score">-</div>
-                    </div>
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-comment"></i> Motivo da Classificação</div>
-                        <div class="vis-value" id="vis-motivo_risco">-</div>
-                    </div>
-                    <!-- NOVOS CAMPOS - VISUALIZAÇÃO -->
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-shield-alt"></i> Como tratar o risco?</div>
-                        <div class="vis-value" id="vis-como-tratar">-</div>
-                    </div>
 
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-file-alt"></i> Descrição do tratamento</div>
-                        <div class="vis-value" id="vis-desc-tratamento">-</div>
-                    </div>
-
-                    <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-calendar-alt"></i> Prazo de implantação</div>
-                        <div class="vis-value" id="vis-prazo-implantacao">-</div>
-                    </div> 
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-secondary" id="btn-fechar-visualizar">Fechar</button>
-            </div>
-        </div>
-    </div>
     
 
 <style>
@@ -2643,6 +2687,74 @@
         font-weight: 500;
     }
 
+    /* ===== MODAL DE VISUALIZAÇÃO DE RISCO - CORREÇÃO DEFINITIVA ===== */
+    #modal-visualizar-risco {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 100001;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #modal-visualizar-risco.visible {
+        display: flex !important;
+    }
+
+    #modal-visualizar-risco .modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 90% !important;
+        max-width: 550px !important;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        position: relative;
+        padding: 0;
+    }
+
+    #modal-visualizar-risco .modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #modal-visualizar-risco .modal-body {
+        padding: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    #modal-visualizar-risco .modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        background: #f8f9fa;
+        border-radius: 0 0 16px 16px;
+    }
+
+    #modal-visualizar-risco .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+    }
+
+    #modal-visualizar-risco .modal-close:hover {
+        color: #dc3545;
+    }
+
     
 
 
@@ -2865,14 +2977,16 @@
                         probabilidade: risco.probabilidade || risco.probability || 'Médio',
                         fator_risco: risco.fator_risco || '',
                         melhoria: risco.melhoria || '',
-                        apetite_risco: risco.apetite_risco || '',
+                        // ⭐ REMOVER: apetite_risco (não existe mais)
+                        // ⭐ ADICIONAR: apetite_impacto e apetite_probabilidade
+                        apetite_impacto: risco.apetite_impacto || 'Médio',
+                        apetite_probabilidade: risco.apetite_probabilidade || 'Médio',
                         motivo_risco: risco.motivo_risco || '',
                         categorias: risco.categorias || (risco.categoria ? risco.categoria.split(',') : []),
-                        // ⭐ NOVOS CAMPOS ADICIONADOS ⭐
-                        categoria_causa: risco.categoria_causa || [],           // ← ADICIONADO
-                        como_tratar: risco.como_tratar || '',                   // ← ADICIONADO
-                        desc_tratamento: risco.desc_tratamento || '',           // ← ADICIONADO
-                        prazo_implantacao: risco.prazo_implantacao || '',       // ← ADICIONADO
+                        categoria_causa: risco.categoria_causa || [],
+                        como_tratar: risco.como_tratar || '',
+                        desc_tratamento: risco.desc_tratamento || '',
+                        prazo_implantacao: risco.prazo_implantacao || '',
                         score_risco: risco.score_risco || 0
                     }));
                     
@@ -2963,10 +3077,32 @@
                 score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
             }
             
+            // ⭐ CALCULAR SCORE DO APETITE
+            const apetiteScore = calcularScoreRisco(
+                risco.apetite_impacto || 'Médio', 
+                risco.apetite_probabilidade || 'Médio'
+            );
+            
+            // Determinar nível do score do apetite
+            let apetiteNivel = '';
+            let apetiteNivelTexto = '';
+            if (apetiteScore <= 3) {
+                apetiteNivel = 'low';
+                apetiteNivelTexto = 'BAIXA EXPOSIÇÃO';
+            } else if (apetiteScore >= 4 && apetiteScore <= 7) {
+                apetiteNivel = 'medium';
+                apetiteNivelTexto = 'SOB OBSERVAÇÃO';
+            } else if (apetiteScore >= 8 && apetiteScore <= 11) {
+                apetiteNivel = 'high';
+                apetiteNivelTexto = 'ATENÇÃO';
+            } else {
+                apetiteNivel = 'critical';
+                apetiteNivelTexto = 'CRÍTICO';
+            }
+            
             // ⭐ CORREÇÃO DOS LIMITES DOS NÍVEIS ⭐
             let nivel = '';
             let nivelTexto = '';
-
             
             if (score <= 3) { 
                 nivel = 'low'; 
@@ -2997,7 +3133,11 @@
                 score, 
                 nivel, 
                 nivelTexto,
-                categorias: categorias
+                categorias: categorias,
+                // ⭐ NOVOS CAMPOS DO APETITE
+                apetiteScore: apetiteScore,
+                apetiteNivel: apetiteNivel,
+                apetiteNivelTexto: apetiteNivelTexto
             };
         });
         
@@ -3014,7 +3154,6 @@
         console.log('✅ Riscos processados para visualização:', riscosProcessados);
         console.log('📊 Distribuição:', { baixo: baixo.length, medio: medio.length, alto: alto.length, critico: critico.length });
         
-        
         // Gerar cards
         const gerarCards = (riscosLista, nivelClasse) => {
             if (riscosLista.length === 0) {
@@ -3028,13 +3167,28 @@
                 // Usar índice do risco original
                 const originalIdx = riscosProcessados.findIndex(r => r === risco);
                 
+                // ⭐ ÍCONE PARA O SCORE DO APETITE
+                let apetiteIcon = '';
+                if (risco.apetiteScore <= 3) apetiteIcon = '';
+                else if (risco.apetiteScore <= 7) apetiteIcon = '';
+                else if (risco.apetiteScore <= 11) apetiteIcon = '';
+                else apetiteIcon = '';
+                
                 return `
                     <div class="kanban-card ${nivelClasse}" data-risco-id="${risco.id}">
                         <div class="kanban-card-title">${escapeHtml(risco.nome_risco)}</div>
                         <div class="kanban-card-score">
+                            <span style="font-size: 11px; color: #666;">Magnitude do risco:</span>
                             <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
                             <span class="kanban-card-badge prob">Prob: ${risco.probabilidade || 'Médio'}</span>
-                            <span><strong>Score: ${risco.score}</strong> (${risco.nivelTexto})</span>
+                            <span><strong>Score do risco (magnitude): ${risco.score}</strong> (${risco.nivelTexto})</span>
+                        </div>
+                        <!-- ⭐ NOVO: Score do Apetite -->
+                        <div class="kanban-card-score" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eee;">
+                            <span style="font-size: 11px; color: #666;">Apetite:</span>
+                            <span class="kanban-card-badge impact" style="background: #e8f4f8;">Impacto: ${risco.apetite_impacto || 'Médio'}</span>
+                            <span class="kanban-card-badge prob" style="background: #e8f4f8;">Prob: ${risco.apetite_probabilidade || 'Médio'}</span>
+                            <span><strong>Score do apetite (risco residual): ${risco.apetiteScore}</strong> ${apetiteIcon} (${risco.apetiteNivelTexto})</span>
                         </div>
                         <div class="kanban-card-categorias">
                             ${categoriasHtml || '<span class="text-muted">Sem categorias</span>'}
@@ -3095,77 +3249,24 @@
         `;
     }
 
-    // Função global para visualizar risco no modal de visualização do processo
-    window.visualizarRiscoVisualizacaoGlobal = function(idx) {
-        console.log('🟢 visualizarRiscoVisualizacaoGlobal chamado com índice:', idx);
-        const risco = window.riscosVisualizacao ? window.riscosVisualizacao[idx] : null;
-        console.log('Risco encontrado:', risco);
+    // Função global para visualizar risco - VERSÃO EXTREMA
+    window.visualizarRiscoVisualizacao = function(idx) {
+        console.log('🟢 FUNÇÃO CHAMADA com índice:', idx);
         
-        if (!risco) {
-            console.error('Risco não encontrado para índice:', idx);
-            return;
-        }
-        
-        // Preencher modal de visualização
-        document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
-        document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
-        document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
-        document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
-        document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
-        document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
-        document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
-        document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
-        document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
-        document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
-        
-        let corScore = '';
-        if (risco.score <= 4) corScore = '🟢';
-        else if (risco.score <= 9) corScore = '🟡';
-        else if (risco.score <= 12) corScore = '🟠';
-        else corScore = '🔴';
-        
-        document.getElementById('vis-score').innerHTML = `${corScore} ${risco.score} (${risco.nivelTexto})`;
-        
-        // Abrir modal
-        const modalRisco = document.getElementById('modal-visualizar-risco');
-        if (modalRisco) {
-            modalRisco.style.display = 'flex';
-            console.log('Modal aberto');
-        } else {
-            console.error('Modal não encontrado!');
-        }
-    };
-
-    // Função global para visualizar risco
-        window.visualizarRiscoVisualizacao = function(idx) {
-            console.log('🟢 FUNÇÃO visualizarRiscoVisualizacao CHAMADA');
-            console.log('Índice:', idx);
-            console.log('window.riscosVisualizacao:', window.riscosVisualizacao);
-            
-            if (!window.riscosVisualizacao) {
-                console.error('❌ window.riscosVisualizacao não existe!');
-                mostrarToast('Erro: Dados dos riscos não encontrados', 'error');
-                return;
-            }
-            
-            const risco = window.riscosVisualizacao[idx];
+        try {
+            const risco = window.riscosVisualizacao ? window.riscosVisualizacao[idx] : null;
+            console.log('🔍 Risco encontrado:', risco);
             
             if (!risco) {
-                console.error('❌ Risco não encontrado para índice:', idx);
                 mostrarToast('Erro: Risco não encontrado', 'error');
                 return;
             }
-            
-            console.log('✅ Risco encontrado:', risco);
-            console.log('✅ como_tratar:', risco.como_tratar);
-            console.log('✅ desc_tratamento:', risco.desc_tratamento);
             
             // Preencher todos os campos do modal
             document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
             document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
             document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
             document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
-            document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
             document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
             document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
             document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
@@ -3174,11 +3275,19 @@
             document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
             document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
             
-            // Calcular score e nível para exibição
+            // ⭐ NOVOS CAMPOS
+            document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || 'Médio';
+            document.getElementById('vis-apetite-probabilidade').textContent = risco.apetite_probabilidade || 'Médio';
+            
+            // Calcular scores
             const score = risco.score || calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+            const apetiteScore = calcularScoreRisco(
+                risco.apetite_impacto || 'Médio', 
+                risco.apetite_probabilidade || 'Médio'
+            );
+            
             let nivelTexto = '';
             let corScore = '';
-            
             if (score <= 3) {
                 nivelTexto = 'BAIXA EXPOSIÇÃO';
                 corScore = '🟢';
@@ -3193,17 +3302,27 @@
                 corScore = '🔴';
             }
             
+            const apetiteLevel = getScoreLevelText(apetiteScore);
             document.getElementById('vis-score').innerHTML = `${corScore} ${score} (${nivelTexto})`;
+            document.getElementById('vis-score-apetite').textContent = `${apetiteScore} (${apetiteLevel})`;
             
-            // Abrir modal
+            // ===== ABRIR MODAL =====
             const modal = document.getElementById('modal-visualizar-risco');
             if (modal) {
                 modal.style.display = 'flex';
-                console.log('✅ Modal de visualização aberto');
+                modal.style.visibility = 'visible';
+                modal.style.opacity = '1';
+                modal.classList.add('visible');
+                console.log('✅ Modal aberto com sucesso!');
             } else {
                 console.error('❌ Modal não encontrado!');
+                mostrarToast('Erro: Modal não encontrado', 'error');
             }
-        };
+        } catch (error) {
+            console.error('❌ Erro ao visualizar risco:', error);
+            mostrarToast('Erro ao visualizar risco: ' + error.message, 'error');
+        }
+    };
 
 
     // ===== DESATIVAR PROCESSO (soft delete) =====
@@ -4961,9 +5080,40 @@
         let countBaixo = 0, countMedio = 0, countAlto = 0, countCritico = 0;
         
         riscosLista.forEach((risco, idx) => {
+            // ⭐ CALCULAR SCORE DO RISCO BRUTO
             const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
             const level = getScoreLevel(score);
             const levelText = getScoreLevelText(score);
+            
+            // ⭐ CALCULAR SCORE DO APETITE (RISCO RESIDUAL)
+            const apetiteScore = calcularScoreRisco(
+                risco.apetite_impacto || 'Médio', 
+                risco.apetite_probabilidade || 'Médio'
+            );
+            
+            // Determinar nível do score do apetite
+            let apetiteNivel = '';
+            let apetiteNivelTexto = '';
+            if (apetiteScore <= 3) {
+                apetiteNivel = 'low';
+                apetiteNivelTexto = 'BAIXA EXPOSIÇÃO';
+            } else if (apetiteScore >= 4 && apetiteScore <= 7) {
+                apetiteNivel = 'medium';
+                apetiteNivelTexto = 'SOB OBSERVAÇÃO';
+            } else if (apetiteScore >= 8 && apetiteScore <= 11) {
+                apetiteNivel = 'high';
+                apetiteNivelTexto = 'ATENÇÃO';
+            } else {
+                apetiteNivel = 'critical';
+                apetiteNivelTexto = 'CRÍTICO';
+            }
+            
+            // ⭐ ÍCONE PARA O SCORE DO APETITE
+            let apetiteIcon = '';
+            if (apetiteScore <= 3) apetiteIcon = '';
+            else if (apetiteScore <= 7) apetiteIcon = '';
+            else if (apetiteScore <= 11) apetiteIcon = '';
+            else apetiteIcon = '';
             
             // Criar card
             const card = document.createElement('div');
@@ -4978,9 +5128,17 @@
             card.innerHTML = `
                 <div class="kanban-card-title">${escapeHtml(risco.nome_risco || 'Risco sem nome')}</div>
                 <div class="kanban-card-score">
+                    <span style="font-size: 11px; color: #666;">Magnitude do risco:</span>
                     <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
                     <span class="kanban-card-badge prob">Prob: ${risco.probabilidade || 'Médio'}</span>
-                    <span><strong>Score: ${score}</strong> (${levelText})</span>
+                    <span><strong>Score do risco (magnitude): ${score}</strong> (${levelText})</span>
+                </div>
+                <!-- ⭐ NOVO: Score do Apetite (Risco Residual) -->
+                <div class="kanban-card-score" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eee;">
+                    <span style="font-size: 11px; color: #666;">Apetite do risco:</span>
+                    <span class="kanban-card-badge impact" style="background: #e8f4f8;">Impacto: ${risco.apetite_impacto || 'Médio'}</span>
+                    <span class="kanban-card-badge prob" style="background: #e8f4f8;">Prob: ${risco.apetite_probabilidade || 'Médio'}</span>
+                    <span><strong>Score do apetite (risco residual): ${apetiteScore}</strong> ${apetiteIcon} (${apetiteNivelTexto})</span>
                 </div>
                 <div class="kanban-card-categorias">
                     ${categoriasHtml || '<span class="text-muted">Sem categorias</span>'}
@@ -4995,7 +5153,7 @@
                 </div>
             `;
             
-            // Adicionar à coluna correta
+            // Adicionar à coluna correta (baseado no score do risco bruto)
             if (level === 'low') {
                 document.getElementById('col-baixo').appendChild(card);
                 countBaixo++;
@@ -5084,71 +5242,61 @@
         document.getElementById('modal-nome_risco').value = '';
         document.getElementById('modal-fator_risco').value = '';
         document.getElementById('modal-melhoria').value = '';
-        document.getElementById('modal-apetite_risco').value = '';
+        
         limparCheckboxes('categorias-checkboxes');
         limparCheckboxes('causa-checkboxes');
+        
+        // ⭐ RISCO BRUTO
         document.getElementById('modal-impacto').value = 'Médio';
         document.getElementById('modal-probabilidade').value = 'Médio';
         document.getElementById('modal-motivo_risco').value = '';
+        
+        // ⭐ APETITE (RISCO RESIDUAL)
+        document.getElementById('apetite_impacto').value = 'Médio';
+        document.getElementById('apetite_probabilidade').value = 'Médio';
+        
         document.getElementById('modal-como-tratar').value = '';
         document.getElementById('modal-desc-tratamento').value = '';
         document.getElementById('modal-prazo-implantacao').value = '';
+        
+        // ⭐ ATUALIZAR OS SCORES
+        atualizarPreviewScore();
+        atualizarPreviewApetite();
     }
 
     function carregarRiscoNoModal(risco) {
-        console.log('🔍 Carregando risco no modal:', risco);
-        console.log('📅 prazo_implantacao do risco:', risco.prazo_implantacao);
         document.getElementById('modal-nome_risco').value = risco.nome_risco || '';
         document.getElementById('modal-fator_risco').value = risco.fator_risco || '';
         document.getElementById('modal-melhoria').value = risco.melhoria || '';
-        document.getElementById('modal-apetite_risco').value = risco.apetite_risco || '';
 
-        // Categorias do Risco (checkboxes)
+        // Categorias
         const categoriasSelecionadas = risco.categorias || [];
-        const catCheckboxes = document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]');
-        catCheckboxes.forEach(cb => {
+        document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => {
             cb.checked = categoriasSelecionadas.includes(cb.value);
         });
 
-        // Verificar se tem categoria personalizada (compara sem espaços extras)
-        const categoriasPadrao = ['Risco Financeiro', 'Risco Legal', 'Risco Inerente', 'Risco de TI', 
-                                'Risco Reputacional', 'Risco de Integridade', 'Risco Ambiental'];
-        const categoriaPersonalizada = categoriasSelecionadas.find(c => {
-            const cLimpa = c.trim();
-            return !categoriasPadrao.some(p => p.trim().toLowerCase() === cLimpa.toLowerCase());
-        });
-
-        if (categoriaPersonalizada) {
-            const checkOutra = document.getElementById('check-outra-categoria');
-            const containerOutra = document.getElementById('outra-categoria-container');
-            const textoOutra = document.getElementById('outra-categoria-texto');
-            
-            if (checkOutra) checkOutra.checked = true;
-            if (containerOutra) containerOutra.style.display = 'block';
-            if (textoOutra) textoOutra.value = categoriaPersonalizada.trim();
-        } else {
-            const checkOutra = document.getElementById('check-outra-categoria');
-            const containerOutra = document.getElementById('outra-categoria-container');
-            const textoOutra = document.getElementById('outra-categoria-texto');
-            
-            if (checkOutra) checkOutra.checked = false;
-            if (containerOutra) containerOutra.style.display = 'none';
-            if (textoOutra) textoOutra.value = '';
-        }
-
-        // Categoria de Causa (checkboxes)
+        // Causas
         const causasSelecionadas = risco.categoria_causa || [];
-        const causaCheckboxes = document.querySelectorAll('#causa-checkboxes input[type="checkbox"]');
-        causaCheckboxes.forEach(cb => {
+        document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => {
             cb.checked = causasSelecionadas.includes(cb.value);
         });
 
+        // ⭐ RISCO BRUTO
         document.getElementById('modal-impacto').value = risco.impacto || 'Médio';
         document.getElementById('modal-probabilidade').value = risco.probabilidade || 'Médio';
         document.getElementById('modal-motivo_risco').value = risco.motivo_risco || '';
+        
+        // ⭐ APETITE (RISCO RESIDUAL) - NOVOS CAMPOS
+        document.getElementById('apetite_impacto').value = risco.apetite_impacto || 'Médio';
+        document.getElementById('apetite_probabilidade').value = risco.apetite_probabilidade || 'Médio';
+
         document.getElementById('modal-como-tratar').value = risco.como_tratar || '';
         document.getElementById('modal-desc-tratamento').value = risco.desc_tratamento || '';
         document.getElementById('modal-prazo-implantacao').value = risco.prazo_implantacao || '';
+        
+        // ⭐ ATUALIZAR OS SCORES
+        atualizarPreviewScore();
+        atualizarPreviewApetite();
     }
 
     function salvarDoModal() {
@@ -5158,8 +5306,14 @@
             return;
         }
 
+        // RISCO BRUTO
         const impacto = document.getElementById('modal-impacto').value;
         const probabilidade = document.getElementById('modal-probabilidade').value;
+        const motivo = document.getElementById('modal-motivo_risco').value;
+
+        // RISCO RESIDUAL (APETITE AO RISCO)
+        const apetiteImpacto = document.getElementById('apetite_impacto').value;
+        const apetiteProbabilidade = document.getElementById('apetite_probabilidade').value;
 
         // Coletar categorias marcadas
         const categorias = [];
@@ -5182,12 +5336,13 @@
             nome_risco: nome,
             fator_risco: document.getElementById('modal-fator_risco').value,
             melhoria: document.getElementById('modal-melhoria').value,
-            apetite_risco: document.getElementById('modal-apetite_risco').value,
             categorias: categorias,
             categoria_causa: categoriaCausa,
             impacto: impacto,
             probabilidade: probabilidade,
-            motivo_risco: document.getElementById('modal-motivo_risco').value,
+            motivo_risco: motivo,
+            apetite_impacto: apetiteImpacto,
+            apetite_probabilidade: apetiteProbabilidade,
             como_tratar: document.getElementById('modal-como-tratar').value,
             desc_tratamento: document.getElementById('modal-desc-tratamento').value,
             prazo_implantacao: document.getElementById('modal-prazo-implantacao').value
@@ -5287,15 +5442,12 @@
         console.log('🔵 FUNÇÃO visualizarRisco CHAMADA');
         
         const risco = riscosLista[idx];
-        console.log('🔍 Risco completo:', risco);
-        console.log('📅 prazo_implantacao:', risco.prazo_implantacao);
         if (!risco) return;
         
-        // Preencher os campos do modal de visualização
+        // Preencher os campos existentes
         document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
         document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
         document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
-        document.getElementById('vis-apetite_risco').textContent = risco.apetite_risco || '-';
         document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
         document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
         document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
@@ -5305,14 +5457,26 @@
         document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
         document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
         
-        // Calcular score
+        // ⭐ NOVOS CAMPOS: Apetite
+        document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || 'Médio';
+        document.getElementById('vis-apetite-probabilidade').textContent = risco.apetite_probabilidade || 'Médio';
+        
+        // Calcular score do apetite
+        const apetiteScore = calcularScoreRisco(
+            risco.apetite_impacto || 'Médio', 
+            risco.apetite_probabilidade || 'Médio'
+        );
+        const apetiteLevel = getScoreLevelText(apetiteScore);
+        document.getElementById('vis-score-apetite').textContent = `${apetiteScore} (${apetiteLevel})`;
+        
+        // Calcular score do risco bruto
         const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
         const levelText = getScoreLevelText(score);
         let corScore = '';
-        if (score <= 4) corScore = '🟢';
-        else if (score <= 9) corScore = '🟡';
-        else if (score <= 12) corScore = '🟠';
-        else corScore = '🔴';
+        if (score <= 3) corScore = '';
+        else if (score <= 7) corScore = '';
+        else if (score <= 11) corScore = '';
+        else corScore = '';
         
         document.getElementById('vis-score').innerHTML = `${corScore} ${score} (${levelText})`;
         
@@ -5343,6 +5507,31 @@
         const previewDiv = document.getElementById('modal-score-preview');
         previewDiv.style.backgroundColor = corPreview;
         previewDiv.innerHTML = `<strong>Score: ${score}</strong> (${levelText})`;
+    }
+
+    // ===== ATUALIZAR PREVIEW DO SCORE DO APETITE =====
+    function atualizarPreviewApetite() {
+        const impacto = document.getElementById('apetite_impacto')?.value;
+        const probabilidade = document.getElementById('apetite_probabilidade')?.value;
+        
+        if (!impacto || !probabilidade) return;
+        
+        const score = calcularScoreRisco(impacto, probabilidade);
+        const levelText = getScoreLevelText(score);
+        
+        const previewDiv = document.getElementById('apetite-score-preview');
+        const scoreSpan = document.getElementById('preview-apetite-score');
+        
+        if (previewDiv) {
+            let corPreview = '';
+            if (score <= 3) corPreview = '#d4edda';
+            else if (score <= 7) corPreview = '#fff3cd';
+            else if (score <= 11) corPreview = '#ffe5d0';
+            else corPreview = '#f8d7da';
+            
+            previewDiv.style.backgroundColor = corPreview;
+            previewDiv.innerHTML = `<strong>Score do Apetite:</strong> ${score} (${levelText})`;
+        }
     }
 
     // Recuperar riscos salvos ao carregar a seção 4
@@ -5390,9 +5579,13 @@
         }
     });
 
-    // Atualizar preview de score quando impacto ou probabilidade mudarem
+    // ⭐ EVENT LISTENERS PARA O RISCO BRUTO
     document.getElementById('modal-impacto')?.addEventListener('change', atualizarPreviewScore);
     document.getElementById('modal-probabilidade')?.addEventListener('change', atualizarPreviewScore);
+    
+    // ⭐ EVENT LISTENERS PARA O APETITE (RISCO RESIDUAL)
+    document.getElementById('apetite_impacto')?.addEventListener('change', atualizarPreviewApetite);
+    document.getElementById('apetite_probabilidade')?.addEventListener('change', atualizarPreviewApetite);
 
     // Botão salvar todos os riscos (backup)
     const btnSalvarTodosRiscos = document.getElementById('btn-salvar-riscos');
@@ -5657,6 +5850,90 @@
         modalVisualizar.addEventListener('click', (e) => {
             if (e.target === modalVisualizar) fecharModalVisualizar();
         });
+    }
+
+    // ===== FECHAR MODAL DE VISUALIZAÇÃO DE RISCO =====
+    function fecharModalVisualizarRisco() {
+        console.log('🔴 Fechando modal de visualização...');
+        
+        const modal = document.getElementById('modal-visualizar-risco');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            modal.style.opacity = '0';
+            modal.classList.remove('visible');
+            console.log('✅ Modal fechado');
+        }
+        
+        // Remover overlay de fallback se existir
+        const overlays = document.querySelectorAll('div[style*="2147483646"]');
+        overlays.forEach(el => {
+            if (el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+    }
+
+    // ===== CONFIGURAR EVENT LISTENERS DO MODAL =====
+    function configurarEventListenersModalVisualizar() {
+        console.log('🔧 Configurando event listeners do modal de visualização...');
+        
+        // Botão X (no header)
+        const btnClose = document.getElementById('btn-fechar-visualizar-modal');
+        if (btnClose) {
+            // Remover listeners antigos para evitar duplicação
+            const newBtn = btnClose.cloneNode(true);
+            btnClose.parentNode.replaceChild(newBtn, btnClose);
+            newBtn.addEventListener('click', fecharModalVisualizarRisco);
+            console.log('✅ Botão X configurado');
+        } else {
+            console.warn('⚠️ Botão btn-fechar-visualizar-modal não encontrado');
+        }
+        
+        // Botão Fechar (no footer)
+        const btnFooter = document.getElementById('btn-fechar-visualizar');
+        if (btnFooter) {
+            const newBtn = btnFooter.cloneNode(true);
+            btnFooter.parentNode.replaceChild(newBtn, btnFooter);
+            newBtn.addEventListener('click', fecharModalVisualizarRisco);
+            console.log('✅ Botão Fechar configurado');
+        } else {
+            console.warn('⚠️ Botão btn-fechar-visualizar não encontrado');
+        }
+        
+        // Clicar fora do modal (no overlay)
+        const modal = document.getElementById('modal-visualizar-risco');
+        if (modal) {
+            // Remover listener antigo
+            const newModal = modal.cloneNode(true);
+            modal.parentNode.replaceChild(newModal, modal);
+            newModal.addEventListener('click', function(e) {
+                // Fechar apenas se clicou no overlay (fora do conteúdo)
+                if (e.target === this) {
+                    fecharModalVisualizarRisco();
+                }
+            });
+            console.log('✅ Evento de clique fora configurado');
+        }
+    }
+
+    // Chamar após o DOM carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        configurarEventListenersModalVisualizar();
+        
+        // Também chamar novamente após qualquer renderização do kanban
+        // (pois o modal pode ser recriado)
+        setTimeout(configurarEventListenersModalVisualizar, 500);
+    });
+
+    // ===== FUNÇÃO PARA FECHAR O MODAL =====
+    function fecharModalRisco() {
+        const modal = document.getElementById('modal-visualizar-risco');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('visible');
+            console.log('✅ Modal fechado');
+        }
     }
 
     // Eventos do modal de visualização do processo
@@ -6094,6 +6371,17 @@
                                         <span class="detalhe-label">Probabilidade</span>
                                         <span class="detalhe-value">${risco.probabilidade || 'Médio'}</span>
                                     </div>
+                                    
+                                    <!-- ⭐ NOVOS CAMPOS: Apetite -->
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Apetite Impacto</span>
+                                        <span class="detalhe-value">${risco.apetite_impacto || 'Médio'}</span>
+                                    </div>
+                                    <div class="detalhe">
+                                        <span class="detalhe-label">Apetite Probabilidade</span>
+                                        <span class="detalhe-value">${risco.apetite_probabilidade || 'Médio'}</span>
+                                    </div>
+                                    
                                     ${risco.categorias && risco.categorias.length ? `
                                     <div class="detalhe">
                                         <span class="detalhe-label">Categorias</span>
@@ -6150,5 +6438,15 @@
         sessionStorage.removeItem('detalhes_temp');
         sessionStorage.removeItem('etapa_atual');
     }
+
+    // ===== FECHAR COM TECLA ESC =====
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modal-visualizar-risco');
+            if (modal && modal.style.display === 'flex') {
+                fecharModalVisualizarRisco();
+            }
+        }
+    });
 </script>
 {% endblock %}
