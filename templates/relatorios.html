@@ -535,16 +535,21 @@
                 data.areas.forEach(area => {
                     const option = document.createElement('option');
                     option.value = area.id;
-                    option.textContent = area.nome;
+                    
+                    // ⭐ A API JÁ RETORNA O NOME FORMATADO
+                    // Então podemos usar diretamente area.nome
+                    option.textContent = area.nome;  // ← JÁ VEM COM UNIDADE
                     selectArea.appendChild(option);
                 });
                 selectArea.disabled = false;
             } else {
                 selectArea.innerHTML = '<option value="">Erro ao carregar áreas</option>';
+                selectArea.disabled = true;
             }
         } catch (error) {
             console.error('Erro:', error);
             selectArea.innerHTML = '<option value="">Erro ao carregar áreas</option>';
+            selectArea.disabled = true;
         }
     }
 

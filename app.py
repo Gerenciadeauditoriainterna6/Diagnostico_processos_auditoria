@@ -580,7 +580,7 @@ def detalhamento():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     
-    from modules.execucao.areas import carregar_areas_banco
+    from logic import carregar_areas_banco
     areas = carregar_areas_banco()
     usuario_perfil = session.get('usuario_perfil', 'auditor')
     
@@ -3370,8 +3370,9 @@ def api_relatorios_areas():
 
     try:
         with engine.connect() as conn:
+            # ⭐ ADICIONAR loc_unidade NO SELECT
             query = text("""
-                SELECT id_area, nome_area, gestor
+                SELECT id_area, nome_area, gestor, loc_unidade
                 FROM informacoes_area
                 WHERE status = 'Ativo'
                 ORDER BY nome_area
@@ -3382,10 +3383,23 @@ def api_relatorios_areas():
             areas = []
 
             for row in result:
+                id_area = row[0]
+                nome_area = row[1]
+                gestor = row[2] or 'Não informado'
+                unidade = row[3] if len(row) > 3 and row[3] else ''  # ⭐ PEGAR UNIDADE
+                
+                # ⭐ FORMATAR NOME COM UNIDADE
+                if unidade and unidade.strip():
+                    nome_exibicao = f"{nome_area} - {unidade}"
+                else:
+                    nome_exibicao = nome_area
+
                 areas.append({
-                    'id': row[0],
-                    'nome': row[1],
-                    'gestor': row[2] or 'Não informado'
+                    'id': id_area,
+                    'nome': nome_exibicao,  # ← NOME FORMATADO
+                    'nome_original': nome_area,  # ← OPCIONAL (para referência)
+                    'gestor': gestor,
+                    'unidade': unidade  # ← UNIDADE SEPARADA (opcional)
                 })
 
             return jsonify({'success': True, 'areas': areas})
