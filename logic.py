@@ -3495,6 +3495,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     from database import engine
     from sqlalchemy import text
     from datetime import datetime
+    from zoneinfo import ZoneInfo
     from logic import get_estilo_risco
     from PyPDF2 import PdfReader
     from PIL import Image as PILImage
@@ -3502,6 +3503,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     import copy
     
     buffer = io.BytesIO()
+
+    TZ_BRASILIA = ZoneInfo('America/Sao_Paulo')
     
     # Definir orientação da página
     if orientacao.upper() == "PAISAGEM":
@@ -3574,7 +3577,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
     story.append(Paragraph(f"Área: {area_nome}", normal_style))
     story.append(Paragraph(f"Gestor Responsável: {gestor} - {cargo}", normal_style))
-    story.append(Paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
+    story.append(Paragraph(f"Data de Geração: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
     # ===== BUSCAR PROCESSOS =====
