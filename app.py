@@ -4014,7 +4014,7 @@ def api_analises_criticas_por_processo():
                     'sugestao_sera_implantada': row[8],
                     'plano_acao': row[9] or '',
                     'responsavel_implantacao': row[10] or '',
-                    'data_inicio_implantacao': row[11].strftime('%Y-%m-%d') if row[11] else None,
+                    'data_inicio_prevista': row[11].strftime('%Y-%m-%d') if row[11] else None,
                     'data_conclusao_prevista': row[12].strftime('%Y-%m-%d') if row[12] else None,
                     'anexo_nome': row[13] or '',
                     'efetivamente_implantada': row[14] if row[14] is not None else None,
@@ -4094,7 +4094,7 @@ def api_analises_auditor_por_processo():
                     'sugestao_sera_implantada': row[6],
                     'plano_acao': row[7] or '',
                     'responsavel_implantacao': row[8] or '',
-                    'data_inicio_implantacao': row[9].strftime('%Y-%m-%d') if row[9] else None,  # ← data_inicio_prevista
+                    'data_inicio_prevista': row[9].strftime('%Y-%m-%d') if row[9] else None,  # ← data_inicio_prevista
                     'data_conclusao_prevista': row[10].strftime('%Y-%m-%d') if row[10] else None,
                     'anexo_nome': row[11] or '',
                     'efetivamente_implantada': row[12] if len(row) > 12 else None,
@@ -4137,7 +4137,7 @@ def api_analise_auditor_atualizar(analise_id):
         with engine.connect() as conn:
             # Buscar dados atuais para manter o anexo se não for alterado
             result_current = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
                 WHERE id = :id
             """), {'id': analise_id})
@@ -4177,9 +4177,9 @@ def api_analise_auditor_atualizar(analise_id):
                     sugestao_sera_implantada = :sugestao_sera_implantada,
                     plano_acao = :plano_acao,
                     responsavel_implantacao = :responsavel_implantacao,
-                    data_inicio_implantacao = :data_inicio_implantacao,
+                    data_inicio_prevista = :data_inicio_prevista,
                     data_conclusao_prevista = :data_conclusao_prevista,
-                    anexo_validador = :anexo_validador,
+                    anexo_base64 = :anexo_base64,
                     anexo_nome = :anexo_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo = 'auditor'
@@ -4195,9 +4195,9 @@ def api_analise_auditor_atualizar(analise_id):
                 'sugestao_sera_implantada': data.get('sugestao_sera_implantada'),
                 'plano_acao': data.get('plano_acao', ''),
                 'responsavel_implantacao': data.get('responsavel_implantacao', ''),
-                'data_inicio_implantacao': data.get('data_inicio_implantacao'),
+                'data_inicio_prevista': data.get('data_inicio_prevista'),
                 'data_conclusao_prevista': data.get('data_conclusao_prevista'),
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome_final
             })
             conn.commit()
@@ -4263,7 +4263,7 @@ def api_analise_auditor_salvar():
     sugestao_sera_implantada = data.get('sugestao_sera_implantada')
     plano_acao = data.get('plano_acao', '')
     responsavel_implantacao = data.get('responsavel_implantacao', '')
-    data_inicio_implantacao = data.get('data_inicio_implantacao')
+    data_inicio_prevista = data.get('data_inicio_prevista')
     data_conclusao_prevista = data.get('data_conclusao_prevista')
     
     # Anexo (se veio)
@@ -4300,16 +4300,16 @@ def api_analise_auditor_salvar():
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
                     sugestao_sera_implantada, plano_acao, responsavel_implantacao,
-                    data_inicio_implantacao, data_conclusao_prevista,
-                    anexo_validador, anexo_nome,
+                    data_inicio_prevista, data_conclusao_prevista,
+                    anexo_base64, anexo_nome,
                     created_at, updated_at
                 ) VALUES (
                     :processo_id, NULL, 'auditor', 'geral',
                     :analise_critica, :sugestao_melhoria,
                     :necessidade_implantacao, :ganho_previsto, :observacoes,
                     :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
-                    :data_inicio_implantacao, :data_conclusao_prevista,
-                    :anexo_validador, :anexo_nome,
+                    :data_inicio_prevista, :data_conclusao_prevista,
+                    :anexo_base64, :anexo_nome,
                     NOW(), NOW()
                 )
                 RETURNING id
@@ -4325,9 +4325,9 @@ def api_analise_auditor_salvar():
                 'sugestao_sera_implantada': sugestao_sera_implantada,
                 'plano_acao': plano_acao,
                 'responsavel_implantacao': responsavel_implantacao,
-                'data_inicio_implantacao': data_inicio_implantacao,
+                'data_inicio_prevista': data_inicio_prevista,
                 'data_conclusao_prevista': data_conclusao_prevista,
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
@@ -4345,34 +4345,68 @@ def api_analise_auditor_salvar():
     
 @app.route('/api/analise-auditor/<int:analise_id>/anexo')
 def api_analise_auditor_anexo(analise_id):
-    """Baixa o anexo PDF de uma análise do auditor"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
-    from flask import make_response, send_file
+    from flask import send_file
     import io
+    import base64
+    import binascii
     
     try:
         with engine.connect() as conn:
-            result = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+            # ⭐ USAR CONEXÃO BRUTA PARA PEGAR OS BYTES CORRETAMENTE
+            raw_conn = conn.connection
+            cursor = raw_conn.cursor()
+            
+            cursor.execute("""
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
-                WHERE id = :id AND tipo = 'auditor'
-            """), {'id': analise_id})
-            row = result.fetchone()
+                WHERE id = %s AND tipo = 'auditor'
+            """, (analise_id,))
+            
+            row = cursor.fetchone()
+            cursor.close()
             
             if not row or not row[0]:
                 return jsonify({'error': 'Arquivo não encontrado'}), 404
             
-            # Converter memoryview para bytes
-            anexo_bytes = bytes(row[0]) if hasattr(row[0], '__iter__') else row[0]
+            # ⭐ O DADO JÁ VEM COMO BYTES DO psycopg2
+            anexo_bytes = row[0]
             anexo_nome = row[1] or f'anexo_analise_{analise_id}.pdf'
             
-            print(f"📎 Baixando anexo: {anexo_nome}, tipo: {type(anexo_bytes)}, tamanho: {len(anexo_bytes)} bytes")
+            # Verificar se é bytes
+            if not isinstance(anexo_bytes, bytes):
+                # Se veio como string hexadecimal, converter
+                if isinstance(anexo_bytes, str):
+                    # Remover '\x' se existir
+                    hex_str = anexo_bytes.replace('\\x', '')
+                    anexo_bytes = bytes.fromhex(hex_str)
+                else:
+                    try:
+                        anexo_bytes = bytes(anexo_bytes)
+                    except:
+                        return jsonify({'error': 'Formato de arquivo inválido'}), 400
             
-            # Usar send_file com BytesIO
+            # Verificar se é um PDF válido
+            if len(anexo_bytes) > 4:
+                if anexo_bytes[:4] != b'%PDF':
+                    print(f"⚠️ Primeiros bytes: {anexo_bytes[:10]}")
+                    # Não é PDF, pode ser que os dados ainda estejam em Base64
+                    try:
+                        # Tentar decodificar como Base64
+                        anexo_bytes = base64.b64decode(anexo_bytes)
+                        print(f"✅ Decodificado Base64, tamanho: {len(anexo_bytes)}")
+                    except:
+                        pass
+            
+            if len(anexo_bytes) < 100:
+                return jsonify({'error': 'Arquivo muito pequeno (corrompido)'}), 400
+            
+            print(f"📎 Arquivo: {anexo_nome}, tamanho: {len(anexo_bytes)} bytes")
+            
             return send_file(
                 io.BytesIO(anexo_bytes),
                 mimetype='application/pdf',
@@ -4381,7 +4415,7 @@ def api_analise_auditor_anexo(analise_id):
             )
             
     except Exception as e:
-        print(f"❌ Erro ao baixar anexo: {e}")
+        print(f"❌ Erro: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -4749,7 +4783,7 @@ def api_analise_auditado_salvar():
     sugestao_sera_implantada = data.get('sugestao_sera_implantada')
     plano_acao = data.get('plano_acao', '')
     responsavel_implantacao = data.get('responsavel_implantacao', '')
-    data_inicio_implantacao = data.get('data_inicio_implantacao')
+    data_inicio_prevista = data.get('data_inicio_prevista')
     data_conclusao_prevista = data.get('data_conclusao_prevista')
     
     # Anexo
@@ -4791,16 +4825,16 @@ def api_analise_auditado_salvar():
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
                     sugestao_sera_implantada, plano_acao, responsavel_implantacao,
-                    data_inicio_implantacao, data_conclusao_prevista,
-                    anexo_validador, anexo_nome,
+                    data_inicio_prevista, data_conclusao_prevista,
+                    anexo_base64, anexo_nome,
                     created_at, updated_at
                 ) VALUES (
                     :processo_id, :etapa_id, 'auditado', :categoria,
                     :analise_critica, :sugestao_melhoria,
                     :necessidade_implantacao, :ganho_previsto, :observacoes,
                     :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
-                    :data_inicio_implantacao, :data_conclusao_prevista,
-                    :anexo_validador, :anexo_nome,
+                    :data_inicio_prevista, :data_conclusao_prevista,
+                    :anexo_base64, :anexo_nome,
                     NOW(), NOW()
                 )
                 RETURNING id
@@ -4818,9 +4852,9 @@ def api_analise_auditado_salvar():
                 'sugestao_sera_implantada': sugestao_sera_implantada,
                 'plano_acao': plano_acao,
                 'responsavel_implantacao': responsavel_implantacao,
-                'data_inicio_implantacao': data_inicio_implantacao,
+                'data_inicio_prevista': data_inicio_prevista,
                 'data_conclusao_prevista': data_conclusao_prevista,
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
@@ -4857,7 +4891,7 @@ def api_analise_auditado_atualizar(analise_id):
         with engine.connect() as conn:
             # Buscar dados atuais para manter o anexo se não for alterado
             result_current = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
                 WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
@@ -4891,9 +4925,9 @@ def api_analise_auditado_atualizar(analise_id):
                     sugestao_sera_implantada = :sugestao_sera_implantada,
                     plano_acao = :plano_acao,
                     responsavel_implantacao = :responsavel_implantacao,
-                    data_inicio_implantacao = :data_inicio_implantacao,
+                    data_inicio_prevista = :data_inicio_prevista,
                     data_conclusao_prevista = :data_conclusao_prevista,
-                    anexo_validador = :anexo_validador,
+                    anexo_base64 = :anexo_base64,
                     anexo_nome = :anexo_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo = 'auditado'
@@ -4909,9 +4943,9 @@ def api_analise_auditado_atualizar(analise_id):
                 'sugestao_sera_implantada': data.get('sugestao_sera_implantada'),
                 'plano_acao': data.get('plano_acao', ''),
                 'responsavel_implantacao': data.get('responsavel_implantacao', ''),
-                'data_inicio_implantacao': data.get('data_inicio_implantacao'),
+                'data_inicio_prevista': data.get('data_inicio_prevista'),
                 'data_conclusao_prevista': data.get('data_conclusao_prevista'),
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome_final
             })
             conn.commit()
@@ -4941,7 +4975,7 @@ def api_analise_auditado_anexo(analise_id):
     try:
         with engine.connect() as conn:
             result = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
                 WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
