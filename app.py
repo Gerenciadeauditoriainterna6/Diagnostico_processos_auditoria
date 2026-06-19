@@ -1483,12 +1483,7 @@ def api_processo_riscos(processo_id):
                 causas_list = causas_str.split(',') if causas_str else []
                 
                 # Formatar data
-                prazo = ''
-                if len(row) > 11 and row[11]:
-                    if hasattr(row[11], 'strftime'):
-                        prazo = row[11].strftime('%Y-%m-%d')
-                    else:
-                        prazo = str(row[11])
+                prazo = row[11] if len(row) > 11 and row[11] else ''
                 
                 risco = {
                     'id': row[0],
@@ -1578,12 +1573,7 @@ def api_processo_dados(processo_id):
                 categoria_causa = r[8].split(',') if r[8] else []
                 
                 # Converter data
-                prazo = ''
-                if r[11]:
-                    if hasattr(r[11], 'strftime'):
-                        prazo = r[11].strftime('%Y-%m-%d')
-                    elif isinstance(r[11], str):
-                        prazo = r[11]
+                prazo = r[11] if r[11] else ''
                 
                 riscos.append({
                     'id': r[0],

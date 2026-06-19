@@ -143,7 +143,7 @@
                     </div>
 
                     <div class="vis-item">
-                        <div class="vis-label"><i class="fas fa-calendar-alt"></i> Prazo de implantação</div>
+                        <div class="vis-label"><i class="fas fa-calendar-alt"></i> Prazo para implantação</div>
                         <div class="vis-value" id="vis-prazo-implantacao">-</div>
                     </div> 
                 </div>
@@ -583,7 +583,7 @@
                                 <!-- Card descritivo das categorias -->
                                 <div id="info-categorias" class="info-card" style="display: none; margin-bottom: 15px;">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <strong>Descrição das Categorias</strong>
+                                        <strong>Descrição das Categorias de risco</strong>
                                         <button type="button" id="fechar-info-categorias" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
                                     </div>
                                     <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
@@ -632,9 +632,32 @@
                                 <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="Pelo motivo de..."></textarea>
                             </div>
 
+                            <!-- ⭐ ADICIONAR ESTE ÍCONE ANTES DO CARD -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
+                                    <span id="help-categorias-causa-icon" class="help-icon-categorias" style="cursor: pointer;">i</span>
+                                </div>
+                            </div>
+
+                            <!-- Card descritivo das categorias de causa -->
+                            <div id="info-categorias-causa" class="info-card" style="display: none; margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong>Descrição das Categorias de causa</strong>
+                                    <button type="button" id="fechar-info-categorias-causa" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+                                </div>
+                                <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                                    <li><strong>Falha Operacional:</strong> Refere-se decorrente de processos internos inadequados, erros humanos ou problemas em sistemas e infraestrutura.</li>
+                                    <li><strong>Falta de Controle:</strong> Diretamente ligada à ausência ou fragilidade de mecanismos que monitorem e mitiguem desvios.</li>
+                                    <li><strong>Não Conformidade:</strong> Foca na quebra de diretrizes obrigatórias. Ou seja, no descumprimento de leis externas, regulamentações setoriais ou políticas internas.</li>
+                                    <li><strong>Problemas Financeiros:</strong> Associados a todo e qualquer compromisso financeiro.</li>
+                                    <li><strong>Fenômeno Natural:</strong> Processos a eventos da natureza que possuem magnitude suficiente para causar interrupções ou danos físicos.</li>
+                                    <li><strong>Fraude:</strong> movida pela vontade consciente de enganar ou burlar normas para benefício próprio ou de terceiros.</li>
+                                </ul>
+                            </div>
+
                             <!-- Categoria de Causa -->
                             <div class="form-group">
-                                <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
                                 <div id="causa-checkboxes" class="checkbox-grid">
                                     <label><input type="checkbox" value="Falha Operacional"> Falha Operacional</label>
                                     <label><input type="checkbox" value="Falta de Controle"> Falta de Controle</label>
@@ -802,11 +825,10 @@
                                 <textarea id="modal-desc-tratamento" class="form-control" rows="2" placeholder="Descreva como o tratamento será aplicado..."></textarea>
                             </div>
 
-                            <!-- Prazo de implantação -->
+                            <!-- Prazo para implantação -->
                             <div class="form-group">
-                                <label><i class="fas fa-calendar-alt"></i> Prazo de implantação</label>
-                                <input type="date" id="modal-prazo-implantacao" class="form-control">
-                                <small class="text-muted">Data prevista para implantação do tratamento</small>
+                                <label><i class="fas fa-calendar-alt"></i> Prazo para implantação</label>
+                                <input type="text" id="modal-prazo-implantacao" class="form-control">
                             </div>
                         </div>
 
@@ -2319,7 +2341,8 @@
 
     /* Ícones de ajuda reduzidos */
     #help-categorias-icon,
-    #help-criterios-icon {
+    #help-criterios-icon,
+    #help-categorias-causa-icon {
         width: 14px !important;
         height: 14px !important;
         font-size: 10px !important;
@@ -2328,7 +2351,8 @@
 
     /* Cards informativos com fundo azul claro e borda azul */
     #info-categorias,
-    #info-criterios {
+    #info-criterios,
+    #info-categorias-causa {
         background: #e8f4f8 !important;
         border-left: 4px solid #0b5b99 !important;
         border-radius: 8px;
@@ -3273,7 +3297,7 @@
             document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
             document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
             document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
-            document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
+            document.getElementById('vis-prazo-implantacao').textContent = risco.prazo_implantacao || '-';
             
             // ⭐ NOVOS CAMPOS
             document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || 'Médio';
@@ -3482,7 +3506,7 @@
             // Se não tem área selecionada, não carrega nada
             if (!areaId) {
                 if (tabelaProcessosContainer) {
-                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área para visualizar os processos.</div>';
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos cadastrados ou adicionar um novo processo." </div>';
                 }
                 return;
             }
@@ -5366,15 +5390,50 @@
     }
 
     // Evento para mostrar/esconder card de categorias
+    // Evento para mostrar/esconder card de categorias
     document.addEventListener('DOMContentLoaded', function() {
-        // ===== Categorias do Risco =====
+        // =============================================
+        // 1. Categorias do Risco
+        // =============================================
         const helpCat = document.getElementById('help-categorias-icon');
         const infoCat = document.getElementById('info-categorias');
         const closeCat = document.getElementById('fechar-info-categorias');
-        // ====== Campo "Outra" Categoria ======
+        
+        if (helpCat && infoCat) {
+            helpCat.addEventListener('click', () => {
+                infoCat.style.display = infoCat.style.display === 'none' ? 'block' : 'none';
+            });
+            if (closeCat) {
+                closeCat.addEventListener('click', () => {
+                    infoCat.style.display = 'none';
+                });
+            }
+        }
+
+        // =============================================
+        // 2. ⭐ NOVO: Categorias de Causa
+        // =============================================
+        const helpCatCausa = document.getElementById('help-categorias-causa-icon');
+        const infoCatCausa = document.getElementById('info-categorias-causa');
+        const closeCatCausa = document.getElementById('fechar-info-categorias-causa');
+
+        if (helpCatCausa && infoCatCausa) {
+            helpCatCausa.addEventListener('click', () => {
+                infoCatCausa.style.display = infoCatCausa.style.display === 'none' ? 'block' : 'none';
+            });
+            if (closeCatCausa) {
+                closeCatCausa.addEventListener('click', () => {
+                    infoCatCausa.style.display = 'none';
+                });
+            }
+        }
+
+        // =============================================
+        // 3. Campo "Outra" Categoria
+        // =============================================
         const checkOutra = document.getElementById('check-outra-categoria');
         const containerOutra = document.getElementById('outra-categoria-container');
-        const textoOutra = document.getElementById('outra-categoria-texto')
+        const textoOutra = document.getElementById('outra-categoria-texto');
 
         if (checkOutra && containerOutra) {
             checkOutra.addEventListener('change', function() {
@@ -5388,20 +5447,9 @@
             });
         }
 
-        if (helpCat && infoCat) {
-            helpCat.addEventListener('click', () => {
-                infoCat.style.display = infoCat.style.display === 'none' ? 'block' : 'none';
-            });
-            if (closeCat) {
-                closeCat.addEventListener('click', () => {
-                    infoCat.style.display = 'none';
-                });
-            }
-        }
-
-        restaurarFiltros();
-
-        // ===== Critérios de Avaliação =====
+        // =============================================
+        // 4. Critérios de Avaliação
+        // =============================================
         const helpCriterios = document.getElementById('help-criterios-icon');
         const infoCriterios = document.getElementById('info-criterios');
         const closeCriterios = document.getElementById('fechar-info-criterios');
@@ -5417,11 +5465,51 @@
             }
         }
 
+        // =============================================
+        // 5. ⭐ FECHAR CARDS AO CLICAR FORA
+        // =============================================
+        document.addEventListener('click', function(e) {
+            // Fechar categorias de risco
+            const infoCat = document.getElementById('info-categorias');
+            const helpCat = document.getElementById('help-categorias-icon');
+            if (infoCat && helpCat) {
+                if (!infoCat.contains(e.target) && !helpCat.contains(e.target)) {
+                    infoCat.style.display = 'none';
+                }
+            }
+
+            // Fechar categorias de causa
+            const infoCatCausa = document.getElementById('info-categorias-causa');
+            const helpCatCausa = document.getElementById('help-categorias-causa-icon');
+            if (infoCatCausa && helpCatCausa) {
+                if (!infoCatCausa.contains(e.target) && !helpCatCausa.contains(e.target)) {
+                    infoCatCausa.style.display = 'none';
+                }
+            }
+
+            // Fechar critérios de avaliação
+            const infoCriterios = document.getElementById('info-criterios');
+            const helpCriterios = document.getElementById('help-criterios-icon');
+            if (infoCriterios && helpCriterios) {
+                if (!infoCriterios.contains(e.target) && !helpCriterios.contains(e.target)) {
+                    infoCriterios.style.display = 'none';
+                }
+            }
+        });
+
+        // =============================================
+        // 6. Restaurar Filtros
+        // =============================================
+        restaurarFiltros();
+
+        // =============================================
+        // 7. Habilitar Navegação entre Etapas
+        // =============================================
         habilitarNavegacaoEtapas();
         
-        // ===== NOVOS EVENT LISTENERS PARA ETAPA 5 =====
-        
-        // Botão voltar da etapa 5 para etapa 4
+        // =============================================
+        // 8. Event Listeners da Etapa 5
+        // =============================================
         const btnVoltarEtapa4 = document.getElementById('btn-voltar-etapa4');
         if (btnVoltarEtapa4) {
             btnVoltarEtapa4.addEventListener('click', () => {
@@ -5429,13 +5517,14 @@
             });
         }
         
-        // Botão finalizar processo
         const btnFinalizar = document.getElementById('btn-finalizar-processo');
         if (btnFinalizar) {
             btnFinalizar.addEventListener('click', () => {
                 finalizarWizard();
             });
         }
+
+        console.log('✅ DOM carregado - Todos os cards informativos configurados!');
     });
 
     function visualizarRisco(idx) {
@@ -5455,7 +5544,7 @@
         document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
         document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
         document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
-        document.getElementById('vis-prazo-implantacao').textContent = formatarDataParaExibicao(risco.prazo_implantacao);
+        document.getElementById('vis-prazo-implantacao').textContent = risco.prazo_implatacao || '-';
         
         // ⭐ NOVOS CAMPOS: Apetite
         document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || 'Médio';
@@ -6397,7 +6486,7 @@
                                     ${risco.prazo_implantacao ? `
                                     <div class="detalhe">
                                         <span class="detalhe-label">Prazo</span>
-                                        <span class="detalhe-value">${formatarDataParaExibicao(risco.prazo_implantacao)}</span>
+                                        <span class="detalhe-value">${escapeHtml(risco.prazo_implantacao)}</span>
                                     </div>
                                     ` : ''}
                                 </div>
