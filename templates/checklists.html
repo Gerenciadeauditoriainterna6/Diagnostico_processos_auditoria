@@ -2500,6 +2500,8 @@
 
     async function carregarAreas() {
         const select = document.getElementById('area_select');
+        if (!select) return;
+        
         try {
             const response = await fetch('/api/areas');
             const areas = await response.json();
@@ -2507,10 +2509,18 @@
             areas.forEach(area => { 
                 const option = document.createElement('option'); 
                 option.value = area.id_area; 
-                option.textContent = area.nome_area; 
+                
+                // ⭐ FORMATAR COM UNIDADE
+                let nomeExibicao = area.nome_area;
+                if (area.loc_unidade && area.loc_unidade.trim()) {
+                    nomeExibicao = `${area.nome_area} - ${area.loc_unidade}`;
+                }
+                option.textContent = nomeExibicao;
                 select.appendChild(option); 
             });
-        } catch (error) { console.error(error); }
+        } catch (error) { 
+            console.error(error); 
+        }
     }
 
     async function carregarAuditorias(areaId) {

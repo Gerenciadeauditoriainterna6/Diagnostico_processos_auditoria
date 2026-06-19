@@ -12,6 +12,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from logic import validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria
+
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
 # ============================================================
@@ -123,6 +125,18 @@ def configurar_auditoria():
             print(f"✅ [AUDITORIA] Usuário configurado: {usuario_id} - {usuario_nome} - {ip_origem}")
     except Exception as e:
         print(f"⚠️ [AUDITORIA] Erro: {e}")
+
+@app.route('/api/verificar-perfil')
+def verificar_perfil():
+    """Endpoint para verificar o perfil do usuário atual"""
+    try:
+        if 'usuario_id' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        perfil = session.get('usuario_perfil', 'usuario')
+        return jsonify({'perfil': perfil})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 50
 
 
 # ============================================================
@@ -580,7 +594,7 @@ def detalhamento():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     
-    from modules.execucao.areas import carregar_areas_banco
+    from logic import carregar_areas_banco
     areas = carregar_areas_banco()
     usuario_perfil = session.get('usuario_perfil', 'auditor')
     
@@ -1037,6 +1051,177 @@ def api_area_funcionarios_para_select(area_id):
         funcionarios = [{'id': row[0], 'nome': row[1], 'cargo': row[2] or ''} for row in result]
     
     return jsonify(funcionarios)
+
+@app.route('/api/area/<int:area_id>/upload-organograma', methods=['POST'])
+def api_upload_organograma(area_id):
+    """Faz upload do organograma para o Supabase Storage"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import base64
+    import os
+    
+    data = request.json
+    arquivo_base64 = data.get('arquivo_base64')
+    nome_arquivo = data.get('nome_arquivo')
+    tipo_arquivo = data.get('tipo_arquivo')
+    
+    if not arquivo_base64:
+        return jsonify({'success': False, 'error': 'Arquivo é obrigatório'}), 400
+    
+    try:
+        # 1. Decodificar Base64
+        if ',' in arquivo_base64:
+            arquivo_base64 = arquivo_base64.split(',')[1]
+        arquivo_bytes = base64.b64decode(arquivo_base64)
+        
+        # 2. Validar tamanho (5MB)
+        if len(arquivo_bytes) > 5 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 5MB'}), 400
+        
+        # 3. Conectar ao Supabase
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # 4. Gerar caminho único
+        extensao = nome_arquivo.split('.')[-1].lower()
+        caminho = f"area_{area_id}/organograma.{extensao}"
+        
+        # 5. Fazer upload
+        supabase.storage.from_('organogramas').upload(
+            path=caminho,
+            file=arquivo_bytes,
+            file_options={"content-type": tipo_arquivo}
+        )
+        
+        # 6. Obter URL pública
+        public_url = supabase.storage.from_('organogramas').get_public_url(caminho)
+        
+        # 7. Salvar no banco
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE informacoes_area 
+                SET organograma_url = :url,
+                    organograma_nome = :nome
+                WHERE id_area = :area_id
+            """)
+            conn.execute(query, {
+                'url': public_url,
+                'nome': nome_arquivo,
+                'area_id': area_id
+            })
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'url': public_url,
+            'nome': nome_arquivo,
+            'message': 'Organograma salvo com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/area/<int:area_id>/organograma', methods=['GET'])
+def api_buscar_organograma(area_id):
+    """Busca o organograma da área"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT organograma_url, organograma_nome
+                FROM informacoes_area
+                WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({
+                    'success': True,
+                    'tem_organograma': False
+                })
+            
+            return jsonify({
+                'success': True,
+                'tem_organograma': True,
+                'url': result[0],
+                'nome': result[1] or 'Organograma'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/area/<int:area_id>/organograma', methods=['DELETE'])
+def api_remover_organograma(area_id):
+    """Remove o organograma da área"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar URL atual
+            query = text("SELECT organograma_url FROM informacoes_area WHERE id_area = :area_id")
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if result and result[0]:
+                # Remover do Storage
+                supabase_url = os.getenv('SUPABASE_URL')
+                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                supabase = create_client(supabase_url, supabase_key)
+                
+                # Extrair caminho da URL
+                # Exemplo: https://xxx.supabase.co/storage/v1/object/public/organogramas/organogramas/area_1/organograma.pdf
+                if '/organogramas/' in result[0]:
+                    caminho = result[0].split('/organogramas/')[-1]
+                    try:
+                        supabase.storage.from_('organogramas').remove([caminho])
+                        print(f"✅ Arquivo removido do storage: {caminho}")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao remover do storage: {e}")
+            
+            # Limpar banco
+            query = text("""
+                UPDATE informacoes_area 
+                SET organograma_url = NULL,
+                    organograma_nome = NULL
+                WHERE id_area = :area_id
+            """)
+            conn.execute(query, {'area_id': area_id})
+            conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Organograma removido'})
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ====== API - SALVAR INFORMAÇÕES BÁSICAS DO PROCESSO ======
 @app.route('/api/processo/salvar-basico', methods=['POST'])
@@ -1788,23 +1973,47 @@ def api_totais():
 
 @app.route('/api/area/<int:area_id>')
 def api_area_detalhes(area_id):
-    """Retorna detalhes de uma área específica"""
-    from logic import listar_areas
+    """Retorna detalhes de uma área específica (com organograma)"""
+    from database import engine
+    from sqlalchemy import text
     
-    # Buscar TODAS as áreas (ativas e inativas)
-    df = listar_areas(apenas_ativas=False)
-    area = df[df['id_area'] == area_id]
-    
-    if area.empty:
-        return jsonify({}), 404
-    
-    # Converter para dicionário
-    area_dict = area.iloc[0].to_dict()
-    
-    # ⭐ ADICIONAR O CAMPO 'unidade' MApeADO DO 'loc_unidade'
-    area_dict['unidade'] = area_dict.get('loc_unidade', '')
-    
-    return jsonify(area_dict)
+    try:
+        with engine.connect() as conn:
+            # ⭐ BUSCAR DIRETAMENTE COM OS CAMPOS DO ORGANOGRAMA
+            query = text("""
+                SELECT id_area, nome_area, loc_unidade, email, telefone, gestor,
+                       superintendente, diretor, objetivo_area, status,
+                       organograma_url, organograma_nome
+                FROM informacoes_area
+                WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if not result:
+                return jsonify({}), 404
+            
+            # Converter para dicionário
+            area_dict = {
+                'id_area': result[0],
+                'nome_area': result[1],
+                'loc_unidade': result[2],
+                'email': result[3],
+                'telefone': result[4],
+                'gestor': result[5],
+                'superintendente': result[6] or '',
+                'diretor': result[7] or '',
+                'objetivo_area': result[8] or '',
+                'status': result[9],
+                'organograma_url': result[10] or '',  # ⭐
+                'organograma_nome': result[11] or '', # ⭐
+                'unidade': result[2]  # Para compatibilidade
+            }
+            
+            return jsonify(area_dict)
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar área: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/area/<int:area_id>/funcionarios')
 def api_area_funcionarios(area_id):
@@ -1841,12 +2050,77 @@ def api_excluir_area(area_id):
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Falha ao desativar área'}), 400
 
+@app.route('/api/area/<int:area_id>/organograma-url', methods=['GET'])
+def api_organograma_url(area_id):
+    """Retorna URL assinada para o organograma (validade 5 minutos)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    
+    try:
+        with engine.connect() as conn:
+            # ⭐ CORRIGIDO: usar organograma_url (não organograma_caminho)
+            query = text("""
+                SELECT organograma_url, organograma_nome
+                FROM informacoes_area
+                WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'success': False, 'error': 'Organograma não encontrado'}), 404
+            
+            # ⭐ O organograma_url já é o caminho completo
+            # Precisamos extrair apenas o caminho para gerar a URL assinada
+            url_completa = result[0]
+            nome = result[1] or 'organograma'
+            
+            # Extrair o caminho da URL pública
+            # Exemplo: https://xxx.supabase.co/storage/v1/object/public/organogramas/area_4/organograma.png
+            # Caminho: area_4/organograma.png
+            if '/organogramas/' in url_completa:
+                caminho = url_completa.split('/organogramas/')[-1]
+            else:
+                caminho = url_completa
+            
+            print(f"📎 Caminho extraído: {caminho}")
+            
+            # Conectar ao Supabase Storage
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key)
+            
+            # Gerar URL assinada (expira em 300 segundos = 5 minutos)
+            url_assinada = supabase.storage.from_('organogramas').create_signed_url(
+                path=caminho,
+                expires_in=300
+            )
+            
+            return jsonify({
+                'success': True,
+                'url': url_assinada['signedURL'],
+                'nome': nome
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/salvar-area', methods=['POST'])
 def api_salvar_area():
     """Salva uma nova área"""
     from logic import salvar_area
     
     dados = request.json
+    dados['superintendente'] = dados.get('superintendente', '')
+    dados['diretor'] = dados.get('diretor', '')
+
     area_id = salvar_area(dados)
     
     if area_id:
@@ -1862,6 +2136,9 @@ def api_atualizar_area(area_id):
         return jsonify({'success': False, 'error': 'Permissão negada'}), 403
     
     dados = request.json
+    dados['superintendente'] = dados.get('superintendente', '')
+    dados['diretor'] = dados.get('diretor', '')
+
     resultado = atualizar_area(area_id, dados)
     
     if resultado:
@@ -3370,8 +3647,9 @@ def api_relatorios_areas():
 
     try:
         with engine.connect() as conn:
+            # ⭐ ADICIONAR loc_unidade NO SELECT
             query = text("""
-                SELECT id_area, nome_area, gestor
+                SELECT id_area, nome_area, gestor, loc_unidade
                 FROM informacoes_area
                 WHERE status = 'Ativo'
                 ORDER BY nome_area
@@ -3382,10 +3660,23 @@ def api_relatorios_areas():
             areas = []
 
             for row in result:
+                id_area = row[0]
+                nome_area = row[1]
+                gestor = row[2] or 'Não informado'
+                unidade = row[3] if len(row) > 3 and row[3] else ''  # ⭐ PEGAR UNIDADE
+                
+                # ⭐ FORMATAR NOME COM UNIDADE
+                if unidade and unidade.strip():
+                    nome_exibicao = f"{nome_area} - {unidade}"
+                else:
+                    nome_exibicao = nome_area
+
                 areas.append({
-                    'id': row[0],
-                    'nome': row[1],
-                    'gestor': row[2] or 'Não informado'
+                    'id': id_area,
+                    'nome': nome_exibicao,  # ← NOME FORMATADO
+                    'nome_original': nome_area,  # ← OPCIONAL (para referência)
+                    'gestor': gestor,
+                    'unidade': unidade  # ← UNIDADE SEPARADA (opcional)
                 })
 
             return jsonify({'success': True, 'areas': areas})
@@ -3500,88 +3791,76 @@ def api_relatorios_gerar_gerencial():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
+    
 @app.route('/api/relatorios/gerar-parecer', methods=['POST'])
-def api_relatorios_gerar_parecer():
-    """Gera o relatório de Parecer da Auditoria para um processo específico"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    data = request.json
-    print("=" * 50)
-    print("🔍 Dados recebidos na rota:")
-    print(f"   area_id: {data.get('area_id')}")
-    print(f"   auditoria_id: {data.get('auditoria_id')}")
-    print(f"   processo_id: {data.get('processo_id')}")
-    print(f"   orientacao: {data.get('orientacao')}")
-    print("=" * 50)
-    
-    area_id = data.get('area_id')
-    auditoria_id = data.get('auditoria_id')
-    processo_id = data.get('processo_id')
-    orientacao = data.get('orientacao', 'RETRATO')
-    
-    if not area_id or not auditoria_id:
-        return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
-    
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'processo_id é obrigatório para o parecer'}), 400
-    
-    from database import engine
-    from sqlalchemy import text
-    from logic import gerar_relatorio_parecer_auditoria
-    
+def gerar_parecer():
+
+    from flask import Flask, jsonify, request, session, make_response
+    """Endpoint para gerar o parecer da auditoria"""
     try:
-        # Buscar nome da área e gestor
+        # Verificar autenticação
+        if 'usuario_id' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        data = request.get_json()
+        area_id = data.get('area_id')
+        auditoria_id = data.get('auditoria_id')
+        processo_id = data.get('processo_id')
+        orientacao = data.get('orientacao', 'RETRATO')
+        incluir_abr = data.get('incluir_abr', False)  # ⭐ NOVO PARÂMETRO
+        
+        # Verificar permissão para ABR
+        perfil = session.get('usuario_perfil', 'usuario')
+        if incluir_abr and perfil not in ['administrador', 'admin']:
+            return jsonify({'error': 'Apenas administradores podem incluir a seção ABR'}), 403
+        
+        # Buscar dados necessários
         with engine.connect() as conn:
-            query_area = text("""
-                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
+            # Buscar informações da área
+            query_area = text("SELECT id_area, nome_area FROM informacoes_area WHERE id_area = :area_id")
+            area = conn.execute(query_area, {'area_id': area_id}).fetchone()
+            
+            if not area:
+                return jsonify({'error': 'Área não encontrada'}), 404
+            
+            # Buscar gestor
+            query_gestor = text("""
+                SELECT gestor, cargo
+                FROM informacoes_area 
+                WHERE id_area = :area_id
             """)
-            area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
+            gestor_info = conn.execute(query_gestor, {'area_id': area_id}).fetchone()
             
-            if not area_info:
-                return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
+            gestor = gestor_info[0] if gestor_info else 'Não informado'
+            cargo = gestor_info[1] if gestor_info and len(gestor_info) > 1 else 'Não informado'
             
-            area_nome = area_info[0] or 'Área sem nome'
-            gestor = area_info[1] or 'Gestor não informado'
-            cargo = area_info[2] or 'Cargo não informado'
+            usuario_nome = session.get('usuario_nome', 'Auditor')
         
-        # Pegar o nome do usuário da sessão
-        usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Auditor'))
-        
-        print(f"📊 Área: {area_nome}, Gestor: {gestor}, Usuário: {usuario_nome}, Cargo: {cargo}")
-        print(f"📊 Gerando parecer para processo_id: {processo_id}")
-        
-        # Gerar o PDF (passando o processo_id)
+        # ⭐ PASSAR O PARÂMETRO incluir_abr PARA A FUNÇÃO
         pdf_bytes = gerar_relatorio_parecer_auditoria(
             area_id=area_id,
-            area_nome=area_nome,
+            area_nome=area[1],
             gestor=gestor,
             cargo=cargo,
             auditoria_id=auditoria_id,
             processo_id=processo_id,
             usuario_nome=usuario_nome,
-            orientacao=orientacao
+            orientacao=orientacao,
+            incluir_abr=incluir_abr  # ⭐ NOVO PARÂMETRO
         )
         
-        print(f"✅ PDF gerado com sucesso! Tamanho: {len(pdf_bytes)} bytes")
+        # Criar resposta com o PDF
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="parecer_auditoria_processo_{processo_id}.pdf"'
         
-        # Criar nome do arquivo
-        nome_arquivo = f"parecer_auditoria_processo_{processo_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        
-        return send_file(
-            io.BytesIO(pdf_bytes),
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=nome_arquivo
-        )
+        return response
         
     except Exception as e:
-        print(f"❌ Erro ao gerar parecer: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
+        return jsonify({'error': str(e)}), 500
+    
 @app.route('/api/relatorios/download')
 def api_relatorios_download():
     """Faz o download do relatório PDF gerado"""
@@ -4000,7 +4279,7 @@ def api_analises_criticas_por_processo():
                     'sugestao_sera_implantada': row[8],
                     'plano_acao': row[9] or '',
                     'responsavel_implantacao': row[10] or '',
-                    'data_inicio_implantacao': row[11].strftime('%Y-%m-%d') if row[11] else None,
+                    'data_inicio_prevista': row[11].strftime('%Y-%m-%d') if row[11] else None,
                     'data_conclusao_prevista': row[12].strftime('%Y-%m-%d') if row[12] else None,
                     'anexo_nome': row[13] or '',
                     'efetivamente_implantada': row[14] if row[14] is not None else None,
@@ -4080,7 +4359,7 @@ def api_analises_auditor_por_processo():
                     'sugestao_sera_implantada': row[6],
                     'plano_acao': row[7] or '',
                     'responsavel_implantacao': row[8] or '',
-                    'data_inicio_implantacao': row[9].strftime('%Y-%m-%d') if row[9] else None,  # ← data_inicio_prevista
+                    'data_inicio_prevista': row[9].strftime('%Y-%m-%d') if row[9] else None,  # ← data_inicio_prevista
                     'data_conclusao_prevista': row[10].strftime('%Y-%m-%d') if row[10] else None,
                     'anexo_nome': row[11] or '',
                     'efetivamente_implantada': row[12] if len(row) > 12 else None,
@@ -4123,7 +4402,7 @@ def api_analise_auditor_atualizar(analise_id):
         with engine.connect() as conn:
             # Buscar dados atuais para manter o anexo se não for alterado
             result_current = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
                 WHERE id = :id
             """), {'id': analise_id})
@@ -4163,9 +4442,9 @@ def api_analise_auditor_atualizar(analise_id):
                     sugestao_sera_implantada = :sugestao_sera_implantada,
                     plano_acao = :plano_acao,
                     responsavel_implantacao = :responsavel_implantacao,
-                    data_inicio_implantacao = :data_inicio_implantacao,
+                    data_inicio_prevista = :data_inicio_prevista,
                     data_conclusao_prevista = :data_conclusao_prevista,
-                    anexo_validador = :anexo_validador,
+                    anexo_base64 = :anexo_base64,
                     anexo_nome = :anexo_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo = 'auditor'
@@ -4181,9 +4460,9 @@ def api_analise_auditor_atualizar(analise_id):
                 'sugestao_sera_implantada': data.get('sugestao_sera_implantada'),
                 'plano_acao': data.get('plano_acao', ''),
                 'responsavel_implantacao': data.get('responsavel_implantacao', ''),
-                'data_inicio_implantacao': data.get('data_inicio_implantacao'),
+                'data_inicio_prevista': data.get('data_inicio_prevista'),
                 'data_conclusao_prevista': data.get('data_conclusao_prevista'),
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome_final
             })
             conn.commit()
@@ -4249,7 +4528,7 @@ def api_analise_auditor_salvar():
     sugestao_sera_implantada = data.get('sugestao_sera_implantada')
     plano_acao = data.get('plano_acao', '')
     responsavel_implantacao = data.get('responsavel_implantacao', '')
-    data_inicio_implantacao = data.get('data_inicio_implantacao')
+    data_inicio_prevista = data.get('data_inicio_prevista')
     data_conclusao_prevista = data.get('data_conclusao_prevista')
     
     # Anexo (se veio)
@@ -4286,16 +4565,16 @@ def api_analise_auditor_salvar():
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
                     sugestao_sera_implantada, plano_acao, responsavel_implantacao,
-                    data_inicio_implantacao, data_conclusao_prevista,
-                    anexo_validador, anexo_nome,
+                    data_inicio_prevista, data_conclusao_prevista,
+                    anexo_base64, anexo_nome,
                     created_at, updated_at
                 ) VALUES (
                     :processo_id, NULL, 'auditor', 'geral',
                     :analise_critica, :sugestao_melhoria,
                     :necessidade_implantacao, :ganho_previsto, :observacoes,
                     :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
-                    :data_inicio_implantacao, :data_conclusao_prevista,
-                    :anexo_validador, :anexo_nome,
+                    :data_inicio_prevista, :data_conclusao_prevista,
+                    :anexo_base64, :anexo_nome,
                     NOW(), NOW()
                 )
                 RETURNING id
@@ -4311,9 +4590,9 @@ def api_analise_auditor_salvar():
                 'sugestao_sera_implantada': sugestao_sera_implantada,
                 'plano_acao': plano_acao,
                 'responsavel_implantacao': responsavel_implantacao,
-                'data_inicio_implantacao': data_inicio_implantacao,
+                'data_inicio_prevista': data_inicio_prevista,
                 'data_conclusao_prevista': data_conclusao_prevista,
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
@@ -4331,34 +4610,68 @@ def api_analise_auditor_salvar():
     
 @app.route('/api/analise-auditor/<int:analise_id>/anexo')
 def api_analise_auditor_anexo(analise_id):
-    """Baixa o anexo PDF de uma análise do auditor"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
-    from flask import make_response, send_file
+    from flask import send_file
     import io
+    import base64
+    import binascii
     
     try:
         with engine.connect() as conn:
-            result = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+            # ⭐ USAR CONEXÃO BRUTA PARA PEGAR OS BYTES CORRETAMENTE
+            raw_conn = conn.connection
+            cursor = raw_conn.cursor()
+            
+            cursor.execute("""
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
-                WHERE id = :id AND tipo = 'auditor'
-            """), {'id': analise_id})
-            row = result.fetchone()
+                WHERE id = %s AND tipo = 'auditor'
+            """, (analise_id,))
+            
+            row = cursor.fetchone()
+            cursor.close()
             
             if not row or not row[0]:
                 return jsonify({'error': 'Arquivo não encontrado'}), 404
             
-            # Converter memoryview para bytes
-            anexo_bytes = bytes(row[0]) if hasattr(row[0], '__iter__') else row[0]
+            # ⭐ O DADO JÁ VEM COMO BYTES DO psycopg2
+            anexo_bytes = row[0]
             anexo_nome = row[1] or f'anexo_analise_{analise_id}.pdf'
             
-            print(f"📎 Baixando anexo: {anexo_nome}, tipo: {type(anexo_bytes)}, tamanho: {len(anexo_bytes)} bytes")
+            # Verificar se é bytes
+            if not isinstance(anexo_bytes, bytes):
+                # Se veio como string hexadecimal, converter
+                if isinstance(anexo_bytes, str):
+                    # Remover '\x' se existir
+                    hex_str = anexo_bytes.replace('\\x', '')
+                    anexo_bytes = bytes.fromhex(hex_str)
+                else:
+                    try:
+                        anexo_bytes = bytes(anexo_bytes)
+                    except:
+                        return jsonify({'error': 'Formato de arquivo inválido'}), 400
             
-            # Usar send_file com BytesIO
+            # Verificar se é um PDF válido
+            if len(anexo_bytes) > 4:
+                if anexo_bytes[:4] != b'%PDF':
+                    print(f"⚠️ Primeiros bytes: {anexo_bytes[:10]}")
+                    # Não é PDF, pode ser que os dados ainda estejam em Base64
+                    try:
+                        # Tentar decodificar como Base64
+                        anexo_bytes = base64.b64decode(anexo_bytes)
+                        print(f"✅ Decodificado Base64, tamanho: {len(anexo_bytes)}")
+                    except:
+                        pass
+            
+            if len(anexo_bytes) < 100:
+                return jsonify({'error': 'Arquivo muito pequeno (corrompido)'}), 400
+            
+            print(f"📎 Arquivo: {anexo_nome}, tamanho: {len(anexo_bytes)} bytes")
+            
             return send_file(
                 io.BytesIO(anexo_bytes),
                 mimetype='application/pdf',
@@ -4367,7 +4680,7 @@ def api_analise_auditor_anexo(analise_id):
             )
             
     except Exception as e:
-        print(f"❌ Erro ao baixar anexo: {e}")
+        print(f"❌ Erro: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -4735,7 +5048,7 @@ def api_analise_auditado_salvar():
     sugestao_sera_implantada = data.get('sugestao_sera_implantada')
     plano_acao = data.get('plano_acao', '')
     responsavel_implantacao = data.get('responsavel_implantacao', '')
-    data_inicio_implantacao = data.get('data_inicio_implantacao')
+    data_inicio_prevista = data.get('data_inicio_prevista')
     data_conclusao_prevista = data.get('data_conclusao_prevista')
     
     # Anexo
@@ -4777,16 +5090,16 @@ def api_analise_auditado_salvar():
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
                     sugestao_sera_implantada, plano_acao, responsavel_implantacao,
-                    data_inicio_implantacao, data_conclusao_prevista,
-                    anexo_validador, anexo_nome,
+                    data_inicio_prevista, data_conclusao_prevista,
+                    anexo_base64, anexo_nome,
                     created_at, updated_at
                 ) VALUES (
                     :processo_id, :etapa_id, 'auditado', :categoria,
                     :analise_critica, :sugestao_melhoria,
                     :necessidade_implantacao, :ganho_previsto, :observacoes,
                     :sugestao_sera_implantada, :plano_acao, :responsavel_implantacao,
-                    :data_inicio_implantacao, :data_conclusao_prevista,
-                    :anexo_validador, :anexo_nome,
+                    :data_inicio_prevista, :data_conclusao_prevista,
+                    :anexo_base64, :anexo_nome,
                     NOW(), NOW()
                 )
                 RETURNING id
@@ -4804,9 +5117,9 @@ def api_analise_auditado_salvar():
                 'sugestao_sera_implantada': sugestao_sera_implantada,
                 'plano_acao': plano_acao,
                 'responsavel_implantacao': responsavel_implantacao,
-                'data_inicio_implantacao': data_inicio_implantacao,
+                'data_inicio_prevista': data_inicio_prevista,
                 'data_conclusao_prevista': data_conclusao_prevista,
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
@@ -4843,7 +5156,7 @@ def api_analise_auditado_atualizar(analise_id):
         with engine.connect() as conn:
             # Buscar dados atuais para manter o anexo se não for alterado
             result_current = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
                 WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
@@ -4877,9 +5190,9 @@ def api_analise_auditado_atualizar(analise_id):
                     sugestao_sera_implantada = :sugestao_sera_implantada,
                     plano_acao = :plano_acao,
                     responsavel_implantacao = :responsavel_implantacao,
-                    data_inicio_implantacao = :data_inicio_implantacao,
+                    data_inicio_prevista = :data_inicio_prevista,
                     data_conclusao_prevista = :data_conclusao_prevista,
-                    anexo_validador = :anexo_validador,
+                    anexo_base64 = :anexo_base64,
                     anexo_nome = :anexo_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo = 'auditado'
@@ -4895,9 +5208,9 @@ def api_analise_auditado_atualizar(analise_id):
                 'sugestao_sera_implantada': data.get('sugestao_sera_implantada'),
                 'plano_acao': data.get('plano_acao', ''),
                 'responsavel_implantacao': data.get('responsavel_implantacao', ''),
-                'data_inicio_implantacao': data.get('data_inicio_implantacao'),
+                'data_inicio_prevista': data.get('data_inicio_prevista'),
                 'data_conclusao_prevista': data.get('data_conclusao_prevista'),
-                'anexo_validador': anexo_param,
+                'anexo_base64': anexo_param,
                 'anexo_nome': anexo_nome_final
             })
             conn.commit()
@@ -4927,7 +5240,7 @@ def api_analise_auditado_anexo(analise_id):
     try:
         with engine.connect() as conn:
             result = conn.execute(text("""
-                SELECT anexo_validador, anexo_nome 
+                SELECT anexo_base64, anexo_nome 
                 FROM analises_criticas 
                 WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})

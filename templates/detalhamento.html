@@ -419,7 +419,17 @@
                 areas.forEach(area => {
                     const option = document.createElement('option');
                     option.value = area.id_area;
-                    option.textContent = area.nome_area;
+                    
+                    // ⭐ FORMATAR NOME COM UNIDADE (se tiver)
+                    let nomeCompleto = area.nome_area;
+                    if (area.loc_unidade && area.loc_unidade.trim()) {
+                        nomeCompleto = `${area.nome_area} - ${area.loc_unidade}`;
+                    } else if (area.nome_area_original && area.loc_unidade) {
+                        // Caso a API retorne campos separados
+                        nomeCompleto = `${area.nome_area_original} - ${area.loc_unidade}`;
+                    }
+                    
+                    option.textContent = nomeCompleto;
                     selectArea.appendChild(option);
                 });
                 selectArea.disabled = false;

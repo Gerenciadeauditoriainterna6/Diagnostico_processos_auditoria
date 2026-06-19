@@ -2060,22 +2060,27 @@ def listar_riscos_do_processo(processo_id):
 def salvar_area(dados_area):
     try:
         query = text("""
-            INSERT INTO informacoes_area 
-            (nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade)
-            VALUES 
-            (:nome, :objetivo, :status, :email, :telefone, :gestor, :loc_unidade)
+            INSERT INTO informacoes_area (
+                nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade,
+                superintendente, diretor  -- ⭐ ADICIONADOS
+            ) VALUES (
+                :nome, :objetivo, :status, :email, :telefone, :gestor, :loc_unidade,
+                :superintendente, :diretor  -- ⭐ ADICIONADOS
+            )
             RETURNING id_area
         """)
         
         with engine.begin() as conn:
             id_area = conn.execute(query, {
-                "nome": dados_area['nome'],
+                "nome": dados_area.get('nome', ''),
                 "loc_unidade": dados_area.get('loc_unidade', ''),
                 "objetivo": dados_area.get('objetivo', ''),
                 "status": dados_area.get('status', 'Ativo'),
                 "email": dados_area.get('email', ''),
                 "telefone": dados_area.get('telefone', ''),
-                "gestor": dados_area.get('gestor', '')
+                "gestor": dados_area.get('gestor', ''),
+                "superintendente": dados_area.get('superintendente', ''),  # ⭐ NOVO
+                "diretor": dados_area.get('diretor', '')                   # ⭐ NOVO
             }).scalar()
             
             # ====== REGISTRAR LOG ======
@@ -2085,30 +2090,33 @@ def salvar_area(dados_area):
                 registro_id=id_area,
                 operacao='INSERT',
                 dados_novos=dados_area,
-                query_sql="INSERT INTO informacoes_area (nome_area, objetivo_area, status, email, telefone, gestor)"
+                query_sql="INSERT INTO informacoes_area (nome_area, objetivo_area, status, email, telefone, gestor, superintendente, diretor)"
             )
             # ====== FIM DO LOG ======
             
         return id_area
     except Exception as e:
-        print(f"Erro ao salvar área: {e}")
+        print(f"❌ Erro ao salvar área: {e}")
         return None
 
 def listar_areas(apenas_ativas=True):
     """Lista áreas (por padrão, apenas as ativas)"""
     from database import engine
     from sqlalchemy import text
+    import pandas as pd
     
     if apenas_ativas:
         query = text("""
-            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade,
+                   superintendente, diretor  -- ⭐ ADICIONADOS
             FROM informacoes_area
             WHERE status = 'Ativo'
             ORDER BY nome_area
         """)
     else:
         query = text("""
-            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade,
+                   superintendente, diretor  -- ⭐ ADICIONADOS
             FROM informacoes_area
             ORDER BY 
                 CASE WHEN status = 'Ativo' THEN 0 ELSE 1 END,
@@ -3495,6 +3503,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     from database import engine
     from sqlalchemy import text
     from datetime import datetime
+    from zoneinfo import ZoneInfo
     from logic import get_estilo_risco
     from PyPDF2 import PdfReader
     from PIL import Image as PILImage
@@ -3502,6 +3511,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     import copy
     
     buffer = io.BytesIO()
+
+    TZ_BRASILIA = ZoneInfo('America/Sao_Paulo')
     
     # Definir orientação da página
     if orientacao.upper() == "PAISAGEM":
@@ -3574,7 +3585,7 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
     story.append(Paragraph(f"Área: {area_nome}", normal_style))
     story.append(Paragraph(f"Gestor Responsável: {gestor} - {cargo}", normal_style))
-    story.append(Paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
+    story.append(Paragraph(f"Data de Geração: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
     # ===== BUSCAR PROCESSOS =====
@@ -4265,11 +4276,14 @@ def limpar_binario(dados):
     )
     return texto
 
-
-def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id, usuario_nome='Auditor', orientacao="RETRATO"):
+def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id, 
+                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False):  # ⭐ ADICIONAR AQUI
     """
     Gera relatório de Parecer da Auditoria para um processo específico
     Inclui análises do auditado (etapas) e análises do auditor (checklists)
+    
+    Parâmetros:
+    - incluir_abr: Se True, inclui a seção ABR - Auditoria Baseada em Risco (apenas admin)
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether
@@ -4642,8 +4656,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             except Exception as e:
                 print(f"Erro ao buscar checklist {tipo}: {e}")
                 checklist_data[tipo] = None
-
-
     
     # ===== FUNÇÃO PARA DESENHAR TARJA =====
     def cabecalho_com_tarja(canvas, doc):
@@ -4742,11 +4754,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         alerta_followup = f'<font color="#28a745"><b>{total_followups_em_andamento} follow-up(s) já registrados</b></font>'
     
     info_data = [
-        ["Código:", Paragraph(codigo_auditoria, cell_style)],
-        ["Título:", Paragraph(titulo_auditoria, cell_style)],
-        ["Área:", Paragraph(area_nome, cell_style)],
-        ["Gestor:", Paragraph(gestor, cell_style)],
-        ["Cargo:", Paragraph(cargo, cell_style)],
+        ["Código:", Paragraph(codigo_auditoria or '', cell_style)],
+        ["Título:", Paragraph(titulo_auditoria or '', cell_style)],
+        ["Área:", Paragraph(area_nome or '', cell_style)],
+        ["Gestor:", Paragraph(gestor or '', cell_style)],
+        ["Cargo:", Paragraph(cargo or '', cell_style)],
         ["Cronograma Previsto:", Paragraph(f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}", cell_style)],
         ["Status da Auditoria:", Paragraph(f"{status_text}{status_atraso_html}", cell_style_2)],
     ]
@@ -4898,7 +4910,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         "Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?",
         "A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?",
         "A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?",
-        "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
+                "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
         "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?",
         "O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?"
     ]
@@ -4920,21 +4932,21 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
     def adicionar_analise(analise, titulo):
-        story.append(Paragraph(titulo, subsecao_style))
+        story.append(Paragraph(titulo or 'Sem título', subsecao_style))  # ⭐ Adicionar or ''
         story.append(Spacer(1, 5))
         
         # Análise Crítica
         if analise.get('analise_critica'):
             story.append(Paragraph("<b>Análise Crítica:</b>", normal_style))
-            story.append(Paragraph(analise['analise_critica'], normal_style))
+            story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
             story.append(Spacer(1, 5))
         
         # Sugestão de Melhoria
         if analise.get('sugestao_melhoria'):
             story.append(Paragraph("<b>Sugestão de Melhoria:</b>", normal_style))
-            story.append(Paragraph(analise['sugestao_melhoria'], normal_style))
+            story.append(Paragraph(analise['sugestao_melhoria'] or '', normal_style))  # ⭐ Adicionar or ''
             story.append(Spacer(1, 5))
-        
+
         # Decisão sobre implantação
         if analise.get('sugestao_sera_implantada') == True:
             story.append(Paragraph("<b>Esta melhoria será implantada</b>", normal_style))
@@ -5027,8 +5039,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         
         story.append(Spacer(1, 10))
     
-    # ===== SEÇÃO DE FUNDAMENTOS DA AUDITORIA =====
-    if fundamentos and len(fundamentos) > 0:
+    # ===== SEÇÃO DE FUNDAMENTOS DA AUDITORIA (CONDICIONAL) =====
+    # ⭐ MODIFICADO PARA SER CONDICIONAL
+    if incluir_abr and fundamentos and len(fundamentos) > 0:
         story.append(Paragraph("ABR - AUDITORIA BASEADA EM RISCO", secao_style))
         story.append(Spacer(1, 5))
         
@@ -5058,9 +5071,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(Spacer(1, 5))
         
         story.append(Spacer(1, 10))
-    else:
-        story.append(Paragraph("<i>Nenhum fundamento cadastrado para esta auditoria.</i>", normal_style))
-        story.append(Spacer(1, 10))   
     
     # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
     story.append(Paragraph("1. ANÁLISES DO AUDITADO", secao_style))
@@ -5179,7 +5189,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     story.append(Paragraph("3. CONCLUSÃO E RECOMENDAÇÕES", secao_style))
     story.append(Spacer(1, 10))
     story.append(Paragraph(
-        f"Com base nas análises realizadas para o processo {proc_codigo} - {proc_nome}, "
+        f"Com base nas análises realizadas para o processo {proc_codigo or 'N/A'} - {proc_nome or 'N/A'}, "
         "este parecer consolida as principais observações e recomendações.",
         normal_style
     ))
@@ -5196,7 +5206,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     
     # ===== ASSINATURAS =====
     assinatura_data = [
-        ["Auditor Responsável pela emissão:", usuario_nome],
+        ["Auditor Responsável pela emissão:", usuario_nome or 'Auditor'],
         ["Data:", datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y')],
         ["Assinatura:", "_________________________"],
         ["", ""],
@@ -5209,7 +5219,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         ["Assinatura:", "_________________________"],
         ["", ""],
         ["Ciência do Gestor:", ""],
-        ["Gestor:", gestor],
+        ["Gestor:", gestor or 'Não informado'],
         ["Data:", "___/___/_______"],
         ["Assinatura:", "_________________________"],
     ]
@@ -5222,13 +5232,12 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
     story.append(tabela_assinaturas)
-    
-        # ============================================================
+
+    # ============================================================
     # ⭐ RODAPÉ COM TOTAL DE PÁGINAS (USANDO PyPDF2)
     # ============================================================
     from reportlab.lib.utils import ImageReader
     from PIL import Image as PILImage
-    import io
     import copy
     from PyPDF2 import PdfReader
     
