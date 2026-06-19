@@ -119,17 +119,84 @@
                 </div>
             </div>
 
-            <!-- Upload de Manual -->
+            <!-- ====== MANUAL DA ETAPA ====== -->
             <div class="form-group">
                 <label><i class="fas fa-book"></i> Manual da Etapa</label>
-                <div class="custom-file-upload">
-                    <button type="button" class="file-upload-button" onclick="document.getElementById('modal-manual').click()">
-                        <i class="fas fa-cloud-upload-alt"></i> Inserir Manual
-                    </button>
-                    <input type="file" id="modal-manual" accept=".pdf,.doc,.docx,.txt" style="display: none;">
+                
+                <!-- ⭐ CHECKBOX: Manual em Andamento -->
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px; margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 3px solid #ffc107;">
+                    <input type="checkbox" id="manual_em_andamento" style="width: 18px; height: 18px; cursor: pointer;">
+                    <label for="manual_em_andamento" style="margin: 0; cursor: pointer; font-weight: 500; color: #184145;">
+                        <i class="fas fa-clock"></i> Manual em andamento (ainda não finalizado)
+                    </label>
                 </div>
-                <small class="text-muted">Formatos: PDF, DOC, DOCX, TXT (Max: 10MB)</small>
-                <div id="manual-nome" class="file-name" style="display: none;"></div>
+
+                <!-- ⭐ STATUS DO MANUAL -->
+                <div id="manual_status_container" style="margin-top: 10px;">
+                    <!-- Caso 1: Manual já anexado -->
+                    <div id="manual_anexado" style="display: none; padding: 12px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-file-pdf" style="font-size: 24px; color: #dc3545;"></i>
+                                <div>
+                                    <div id="manual_nome_exibicao" style="font-weight: 500; color: #155724;"></div>
+                                    <span style="font-size: 12px; color: #155724;">✅ Manual concluído</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn-sm btn-download" onclick="baixarManual()" title="Baixar manual">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button type="button" class="btn-sm btn-remove" onclick="removerManual()" title="Remover manual">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button type="button" class="btn-sm btn-substituir" onclick="substituirManual()" title="Substituir manual">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caso 2: Manual em andamento (sem arquivo) -->
+                    <div id="manual_andamento" style="display: none; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-clock" style="font-size: 24px; color: #856404;"></i>
+                                <div>
+                                    <div style="font-weight: 500; color: #856404;">📝 Manual em andamento</div>
+                                    <span style="font-size: 12px; color: #856404;">Aguardando finalização para anexar o arquivo</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn-sm btn-concluir" onclick="concluirManual()" title="Concluir e anexar arquivo">
+                                    <i class="fas fa-check"></i> Concluir
+                                </button>
+                                <button type="button" class="btn-sm btn-remove" onclick="cancelarAndamento()" title="Cancelar andamento">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caso 3: Nenhum manual -->
+                    <div id="manual_nenhum" style="padding: 20px; border: 2px dashed #ccc; border-radius: 12px; text-align: center; background: #fafafa;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #184145;"></i>
+                        <p style="margin: 8px 0 4px 0; color: #666; font-size: 13px;">
+                            <strong>Nenhum manual anexado</strong>
+                        </p>
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn-primary" onclick="anexarManual()">
+                                <i class="fas fa-upload"></i> Anexar arquivo
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="marcarEmAndamento()">
+                                <i class="fas fa-clock"></i> Marcar como em andamento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ⭐ INPUT DE ARQUIVO (hidden) -->
+                <input type="file" id="manual_file_input" accept=".pdf,.doc,.docx" style="display: none;">
             </div>
 
     
@@ -1256,6 +1323,71 @@
         z-index: 1000;
     }
 
+    /* ===== BOTÕES DO MANUAL ===== */
+    .btn-sm {
+        background: none;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-sm:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-download {
+        color: #0b5b99;
+        background: rgba(11, 91, 153, 0.1);
+    }
+    .btn-download:hover {
+        background: rgba(11, 91, 153, 0.2);
+    }
+
+    .btn-remove {
+        color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+    }
+    .btn-remove:hover {
+        background: rgba(220, 53, 69, 0.2);
+    }
+
+    .btn-substituir {
+        color: #fd7e14;
+        background: rgba(253, 126, 20, 0.1);
+    }
+    .btn-substituir:hover {
+        background: rgba(253, 126, 20, 0.2);
+    }
+
+    .btn-concluir {
+        color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+    .btn-concluir:hover {
+        background: rgba(40, 167, 69, 0.2);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+
 </style>
 
 <script>
@@ -1280,6 +1412,48 @@
         const isNova = !etapaId || etapaId === '';
         return `autosave_etapa_${processoId}_${isNova ? 'nova': etapaId}`;
     }
+
+    // ============================================================
+    // FUNÇÃO AUXILIAR PARA LIMITAR TEXTO
+    // ============================================================
+    function limitarTexto(texto, limite = 300) {
+        if (!texto || texto.trim() === '') return '-';
+        if (texto.length <= limite) return escapeHtml(texto);
+        
+        const textoTruncado = escapeHtml(texto.substring(0, limite)) + '...';
+        const textoCompleto = escapeHtml(texto);
+        const idUnico = 'texto-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
+        return `
+            <span id="${idUnico}-resumo">${textoTruncado}</span>
+            <span id="${idUnico}-completo" style="display: none;">${textoCompleto}</span>
+            <button onclick="toggleTextoCompleto('${idUnico}')" 
+                    style="background: none; border: none; color: #0b5b99; cursor: pointer; font-size: 12px; padding: 0; margin-left: 5px; text-decoration: underline;">
+                <span id="${idUnico}-btn">Ver mais</span>
+            </button>
+        `;
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA ALTERNAR TEXTO COMPLETO
+    // ============================================================
+    window.toggleTextoCompleto = function(id) {
+        const resumo = document.getElementById(id + '-resumo');
+        const completo = document.getElementById(id + '-completo');
+        const btn = document.getElementById(id + '-btn');
+        
+        if (resumo && completo && btn) {
+            if (resumo.style.display === 'none') {
+                resumo.style.display = 'inline';
+                completo.style.display = 'none';
+                btn.textContent = 'Ver mais';
+            } else {
+                resumo.style.display = 'none';
+                completo.style.display = 'inline';
+                btn.textContent = 'Ver menos';
+            }
+        }
+    };
 
     // Salvar rascunho no localStorage
     function salvarRascunho() {
@@ -2032,6 +2206,94 @@
     }
 
     // ============================================================
+    // 1. PRIMEIRO: Defina a função carregarAnalisesResumo
+    // ============================================================
+    async function carregarAnalisesResumo(etapaId) {
+        try {
+            const response = await fetch(`/api/etapa/${etapaId}/analises`);
+            const data = await response.json();
+            
+            const container = document.getElementById(`analises-resumo-${etapaId}`);
+            if (!container) return;
+            
+            if (data.success && data.analises && data.analises.length > 0) {
+                const analisesHtml = data.analises.map(analise => {
+                    const tipoLabel = analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado';
+                    const icon = analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user';
+                    return `
+                        <div style="display: inline-block; margin: 4px 8px 4px 0; padding: 4px 12px; background: #f0f4f8; border-radius: 20px; font-size: 12px;">
+                            <i class="fas ${icon}" style="color: #184145;"></i>
+                            <strong>${tipoLabel}:</strong> 
+                            ${escapeHtml(analise.analise_critica ? analise.analise_critica.substring(0, 60) + (analise.analise_critica.length > 60 ? '...' : '') : 'Sem análise')}
+                            ${analise.sugestao_melhoria ? `<span style="color: #28a745; margin-left: 5px;">💡</span>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = analisesHtml || '<span style="color: #999;">Nenhuma análise cadastrada</span>';
+            } else {
+                container.innerHTML = '<span style="color: #999;">Nenhuma análise cadastrada</span>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar análises resumidas:', error);
+            const container = document.getElementById(`analises-resumo-${etapaId}`);
+            if (container) {
+                container.innerHTML = '<span style="color: #999;">Erro ao carregar análises</span>';
+            }
+        }
+    }
+
+    // ============================================================
+    // 2. DEPOIS: Defina a função renderizarEtapas
+    // ============================================================
+    function renderizarEtapas(etapas) {
+        const container = document.getElementById('etapas-container');
+        
+        Promise.all(etapas.map(async (etapa) => {
+            // ... seu código existente ...
+            
+            return `
+                <div class="etapa-card" data-etapa-id="${etapa.id}">
+                    <!-- ... conteúdo do card ... -->
+                    <div class="etapa-card-body">
+                        <div class="etapa-detalhes-grid">
+                            <!-- ... todos os campos ... -->
+                            
+                            <!-- ANÁLISES CRÍTICAS (resumo) -->
+                            <div class="etapa-detalhe-item" style="grid-column: 1 / -1;">
+                                <div class="etapa-detalhe-label"><i class="fas fa-clipboard-list"></i> Análises Críticas do Auditado</div>
+                                <div class="etapa-detalhe-value" id="analises-resumo-${etapa.id}">
+                                    <span style="color: #999;">Carregando análises...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })).then(cardsHtml => {
+            container.innerHTML = cardsHtml.join('');
+            
+            // Carregar análises para cada etapa
+            etapas.forEach(etapa => {
+                carregarAnalisesResumo(etapa.id);
+            });
+        });
+    }
+
+    // ============================================================
+    // 3. Por fim, as funções auxiliares (escapeHtml, etc.)
+    // ============================================================
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ============================================================
     // RENDERIZAÇÃO DAS ETAPAS
     // ============================================================
 
@@ -2044,18 +2306,30 @@
             const temAnaliseAuditor = etapa.tem_analise_auditor;
             let statusBadge = '';
             if (!temAnaliseAuditado) {
-                // Auditado ainda não fez a análise
                 statusBadge = '<span class="status-badge status-vazio"><i class="fas fa-circle"></i> Aguardando Análise do Auditado</span>';
             } else if (temAnaliseAuditado && !temAnaliseAuditor) {
-                // Auditado fez, mas auditor ainda não
                 statusBadge = '<span class="status-badge status-pendente"><i class="fas fa-clock"></i> Pendente de Análise do Auditor</span>';
             } else {
-                // Ambos fizeram
                 statusBadge = '<span class="status-badge status-concluido"><i class="fas fa-check-circle"></i> Analisado</span>';
             }
         
             const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
             const anexoIcon = temManual ? '<i class="fas fa-paperclip" title="Possui manual"></i>' : '';
+            const temDiagrama = etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '';
+            const diagramaIcon = temDiagrama ? '<i class="fas fa-project-diagram" title="Possui diagrama BPMN"></i>' : '';
+            const temMapeamento = etapa.arquivo_mapeamento_nome && etapa.arquivo_mapeamento_nome.trim() !== '';
+            const mapeamentoIcon = temMapeamento ? '<i class="fas fa-file-alt" title="Possui arquivo de mapeamento"></i>' : '';
+            
+            // Gerar IDs únicos para cada campo
+            const idDescricao = 'desc-' + etapa.id;
+            const idComoFeito = 'como-' + etapa.id;
+            const idObjetivo = 'obj-' + etapa.id;
+            const idPolitica = 'pol-' + etapa.id;
+            const idObrigacoes = 'obr-' + etapa.id;
+            const idAnalise = 'ana-' + etapa.id;
+            const idSugestao = 'sug-' + etapa.id;
+            const idNecessidade = 'nec-' + etapa.id;
+            const idGanho = 'gan-' + etapa.id;
             
             return `
                 <div class="etapa-card" data-etapa-id="${etapa.id}">
@@ -2065,6 +2339,8 @@
                             <span class="etapa-nome">${escapeHtml(etapa.nome_etapa)}</span>
                             ${statusBadge}
                             ${anexoIcon}
+                            ${diagramaIcon}
+                            ${mapeamentoIcon}
                         </div>
                         <div class="etapa-actions">
                             <button class="btn-view-etapa" onclick="event.stopPropagation(); visualizarEtapa(${etapa.id})" title="Visualizar detalhes">
@@ -2080,39 +2356,74 @@
                     </div>
                     <div class="etapa-card-body">
                         <div class="etapa-detalhes-grid">
+                            <!-- INFORMAÇÕES BÁSICAS -->
                             <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Executores da Etapa</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(executoresNomes)}</div>
+                                <div class="etapa-detalhe-label"><i class="fas fa-tag"></i> Código</div>
+                                <div class="etapa-detalhe-value">${escapeHtml(etapa.codigo_etapa)}</div>
                             </div>
                             <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Descrição</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.descricao_etapa) || '-'}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Como é feito?</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.como_e_feito) || '-'}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Objetivo</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.objetivo_etapa) || '-'}</div>
-                            </div>
-                            ${temManual ? `
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Manual da Etapa</div>
+                                <div class="etapa-detalhe-label"><i class="fas fa-circle"></i> Status</div>
                                 <div class="etapa-detalhe-value">
-                                    <a href="#" onclick="downloadArquivo(${etapa.id}, 'manual'); return false;">
-                                        <i class="fas fa-file-download"></i> ${escapeHtml(etapa.manual_nome)}
-                                    </a>
+                                    <span class="etapa-status ${etapa.status_etapa.toLowerCase()}">${escapeHtml(etapa.status_etapa)}</span>
                                 </div>
                             </div>
-                            ` : ''}
                             <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Política Interna</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.politica_interna) || '-'}</div>
+                                <div class="etapa-detalhe-label"><i class="fas fa-chart-line"></i> Criticidade</div>
+                                <div class="etapa-detalhe-value">
+                                    <span class="etapa-criticidade ${etapa.criticidade_etapa.toLowerCase().replace(' ', '-')}">${escapeHtml(etapa.criticidade_etapa)}</span>
+                                </div>
                             </div>
                             <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label">Obrigações Regulatórias</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.obrigacoes_regulatorias) || '-'}</div>
+                                <div class="etapa-detalhe-label"><i class="fas fa-users"></i> Executores</div>
+                                <div class="etapa-detalhe-value">${escapeHtml(executoresNomes)}</div>
+                            </div>
+
+                            <!-- DESCRIÇÃO E DETALHES (COM LIMITE DE 300 CARACTERES) -->
+                            <div class="etapa-detalhe-item">
+                                <div class="etapa-detalhe-label"><i class="fas fa-align-left"></i> Descrição</div>
+                                <div class="etapa-detalhe-value">${limitarTexto(etapa.descricao_etapa, 300)}</div>
+                            </div>
+                            <div class="etapa-detalhe-item">
+                                <div class="etapa-detalhe-label"><i class="fas fa-cogs"></i> Como é feito?</div>
+                                <div class="etapa-detalhe-value">${limitarTexto(etapa.como_e_feito, 300)}</div>
+                            </div>
+                            <div class="etapa-detalhe-item">
+                                <div class="etapa-detalhe-label"><i class="fas fa-bullseye"></i> Objetivo</div>
+                                <div class="etapa-detalhe-value">${limitarTexto(etapa.objetivo_etapa, 300)}</div>
+                            </div>
+
+                            <!-- POLÍTICAS E REGULAMENTAÇÕES -->
+                            <div class="etapa-detalhe-item">
+                                <div class="etapa-detalhe-label"><i class="fas fa-gavel"></i> Política Interna</div>
+                                <div class="etapa-detalhe-value">${limitarTexto(etapa.politica_interna, 300)}</div>
+                            </div>
+                            <div class="etapa-detalhe-item">
+                                <div class="etapa-detalhe-label"><i class="fas fa-balance-scale"></i> Obrigações Regulatórias</div>
+                                <div class="etapa-detalhe-value">${limitarTexto(etapa.obrigacoes_regulatorias, 300)}</div>
+                            </div>
+
+                            <!-- MANUAL DA ETAPA -->
+                            <div class="etapa-detalhe-item">
+                                <div class="etapa-detalhe-label"><i class="fas fa-book"></i> Manual da Etapa</div>
+                                <div class="etapa-detalhe-value">
+                                    ${temManual ? `
+                                        <a href="#" onclick="downloadArquivo(${etapa.id}, 'manual'); return false;">
+                                            <i class="fas fa-file-download"></i> ${escapeHtml(etapa.manual_nome)}
+                                        </a>
+                                        ${etapa.manual_em_andamento ? '<span style="color: #856404; font-size: 11px; margin-left: 8px;"><i class="fas fa-clock"></i> Em andamento</span>' : ''}
+                                    ` : (etapa.manual_em_andamento ? 
+                                        '<span style="color: #856404;"><i class="fas fa-clock"></i> Manual em andamento</span>' : 
+                                        '<span style="color: #999;">Nenhum manual anexado</span>'
+                                    )}
+                                </div>
+                            </div>
+
+                            <!-- ANÁLISES CRÍTICAS (resumo) -->
+                            <div class="etapa-detalhe-item" style="grid-column: 1 / -1;">
+                                <div class="etapa-detalhe-label"><i class="fas fa-clipboard-list"></i> Análises Críticas</div>
+                                <div class="etapa-detalhe-value" id="analises-resumo-${etapa.id}">
+                                    <span style="color: #999;">Carregando análises...</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2120,6 +2431,11 @@
             `;
         })).then(cardsHtml => {
             container.innerHTML = cardsHtml.join('');
+            
+            // Carregar análises para cada etapa
+            etapas.forEach(etapa => {
+                carregarAnalisesResumo(etapa.id);
+            });
         });
     }
 
@@ -2159,6 +2475,54 @@
         analisesExistentes = [];
         renderizarAnalises();
         esconderFormAnalise();
+
+        // ============================================================
+        // ⭐ RESETAR ESTADO DO MANUAL PARA NOVA ETAPA ⭐
+        // ============================================================
+        
+        // 1. Resetar checkbox "Manual em andamento"
+        const checkboxAndamento = document.getElementById('manual_em_andamento');
+        if (checkboxAndamento) {
+            checkboxAndamento.checked = false;
+        }
+
+        // 2. Resetar hidden field
+        const hiddenAndamento = document.getElementById('manual_em_andamento_hidden');
+        if (hiddenAndamento) {
+            hiddenAndamento.value = 'false';
+        }
+
+        // 3. Resetar estado global do manual
+        manualEstadoAtual = {
+            temArquivo: false,
+            nomeArquivo: null,
+            emAndamento: false
+        };
+
+        // 4. Resetar exibição do manual
+        const manualNomeDiv = document.getElementById('manual-nome');
+        if (manualNomeDiv) {
+            manualNomeDiv.style.display = 'none';
+            manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
+            manualNomeDiv.setAttribute('data-em-andamento', 'false');
+        }
+
+        // 5. Resetar os containers de status do manual
+        const divAnexado = document.getElementById('manual_anexado');
+        const divAndamento = document.getElementById('manual_andamento');
+        const divNenhum = document.getElementById('manual_nenhum');
+        
+        if (divAnexado) divAnexado.style.display = 'none';
+        if (divAndamento) divAndamento.style.display = 'none';
+        if (divNenhum) divNenhum.style.display = 'block';
+
+        // 6. Resetar o input de arquivo
+        const inputFile = document.getElementById('manual_file_input');
+        if (inputFile) {
+            inputFile.value = '';
+        }
+
+        // ============================================================
 
         carregarRascunho();
         document.getElementById('modal-etapa').style.display = 'flex';
@@ -2205,10 +2569,24 @@
                 await carregarAnalises(etapaId);
                 esconderFormAnalise();
 
-                // Verificar manual
+                // ============================================================
+                // ⭐ MANUAL DA ETAPA - COM SUPORTE PARA "EM ANDAMENTO"
+                // ============================================================
+                
+                // 1. Carregar estado do manual (chamar a função)
+                carregarEstadoManual(etapaId);
+                
+                // 2. Atualizar o checkbox "Manual em andamento"
+                const checkboxAndamento = document.getElementById('manual_em_andamento');
+                if (checkboxAndamento) {
+                    checkboxAndamento.checked = etapa.manual_em_andamento || false;
+                }
+
+                // 3. Verificar se tem arquivo manual
                 const manualNomeDiv = document.getElementById('manual-nome');
                 if (manualNomeDiv) {
                     if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
+                        // Tem arquivo anexado
                         manualNomeDiv.innerHTML = `
                             <i class="fas fa-paperclip"></i> 
                             ${escapeHtml(etapa.manual_nome)} 
@@ -2218,11 +2596,32 @@
                         manualNomeDiv.style.display = 'block';
                         manualNomeDiv.setAttribute('data-tem-arquivo', 'true');
                         manualNomeDiv.setAttribute('data-arquivo-nome', etapa.manual_nome);
+                    } else if (etapa.manual_em_andamento) {
+                        // Em andamento (sem arquivo)
+                        manualNomeDiv.innerHTML = `
+                            <i class="fas fa-clock" style="color: #ffc107;"></i> 
+                            <span style="color: #856404;">📝 Manual em andamento</span>
+                            <span class="file-info" style="color: #856404;">(aguardando finalização)</span>
+                            <span class="remove-file" onclick="cancelarAndamento()">&times;</span>
+                        `;
+                        manualNomeDiv.style.display = 'block';
+                        manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
+                        manualNomeDiv.setAttribute('data-em-andamento', 'true');
                     } else {
+                        // Nenhum manual
                         manualNomeDiv.style.display = 'none';
                         manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
+                        manualNomeDiv.setAttribute('data-em-andamento', 'false');
                     }
                 }
+
+                // 4. Atualizar o campo hidden para salvar o estado
+                const hiddenAndamento = document.getElementById('manual_em_andamento_hidden');
+                if (hiddenAndamento) {
+                    hiddenAndamento.value = etapa.manual_em_andamento ? 'true' : 'false';
+                }
+
+                // ============================================================
                 
                 // Abrir o modal
                 document.getElementById('modal-etapa').style.display = 'flex';
@@ -2282,13 +2681,13 @@
             criticidade_etapa: document.getElementById('modal-criticidade-etapa').value,
             politica_interna: document.getElementById('modal-politica-interna').value,
             obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias').value,
-            executores_etapa: executoresEtapa
+            executores_etapa: executoresEtapa,
+            // ⭐ ADICIONAR O ESTADO DO MANUAL
+            manual_em_andamento: document.getElementById('manual_em_andamento').checked
         };
 
-        // Upload de manual...
-        const manualFile = document.getElementById('modal-manual').files[0];
-        const manualNomeDiv = document.getElementById('manual-nome');
-        const removerManual = manualNomeDiv.getAttribute('data-remover-arquivo') === 'true';
+        // ⭐ Verificar se tem arquivo no input
+        const manualFile = document.getElementById('manual_file_input').files[0];
         
         if (manualFile) {
             const manualBase64 = await converterParaBase64(manualFile);
@@ -2296,12 +2695,9 @@
             payload.manual_nome = manualFile.name;
             payload.manual_tipo = manualFile.type;
             payload.remover_manual = false;
-        } else if (removerManual) {
-            payload.remover_manual = true;
-            payload.manual_nome = null;
-            payload.manual_tipo = null;
         } else {
             payload.remover_manual = false;
+            // Não enviar manual se não tiver arquivo
         }
 
         try {
@@ -2667,15 +3063,15 @@
         
         modal.style.display = 'flex';
         body.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
-                    <div class="dot-spinner">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando visualização da etapa...</p>
+            <div style="text-align: center; padding: 60px 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
                 </div>
-            `;
+                <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando visualização da etapa...</p>
+            </div>
+        `;
         
         try {
             // Buscar dados da etapa
@@ -2693,6 +3089,22 @@
                 // Buscar nomes dos executores
                 const executoresNomes = await getNomesExecutores(etapa.executores_etapa);
                 
+                // Verificar se tem arquivos
+                const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
+                const temDiagrama = etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '';
+                const temMapeamento = etapa.arquivo_mapeamento_nome && etapa.arquivo_mapeamento_nome.trim() !== '';
+                const emAndamento = etapa.manual_em_andamento || false;
+                
+                // Badge do manual
+                let manualBadge = '';
+                if (temManual) {
+                    manualBadge = `<span style="display: inline-block; background: #d4edda; color: #155724; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-check-circle"></i> Concluído</span>`;
+                } else if (emAndamento) {
+                    manualBadge = `<span style="display: inline-block; background: #fff3cd; color: #856404; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-clock"></i> Em andamento</span>`;
+                } else {
+                    manualBadge = `<span style="display: inline-block; background: #f8f9fa; color: #6c757d; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-times-circle"></i> Não anexado</span>`;
+                }
+                
                 let html = `
                     <div class="vis-etapa-container">
                         <!-- Informações Básicas -->
@@ -2709,11 +3121,15 @@
                                 </div>
                                 <div class="vis-item">
                                     <label>Status</label>
-                                    <span>${escapeHtml(etapa.status_etapa)}</span>
+                                    <span>
+                                        <span class="etapa-status ${etapa.status_etapa.toLowerCase()}">${escapeHtml(etapa.status_etapa)}</span>
+                                    </span>
                                 </div>
                                 <div class="vis-item">
                                     <label>Criticidade</label>
-                                    <span>${escapeHtml(etapa.criticidade_etapa)}</span>
+                                    <span>
+                                        <span class="etapa-criticidade ${etapa.criticidade_etapa.toLowerCase().replace(' ', '-')}">${escapeHtml(etapa.criticidade_etapa)}</span>
+                                    </span>
                                 </div>
                                 <div class="vis-item vis-full">
                                     <label>Executores</label>
@@ -2722,9 +3138,9 @@
                             </div>
                         </div>
                         
-                        <!-- Detalhes -->
+                        <!-- Descrição e Detalhes -->
                         <div class="vis-secao">
-                            <h4><i class="fas fa-clipboard-list"></i> Detalhes</h4>
+                            <h4><i class="fas fa-clipboard-list"></i> Descrição e Detalhes</h4>
                             <div class="vis-grid">
                                 <div class="vis-item vis-full">
                                     <label>Descrição</label>
@@ -2738,6 +3154,13 @@
                                     <label>Objetivo</label>
                                     <span>${escapeHtml(etapa.objetivo_etapa) || '-'}</span>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Políticas e Regulamentações -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-gavel"></i> Políticas e Regulamentações</h4>
+                            <div class="vis-grid">
                                 <div class="vis-item vis-full">
                                     <label>Política Interna</label>
                                     <span>${escapeHtml(etapa.politica_interna) || '-'}</span>
@@ -2746,39 +3169,67 @@
                                     <label>Obrigações Regulatórias</label>
                                     <span>${escapeHtml(etapa.obrigacoes_regulatorias) || '-'}</span>
                                 </div>
-                                ${etapa.manual_nome ? `
+                            </div>
+                        </div>
+                        
+                        
+                        <!-- Arquivos -->
+                        <div class="vis-secao">
+                            <h4><i class="fas fa-folder-open"></i> Arquivos</h4>
+                            <div class="vis-grid">
+                                <!-- Manual -->
                                 <div class="vis-item vis-full">
-                                    <label>Manual da Etapa</label>
-                                    <span><a href="#" onclick="downloadArquivo(${etapa.id}, 'manual'); return false;"><i class="fas fa-download"></i> ${escapeHtml(etapa.manual_nome)}</a></span>
+                                    <label>
+                                        <i class="fas fa-book"></i> Manual da Etapa
+                                        ${manualBadge}
+                                    </label>
+                                    <span>
+                                        ${temManual ? 
+                                            `<a href="#" onclick="downloadArquivo(${etapa.id}, 'manual'); return false;">
+                                                <i class="fas fa-file-download" style="color: #184145;"></i> 
+                                                ${escapeHtml(etapa.manual_nome)}
+                                            </a>` : 
+                                            emAndamento ? 
+                                            '<span style="color: #856404;"><i class="fas fa-clock"></i> Manual em andamento (aguardando finalização)</span>' :
+                                            '<span style="color: #999;">Nenhum manual anexado</span>'
+                                        }
+                                    </span>
                                 </div>
-                                ` : ''}
+                                
                             </div>
                         </div>
                         
                         <!-- Análises Críticas -->
                         <div class="vis-secao">
-                            <h4><i class="fas fa-clipboard-check"></i> Análises Críticas</h4>
+                            <h4><i class="fas fa-clipboard-list"></i> Análises Críticas dos Envolvidos</h4>
                             ${analises.length === 0 ? 
                                 '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhuma análise crítica cadastrada.</div>' :
-                                analises.map((analise, idx) => `
-                                    <div class="analise-card">
-                                        <div class="analise-card-info">
-                                            <div class="analise-card-header">
-                                                <span class="analise-card-tipo ${analise.tipo_analise}">
-                                                    <i class="fas ${analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user'}"></i>
-                                                    ${analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado'}
-                                                </span>
-                                                <span class="analise-card-categoria">${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}</span>
-                                            </div>
-                                            <div class="analise-card-detalhes">
-                                                ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise Crítica:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
-                                                ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
-                                                ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
-                                                ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
+                                analises.map((analise) => {
+                                    const tipoLabel = analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado';
+                                    const icon = analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user';
+                                    const tipoClass = analise.tipo_analise === 'auditor' ? 'auditor' : 'entrevistado';
+                                    return `
+                                        <div class="analise-card">
+                                            <div class="analise-card-info">
+                                                <div class="analise-card-header">
+                                                    <span class="analise-card-tipo ${tipoClass}">
+                                                        <i class="fas ${icon}"></i>
+                                                        ${tipoLabel}
+                                                    </span>
+                                                    <span class="analise-card-categoria">
+                                                        ${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}
+                                                    </span>
+                                                </div>
+                                                <div class="analise-card-detalhes">
+                                                    ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise Crítica:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                                                    ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                                                    ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                                                    ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                `).join('')
+                                    `;
+                                }).join('')
                             }
                         </div>
                     </div>
@@ -2806,6 +3257,243 @@
     });
 
 
+
+    function downloadArquivo(etapaId, tipo) {
+        window.open(`/api/etapa/${etapaId}/download/${tipo}`, '_blank');
+    }
+
+    // ====== VARIÁVEIS DO MANUAL ======
+    let manualEstadoAtual = {
+        temArquivo: false,
+        nomeArquivo: null,
+        emAndamento: false
+    };
+
+    // ====== CARREGAR ESTADO DO MANUAL ======
+    function carregarEstadoManual(etapaId) {
+        etapaIdAtual = etapaId;
+        
+        // Buscar dados da etapa via API
+        fetch(`/api/etapa/${etapaId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.etapa) {
+                    const etapa = data.etapa;
+                    
+                    if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
+                        // Caso 1: Tem arquivo
+                        manualEstadoAtual.temArquivo = true;
+                        manualEstadoAtual.nomeArquivo = etapa.manual_nome;
+                        manualEstadoAtual.emAndamento = false;
+                    } else if (etapa.manual_em_andamento) {
+                        // Caso 2: Em andamento
+                        manualEstadoAtual.temArquivo = false;
+                        manualEstadoAtual.nomeArquivo = null;
+                        manualEstadoAtual.emAndamento = true;
+                    } else {
+                        // Caso 3: Nenhum
+                        manualEstadoAtual.temArquivo = false;
+                        manualEstadoAtual.nomeArquivo = null;
+                        manualEstadoAtual.emAndamento = false;
+                    }
+                    
+                    // Atualizar interface
+                    atualizarInterfaceManual();
+                }
+            })
+            .catch(err => console.error('Erro ao carregar manual:', err));
+    }
+
+    // ====== ATUALIZAR INTERFACE ======
+    function atualizarInterfaceManual() {
+        const divAnexado = document.getElementById('manual_anexado');
+        const divAndamento = document.getElementById('manual_andamento');
+        const divNenhum = document.getElementById('manual_nenhum');
+        const checkbox = document.getElementById('manual_em_andamento');
+        
+        if (manualEstadoAtual.temArquivo) {
+            divAnexado.style.display = 'block';
+            divAndamento.style.display = 'none';
+            divNenhum.style.display = 'none';
+            document.getElementById('manual_nome_exibicao').textContent = manualEstadoAtual.nomeArquivo;
+            checkbox.checked = false;
+            checkbox.disabled = true;
+        } else if (manualEstadoAtual.emAndamento) {
+            divAnexado.style.display = 'none';
+            divAndamento.style.display = 'block';
+            divNenhum.style.display = 'none';
+            checkbox.checked = true;
+            checkbox.disabled = false;
+        } else {
+            divAnexado.style.display = 'none';
+            divAndamento.style.display = 'none';
+            divNenhum.style.display = 'block';
+            checkbox.checked = false;
+            checkbox.disabled = false;
+        }
+    }
+
+    // ====== MARCAR COMO EM ANDAMENTO ======
+    function marcarEmAndamento() {
+        if (!etapaIdAtual) return;
+        
+        // Atualizar estado
+        manualEstadoAtual.emAndamento = true;
+        manualEstadoAtual.temArquivo = false;
+        manualEstadoAtual.nomeArquivo = null;
+        
+        // Salvar no banco via API
+        salvarEstadoManual(etapaIdAtual, true, null);
+        
+        // Atualizar interface
+        atualizarInterfaceManual();
+        mostrarToast('📝 Manual marcado como em andamento', 'info');
+    }
+
+    // ====== CANCELAR ANDAMENTO ======
+    function cancelarAndamento() {
+        if (!etapaIdAtual) return;
+        
+        if (!confirm('Tem certeza que deseja cancelar o status "em andamento"?')) return;
+        
+        // Atualizar estado
+        manualEstadoAtual.emAndamento = false;
+        manualEstadoAtual.temArquivo = false;
+        manualEstadoAtual.nomeArquivo = null;
+        
+        // Salvar no banco via API
+        salvarEstadoManual(etapaIdAtual, false, null);
+        
+        // Atualizar interface
+        atualizarInterfaceManual();
+        mostrarToast('✅ Andamento cancelado', 'success');
+    }
+
+    // ====== CONCLUIR MANUAL (abrir seletor de arquivo) ======
+    function concluirManual() {
+        // Desmarcar em andamento e abrir upload
+        document.getElementById('manual_file_input').click();
+        // Quando o arquivo for selecionado, o evento change vai lidar com o upload
+    }
+
+    // ====== ANEXAR MANUAL ======
+    function anexarManual() {
+        document.getElementById('manual_file_input').click();
+    }
+
+    // ====== SUBSTITUIR MANUAL ======
+    function substituirManual() {
+        if (!confirm('Tem certeza que deseja substituir o manual atual?')) return;
+        document.getElementById('manual_file_input').click();
+    }
+
+    // ====== BAIXAR MANUAL ======
+    function baixarManual() {
+        if (etapaIdAtual && manualEstadoAtual.temArquivo) {
+            window.open(`/api/etapa/${etapaIdAtual}/download-manual`, '_blank');
+        }
+    }
+
+    // ====== REMOVER MANUAL ======
+    async function removerManual() {
+        if (!etapaIdAtual) return;
+        
+        if (!confirm('Tem certeza que deseja remover o manual?')) return;
+        
+        try {
+            const response = await fetch(`/api/etapa/${etapaIdAtual}/remover-manual`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                manualEstadoAtual.temArquivo = false;
+                manualEstadoAtual.nomeArquivo = null;
+                manualEstadoAtual.emAndamento = false;
+                atualizarInterfaceManual();
+                mostrarToast('✅ Manual removido', 'success');
+            } else {
+                mostrarToast('❌ Erro ao remover manual', 'error');
+            }
+        } catch (error) {
+            mostrarToast('❌ Erro de conexão', 'error');
+        }
+    }
+
+    // ====== SALVAR ESTADO DO MANUAL ======
+    async function salvarEstadoManual(etapaId, emAndamento, arquivoBase64, nomeArquivo, tipoArquivo) {
+        try {
+            // Buscar dados atuais da etapa para não perder outros campos
+            const responseDados = await fetch(`/api/etapa/${etapaId}`);
+            const dadosAtuais = await responseDados.json();
+            
+            if (!dadosAtuais.success) {
+                mostrarToast('❌ Erro ao carregar dados da etapa', 'error');
+                return false;
+            }
+            
+            const etapa = dadosAtuais.etapa;
+            
+            // Montar payload com todos os campos
+            const payload = {
+                id: etapaId,
+                processo_id: etapa.processo_id,
+                auditoria_id: etapa.auditoria_id,
+                codigo_etapa: etapa.codigo_etapa,
+                nome_etapa: etapa.nome_etapa,
+                descricao_etapa: etapa.descricao_etapa,
+                como_e_feito: etapa.como_e_feito,
+                objetivo_etapa: etapa.objetivo_etapa,
+                status_etapa: etapa.status_etapa,
+                criticidade_etapa: etapa.criticidade_etapa,
+                politica_interna: etapa.politica_interna,
+                analise_critica: etapa.analise_critica,
+                sugestao_melhoria: etapa.sugestao_melhoria,
+                necessidade_implantacao: etapa.necessidade_implantacao,
+                ganho_previsto: etapa.ganho_previsto,
+                obrigacoes_regulatorias: etapa.obrigacoes_regulatorias,
+                executores_etapa: etapa.executores_etapa,
+                manual_em_andamento: emAndamento,
+                // ⭐ NÃO ENVIAR ARQUIVOS QUE JÁ EXISTEM PARA NÃO SOBRESCREVER
+            };
+            
+            // Se tiver novo arquivo, adicionar
+            if (arquivoBase64) {
+                payload.manual_base64 = arquivoBase64;
+                payload.manual_nome = nomeArquivo;
+                payload.manual_tipo = tipoArquivo;
+            }
+            
+            // Se não tiver arquivo e não estiver em andamento, garantir que o manual seja removido
+            if (!emAndamento && !arquivoBase64) {
+                payload.remover_manual = true;
+            }
+            
+            // ⭐ NÃO ENVIAR DIAGRAMA PARA NÃO SOBRESCREVER
+            // Se tiver diagrama, manter o que já existe
+            
+            const response = await fetch(`/api/etapa/salvar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                return true;
+            } else {
+                mostrarToast('❌ Erro: ' + (result.error || 'Tente novamente'), 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao salvar manual:', error);
+            mostrarToast('❌ Erro de conexão', 'error');
+            return false;
+        }
+    }
+
     // ============================================================
     // INICIALIZAÇÃO
     // ============================================================
@@ -2814,6 +3502,95 @@
         console.log('🚀 DOMContentLoaded - Iniciando');
         
         carregarDadosProcesso();
+
+        // ============================================================
+        // ⭐ CONFIGURAÇÃO DO MANUAL EM ANDAMENTO ⭐
+        // ============================================================
+        
+        // 1. Evento do checkbox "Manual em andamento"
+        const checkboxAndamento = document.getElementById('manual_em_andamento');
+        if (checkboxAndamento) {
+            checkboxAndamento.addEventListener('change', function() {
+                if (this.checked) {
+                    // Se marcou "em andamento" e tem arquivo, confirmar
+                    if (manualEstadoAtual && manualEstadoAtual.temArquivo) {
+                        if (!confirm('Ao marcar "Manual em andamento", o manual atual será removido. Continuar?')) {
+                            this.checked = false;
+                            return;
+                        }
+                        // Remover o arquivo
+                        removerManual();
+                    }
+                    // Marcar como em andamento
+                    if (etapaIdAtual) {
+                        marcarEmAndamento();
+                    }
+                } else {
+                    // Desmarcou "em andamento"
+                    if (manualEstadoAtual && manualEstadoAtual.emAndamento && etapaIdAtual) {
+                        cancelarAndamento();
+                    }
+                }
+            });
+        }
+
+        // 2. Evento do input de arquivo
+        const inputFile = document.getElementById('manual_file_input');
+        if (inputFile) {
+            inputFile.addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // Validar tipo
+                const tiposPermitidos = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                if (!tiposPermitidos.includes(file.type)) {
+                    mostrarToast('⚠️ Apenas PDF, DOC e DOCX são permitidos', 'warning');
+                    this.value = '';
+                    return;
+                }
+                
+                // Validar tamanho (10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                    this.value = '';
+                    return;
+                }
+                
+                // Mostrar loading
+                mostrarToast('📤 Enviando manual...', 'info');
+                
+                try {
+                    const base64 = await converterParaBase64(file);
+                    
+                    // Salvar com emAndamento = false (concluído)
+                    const success = await salvarEstadoManual(
+                        etapaIdAtual,
+                        false,  // Concluído
+                        base64,
+                        file.name,
+                        file.type
+                    );
+                    
+                    if (success) {
+                        // Atualizar estado local
+                        if (manualEstadoAtual) {
+                            manualEstadoAtual.temArquivo = true;
+                            manualEstadoAtual.nomeArquivo = file.name;
+                            manualEstadoAtual.emAndamento = false;
+                        }
+                        atualizarInterfaceManual();
+                        mostrarToast('✅ Manual anexado com sucesso!', 'success');
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    mostrarToast('❌ Erro ao enviar manual', 'error');
+                }
+                
+                this.value = '';
+            });
+        }
+
+        // ============================================================
 
         // Verificar se o botão existe
         const btnVoltar = document.getElementById('btn-voltar-detalhamento');
@@ -2942,11 +3719,11 @@
         if (btnSalvarAnalise) {
             btnSalvarAnalise.addEventListener('click', salvarAnalise);
         }
+
+        console.log('✅ DOMContentLoaded - Configuração do Manual em Andamento adicionada!');
     });
 
-    function downloadArquivo(etapaId, tipo) {
-        window.open(`/api/etapa/${etapaId}/download/${tipo}`, '_blank');
-    }
+    
 </script>
 
 

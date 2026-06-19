@@ -656,13 +656,16 @@ def api_processo_etapas(processo_id):
 
     try:
         with engine.connect() as conn:
+            # ⭐ ADICIONAR manual_em_andamento NO SELECT
             query = text("""
                 SELECT ep.id, ep.codigo_etapa, ep.nome_etapa, ep.descricao_etapa,
                     ep.como_e_feito, ep.objetivo_etapa, ep.status_etapa, ep.criticidade_etapa,
                     ep.politica_interna, ep.analise_critica, ep.sugestao_melhoria,
                     ep.necessidade_implantacao, ep.ganho_previsto, ep.obrigacoes_regulatorias,
                     ep.executores_etapa,
-                    ep.manual_nome, ep.created_at, ep.auditoria_id,  -- ⭐ ADICIONADO auditoria_id
+                    ep.manual_nome, ep.created_at, ep.auditoria_id,
+                    -- ⭐ NOVO CAMPO
+                    ep.manual_em_andamento,
                     EXISTS(
                         SELECT 1 FROM analises_criticas ac 
                         WHERE ac.etapa_id = ep.id AND ac.tipo = 'auditado'
@@ -698,9 +701,11 @@ def api_processo_etapas(processo_id):
                     'executores_etapa': row[14] or '',
                     'manual_nome': row[15] or '',                    
                     'created_at': row[16].isoformat() if row[16] else '',
-                    'auditoria_id': row[17] if len(row) > 17 else None,  # ⭐ NOVO
-                    'tem_analise_auditado': row[18] if len(row) > 18 else False,
-                    'tem_analise_auditor': row[19] if len(row) > 19 else False,
+                    'auditoria_id': row[17] if len(row) > 17 else None,
+                    # ⭐ NOVO CAMPO
+                    'manual_em_andamento': row[18] if len(row) > 18 else False,
+                    'tem_analise_auditado': row[19] if len(row) > 19 else False,
+                    'tem_analise_auditor': row[20] if len(row) > 20 else False,
                 })
             
             return jsonify({'success': True, 'etapas': etapas})
@@ -2429,7 +2434,7 @@ def api_risco_etapa_detalhes(risco_id):
                 SELECT id, etapa_id, nome_risco, categoria, fator_risco,
                        consequencia, impacto, probabilidade, magnitude,
                        impacto_aceitavel, probabilidade_aceitavel, tratamento, origem, desc_tratamento, motivo_classificacao, financeiro,
-                       info_adicional, ativo, causas
+                       info_adicional, ativo, causas, prazo_implantacao
                 FROM riscos_etapa
                 WHERE id = :risco_id
             """)
@@ -2457,7 +2462,8 @@ def api_risco_etapa_detalhes(risco_id):
                 'financeiro': result[15] or False,
                 'info_adicional': result[16] or '',
                 'ativo': result[16] if result[17] is not None else True,
-                'causas': [c.strip() for c in result[18].split(',')] if result[18] else []
+                'causas': [c.strip() for c in result[18].split(',')] if result[18] else [],
+                'prazo_implantacao': result[19] or ''
             }
 
             return jsonify({'success': True, 'risco': risco})
@@ -2477,7 +2483,7 @@ def api_etapa_riscos(etapa_id):
             query = text("""
                 SELECT id, nome_risco, categoria, fator_risco, consequencia,
                        impacto, probabilidade, magnitude, impacto_aceitavel, probabilidade_aceitavel, tratamento,
-                       origem, desc_tratamento, motivo_classificacao, financeiro, info_adicional, ativo, causas
+                       origem, desc_tratamento, motivo_classificacao, financeiro, info_adicional, ativo, causas, prazo_implantacao
                 FROM riscos_etapa
                 WHERE etapa_id = :etapa_id AND (ativo IS NULL OR ativo = true)
                 ORDER BY id
@@ -2506,7 +2512,8 @@ def api_etapa_riscos(etapa_id):
                     'financeiro': row[14] or False,
                     'info_adicional': row[15] or '',
                     'ativo': row[16] if row[16] is not None else True,
-                    'causas': [c.strip() for c in row[17].split(',')] if row[17] else []
+                    'causas': [c.strip() for c in row[17].split(',')] if row[17] else [],
+                    'prazo_implantacao': row[18] or ''
                 })
 
             return jsonify({'success': True, 'riscos': riscos})
@@ -2625,7 +2632,6 @@ def api_etapa_detalhes(etapa_id):
     from database import engine
     from sqlalchemy import text
     import base64
-    from datetime import datetime, timedelta, date
     
     try:
         with engine.connect() as conn:
@@ -2637,7 +2643,9 @@ def api_etapa_detalhes(etapa_id):
                        executores_etapa,
                        diagrama_bpmn, diagrama_nome, diagrama_tipo,
                        manual_etapa, manual_nome, manual_tipo,
-                       arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo
+                       arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,
+                       -- ⭐ NOVO CAMPO
+                       manual_em_andamento
                 FROM etapas_processo
                 WHERE id = :etapa_id
             """)
@@ -2658,7 +2666,7 @@ def api_etapa_detalhes(etapa_id):
             
             # ===== CONVERTER ARQUIVO DE MAPEAMENTO PARA BASE64 =====
             arquivo_mapeamento_base64 = None
-            if result[22]:  # arquivo_mapeamento (índice 22)
+            if result[22]:  # arquivo_mapeamento
                 arquivo_mapeamento_base64 = base64.b64encode(result[22]).decode('utf-8')
             
             etapa = {
@@ -2689,10 +2697,13 @@ def api_etapa_detalhes(etapa_id):
                 'manual_nome': result[20] or '',
                 'manual_tipo': result[21] or '',
                 
-                # Arquivo de Mapeamento (NOVO)
+                # Arquivo de Mapeamento
                 'arquivo_mapeamento_base64': arquivo_mapeamento_base64,
                 'arquivo_mapeamento_nome': result[23] or '',
                 'arquivo_mapeamento_tipo': result[24] or '',
+                
+                # ⭐ NOVO CAMPO
+                'manual_em_andamento': result[25] if len(result) > 25 and result[25] else False
             }
             
             return jsonify({'success': True, 'etapa': etapa})
@@ -2766,6 +2777,7 @@ def api_salvar_etapa():
     ganho_previsto = data.get('ganho_previsto', '')
     obrigacoes_regulatorias = data.get('obrigacoes_regulatorias', '')
     executores_etapa = data.get('executores_etapa', '')
+    manual_em_andamento = data.get('manual_em_andamento', False)
     
     # ⭐⭐⭐ CORREÇÃO: Se auditoria_id não veio, buscar do processo
     if not auditoria_id and processo_id:
@@ -2846,7 +2858,8 @@ def api_salvar_etapa():
                     'necessidade_implantacao': necessidade_implantacao,
                     'ganho_previsto': ganho_previsto,
                     'obrigacoes_regulatorias': obrigacoes_regulatorias,
-                    'executores_etapa': executores_etapa
+                    'executores_etapa': executores_etapa,
+                    'manual_em_andamento': manual_em_andamento
                 }
                 
                 # ⭐⭐⭐ Se tem auditoria_id, atualizar também
@@ -2867,7 +2880,8 @@ def api_salvar_etapa():
                     necessidade_implantacao = :necessidade_implantacao,
                     ganho_previsto = :ganho_previsto,
                     obrigacoes_regulatorias = :obrigacoes_regulatorias,
-                    executores_etapa = :executores_etapa
+                    executores_etapa = :executores_etapa,
+                    manual_em_andamento = :manual_em_andamento
                 """
                 
                 # ⭐⭐⭐ Adicionar auditoria_id ao UPDATE se disponível
@@ -2973,6 +2987,7 @@ def api_salvar_etapa():
                         diagrama_bpmn, diagrama_nome, diagrama_tipo,
                         manual_etapa, manual_nome, manual_tipo,
                         arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,
+                        manual_em_andamento,
                         created_at
                     ) VALUES (
                         :processo_id, :auditoria_id, :codigo_etapa, :nome_etapa,
@@ -2984,6 +2999,7 @@ def api_salvar_etapa():
                         :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
                         :manual_etapa, :manual_nome, :manual_tipo,
                         :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,
+                        :manual_em_andamento
                         NOW()
                     )
                     RETURNING id
@@ -3014,7 +3030,8 @@ def api_salvar_etapa():
                     'manual_tipo': manual_tipo,
                     'arquivo_mapeamento': arquivo_mapeamento_bytes,
                     'arquivo_mapeamento_nome': arquivo_mapeamento_nome,
-                    'arquivo_mapeamento_tipo': arquivo_mapeamento_tipo
+                    'arquivo_mapeamento_tipo': arquivo_mapeamento_tipo,
+                    "manual_em_andamento": manual_em_andamento
                 })
                 
                 novo_id = result.fetchone()[0]
@@ -3033,6 +3050,70 @@ def api_salvar_etapa():
         print(f"❌ Erro ao salvar etapa: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ====== DOWNLOAD MANUAL ======
+@app.route('/api/etapa/<int:etapa_id>/download-manual')
+def api_etapa_download_manual(etapa_id):
+    """Faz o download do manual da etapa"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from flask import send_file
+    import io
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT manual_etapa, manual_nome, manual_tipo
+                FROM etapas_processo
+                WHERE id = :etapa_id
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'error': 'Manual não encontrado'}), 404
+            
+            return send_file(
+                io.BytesIO(bytes(result[0])),
+                mimetype=result[2] or 'application/octet-stream',
+                as_attachment=True,
+                download_name=result[1] or f'manual_etapa_{etapa_id}'
+            )
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar manual: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ====== REMOVER MANUAL ======
+@app.route('/api/etapa/<int:etapa_id>/remover-manual', methods=['DELETE'])
+def api_etapa_remover_manual(etapa_id):
+    """Remove o manual da etapa"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE etapas_processo 
+                SET manual_etapa = NULL,
+                    manual_nome = NULL,
+                    manual_tipo = NULL,
+                    manual_em_andamento = FALSE
+                WHERE id = :etapa_id
+            """)
+            conn.execute(query, {'etapa_id': etapa_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Manual removido'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover manual: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
