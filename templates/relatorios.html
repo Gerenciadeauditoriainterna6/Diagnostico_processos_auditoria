@@ -93,6 +93,20 @@
             </button>
         </div>
 
+        <div class="form-group" id="checkbox-abr-container" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input
+                    type="checkbox"
+                    id="incluir_abr"
+                    name="incluir_abr"
+                    value="true">
+
+                <label for="incluir_abr" style="margin: 0;">
+                    <strong>Incluir seção ABR - Auditoria Baseada em Risco</strong>
+                </label>
+            </div>
+        </div>
+
         <div id="resultado-relatorio" style="display: none; margin-top: 20px;">
             <div class="alert-success">
                 <i class="fas fa-check-circle"></i> Relatório gerado com sucesso!
@@ -458,7 +472,7 @@
     #tipo_relatorio option[value="parecer"] {
         color: #0b5b99;
     }
-    
+
 </style>
 
 <script>
@@ -548,6 +562,46 @@
         }
     }
 
+    // Adicione esta função para verificar o perfil do usuário
+    let usuarioPodeABR = false;
+
+    async function verificarPermissaoABR() {
+        try {
+            const response = await fetch('/api/verificar-perfil');
+            const data = await response.json();
+
+            usuarioPodeABR =
+                data.perfil === 'administrador' ||
+                data.perfil === 'admin';
+
+            atualizarVisibilidadeABR();
+
+        } catch (error) {
+            console.error('Erro ao verificar perfil:', error);
+        }
+    }
+
+    function atualizarVisibilidadeABR() {
+        const checkboxContainer = document.getElementById('checkbox-abr-container');
+        const tipoRelatorio = document.getElementById('tipo_relatorio');
+        const checkbox = document.getElementById('incluir_abr');
+
+        if (usuarioPodeABR && tipoRelatorio.value === 'parecer') {
+            checkboxContainer.style.display = 'block';
+        } else {
+            checkboxContainer.style.display = 'none';
+            checkbox.checked = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        verificarPermissaoABR();
+
+        document
+            .getElementById('tipo_relatorio')
+            .addEventListener('change', atualizarVisibilidadeABR);
+    });
+
     async function gerarRelatorio() {
         const selectArea = document.getElementById('area_relatorio');
         const selectAuditoria = document.getElementById('auditoria_relatorio');
@@ -595,6 +649,10 @@
             auditoria_id: auditoriaId,
             orientacao: orientacao
         };
+
+        // ⭐ ADICIONAR PARÂMETRO ABR
+        const incluirABR = document.getElementById('incluir_abr')?.checked || false;
+        bodyData.incluir_abr = incluirABR
         
         if (tipoRelatorio === 'gerencial') {
             url = '/api/relatorios/gerar-gerencial';
@@ -896,4 +954,24 @@
         }
     }
 </script>
+
+<script>
+    const tipoRelatorio = document.getElementById('tipo_relatorio');
+    const checkboxAbr = document.getElementById('checkbox-abr-container');
+
+    function atualizarCheckboxABR() {
+        if (tipoRelatorio.value === 'parecer') {
+            checkboxAbr.style.display = 'block';
+        } else {
+            checkboxAbr.style.display = 'none';
+            document.getElementById('incluir_abr').checked = false;
+        }
+    }
+
+    // Executa ao carregar a página
+    atualizarCheckboxABR();
+
+    // Executa sempre que o usuário trocar o tipo de relatório
+    tipoRelatorio.addEventListener('change', atualizarCheckboxABR);
+    </script>
 {% endblock %}
