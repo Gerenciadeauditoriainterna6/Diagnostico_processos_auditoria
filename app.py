@@ -1052,6 +1052,177 @@ def api_area_funcionarios_para_select(area_id):
     
     return jsonify(funcionarios)
 
+@app.route('/api/area/<int:area_id>/upload-organograma', methods=['POST'])
+def api_upload_organograma(area_id):
+    """Faz upload do organograma para o Supabase Storage"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import base64
+    import os
+    
+    data = request.json
+    arquivo_base64 = data.get('arquivo_base64')
+    nome_arquivo = data.get('nome_arquivo')
+    tipo_arquivo = data.get('tipo_arquivo')
+    
+    if not arquivo_base64:
+        return jsonify({'success': False, 'error': 'Arquivo é obrigatório'}), 400
+    
+    try:
+        # 1. Decodificar Base64
+        if ',' in arquivo_base64:
+            arquivo_base64 = arquivo_base64.split(',')[1]
+        arquivo_bytes = base64.b64decode(arquivo_base64)
+        
+        # 2. Validar tamanho (5MB)
+        if len(arquivo_bytes) > 5 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 5MB'}), 400
+        
+        # 3. Conectar ao Supabase
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # 4. Gerar caminho único
+        extensao = nome_arquivo.split('.')[-1].lower()
+        caminho = f"area_{area_id}/organograma.{extensao}"
+        
+        # 5. Fazer upload
+        supabase.storage.from_('organogramas').upload(
+            path=caminho,
+            file=arquivo_bytes,
+            file_options={"content-type": tipo_arquivo}
+        )
+        
+        # 6. Obter URL pública
+        public_url = supabase.storage.from_('organogramas').get_public_url(caminho)
+        
+        # 7. Salvar no banco
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE informacoes_area 
+                SET organograma_url = :url,
+                    organograma_nome = :nome
+                WHERE id_area = :area_id
+            """)
+            conn.execute(query, {
+                'url': public_url,
+                'nome': nome_arquivo,
+                'area_id': area_id
+            })
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'url': public_url,
+            'nome': nome_arquivo,
+            'message': 'Organograma salvo com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/area/<int:area_id>/organograma', methods=['GET'])
+def api_buscar_organograma(area_id):
+    """Busca o organograma da área"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT organograma_url, organograma_nome
+                FROM informacoes_area
+                WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({
+                    'success': True,
+                    'tem_organograma': False
+                })
+            
+            return jsonify({
+                'success': True,
+                'tem_organograma': True,
+                'url': result[0],
+                'nome': result[1] or 'Organograma'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/area/<int:area_id>/organograma', methods=['DELETE'])
+def api_remover_organograma(area_id):
+    """Remove o organograma da área"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    perfil = session.get('usuario_perfil')
+    if perfil not in ['administrador', 'admin']:
+        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar URL atual
+            query = text("SELECT organograma_url FROM informacoes_area WHERE id_area = :area_id")
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if result and result[0]:
+                # Remover do Storage
+                supabase_url = os.getenv('SUPABASE_URL')
+                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                supabase = create_client(supabase_url, supabase_key)
+                
+                # Extrair caminho da URL
+                # Exemplo: https://xxx.supabase.co/storage/v1/object/public/organogramas/organogramas/area_1/organograma.pdf
+                if '/organogramas/' in result[0]:
+                    caminho = result[0].split('/organogramas/')[-1]
+                    try:
+                        supabase.storage.from_('organogramas').remove([caminho])
+                        print(f"✅ Arquivo removido do storage: {caminho}")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao remover do storage: {e}")
+            
+            # Limpar banco
+            query = text("""
+                UPDATE informacoes_area 
+                SET organograma_url = NULL,
+                    organograma_nome = NULL
+                WHERE id_area = :area_id
+            """)
+            conn.execute(query, {'area_id': area_id})
+            conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Organograma removido'})
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ====== API - SALVAR INFORMAÇÕES BÁSICAS DO PROCESSO ======
 @app.route('/api/processo/salvar-basico', methods=['POST'])
 def api_salvar_processo_basico():
@@ -1802,23 +1973,47 @@ def api_totais():
 
 @app.route('/api/area/<int:area_id>')
 def api_area_detalhes(area_id):
-    """Retorna detalhes de uma área específica"""
-    from logic import listar_areas
+    """Retorna detalhes de uma área específica (com organograma)"""
+    from database import engine
+    from sqlalchemy import text
     
-    # Buscar TODAS as áreas (ativas e inativas)
-    df = listar_areas(apenas_ativas=False)
-    area = df[df['id_area'] == area_id]
-    
-    if area.empty:
-        return jsonify({}), 404
-    
-    # Converter para dicionário
-    area_dict = area.iloc[0].to_dict()
-    
-    # ⭐ ADICIONAR O CAMPO 'unidade' MApeADO DO 'loc_unidade'
-    area_dict['unidade'] = area_dict.get('loc_unidade', '')
-    
-    return jsonify(area_dict)
+    try:
+        with engine.connect() as conn:
+            # ⭐ BUSCAR DIRETAMENTE COM OS CAMPOS DO ORGANOGRAMA
+            query = text("""
+                SELECT id_area, nome_area, loc_unidade, email, telefone, gestor,
+                       superintendente, diretor, objetivo_area, status,
+                       organograma_url, organograma_nome
+                FROM informacoes_area
+                WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if not result:
+                return jsonify({}), 404
+            
+            # Converter para dicionário
+            area_dict = {
+                'id_area': result[0],
+                'nome_area': result[1],
+                'loc_unidade': result[2],
+                'email': result[3],
+                'telefone': result[4],
+                'gestor': result[5],
+                'superintendente': result[6] or '',
+                'diretor': result[7] or '',
+                'objetivo_area': result[8] or '',
+                'status': result[9],
+                'organograma_url': result[10] or '',  # ⭐
+                'organograma_nome': result[11] or '', # ⭐
+                'unidade': result[2]  # Para compatibilidade
+            }
+            
+            return jsonify(area_dict)
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar área: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/area/<int:area_id>/funcionarios')
 def api_area_funcionarios(area_id):
@@ -1855,12 +2050,77 @@ def api_excluir_area(area_id):
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Falha ao desativar área'}), 400
 
+@app.route('/api/area/<int:area_id>/organograma-url', methods=['GET'])
+def api_organograma_url(area_id):
+    """Retorna URL assinada para o organograma (validade 5 minutos)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    
+    try:
+        with engine.connect() as conn:
+            # ⭐ CORRIGIDO: usar organograma_url (não organograma_caminho)
+            query = text("""
+                SELECT organograma_url, organograma_nome
+                FROM informacoes_area
+                WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'success': False, 'error': 'Organograma não encontrado'}), 404
+            
+            # ⭐ O organograma_url já é o caminho completo
+            # Precisamos extrair apenas o caminho para gerar a URL assinada
+            url_completa = result[0]
+            nome = result[1] or 'organograma'
+            
+            # Extrair o caminho da URL pública
+            # Exemplo: https://xxx.supabase.co/storage/v1/object/public/organogramas/area_4/organograma.png
+            # Caminho: area_4/organograma.png
+            if '/organogramas/' in url_completa:
+                caminho = url_completa.split('/organogramas/')[-1]
+            else:
+                caminho = url_completa
+            
+            print(f"📎 Caminho extraído: {caminho}")
+            
+            # Conectar ao Supabase Storage
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key)
+            
+            # Gerar URL assinada (expira em 300 segundos = 5 minutos)
+            url_assinada = supabase.storage.from_('organogramas').create_signed_url(
+                path=caminho,
+                expires_in=300
+            )
+            
+            return jsonify({
+                'success': True,
+                'url': url_assinada['signedURL'],
+                'nome': nome
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/salvar-area', methods=['POST'])
 def api_salvar_area():
     """Salva uma nova área"""
     from logic import salvar_area
     
     dados = request.json
+    dados['superintendente'] = dados.get('superintendente', '')
+    dados['diretor'] = dados.get('diretor', '')
+
     area_id = salvar_area(dados)
     
     if area_id:
@@ -1876,6 +2136,9 @@ def api_atualizar_area(area_id):
         return jsonify({'success': False, 'error': 'Permissão negada'}), 403
     
     dados = request.json
+    dados['superintendente'] = dados.get('superintendente', '')
+    dados['diretor'] = dados.get('diretor', '')
+
     resultado = atualizar_area(area_id, dados)
     
     if resultado:
