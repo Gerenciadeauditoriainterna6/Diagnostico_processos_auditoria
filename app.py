@@ -12,6 +12,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from logic import validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria
+
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
 # ============================================================
@@ -123,6 +125,18 @@ def configurar_auditoria():
             print(f"✅ [AUDITORIA] Usuário configurado: {usuario_id} - {usuario_nome} - {ip_origem}")
     except Exception as e:
         print(f"⚠️ [AUDITORIA] Erro: {e}")
+
+@app.route('/api/verificar-perfil')
+def verificar_perfil():
+    """Endpoint para verificar o perfil do usuário atual"""
+    try:
+        if 'usuario_id' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        perfil = session.get('usuario_perfil', 'usuario')
+        return jsonify({'perfil': perfil})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 50
 
 
 # ============================================================
@@ -3514,88 +3528,76 @@ def api_relatorios_gerar_gerencial():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
+    
 @app.route('/api/relatorios/gerar-parecer', methods=['POST'])
-def api_relatorios_gerar_parecer():
-    """Gera o relatório de Parecer da Auditoria para um processo específico"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    data = request.json
-    print("=" * 50)
-    print("🔍 Dados recebidos na rota:")
-    print(f"   area_id: {data.get('area_id')}")
-    print(f"   auditoria_id: {data.get('auditoria_id')}")
-    print(f"   processo_id: {data.get('processo_id')}")
-    print(f"   orientacao: {data.get('orientacao')}")
-    print("=" * 50)
-    
-    area_id = data.get('area_id')
-    auditoria_id = data.get('auditoria_id')
-    processo_id = data.get('processo_id')
-    orientacao = data.get('orientacao', 'RETRATO')
-    
-    if not area_id or not auditoria_id:
-        return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
-    
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'processo_id é obrigatório para o parecer'}), 400
-    
-    from database import engine
-    from sqlalchemy import text
-    from logic import gerar_relatorio_parecer_auditoria
-    
+def gerar_parecer():
+
+    from flask import Flask, jsonify, request, session, make_response
+    """Endpoint para gerar o parecer da auditoria"""
     try:
-        # Buscar nome da área e gestor
+        # Verificar autenticação
+        if 'usuario_id' not in session:
+            return jsonify({'error': 'Não autenticado'}), 401
+        
+        data = request.get_json()
+        area_id = data.get('area_id')
+        auditoria_id = data.get('auditoria_id')
+        processo_id = data.get('processo_id')
+        orientacao = data.get('orientacao', 'RETRATO')
+        incluir_abr = data.get('incluir_abr', False)  # ⭐ NOVO PARÂMETRO
+        
+        # Verificar permissão para ABR
+        perfil = session.get('usuario_perfil', 'usuario')
+        if incluir_abr and perfil not in ['administrador', 'admin']:
+            return jsonify({'error': 'Apenas administradores podem incluir a seção ABR'}), 403
+        
+        # Buscar dados necessários
         with engine.connect() as conn:
-            query_area = text("""
-                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
+            # Buscar informações da área
+            query_area = text("SELECT id_area, nome_area FROM informacoes_area WHERE id_area = :area_id")
+            area = conn.execute(query_area, {'area_id': area_id}).fetchone()
+            
+            if not area:
+                return jsonify({'error': 'Área não encontrada'}), 404
+            
+            # Buscar gestor
+            query_gestor = text("""
+                SELECT gestor, cargo
+                FROM informacoes_area 
+                WHERE id_area = :area_id
             """)
-            area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
+            gestor_info = conn.execute(query_gestor, {'area_id': area_id}).fetchone()
             
-            if not area_info:
-                return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
+            gestor = gestor_info[0] if gestor_info else 'Não informado'
+            cargo = gestor_info[1] if gestor_info and len(gestor_info) > 1 else 'Não informado'
             
-            area_nome = area_info[0] or 'Área sem nome'
-            gestor = area_info[1] or 'Gestor não informado'
-            cargo = area_info[2] or 'Cargo não informado'
+            usuario_nome = session.get('usuario_nome', 'Auditor')
         
-        # Pegar o nome do usuário da sessão
-        usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Auditor'))
-        
-        print(f"📊 Área: {area_nome}, Gestor: {gestor}, Usuário: {usuario_nome}, Cargo: {cargo}")
-        print(f"📊 Gerando parecer para processo_id: {processo_id}")
-        
-        # Gerar o PDF (passando o processo_id)
+        # ⭐ PASSAR O PARÂMETRO incluir_abr PARA A FUNÇÃO
         pdf_bytes = gerar_relatorio_parecer_auditoria(
             area_id=area_id,
-            area_nome=area_nome,
+            area_nome=area[1],
             gestor=gestor,
             cargo=cargo,
             auditoria_id=auditoria_id,
             processo_id=processo_id,
             usuario_nome=usuario_nome,
-            orientacao=orientacao
+            orientacao=orientacao,
+            incluir_abr=incluir_abr  # ⭐ NOVO PARÂMETRO
         )
         
-        print(f"✅ PDF gerado com sucesso! Tamanho: {len(pdf_bytes)} bytes")
+        # Criar resposta com o PDF
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="parecer_auditoria_processo_{processo_id}.pdf"'
         
-        # Criar nome do arquivo
-        nome_arquivo = f"parecer_auditoria_processo_{processo_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        
-        return send_file(
-            io.BytesIO(pdf_bytes),
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=nome_arquivo
-        )
+        return response
         
     except Exception as e:
-        print(f"❌ Erro ao gerar parecer: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
+        return jsonify({'error': str(e)}), 500
+    
 @app.route('/api/relatorios/download')
 def api_relatorios_download():
     """Faz o download do relatório PDF gerado"""
