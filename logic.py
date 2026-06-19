@@ -2060,22 +2060,27 @@ def listar_riscos_do_processo(processo_id):
 def salvar_area(dados_area):
     try:
         query = text("""
-            INSERT INTO informacoes_area 
-            (nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade)
-            VALUES 
-            (:nome, :objetivo, :status, :email, :telefone, :gestor, :loc_unidade)
+            INSERT INTO informacoes_area (
+                nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade,
+                superintendente, diretor  -- ⭐ ADICIONADOS
+            ) VALUES (
+                :nome, :objetivo, :status, :email, :telefone, :gestor, :loc_unidade,
+                :superintendente, :diretor  -- ⭐ ADICIONADOS
+            )
             RETURNING id_area
         """)
         
         with engine.begin() as conn:
             id_area = conn.execute(query, {
-                "nome": dados_area['nome'],
+                "nome": dados_area.get('nome', ''),
                 "loc_unidade": dados_area.get('loc_unidade', ''),
                 "objetivo": dados_area.get('objetivo', ''),
                 "status": dados_area.get('status', 'Ativo'),
                 "email": dados_area.get('email', ''),
                 "telefone": dados_area.get('telefone', ''),
-                "gestor": dados_area.get('gestor', '')
+                "gestor": dados_area.get('gestor', ''),
+                "superintendente": dados_area.get('superintendente', ''),  # ⭐ NOVO
+                "diretor": dados_area.get('diretor', '')                   # ⭐ NOVO
             }).scalar()
             
             # ====== REGISTRAR LOG ======
@@ -2085,30 +2090,33 @@ def salvar_area(dados_area):
                 registro_id=id_area,
                 operacao='INSERT',
                 dados_novos=dados_area,
-                query_sql="INSERT INTO informacoes_area (nome_area, objetivo_area, status, email, telefone, gestor)"
+                query_sql="INSERT INTO informacoes_area (nome_area, objetivo_area, status, email, telefone, gestor, superintendente, diretor)"
             )
             # ====== FIM DO LOG ======
             
         return id_area
     except Exception as e:
-        print(f"Erro ao salvar área: {e}")
+        print(f"❌ Erro ao salvar área: {e}")
         return None
 
 def listar_areas(apenas_ativas=True):
     """Lista áreas (por padrão, apenas as ativas)"""
     from database import engine
     from sqlalchemy import text
+    import pandas as pd
     
     if apenas_ativas:
         query = text("""
-            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade,
+                   superintendente, diretor  -- ⭐ ADICIONADOS
             FROM informacoes_area
             WHERE status = 'Ativo'
             ORDER BY nome_area
         """)
     else:
         query = text("""
-            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade
+            SELECT id_area, nome_area, objetivo_area, status, email, telefone, gestor, loc_unidade,
+                   superintendente, diretor  -- ⭐ ADICIONADOS
             FROM informacoes_area
             ORDER BY 
                 CASE WHEN status = 'Ativo' THEN 0 ELSE 1 END,
