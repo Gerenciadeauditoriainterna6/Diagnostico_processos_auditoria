@@ -2244,57 +2244,7 @@
     }
 
     // ============================================================
-    // 2. DEPOIS: Defina a função renderizarEtapas
-    // ============================================================
-    function renderizarEtapas(etapas) {
-        const container = document.getElementById('etapas-container');
-        
-        Promise.all(etapas.map(async (etapa) => {
-            // ... seu código existente ...
-            
-            return `
-                <div class="etapa-card" data-etapa-id="${etapa.id}">
-                    <!-- ... conteúdo do card ... -->
-                    <div class="etapa-card-body">
-                        <div class="etapa-detalhes-grid">
-                            <!-- ... todos os campos ... -->
-                            
-                            <!-- ANÁLISES CRÍTICAS (resumo) -->
-                            <div class="etapa-detalhe-item" style="grid-column: 1 / -1;">
-                                <div class="etapa-detalhe-label"><i class="fas fa-clipboard-list"></i> Análises Críticas do Auditado</div>
-                                <div class="etapa-detalhe-value" id="analises-resumo-${etapa.id}">
-                                    <span style="color: #999;">Carregando análises...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        })).then(cardsHtml => {
-            container.innerHTML = cardsHtml.join('');
-            
-            // Carregar análises para cada etapa
-            etapas.forEach(etapa => {
-                carregarAnalisesResumo(etapa.id);
-            });
-        });
-    }
-
-    // ============================================================
-    // 3. Por fim, as funções auxiliares (escapeHtml, etc.)
-    // ============================================================
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    // ============================================================
-    // RENDERIZAÇÃO DAS ETAPAS
+    // RENDERIZAÇÃO DAS ETAPAS (SEM EXPANDER E SEM DETALHES)
     // ============================================================
 
     function renderizarEtapas(etapas) {
@@ -2320,20 +2270,9 @@
             const temMapeamento = etapa.arquivo_mapeamento_nome && etapa.arquivo_mapeamento_nome.trim() !== '';
             const mapeamentoIcon = temMapeamento ? '<i class="fas fa-file-alt" title="Possui arquivo de mapeamento"></i>' : '';
             
-            // Gerar IDs únicos para cada campo
-            const idDescricao = 'desc-' + etapa.id;
-            const idComoFeito = 'como-' + etapa.id;
-            const idObjetivo = 'obj-' + etapa.id;
-            const idPolitica = 'pol-' + etapa.id;
-            const idObrigacoes = 'obr-' + etapa.id;
-            const idAnalise = 'ana-' + etapa.id;
-            const idSugestao = 'sug-' + etapa.id;
-            const idNecessidade = 'nec-' + etapa.id;
-            const idGanho = 'gan-' + etapa.id;
-            
             return `
                 <div class="etapa-card" data-etapa-id="${etapa.id}">
-                    <div class="etapa-card-header" onclick="toggleEtapaCard(this)">
+                    <div class="etapa-card-header" style="cursor: default;">
                         <div class="etapa-info">
                             <span class="etapa-codigo">${escapeHtml(etapa.codigo_etapa)}</span>
                             <span class="etapa-nome">${escapeHtml(etapa.nome_etapa)}</span>
@@ -2354,88 +2293,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="etapa-card-body">
-                        <div class="etapa-detalhes-grid">
-                            <!-- INFORMAÇÕES BÁSICAS -->
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-tag"></i> Código</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(etapa.codigo_etapa)}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-circle"></i> Status</div>
-                                <div class="etapa-detalhe-value">
-                                    <span class="etapa-status ${etapa.status_etapa.toLowerCase()}">${escapeHtml(etapa.status_etapa)}</span>
-                                </div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-chart-line"></i> Criticidade</div>
-                                <div class="etapa-detalhe-value">
-                                    <span class="etapa-criticidade ${etapa.criticidade_etapa.toLowerCase().replace(' ', '-')}">${escapeHtml(etapa.criticidade_etapa)}</span>
-                                </div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-users"></i> Executores</div>
-                                <div class="etapa-detalhe-value">${escapeHtml(executoresNomes)}</div>
-                            </div>
-
-                            <!-- DESCRIÇÃO E DETALHES (COM LIMITE DE 300 CARACTERES) -->
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-align-left"></i> Descrição</div>
-                                <div class="etapa-detalhe-value">${limitarTexto(etapa.descricao_etapa, 300)}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-cogs"></i> Como é feito?</div>
-                                <div class="etapa-detalhe-value">${limitarTexto(etapa.como_e_feito, 300)}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-bullseye"></i> Objetivo</div>
-                                <div class="etapa-detalhe-value">${limitarTexto(etapa.objetivo_etapa, 300)}</div>
-                            </div>
-
-                            <!-- POLÍTICAS E REGULAMENTAÇÕES -->
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-gavel"></i> Política Interna</div>
-                                <div class="etapa-detalhe-value">${limitarTexto(etapa.politica_interna, 300)}</div>
-                            </div>
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-balance-scale"></i> Obrigações Regulatórias</div>
-                                <div class="etapa-detalhe-value">${limitarTexto(etapa.obrigacoes_regulatorias, 300)}</div>
-                            </div>
-
-                            <!-- MANUAL DA ETAPA -->
-                            <div class="etapa-detalhe-item">
-                                <div class="etapa-detalhe-label"><i class="fas fa-book"></i> Manual da Etapa</div>
-                                <div class="etapa-detalhe-value">
-                                    ${temManual ? `
-                                        <a href="#" onclick="downloadArquivo(${etapa.id}, 'manual'); return false;">
-                                            <i class="fas fa-file-download"></i> ${escapeHtml(etapa.manual_nome)}
-                                        </a>
-                                        ${etapa.manual_em_andamento ? '<span style="color: #856404; font-size: 11px; margin-left: 8px;"><i class="fas fa-clock"></i> Em andamento</span>' : ''}
-                                    ` : (etapa.manual_em_andamento ? 
-                                        '<span style="color: #856404;"><i class="fas fa-clock"></i> Manual em andamento</span>' : 
-                                        '<span style="color: #999;">Nenhum manual anexado</span>'
-                                    )}
-                                </div>
-                            </div>
-
-                            <!-- ANÁLISES CRÍTICAS (resumo) -->
-                            <div class="etapa-detalhe-item" style="grid-column: 1 / -1;">
-                                <div class="etapa-detalhe-label"><i class="fas fa-clipboard-list"></i> Análises Críticas</div>
-                                <div class="etapa-detalhe-value" id="analises-resumo-${etapa.id}">
-                                    <span style="color: #999;">Carregando análises...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- SEM BODY - SEM EXPANDER E SEM DETALHES -->
                 </div>
             `;
         })).then(cardsHtml => {
             container.innerHTML = cardsHtml.join('');
-            
-            // Carregar análises para cada etapa
-            etapas.forEach(etapa => {
-                carregarAnalisesResumo(etapa.id);
-            });
         });
     }
 
