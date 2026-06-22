@@ -266,6 +266,25 @@
                         <textarea id="analise-auditado-observacoes" class="form-control" rows="2" placeholder="Observações adicionais..."></textarea>
                     </div>
 
+                    <!-- ⭐ NOVO: 8. Evidências da Análise do Auditado -->
+                    <div class="form-group">
+                        <label><i class="fas fa-paperclip"></i> Evidências da Análise (PDF)</label>
+                        <div class="custom-file-upload">
+                            <input type="file" id="anexo-evidencia-auditado" accept=".pdf" style="display: none;">
+                            <button type="button" id="btn-selecionar-evidencia-auditado" class="btn-file-upload">
+                                <i class="fas fa-cloud-upload-alt"></i> Anexar Evidência (PDF)
+                            </button>
+                            <div id="evidencia-nome-auditado" class="file-name" style="display: none;">
+                                <i class="fas fa-file-pdf"></i> 
+                                <span id="evidencia-nome-texto-auditado"></span>
+                                <button type="button" id="btn-remover-evidencia-auditado" class="btn-remove-file">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">Anexe arquivos PDF que fundamentam a análise do auditado (máx. 10MB)</small>
+                    </div>
+
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" style="margin-right: 8px;" onclick="fecharModalAnaliseAuditado()">Cancelar</button>
@@ -1951,6 +1970,9 @@
     // Variáveis para checklist
     let currentRespostaId = null;
     let arquivosPendentes = {};
+    // ⭐ Variáveis para evidência da análise do auditado
+    let arquivoSelecionadoAuditadoEvidencia = null;
+    let anexoExistenteAuditadoEvidencia = null;
 
     const PERGUNTAS = {
         governanca: [
@@ -2498,6 +2520,74 @@
                 } else {
                     document.getElementById('remover-anexo-hidden').value = 'true';
                 }
+            });
+        }
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA UPLOAD DE EVIDÊNCIA DO AUDITADO
+    // ============================================================
+
+    function setupFileUploadEvidenciaAuditado() {
+        const btnSelecionar = document.getElementById('btn-selecionar-evidencia-auditado');
+        const inputFile = document.getElementById('anexo-evidencia-auditado');
+        const evidenciaDiv = document.getElementById('evidencia-nome-auditado');
+        const evidenciaTexto = document.getElementById('evidencia-nome-texto-auditado');
+        const btnRemover = document.getElementById('btn-remover-evidencia-auditado');
+        
+        if (!btnSelecionar || !inputFile) {
+            console.warn('⚠️ Elementos de upload de evidência do auditado não encontrados');
+            return;
+        }
+        
+        btnSelecionar.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            inputFile.click(); 
+        });
+        
+        inputFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.type !== 'application/pdf') {
+                    mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                arquivoSelecionadoAuditadoEvidencia = file;
+                if (evidenciaTexto) evidenciaTexto.textContent = file.name;
+                if (evidenciaDiv) evidenciaDiv.style.display = 'flex';
+                anexoExistenteAuditadoEvidencia = null;
+                console.log('📎 Evidência do auditado selecionada:', file.name);
+            }
+        });
+        
+        if (btnRemover) {
+            btnRemover.addEventListener('click', (e) => {
+                e.preventDefault();
+                inputFile.value = '';
+                arquivoSelecionadoAuditadoEvidencia = null;
+                if (evidenciaDiv) evidenciaDiv.style.display = 'none';
+                if (evidenciaTexto) evidenciaTexto.textContent = '';
+                
+                if (anexoExistenteAuditadoEvidencia) {
+                    let hidden = document.getElementById('remover-evidencia-auditado-hidden');
+                    if (!hidden) {
+                        hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.id = 'remover-evidencia-auditado-hidden';
+                        hidden.value = 'true';
+                        document.getElementById('modal-analise-auditado').querySelector('.modal-body').appendChild(hidden);
+                    } else {
+                        hidden.value = 'true';
+                    }
+                    anexoExistenteAuditadoEvidencia = null;
+                }
+                console.log('🗑️ Evidência do auditado removida');
             });
         }
     }
@@ -3098,6 +3188,20 @@
                                         <div class="analise-texto">${escapeHtml(analise.observacoes)}</div>
                                     </div>
                                     ` : ''}
+
+                                    ${analise.evidencia_nome ? `
+                                    <div class="analise-card-section" style="margin-top: 15px; border-left: 3px solid #0b5b99; background: #f0f7ff;">
+                                        <h4><i class="fas fa-paperclip" style="color: #0b5b99;"></i> Evidência da Análise</h4>
+                                        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
+                                            <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 20px;"></i>
+                                            <span style="font-size: 13px; color: #333; flex: 1;">${escapeHtml(analise.evidencia_nome)}</span>
+                                            <button onclick="event.stopPropagation(); baixarEvidenciaAuditadoChecklist(${analise.id}, '${escapeHtml(analise.evidencia_nome)}')" 
+                                                    class="btn-download-evidencia solid" style="padding: 6px 14px; font-size: 12px; background: #0b5b99; color: white; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                                <i class="fas fa-download"></i> Baixar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    ` : ''}
                                     
                                     <!-- Plano de Ação (se existir) -->
                                     ${temPlanoAcao ? `
@@ -3153,6 +3257,8 @@
                                         </div>
                                     </div>
                                     ` : ''}
+
+                                    
                                 </div>
                             </div>
                         `;
@@ -3204,6 +3310,30 @@
                     document.getElementById('analise-auditado-ganho').value = analise.ganho_previsto || '';
                     document.getElementById('analise-auditado-observacoes').value = analise.observacoes || '';
                     
+                    // ⭐⭐⭐ NOVO: Carregar evidência existente ⭐⭐⭐
+                    // Limpar estado anterior
+                    arquivoSelecionadoAuditadoEvidencia = null;
+                    anexoExistenteAuditadoEvidencia = null;
+                    
+                    const evidenciaDiv = document.getElementById('evidencia-nome-auditado');
+                    const evidenciaTexto = document.getElementById('evidencia-nome-texto-auditado');
+                    
+                    // Verificar se a análise tem evidência
+                    if (analise.evidencia_url && analise.evidencia_nome) {
+                        anexoExistenteAuditadoEvidencia = analise.evidencia_nome;
+                        
+                        if (evidenciaDiv && evidenciaTexto) {
+                            evidenciaTexto.textContent = analise.evidencia_nome;
+                            evidenciaDiv.style.display = 'flex';
+                        }
+                        console.log('📎 Evidência existente carregada:', analise.evidencia_nome);
+                    } else {
+                        if (evidenciaDiv) evidenciaDiv.style.display = 'none';
+                        if (evidenciaTexto) evidenciaTexto.textContent = '';
+                        console.log('📎 Nenhuma evidência encontrada para esta análise');
+                    }
+                    // ⭐⭐⭐ FIM DO NOVO CÓDIGO ⭐⭐⭐
+                    
                     // 2. DEPOIS, configurar os radios e plano de ação
                     const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
                     let valorParaMarcar = '';
@@ -3227,10 +3357,8 @@
                         }
                     } else if (analise.sugestao_sera_implantada === false) {
                         valorParaMarcar = 'false';
-                        // ⭐ NÃO LIMPAR AQUI! Deixe para depois de marcar o radio
                     } else {
                         valorParaMarcar = '';
-                        // ⭐ NÃO LIMPAR AQUI! Deixe para depois de marcar o radio
                     }
                     
                     // 3. Marcar o radio (ANTES de limpar ou mostrar/esconder)
@@ -3321,6 +3449,29 @@
             observacoes: document.getElementById('analise-auditado-observacoes').value,
             sugestao_sera_implantada: seraImplantada
         };
+
+        // ⭐ Processar evidência do auditado
+        let evidencia_base64 = null;
+        let evidencia_nome = null;
+        const removerEvidencia = document.getElementById('remover-evidencia-auditado-hidden')?.value === 'true';
+        
+        if (arquivoSelecionadoAuditadoEvidencia) {
+            evidencia_base64 = await converterParaBase64(arquivoSelecionadoAuditadoEvidencia);
+            evidencia_nome = arquivoSelecionadoAuditadoEvidencia.name;
+            console.log('📎 Enviando evidência do auditado:', evidencia_nome);
+        } else if (removerEvidencia && anexoExistenteAuditadoEvidencia) {
+            console.log('🗑️ Removendo evidência do auditado');
+            // Marcar para remover no backend
+        }
+        
+        // Adicionar ao payload
+        if (evidencia_base64 && evidencia_nome) {
+            analiseData.evidencia_base64 = evidencia_base64;
+            analiseData.evidencia_nome = evidencia_nome;
+        }
+        if (removerEvidencia && anexoExistenteAuditadoEvidencia) {
+            analiseData.remover_evidencia = true;
+        }
         
         // Só incluir plano de ação se for true
         if (seraImplantada === true) {
@@ -3694,6 +3845,60 @@
     }
 
     // ============================================================
+    // FUNÇÃO PARA BAIXAR EVIDÊNCIA DO AUDITADO (CHECKLIST)
+    // ============================================================
+
+    async function baixarEvidenciaAuditadoChecklist(analiseId, nomeArquivo) {
+        try {
+            console.log('📥 Baixando evidência do auditado (checklist):', analiseId, nomeArquivo);
+            
+            const response = await fetch(`/api/analise-auditado/${analiseId}/evidencia`);
+            
+            if (!response.ok) {
+                let errorMsg = 'Erro ao baixar evidência';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                } catch (e) {
+                    // Se não for JSON, usa o status
+                    errorMsg = `Erro ${response.status}: ${response.statusText}`;
+                }
+                mostrarToast('❌ ' + errorMsg, 'error');
+                return;
+            }
+            
+            // Obter o blob do arquivo
+            const blob = await response.blob();
+            
+            // Verificar se o blob é válido
+            if (blob.size === 0) {
+                mostrarToast('❌ Arquivo vazio ou corrompido', 'error');
+                return;
+            }
+            
+            // Criar URL para download
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeArquivo || 'evidencia.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Limpar URL após o download
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
+            mostrarToast('✅ Download iniciado!', 'success');
+            
+        } catch (error) {
+            console.error('❌ Erro ao baixar evidência:', error);
+            mostrarToast('❌ Erro ao baixar evidência: ' + error.message, 'error');
+        }
+    }
+
+    // ============================================================
     // FUNÇÃO PARA BAIXAR EVIDÊNCIA DA ANÁLISE DO AUDITOR
     // ============================================================
 
@@ -4059,6 +4264,7 @@
         if (modalConfirmar) modalConfirmar.addEventListener('click', (e) => { if (e.target === modalConfirmar) fecharModalConfirmarImplantacao(); });
         
         setupFileUploadEvidenciaAuditor();
+        setupFileUploadEvidenciaAuditado();
 
         setupFileUploadAuditado();
         setupFileUpload();
@@ -4067,6 +4273,8 @@
         document.getElementById('btn-salvar-analise-auditado')?.addEventListener('click', salvarAnaliseAuditado);
         setupImplementacaoListenerAuditor();
     });
+
+    
 </script>
 
 {% endblock %}
