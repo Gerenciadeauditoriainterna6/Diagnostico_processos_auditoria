@@ -3165,7 +3165,9 @@ def buscar_area_por_id(area_id):
     from sqlalchemy import text
 
     query = text("""
-        SELECT id_area, nome_area, email, telefone, gestor, objetivo_area, status
+        SELECT id_area, nome_area, email, telefone, gestor, 
+               superintendente, diretor, objetivo_area, status,
+               loc_unidade
         FROM informacoes_area
         WHERE id_area = :id
     """)
@@ -3181,7 +3183,6 @@ def atualizar_area(area_id, dados):
     from sqlalchemy import text
     
     try:
-
         # 1. Buscar dados ANTES da alteração
         dados_anteriores = buscar_area_por_id(area_id)
 
@@ -3189,7 +3190,7 @@ def atualizar_area(area_id, dados):
             print(f"❌ Área ID {area_id} não encontrada para atualização")
             return False
         
-        # 2. Executar o UPDATE
+        # 2. Executar o UPDATE com TODOS os campos
         query = text("""
             UPDATE informacoes_area 
             SET nome_area = :nome,
@@ -3197,19 +3198,23 @@ def atualizar_area(area_id, dados):
                 telefone = :telefone,
                 gestor = :gestor,
                 objetivo_area = :objetivo,
-                loc_unidade = :loc_unidade
+                loc_unidade = :loc_unidade,
+                superintendente = :superintendente,  -- ⭐ NOVO
+                diretor = :diretor                   -- ⭐ NOVO
             WHERE id_area = :id
         """)
         
         with engine.connect() as conn:
             result = conn.execute(query, {
                 "id": area_id,
-                "nome": dados['nome'],
+                "nome": dados.get('nome', ''),
                 "email": dados.get('email', ''),
                 "telefone": dados.get('telefone', ''),
                 "gestor": dados.get('gestor', ''),
                 "objetivo": dados.get('objetivo', ''),
-                "loc_unidade": dados.get('loc_unidade', '')
+                "loc_unidade": dados.get('loc_unidade', ''),
+                "superintendente": dados.get('superintendente', ''),  # ⭐ NOVO
+                "diretor": dados.get('diretor', '')                   # ⭐ NOVO
             })
             conn.commit()
 
@@ -3221,11 +3226,14 @@ def atualizar_area(area_id, dados):
                     operacao='UPDATE',
                     dados_anteriores=dados_anteriores,
                     dados_novos=dados,
-                    query_sql="UPDATE informacoes_area SET nome_area, email, telefone, gestor, objetivo_area"
+                    query_sql="UPDATE informacoes_area SET nome_area, email, telefone, gestor, objetivo_area, loc_unidade, superintendente, diretor"
                 )
             return result.rowcount > 0
+            
     except Exception as e:
         print(f"Erro ao atualizar área: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def atualizar_funcionario(funcionario_id, dados):

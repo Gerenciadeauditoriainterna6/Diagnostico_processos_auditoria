@@ -130,13 +130,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="superintendente"><i class="fas fa-user-tie"></i> Nome do Superintendente</label>
-                    <input type="text" id="superintendente" name="superintendente" class="form-control">
+                    <label for="edit_superintendente"><i class="fas fa-user-tie"></i> Nome do Superintendente</label>
+                    <input type="text" id="edit_superintendente" name="edit_superintendente" class="form-control">
                 </div>
 
                 <div class="form-group">
-                    <label for="diretor"><i class="fas fa-user-tie"></i> Nome do Diretor</label>
-                    <input type="text" id="diretor" name="diretor" class="form-control">
+                    <label for="edit_diretor"><i class="fas fa-user-tie"></i> Nome do Diretor</label>
+                    <input type="text" id="edit_diretor" name="edit_diretor" class="form-control">
                 </div>
 
                 <div class="form-group">
@@ -2385,6 +2385,10 @@
             document.getElementById('edit_telefone').value = area.telefone || '';
             document.getElementById('edit_gestor').value = area.gestor || '';
             document.getElementById('edit_objetivo').value = area.objetivo_area || '';
+            
+            // ⭐ NOVO: Carregar superintendente e diretor
+            document.getElementById('edit_superintendente').value = area.superintendente || '';
+            document.getElementById('edit_diretor').value = area.diretor || '';
 
             setupOrganogramaUpload(areaId);
             
@@ -2422,8 +2426,8 @@
                 email: document.getElementById('edit_email').value,
                 telefone: limparMascaraTelefone(document.getElementById('edit_telefone').value),
                 gestor: document.getElementById('edit_gestor').value,
-                superintendente: document.getElementById('superintendente').value,
-                diretor: document.getElementById('diretor').value,
+                superintendente: document.getElementById('edit_superintendente').value,
+                diretor: document.getElementById('edit_diretor').value,
                 objetivo: document.getElementById('edit_objetivo').value,
                 status: 'Ativo'
             };
@@ -2753,7 +2757,7 @@
                 </h4>
                 <p><i class="fas fa-map-marker-alt"></i> <strong>${area.loc_unidade || 'Não informada'}</strong></p>
                 <p><i class="fas fa-user"></i> <strong>Gestor</strong>: ${gestor}</p>
-                <p><i class="fas fa-user-tie"></i> <strong>Superintedente:</strong> ${superintendente}</p>
+                <p><i class="fas fa-user-tie"></i> <strong>Superintendente:</strong> ${superintendente}</p>
                 <p><i class="fas fa-user-tie"></i> <strong>Diretor:</strong> ${diretor}</p>
                 <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
                 <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
