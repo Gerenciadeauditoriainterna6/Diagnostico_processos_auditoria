@@ -38,7 +38,6 @@
         </div>
     </div>
 </div>
-
 <!-- MODAL PARA ADICIONAR/EDITAR CONTROLE -->
 <div id="modal-controle" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
@@ -54,19 +53,34 @@
             
             <!-- 3. Fator de Risco (Causa/Motivo) -->
             <div class="form-group">
-                <label><i class="fas fa-exclamation-triangle"></i> Fator de Risco da Etapa</label>
+                <label>
+                    <i class="fas fa-exclamation-triangle"></i> Fator de Risco da Etapa
+                    <span class="help-icon" data-tooltip="REPETE A DESCRIÇÃO DA CAUSA ou MOTIVO (FATOR DE RISCO), APENAS PARA ASSOCIAR AO CONTROLE DA ETAPA">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
                 <textarea id="controle_causa_motivo" class="form-control" rows="2" placeholder="Descreva o fator de risco..."></textarea>
             </div>
 
             <!-- 4. Ação de Controle (Nome do Controle) -->
             <div class="form-group">
-                <label><i class="fas fa-shield-alt"></i> Ação de Controle *</label>
+                <label>
+                    <i class="fas fa-shield-alt"></i> Ação de Controle *
+                    <span class="help-icon" data-tooltip="AÇÃO DE CONTROLE REALIZADA PARA  MITIGAR O FATOR DE RISCOS, baseado em Politicas e Procedimentos. Ele pode ser uma Ação de: Revisão, Recálculo, Reconciliação, Autorização, Aprovação Conferência, Verificação, aprovação, autorização, reconciliação e revisão do desempenho operacional, da segurança dos bens e da segregação de responsabilidades.">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
                 <input type="text" id="controle_nome" class="form-control" placeholder="Ex: Revisão semanal dos dados">
             </div>
 
             <!-- 5. Como executo a ação de controle? -->
             <div class="form-group">
-                <label><i class="fas fa-cogs"></i> Como executo a ação de controle?</label>
+                <label>
+                    <i class="fas fa-cogs"></i> Como executo a ação de controle?
+                    <span class="help-icon" data-tooltip="O objetivo é esclarecer, de forma que uma outra pessoa possa refazer da mesma maneira que foi executada.">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
                 <textarea id="controle_como_executado" class="form-control" rows="2" placeholder="Descreva como o controle é executado..."></textarea>
             </div>
 
@@ -808,6 +822,89 @@
 
     .risco-controles-badge i {
         font-size: 10px;
+    }
+
+    .help-icon {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: help;
+        margin-left: 4px;
+    }
+
+    .help-icon i {
+        font-size: 12px;
+        color: #0b5b99;
+    }
+
+    /* Tooltip que aparece em cima do ícone */
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;           /* ← FIXO: aparece ACIMA do ícone */
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        max-width: 300px;
+        min-width: 200px;
+        text-align: center;
+        white-space: normal;
+        word-wrap: break-word;
+        line-height: 1.4;
+        z-index: 100001;
+        margin-bottom: 8px;     /* ← FIXO: espaço entre tooltip e ícone */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Seta do tooltip (triângulo que aponta para o ícone) */
+    .help-icon:hover::before {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 6px;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+        margin-bottom: 2px;     /* ← FIXO: gruda no tooltip */
+        z-index: 100001;
+    }
+
+    /* Help icon */
+    .help-icon-categorias {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        background: #0b5b99;
+        color: white;
+        border-radius: 50%;
+        font-size: 11px;
+        cursor: pointer;
+    }
+
+    /* Form section inline */
+    .form-section-inline {
+        margin-bottom: 20px;
+    }
+
+    /* Forçar card de informações a aparecer */
+    #info-categorias, #info-criterios, #info-categorias-causa {
+        position: relative !important;
+        z-index: 100000 !important;
+        background: #e8f4f8 !important;
+        border-left: 4px solid #0b5b99 !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
+        margin: 10px 0 !important;
+        display: none;
     }
     
 </style>
