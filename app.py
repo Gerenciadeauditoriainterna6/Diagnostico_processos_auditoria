@@ -2251,16 +2251,18 @@ def api_risco_etapa_salvar():
     fator_risco = data.get('fator_risco', '')
     consequencia = data.get('consequencia', '')
     origem = data.get('origem', '')
-    impacto_aceitavel = data.get('impacto_aceitavel', 'Médio')
-    probabilidade_aceitavel = data.get('probabilidade_aceitavel', 'Médio')
-    
+    impacto_aceitavel = data.get('apetite_impacto', 'Médio')  # ⭐ CORRIGIDO: apetite_impacto
+    probabilidade_aceitavel = data.get('apetite_probabilidade', 'Médio')  # ⭐ CORRIGIDO: apetite_probabilidade
 
     # 3. Avaliação do Risco
     impacto = data.get('impacto', 'Médio')
     probabilidade = data.get('probabilidade', 'Médio')
-    motivo_classificacao = data.get('motivo_classificacao', '')
+    motivo_classificacao = data.get('motivo', '')  # ⭐ CORRIGIDO: motivo (não motivo_classificacao)
     info_adicional = data.get('info_adicional', '')
     financeiro = data.get('financeiro', False)
+    
+    # ⭐ NOVO: Status do risco
+    ativo = data.get('ativo', True)  # Default: True (ativo)
 
     # 4. Tratamento
     tratamento = data.get('tratamento', '')
@@ -2269,15 +2271,20 @@ def api_risco_etapa_salvar():
     descricao_prazo = data.get('descricao_prazo', '')
 
     # 5. Relacionamentos
-    causas_str = data.get('causas', [])
+    causas = data.get('causas', [])
+    if isinstance(causas, list):
+        causas_str = ', '.join(causas)
+    else:
+        causas_str = causas
 
     # Validação básica
     if not etapa_id:
-        return jsonify({'success': False, 'error': 'Nome do risco é obrigatprio'}), 400
+        return jsonify({'success': False, 'error': 'Etapa é obrigatória'}), 400
     
-    # Calcular a magnitude (score) baseado em impacto e probabilidade
-    # Usando a mesma lógico que temos no diagnóstico
+    if not nome_risco:
+        return jsonify({'success': False, 'error': 'Nome do risco é obrigatório'}), 400
 
+    # Calcular a magnitude (score) baseado em impacto e probabilidade
     MAPA_RISCO = {
         ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14,
         ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
@@ -2315,6 +2322,7 @@ def api_risco_etapa_salvar():
                         prazo_implantacao = :prazo_implantacao,
                         descricao_prazo = :descricao_prazo,
                         causas = :causas,
+                        ativo = :ativo,  -- ⭐ NOVO
                         updated_at = NOW()
                     WHERE id = :risco_id
                 """)
@@ -2338,10 +2346,12 @@ def api_risco_etapa_salvar():
                     'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
-                    'causas': causas_str
+                    'causas': causas_str,
+                    'ativo': ativo  # ⭐ NOVO
                 })
 
                 print(f"✏️ Risco de etapa {risco_id} atualizado!")
+                novo_id = risco_id
             
             else:
                 # NOVO RISCO: inserir risco
@@ -2352,13 +2362,16 @@ def api_risco_etapa_salvar():
                         magnitude, impacto_aceitavel,
                         probabilidade_aceitavel, tratamento, origem, causas,
                         desc_tratamento, financeiro, info_adicional, 
-                        motivo_classificacao, prazo_implantacao, descricao_prazo, ativo, created_at
+                        motivo_classificacao, prazo_implantacao, descricao_prazo, 
+                        ativo, created_at  -- ⭐ NOVO: ativo
                     ) VALUES (
                         :etapa_id, :auditoria_id, :nome_risco, :categoria,
                         :fator_risco, :consequencia, :impacto, :probabilidade,
-                        :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, :tratamento, :origem, :causas,
+                        :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, 
+                        :tratamento, :origem, :causas,
                         :desc_tratamento, :financeiro, :info_adicional,
-                        :motivo_classificacao, :prazo_implantacao, :descricao_prazo, true, NOW()
+                        :motivo_classificacao, :prazo_implantacao, :descricao_prazo,
+                        :ativo, NOW()  -- ⭐ NOVO: ativo
                     )
                     RETURNING id
                 """)
@@ -2383,7 +2396,8 @@ def api_risco_etapa_salvar():
                     'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
-                    'causas': causas_str
+                    'causas': causas_str,
+                    'ativo': ativo  # ⭐ NOVO
                 })
 
                 novo_id = result.fetchone()[0]
@@ -2394,32 +2408,10 @@ def api_risco_etapa_salvar():
             return jsonify({
                 'success': True,
                 'message': 'Risco salvo com sucesso',
-                'risco_id': risco_id or novo_id
+                'risco_id': novo_id
             })
     except Exception as e:
         print(f"❌ Erro ao salvar risco de etapa: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/risco-etapa/<int:risco_id>', methods=['DELETE'])
-def api_risco_etapa_excluir(risco_id):
-    """Desativa um risco de etapa (soft delete)"""
-    from database import engine
-    from sqlalchemy import text
-
-    try:
-        with engine.connect() as conn:
-            # Soft delete: apenas marcar como inativo
-            query = text("""
-                UPDATE riscos_etapa 
-                SET ativo = false, updated_at = NOW()
-                WHERE id = :risco_id
-            """)
-            conn.execute(query, {'risco_id': risco_id})
-            conn.commit()
-
-            return jsonify({'success': True, 'message': 'Risco desativado com sucesso'})
-    except Exception as e:
-        print(f"❌ Erro ao desativar risco: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/risco-etapa/<int:risco_id>')
@@ -2470,6 +2462,47 @@ def api_risco_etapa_detalhes(risco_id):
 
     except Exception as e:
         print(f"❌ Erro ao buscar risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/risco-etapa/<int:risco_id>/status', methods=['PUT'])
+def api_alternar_status_risco(risco_id):
+    """Alterna o status (ativo/inativo) de um risco"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        data = request.json
+        novo_status = data.get('ativo')
+        
+        if novo_status is None:
+            return jsonify({'success': False, 'error': 'Status não informado'}), 400
+        
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE riscos_etapa 
+                SET ativo = :ativo, updated_at = NOW()
+                WHERE id = :risco_id
+                RETURNING id
+            """)
+            
+            result = conn.execute(query, {
+                'ativo': novo_status,
+                'risco_id': risco_id
+            })
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+            
+            conn.commit()
+            
+            status_texto = 'ativado' if novo_status else 'desativado'
+            return jsonify({
+                'success': True, 
+                'message': f'Risco {status_texto} com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao alternar status do risco: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/etapa/<int:etapa_id>/riscos')
@@ -2548,6 +2581,58 @@ def api_etapa_riscos_count(etapa_id):
             
     except Exception as e:
         print(f"❌ Erro ao contar riscos da etapa {etapa_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/etapa/<int:etapa_id>/riscos/todos')
+def api_etapa_riscos_todos(etapa_id):
+    """Retorna TODOS os riscos (ativos e inativos) - usado para edição"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            # ⭐ SEM o filtro de ativo
+            query = text("""
+                SELECT id, nome_risco, categoria, fator_risco, consequencia,
+                       impacto, probabilidade, magnitude, impacto_aceitavel, 
+                       probabilidade_aceitavel, tratamento,
+                       origem, desc_tratamento, motivo_classificacao, 
+                       financeiro, info_adicional, ativo, causas, prazo_implantacao
+                FROM riscos_etapa
+                WHERE etapa_id = :etapa_id
+                ORDER BY id
+            """)
+            
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchall()
+
+            riscos = []
+            for row in result:
+                riscos.append({
+                    'id': row[0],
+                    'nome_risco': row[1] or '',
+                    'categoria': row[2] or '',
+                    'fator_risco': row[3] or '',
+                    'consequencia': row[4] or '',
+                    'impacto': row[5] or 'Médio',
+                    'probabilidade': row[6] or 'Médio',
+                    'magnitude': row[7] or 0,
+                    'impacto_aceitavel': row[8] or 'Médio',
+                    'probabilidade_aceitavel': row[9] or 'Médio',
+                    'tratamento': row[10] or '',
+                    'origem': row[11] or '',
+                    'desc_tratamento': row[12] or '',
+                    'motivo_classificacao': row[13] or '',
+                    'financeiro': row[14] or False,
+                    'info_adicional': row[15] or '',
+                    'ativo': row[16] if row[16] is not None else True,
+                    'causas': [c.strip() for c in row[17].split(',')] if row[17] else [],
+                    'prazo_implantacao': row[18] or ''
+                })
+
+            return jsonify({'success': True, 'riscos': riscos})
+    
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos da etapa: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/detalhamento_riscos')

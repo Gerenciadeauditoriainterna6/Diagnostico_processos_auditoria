@@ -173,6 +173,33 @@
                     </select>
                 </div>
 
+                <!-- ===== SEÇÃO 1.5: STATUS DO RISCO ===== -->
+                <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                    <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #fd6a14; padding-left: 10px;">
+                        <i class="fas fa-toggle-on"></i> Status do Risco
+                    </h4>
+
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-power-off"></i> O risco está ativo na empresa?
+                        </label>
+                        <div style="display: flex; gap: 20px; margin-top: 8px; background: #f8f9fa; padding: 12px 16px; border-radius: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="risco_ativo" value="true" checked>
+                                <span style="color: #28a745;">
+                                    <i class="fas fa-check-circle"></i> Sim (Ativo)
+                                </span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="risco_ativo" value="false">
+                                <span style="color: #dc3545;">
+                                    <i class="fas fa-times-circle"></i> Não (Inativo)
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 9. Origem do Risco -->
                 <div class="form-group">
                     <label>
@@ -181,7 +208,7 @@
                             <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
-                    <input type="text" id="risco_origem" class="form-control" placeholder="Ex: Entrevista com gestor, Análise documental, Auditoria anterior">
+                    <input type="text" id="risco_origem" class="form-control" placeholder="Ex: Externo: Entregador, Interno: Sistema...">
                 </div>
             </div>
 
@@ -990,6 +1017,78 @@
         font-weight: 500;
     }
 
+    /* Badges de status */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        margin-left: 8px;
+    }
+
+    .status-badge i {
+        font-size: 8px;
+    }
+
+    .status-ativo {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-inativo {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* Botão toggle status */
+    .btn-toggle-status {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .btn-toggle-status:hover {
+        color: #184145;
+        background: rgba(24, 65, 69, 0.1);
+    }
+
+    .btn-toggle-status:hover .fa-pause-circle {
+        color: #dc3545;
+    }
+
+    .btn-toggle-status:hover .fa-play-circle {
+        color: #28a745;
+    }
+
+    /* Estilos para os botões de editar e excluir (se não tiver) */
+    .btn-edit-icon, .btn-delete-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        color: #6c757d;
+    }
+
+    .btn-edit-icon:hover {
+        color: #ffc107;
+        background: rgba(255, 193, 7, 0.1);
+    }
+
+    .btn-delete-icon:hover {
+        color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+    }
+
 </style>
 
 <script>
@@ -1402,7 +1501,7 @@
     }
 
 
-    // ====== FUNÇÃO PARA CARREGAR IRSCOS DE UMA ETAPA ======
+    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA ======
     async function carregarRiscosDaEtapa(etapaId, codigoEtapa, nomeEtapa) {
         console.log(`🔍 Buscando riscos da etapa ${etapaId}...`);
 
@@ -1410,8 +1509,9 @@
         if (!container) return;
 
         try {
+
             // 1. Buscar os riscos da API
-            const response = await fetch(`/api/etapa/${etapaId}/riscos`);
+            const response = await fetch(`/api/etapa/${etapaId}/riscos/todos`);
             const data = await response.json();
 
             console.log(`📦 Riscos encontrados:`, data);
@@ -1448,6 +1548,16 @@
                     badgeIcon = '🔴';
                 }
 
+                // ⭐ NOVO: Badge de status (Ativo/Inativo)
+                const isAtivo = risco.ativo !== false; // Se for null, undefined ou true, considera ativo
+                const statusBadge = isAtivo ? 
+                    `<span class="status-badge status-ativo" title="Risco Ativo">
+                        <i class="fas fa-circle"></i> Ativo
+                    </span>` : 
+                    `<span class="status-badge status-inativo" title="Risco Inativo">
+                        <i class="fas fa-circle"></i> Inativo
+                    </span>`;
+
                 // Formatando categorias e causas como tags
                 const categoriasLista = risco.categoria ? risco.categoria.split(', ') : [];
                 const causasLista = risco.causas || [];
@@ -1460,6 +1570,10 @@
                     `<span class="risco-causa-tag">${escapeHtml(causa)}</span>`
                 ).join('');
 
+                // ⭐ NOVO: Definir o ícone do botão toggle
+                const toggleIcon = isAtivo ? 'fa-pause-circle' : 'fa-play-circle';
+                const toggleTitle = isAtivo ? 'Desativar Risco' : 'Ativar Risco';
+
                 riscosHtml += `
                     <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}">
                         <div class="risco-header">
@@ -1467,6 +1581,7 @@
                                 <span class="risco-icon">${badgeIcon}</span>
                                 <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
                                 <span class="risco-score">Magnitude: ${risco.magnitude}</span>
+                                ${statusBadge}  <!-- ⭐ NOVO: Badge de status -->
                             </div>
                             <div class="risco-actions">
                                 <button class="btn-edit-icon" onclick="editarRiscoEtapa(${risco.id}, ${etapaId}, '${codigoEtapa}', '${escapeHtml(nomeEtapa)}')" title="Editar Risco">
@@ -1474,6 +1589,10 @@
                                 </button>
                                 <button class="btn-delete-icon" onclick="excluirRiscoEtapa(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId}, '${codigoEtapa}', '${escapeHtml(nomeEtapa)}')" title="Excluir Risco">
                                     <i class="fas fa-trash-alt"></i>
+                                </button>
+                                <!-- ⭐ NOVO: Botão para alternar status -->
+                                <button class="btn-toggle-status" onclick="alternarStatusRisco(${risco.id}, ${!isAtivo}, ${etapaId}, '${codigoEtapa}', '${escapeHtml(nomeEtapa)}')" title="${toggleTitle}">
+                                    <i class="fas ${toggleIcon}"></i>
                                 </button>
                             </div>
                         </div>
@@ -1511,16 +1630,16 @@
                                 <span class="detalhe-valor">${risco.probabilidade || 'Médio'}</span>
                             </div>
                             <div class="risco-detalhe">
-                                <span class="detalhe-label"> Qual o motivo da classificação da probabilidade?</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao)}</span>
+                                <span class="detalhe-label">Qual o motivo da classificação da probabilidade?</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
-                                <span class="detalhe-label"> Impacto aceitável para o apetite</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel)}</span>
+                                <span class="detalhe-label">Impacto aceitável para o apetite</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
-                                <span class="detalhe-label"> Probabilidade aceitável para o apetite</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel)}</span>
+                                <span class="detalhe-label">Probabilidade aceitável para o apetite</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel) || '-'}</span>
                             </div>
                             ${risco.apetite ? `
                             <div class="risco-detalhe">
@@ -1553,14 +1672,12 @@
                                 <span class="detalhe-valor">${risco.financeiro ? 'Sim' : 'Não'}</span>
                             </div>
                             ` : ''}
-
                             ${risco.prazo_implantacao ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Prazo para Implantação:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.prazo_implantacao)}</span>
                             </div>
                             ` : ''}
-                            
                         </div>
                     </div>
                 `;
@@ -1575,6 +1692,49 @@
                     <i class="fas fa-exclamation-triangle"></i> Erro ao carregar riscos.
                 </div>
             `;
+        }
+    }
+
+    // ====== FUNÇÃO PARA ALTERNAR STATUS DO RISCO ======
+    async function alternarStatusRisco(riscoId, novoStatus, etapaId, codigoEtapa, nomeEtapa) {
+        const statusTexto = novoStatus ? 'ATIVAR' : 'DESATIVAR';
+        const confirmado = confirm(`Tem certeza que deseja ${statusTexto} este risco?`);
+        
+        if (!confirmado) return;
+        
+        try {
+            // Mostrar loading no botão (opcional)
+            const btn = document.querySelector(`.risco-card[data-risco-id="${riscoId}"] .btn-toggle-status i`);
+            if (btn) {
+                btn.className = 'fas fa-spinner fa-spin';
+            }
+            
+            const response = await fetch(`/api/risco-etapa/${riscoId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ativo: novoStatus
+                })
+            });
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                mostrarToast(`✅ Risco ${novoStatus ? 'ativado' : 'desativado'} com sucesso!`, 'success');
+                
+                // Recarregar a lista de riscos
+                await carregarRiscosDaEtapa(etapaId, codigoEtapa, nomeEtapa);
+                
+                // Atualizar o badge da etapa
+                await atualizarBadgeRiscos(etapaId);
+            } else {
+                mostrarToast('❌ Erro ao alterar status: ' + (resultado.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('❌ Erro ao alterar status:', error);
+            mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
         }
     }
 
@@ -1642,6 +1802,20 @@
             
             // Financeiro
             document.getElementById('risco_financeiro').value = risco.financeiro ? 'true' : 'false';
+            
+            // ⭐⭐⭐ NOVO: Status do Risco (Ativo/Inativo) ⭐⭐⭐
+            // Define o valor padrão como true se o campo for null ou undefined
+            const ativoValue = risco.ativo !== null && risco.ativo !== undefined ? risco.ativo : true;
+            
+            // Seleciona o radio button correspondente
+            const radioAtivo = document.querySelector(`input[name="risco_ativo"][value="${ativoValue}"]`);
+            if (radioAtivo) {
+                radioAtivo.checked = true;
+            } else {
+                // Fallback: se não encontrar o radio, marca como Ativo
+                const radioDefault = document.querySelector('input[name="risco_ativo"][value="true"]');
+                if (radioDefault) radioDefault.checked = true;
+            }
             
             // Atualizar o preview do score
             atualizarScoreRisco();
@@ -1770,12 +1944,16 @@
         // Limpar checkboxes de causas
         const causasCheckboxes = document.querySelectorAll('#causa-checkboxes input[type="checkbox"]');
         causasCheckboxes.forEach(cb => cb.checked = false);
+
         
         // Resetar selects para valores padrão
         document.getElementById('risco_impacto').value = 'Médio';
         document.getElementById('risco_probabilidade').value = 'Médio';
         document.getElementById('risco_tratamento').value = '';
         document.getElementById('risco_financeiro').value = 'false';
+
+        const ativoTrue = document.querySelector('input[name="risco_ativo"][value="true"]');
+        if (ativoTrue) ativoTrue.checked = true;
         
         // Resetar preview do score
         atualizarScoreRisco();
@@ -2053,8 +2231,8 @@
             impacto: document.getElementById('risco_impacto').value,
             probabilidade: document.getElementById('risco_probabilidade').value,
             apetite_impacto: document.getElementById('apetite_impacto').value,
-            apetite_probabilidade:document.getElementById('apetite_probabilidade').value,
-            apetite_score:calcularScoreRisco(
+            apetite_probabilidade: document.getElementById('apetite_probabilidade').value,
+            apetite_score: calcularScoreRisco(
                 document.getElementById('apetite_impacto').value,
                 document.getElementById('apetite_probabilidade').value
             ),
@@ -2066,13 +2244,15 @@
             causas: causasSelecionadas,
             motivo: document.getElementById('risco_motivo').value,
             prazo_implantacao: document.getElementById('risco_prazo_implantacao').value || null,
-            // descricao_prazo: document.getElementById('risco_descricao_prazo').value
+            // descricao_prazo: document.getElementById('risco_descricao_prazo').value,
+            
+            // ⭐⭐⭐ NOVO: Status do Risco ⭐⭐⭐
+            ativo: document.querySelector('input[name="risco_ativo"]:checked')?.value === 'true'
         };
 
         console.log('📦 Dados a serem enviados:', dados);
 
-        // 4. Enviar parar o backend
-
+        // 4. Enviar para o backend
         try {
             // Mostrar loading no botão
             const btnSalvar = document.getElementById('btn-salvar-modal-risco');
@@ -2130,7 +2310,7 @@
         return texto.substring(0, limite) + '...';
     }
 
-    // Função para atualizar o badge de riscos de uma etapa específica
+    // ====== FUNÇÃO PARA ATUALIZAR O BADGE DE RISCOS ======
     async function atualizarBadgeRiscos(etapaId) {
         try {
             const response = await fetch(`/api/etapa/${etapaId}/riscos/count`);
