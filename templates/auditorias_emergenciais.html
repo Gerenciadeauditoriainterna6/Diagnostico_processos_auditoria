@@ -99,6 +99,28 @@
                 </div>
             </div>
 
+            <!-- ⭐⭐⭐ AQUI ENTRA A SEÇÃO DE EVIDÊNCIAS ⭐⭐⭐ -->
+            <div class="evidencias-section">
+                <div class="section-header">
+                    <div>
+                        <h4><i class="fas fa-paperclip" style="color: #17a2b8;"></i> Evidências da Solicitação</h4>
+                        <p class="text-muted">Anexe documentos que fundamentam a solicitação desta auditoria emergencial</p>
+                    </div>
+                    <div>
+                        <button id="btn-anexar-evidencia" class="btn-upload-evidencia">
+                            <i class="fas fa-upload"></i> Anexar Evidência
+                        </button>
+                        <input type="file" id="input-evidencia" style="display: none;" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip">
+                    </div>
+                </div>
+                
+                <div id="evidencias-container">
+                    <div class="empty-message">
+                        <i class="fas fa-info-circle"></i> Nenhuma evidência anexada.
+                    </div>
+                </div>
+            </div>
+
             <!-- SEÇÃO DOS FUNDAMENTOS -->
             <div class="fundamentos-section">
                 <div class="section-header">
@@ -128,6 +150,9 @@
                     </button>
                 </div>
             </div>
+
+            
+
         </div>
 
         <!-- Footer do Modal -->
@@ -925,6 +950,197 @@
             min-width: 100%;
         }
     }
+
+    /* ====== EVIDÊNCIAS ====== */
+    .evidencias-section {
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .evidencias-section .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .evidencias-section .section-header h4 {
+        margin: 0;
+        color: #184145;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .evidencias-section .section-header h4 i {
+        color: #17a2b8;
+    }
+
+    .evidencias-section .text-muted {
+        color: #666;
+        font-size: 13px;
+        margin: 5px 0 0 0;
+        width: 100%;
+    }
+
+    /* Botão Upload */
+    .btn-upload-evidencia {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 4px rgba(23,162,184,0.2);
+    }
+
+    .btn-upload-evidencia:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23,162,184,0.3);
+    }
+
+    .btn-upload-evidencia:active {
+        transform: translateY(0);
+    }
+
+    /* Grid de evidências */
+    .evidencias-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    /* Card de evidência */
+    .evidencia-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+
+    .evidencia-card:hover {
+        border-color: #17a2b8;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        background: #f0f9ff;
+    }
+
+    .evidencia-card .evidencia-icon {
+        font-size: 28px;
+        flex-shrink: 0;
+        width: 36px;
+        text-align: center;
+    }
+
+    .evidencia-card .evidencia-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .evidencia-card .evidencia-nome {
+        font-size: 13px;
+        font-weight: 500;
+        color: #184145;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .evidencia-card .evidencia-tamanho {
+        font-size: 11px;
+        color: #999;
+        margin-top: 2px;
+    }
+
+    .evidencia-card .evidencia-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .evidencia-card .evidencia-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    /* Botão Baixar */
+    .evidencia-card .btn-baixar-evidencia {
+        color: #17a2b8;
+    }
+
+    .evidencia-card .btn-baixar-evidencia:hover {
+        background: rgba(23,162,184,0.12);
+        transform: scale(1.05);
+    }
+
+    /* Botão Remover */
+    .evidencia-card .btn-remover-evidencia {
+        color: #dc3545;
+    }
+
+    .evidencia-card .btn-remover-evidencia:hover {
+        background: rgba(220,53,69,0.10);
+        transform: scale(1.05);
+    }
+
+    /* Mensagem vazia dentro de evidências */
+    .evidencias-section .empty-message {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+        background: #f8f9fa;
+        border-radius: 10px;
+        font-size: 14px;
+        border: 1px dashed #d0d0d0;
+    }
+
+    .evidencias-section .empty-message i {
+        color: #17a2b8;
+        margin-right: 8px;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .evidencias-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .evidencias-section .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .btn-upload-evidencia {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .evidencia-card {
+            padding: 10px 14px;
+        }
+    }
 </style>
 
 <script>
@@ -1238,10 +1454,11 @@
         // ⭐ VERIFICAR PERMISSÃO
         await verificarPermissaoAuditoria(id);
         
-        // ⭐ CARREGAR PDF E FUNDAMENTOS (se autorizado)
+        // ⭐ CARREGAR PDF, FUNDAMENTOS E EVIDÊNCIAS (se autorizado)
         if (usuarioAutorizado) {
             await verificarPdf(codigo);
             await carregarFundamentos(id);
+            await carregarEvidencias(id);  // ⭐ ADICIONAR ESTA LINHA
         } else {
             // Mostrar mensagem de acesso negado
             fundamentosContainerModal.innerHTML = `
@@ -1254,6 +1471,18 @@
             `;
             btnDownloadPdf.style.display = 'none';
             pdfNaoEncontrado.style.display = 'none';
+            
+            // ⭐ TAMBÉM LIMPAR A SEÇÃO DE EVIDÊNCIAS EM CASO DE ACESSO NEGADO
+            const evidenciasContainer = document.getElementById('evidencias-container');
+            if (evidenciasContainer) {
+                evidenciasContainer.innerHTML = `
+                    <div class="empty-message" style="border-left: 4px solid #dc3545;">
+                        <i class="fas fa-lock" style="color: #dc3545;"></i>
+                        <strong>Acesso negado!</strong><br>
+                        Você não tem permissão para visualizar as evidências desta auditoria.
+                    </div>
+                `;
+            }
         }
     }
 
@@ -1813,6 +2042,184 @@
         }
     }
 
+    // ====== FUNÇÕES DE EVIDÊNCIAS ======
+    
+    // ====== CARREGAR EVIDÊNCIAS ======
+    async function carregarEvidencias(auditoriaId) {
+        console.log('📎 Carregando evidências para auditoria ID:', auditoriaId);
+        
+        const evidenciasContainer = document.getElementById('evidencias-container');
+        if (!evidenciasContainer) return;
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/evidencias`);
+            const data = await response.json();
+            
+            console.log('📦 Evidências recebidas:', data);
+            
+            if (data.success) {
+                renderizarEvidencias(data.evidencias);
+            } else {
+                evidenciasContainer.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao carregar evidências: ${data.error || 'Erro desconhecido'}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar evidências:', error);
+            evidenciasContainer.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar evidências
+                </div>
+            `;
+        }
+    }
+
+    // ====== RENDERIZAR EVIDÊNCIAS ======
+    function renderizarEvidencias(evidencias) {
+        const evidenciasContainer = document.getElementById('evidencias-container');
+        if (!evidenciasContainer) return;
+        
+        if (!evidencias || evidencias.length === 0) {
+            evidenciasContainer.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-info-circle"></i> Nenhuma evidência anexada.
+                </div>
+            `;
+            return;
+        }
+        
+        evidenciasContainer.innerHTML = `
+            <div class="evidencias-grid">
+                ${evidencias.map((ev, idx) => `
+                    <div class="evidencia-card" data-idx="${idx}">
+                        <div class="evidencia-icon">
+                            ${getIconByTipo(ev.tipo)}
+                        </div>
+                        <div class="evidencia-info">
+                            <div class="evidencia-nome" title="${escapeHtml(ev.nome)}">${escapeHtml(ev.nome)}</div>
+                            <div class="evidencia-tamanho">${formatarTamanho(ev.tamanho)}</div>
+                        </div>
+                        <div class="evidencia-actions">
+                            <button class="btn-baixar-evidencia" onclick="baixarEvidencia('${ev.url}')" title="Baixar">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn-remover-evidencia" onclick="removerEvidencia(${idx})" title="Remover">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // ====== ÍCONE POR TIPO DE ARQUIVO ======
+    function getIconByTipo(tipo) {
+        if (!tipo) return '<i class="fas fa-file"></i>';
+        
+        if (tipo.includes('pdf')) return '<i class="fas fa-file-pdf" style="color: #dc3545;"></i>';
+        if (tipo.includes('word') || tipo.includes('doc')) return '<i class="fas fa-file-word" style="color: #2b579a;"></i>';
+        if (tipo.includes('excel') || tipo.includes('sheet')) return '<i class="fas fa-file-excel" style="color: #217346;"></i>';
+        if (tipo.includes('image')) return '<i class="fas fa-file-image" style="color: #17a2b8;"></i>';
+        if (tipo.includes('zip') || tipo.includes('rar')) return '<i class="fas fa-file-archive" style="color: #ffc107;"></i>';
+        return '<i class="fas fa-file" style="color: #6c757d;"></i>';
+    }
+
+    // ====== FORMATAR TAMANHO ======
+    function formatarTamanho(bytes) {
+        if (!bytes) return 'Desconhecido';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1073741824).toFixed(1) + ' GB';
+    }
+
+    // ====== UPLOAD DE EVIDÊNCIA ======
+    async function uploadEvidencia(file) {
+        const formData = new FormData();
+        formData.append('arquivo', file);
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/upload-evidencia`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast(`✅ Arquivo "${file.name}" enviado com sucesso!`, 'success');
+                await carregarEvidencias(auditoriaAtualId);
+            } else {
+                mostrarToast(`❌ Erro ao enviar "${file.name}": ${data.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erro no upload:', error);
+            mostrarToast(`❌ Erro ao enviar "${file.name}"`, 'error');
+        }
+    }
+
+    // ====== BAIXAR EVIDÊNCIA ======
+    async function baixarEvidencia(caminho) {
+        try {
+            const response = await fetch(`/api/evidencia/${encodeURIComponent(caminho)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                window.open(data.url, '_blank');
+            } else {
+                mostrarToast('❌ Erro ao baixar evidência', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao baixar:', error);
+            mostrarToast('❌ Erro ao baixar evidência', 'error');
+        }
+    }
+
+    // ====== REMOVER EVIDÊNCIA ======
+    async function removerEvidencia(idx) {
+        if (!confirm('Tem certeza que deseja remover esta evidência?')) return;
+        
+        try {
+            // Buscar a lista atual de evidências
+            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/evidencias`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                mostrarToast('❌ Erro ao buscar evidências', 'error');
+                return;
+            }
+            
+            const evidencias = data.evidencias;
+            const evidencia = evidencias[idx];
+            
+            if (!evidencia) return;
+            
+            // Remover
+            const deleteResponse = await fetch(`/api/auditoria/${auditoriaAtualId}/evidencia`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caminho: evidencia.url })
+            });
+            
+            const deleteData = await deleteResponse.json();
+            
+            if (deleteData.success) {
+                mostrarToast('✅ Evidência removida com sucesso!', 'success');
+                await carregarEvidencias(auditoriaAtualId);
+            } else {
+                mostrarToast(`❌ ${deleteData.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover evidência:', error);
+            mostrarToast('❌ Erro ao remover evidência', 'error');
+        }
+    }
+
+
+
     // // ====== FECHAR MODAL AO CLICAR FORA ======
     // modalDetalhes.addEventListener('click', function(e) {
     //     if (e.target === modalDetalhes) {
@@ -1864,7 +2271,34 @@
     // ====== INICIALIZAÇÃO ======
     document.addEventListener('DOMContentLoaded', () => {
         console.log('🚀 Página de Auditorias Emergenciais carregada');
+        
+        // Carregar auditorias
         carregarEmergenciais(null);
+        
+        // ====== EVENTOS DE EVIDÊNCIAS ======
+        const btnAnexarEvidencia = document.getElementById('btn-anexar-evidencia');
+        const inputEvidencia = document.getElementById('input-evidencia');
+        
+        if (btnAnexarEvidencia && inputEvidencia) {
+            btnAnexarEvidencia.addEventListener('click', () => {
+                inputEvidencia.click();
+            });
+            
+            inputEvidencia.addEventListener('change', async (e) => {
+                const files = e.target.files;
+                if (files.length === 0) return;
+                
+                // Mostrar feedback de carregamento
+                mostrarToast(`📤 Enviando ${files.length} arquivo(s)...`, 'info');
+                
+                for (const file of files) {
+                    await uploadEvidencia(file);
+                }
+                
+                // Resetar input
+                inputEvidencia.value = '';
+            });
+        }
     });
 </script>
 {% endblock %}
