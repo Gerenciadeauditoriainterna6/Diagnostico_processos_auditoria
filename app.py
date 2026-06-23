@@ -489,14 +489,57 @@ def home():
 @app.route('/plano-anual')
 def plano_anual():
     """Página do Plano Anual de Auditoria"""
-    if not session.get('autenticado'):
-        return redirect(url_for('login'))
+    from database import engine
+    from sqlalchemy import text
+    import os
     
-    from logic import carregar_areas_banco
-    areas = carregar_areas_banco()
-    usuario_perfil = session.get('usuario_perfil', 'auditor')
+    # Buscar anos disponíveis dos PDFs
+    pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'pdfs', 'plano_anual')
+    anos_disponiveis = []
     
-    return render_template('plano_anual.html', areas=areas, usuario_perfil=usuario_perfil)
+    if os.path.exists(pdf_dir):
+        for arquivo in os.listdir(pdf_dir):
+            if arquivo.startswith('plano_anual_') and arquivo.endswith('.pdf'):
+                try:
+                    ano = arquivo.replace('plano_anual_', '').replace('.pdf', '')
+                    if ano.isdigit():
+                        anos_disponiveis.append(int(ano))
+                except:
+                    pass
+    
+    # Ordenar anos do mais recente para o mais antigo
+    anos_disponiveis = sorted(set(anos_disponiveis), reverse=True)
+    
+    # Se não encontrou PDFs, buscar anos do banco de dados
+    if not anos_disponiveis:
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT DISTINCT ano FROM auditorias ORDER BY ano DESC"))
+                anos_disponiveis = [row[0] for row in result if row[0]]
+        except:
+            pass
+    
+    return render_template('plano_anual.html', anos_disponiveis=anos_disponiveis)
+
+@app.route('/auditorias-emergenciais')
+def auditorias_emergenciais():
+    """Página de Auditorias Emergenciais"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT id_area, nome_area 
+                FROM informacoes_area 
+                ORDER BY nome_area
+            """))
+            areas = {row.nome_area: row.id_area for row in result}
+        
+        return render_template('auditorias_emergenciais.html', areas=areas)
+    except Exception as e:
+        print(f"❌ Erro ao carregar página de auditorias emergenciais: {e}")
+        return render_template('auditorias_emergenciais.html', areas={})
 
 @app.route('/dashboard')
 def dashboard():
@@ -522,26 +565,122 @@ def auditorias():
 # API - PLANO ANUNAL
 # ============================================================
 
+@app.route('/api/fundamentos-por-ano')
+def api_fundamentos_por_ano():
+    """Retorna todas as auditorias não emergenciais de um ano com seus fundamentos"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    ano = request.args.get('ano')
+    if not ano:
+        return jsonify({'success': False, 'error': 'Ano é obrigatório'}), 400
+    
+    try:
+        query = text("""
+            SELECT 
+                a.id,
+                a.codigo_auditoria,
+                a.titulo,
+                a.ano,
+                a.trimestre,
+                a.fundamentos,
+                ar.nome_area as area_nome
+            FROM auditorias a
+            LEFT JOIN informacoes_area ar ON a.id_area = ar.id_area
+            WHERE a.ano = :ano 
+                AND (a.emergencial = false OR a.emergencial IS NULL)
+            ORDER BY a.trimestre ASC, a.codigo_auditoria ASC
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {"ano": ano})
+            auditorias = []
+            
+            for row in result:
+                aud = dict(row._mapping)
+                
+                # Parse dos fundamentos (se for string JSON)
+                if aud.get('fundamentos'):
+                    if isinstance(aud['fundamentos'], str):
+                        try:
+                            aud['fundamentos'] = json.loads(aud['fundamentos'])
+                        except:
+                            aud['fundamentos'] = []
+                    elif not isinstance(aud['fundamentos'], list):
+                        aud['fundamentos'] = []
+                else:
+                    aud['fundamentos'] = []
+                
+                auditorias.append(aud)
+        
+        return jsonify({
+            'success': True,
+            'auditorias': auditorias,
+            'total': len(auditorias)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar fundamentos por ano: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'auditorias': [],
+            'total': 0
+        }), 500
+
 @app.route('/api/plano-anual-pdf')
 def api_plano_anual_pdf():
-    """Serve o arquivo PDF do Plano Anual baseado no código da auditoria"""
-    if not session.get('autenticado'):
-        return redirect(url_for('login'))
+    """Retorna o PDF do plano anual ou da auditoria emergencial"""
+    import os
+    from flask import send_file
     
-    codigo_auditoria = request.args.get('codigo')
+    ano = request.args.get('ano')
+    tipo = request.args.get('tipo', 'plano')
     
-    if not codigo_auditoria:
-        return jsonify({'error': 'Código da auditoria é obrigatório'}), 400
+    # ====== AUDITORIAS EMERGENCIAIS ======
+    if tipo == 'emergencial':
+        codigo = request.args.get('codigo')
+        if not codigo:
+            return jsonify({'error': 'Código é obrigatório'}), 400
+        
+        # Buscar na pasta static/emergenciais/
+        pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'emergenciais')
+        arquivo_pdf = os.path.join(pdf_dir, f"{codigo}.pdf")
+        
+        # Se não encontrar, tentar buscar qualquer arquivo que comece com o código
+        if not os.path.exists(arquivo_pdf) and os.path.exists(pdf_dir):
+            for arquivo in os.listdir(pdf_dir):
+                if arquivo.startswith(codigo) and arquivo.endswith('.pdf'):
+                    arquivo_pdf = os.path.join(pdf_dir, arquivo)
+                    break
+        
+        if os.path.exists(arquivo_pdf):
+            return send_file(arquivo_pdf, as_attachment=True, download_name=os.path.basename(arquivo_pdf))
+        else:
+            return jsonify({'error': f'Arquivo PDF não encontrado para a auditoria {codigo}'}), 404
     
-    # Usar o código diretamente como nome do arquivo
-    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', f'plano_anual_2026.pdf')
+    # ====== PLANO ANUAL ======
+    if not ano:
+        return jsonify({'error': 'Ano é obrigatório'}), 400
     
-    print(f"🔍 Buscando: {pdf_path}")
+    # ⭐ Buscar direto na pasta static (estrutura simplificada)
+    pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'planejada')
     
-    if os.path.exists(pdf_path):
-        return send_file(pdf_path, mimetype='application/pdf', as_attachment=True)
+    # Buscar arquivo plano_anual_{ano}.pdf
+    arquivo_pdf = os.path.join(pdf_dir, f"plano_anual_{ano}.pdf")
     
-    return jsonify({'error': f'Arquivo PDF do plano anual não encontrado para esta auditoria.'}), 404
+    # Se não encontrar, tentar buscar qualquer arquivo que termine com o ano
+    if not os.path.exists(arquivo_pdf):
+        for arquivo in os.listdir(pdf_dir):
+            if arquivo.endswith(f"_{ano}.pdf") or arquivo.endswith(f"-{ano}.pdf"):
+                arquivo_pdf = os.path.join(pdf_dir, arquivo)
+                break
+    
+    if os.path.exists(arquivo_pdf):
+        return send_file(arquivo_pdf, as_attachment=True, download_name=os.path.basename(arquivo_pdf))
+    else:
+        return jsonify({'error': f'Arquivo PDF do Plano Anual para {ano} não encontrado'}), 404
 
 @app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['GET'])
 def api_buscar_fundamentos_auditoria(auditoria_id):
@@ -998,6 +1137,88 @@ def api_controle_etapa_detalhes(controle_id):
 # ROTAS DE API (BACKEND)
 # ============================================================
 
+@app.route('/api/auditorias-emergenciais')
+def api_auditorias_emergenciais():
+    """Retorna apenas as auditorias emergenciais"""
+    from database import engine
+    from sqlalchemy import text
+    
+    area_id = request.args.get('area_id')
+    
+    # Construir a query base
+    query = text("""
+        SELECT 
+            a.id, 
+            a.codigo_auditoria, 
+            a.titulo, 
+            a.trimestre, 
+            a.ano, 
+            a.status, 
+            a.unidade,
+            a.data_inicio,
+            a.data_fim,
+            a.emergencial,
+            ar.nome_area as area_nome
+        FROM auditorias a
+        LEFT JOIN informacoes_area ar ON a.id_area = ar.id_area
+        WHERE a.emergencial = true
+    """)
+    
+    # Adicionar filtro por área se fornecido
+    if area_id:
+        query = text("""
+            SELECT 
+                a.id, 
+                a.codigo_auditoria, 
+                a.titulo, 
+                a.trimestre, 
+                a.ano, 
+                a.status, 
+                a.unidade,
+                a.data_inicio,
+                a.data_fim,
+                a.emergencial,
+                ar.nome_area as area_nome
+            FROM auditorias a
+            LEFT JOIN informacoes_area ar ON a.id_area = ar.id_area
+            WHERE a.emergencial = true AND a.id_area = :area_id
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {"area_id": area_id})
+            auditorias = [dict(row._mapping) for row in result]
+    else:
+        with engine.connect() as conn:
+            result = conn.execute(query)
+            auditorias = [dict(row._mapping) for row in result]
+    
+    return jsonify({
+        'success': True,
+        'auditorias': auditorias,
+        'total': len(auditorias)
+    })
+
+@app.route('/api/auditoria-emergencial-pdf')
+def api_auditoria_emergencial_pdf():
+    """Retorna o PDF da auditoria emergencial"""
+    import os
+    from flask import send_file
+    
+    codigo = request.args.get('codigo')
+    if not codigo:
+        return jsonify({'error': 'Código da auditoria é obrigatório'}), 400
+    
+    # Caminho onde os PDFs das auditorias emergenciais estão armazenados
+    pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'pdfs', 'emergenciais')
+    
+    # Buscar arquivo com o nome exato do código
+    arquivo_pdf = os.path.join(pdf_dir, f"{codigo}.pdf")
+    
+    if os.path.exists(arquivo_pdf):
+        return send_file(arquivo_pdf, as_attachment=True, download_name=f"{codigo}.pdf")
+    else:
+        return jsonify({'error': 'Arquivo PDF não encontrado'}), 404
+
 @app.route('/api/auditorias-por-area')
 def api_auditorias_por_area():
     """Retorna as auditorias de uma área"""
@@ -1009,7 +1230,7 @@ def api_auditorias_por_area():
         return jsonify({'error': 'area_id é obrigatório'}), 400
     
     query = text("""
-        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, unidade
+        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, unidade, emergencial
         FROM auditorias
         WHERE id_area = :area_id
         ORDER BY ano DESC, trimestre DESC

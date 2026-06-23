@@ -1376,6 +1376,28 @@
             background: #5a6268;
         }
 
+        /* Plano Anual - Cor Laranja */
+        .submenu-planejamento:hover {
+            border-left-color: #f7690a !important;
+        }
+        .submenu-planejamento.active {
+            border-left-color: #f7690a !important;
+        }
+        .submenu-planejamento i {
+            color: #f7690a;
+        }
+
+        /* Emergenciais - Cor Vermelha */
+        .submenu-emergenciais:hover {
+            border-left-color: #dc3545 !important;
+        }
+        .submenu-emergenciais.active {
+            border-left-color: #dc3545 !important;
+        }
+        .submenu-emergenciais i {
+            color: #dc3545;
+        }
+
 
     </style>
 </head>
@@ -1435,10 +1457,24 @@
                 <!-- SEÇÃO 1: PLANEJAMENTO -->
                 <div class="nav-section">
                     <div class="nav-section-title nav-section-planejamento">PLANEJAMENTO</div>
-                    <a href="{{ url_for('plano_anual') }}" class="nav-item">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Plano Anual de Auditoria</span>
-                    </a>
+                    
+                    <!-- Plano Anual com Submenu -->
+                    <div class="nav-item-parent">
+                        <a href="{{ url_for('plano_anual') }}" class="nav-item" id="togglePlanoAnualSubmenu">
+                            <span class="nav-item-content">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Plano Anual de Auditoria</span>
+                            </span>
+                            <i class="fas fa-chevron-down submenu-arrow"></i>
+                        </a>
+                        <div class="submenu" id="planoAnualSubmenu">
+    
+                            <a href="{{ url_for('auditorias_emergenciais') }}" class="submenu-item submenu-emergenciais">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Auditorias Emergenciais</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SEÇÃO 2: EXECUÇÃO -->
@@ -1681,6 +1717,12 @@
                     toggleId: 'toggleDetalhamentoSubmenu',
                     submenuId: 'detalhamentoSubmenu',
                     relatedUrls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles']
+                },
+
+                {
+                    toggleId: 'togglePlanoAnualSubmenu',
+                    submenuId: 'planoAnualSubmenu',
+                    relatedUrls: ['/plano-anual', '/auditorias-emergenciais']
                 }
             ];
             
@@ -1778,6 +1820,17 @@
                                     '/detalhamento': '#detalhamentoSubmenu .submenu-visao',
                                     '/detalhamento_riscos': '#detalhamentoSubmenu .submenu-riscos',
                                     '/detalhamento_controles': '#detalhamentoSubmenu .submenu-controles'
+                                }
+                            },
+
+                            {
+                                name: 'planoAnual',
+                                parentId: 'togglePlanoAnualSubmenu',
+                                submenuId: 'planoAnualSubmenu',
+                                urls: ['/plano-anual', '/auditorias-emergenciais'],
+                                submenuSelectors: {
+                                    '/plano-anual': '#planoAnualSubmenu .submenu-planejamento',
+                                    '/auditorias-emergenciais': '#planoAnualSubmenu .submenu-emergenciais'
                                 }
                             }
                         ]

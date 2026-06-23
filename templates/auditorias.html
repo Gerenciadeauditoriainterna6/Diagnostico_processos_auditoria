@@ -75,6 +75,16 @@
 
             <div class="form-row">
                 <div class="form-group">
+                    <label><i class="fas fa-exclamation-triangle"></i> Categoria da Auditoria:</label>
+                    <select id="tipo_auditoria" class="form-control">
+                        <option value="FALSE">Planejada (Parte do Plano Anual)</option>
+                        <option value="TRUE">Emergencial (Fora do Plano Anual)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
                     <label><i class="fas fa-tag"></i> Escopo:</label>
                     <input type="text" id="titulo_auditoria" class="form-control" placeholder="Título da auditoria" required>
                 </div>
@@ -773,6 +783,14 @@
                 document.getElementById('status_auditoria').value = aud.status || 'Planejamento';
                 document.getElementById('unidade_auditoria').value = aud.unidade || '';
                 
+                // Carregar o valor do campo emergencial
+                const tipoSelect = document.getElementById('tipo_auditoria');
+                if (aud.emergencial !== undefined && eud.emergencial !== null) {
+                    tipoSelect.value = aud.emergencial ? 'true' : 'false';
+                } else {
+                    tipoSelect.value = 'false'; // Valor padrão
+                }
+
                 await carregarUsuarios();  // ← Carrega usuários antes de selecionar
                 
                 if (aud.responsavel_equipe && aud.responsavel_equipe.length > 0) {
@@ -813,6 +831,8 @@
         document.getElementById('data_fim').value = '';
         document.getElementById('status_auditoria').value = 'Em Execução';
         document.getElementById('unidade_auditoria').value = '';
+        document.getElementById('tipo_auditoria').value = 'false';
+
         // Não limpar o select aqui, apenas resetar para o estado inicial
         const selectResponsaveis = document.getElementById('responsaveis_equipe');
         if (selectResponsaveis) {
@@ -841,6 +861,7 @@
         const dataFim = document.getElementById('data_fim').value;
         const status = document.getElementById('status_auditoria').value;
         const unidade = document.getElementById('unidade_auditoria').value;
+        const emergencial = document.getElementById('tipo_auditoria').value === 'true';
         const auditoriaId = document.getElementById('auditoria_id').value;
         
         const selectResponsaveis = document.getElementById('responsaveis_equipe');
@@ -872,7 +893,8 @@
                     data_fim: dataFim || null,
                     status: status,
                     unidade: unidade || null,
-                    responsavel_equipe: responsaveis
+                    responsavel_equipe: responsaveis,
+                    emergencial: emergencial
                 })
             });
 
