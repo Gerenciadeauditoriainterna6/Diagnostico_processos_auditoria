@@ -10,87 +10,66 @@
         <p>Gerencie o plano anual de auditoria e os fundamentos que o justificam</p>
     </div>
 
-
-    <!-- SEÇÃO DO PDF (SEMPRE VISÍVEL) -->
-    <div class="form-section pdf-section">
-        <div class="section-header">
-            <h3><i class="fas fa-file-pdf"></i> Plano Anual de Auditoria</h3>
-            <div id="pdf-status" class="pdf-status"></div>
-        </div>
-        <div class="pdf-actions">
-            <button id="btn-download-pdf" class="btn-download-pdf">
-                <i class="fas fa-download"></i> Baixar Plano em PDF
-            </button>
-            <div id="pdf-nao-encontrado" class="alert-warning" style="display: none;">
-                <i class="fas fa-exclamation-triangle"></i> Nenhum arquivo PDF encontrado para esta auditoria.
-            </div>
-        </div>
-    </div>
-
-    <!-- FILTROS -->
+    <!-- FILTRO POR ANO -->
     <div class="form-section filtros-section">
         <div class="form-row">
-            <div class="form-group">
-                <label for="filtro_area_select"><i class="fas fa-building"></i> Área:</label>
-                <select id="filtro_area_select" class="form-control">
-                    <option value="">Selecione uma área...</option>
-                    {% for nome, id in areas.items() %}
-                    <option value="{{ id }}">{{ nome }}</option>
+            <div class="form-group" style="max-width: 300px;">
+                <label for="filtro_ano"><i class="fas fa-calendar"></i> Ano do Plano:</label>
+                <select id="filtro_ano" class="form-control">
+                    <option value="">Selecione um ano...</option>
+                    {% for ano in anos_disponiveis %}
+                    <option value="{{ ano }}">{{ ano }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group">
-                <label for="filtro_auditoria_select"><i class="fas fa-clipboard-list"></i> Auditoria:</label>
-                <select id="filtro_auditoria_select" class="form-control" disabled>
-                    <option value="">Selecione uma área primeiro...</option>
-                </select>
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button id="btn-carregar" class="btn-primary">
+                    <i class="fas fa-search"></i> Carregar Plano
+                </button>
+                <button id="btn-limpar" class="btn-neutral" style="margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Limpar
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- CONTEÚDO PRINCIPAL (aparece após selecionar auditoria) -->
+    <!-- CONTEÚDO PRINCIPAL (aparece após selecionar o ano) -->
     <div id="conteudo-principal" style="display: none;">
 
-        <!-- SEÇÃO DOS FUNDAMENTOS -->
+        <!-- SEÇÃO DO PDF -->
+        <div class="form-section pdf-section">
+            <div class="section-header">
+                <h3><i class="fas fa-file-pdf"></i> Plano Anual de Auditoria - <span id="ano-selecionado"></span></h3>
+                <div id="pdf-status" class="pdf-status"></div>
+            </div>
+            <div class="pdf-actions">
+                <button id="btn-download-pdf" class="btn-download-pdf" style="display: none;">
+                    <i class="fas fa-download"></i> Baixar Plano em PDF
+                </button>
+                <div id="pdf-nao-encontrado" class="alert-warning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Nenhum arquivo PDF encontrado para o ano <span id="ano-pdf-nao-encontrado"></span>.
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO DOS FUNDAMENTOS (AGREGADOS POR ANO) -->
         <div class="form-section fundamentos-section">
             <div class="section-header">
-                <h3><i class="fas fa-exclamation-triangle"></i> Auditoria Baseada em Risco</h3>
-                <p class="text-muted">Registre os fatores de risco que fundamentam esta auditoria</p>
-            </div>
-
-            <!-- Lista de fundamentos -->
-            <div id="fundamentos-container">
-                <div class="empty-message">
-                    <i class="fas fa-info-circle"></i> Nenhum fundamento cadastrado. Clique em "Adicionar Fundamento" para começar.
+                <div>
+                    <h3><i class="fas fa-exclamation-triangle"></i> Fundamentos do Plano Anual - <span id="ano-fundamentos"></span></h3>
+                    <p class="text-muted">Riscos e pontos que fundamentam as auditorias planejadas para este ano</p>
+                </div>
+                <div class="badge-info" id="total-auditorias">
+                    <span>Total: <strong id="contador-auditorias">0</strong> auditoria(s)</span>
                 </div>
             </div>
 
-            <!-- Botão para adicionar novo fundamento -->
-            <button id="btn-adicionar-fundamento" class="btn-outline-primary">
-                <i class="fas fa-plus"></i> Adicionar Risco que fundamenta a auditoria
-            </button>
-
-            <!-- Botão salvar tudo -->
-            <div class="salvar-actions">
-                <button id="btn-salvar-fundamentos" class="btn-primary">
-                    <i class="fas fa-save"></i> Salvar Todos os Fundamentos
-                </button>
-                
+            <!-- Lista de fundamentos agregados por auditoria -->
+            <div id="fundamentos-container">
+                <div class="empty-message">
+                    <i class="fas fa-info-circle"></i> Nenhum fundamento encontrado para as auditorias deste ano.
+                </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DE CARREGAMENTO (opcional) -->
-<div id="loading-modal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 300px; text-align: center;">
-        <div class="modal-body">
-            <div class="dot-spinner">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
-            <p style="margin-top: 20px;">Carregando...</p>
         </div>
     </div>
 </div>
@@ -109,38 +88,44 @@
         color: #184145;
         font-size: 32px;
         margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .page-header h1 i {
         background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
         color: #e4e4e4;
-        margin-right: 10px;
-        padding: 10px;
-        border-radius: 12px;
-        font-size: 32px;
+        padding: 12px;
+        border-radius: 14px;
+        font-size: 28px;
     }
 
     .page-header p {
         color: #666;
         font-size: 14px;
+        margin-left: 52px;
     }
 
     .form-section {
         background: white;
-        border-radius: 15px;
-        padding: 25px;
+        border-radius: 20px;
+        padding: 30px;
         margin-bottom: 25px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
     .form-row {
         display: flex;
         gap: 20px;
         margin-bottom: 15px;
+        align-items: flex-end;
+        flex-wrap: wrap;
     }
 
     .form-group {
         flex: 1;
+        min-width: 200px;
     }
 
     .form-group label {
@@ -173,47 +158,87 @@
         box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
     }
 
-    .alert-info {
-        background-color: #d1ecf1;
-        border-left: 4px solid #17a2b8;
-        padding: 12px 16px;
-        border-radius: 8px;
-        color: #0c5460;
-        font-size: 14px;
-    }
-
-    .alert-warning {
-        background-color: #fff3cd;
-        border-left: 4px solid #ffc107;
-        padding: 12px 16px;
-        border-radius: 8px;
-        color: #856404;
-        font-size: 14px;
-    }
-
-    .alert-error {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
-        padding: 12px 16px;
-        border-radius: 8px;
-        color: #721c24;
-        font-size: 14px;
-    }
-
     .section-header {
         margin-bottom: 20px;
-        padding-bottom: 10px;
+        padding-bottom: 15px;
         border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
     }
 
     .section-header h3 {
         color: #184145;
         font-size: 18px;
-        margin: 0 0 5px 0;
+        margin: 0;
     }
 
-    .pdf-status {
-        margin-top: 10px;
+    .section-header h3 i {
+        margin-right: 8px;
+    }
+
+    .section-header .text-muted {
+        color: #666;
+        font-size: 13px;
+        margin: 5px 0 0 0;
+        width: 100%;
+    }
+
+    .badge-info {
+        background: #e3f2fd;
+        padding: 6px 14px;
+        border-radius: 20px;
+        color: #0b5b99;
+        font-size: 13px;
+        border: 1px solid #0b5b99;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .badge-info strong {
+        font-size: 16px;
+    }
+
+    .btn-primary {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 48px;
+    }
+
+    .btn-primary:hover {
+        background: #0b5b99;
+        transform: translateY(-2px);
+    }
+
+    .btn-neutral {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 48px;
+    }
+
+    .btn-neutral:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
     }
 
     .btn-download-pdf {
@@ -235,161 +260,94 @@
         transform: translateY(-2px);
     }
 
-    .btn-outline-primary {
-        background: transparent;
-        border: 1px solid #184145;
-        color: #184145;
-        padding: 10px 20px;
+    .pdf-actions {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px 16px;
         border-radius: 8px;
-        cursor: pointer;
+        color: #856404;
         font-size: 14px;
-        transition: all 0.2s;
-        margin-top: 15px;
     }
 
-    .btn-outline-primary:hover {
-        background: #184145;
-        color: white;
+    .alert-warning i {
+        margin-right: 8px;
     }
 
-    .btn-primary {
-        background: #184145;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s;
-    }
-
-    .btn-primary:hover {
-        background: #0b5b99;
-        transform: translateY(-2px);
-    }
-
-    .salvar-actions {
-        margin-top: 25px;
-        text-align: right;
-        padding-top: 20px;
-        border-top: 1px solid #e0e0e0;
-    }
-
-    /* Card de fundamento */
-    .fundamento-card {
+    /* Card de auditoria com fundamentos */
+    .auditoria-fundamento-card {
         background: #f8f9fa;
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
-        border-left: 4px solid #fd6a14;
+        border-left: 4px solid #0b5b99;
         position: relative;
     }
 
-    .fundamento-header {
+    .auditoria-fundamento-card .auditoria-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 10px;
     }
 
-    .fundamento-titulo {
-        flex: 1;
-        margin-right: 15px;
+    .auditoria-fundamento-card .auditoria-header h4 {
+        margin: 0;
+        color: #184145;
+        font-size: 16px;
     }
 
-    .fundamento-titulo label {
+    .auditoria-fundamento-card .auditoria-header h4 i {
+        color: #0b5b99;
+        margin-right: 8px;
+    }
+
+    .auditoria-fundamento-card .auditoria-header .codigo-badge {
+        background: #184145;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
         font-size: 12px;
         font-weight: 600;
-        color: #666;
-        margin-bottom: 5px;
-        display: block;
     }
 
-    .fundamento-titulo input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #ddd;
+    .risco-item {
+        background: white;
         border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
+        border-left: 3px solid #fd6a14;
+    }
+
+    .risco-item .risco-titulo {
+        font-weight: 600;
+        color: #184145;
+        margin-bottom: 8px;
         font-size: 14px;
     }
 
-    .fundamento-titulo input:focus {
-        outline: none;
-        border-color: #fd6a14;
+    .risco-item .risco-titulo i {
+        color: #fd6a14;
+        margin-right: 6px;
     }
 
-    .btn-remove-fundamento {
-        background: none;
-        border: none;
-        color: #dc3545;
-        cursor: pointer;
-        font-size: 20px;
-        padding: 5px;
-        transition: all 0.2s;
+    .risco-item .pontos-lista {
+        padding-left: 25px;
+        margin: 5px 0 0 0;
     }
 
-    .btn-remove-fundamento:hover {
-        color: #bd1425;
-        transform: scale(1.1);
-    }
-
-    /* Lista de pontos */
-    .pontos-container {
-        margin-top: 10px;
-    }
-
-    .pontos-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #666;
-        margin-bottom: 8px;
-        display: block;
-    }
-
-    .ponto-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-    }
-
-    .ponto-item input {
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+    .risco-item .pontos-lista li {
+        color: #555;
         font-size: 13px;
-    }
-
-    .ponto-item input:focus {
-        outline: none;
-        border-color: #fd6a14;
-    }
-
-    .btn-remove-ponto {
-        background: none;
-        border: none;
-        color: #dc3545;
-        cursor: pointer;
-        font-size: 16px;
-        padding: 5px;
-    }
-
-    .btn-add-ponto {
-        background: none;
-        border: 1px dashed #17a2b8;
-        color: #17a2b8;
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        margin-top: 8px;
-        transition: all 0.2s;
-    }
-
-    .btn-add-ponto:hover {
-        background: #17a2b8;
-        color: white;
+        margin-bottom: 4px;
     }
 
     .empty-message {
@@ -400,309 +358,350 @@
         border-radius: 12px;
     }
 
-    .pdf-status .badge-success {
-        display: inline-block;
-        background: #d4edda;
-        color: #155724;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
+    .empty-message i {
+        margin-right: 8px;
+        color: #fd6a14;
     }
 
-    .pdf-status .badge-warning {
-        display: inline-block;
-        background: #fff3cd;
-        color: #856404;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
+    .pdf-status {
+        margin-top: 10px;
     }
 
-    /* Spinner */
-    .dot-spinner {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-    }
-
-    .dot {
-        width: 10px;
-        height: 10px;
-        background: #184145;
-        border-radius: 50%;
-        animation: bounce 1.4s ease-in-out infinite;
-    }
-
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
-    .dot:nth-child(3) { animation-delay: 0s; }
-
-    @keyframes bounce {
-        0%, 80%, 100% {
-            transform: scale(0.8);
-            opacity: 0.5;
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .plano-anual-container {
+            padding: 0 10px;
         }
-        40% {
-            transform: scale(1.2);
-            opacity: 1;
+
+        .page-header h1 {
+            font-size: 24px;
+        }
+
+        .page-header p {
+            margin-left: 0;
+        }
+
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .badge-info {
+            align-self: flex-start;
+        }
+
+        .form-group {
+            min-width: 100%;
+        }
+
+        .auditoria-fundamento-card .auditoria-header {
+            flex-direction: column;
+            align-items: flex-start;
         }
     }
 
-    /* Modal */
-    .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
+    /* ====== ESTILOS DE EDIÇÃO ====== */
+
+    /* Header com edição */
+    .risco-header-edit {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 8px;
     }
 
-    .modal-content {
-        background: white;
-        border-radius: 16px;
-        padding: 20px;
+    .risco-header-edit .risco-titulo {
+        flex: 1;
+        margin: 0;
     }
 
-    /* Textarea para títulos */
-    .fundamento-titulo-input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 14px;
-        resize: vertical;
-        font-family: inherit;
-    }
-
-    .fundamento-titulo-input:focus {
-        outline: none;
-        border-color: #fd6a14;
-    }
-
-    /* Textarea para pontos */
-    .ponto-input {
+    /* Input do título do risco */
+    .risco-titulo-input {
         width: 100%;
         padding: 8px 12px;
-        border: 1px solid #ddd;
+        border: 2px solid #e0e0e0;
         border-radius: 8px;
-        font-size: 13px;
-        resize: vertical;
+        font-size: 14px;
+        font-weight: 600;
+        color: #184145;
+        transition: border-color 0.2s;
+        background: white;
         font-family: inherit;
     }
 
-    .ponto-input:focus {
+    .risco-titulo-input:focus {
         outline: none;
         border-color: #fd6a14;
+        box-shadow: 0 0 0 3px rgba(253,106,20,0.1);
     }
 
-    /* Modo somente leitura */
-    .readonly-mode .fundamento-titulo-input:disabled,
-    .readonly-mode .ponto-input:disabled {
-        background-color: #f8f9fa;
-        color: #666;
-        cursor: not-allowed;
+    /* Ações do risco */
+    .risco-acoes {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
     }
 
-    .readonly-mode .btn-remove-fundamento,
-    .readonly-mode .btn-remove-ponto,
-    .readonly-mode .btn-add-ponto {
-        display: none !important;
+    .btn-remover-risco {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
     }
 
-    .readonly-indicator {
-        display: inline-block;
-        background: #e9ecef;
-        color: #666;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 11px;
-        margin-left: 15px;
+    .btn-remover-risco:hover {
+        background: rgba(220,53,69,0.1);
+        transform: scale(1.1);
     }
 
-    .badge-secondary {
-        display: inline-block;
-        background: #e9ecef;
-        color: #666;
-        padding: 4px 12px;
-        border-radius: 20px;
+    /* Item de ponto com edição */
+    .ponto-item-edit {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .ponto-item-edit .ponto-numero {
         font-size: 12px;
+        color: #999;
+        font-weight: 600;
+        min-width: 24px;
     }
 
-    .alert-error {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
-        padding: 12px 16px;
+    .ponto-item-edit .ponto-input {
+        flex: 1;
+        padding: 6px 12px;
+        border: 2px solid #e0e0e0;
         border-radius: 8px;
-        color: #721c24;
-        font-size: 14px;
-        margin-bottom: 20px;
+        font-size: 13px;
+        transition: border-color 0.2s;
+        background: white;
+        font-family: inherit;
     }
 
-    .alert-error i {
-        margin-right: 8px;
+    .ponto-item-edit .ponto-input:focus {
+        outline: none;
+        border-color: #17a2b8;
+        box-shadow: 0 0 0 3px rgba(23,162,184,0.1);
+    }
+
+    .btn-remover-ponto {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .btn-remover-ponto:hover {
+        background: rgba(220,53,69,0.1);
+        transform: scale(1.1);
+    }
+
+    /* Botão Adicionar Risco */
+    .btn-adicionar-risco {
+        background: transparent;
+        border: 2px solid #fd6a14;
+        color: #fd6a14;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: inherit;
+    }
+
+    .btn-adicionar-risco:hover {
+        background: #fd6a14;
+        color: white;
+    }
+
+    .btn-adicionar-risco-inline {
+        background: transparent;
+        border: 2px solid #fd6a14;
+        color: #fd6a14;
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: inherit;
+    }
+
+    .btn-adicionar-risco-inline:hover {
+        background: #fd6a14;
+        color: white;
+    }
+
+    /* Botão Adicionar Ponto */
+    .btn-adicionar-ponto {
+        background: none;
+        border: 1px dashed #17a2b8;
+        color: #17a2b8;
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-top: 4px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: inherit;
+    }
+
+    .btn-adicionar-ponto:hover {
+        background: #17a2b8;
+        color: white;
+    }
+
+    /* Container de pontos com edição */
+    .pontos-container {
+        margin-top: 10px;
+        padding-left: 10px;
+    }
+
+    .pontos-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pontos-label i {
+        color: #17a2b8;
+    }
+
+    .pontos-lista-edit {
+        margin-bottom: 4px;
+    }
+
+    /* Empty riscos */
+    .empty-riscos {
+        text-align: center;
+        padding: 20px;
+        color: #999;
+        background: #f8f9fa;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .empty-riscos i {
+        color: #fd6a14;
+        margin-right: 6px;
+    }
+
+    /* Botão Salvar Auditoria */
+    .btn-salvar-auditoria {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: inherit;
+    }
+
+    .btn-salvar-auditoria:hover {
+        background: #218838;
+        transform: translateY(-1px);
+    }
+
+    .btn-salvar-auditoria:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .salvar-auditoria-actions {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e0e0e0;
+        text-align: right;
+    }
+
+    /* Risco item com edição */
+    .risco-item {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
+        border-left: 3px solid #fd6a14;
+    }
+
+    /* Responsividade para edição */
+    @media (max-width: 768px) {
+        .risco-header-edit {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .risco-acoes {
+            align-self: flex-end;
+        }
+
+        .ponto-item-edit {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ponto-item-edit .ponto-numero {
+            min-width: auto;
+        }
+
+        .btn-remover-ponto {
+            align-self: flex-end;
+        }
+
+        .salvar-auditoria-actions {
+            text-align: center;
+        }
+
+        .btn-salvar-auditoria {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
 
 <script>
-    // Recebe o perfil do usuário do Flask
-    const usuarioPerfil = '{{ usuario_perfil }}';
-    const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
-
-    console.log('Perfil do usuário:', usuarioPerfil, 'é admin?', isAdmin);
-
-    let usuarioAutorizado = false;
-    let permissoes = {
-        podeBaixarPDF: false,
-        podeVisualizarFundamentos: false,
-        podeEditarFundamentos: false
-    };
-    
-    // ====== VERIFICAR PERMISSÃO DO USUÁRIO NA AUDITORIA ======
-    async function verificarPermissaoAuditoria(auditoriaId) {
-        try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
-            const data = await response.json();
-            
-            console.log('🔍 Verificação de permissão:', data);
-            
-            if (isAdmin) {
-                // Administrador tem acesso total
-                usuarioAutorizado = true;
-                permissoes.podeBaixarPDF = true;
-                permissoes.podeVisualizarFundamentos = true;
-                permissoes.podeEditarFundamentos = true;
-                console.log('✅ Administrador - acesso total');
-            } else if (data.autorizado) {
-                // Usuário é responsável pela auditoria
-                usuarioAutorizado = true;
-                permissoes.podeBaixarPDF = true;
-                permissoes.podeVisualizarFundamentos = true;
-                permissoes.podeEditarFundamentos = true;
-                console.log('✅ Usuário autorizado - acesso total');
-            } else {
-                // Usuário não tem permissão - NÃO VÊ NADA
-                usuarioAutorizado = false;
-                permissoes.podeBaixarPDF = false;
-                permissoes.podeVisualizarFundamentos = false;
-                permissoes.podeEditarFundamentos = false;
-                console.log('❌ Usuário NÃO autorizado - sem acesso');
-            }
-            
-            // ⭐ APLICAR PERMISSÕES DEPOIS DE VERIFICAR
-            // Aguardar um pouco para garantir que o DOM está pronto
-            setTimeout(() => {
-                aplicarPermissoes();
-            }, 100);
-            
-            return usuarioAutorizado;
-            
-        } catch (error) {
-            console.error('Erro ao verificar permissão:', error);
-            permissoes.podeBaixarPDF = false;
-            permissoes.podeVisualizarFundamentos = false;
-            permissoes.podeEditarFundamentos = false;
-            setTimeout(() => {
-                aplicarPermissoes();
-            }, 100);
-            return false;
-        }
-    }
-
-    // ====== APLICAR PERMISSÕES NA INTERFACE ======
-    function aplicarPermissoes() {
-        console.log('🎯 Aplicando permissões:', permissoes);
-        
-        // ⭐ REMOVER CONTROLE DO PDF AQUI - quem controla o PDF é verificarPdf ⭐
-        // const btnDownload = document.getElementById('btn-download-pdf');
-        // const pdfStatus = document.getElementById('pdf-status');
-        
-        const fundamentosSection = document.querySelector('.fundamentos-section');
-        const btnAdicionarFundamento = document.getElementById('btn-adicionar-fundamento');
-        const btnSalvarFundamentos = document.getElementById('btn-salvar-fundamentos');
-        
-        // Controle da seção de fundamentos
-        if (fundamentosSection) {
-            if (permissoes.podeVisualizarFundamentos) {
-                fundamentosSection.style.display = 'block';
-                console.log('✅ Seção de fundamentos VISÍVEL');
-                
-                // Controle de edição dentro da seção
-                if (btnAdicionarFundamento) {
-                    btnAdicionarFundamento.style.display = permissoes.podeEditarFundamentos ? 'block' : 'none';
-                }
-                if (btnSalvarFundamentos) {
-                    btnSalvarFundamentos.style.display = permissoes.podeEditarFundamentos ? 'flex' : 'none';
-                }
-                
-                // Se não pode editar, desabilitar os campos
-                if (!permissoes.podeEditarFundamentos) {
-                    desabilitarEdicaoFundamentos();
-                }
-            } else {
-                fundamentosSection.style.display = 'none';
-                console.log('❌ Seção de fundamentos OCULTA');
-            }
-        } else {
-            console.log('⚠️ Elemento .fundamentos-section não encontrado no DOM');
-        }
-    }
-
-    // ====== DESABILITAR EDIÇÃO DOS FUNDAMENTOS ======
-    function desabilitarEdicaoFundamentos() {
-        console.log('🔒 Desabilitando edição dos fundamentos');
-        
-        // Desabilitar todos os textareas
-        document.querySelectorAll('.fundamento-titulo-input, .ponto-input').forEach(input => {
-            input.disabled = true;
-            input.style.backgroundColor = '#f8f9fa';
-            input.style.cursor = 'not-allowed';
-        });
-        
-        // Esconder botões de remover/adicionar
-        document.querySelectorAll('.btn-remove-fundamento, .btn-remove-ponto, .btn-add-ponto').forEach(btn => {
-            btn.style.display = 'none';
-        });
-        
-        // Adicionar indicador de somente leitura
-        const sectionHeader = document.querySelector('.fundamentos-section .section-header');
-        if (sectionHeader && !document.querySelector('.readonly-indicator')) {
-            const indicator = document.createElement('span');
-            indicator.className = 'readonly-indicator';
-            indicator.innerHTML = '<i class="fas fa-eye"></i> Modo somente leitura';
-            indicator.style.cssText = `
-                display: inline-block;
-                background: #e9ecef;
-                color: #666;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 11px;
-                margin-left: 15px;
-            `;
-            sectionHeader.appendChild(indicator);
-        }
-    }
-
-
-
     // ====== ELEMENTOS DO DOM ======
-    const filtroAreaSelect = document.getElementById('filtro_area_select');
-    const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
+    const filtroAno = document.getElementById('filtro_ano');
+    const btnCarregar = document.getElementById('btn-carregar');
+    const btnLimpar = document.getElementById('btn-limpar');
     const conteudoPrincipal = document.getElementById('conteudo-principal');
     const btnDownloadPdf = document.getElementById('btn-download-pdf');
     const pdfNaoEncontrado = document.getElementById('pdf-nao-encontrado');
     const fundamentosContainer = document.getElementById('fundamentos-container');
-    const btnAdicionarFundamento = document.getElementById('btn-adicionar-fundamento');
-    const btnSalvarFundamentos = document.getElementById('btn-salvar-fundamentos');
+    const contadorAuditorias = document.getElementById('contador-auditorias');
 
     // ====== VARIÁVEIS GLOBAIS ======
-    let auditoriaAtualId = null;
-    let auditoriaAtualCodigo = null;
-    let fundamentosLista = [];
+    let anoSelecionado = null;
+    let dadosAuditorias = []; // ⭐ NOVO: armazena os dados das auditorias para edição
 
     // ====== FUNÇÕES AUXILIARES ======
     function escapeHtml(text) {
@@ -769,48 +768,17 @@
         }, 4000);
     }
 
-    // ====== CARREGAR AUDITORIAS POR ÁREA ======
-    async function carregarAuditorias(areaId) {
-        if (!areaId) {
-            filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
-            filtroAuditoriaSelect.disabled = true;
-            conteudoPrincipal.style.display = 'none';
-            return;
-        }
-
-        filtroAuditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
-        filtroAuditoriaSelect.disabled = true;
-
-        try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
-            const data = await response.json();
-
-            if (data.auditorias && data.auditorias.length > 0) {
-                filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
-                data.auditorias.forEach(aud => {
-                    const option = document.createElement('option');
-                    option.value = aud.id;
-                    option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
-                    filtroAuditoriaSelect.appendChild(option);
-                });
-                filtroAuditoriaSelect.disabled = false;
-            } else {
-                filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
-                filtroAuditoriaSelect.disabled = true;
-                conteudoPrincipal.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Erro ao carregar auditorias:', error);
-            filtroAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-        }
-    }
-
     // ====== VERIFICAR EXISTÊNCIA DO PDF ======
-    async function verificarPdf(codigoAuditoria) {
+    async function verificarPdf(ano) {
         try {
-            const response = await fetch(`/api/plano-anual-pdf?codigo=${codigoAuditoria}`);
+            // Buscar o PDF do plano anual pelo ano
+            const response = await fetch(`/api/plano-anual-pdf?ano=${ano}&tipo=plano`);
             console.log('Status da resposta:', response.status);
-            console.log('Response ok?', response.ok);
+            
+            // Atualizar textos com o ano
+            document.getElementById('ano-selecionado').textContent = ano;
+            document.getElementById('ano-pdf-nao-encontrado').textContent = ano;
+            document.getElementById('ano-fundamentos').textContent = ano;
             
             if (response.ok) {
                 console.log('✅ PDF encontrado - mostrando botão');
@@ -819,11 +787,10 @@
                 return true;
             } else {
                 const errorData = await response.json();
-                console.log('❌ PDF NÃO encontrado - escondendo botão');
-                console.log('Erro retornado:', errorData);
+                console.log('❌ PDF NÃO encontrado');
                 btnDownloadPdf.style.display = 'none';
                 pdfNaoEncontrado.style.display = 'block';
-                pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorData.error || 'Arquivo PDF não encontrado'}`;
+                pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorData.error || 'Arquivo PDF não encontrado para o ano ' + ano}`;
                 return false;
             }
         } catch (error) {
@@ -837,371 +804,368 @@
 
     // ====== DOWNLOAD DO PDF ======
     function baixarPdf() {
-        if (auditoriaAtualCodigo) {  // ← usar codigo, não id
-            window.open(`/api/plano-anual-pdf?codigo=${auditoriaAtualCodigo}`, '_blank');
+        if (anoSelecionado) {
+            window.open(`/api/plano-anual-pdf?ano=${anoSelecionado}&tipo=plano`, '_blank');
         }
     }
 
-    // ====== CARREGAR FUNDAMENTOS DA AUDITORIA ======
-    async function carregarFundamentos(auditoriaId) {
+    // ====== CARREGAR FUNDAMENTOS POR ANO (COM EDIÇÃO) ======
+    async function carregarFundamentosPorAno(ano) {
+        fundamentosContainer.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-spinner fa-spin"></i> Carregando fundamentos...
+            </div>
+        `;
+
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`);
+            const response = await fetch(`/api/fundamentos-por-ano?ano=${ano}`);
             const data = await response.json();
-            
-            // ⭐ ADICIONAR LOGS PARA DEBUG ⭐
-            console.log('🔍 RESPOSTA COMPLETA DA API:', data);
-            console.log('🔍 data.success:', data.success);
-            console.log('🔍 data.fundamentos:', data.fundamentos);
-            console.log('🔍 tipo de data.fundamentos:', typeof data.fundamentos);
-            
-            // ⭐ Verificar se data.fundamentos é uma string (em vez de array)
-            if (typeof data.fundamentos === 'string') {
-                console.log('⚠️ fundamentos é uma string, convertendo...');
-                try {
-                    fundamentosLista = JSON.parse(data.fundamentos);
-                } catch(e) {
-                    fundamentosLista = [];
-                }
-            } else if (Array.isArray(data.fundamentos)) {
-                fundamentosLista = data.fundamentos;
-            } else {
-                fundamentosLista = [];
+
+            console.log('📦 Dados recebidos:', data);
+
+            if (!data.success) {
+                fundamentosContainer.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao carregar fundamentos: ${data.error || 'Erro desconhecido'}
+                    </div>
+                `;
+                return;
             }
-            
-            console.log('🔍 fundamentosLista FINAL:', fundamentosLista);
-            console.log('🔍 quantidade de fundamentos:', fundamentosLista.length);
-            
-            renderizarFundamentos();
-            
+
+            // ⭐ Salvar dados globais para edição
+            dadosAuditorias = data.auditorias || [];
+            renderizarFundamentos(dadosAuditorias);
+
         } catch (error) {
             console.error('Erro ao carregar fundamentos:', error);
-            fundamentosLista = [];
-            renderizarFundamentos();
+            fundamentosContainer.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar fundamentos: ${error.message}
+                </div>
+            `;
         }
     }
 
-    // ====== RENDERIZAR FUNDAMENTOS ======
-    function renderizarFundamentos() {
+    // ====== RENDERIZAR FUNDAMENTOS COM EDIÇÃO ======
+    function renderizarFundamentos(auditorias) {
         if (!fundamentosContainer) return;
         
-        if (fundamentosLista.length === 0) {
+        contadorAuditorias.textContent = auditorias.length;
+
+        if (auditorias.length === 0) {
             fundamentosContainer.innerHTML = `
                 <div class="empty-message">
-                    <i class="fas fa-info-circle"></i> Nenhum fundamento para esta auditoria cadastrado. Clique em "Adicionar Risco" para começar.
+                    <i class="fas fa-info-circle"></i> Nenhuma auditoria planejada encontrada para este ano.
                 </div>
             `;
             return;
         }
-        
-        fundamentosContainer.innerHTML = fundamentosLista.map((fundamento, idx) => `
-            <div class="fundamento-card" data-fundamento-idx="${idx}">
-                <div class="fundamento-header">
-                    <div class="fundamento-titulo">
-                        <label><i class="fas fa-exclamation-triangle"></i> Risco que fundamentou a auditoria: </label>
-                        <textarea class="fundamento-titulo-input" rows="2" placeholder="Descreva brevemente o risco que fundamentou a auditoria..." data-idx="${idx}">${escapeHtml(fundamento.titulo || '')}</textarea>
+
+        // Filtrar apenas auditorias que têm fundamentos OU permitir adicionar
+        const auditoriasComFundamentos = auditorias.filter(aud => 
+            aud.fundamentos && 
+            Array.isArray(aud.fundamentos) && 
+            aud.fundamentos.length > 0
+        );
+
+        // Se não tem nenhuma com fundamentos, mostrar todas com opção de adicionar
+        const auditoriasParaMostrar = auditoriasComFundamentos.length > 0 ? auditoriasComFundamentos : auditorias;
+
+        fundamentosContainer.innerHTML = auditoriasParaMostrar.map((aud, audIdx) => `
+            <div class="auditoria-fundamento-card" data-auditoria-id="${aud.id}" data-auditoria-idx="${audIdx}">
+                <div class="auditoria-header">
+                    <div>
+                        <h4>
+                            <i class="fas fa-clipboard-list"></i> 
+                            ${escapeHtml(aud.codigo_auditoria || 'Sem código')}
+                            <span style="font-weight: normal; font-size: 14px; color: #666; margin-left: 8px;">
+                                ${escapeHtml(aud.titulo || 'Sem título')}
+                            </span>
+                        </h4>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                            ${aud.area_nome || 'Sem área'} • ${aud.ano}/${aud.trimestre}º trimestre
+                        </div>
                     </div>
-                    <button class="btn-remove-fundamento" data-idx="${idx}" title="Remover fundamento">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                    <div>
+                        <button class="btn-adicionar-risco" data-auditoria-id="${aud.id}" data-auditoria-idx="${audIdx}" title="Adicionar risco a esta auditoria">
+                            <i class="fas fa-plus-circle"></i> Adicionar Risco
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="pontos-container">
-                    <label class="pontos-label"><i class="fas fa-list"></i> Pontos que fundamentam o risco:</label>
-                    <div class="pontos-list" data-idx="${idx}">
-                        ${(fundamento.pontos || []).map((ponto, pIdx) => `
-                            <div class="ponto-item">
-                                <textarea class="ponto-input" rows="2" placeholder="Ex: Não conformidade com a Lei 123/2026.." 
-                                    data-idx="${idx}" data-pidx="${pIdx}">${escapeHtml(ponto)}</textarea>
-                                <button class="btn-remove-ponto" data-idx="${idx}" data-pidx="${pIdx}" title="Remover ponto">
-                                    <i class="fas fa-times"></i>
+                <div class="riscos-container" data-auditoria-idx="${audIdx}">
+                    ${(aud.fundamentos && aud.fundamentos.length > 0) ? aud.fundamentos.map((fundamento, fIdx) => `
+                        <div class="risco-item" data-fundamento-idx="${fIdx}">
+                            <div class="risco-header-edit">
+                                <div class="risco-titulo" style="flex: 1; margin: 0;">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    <input type="text" class="risco-titulo-input" value="${escapeHtml(fundamento.titulo || 'Risco não definido')}" 
+                                        placeholder="Descreva o risco..." data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}">
+                                </div>
+                                <div class="risco-acoes">
+                                    <button class="btn-remover-risco" data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}" title="Remover risco">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="pontos-container">
+                                <label class="pontos-label"><i class="fas fa-list"></i> Pontos:</label>
+                                <div class="pontos-lista-edit" data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}">
+                                    ${(fundamento.pontos || []).filter(p => p && p.trim() !== '').map((ponto, pIdx) => `
+                                        <div class="ponto-item-edit">
+                                            <span class="ponto-numero">${pIdx + 1}.</span>
+                                            <input type="text" class="ponto-input" value="${escapeHtml(ponto)}" 
+                                                placeholder="Descreva o ponto..." 
+                                                data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}" data-ponto-idx="${pIdx}">
+                                            <button class="btn-remover-ponto" data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}" data-ponto-idx="${pIdx}" title="Remover ponto">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <button class="btn-adicionar-ponto" data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}">
+                                    <i class="fas fa-plus"></i> Adicionar ponto
                                 </button>
                             </div>
-                        `).join('')}
-                    </div>
-                    <button class="btn-add-ponto" data-idx="${idx}">
-                        <i class="fas fa-plus"></i> Adicionar ponto
+                        </div>
+                    `).join('') : `
+                        <div class="empty-riscos">
+                            <i class="fas fa-info-circle"></i> Nenhum risco cadastrado para esta auditoria.
+                            <button class="btn-adicionar-risco-inline" data-auditoria-id="${aud.id}" data-auditoria-idx="${audIdx}" style="margin-left: 10px;">
+                                <i class="fas fa-plus-circle"></i> Adicionar primeiro risco
+                            </button>
+                        </div>
+                    `}
+                </div>
+                
+                <div class="salvar-auditoria-actions">
+                    <button class="btn-salvar-auditoria" data-auditoria-id="${aud.id}" data-auditoria-idx="${audIdx}">
+                        <i class="fas fa-save"></i> Salvar Fundamentos desta Auditoria
                     </button>
                 </div>
             </div>
         `).join('');
         
-        // Adicionar eventos após renderizar
-        adicionarEventosFundamentos();
+        // Adicionar eventos de edição
+        adicionarEventosEdicao();
     }
 
-    // ====== ADICIONAR EVENTOS DOS FUNDAMENTOS ======
-    function adicionarEventosFundamentos() {
-        // Eventos para títulos
-        document.querySelectorAll('.fundamento-titulo-input').forEach(input => {
-            input.removeEventListener('input', handleTituloChange);
-            input.addEventListener('input', handleTituloChange);
+    // ====== ADICIONAR EVENTOS DE EDIÇÃO ======
+    function adicionarEventosEdicao() {
+        // Adicionar Risco
+        document.querySelectorAll('.btn-adicionar-risco, .btn-adicionar-risco-inline').forEach(btn => {
+            btn.removeEventListener('click', handleAdicionarRisco);
+            btn.addEventListener('click', handleAdicionarRisco);
         });
         
-        // Eventos para remover fundamento
-        document.querySelectorAll('.btn-remove-fundamento').forEach(btn => {
-            btn.removeEventListener('click', handleRemoverFundamento);
-            btn.addEventListener('click', handleRemoverFundamento);
+        // Remover Risco
+        document.querySelectorAll('.btn-remover-risco').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverRisco);
+            btn.addEventListener('click', handleRemoverRisco);
         });
         
-        // Eventos para pontos
-        document.querySelectorAll('.ponto-input').forEach(input => {
-            input.removeEventListener('input', handlePontoChange);
-            input.addEventListener('input', handlePontoChange);
+        // Adicionar Ponto
+        document.querySelectorAll('.btn-adicionar-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleAdicionarPonto);
+            btn.addEventListener('click', handleAdicionarPonto);
         });
         
-        // Eventos para remover ponto
-        document.querySelectorAll('.btn-remove-ponto').forEach(btn => {
+        // Remover Ponto
+        document.querySelectorAll('.btn-remover-ponto').forEach(btn => {
             btn.removeEventListener('click', handleRemoverPonto);
             btn.addEventListener('click', handleRemoverPonto);
         });
         
-        // Eventos para adicionar ponto
-        document.querySelectorAll('.btn-add-ponto').forEach(btn => {
-            btn.removeEventListener('click', handleAdicionarPonto);
-            btn.addEventListener('click', handleAdicionarPonto);
+        // Salvar Auditoria
+        document.querySelectorAll('.btn-salvar-auditoria').forEach(btn => {
+            btn.removeEventListener('click', handleSalvarAuditoria);
+            btn.addEventListener('click', handleSalvarAuditoria);
         });
     }
-    
-    function handleTituloChange(e) {
-        const idx = parseInt(e.target.getAttribute('data-idx'));
-        if (fundamentosLista[idx]) {
-            fundamentosLista[idx].titulo = e.target.value;
+
+    // ====== HANDLERS DE EDIÇÃO ======
+    function handleAdicionarRisco(e) {
+        const btn = e.target.closest('.btn-adicionar-risco, .btn-adicionar-risco-inline');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria) return;
+        
+        if (!auditoria.fundamentos) {
+            auditoria.fundamentos = [];
         }
-    }
-    
-    function handleRemoverFundamento(e) {
-        const idx = parseInt(e.target.closest('.btn-remove-fundamento').getAttribute('data-idx'));
-        fundamentosLista.splice(idx, 1);
-        renderizarFundamentos();
-    }
-    
-    function handlePontoChange(e) {
-        const idx = parseInt(e.target.getAttribute('data-idx'));
-        const pIdx = parseInt(e.target.getAttribute('data-pidx'));
-        if (fundamentosLista[idx] && fundamentosLista[idx].pontos[pIdx] !== undefined) {
-            fundamentosLista[idx].pontos[pIdx] = e.target.value;
-        }
-    }
-    
-    function handleRemoverPonto(e) {
-        const idx = parseInt(e.target.closest('.btn-remove-ponto').getAttribute('data-idx'));
-        const pIdx = parseInt(e.target.closest('.btn-remove-ponto').getAttribute('data-pidx'));
-        if (fundamentosLista[idx] && fundamentosLista[idx].pontos) {
-            fundamentosLista[idx].pontos.splice(pIdx, 1);
-            renderizarFundamentos();
-        }
-    }
-    
-    function handleAdicionarPonto(e) {
-        const idx = parseInt(e.target.closest('.btn-add-ponto').getAttribute('data-idx'));
-        if (fundamentosLista[idx]) {
-            if (!fundamentosLista[idx].pontos) {
-                fundamentosLista[idx].pontos = [];
-            }
-            fundamentosLista[idx].pontos.push('');
-            renderizarFundamentos();
-        }
-    }
-    
-    // ====== ADICIONAR NOVO FUNDAMENTO ======
-    function adicionarFundamento() {
-        fundamentosLista.push({
+        
+        auditoria.fundamentos.push({
             titulo: '',
             pontos: ['']
         });
-        renderizarFundamentos();
+        
+        renderizarFundamentos(dadosAuditorias);
     }
-    
-    // ====== SALVAR FUNDAMENTOS ======
-    async function salvarFundamentos() {
-        if (!auditoriaAtualId) {
-            mostrarToast('❌ Nenhuma auditoria selecionada', 'error');
-            return;
-        }
+
+    function handleRemoverRisco(e) {
+        const btn = e.target.closest('.btn-remover-risco');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria || !auditoria.fundamentos) return;
+        
+        auditoria.fundamentos.splice(fundamentoIdx, 1);
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    function handleAdicionarPonto(e) {
+        const btn = e.target.closest('.btn-adicionar-ponto');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
+        
+        auditoria.fundamentos[fundamentoIdx].pontos.push('');
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    function handleRemoverPonto(e) {
+        const btn = e.target.closest('.btn-remover-ponto');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
+        const pontoIdx = parseInt(btn.getAttribute('data-ponto-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
+        
+        auditoria.fundamentos[fundamentoIdx].pontos.splice(pontoIdx, 1);
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    async function handleSalvarAuditoria(e) {
+        const btn = e.target.closest('.btn-salvar-auditoria');
+        const auditoriaId = parseInt(btn.getAttribute('data-auditoria-id'));
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria) return;
+        
+        // Coletar dados dos inputs
+        const card = btn.closest('.auditoria-fundamento-card');
+        const riscosInputs = card.querySelectorAll('.risco-titulo-input');
+        const pontosInputs = card.querySelectorAll('.ponto-input');
+        
+        // Atualizar dados da auditoria com os valores dos inputs
+        riscosInputs.forEach(input => {
+            const fIdx = parseInt(input.getAttribute('data-fundamento-idx'));
+            if (auditoria.fundamentos && auditoria.fundamentos[fIdx]) {
+                auditoria.fundamentos[fIdx].titulo = input.value;
+            }
+        });
+        
+        pontosInputs.forEach(input => {
+            const fIdx = parseInt(input.getAttribute('data-fundamento-idx'));
+            const pIdx = parseInt(input.getAttribute('data-ponto-idx'));
+            if (auditoria.fundamentos && auditoria.fundamentos[fIdx] && auditoria.fundamentos[fIdx].pontos[pIdx] !== undefined) {
+                auditoria.fundamentos[fIdx].pontos[pIdx] = input.value;
+            }
+        });
         
         // Filtrar fundamentos vazios
-        const fundamentosFiltrados = fundamentosLista.filter(f => {
+        const fundamentosFiltrados = (auditoria.fundamentos || []).filter(f => {
             if (!f.titulo || f.titulo.trim() === '') return false;
             const pontosValidos = (f.pontos || []).filter(p => p && p.trim() !== '');
             return pontosValidos.length > 0;
         });
         
-        const payload = {
-            fundamentos: fundamentosFiltrados
-        };
-        
+        // Salvar
         try {
-            const btnSalvar = btnSalvarFundamentos;
-            const textoOriginal = btnSalvar.innerHTML;
-            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-            btnSalvar.disabled = true;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             
-            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/fundamentos`, {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ fundamentos: fundamentosFiltrados })
             });
             
             const result = await response.json();
             
             if (result.success) {
                 mostrarToast('✅ Fundamentos salvos com sucesso!', 'success');
+                // Atualizar dados locais
+                auditoria.fundamentos = fundamentosFiltrados;
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (result.error || 'Tente novamente'), 'error');
             }
-            
-            btnSalvar.innerHTML = textoOriginal;
-            btnSalvar.disabled = false;
-            
         } catch (error) {
-            console.error('Erro ao salvar fundamentos:', error);
+            console.error('Erro ao salvar:', error);
             mostrarToast('❌ Erro de conexão', 'error');
-            btnSalvarFundamentos.innerHTML = '<i class="fas fa-save"></i> Salvar Todos os Fundamentos';
-            btnSalvarFundamentos.disabled = false;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Salvar Fundamentos desta Auditoria';
         }
     }
 
-    // ====== CARREGAR DADOS DA AUDITORIA SELECIONADA ======
-    async function carregarDadosAuditoria(auditoriaId, auditoriaCodigo) {
-        console.log('🔍 Auditoria ID:', auditoriaId);
-        console.log('🔍 Auditoria Código:', auditoriaCodigo);
-        
-        auditoriaAtualId = auditoriaId;
-        auditoriaAtualCodigo = auditoriaCodigo;
-        
-        // ⭐ REMOVER MENSAGEM DE ACESSO NEGADO ANTERIOR ⭐
-        const existingMsg = document.getElementById('acesso-negado-msg');
-        if (existingMsg) {
-            existingMsg.remove();
+    // ====== CARREGAR DADOS COMPLETOS ======
+    async function carregarDados(ano) {
+        if (!ano) {
+            mostrarToast('⚠️ Selecione um ano primeiro', 'warning');
+            return;
         }
-        
-        // ⭐ RESETAR ESTADO DO PDF ⭐
+
+        anoSelecionado = ano;
+        conteudoPrincipal.style.display = 'block';
+
+        // Atualizar títulos com o ano
+        document.getElementById('ano-selecionado').textContent = ano;
+        document.getElementById('ano-pdf-nao-encontrado').textContent = ano;
+        document.getElementById('ano-fundamentos').textContent = ano;
+
+        // Carregar PDF
+        await verificarPdf(ano);
+
+        // Carregar fundamentos
+        await carregarFundamentosPorAno(ano);
+    }
+
+    // ====== LIMPAR DADOS ======
+    function limparDados() {
+        anoSelecionado = null;
+        conteudoPrincipal.style.display = 'none';
+        filtroAno.value = '';
         btnDownloadPdf.style.display = 'none';
         pdfNaoEncontrado.style.display = 'none';
-        
-        // ⭐ Mostrar loading ou placeholder
-        conteudoPrincipal.style.display = 'block';
-        
-        // ⭐ Esconder seção de fundamentos inicialmente (só mostra se autorizado)
-        const fundamentosSection = document.querySelector('.fundamentos-section');
-        if (fundamentosSection) {
-            fundamentosSection.style.display = 'none';
-        }
-        
-        // ⭐ VERIFICAR PERMISSÃO ⭐
-        const autorizado = await verificarPermissaoAuditoria(auditoriaId);
-        
-        // Se NÃO for autorizado, mostrar mensagem de acesso negado
-        if (!autorizado && !isAdmin) {
-            // Esconder seção de fundamentos completamente
-            if (fundamentosSection) fundamentosSection.style.display = 'none';
-            
-            // Manter PDF oculto
-            btnDownloadPdf.style.display = 'none';
-            pdfNaoEncontrado.style.display = 'none';
-            
-            // Mostrar mensagem de acesso negado na área de conteúdo
-            const pdfSection = document.querySelector('.pdf-section');
-            if (pdfSection) {
-                let msgDiv = document.getElementById('acesso-negado-msg');
-                if (!msgDiv) {
-                    msgDiv = document.createElement('div');
-                    msgDiv.id = 'acesso-negado-msg';
-                    msgDiv.className = 'alert-error';
-                    msgDiv.style.marginTop = '20px';
-                    msgDiv.innerHTML = `
-                        <i class="fas fa-lock"></i> 
-                        <strong>Acesso negado!</strong><br>
-                        Você não tem permissão para visualizar os fundamentos desta auditoria.
-                        Apenas o gestor responsável e administradores têm acesso.
-                    `;
-                    pdfSection.insertAdjacentElement('afterend', msgDiv);
-                }
-            }
-            return; // Sai da função, não carrega fundamentos
-        }
-        
-        // Se tem permissão, carregar PDF
-        if (permissoes.podeBaixarPDF) {
-            await verificarPdf(auditoriaCodigo);
-        } else {
-            btnDownloadPdf.style.display = 'none';
-            pdfNaoEncontrado.style.display = 'none';
-        }
-        
-        // Carregar fundamentos (se tiver permissão para visualizar)
-        if (permissoes.podeVisualizarFundamentos) {
-            await carregarFundamentos(auditoriaId);
-        }
+        fundamentosContainer.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-info-circle"></i> Selecione um ano para visualizar os fundamentos.
+            </div>
+        `;
+        contadorAuditorias.textContent = '0';
     }
-    
-    // ====== EVENTO DE MUDANÇA DE ÁREA ======
-    if (filtroAreaSelect) {
-        filtroAreaSelect.addEventListener('change', () => {
-            const areaId = filtroAreaSelect.value;
-            
-            // ⭐ RESETAR ESTADO DO PDF ⭐
-            btnDownloadPdf.style.display = 'none';
-            pdfNaoEncontrado.style.display = 'none';
-            
-            // Remover mensagem de acesso negado
-            const existingMsg = document.getElementById('acesso-negado-msg');
-            if (existingMsg) {
-                existingMsg.remove();
+
+    // ====== EVENTOS ======
+    if (btnCarregar) {
+        btnCarregar.addEventListener('click', () => {
+            const ano = filtroAno.value;
+            if (ano) {
+                carregarDados(ano);
+            } else {
+                mostrarToast('⚠️ Selecione um ano primeiro', 'warning');
             }
-            
-            carregarAuditorias(areaId);
-            conteudoPrincipal.style.display = 'none';
-            auditoriaAtualId = null;
-            auditoriaAtualCodigo = null;
         });
     }
-    
-    // ====== EVENTO DE MUDANÇA DE AUDITORIA ======
-    if (filtroAuditoriaSelect) {
-        filtroAuditoriaSelect.addEventListener('change', async () => {
-            const auditoriaId = filtroAuditoriaSelect.value;
-            
-            // ⭐ RESETAR ESTADO DO PDF ⭐
-            btnDownloadPdf.style.display = 'none';
-            pdfNaoEncontrado.style.display = 'none';
-            
-            // Remover mensagem de acesso negado
-            const existingMsg = document.getElementById('acesso-negado-msg');
-            if (existingMsg) {
-                existingMsg.remove();
-            }
-            
-            if (!auditoriaId) {
-                conteudoPrincipal.style.display = 'none';
-                return;
-            }
-            
-            // Buscar código da auditoria
-            const selectedOption = filtroAuditoriaSelect.options[filtroAuditoriaSelect.selectedIndex];
-            const textoOption = selectedOption.textContent;
-            const codigoAuditoria = textoOption.split(' - ')[0];
-            
-            await carregarDadosAuditoria(auditoriaId, codigoAuditoria);
-        });
+
+    if (btnLimpar) {
+        btnLimpar.addEventListener('click', limparDados);
     }
-    
-    // ====== EVENTOS DOS BOTÕES ======
-    if (btnAdicionarFundamento) {
-        btnAdicionarFundamento.addEventListener('click', adicionarFundamento);
-    }
-    
-    if (btnSalvarFundamentos) {
-        btnSalvarFundamentos.addEventListener('click', salvarFundamentos);
-    }
-    
+
     if (btnDownloadPdf) {
         btnDownloadPdf.addEventListener('click', baixarPdf);
     }
-    
+
     // ====== INICIALIZAÇÃO ======
     console.log('🚀 Página de Plano Anual carregada');
-    
+
     // Adicionar CSS de animação se não existir
     if (!document.getElementById('toast-styles')) {
         const style = document.createElement('style');
