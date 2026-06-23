@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta, date
 import json
 import io
+from supabase import create_client
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from dotenv import load_dotenv
@@ -40,7 +41,7 @@ def upload_evidencia_storage(analise_id, arquivo_base64, nome_arquivo):
     """
     import base64
     import os
-    from supabase import create_client
+    
     from datetime import datetime
     
     try:
@@ -1284,6 +1285,308 @@ def api_auditoria_responsavel(auditoria_id):
             'responsaveis': responsaveis
         })
 
+@app.route('/api/auditoria/<int:auditoria_id>/upload-evidencia', methods=['POST'])
+def api_upload_evidencia(auditoria_id):
+    """Faz upload de uma evidência para o Supabase Storage"""
+    # from supabase import create_client
+    import os
+    from datetime import datetime
+    import json
+    
+    try:
+        # Verificar se o arquivo foi enviado
+        if 'arquivo' not in request.files:
+            return jsonify({'success': False, 'error': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['arquivo']
+        if arquivo.filename == '':
+            return jsonify({'success': False, 'error': 'Nome do arquivo vazio'}), 400
+        
+        # Buscar código da auditoria
+        from database import engine
+        from sqlalchemy import text
+        
+        query = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            if not row:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            codigo_auditoria = row.codigo_auditoria
+        
+        # ⭐ USAR A MESMA CONFIGURAÇÃO DA SUA FUNÇÃO EXISTENTE
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # ⭐ Usar SERVICE_KEY
+        
+        if not supabase_url or not supabase_key:
+            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # Gerar nome único
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nome_original = arquivo.filename
+        extensao = nome_original.rsplit('.', 1)[-1] if '.' in nome_original else ''
+        nome_arquivo = f"{codigo_auditoria}_{timestamp}.{extensao}" if extensao else f"{codigo_auditoria}_{timestamp}"
+        
+        # Caminho no Storage
+        caminho_storage = f"auditorias/emergenciais/{codigo_auditoria}/{nome_arquivo}"
+        
+        # ⭐ Ler o arquivo (mesmo método da sua função)
+        arquivo_bytes = arquivo.read()
+        
+        # ⭐ Upload usando o bucket 'evidencias_auditorias'
+        bucket_name = 'evidencias_auditorias'
+        supabase.storage.from_(bucket_name).upload(
+            path=caminho_storage,
+            file=arquivo_bytes,
+            file_options={"content-type": arquivo.content_type}
+        )
+        
+        # ⭐ Gerar URL assinada (mesmo método da sua função)
+        url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+            path=caminho_storage,
+            expires_in=604800  # 7 dias
+        )
+        
+        # Buscar evidências existentes
+        query = text("SELECT evidencias FROM auditorias WHERE id = :auditoria_id")
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            if row and row.evidencias:
+                if isinstance(row.evidencias, str):
+                    evidencias = json.loads(row.evidencias)
+                else:
+                    evidencias = row.evidencias or []
+            else:
+                evidencias = []
+        
+        # Adicionar nova evidência
+        nova_evidencia = {
+            'nome': nome_original,
+            'url': caminho_storage,
+            'url_signed': url_assinada['signedURL'] if isinstance(url_assinada, dict) else url_assinada,
+            'tamanho': len(arquivo_bytes),
+            'tipo': arquivo.content_type,
+            'data_upload': datetime.now().isoformat()
+        }
+        evidencias.append(nova_evidencia)
+        
+        # Salvar no banco
+        evidencias_json = json.dumps(evidencias)
+        query = text("""
+            UPDATE auditorias 
+            SET evidencias = :evidencias
+            WHERE id = :auditoria_id
+        """)
+        
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "evidencias": evidencias_json,
+                "auditoria_id": auditoria_id
+            })
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'evidencia': nova_evidencia,
+            'message': 'Arquivo enviado com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro no upload: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/auditoria/<int:auditoria_id>/evidencia', methods=['DELETE'])
+def api_remover_evidencia(auditoria_id):
+    """Remove uma evidência da auditoria e do Storage"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    # from supabase import create_client
+    import os
+    
+    try:
+        data = request.json
+        caminho = data.get('caminho')
+        
+        if not caminho:
+            return jsonify({'success': False, 'error': 'Caminho do arquivo é obrigatório'}), 400
+        
+        # ⭐ USAR A MESMA CONFIGURAÇÃO
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_url or not supabase_key:
+            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        bucket_name = 'evidencias_auditorias'
+        
+        # Buscar evidências existentes
+        query = text("SELECT evidencias FROM auditorias WHERE id = :auditoria_id")
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            if row and row.evidencias:
+                if isinstance(row.evidencias, str):
+                    evidencias = json.loads(row.evidencias)
+                else:
+                    evidencias = row.evidencias or []
+            else:
+                evidencias = []
+        
+        # Remover a evidência da lista
+        evidencias = [e for e in evidencias if e.get('url') != caminho]
+        
+        # ⭐ Remover do Storage
+        supabase.storage.from_(bucket_name).remove([caminho])
+        
+        # Salvar no banco
+        evidencias_json = json.dumps(evidencias)
+        query = text("""
+            UPDATE auditorias 
+            SET evidencias = :evidencias
+            WHERE id = :auditoria_id
+        """)
+        
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "evidencias": evidencias_json,
+                "auditoria_id": auditoria_id
+            })
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Evidência removida com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/auditoria/<int:auditoria_id>/evidencias')
+def api_get_evidencias(auditoria_id):
+    """Retorna a lista de evidências de uma auditoria"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    # from supabase import create_client
+    import os
+    
+    try:
+        query = text("""
+            SELECT evidencias 
+            FROM auditorias 
+            WHERE id = :auditoria_id
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            
+            if row and row.evidencias:
+                if isinstance(row.evidencias, str):
+                    evidencias = json.loads(row.evidencias)
+                else:
+                    evidencias = row.evidencias
+            else:
+                evidencias = []
+        
+        # ⭐ RENOVAR URLS ASSINADAS (se necessário)
+        if evidencias:
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            
+            if supabase_url and supabase_key:
+                supabase = create_client(supabase_url, supabase_key)
+                bucket_name = 'evidencias_auditorias'
+                
+                for ev in evidencias:
+                    if ev.get('url'):
+                        try:
+                            url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+                                ev['url'],
+                                expires_in=604800  # 7 dias
+                            )
+                            if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
+                                ev['url_signed'] = url_assinada['signedURL']
+                            else:
+                                ev['url_signed'] = url_assinada
+                        except:
+                            pass
+        
+        return jsonify({
+            'success': True,
+            'evidencias': evidencias
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar evidências: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'evidencias': []
+        }), 500
+
+@app.route('/api/evidencia/<path:caminho>')
+def api_baixar_evidencia(caminho):
+    """Baixa uma evidência do Supabase Storage"""
+    # from supabase import create_client
+    import os
+    
+    try:
+        # ⭐ USAR A MESMA CONFIGURAÇÃO
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # ⭐ Usar SERVICE_KEY
+        
+        if not supabase_url or not supabase_key:
+            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        bucket_name = 'evidencias_auditorias'
+        
+        # ⭐ Gerar URL assinada (mesmo método da sua função)
+        url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+            path=caminho,
+            expires_in=3600  # 1 hora
+        )
+        
+        # ⭐ Extrair a URL do dicionário (como sua função faz)
+        if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
+            url = url_assinada['signedURL']
+        else:
+            url = url_assinada
+        
+        return jsonify({
+            'success': True,
+            'url': url
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao baixar evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # ============================================================
 # API - DIAGNÓSTICO DOS PROCESSOS
 # ============================================================
@@ -1361,7 +1664,7 @@ def api_upload_organograma(area_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
+    # from supabase import create_client
     import base64
     import os
     
@@ -1477,7 +1780,7 @@ def api_remover_organograma(area_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
+    # from supabase import create_client
     import os
     
     try:
@@ -2345,7 +2648,7 @@ def api_organograma_url(area_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
+    # from supabase import create_client
     import os
     
     try:
@@ -4768,7 +5071,7 @@ def api_analise_auditor_evidencia_download(analise_id):
     from sqlalchemy import text
     from flask import redirect
     import os
-    from supabase import create_client
+    # from supabase import create_client
     from urllib.parse import urlparse
     
     try:
@@ -4859,7 +5162,7 @@ def api_analise_auditor_atualizar(analise_id):
     from psycopg2 import Binary
     from datetime import datetime
     import os
-    from supabase import create_client
+    # from supabase import create_client
     
     # Verificar se deve remover o anexo do plano de ação
     remover_anexo = data.get('remover_anexo', False)
@@ -5562,7 +5865,7 @@ def api_analise_salvar():
     from sqlalchemy import text
     import base64
     import os
-    from supabase import create_client
+    # from supabase import create_client
     from datetime import datetime
     
     try:
@@ -5931,7 +6234,7 @@ def api_analise_auditado_evidencia(analise_id):
     from sqlalchemy import text
     from flask import redirect
     import os
-    from supabase import create_client
+    # from supabase import create_client
     from urllib.parse import urlparse
     
     try:
@@ -6011,7 +6314,7 @@ def api_analise_auditado_atualizar(analise_id):
     import base64
     from psycopg2 import Binary
     import os
-    from supabase import create_client
+    # from supabase import create_client
     from datetime import datetime
     
     # Anexo do plano de ação (se veio)
