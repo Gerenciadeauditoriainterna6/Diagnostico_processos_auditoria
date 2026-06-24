@@ -5,9 +5,20 @@ from fpdf.enums import XPos, YPos
 from sqlalchemy import text
 from database import engine
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from flask import session, request
 import re
 import json
+import io
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+from reportlab.lib.utils import ImageReader
+from PIL import Image as PILImage
+import copy
+from PyPDF2 import PdfReader
 
 # ===== MIGRAÇÃO PARA FLASK =====
 # Streamlit removido - sistema agora usa Flask
@@ -735,6 +746,225 @@ def calcular_score_risco_etapa(impacto, probabilidade):
     
     return imp_val * prob_val
 
+
+# ============================================================
+# ====== FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
+# ============================================================
+
+# ====== CONSTANTES ======
+COR_PRIMARIA = '#0b5b99'
+COR_SECUNDARIA = '#184145'
+COR_DESTAQUE = '#fd6a14'
+COR_FUNDO_TABELA = '#e8f4f8'
+COR_RODAPE = '#F0F0F0'
+
+# ====== MAPA DE RISCO PARA CÁLCULO RESIDUAL ======
+MAPA_RISCO = {
+    ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
+    ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
+    ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6, ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
+    ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
+}
+
+def calcular_risco_residual(apetite_impacto, apetite_probabilidade):
+    """
+    Calcula o risco residual baseado no apetite ao risco
+    Retorna o score ou None se não houver dados
+    """
+    if not apetite_impacto or not apetite_probabilidade:
+        return None
+    return MAPA_RISCO.get((apetite_impacto, apetite_probabilidade), None)
+
+# ====== ESTILOS PADRÃO ======
+def get_estilos_padrao():
+    """Retorna os estilos padrão para uso nos relatórios"""
+    styles = getSampleStyleSheet()
+    
+    titulo_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=5,
+        textColor=colors.HexColor(COR_PRIMARIA)
+    )
+
+    titulo_style2 = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=30,
+        textColor=colors.HexColor(COR_PRIMARIA)
+    )
+    
+    subtitulo_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Heading2'],
+        fontSize=13,
+        alignment=1,
+        spaceAfter=15,
+        textColor=colors.HexColor(COR_SECUNDARIA)
+    )
+    
+    normal_style = styles['Normal']
+    
+    label_style = ParagraphStyle(
+        'LabelStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#666666'),
+        fontName='Helvetica-Bold'
+    )
+    
+    valor_style = ParagraphStyle(
+        'ValorStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#184145')
+    )
+    
+    cabecalho_tabela = ParagraphStyle(
+        'CabecalhoTabela',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.white,
+        fontName='Helvetica-Bold',
+        alignment=1
+    )
+    
+    return {
+        'titulo': titulo_style,
+        'titulo2': titulo_style2,
+        'subtitulo': subtitulo_style,
+        'normal': normal_style,
+        'label': label_style,
+        'valor': valor_style,
+        'cabecalho_tabela': cabecalho_tabela
+    }
+
+
+# ====== FUNÇÃO PARA DESENHAR OS LOGOS ======
+def desenhar_logos(canvas, pagesize, root_dir=None):
+    """Desenha os três logos no cabeçalho do relatório"""
+    if root_dir is None:
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
+    logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
+    logo3_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
+    
+    y_logo = 0.8 * cm
+    altura_max_logo = 5 * cm
+    
+    def desenhar_png(caminho, x, y, largura_max, altura_max):
+        if not os.path.exists(caminho):
+            return False
+        try:
+            pil_img = PILImage.open(caminho)
+            if pil_img.mode != 'RGBA':
+                pil_img = pil_img.convert('RGBA')
+            img_width, img_height = pil_img.size
+            proporcao = img_width / img_height
+            largura = min(largura_max, 5*cm)
+            altura = largura / proporcao
+            if altura > altura_max:
+                altura = altura_max
+                largura = altura * proporcao
+            buffer_temp = io.BytesIO()
+            pil_img.save(buffer_temp, format='PNG')
+            buffer_temp.seek(0)
+            img = ImageReader(buffer_temp)
+            canvas.drawImage(img, x - largura/2, y - altura/2, 
+                           width=largura, height=altura, mask='auto', 
+                           preserveAspectRatio=True)
+            return True
+        except Exception as e:
+            print(f"Erro ao desenhar logo {caminho}: {e}")
+            return False
+    
+    espacamento = pagesize[0] / 4
+    x1 = espacamento
+    x2 = pagesize[0] / 2
+    x3 = pagesize[0] - espacamento
+    
+    desenhar_png(logo1_path, x2, y_logo, 2.5*cm, altura_max_logo)
+    desenhar_png(logo2_path, x1, y_logo, 3.5*cm, 3.5*cm)
+    desenhar_png(logo3_path, x3, y_logo, 3*cm, 3*cm)
+
+
+# ====== FUNÇÃO PARA CRIAR RODAPÉ ======
+def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None):
+    """Cria o rodapé padronizado"""
+    canvas.saveState()
+    
+    altura_rodape = 1.8 * cm
+    y_fundo = 0
+    
+    canvas.setFillColor(colors.HexColor(COR_RODAPE))
+    canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+    
+    canvas.setFont('Helvetica', 8)
+    canvas.setFillColor(colors.HexColor('#666666'))
+    canvas.drawCentredString(
+        pagesize[0]/2, 
+        2*cm, 
+        f"{titulo_rodape} - Página {doc.page}/{total_paginas}"
+    )
+    
+    desenhar_logos(canvas, pagesize, root_dir)
+    
+    canvas.restoreState()
+
+
+# ====== FUNÇÃO PARA CRIAR TABELA ESTILIZADA ======
+def criar_tabela_estilizada(dados, col_widths, cabecalho_cor=COR_PRIMARIA, 
+                            fonte_tamanho=8):
+    """Cria uma tabela com o estilo padrão"""
+    tabela = Table(dados, colWidths=col_widths, repeatRows=1)
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(cabecalho_cor)),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), fonte_tamanho),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ])
+    
+    for i in range(1, len(dados)):
+        if i % 2 == 1:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.HexColor(COR_FUNDO_TABELA))
+    
+    tabela.setStyle(estilo)
+    return tabela
+
+
+# ====== FUNÇÃO PARA CRIAR A PÁGINA DE VALIDAÇÃO ======
+def criar_pagina_validacao(story, gestor, styles, normal_style):
+    """Adiciona a página de validação do gestor ao story"""
+    story.append(PageBreak())
+    story.append(Paragraph("Validação do Gestor", styles['titulo']))  # ⭐ ALTERADO
+    story.append(Spacer(1, 30))
+    story.append(Paragraph(
+        "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
+        "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido.",
+        normal_style
+    ))
+    story.append(Spacer(1, 50))
+    story.append(Paragraph(f"Gestor: {gestor}", normal_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("Data: ___/___/_______", normal_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("Assinatura: ________________________________", normal_style))
+
 def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMargin, rightMargin, 
                                 rodape_func, cabecalho_func=None):
     """
@@ -743,41 +973,1710 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
     """
     from reportlab.platypus import SimpleDocTemplate
     import io
+    import copy
     
-    # Primeira passada: contar páginas
-    buffer_temp = io.BytesIO()
-    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
-                                topMargin=topMargin, bottomMargin=bottomMargin,
-                                leftMargin=leftMargin, rightMargin=rightMargin)
+    print(f"📄 contar_paginas_e_gerar_pdf: story recebido com {len(story)} elementos")
     
-    page_counter = {'count': 0}
+    # ⭐ FAZER UMA CÓPIA PROFUNDA DO STORY PARA NÃO MODIFICAR O ORIGINAL
+    story_copy = copy.deepcopy(story)
+    print(f"📄 story_copy criado com {len(story_copy)} elementos")
     
-    def rodape_temp(canvas, doc):
-        page_counter['count'] += 1
+    try:
+        # Primeira passada: contar páginas
+        buffer_temp = io.BytesIO()
+        doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                    topMargin=topMargin, bottomMargin=bottomMargin,
+                                    leftMargin=leftMargin, rightMargin=rightMargin)
+        
+        page_counter = {'count': 0}
+        
+        def rodape_temp(canvas, doc):
+            page_counter['count'] += 1
+        
+        print("📄 Construindo PDF temporário para contagem...")
+        doc_temp.build(story_copy, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
+        total_paginas = page_counter['count']
+        print(f"📄 Total de páginas: {total_paginas}")
+        
+        if total_paginas == 0:
+            print("⚠️ ATENÇÃO: Nenhuma página foi contada! O story pode estar vazio ou com erro.")
+            # Tentar gerar um PDF com apenas uma página para não falhar
+            total_paginas = 1
+        
+        # ⭐ RECRIAR A CÓPIA PARA A SEGUNDA PASSADA
+        story_copy2 = copy.deepcopy(story)
+        print(f"📄 story_copy2 criado com {len(story_copy2)} elementos")
+        
+        # Segunda passada: gerar o PDF final com o total
+        buffer_final = io.BytesIO()
+        doc_final = SimpleDocTemplate(buffer_final, pagesize=pagesize,
+                                     topMargin=topMargin, bottomMargin=bottomMargin,
+                                     leftMargin=leftMargin, rightMargin=rightMargin)
+        
+        def rodape_com_total(canvas, doc):
+            rodape_func(canvas, doc, total_paginas)
+        
+        print("📄 Gerando PDF final...")
+        if cabecalho_func:
+            doc_final.build(story_copy2, 
+                           onFirstPage=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)],
+                           onLaterPages=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)])
+        else:
+            doc_final.build(story_copy2, onFirstPage=rodape_com_total, onLaterPages=rodape_com_total)
+        
+        buffer_final.seek(0)
+        pdf_bytes = buffer_final.getvalue()
+        print(f"📄 PDF final gerado: {len(pdf_bytes)} bytes")
+        
+        if len(pdf_bytes) < 1000:
+            print("⚠️ ATENÇÃO: PDF muito pequeno! Pode estar vazio.")
+            # Tentar gerar um PDF simples com o story
+            print("📄 Tentando gerar PDF com método alternativo...")
+            buffer_alt = io.BytesIO()
+            doc_alt = SimpleDocTemplate(buffer_alt, pagesize=pagesize,
+                                       topMargin=topMargin, bottomMargin=bottomMargin,
+                                       leftMargin=leftMargin, rightMargin=rightMargin)
+            doc_alt.build(story_copy2)
+            buffer_alt.seek(0)
+            pdf_bytes_alt = buffer_alt.getvalue()
+            print(f"📄 PDF alternativo gerado: {len(pdf_bytes_alt)} bytes")
+            if len(pdf_bytes_alt) > len(pdf_bytes):
+                print("✅ PDF alternativo é maior! Usando ele.")
+                return pdf_bytes_alt
+        
+        return pdf_bytes
+        
+    except Exception as e:
+        print(f"❌ ERRO AO GERAR PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+def buscar_processos_riscos_por_area(area_id, auditoria_id=None, processo_id=None):
+    """
+    Busca processos e seus riscos para uma área/auditoria
+    Retorna lista de dicionários com processos e riscos
+    """
+    from database import engine
+    from sqlalchemy import text
+    import pandas as pd
     
-    doc_temp.build(story, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
-    total_paginas = page_counter['count']
+    print(f"🔍 Buscando processos - area_id: {area_id}, auditoria_id: {auditoria_id}, processo_id: {processo_id}")
     
-    # Segunda passada: gerar o PDF final com o total
-    buffer_final = io.BytesIO()
-    doc_final = SimpleDocTemplate(buffer_final, pagesize=pagesize,
-                                 topMargin=topMargin, bottomMargin=bottomMargin,
-                                 leftMargin=leftMargin, rightMargin=rightMargin)
-    
-    # Criar um novo rodapé que recebe o total
-    def rodape_com_total(canvas, doc):
-        # Chamar a função de rodapé original com o total
-        rodape_func(canvas, doc, total_paginas)
-    
-    if cabecalho_func:
-        doc_final.build(story, 
-                       onFirstPage=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)],
-                       onLaterPages=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)])
+    if processo_id:
+        query = text("""
+            SELECT 
+                p.id as processo_id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.executor,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto,
+                r.id as risco_id,
+                r.nome_risco,
+                r.fator_risco,
+                r.categoria,
+                r.causas,
+                r.melhoria,
+                r.impacto,
+                r.probabilidade,
+                r.motivo_risco,
+                r.apetite_impacto,
+                r.apetite_probabilidade,
+                r.score_risco,
+                r.tratamento_risco,
+                r.descricao_tratamento,
+                r.prazo_implantacao
+            FROM processos p
+            LEFT JOIN riscos r ON p.id = r.processo_id
+            WHERE p.id_area = :area_id
+                AND p.status = 'Ativo'
+                AND p.id = :processo_id
+            ORDER BY p.codigo_processo, r.nome_risco
+        """)
+        params = {"area_id": area_id, "processo_id": processo_id}
     else:
-        doc_final.build(story, onFirstPage=rodape_com_total, onLaterPages=rodape_com_total)
+        query = text("""
+            SELECT 
+                p.id as processo_id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.descricao,
+                p.executor,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto,
+                r.id as risco_id,
+                r.nome_risco,
+                r.fator_risco,
+                r.categoria,
+                r.causas,
+                r.melhoria,
+                r.impacto,
+                r.probabilidade,
+                r.motivo_risco,
+                r.apetite_impacto,
+                r.apetite_probabilidade,
+                r.score_risco,
+                r.tratamento_risco,
+                r.descricao_tratamento,
+                r.prazo_implantacao
+            FROM processos p
+            LEFT JOIN riscos r ON p.id = r.processo_id
+            WHERE p.id_area = :area_id
+                AND p.status = 'Ativo'
+                AND p.auditoria_id = :auditoria_id
+            ORDER BY p.codigo_processo, r.nome_risco
+        """)
+        params = {"area_id": area_id, "auditoria_id": auditoria_id}
     
-    buffer_final.seek(0)
-    return buffer_final.getvalue()
+    print(f"🔍 Executando query com params: {params}")
+    
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params=params)
+    
+    print(f"📊 Query retornou {len(df)} linhas")
+    
+    if df.empty:
+        print("❌ Nenhum dado encontrado!")
+        return []
+    
+    # Mostrar primeiras linhas para debug
+    print(f"📋 Colunas: {df.columns.tolist()}")
+    print(f"📋 Primeiras linhas:\n{df.head()}")
+    
+    # Organizar dados por processo
+    processos_dict = {}
+    for _, row in df.iterrows():
+        proc_id = row['processo_id']
+        if proc_id not in processos_dict:
+            processos_dict[proc_id] = {
+                'processo_id': proc_id,
+                'codigo_processo': row['codigo_processo'],
+                'nome_processo': row['nome_processo'],
+                'objetivo': row['objetivo'],
+                'executor': row.get('executor', ''),
+                'descricao': row['descricao'],
+                'etapa_ini': row['etapa_ini'],
+                'etapa_fim': row['etapa_fim'],
+                'produto': row['produto'],
+                'riscos': []
+            }
+        
+        if pd.notna(row['risco_id']):
+            risco = {
+                'risco_id': row['risco_id'],
+                'nome_risco': row['nome_risco'],
+                'fator_risco': row['fator_risco'],
+                'categoria': row['categoria'],
+                'causas': row['causas'],
+                'melhoria': row['melhoria'],
+                'impacto': row['impacto'],
+                'probabilidade': row['probabilidade'],
+                'motivo_risco': row['motivo_risco'],
+                'apetite_impacto': row['apetite_impacto'],
+                'apetite_probabilidade': row['apetite_probabilidade'],
+                'score_risco': row['score_risco'],
+                'tratamento_risco': row['tratamento_risco'],
+                'descricao_tratamento': row['descricao_tratamento'],
+                'prazo_implantacao': row['prazo_implantacao'],
+                'risco_residual': calcular_risco_residual(
+                    row['apetite_impacto'], 
+                    row['apetite_probabilidade']
+                )
+            }
+            processos_dict[proc_id]['riscos'].append(risco)
+    
+    print(f"✅ Retornando {len(processos_dict)} processos")
+    return list(processos_dict.values())
+
+# ============================================================
+# ====== FIM FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
+# ============================================================
+
+def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+
+    """
+    Gera relatório de validação - Matriz Panorama
+    Contém: informações da área, funcionários, processos e riscos
+    """
+
+    print(f"🔍 Iniciando geração do relatório Panorama...")
+    print(f"   area_id: {area_id}")
+    print(f"   area_nome: {area_nome}")
+    print(f"   auditoria_id: {auditoria_id}")
+    print(f"   processo_id: {processo_id}")
+    
+
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+
+    # Definir orientação da página
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    # Estilos
+    styles = get_estilos_padrao()
+    normal_style = styles['normal']
+    
+    # ===== CONSTRUIR O STORY =====
+    story = []
+    
+    # ===== 1. BUSCAR DADOS DA ÁREA =====
+    dados_area = buscar_area_por_id(area_id)
+    if not dados_area:
+        raise Exception(f"Área {area_id} não encontrada")
+    
+    area_nome = dados_area.get('nome_area', area_nome)
+    area_unidade = dados_area.get('loc_unidade', 'Não informado')
+    area_objetivo = dados_area.get('objetivo_area', 'Não informado')
+    area_superintendente = dados_area.get('superintendente', 'Não informado')
+    area_diretor = dados_area.get('diretor', 'Não informado')
+    area_gestor = dados_area.get('gestor', gestor)
+    area_cargo = dados_area.get('cargo', cargo)
+    
+    # ===== 2. BUSCAR FUNCIONÁRIOS DA ÁREA =====
+    funcionarios_df = listar_funcionarios_area_todos(area_id)
+    
+    # ===== 3. BUSCAR PROCESSOS E RISCOS =====
+    processos_riscos = buscar_processos_riscos_por_area(area_id, auditoria_id, processo_id)
+    
+    if not processos_riscos:
+        raise Exception("Nenhum processo encontrado para os critérios selecionados.")
+    
+     # ===== 4. MONTAR O RELATÓRIO =====
+    
+    # ===== 4a. CABEÇALHO COM LOGOS =====
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+
+    header_data = []
+    tem_logo = os.path.exists(logo_auditoria_path)
+
+    if tem_logo:
+        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+        header_data = [[img_central]]
+        header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 10))
+    
+    print(f"📄 Após cabeçalho: {len(story)} elementos")
+
+    # ===== 4b. TÍTULO =====
+    titulo_style = styles['titulo']
+    titulo_style2 = styles['titulo2']
+    story.append(Paragraph("Relatório de Validação", titulo_style))
+    story.append(Paragraph("Matriz de Panorama", titulo_style2))
+    story.append(Spacer(1, 5))
+
+    print(f"📄 Após título: {len(story)} elementos")
+    
+    # ===== 4c. INFORMAÇÕES DA AUDITORIA E ÁREA =====
+    # Buscar código da auditoria
+    codigo_auditoria = ""
+    if auditoria_id:
+        from database import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            query_auditoria = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+            if result_aud:
+                codigo_auditoria = result_aud[0]
+    
+    # ⭐ ESTILO PARA AS INFORMAÇÕES
+    info_label_style = ParagraphStyle(
+        'InfoLabel',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_valor_style = ParagraphStyle(
+        'InfoValor',
+        parent=normal_style,
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    info_data = [
+        [Paragraph("<b>Auditoria:</b>", info_label_style), Paragraph(codigo_auditoria or 'N/A', info_valor_style)],
+        [Paragraph("<b>Área:</b>", info_label_style), Paragraph(area_nome, info_valor_style)],
+        [Paragraph("<b>Gestor Responsável:</b>", info_label_style), Paragraph(f"{area_gestor} - {area_cargo}", info_valor_style)],
+        [Paragraph("<b>Data/Hora de Emissão:</b>", info_label_style), Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), info_valor_style)],
+    ]
+    
+    # ⭐ CALCULAR LARGURAS
+    largura_label_info = 4.5 * cm
+    largura_valor_info = pagesize[0] - leftMargin - rightMargin - largura_label_info - 2*cm
+    
+    info_table = Table(info_data, colWidths=[largura_label_info, largura_valor_info])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 15))
+
+    print(f"📄 Após informações: {len(story)} elementos")
+
+    # ===== 4d. INFORMAÇÕES COMPLETAS DA ÁREA =====
+    story.append(Paragraph("Informações da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    # ⭐ ESTILO COM QUEBRA DE LINHA PARA OS TEXTOS DA ÁREA
+    texto_area_style = ParagraphStyle(
+        'TextoArea',
+        parent=normal_style,
+        fontSize=9,
+        leading=11,
+        wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
+    )
+    
+    label_area_style = ParagraphStyle(
+        'LabelArea',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_area_data = [
+        [Paragraph("Código da Área:", label_area_style), Paragraph(str(area_id), texto_area_style)],
+        [Paragraph("Nome da Área:", label_area_style), Paragraph(area_nome, texto_area_style)],
+        [Paragraph("Unidade:", label_area_style), Paragraph(area_unidade or 'Não informado', texto_area_style)],
+        [Paragraph("Objetivo:", label_area_style), Paragraph(area_objetivo or 'Não informado', texto_area_style)],
+        [Paragraph("Superintendente:", label_area_style), Paragraph(area_superintendente or 'Não informado', texto_area_style)],
+        [Paragraph("Diretor:", label_area_style), Paragraph(area_diretor or 'Não informado', texto_area_style)],
+    ]
+    
+    # ⭐ CALCULAR LARGURAS DINÂMICAS
+    largura_label_area = 4.5 * cm
+    largura_valor_area = pagesize[0] - leftMargin - rightMargin - largura_label_area - 2*cm
+    
+    info_area_table = Table(info_area_data, colWidths=[largura_label_area, largura_valor_area])
+    info_area_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+    ]))
+    story.append(info_area_table)
+    story.append(Spacer(1, 15))
+
+    print(f"📄 Após informações da área: {len(story)} elementos")
+
+    # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
+    story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    if not funcionarios_df.empty:
+        # Converter DataFrame para lista de dicionários
+        funcionarios = funcionarios_df.to_dict('records')
+        func_data = [["Nome", "Cargo"]]
+        for f in funcionarios:
+            func_data.append([
+                Paragraph(f.get('nome_funcionario', '-'), normal_style),
+                Paragraph(f.get('cargo', '-'), normal_style)
+            ])
+        
+        func_table = criar_tabela_estilizada(func_data, [8*cm, 8*cm])
+        story.append(func_table)
+    else:
+        story.append(Paragraph("<i>Nenhum funcionário cadastrado para esta área.</i>", normal_style))
+    
+    story.append(Spacer(1, 15))
+
+    print(f"📄 Após funcionários: {len(story)} elementos")
+
+    # ===== 4f. PROCESSOS E RISCOS (CARDS POR PROCESSO) =====
+    story.append(Paragraph("Processos e Riscos Identificados", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    # Contar total de riscos
+    total_riscos = sum(len(p.get('riscos', [])) for p in processos_riscos)
+    story.append(Paragraph(f"Total de Processos: {len(processos_riscos)} | Total de Riscos: {total_riscos}", normal_style))
+    story.append(Spacer(1, 10))
+    
+    # ⭐ CALCULAR A LARGURA DISPONÍVEL PARA O CARD
+    largura_disponivel = pagesize[0] - leftMargin - rightMargin - 2*cm  # 2cm de padding interno
+    
+    # Estilos
+    card_titulo_style = ParagraphStyle(
+        'CardTitulo',
+        parent=normal_style,
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=5
+    )
+    
+    card_subtitulo_style = ParagraphStyle(
+        'CardSubtitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=3
+    )
+    
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=10
+    )
+
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=10
+    )
+    
+    # ⭐ ADICIONAR ESTES DOIS ESTILOS
+    risco_titulo_style = ParagraphStyle(
+        'RiscoTitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        leftIndent=15,
+        spaceAfter=2
+    )
+    
+    risco_item_style = ParagraphStyle(
+        'RiscoItem',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=30
+    )
+    
+    normal_style_pequeno = ParagraphStyle(
+        'NormalPequeno',
+        parent=normal_style,
+        fontSize=7,
+        leading=9
+    )
+    
+    # Função para obter emoji do risco
+    def get_emoji_risco(score):
+        if score is None:
+            return ""
+        elif score >= 12:
+            return ""
+        elif score >= 8:
+            return ""
+        elif score >= 4:
+            return ""
+        else:
+            return ""
+    
+    # Para cada processo
+    for idx, proc in enumerate(processos_riscos):
+        # Quebra de página a cada 3 processos
+        if idx > 0 and idx % 3 == 0:
+            story.append(PageBreak())
+        
+        codigo = proc.get('codigo_processo', '-')
+        nome = proc.get('nome_processo', '-')
+        riscos = proc.get('riscos', [])
+        
+        # ⭐ CONTEÚDO DO CARD (uma lista de elementos)
+        conteudo_card = []
+        
+        # Cabeçalho do processo
+        conteudo_card.append(
+            Paragraph(f"<b>Processo {codigo}: {nome}</b>", card_titulo_style)
+        )
+        conteudo_card.append(Spacer(1, 3))
+        
+        # ⭐ INFORMAÇÕES DO PROCESSO (UMA TABELA COM LARGURA AJUSTADA)
+        info_processo = []
+        
+        # Criar estilo com wordWrap para quebra de linha
+        texto_processo_style = ParagraphStyle(
+            'TextoProcesso',
+            parent=normal_style,
+            fontSize=8,
+            leading=10,
+            wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
+        )
+        
+        if proc.get('objetivo'):
+            info_processo.append([
+                Paragraph("<b>Objetivo:</b>", card_texto_style),
+                Paragraph(proc['objetivo'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
+            ])
+        
+        if proc.get('descricao'):
+            info_processo.append([
+                Paragraph("<b>Descrição:</b>", card_texto_style),
+                Paragraph(proc['descricao'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
+            ])
+        
+        # ⭐ EXECUTOR - SEMPRE MOSTRAR, MESMO SE VAZIO
+        executor_valor = proc.get('executor') or 'Não informado'
+        info_processo.append([
+            Paragraph("<b>Executor(es):</b>", card_texto_style),
+            Paragraph(executor_valor, texto_processo_style)
+        ])
+        
+        if proc.get('etapa_ini'):
+            info_processo.append([
+                Paragraph("<b>Início:</b>", card_texto_style),
+                Paragraph(proc['etapa_ini'], texto_processo_style)
+            ])
+        
+        if proc.get('etapa_fim'):
+            info_processo.append([
+                Paragraph("<b>Fim:</b>", card_texto_style),
+                Paragraph(proc['etapa_fim'], texto_processo_style)
+            ])
+        
+        if proc.get('produto'):
+            info_processo.append([
+                Paragraph("<b>Produto:</b>", card_texto_style),
+                Paragraph(proc['produto'], texto_processo_style)
+            ])
+        
+        if info_processo:
+            # ⭐ LARGURA AJUSTADA PARA O CARD
+            largura_label = 3.0 * cm
+            largura_valor = largura_disponivel - largura_label - 1*cm
+            
+            info_table = Table(info_processo, colWidths=[largura_label, largura_valor])
+            info_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+            ]))
+            conteudo_card.append(info_table)
+            conteudo_card.append(Spacer(1, 5))
+        
+                # ⭐ RISCOS DO PROCESSO (CARDS INDIVIDUAIS)
+        if riscos:
+            conteudo_card.append(Paragraph(f"<b>Riscos ({len(riscos)})</b>", card_subtitulo_style))
+            conteudo_card.append(Spacer(1, 3))
+            
+            # Para cada risco, criar um card interno
+            for risco_idx, risco in enumerate(riscos):
+                # Card do risco com borda colorida
+                risco_conteudo = []
+                
+                # Cabeçalho do risco com emoji e nome
+                score = risco.get('score_risco')
+                emoji = get_emoji_risco(score)
+                nome_risco = risco.get('nome_risco', 'Risco não nomeado')
+                
+                risco_conteudo.append(
+                    Paragraph(f"{emoji} <b>Risco {risco_idx + 1}: {nome_risco}</b>", risco_titulo_style)
+                )
+                risco_conteudo.append(Spacer(1, 2))
+                
+                # Informações do risco em grade (2 colunas)
+                info_risco = []
+                
+                # Criar estilo com wordWrap para quebra de linha
+                texto_risco_style = ParagraphStyle(
+                    'TextoRisco',
+                    parent=normal_style,
+                    fontSize=8,
+                    leading=10,
+                    wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
+                )
+                
+                # Coluna 1: Fator de Risco, Categoria, Causas
+                if risco.get('fator_risco'):
+                    info_risco.append([
+                        Paragraph("<b>Fator de Risco:</b>", risco_item_style),
+                        Paragraph(risco['fator_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('categoria'):
+                    info_risco.append([
+                        Paragraph("<b>Categoria:</b>", risco_item_style),
+                        Paragraph(risco['categoria'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('causas'):
+                    info_risco.append([
+                        Paragraph("<b>Causas:</b>", risco_item_style),
+                        Paragraph(risco['causas'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('melhoria'):
+                    info_risco.append([
+                        Paragraph("<b>O que mais incomoda:</b>", risco_item_style),
+                        Paragraph(risco['melhoria'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                # Coluna 2: Impacto, Probabilidade, Motivo
+                if risco.get('impacto'):
+                    info_risco.append([
+                        Paragraph("<b>Impacto:</b>", risco_item_style),
+                        Paragraph(risco['impacto'], texto_risco_style)
+                    ])
+                
+                if risco.get('probabilidade'):
+                    info_risco.append([
+                        Paragraph("<b>Probabilidade:</b>", risco_item_style),
+                        Paragraph(risco['probabilidade'], texto_risco_style)
+                    ])
+                
+                if risco.get('motivo_risco'):
+                    info_risco.append([
+                        Paragraph("<b>Motivo da Classificação:</b>", risco_item_style),
+                        Paragraph(risco['motivo_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                # Apetite ao Risco
+                if risco.get('apetite_impacto') or risco.get('apetite_probabilidade'):
+                    apetite_texto = f"Impacto: {risco.get('apetite_impacto', '-')} | Probabilidade: {risco.get('apetite_probabilidade', '-')}"
+                    info_risco.append([
+                        Paragraph("<b>Apetite ao Risco:</b>", risco_item_style),
+                        Paragraph(apetite_texto, texto_risco_style)
+                    ])
+                
+                # Scores
+                texto_score = str(int(score)) if score is not None else "-"
+                residual = risco.get('risco_residual')
+                texto_residual = str(int(residual)) if residual is not None else "-"
+                
+                info_risco.append([
+                    Paragraph("<b>Risco Bruto:</b>", risco_item_style),
+                    Paragraph(f"{emoji} {texto_score}", texto_risco_style)
+                ])
+                
+                info_risco.append([
+                    Paragraph("<b>Risco Residual:</b>", risco_item_style),
+                    Paragraph(texto_residual, texto_risco_style)
+                ])
+                
+                # Tratamento
+                if risco.get('tratamento_risco'):
+                    info_risco.append([
+                        Paragraph("<b>Tratamento:</b>", risco_item_style),
+                        Paragraph(risco['tratamento_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('descricao_tratamento'):
+                    info_risco.append([
+                        Paragraph("<b>Descrição do Tratamento:</b>", risco_item_style),
+                        Paragraph(risco['descricao_tratamento'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('prazo_implantacao'):
+                    info_risco.append([
+                        Paragraph("<b>Prazo para Implementação:</b>", risco_item_style),
+                        Paragraph(risco['prazo_implantacao'], texto_risco_style)
+                    ])
+                
+                # Criar tabela 2 colunas para as informações do risco
+                if info_risco:
+                    # Calcular larguras dinamicamente
+                    largura_label_risco = 4.0 * cm  # Largura fixa para os labels
+                    largura_valor_risco = largura_disponivel - 2*cm - largura_label_risco - 1*cm
+                    
+                    # Garantir que a largura do valor não fique negativa
+                    if largura_valor_risco < 4*cm:
+                        largura_valor_risco = 4*cm
+                        largura_label_risco = largura_disponivel - 2*cm - largura_valor_risco - 1*cm
+                        if largura_label_risco < 3*cm:
+                            largura_label_risco = 3*cm
+                    
+                    info_risco_table = Table(info_risco, colWidths=[largura_label_risco, largura_valor_risco])
+                    info_risco_table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+                        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FFF8F0')),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#EEEEEE')),
+                    ]))
+                    risco_conteudo.append(info_risco_table)
+                
+                # Criar o card do risco com borda colorida
+                largura_risco_card = largura_disponivel - 2*cm
+                
+                # Garantir largura mínima
+                if largura_risco_card < 10*cm:
+                    largura_risco_card = 10*cm
+                
+                risco_card = Table([[item] for item in risco_conteudo], colWidths=[largura_risco_card])
+                
+                # Cor da borda baseada no score
+                if score is None:
+                    cor_borda = '#CCCCCC'
+                elif score >= 12:
+                    cor_borda = '#dc3545'  # Vermelho
+                elif score >= 8:
+                    cor_borda = '#fd7e14'  # Laranja
+                elif score >= 4:
+                    cor_borda = '#ffc107'  # Amarelo
+                else:
+                    cor_borda = '#28a745'  # Verde
+                
+                risco_card.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.99, 0.97, 0.95, alpha=0.40)),
+                    ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor(cor_borda)),
+                    ('ROUNDEDCORNERS', (0, 0), (-1, -1), 6),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                
+                conteudo_card.append(risco_card)
+                conteudo_card.append(Spacer(1, 5))
+        else:
+            conteudo_card.append(Paragraph("<i>Nenhum risco cadastrado para este processo.</i>", normal_style))
+        
+        # ⭐ CRIAR O CARD COM TODOS OS ELEMENTOS
+
+        card_conteudo = []
+        for item in conteudo_card:
+            if isinstance(item, Spacer):
+                card_conteudo.append([item])
+            else:
+                card_conteudo.append([item])
+        
+        # ⭐ LARGURA DINÂMICA DO CARD
+        largura_card_principal = largura_disponivel
+        
+        card_table = Table(card_conteudo, colWidths=[largura_card_principal])
+        card_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.97, 0.97, 0.97, alpha=0.60)),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        story.append(card_table)
+        story.append(Spacer(1, 10))
+
+    print(f"📄 Após processos e riscos: {len(story)} elementos")
+
+    # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
+    criar_pagina_validacao(story, area_gestor, styles, normal_style)
+    print(f"📄 Após validação: {len(story)} elementos")
+    
+    # ⭐ VERIFICAR SE O STORY TEM CONTEÚDO ANTES DE GERAR O PDF
+    print(f"📄 Story FINAL tem {len(story)} elementos")
+    if story:
+        print("✅ Story NÃO está vazio!")
+        print(f"   Primeiro elemento: {type(story[0]).__name__}")
+        print(f"   Último elemento: {type(story[-1]).__name__}")
+    else:
+        print("❌ Story está vazio! Verifique o código.")
+        raise Exception("Story vazio - nenhum conteúdo foi adicionado ao relatório")
+    
+    # ===== 5. GERAR O PDF =====
+    def rodape_panorama(canvas, doc, total_paginas):
+        """Rodapé específico do relatório Panorama"""
+        titulo_rodape = f"Relatório de Validação Matriz de Panorama - {area_nome[:50]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape)
+    
+    pdf_bytes = contar_paginas_e_gerar_pdf(
+        story=story,
+        pagesize=pagesize,
+        topMargin=topMargin,
+        bottomMargin=bottomMargin,
+        leftMargin=leftMargin,
+        rightMargin=rightMargin,
+        rodape_func=rodape_panorama,
+        cabecalho_func=None
+    )
+    
+    print(f"📄 PDF gerado! Tamanho: {len(pdf_bytes)} bytes")
+    
+    # ⭐ SALVAR O PDF PARA INSPEÇÃO (APENAS PARA TESTE)
+    with open("teste_panorama.pdf", "wb") as f:
+        f.write(pdf_bytes)
+    print("📄 PDF salvo como 'teste_panorama.pdf'")
+    
+    return pdf_bytes
+
+# ============================================================
+# ====== RELATÓRIO DE VALIDAÇÃO - DETALHAMENTO ======
+# ============================================================
+
+def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+    """
+    Gera relatório de validação - Matriz Detalhamento
+    Contém: informações da área, funcionários, processos, etapas, riscos e controles
+    """
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    import io
+    import os
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import pandas as pd
+    
+    print(f"🔍 Iniciando geração do relatório Detalhamento...")
+    print(f"   area_id: {area_id}")
+    print(f"   area_nome: {area_nome}")
+    print(f"   auditoria_id: {auditoria_id}")
+    print(f"   processo_id: {processo_id}")
+    
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    
+    # Definir orientação da página
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    # Estilos
+    styles = get_estilos_padrao()
+    normal_style = styles['normal']
+    
+    # ===== CONSTRUIR O STORY =====
+    story = []
+    
+    # ===== 1. BUSCAR DADOS DA ÁREA =====
+    dados_area = buscar_area_por_id(area_id)
+    if not dados_area:
+        raise Exception(f"Área {area_id} não encontrada")
+    
+    area_nome = dados_area.get('nome_area', area_nome)
+    area_unidade = dados_area.get('loc_unidade', 'Não informado')
+    area_objetivo = dados_area.get('objetivo_area', 'Não informado')
+    area_superintendente = dados_area.get('superintendente', 'Não informado')
+    area_diretor = dados_area.get('diretor', 'Não informado')
+    area_gestor = dados_area.get('gestor', gestor)
+    area_cargo = dados_area.get('cargo', cargo)
+    
+    # ===== 2. BUSCAR FUNCIONÁRIOS DA ÁREA =====
+    funcionarios_df = listar_funcionarios_area_todos(area_id)
+    
+    # ===== 3. BUSCAR PROCESSOS =====
+    processos = buscar_processos_detalhamento(area_id, auditoria_id, processo_id)
+    
+    if not processos:
+        raise Exception("Nenhum processo encontrado para os critérios selecionados.")
+    
+    # ===== 4. MONTAR O RELATÓRIO =====
+    
+    # ===== 4a. CABEÇALHO COM LOGOS =====
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+
+    header_data = []
+    tem_logo = os.path.exists(logo_auditoria_path)
+
+    if tem_logo:
+        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+        header_data = [[img_central]]
+        header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 10))
+    
+    # ===== 4b. TÍTULO =====
+    titulo_style = styles['titulo']
+    story.append(Paragraph("Relatório de Validação", titulo_style))
+    
+    subtitulo_central_style = ParagraphStyle(
+        'SubtituloCentral',
+        parent=normal_style,
+        fontSize=14,
+        alignment=1,
+        spaceAfter=15,
+        textColor=colors.HexColor('#0b5b99'),
+        fontName='Helvetica-Bold'
+    )
+    story.append(Paragraph("Matriz de Detalhamento", subtitulo_central_style))
+    story.append(Spacer(1, 5))
+    
+    # ===== 4c. INFORMAÇÕES DA AUDITORIA E ÁREA =====
+    codigo_auditoria = ""
+    if auditoria_id:
+        with engine.connect() as conn:
+            query_auditoria = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+            if result_aud:
+                codigo_auditoria = result_aud[0]
+    
+    info_label_style = ParagraphStyle(
+        'InfoLabel',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_valor_style = ParagraphStyle(
+        'InfoValor',
+        parent=normal_style,
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    info_data = [
+        [Paragraph("<b>Auditoria:</b>", info_label_style), Paragraph(codigo_auditoria or 'N/A', info_valor_style)],
+        [Paragraph("<b>Área:</b>", info_label_style), Paragraph(area_nome, info_valor_style)],
+        [Paragraph("<b>Gestor Responsável:</b>", info_label_style), Paragraph(f"{area_gestor} - {area_cargo}", info_valor_style)],
+        [Paragraph("<b>Data/Hora de Emissão:</b>", info_label_style), Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), info_valor_style)],
+    ]
+    
+    largura_label_info = 4.5 * cm
+    largura_valor_info = pagesize[0] - leftMargin - rightMargin - largura_label_info - 2*cm
+    
+    info_table = Table(info_data, colWidths=[largura_label_info, largura_valor_info])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 15))
+    
+    # ===== 4d. INFORMAÇÕES COMPLETAS DA ÁREA =====
+    story.append(Paragraph("Informações da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    texto_area_style = ParagraphStyle(
+        'TextoArea',
+        parent=normal_style,
+        fontSize=9,
+        leading=11,
+        wordWrap='CJK'
+    )
+    
+    label_area_style = ParagraphStyle(
+        'LabelArea',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_area_data = [
+        [Paragraph("Código da Área:", label_area_style), Paragraph(str(area_id), texto_area_style)],
+        [Paragraph("Nome da Área:", label_area_style), Paragraph(area_nome, texto_area_style)],
+        [Paragraph("Unidade:", label_area_style), Paragraph(area_unidade or 'Não informado', texto_area_style)],
+        [Paragraph("Objetivo:", label_area_style), Paragraph(area_objetivo or 'Não informado', texto_area_style)],
+        [Paragraph("Superintendente:", label_area_style), Paragraph(area_superintendente or 'Não informado', texto_area_style)],
+        [Paragraph("Diretor:", label_area_style), Paragraph(area_diretor or 'Não informado', texto_area_style)],
+    ]
+    
+    largura_label_area = 4.5 * cm
+    largura_valor_area = pagesize[0] - leftMargin - rightMargin - largura_label_area - 2*cm
+    
+    info_area_table = Table(info_area_data, colWidths=[largura_label_area, largura_valor_area])
+    info_area_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+    ]))
+    story.append(info_area_table)
+    story.append(Spacer(1, 15))
+    
+    # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
+    story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    if not funcionarios_df.empty:
+        funcionarios = funcionarios_df.to_dict('records')
+        func_data = [["Nome", "Cargo"]]
+        for f in funcionarios:
+            func_data.append([
+                Paragraph(f.get('nome_funcionario', '-'), normal_style),
+                Paragraph(f.get('cargo', '-'), normal_style)
+            ])
+        
+        func_table = criar_tabela_estilizada(func_data, [8*cm, 8*cm])
+        story.append(func_table)
+    else:
+        story.append(Paragraph("<i>Nenhum funcionário cadastrado para esta área.</i>", normal_style))
+    
+    story.append(Spacer(1, 15))
+    
+    # ===== 4f. PROCESSOS COM DETALHAMENTO =====
+    story.append(Paragraph("Detalhamento dos Processos", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    # Calcular largura disponível para os cards
+    largura_disponivel = pagesize[0] - leftMargin - rightMargin - 2*cm
+    
+    # Estilos para os cards
+    card_titulo_style = ParagraphStyle(
+        'CardTitulo',
+        parent=normal_style,
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=5
+    )
+    
+    card_subtitulo_style = ParagraphStyle(
+        'CardSubtitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=3
+    )
+    
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=10
+    )
+    
+    texto_risco_style = ParagraphStyle(
+        'TextoRisco',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        wordWrap='CJK'
+    )
+    
+    texto_controle_style = ParagraphStyle(
+        'TextoControle',
+        parent=normal_style,
+        fontSize=7.5,
+        leading=9,
+        wordWrap='CJK'
+    )
+    
+    # Função para obter emoji do risco
+    def get_emoji_risco(magnitude):
+        if magnitude is None:
+            return ""
+        elif magnitude >= 12:
+            return "🔴"
+        elif magnitude >= 8:
+            return "🟠"
+        elif magnitude >= 4:
+            return "🟡"
+        else:
+            return "🟢"
+    
+    # Para cada processo
+    for proc_idx, proc in enumerate(processos):
+        if proc_idx > 0:
+            story.append(PageBreak())
+        
+        codigo = proc.get('codigo_processo', '-')
+        nome = proc.get('nome_processo', '-')
+        etapas = proc.get('etapas', [])
+        
+        # Card do processo
+        conteudo_processo = []
+        
+        # Cabeçalho do processo
+        conteudo_processo.append(
+            Paragraph(f"<b>Processo {codigo}: {nome}</b>", card_titulo_style)
+        )
+        conteudo_processo.append(Spacer(1, 3))
+        
+        # Informações do processo
+        info_processo = []
+        
+        texto_processo_style = ParagraphStyle(
+            'TextoProcesso',
+            parent=normal_style,
+            fontSize=8,
+            leading=10,
+            wordWrap='CJK'
+        )
+        
+        if proc.get('objetivo'):
+            info_processo.append([
+                Paragraph("<b>Objetivo:</b>", card_texto_style),
+                Paragraph(proc['objetivo'], texto_processo_style)
+            ])
+        
+        if proc.get('descricao'):
+            info_processo.append([
+                Paragraph("<b>Descrição:</b>", card_texto_style),
+                Paragraph(proc['descricao'], texto_processo_style)
+            ])
+        
+        executor_valor = proc.get('executor') or 'Não informado'
+        info_processo.append([
+            Paragraph("<b>Executor(es):</b>", card_texto_style),
+            Paragraph(executor_valor, texto_processo_style)
+        ])
+        
+        if proc.get('etapa_ini'):
+            info_processo.append([
+                Paragraph("<b>Início:</b>", card_texto_style),
+                Paragraph(proc['etapa_ini'], texto_processo_style)
+            ])
+        
+        if proc.get('etapa_fim'):
+            info_processo.append([
+                Paragraph("<b>Fim:</b>", card_texto_style),
+                Paragraph(proc['etapa_fim'], texto_processo_style)
+            ])
+        
+        if proc.get('produto'):
+            info_processo.append([
+                Paragraph("<b>Produto:</b>", card_texto_style),
+                Paragraph(proc['produto'], texto_processo_style)
+            ])
+        
+        if info_processo:
+            largura_label = 3.0 * cm
+            largura_valor = largura_disponivel - largura_label - 1*cm
+            
+            info_table = Table(info_processo, colWidths=[largura_label, largura_valor])
+            info_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+            ]))
+            conteudo_processo.append(info_table)
+            conteudo_processo.append(Spacer(1, 8))
+        
+        # ===== ETAPAS DO PROCESSO =====
+        if not etapas:
+            conteudo_processo.append(
+                Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style)
+            )
+        else:
+            for etapa_idx, etapa in enumerate(etapas):
+                # Quebra de página a cada 3 etapas
+                if etapa_idx > 0 and etapa_idx % 3 == 0:
+                    conteudo_processo.append(PageBreak())
+                
+                etapa_codigo = etapa.get('codigo_etapa', '')
+                etapa_nome = etapa.get('nome_etapa', 'Etapa sem nome')
+                
+                conteudo_processo.append(
+                    Paragraph(f"<b>Etapa {etapa_codigo}: {etapa_nome}</b>", card_subtitulo_style)
+                )
+                conteudo_processo.append(Spacer(1, 2))
+                
+                # Descrição da etapa
+                if etapa.get('descricao_etapa'):
+                    conteudo_processo.append(
+                        Paragraph(f"<i>{etapa['descricao_etapa'][:200]}{'...' if len(etapa['descricao_etapa']) > 200 else ''}</i>", normal_style)
+                    )
+                    conteudo_processo.append(Spacer(1, 3))
+                
+                # Riscos da etapa
+                riscos = etapa.get('riscos', [])
+                if riscos:
+                    for risco_idx, risco in enumerate(riscos):
+                        # Card do risco
+                        risco_conteudo = []
+                        
+                        magnitude = risco.get('magnitude')
+                        emoji = get_emoji_risco(magnitude)
+                        nome_risco = risco.get('nome_risco', 'Risco não nomeado')
+                        
+                        risco_conteudo.append(
+                            Paragraph(f"{emoji} <b>Risco {risco_idx + 1}: {nome_risco}</b>", card_subtitulo_style)
+                        )
+                        risco_conteudo.append(Spacer(1, 2))
+                        
+                        # Informações do risco
+                        info_risco = []
+                        
+                        if risco.get('categoria'):
+                            info_risco.append([
+                                Paragraph("<b>Categoria:</b>", card_texto_style),
+                                Paragraph(risco['categoria'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('fator_risco'):
+                            info_risco.append([
+                                Paragraph("<b>Fator de Risco:</b>", card_texto_style),
+                                Paragraph(risco['fator_risco'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('consequencia'):
+                            info_risco.append([
+                                Paragraph("<b>Consequência:</b>", card_texto_style),
+                                Paragraph(risco['consequencia'][:150] + ('...' if len(risco['consequencia']) > 150 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('causas'):
+                            info_risco.append([
+                                Paragraph("<b>Causas:</b>", card_texto_style),
+                                Paragraph(risco['causas'][:150] + ('...' if len(risco['causas']) > 150 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('impacto'):
+                            info_risco.append([
+                                Paragraph("<b>Impacto:</b>", card_texto_style),
+                                Paragraph(risco['impacto'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('probabilidade'):
+                            info_risco.append([
+                                Paragraph("<b>Probabilidade:</b>", card_texto_style),
+                                Paragraph(risco['probabilidade'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('magnitude') is not None:
+                            info_risco.append([
+                                Paragraph("<b>Magnitude:</b>", card_texto_style),
+                                Paragraph(str(risco['magnitude']), texto_risco_style)
+                            ])
+                        
+                        if risco.get('motivo_classificacao'):
+                            info_risco.append([
+                                Paragraph("<b>Motivo da Classificação:</b>", card_texto_style),
+                                Paragraph(risco['motivo_classificacao'][:120] + ('...' if len(risco['motivo_classificacao']) > 120 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('tratamento'):
+                            info_risco.append([
+                                Paragraph("<b>Tratamento:</b>", card_texto_style),
+                                Paragraph(risco['tratamento'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('desc_tratamento'):
+                            info_risco.append([
+                                Paragraph("<b>Descrição do Tratamento:</b>", card_texto_style),
+                                Paragraph(risco['desc_tratamento'][:120] + ('...' if len(risco['desc_tratamento']) > 120 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('prazo_implantacao'):
+                            info_risco.append([
+                                Paragraph("<b>Prazo para Implementação:</b>", card_texto_style),
+                                Paragraph(risco['prazo_implantacao'], texto_risco_style)
+                            ])
+                        
+                        if info_risco:
+                            largura_label_risco = 3.5 * cm
+                            largura_valor_risco = largura_disponivel - 2*cm - largura_label_risco - 1*cm
+                            
+                            if largura_valor_risco < 4*cm:
+                                largura_valor_risco = 4*cm
+                                largura_label_risco = largura_disponivel - 2*cm - largura_valor_risco - 1*cm
+                                if largura_label_risco < 3*cm:
+                                    largura_label_risco = 3*cm
+                            
+                            info_risco_table = Table(info_risco, colWidths=[largura_label_risco, largura_valor_risco])
+                            info_risco_table.setStyle(TableStyle([
+                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                                ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+                                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FFF8F0')),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#EEEEEE')),
+                            ]))
+                            risco_conteudo.append(info_risco_table)
+                            risco_conteudo.append(Spacer(1, 3))
+                        
+                        # Controles do risco
+                        controles = risco.get('controles', [])
+                        if controles:
+                            risco_conteudo.append(
+                                Paragraph("<b>Controles:</b>", card_texto_style)
+                            )
+                            
+                            for controle_idx, controle in enumerate(controles):
+                                controle_texto = []
+                                
+                                nome_controle = controle.get('nome_controle', 'Controle não nomeado')
+                                controle_texto.append(f"• {nome_controle}")
+                                
+                                if controle.get('como_executado'):
+                                    controle_texto.append(f"  Como executado: {controle['como_executado'][:80]}{'...' if len(controle['como_executado']) > 80 else ''}")
+                                
+                                if controle.get('natureza'):
+                                    controle_texto.append(f"  Natureza: {controle['natureza']}")
+                                
+                                if controle.get('periodicidade_execucao'):
+                                    controle_texto.append(f"  Periodicidade: {controle['periodicidade_execucao']}")
+                                
+                                risco_conteudo.append(
+                                    Paragraph("<br/>".join(controle_texto), texto_controle_style)
+                                )
+                                risco_conteudo.append(Spacer(1, 1))
+                        else:
+                            risco_conteudo.append(
+                                Paragraph("<i>Nenhum controle cadastrado para este risco.</i>", normal_style)
+                            )
+                        
+                        # Criar card do risco com borda colorida
+                        largura_risco_card = largura_disponivel - 2*cm
+                        
+                        if largura_risco_card < 10*cm:
+                            largura_risco_card = 10*cm
+                        
+                        risco_card = Table([[item] for item in risco_conteudo], colWidths=[largura_risco_card])
+                        
+                        if magnitude is None:
+                            cor_borda = '#CCCCCC'
+                        elif magnitude >= 12:
+                            cor_borda = '#dc3545'
+                        elif magnitude >= 8:
+                            cor_borda = '#fd7e14'
+                        elif magnitude >= 4:
+                            cor_borda = '#ffc107'
+                        else:
+                            cor_borda = '#28a745'
+                        
+                        risco_card.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.99, 0.97, 0.95, alpha=0.30)),
+                            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor(cor_borda)),
+                            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 4),
+                            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                            ('TOPPADDING', (0, 0), (-1, -1), 6),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ]))
+                        
+                        risco_conteudo.clear()
+                        risco_conteudo = None
+                        
+                        conteudo_processo.append(risco_card)
+                        conteudo_processo.append(Spacer(1, 5))
+                else:
+                    conteudo_processo.append(
+                        Paragraph("<i>Nenhum risco cadastrado para esta etapa.</i>", normal_style)
+                    )
+        
+        # Criar card do processo
+        card_conteudo = []
+        for item in conteudo_processo:
+            if isinstance(item, Spacer):
+                card_conteudo.append([item])
+            else:
+                card_conteudo.append([item])
+        
+        card_table = Table(card_conteudo, colWidths=[largura_disponivel])
+        card_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.97, 0.97, 0.97, alpha=0.60)),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        story.append(card_table)
+        story.append(Spacer(1, 10))
+    
+    # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
+    criar_pagina_validacao(story, area_gestor, styles, normal_style)
+    
+    # ===== 5. GERAR O PDF =====
+    def rodape_detalhamento(canvas, doc, total_paginas):
+        titulo_rodape = f"Relatório de Validação Matriz de Detalhamento - {area_nome[:50]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape)
+    
+    pdf_bytes = contar_paginas_e_gerar_pdf(
+        story=story,
+        pagesize=pagesize,
+        topMargin=topMargin,
+        bottomMargin=bottomMargin,
+        leftMargin=leftMargin,
+        rightMargin=rightMargin,
+        rodape_func=rodape_detalhamento,
+        cabecalho_func=None
+    )
+    
+    print(f"📄 PDF do Detalhamento gerado! Tamanho: {len(pdf_bytes)} bytes")
+    
+    with open("teste_detalhamento.pdf", "wb") as f:
+        f.write(pdf_bytes)
+    print("📄 PDF salvo como 'teste_detalhamento.pdf'")
+    
+    return pdf_bytes
+
+
+def buscar_processos_detalhamento(area_id, auditoria_id=None, processo_id=None):
+    """
+    Busca processos com suas etapas, riscos e controles para o relatório de Detalhamento
+    """
+    from database import engine
+    from sqlalchemy import text
+    
+    print(f"🔍 Buscando processos para Detalhamento")
+    print(f"   area_id: {area_id}")
+    print(f"   auditoria_id: {auditoria_id}")
+    print(f"   processo_id: {processo_id}")
+    
+    # ⭐ 1. BUSCAR PROCESSOS USANDO fetchall() EM VEZ DE DataFrame
+    if processo_id:
+        query = text("""
+            SELECT 
+                p.id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.executor,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto
+            FROM processos p
+            WHERE p.id_area = :area_id
+                AND p.id = :processo_id
+                AND p.status = 'Ativo'
+            ORDER BY p.codigo_processo
+        """)
+        params = {"area_id": area_id, "processo_id": processo_id}
+    else:
+        query = text("""
+            SELECT 
+                p.id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.executor,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto
+            FROM processos p
+            WHERE p.id_area = :area_id
+                AND p.auditoria_id = :auditoria_id
+                AND p.status = 'Ativo'
+            ORDER BY p.codigo_processo
+        """)
+        params = {"area_id": area_id, "auditoria_id": auditoria_id}
+    
+    with engine.connect() as conn:
+        processos = conn.execute(query, params).fetchall()
+    
+    print(f"📊 Processos encontrados: {len(processos)}")
+    
+    if not processos:
+        print("❌ Nenhum processo encontrado!")
+        return []
+    
+    # ⭐ 2. Para CADA processo, buscar etapas
+    resultados = []
+    
+    for proc in processos:
+        proc_id = proc[0]  # id
+        proc_codigo = proc[1]
+        proc_nome = proc[2]
+        
+        print(f"   🔍 Buscando etapas para processo: {proc_codigo} (ID: {proc_id})")
+        
+        # ⭐ Buscar etapas
+        query_etapas = text("""
+            SELECT 
+                e.id,
+                e.codigo_etapa,
+                e.nome_etapa,
+                e.descricao_etapa,
+                e.objetivo_etapa,
+                e.como_e_feito,
+                e.analise_critica
+            FROM etapas_processo e
+            WHERE e.processo_id = :processo_id
+                AND (e.status_etapa = 'Ativa' OR e.status_etapa IS NULL)
+            ORDER BY e.codigo_etapa
+        """)
+        
+        with engine.connect() as conn:
+            etapas = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
+        
+        print(f"      Etapas encontradas: {len(etapas)}")
+        
+        etapas_lista = []
+        
+        for etapa in etapas:
+            etapa_id = etapa[0]
+            
+            # ⭐ Buscar riscos da etapa
+            query_riscos = text("""
+                SELECT 
+                    r.id,
+                    r.nome_risco,
+                    r.categoria,
+                    r.fator_risco,
+                    r.consequencia,
+                    r.causas,
+                    r.impacto,
+                    r.probabilidade,
+                    r.magnitude,
+                    r.motivo_classificacao,
+                    r.tratamento,
+                    r.desc_tratamento,
+                    r.prazo_implantacao
+                FROM riscos_etapa r
+                WHERE r.etapa_id = :etapa_id
+                ORDER BY r.id
+            """)
+            
+            with engine.connect() as conn:
+                riscos = conn.execute(query_riscos, {"etapa_id": etapa_id}).fetchall()
+            
+            print(f"         Riscos encontrados: {len(riscos)}")
+            
+            riscos_lista = []
+            
+            for risco in riscos:
+                risco_id = risco[0]
+                
+                # ⭐ Buscar controles do risco
+                query_controles = text("""
+                    SELECT 
+                        c.id,
+                        c.nome_controle,
+                        c.como_executado,
+                        c.objetivo_controle,
+                        c.natureza,
+                        c.periodicidade_execucao,
+                        c.evidencia_realizacao,
+                        c.responsaveis_tratamento
+                    FROM controles_etapa c
+                    WHERE c.risco_id = :risco_id
+                    ORDER BY c.id
+                """)
+                
+                with engine.connect() as conn:
+                    controles = conn.execute(query_controles, {"risco_id": risco_id}).fetchall()
+                
+                controles_lista = []
+                for controle in controles:
+                    controles_lista.append({
+                        'controle_id': controle[0],
+                        'nome_controle': controle[1],
+                        'como_executado': controle[2],
+                        'objetivo_controle': controle[3],
+                        'natureza': controle[4],
+                        'periodicidade_execucao': controle[5],
+                        'evidencia_realizacao': controle[6],
+                        'responsaveis_tratamento': controle[7]
+                    })
+                
+                riscos_lista.append({
+                    'risco_id': risco_id,
+                    'nome_risco': risco[1],
+                    'categoria': risco[2],
+                    'fator_risco': risco[3],
+                    'consequencia': risco[4],
+                    'causas': risco[5],
+                    'impacto': risco[6],
+                    'probabilidade': risco[7],
+                    'magnitude': risco[8],
+                    'motivo_classificacao': risco[9],
+                    'tratamento': risco[10],
+                    'desc_tratamento': risco[11],
+                    'prazo_implantacao': risco[12],
+                    'controles': controles_lista
+                })
+            
+            etapas_lista.append({
+                'etapa_id': etapa_id,
+                'codigo_etapa': etapa[1],
+                'nome_etapa': etapa[2],
+                'descricao_etapa': etapa[3],
+                'objetivo_etapa': etapa[4],
+                'como_e_feito': etapa[5],
+                'analise_critica': etapa[6],
+                'riscos': riscos_lista
+            })
+        
+        resultados.append({
+            'processo_id': proc_id,
+            'codigo_processo': proc_codigo,
+            'nome_processo': proc_nome,
+            'objetivo': proc[3],
+            'executor': proc[4],
+            'descricao': proc[5],
+            'etapa_ini': proc[6],
+            'etapa_fim': proc[7],
+            'produto': proc[8],
+            'etapas': etapas_lista
+        })
+    
+    print(f"✅ Retornando {len(resultados)} processos para Detalhamento")
+    return resultados
+
 
 def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
     """Gera relatório gerencial da área (para validação do gestor)"""
@@ -874,8 +2773,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     # Informações
     story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
     story.append(Paragraph(f"Área: {area_nome}", normal_style))
-    story.append(Paragraph(f"Gestor Responsável: {gestor} - {cargo}", normal_style))
-    story.append(Paragraph(f"Data de Geração: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
+    story.append(Paragraph(f"Gestor Responsável e Cargo: {gestor} - {cargo}", normal_style))
+    story.append(Paragraph(f"Data/Hora de Emissão: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
     # ===== BUSCAR PROCESSOS =====
