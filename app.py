@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from logic import (validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria, listar_areas,
-                   listar_funcionarios_area)
+                   listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
 
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
@@ -210,6 +210,8 @@ def verificar_perfil():
         return jsonify({'perfil': perfil})
     except Exception as e:
         return jsonify({'error': str(e)}), 50
+
+
 
 
 # ============================================================
@@ -4476,6 +4478,136 @@ def api_relatorios_auditorias_por_area():
         print(f"❌ Erro ao buscar auditorias: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/relatorios/gerar-panorama', methods=['POST'])
+
+def api_gerar_relatorio_panorama():
+    """Gera relatório de validação - Matriz Panorama"""
+    from logic import gerar_validacao_relatorio_panorama
+    from flask import send_file, request, jsonify
+    import io
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        data = request.get_json()
+        area_id = data.get('area_id')
+        auditoria_id = data.get('auditoria_id')
+        processo_id = data.get('processo_id')  # Pode ser None
+        orientacao = data.get('orientacao', 'RETRATO')
+        
+        if not area_id or not auditoria_id:
+            return jsonify({'error': 'Área e auditoria são obrigatórios'}), 400
+        
+        # Buscar informações da área
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor, cargo 
+                FROM informacoes_area 
+                WHERE id_area = :area_id
+            """)
+            area_info = conn.execute(query_area, {"area_id": area_id}).fetchone()
+            
+            if not area_info:
+                return jsonify({'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0]
+            gestor = area_info[1] or 'Não informado'
+            cargo = area_info[2] or 'Não informado'
+        
+        # Gerar o relatório
+        pdf_bytes = gerar_validacao_relatorio_panorama(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            cargo=cargo,
+            orientacao=orientacao,
+            auditoria_id=auditoria_id,
+            processo_id=processo_id
+        )
+        
+        # Nome do arquivo
+        if processo_id:
+            nome_arquivo = f"relatorio_panorama_processo_{processo_id}.pdf"
+        else:
+            nome_arquivo = f"relatorio_panorama_auditoria_{auditoria_id}.pdf"
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/relatorios/gerar-detalhamento', methods=['POST'])
+
+def api_gerar_relatorio_detalhamento():
+    """Gera relatório de validação - Matriz Detalhamento"""
+    from logic import gerar_validacao_relatorio_detalhamento
+    from flask import send_file, request, jsonify
+    import io
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        data = request.get_json()
+        area_id = data.get('area_id')
+        auditoria_id = data.get('auditoria_id')
+        processo_id = data.get('processo_id')  # Pode ser None
+        orientacao = data.get('orientacao', 'RETRATO')
+        
+        if not area_id or not auditoria_id:
+            return jsonify({'error': 'Área e auditoria são obrigatórios'}), 400
+        
+        # Buscar informações da área
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor, cargo 
+                FROM informacoes_area 
+                WHERE id_area = :area_id
+            """)
+            area_info = conn.execute(query_area, {"area_id": area_id}).fetchone()
+            
+            if not area_info:
+                return jsonify({'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0]
+            gestor = area_info[1] or 'Não informado'
+            cargo = area_info[2] or 'Não informado'
+        
+        # Gerar o relatório
+        pdf_bytes = gerar_validacao_relatorio_detalhamento(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            cargo=cargo,
+            orientacao=orientacao,
+            auditoria_id=auditoria_id,
+            processo_id=processo_id
+        )
+        
+        # Nome do arquivo
+        if processo_id:
+            nome_arquivo = f"relatorio_detalhamento_processo_{processo_id}.pdf"
+        else:
+            nome_arquivo = f"relatorio_detalhamento_auditoria_{auditoria_id}.pdf"
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/relatorios/gerar-gerencial', methods=['POST'])
 def api_relatorios_gerar_gerencial():
