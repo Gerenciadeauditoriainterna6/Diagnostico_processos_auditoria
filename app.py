@@ -7,12 +7,14 @@ import os
 from datetime import datetime, timedelta, date
 import json
 import io
+from supabase import create_client
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from logic import validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria
+from logic import (validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria, listar_areas,
+                   listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
 
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
@@ -32,6 +34,77 @@ from logic import validar_login_no_banco, gerar_relatorio_gerencial_area
 # ============================================================
 # FUNÇÕES DE UTILIDADE
 # ============================================================
+
+def upload_evidencia_storage(analise_id, arquivo_base64, nome_arquivo):
+    """
+    Faz upload de uma evidência para o Supabase Storage (bucket privado)
+    Retorna a URL assinada do arquivo
+    """
+    import base64
+    import os
+    
+    from datetime import datetime
+    
+    try:
+        print(f"📤 Iniciando upload da evidência para análise {analise_id}")
+        print(f"📎 Nome do arquivo: {nome_arquivo}")
+        print(f"📎 Tamanho do base64: {len(arquivo_base64)} caracteres")
+        
+        # 1. Decodificar Base64
+        if ',' in arquivo_base64:
+            arquivo_base64 = arquivo_base64.split(',')[1]
+            print(f"📎 Base64 após remover header: {len(arquivo_base64)} caracteres")
+        
+        arquivo_bytes = base64.b64decode(arquivo_base64)
+        print(f"📎 Tamanho do arquivo decodificado: {len(arquivo_bytes)} bytes")
+        
+        # 2. Validar tamanho (10MB)
+        if len(arquivo_bytes) > 10 * 1024 * 1024:
+            raise ValueError(f"Arquivo muito grande. {len(arquivo_bytes)} bytes, máximo 10MB")
+        
+        # 3. Conectar ao Supabase
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        print(f"🔗 SUPABASE_URL: {supabase_url[:30]}..." if supabase_url else "❌ SUPABASE_URL não encontrada")
+        print(f"🔑 SUPABASE_KEY: {supabase_key[:20]}..." if supabase_key else "❌ SUPABASE_KEY não encontrada")
+        
+        if not supabase_url or not supabase_key:
+            raise ValueError("Configuração do Supabase não encontrada")
+        
+        supabase = create_client(supabase_url, supabase_key)
+        print("✅ Cliente Supabase criado")
+        
+        # 4. Gerar caminho único
+        extensao = nome_arquivo.split('.')[-1].lower() if '.' in nome_arquivo else 'pdf'
+        timestamp = int(datetime.now().timestamp())
+        caminho = f"analises_auditor/{analise_id}/evidencia_{analise_id}_{timestamp}.{extensao}"
+        print(f"📁 Caminho gerado: {caminho}")
+        
+        # 5. Fazer upload (usando o nome correto do bucket)
+        print(f"📤 Fazendo upload para bucket 'evidencia_analises_auditor'...")
+        supabase.storage.from_('evidencia_analises_auditor').upload(
+            path=caminho,
+            file=arquivo_bytes,
+            file_options={"content-type": "application/pdf"}
+        )
+        print("✅ Upload concluído com sucesso")
+        
+        # 6. Gerar URL assinada (válida por 7 dias)
+        print("🔗 Gerando URL assinada...")
+        url_assinada = supabase.storage.from_('evidencia_analises_auditor').create_signed_url(
+            path=caminho,
+            expires_in=604800  # 7 dias em segundos
+        )
+        print(f"✅ URL assinada gerada: {url_assinada['signedURL'][:100]}...")
+        
+        return url_assinada['signedURL']
+        
+    except Exception as e:
+        print(f"❌ Erro no upload da evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 def calcular_tempo(data_inicio):
     """Calcula tempo decorrido desde a data de início até hoje"""
@@ -137,6 +210,8 @@ def verificar_perfil():
         return jsonify({'perfil': perfil})
     except Exception as e:
         return jsonify({'error': str(e)}), 50
+
+
 
 
 # ============================================================
@@ -418,14 +493,57 @@ def home():
 @app.route('/plano-anual')
 def plano_anual():
     """Página do Plano Anual de Auditoria"""
-    if not session.get('autenticado'):
-        return redirect(url_for('login'))
+    from database import engine
+    from sqlalchemy import text
+    import os
     
-    from logic import carregar_areas_banco
-    areas = carregar_areas_banco()
-    usuario_perfil = session.get('usuario_perfil', 'auditor')
+    # Buscar anos disponíveis dos PDFs
+    pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'pdfs', 'plano_anual')
+    anos_disponiveis = []
     
-    return render_template('plano_anual.html', areas=areas, usuario_perfil=usuario_perfil)
+    if os.path.exists(pdf_dir):
+        for arquivo in os.listdir(pdf_dir):
+            if arquivo.startswith('plano_anual_') and arquivo.endswith('.pdf'):
+                try:
+                    ano = arquivo.replace('plano_anual_', '').replace('.pdf', '')
+                    if ano.isdigit():
+                        anos_disponiveis.append(int(ano))
+                except:
+                    pass
+    
+    # Ordenar anos do mais recente para o mais antigo
+    anos_disponiveis = sorted(set(anos_disponiveis), reverse=True)
+    
+    # Se não encontrou PDFs, buscar anos do banco de dados
+    if not anos_disponiveis:
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT DISTINCT ano FROM auditorias ORDER BY ano DESC"))
+                anos_disponiveis = [row[0] for row in result if row[0]]
+        except:
+            pass
+    
+    return render_template('plano_anual.html', anos_disponiveis=anos_disponiveis)
+
+@app.route('/auditorias-emergenciais')
+def auditorias_emergenciais():
+    """Página de Auditorias Emergenciais"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT id_area, nome_area 
+                FROM informacoes_area 
+                ORDER BY nome_area
+            """))
+            areas = {row.nome_area: row.id_area for row in result}
+        
+        return render_template('auditorias_emergenciais.html', areas=areas)
+    except Exception as e:
+        print(f"❌ Erro ao carregar página de auditorias emergenciais: {e}")
+        return render_template('auditorias_emergenciais.html', areas={})
 
 @app.route('/dashboard')
 def dashboard():
@@ -451,26 +569,122 @@ def auditorias():
 # API - PLANO ANUNAL
 # ============================================================
 
+@app.route('/api/fundamentos-por-ano')
+def api_fundamentos_por_ano():
+    """Retorna todas as auditorias não emergenciais de um ano com seus fundamentos"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    ano = request.args.get('ano')
+    if not ano:
+        return jsonify({'success': False, 'error': 'Ano é obrigatório'}), 400
+    
+    try:
+        query = text("""
+            SELECT 
+                a.id,
+                a.codigo_auditoria,
+                a.titulo,
+                a.ano,
+                a.trimestre,
+                a.fundamentos,
+                ar.nome_area as area_nome
+            FROM auditorias a
+            LEFT JOIN informacoes_area ar ON a.id_area = ar.id_area
+            WHERE a.ano = :ano 
+                AND (a.emergencial = false OR a.emergencial IS NULL)
+            ORDER BY a.trimestre ASC, a.codigo_auditoria ASC
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {"ano": ano})
+            auditorias = []
+            
+            for row in result:
+                aud = dict(row._mapping)
+                
+                # Parse dos fundamentos (se for string JSON)
+                if aud.get('fundamentos'):
+                    if isinstance(aud['fundamentos'], str):
+                        try:
+                            aud['fundamentos'] = json.loads(aud['fundamentos'])
+                        except:
+                            aud['fundamentos'] = []
+                    elif not isinstance(aud['fundamentos'], list):
+                        aud['fundamentos'] = []
+                else:
+                    aud['fundamentos'] = []
+                
+                auditorias.append(aud)
+        
+        return jsonify({
+            'success': True,
+            'auditorias': auditorias,
+            'total': len(auditorias)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar fundamentos por ano: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'auditorias': [],
+            'total': 0
+        }), 500
+
 @app.route('/api/plano-anual-pdf')
 def api_plano_anual_pdf():
-    """Serve o arquivo PDF do Plano Anual baseado no código da auditoria"""
-    if not session.get('autenticado'):
-        return redirect(url_for('login'))
+    """Retorna o PDF do plano anual ou da auditoria emergencial"""
+    import os
+    from flask import send_file
     
-    codigo_auditoria = request.args.get('codigo')
+    ano = request.args.get('ano')
+    tipo = request.args.get('tipo', 'plano')
     
-    if not codigo_auditoria:
-        return jsonify({'error': 'Código da auditoria é obrigatório'}), 400
+    # ====== AUDITORIAS EMERGENCIAIS ======
+    if tipo == 'emergencial':
+        codigo = request.args.get('codigo')
+        if not codigo:
+            return jsonify({'error': 'Código é obrigatório'}), 400
+        
+        # Buscar na pasta static/emergenciais/
+        pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'emergenciais')
+        arquivo_pdf = os.path.join(pdf_dir, f"{codigo}.pdf")
+        
+        # Se não encontrar, tentar buscar qualquer arquivo que comece com o código
+        if not os.path.exists(arquivo_pdf) and os.path.exists(pdf_dir):
+            for arquivo in os.listdir(pdf_dir):
+                if arquivo.startswith(codigo) and arquivo.endswith('.pdf'):
+                    arquivo_pdf = os.path.join(pdf_dir, arquivo)
+                    break
+        
+        if os.path.exists(arquivo_pdf):
+            return send_file(arquivo_pdf, as_attachment=True, download_name=os.path.basename(arquivo_pdf))
+        else:
+            return jsonify({'error': f'Arquivo PDF não encontrado para a auditoria {codigo}'}), 404
     
-    # Usar o código diretamente como nome do arquivo
-    pdf_path = os.path.join(os.path.dirname(__file__), 'assets', f'plano_anual_2026.pdf')
+    # ====== PLANO ANUAL ======
+    if not ano:
+        return jsonify({'error': 'Ano é obrigatório'}), 400
     
-    print(f"🔍 Buscando: {pdf_path}")
+    # ⭐ Buscar direto na pasta static (estrutura simplificada)
+    pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'planejada')
     
-    if os.path.exists(pdf_path):
-        return send_file(pdf_path, mimetype='application/pdf', as_attachment=True)
+    # Buscar arquivo plano_anual_{ano}.pdf
+    arquivo_pdf = os.path.join(pdf_dir, f"plano_anual_{ano}.pdf")
     
-    return jsonify({'error': f'Arquivo PDF do plano anual não encontrado para esta auditoria.'}), 404
+    # Se não encontrar, tentar buscar qualquer arquivo que termine com o ano
+    if not os.path.exists(arquivo_pdf):
+        for arquivo in os.listdir(pdf_dir):
+            if arquivo.endswith(f"_{ano}.pdf") or arquivo.endswith(f"-{ano}.pdf"):
+                arquivo_pdf = os.path.join(pdf_dir, arquivo)
+                break
+    
+    if os.path.exists(arquivo_pdf):
+        return send_file(arquivo_pdf, as_attachment=True, download_name=os.path.basename(arquivo_pdf))
+    else:
+        return jsonify({'error': f'Arquivo PDF do Plano Anual para {ano} não encontrado'}), 404
 
 @app.route('/api/auditoria/<int:auditoria_id>/fundamentos', methods=['GET'])
 def api_buscar_fundamentos_auditoria(auditoria_id):
@@ -927,6 +1141,88 @@ def api_controle_etapa_detalhes(controle_id):
 # ROTAS DE API (BACKEND)
 # ============================================================
 
+@app.route('/api/auditorias-emergenciais')
+def api_auditorias_emergenciais():
+    """Retorna apenas as auditorias emergenciais"""
+    from database import engine
+    from sqlalchemy import text
+    
+    area_id = request.args.get('area_id')
+    
+    # Construir a query base
+    query = text("""
+        SELECT 
+            a.id, 
+            a.codigo_auditoria, 
+            a.titulo, 
+            a.trimestre, 
+            a.ano, 
+            a.status, 
+            a.unidade,
+            a.data_inicio,
+            a.data_fim,
+            a.emergencial,
+            ar.nome_area as area_nome
+        FROM auditorias a
+        LEFT JOIN informacoes_area ar ON a.id_area = ar.id_area
+        WHERE a.emergencial = true
+    """)
+    
+    # Adicionar filtro por área se fornecido
+    if area_id:
+        query = text("""
+            SELECT 
+                a.id, 
+                a.codigo_auditoria, 
+                a.titulo, 
+                a.trimestre, 
+                a.ano, 
+                a.status, 
+                a.unidade,
+                a.data_inicio,
+                a.data_fim,
+                a.emergencial,
+                ar.nome_area as area_nome
+            FROM auditorias a
+            LEFT JOIN informacoes_area ar ON a.id_area = ar.id_area
+            WHERE a.emergencial = true AND a.id_area = :area_id
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {"area_id": area_id})
+            auditorias = [dict(row._mapping) for row in result]
+    else:
+        with engine.connect() as conn:
+            result = conn.execute(query)
+            auditorias = [dict(row._mapping) for row in result]
+    
+    return jsonify({
+        'success': True,
+        'auditorias': auditorias,
+        'total': len(auditorias)
+    })
+
+@app.route('/api/auditoria-emergencial-pdf')
+def api_auditoria_emergencial_pdf():
+    """Retorna o PDF da auditoria emergencial"""
+    import os
+    from flask import send_file
+    
+    codigo = request.args.get('codigo')
+    if not codigo:
+        return jsonify({'error': 'Código da auditoria é obrigatório'}), 400
+    
+    # Caminho onde os PDFs das auditorias emergenciais estão armazenados
+    pdf_dir = os.path.join(os.path.dirname(__file__), 'static', 'pdfs', 'emergenciais')
+    
+    # Buscar arquivo com o nome exato do código
+    arquivo_pdf = os.path.join(pdf_dir, f"{codigo}.pdf")
+    
+    if os.path.exists(arquivo_pdf):
+        return send_file(arquivo_pdf, as_attachment=True, download_name=f"{codigo}.pdf")
+    else:
+        return jsonify({'error': 'Arquivo PDF não encontrado'}), 404
+
 @app.route('/api/auditorias-por-area')
 def api_auditorias_por_area():
     """Retorna as auditorias de uma área"""
@@ -938,7 +1234,7 @@ def api_auditorias_por_area():
         return jsonify({'error': 'area_id é obrigatório'}), 400
     
     query = text("""
-        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, unidade
+        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, unidade, emergencial
         FROM auditorias
         WHERE id_area = :area_id
         ORDER BY ano DESC, trimestre DESC
@@ -991,6 +1287,308 @@ def api_auditoria_responsavel(auditoria_id):
             'perfil': usuario_perfil,
             'responsaveis': responsaveis
         })
+
+@app.route('/api/auditoria/<int:auditoria_id>/upload-evidencia', methods=['POST'])
+def api_upload_evidencia(auditoria_id):
+    """Faz upload de uma evidência para o Supabase Storage"""
+    # from supabase import create_client
+    import os
+    from datetime import datetime
+    import json
+    
+    try:
+        # Verificar se o arquivo foi enviado
+        if 'arquivo' not in request.files:
+            return jsonify({'success': False, 'error': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['arquivo']
+        if arquivo.filename == '':
+            return jsonify({'success': False, 'error': 'Nome do arquivo vazio'}), 400
+        
+        # Buscar código da auditoria
+        from database import engine
+        from sqlalchemy import text
+        
+        query = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            if not row:
+                return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            codigo_auditoria = row.codigo_auditoria
+        
+        # ⭐ USAR A MESMA CONFIGURAÇÃO DA SUA FUNÇÃO EXISTENTE
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # ⭐ Usar SERVICE_KEY
+        
+        if not supabase_url or not supabase_key:
+            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # Gerar nome único
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        nome_original = arquivo.filename
+        extensao = nome_original.rsplit('.', 1)[-1] if '.' in nome_original else ''
+        nome_arquivo = f"{codigo_auditoria}_{timestamp}.{extensao}" if extensao else f"{codigo_auditoria}_{timestamp}"
+        
+        # Caminho no Storage
+        caminho_storage = f"auditorias/emergenciais/{codigo_auditoria}/{nome_arquivo}"
+        
+        # ⭐ Ler o arquivo (mesmo método da sua função)
+        arquivo_bytes = arquivo.read()
+        
+        # ⭐ Upload usando o bucket 'evidencias_auditorias'
+        bucket_name = 'evidencias_auditorias'
+        supabase.storage.from_(bucket_name).upload(
+            path=caminho_storage,
+            file=arquivo_bytes,
+            file_options={"content-type": arquivo.content_type}
+        )
+        
+        # ⭐ Gerar URL assinada (mesmo método da sua função)
+        url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+            path=caminho_storage,
+            expires_in=604800  # 7 dias
+        )
+        
+        # Buscar evidências existentes
+        query = text("SELECT evidencias FROM auditorias WHERE id = :auditoria_id")
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            if row and row.evidencias:
+                if isinstance(row.evidencias, str):
+                    evidencias = json.loads(row.evidencias)
+                else:
+                    evidencias = row.evidencias or []
+            else:
+                evidencias = []
+        
+        # Adicionar nova evidência
+        nova_evidencia = {
+            'nome': nome_original,
+            'url': caminho_storage,
+            'url_signed': url_assinada['signedURL'] if isinstance(url_assinada, dict) else url_assinada,
+            'tamanho': len(arquivo_bytes),
+            'tipo': arquivo.content_type,
+            'data_upload': datetime.now().isoformat()
+        }
+        evidencias.append(nova_evidencia)
+        
+        # Salvar no banco
+        evidencias_json = json.dumps(evidencias)
+        query = text("""
+            UPDATE auditorias 
+            SET evidencias = :evidencias
+            WHERE id = :auditoria_id
+        """)
+        
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "evidencias": evidencias_json,
+                "auditoria_id": auditoria_id
+            })
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'evidencia': nova_evidencia,
+            'message': 'Arquivo enviado com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro no upload: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/auditoria/<int:auditoria_id>/evidencia', methods=['DELETE'])
+def api_remover_evidencia(auditoria_id):
+    """Remove uma evidência da auditoria e do Storage"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    # from supabase import create_client
+    import os
+    
+    try:
+        data = request.json
+        caminho = data.get('caminho')
+        
+        if not caminho:
+            return jsonify({'success': False, 'error': 'Caminho do arquivo é obrigatório'}), 400
+        
+        # ⭐ USAR A MESMA CONFIGURAÇÃO
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_url or not supabase_key:
+            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        bucket_name = 'evidencias_auditorias'
+        
+        # Buscar evidências existentes
+        query = text("SELECT evidencias FROM auditorias WHERE id = :auditoria_id")
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            if row and row.evidencias:
+                if isinstance(row.evidencias, str):
+                    evidencias = json.loads(row.evidencias)
+                else:
+                    evidencias = row.evidencias or []
+            else:
+                evidencias = []
+        
+        # Remover a evidência da lista
+        evidencias = [e for e in evidencias if e.get('url') != caminho]
+        
+        # ⭐ Remover do Storage
+        supabase.storage.from_(bucket_name).remove([caminho])
+        
+        # Salvar no banco
+        evidencias_json = json.dumps(evidencias)
+        query = text("""
+            UPDATE auditorias 
+            SET evidencias = :evidencias
+            WHERE id = :auditoria_id
+        """)
+        
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "evidencias": evidencias_json,
+                "auditoria_id": auditoria_id
+            })
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Evidência removida com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/auditoria/<int:auditoria_id>/evidencias')
+def api_get_evidencias(auditoria_id):
+    """Retorna a lista de evidências de uma auditoria"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    # from supabase import create_client
+    import os
+    
+    try:
+        query = text("""
+            SELECT evidencias 
+            FROM auditorias 
+            WHERE id = :auditoria_id
+        """)
+        
+        with engine.connect() as conn:
+            result = conn.execute(query, {"auditoria_id": auditoria_id})
+            row = result.fetchone()
+            
+            if row and row.evidencias:
+                if isinstance(row.evidencias, str):
+                    evidencias = json.loads(row.evidencias)
+                else:
+                    evidencias = row.evidencias
+            else:
+                evidencias = []
+        
+        # ⭐ RENOVAR URLS ASSINADAS (se necessário)
+        if evidencias:
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            
+            if supabase_url and supabase_key:
+                supabase = create_client(supabase_url, supabase_key)
+                bucket_name = 'evidencias_auditorias'
+                
+                for ev in evidencias:
+                    if ev.get('url'):
+                        try:
+                            url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+                                ev['url'],
+                                expires_in=604800  # 7 dias
+                            )
+                            if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
+                                ev['url_signed'] = url_assinada['signedURL']
+                            else:
+                                ev['url_signed'] = url_assinada
+                        except:
+                            pass
+        
+        return jsonify({
+            'success': True,
+            'evidencias': evidencias
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar evidências: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'evidencias': []
+        }), 500
+
+@app.route('/api/evidencia/<path:caminho>')
+def api_baixar_evidencia(caminho):
+    """Baixa uma evidência do Supabase Storage"""
+    # from supabase import create_client
+    import os
+    
+    try:
+        # ⭐ USAR A MESMA CONFIGURAÇÃO
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # ⭐ Usar SERVICE_KEY
+        
+        if not supabase_url or not supabase_key:
+            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        bucket_name = 'evidencias_auditorias'
+        
+        # ⭐ Gerar URL assinada (mesmo método da sua função)
+        url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+            path=caminho,
+            expires_in=3600  # 1 hora
+        )
+        
+        # ⭐ Extrair a URL do dicionário (como sua função faz)
+        if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
+            url = url_assinada['signedURL']
+        else:
+            url = url_assinada
+        
+        return jsonify({
+            'success': True,
+            'url': url
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao baixar evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 # ============================================================
 # API - DIAGNÓSTICO DOS PROCESSOS
@@ -1069,7 +1667,7 @@ def api_upload_organograma(area_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
+    # from supabase import create_client
     import base64
     import os
     
@@ -1185,7 +1783,7 @@ def api_remover_organograma(area_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
+    # from supabase import create_client
     import os
     
     try:
@@ -1935,7 +2533,7 @@ def api_processos_por_area():
 @app.route('/api/areas')
 def api_areas():
     """Retorna todas as áreas (ativas e inativas)"""
-    from modules.execucao.areas import listar_areas
+    
     
     # Passar apenas_ativas=False para buscar TODAS as áreas
     df = listar_areas(apenas_ativas=False)
@@ -1948,7 +2546,6 @@ def api_areas():
 @app.route('/api/totais')
 def api_totais():
     """Retorna totais de áreas e funcionários"""
-    from modules.execucao.areas import listar_areas, listar_funcionarios_area
     
     df_areas = listar_areas()
     total_areas = len(df_areas) if not df_areas.empty else 0
@@ -2013,7 +2610,6 @@ def api_area_detalhes(area_id):
 @app.route('/api/area/<int:area_id>/funcionarios')
 def api_area_funcionarios(area_id):
     """Retorna todos os funcionários de uma área com tempo calculado"""
-    from modules.execucao.areas import listar_funcionarios_area
     
     df = listar_funcionarios_area(area_id)
     
@@ -2053,7 +2649,7 @@ def api_organograma_url(area_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
+    # from supabase import create_client
     import os
     
     try:
@@ -2251,16 +2847,18 @@ def api_risco_etapa_salvar():
     fator_risco = data.get('fator_risco', '')
     consequencia = data.get('consequencia', '')
     origem = data.get('origem', '')
-    impacto_aceitavel = data.get('impacto_aceitavel', 'Médio')
-    probabilidade_aceitavel = data.get('probabilidade_aceitavel', 'Médio')
-    
+    impacto_aceitavel = data.get('apetite_impacto', 'Médio')  # ⭐ CORRIGIDO: apetite_impacto
+    probabilidade_aceitavel = data.get('apetite_probabilidade', 'Médio')  # ⭐ CORRIGIDO: apetite_probabilidade
 
     # 3. Avaliação do Risco
     impacto = data.get('impacto', 'Médio')
     probabilidade = data.get('probabilidade', 'Médio')
-    motivo_classificacao = data.get('motivo_classificacao', '')
+    motivo_classificacao = data.get('motivo', '')  # ⭐ CORRIGIDO: motivo (não motivo_classificacao)
     info_adicional = data.get('info_adicional', '')
     financeiro = data.get('financeiro', False)
+    
+    # ⭐ NOVO: Status do risco
+    ativo = data.get('ativo', True)  # Default: True (ativo)
 
     # 4. Tratamento
     tratamento = data.get('tratamento', '')
@@ -2269,15 +2867,20 @@ def api_risco_etapa_salvar():
     descricao_prazo = data.get('descricao_prazo', '')
 
     # 5. Relacionamentos
-    causas_str = data.get('causas', [])
+    causas = data.get('causas', [])
+    if isinstance(causas, list):
+        causas_str = ', '.join(causas)
+    else:
+        causas_str = causas
 
     # Validação básica
     if not etapa_id:
-        return jsonify({'success': False, 'error': 'Nome do risco é obrigatprio'}), 400
+        return jsonify({'success': False, 'error': 'Etapa é obrigatória'}), 400
     
-    # Calcular a magnitude (score) baseado em impacto e probabilidade
-    # Usando a mesma lógico que temos no diagnóstico
+    if not nome_risco:
+        return jsonify({'success': False, 'error': 'Nome do risco é obrigatório'}), 400
 
+    # Calcular a magnitude (score) baseado em impacto e probabilidade
     MAPA_RISCO = {
         ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14,
         ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
@@ -2315,6 +2918,7 @@ def api_risco_etapa_salvar():
                         prazo_implantacao = :prazo_implantacao,
                         descricao_prazo = :descricao_prazo,
                         causas = :causas,
+                        ativo = :ativo,  -- ⭐ NOVO
                         updated_at = NOW()
                     WHERE id = :risco_id
                 """)
@@ -2338,10 +2942,12 @@ def api_risco_etapa_salvar():
                     'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
-                    'causas': causas_str
+                    'causas': causas_str,
+                    'ativo': ativo  # ⭐ NOVO
                 })
 
                 print(f"✏️ Risco de etapa {risco_id} atualizado!")
+                novo_id = risco_id
             
             else:
                 # NOVO RISCO: inserir risco
@@ -2352,13 +2958,16 @@ def api_risco_etapa_salvar():
                         magnitude, impacto_aceitavel,
                         probabilidade_aceitavel, tratamento, origem, causas,
                         desc_tratamento, financeiro, info_adicional, 
-                        motivo_classificacao, prazo_implantacao, descricao_prazo, ativo, created_at
+                        motivo_classificacao, prazo_implantacao, descricao_prazo, 
+                        ativo, created_at  -- ⭐ NOVO: ativo
                     ) VALUES (
                         :etapa_id, :auditoria_id, :nome_risco, :categoria,
                         :fator_risco, :consequencia, :impacto, :probabilidade,
-                        :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, :tratamento, :origem, :causas,
+                        :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, 
+                        :tratamento, :origem, :causas,
                         :desc_tratamento, :financeiro, :info_adicional,
-                        :motivo_classificacao, :prazo_implantacao, :descricao_prazo, true, NOW()
+                        :motivo_classificacao, :prazo_implantacao, :descricao_prazo,
+                        :ativo, NOW()  -- ⭐ NOVO: ativo
                     )
                     RETURNING id
                 """)
@@ -2383,7 +2992,8 @@ def api_risco_etapa_salvar():
                     'motivo_classificacao': motivo_classificacao,
                     'prazo_implantacao': prazo_implantacao,
                     'descricao_prazo': descricao_prazo,
-                    'causas': causas_str
+                    'causas': causas_str,
+                    'ativo': ativo  # ⭐ NOVO
                 })
 
                 novo_id = result.fetchone()[0]
@@ -2394,32 +3004,10 @@ def api_risco_etapa_salvar():
             return jsonify({
                 'success': True,
                 'message': 'Risco salvo com sucesso',
-                'risco_id': risco_id or novo_id
+                'risco_id': novo_id
             })
     except Exception as e:
         print(f"❌ Erro ao salvar risco de etapa: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/risco-etapa/<int:risco_id>', methods=['DELETE'])
-def api_risco_etapa_excluir(risco_id):
-    """Desativa um risco de etapa (soft delete)"""
-    from database import engine
-    from sqlalchemy import text
-
-    try:
-        with engine.connect() as conn:
-            # Soft delete: apenas marcar como inativo
-            query = text("""
-                UPDATE riscos_etapa 
-                SET ativo = false, updated_at = NOW()
-                WHERE id = :risco_id
-            """)
-            conn.execute(query, {'risco_id': risco_id})
-            conn.commit()
-
-            return jsonify({'success': True, 'message': 'Risco desativado com sucesso'})
-    except Exception as e:
-        print(f"❌ Erro ao desativar risco: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/risco-etapa/<int:risco_id>')
@@ -2470,6 +3058,47 @@ def api_risco_etapa_detalhes(risco_id):
 
     except Exception as e:
         print(f"❌ Erro ao buscar risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/risco-etapa/<int:risco_id>/status', methods=['PUT'])
+def api_alternar_status_risco(risco_id):
+    """Alterna o status (ativo/inativo) de um risco"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        data = request.json
+        novo_status = data.get('ativo')
+        
+        if novo_status is None:
+            return jsonify({'success': False, 'error': 'Status não informado'}), 400
+        
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE riscos_etapa 
+                SET ativo = :ativo, updated_at = NOW()
+                WHERE id = :risco_id
+                RETURNING id
+            """)
+            
+            result = conn.execute(query, {
+                'ativo': novo_status,
+                'risco_id': risco_id
+            })
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+            
+            conn.commit()
+            
+            status_texto = 'ativado' if novo_status else 'desativado'
+            return jsonify({
+                'success': True, 
+                'message': f'Risco {status_texto} com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao alternar status do risco: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/etapa/<int:etapa_id>/riscos')
@@ -2548,6 +3177,58 @@ def api_etapa_riscos_count(etapa_id):
             
     except Exception as e:
         print(f"❌ Erro ao contar riscos da etapa {etapa_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/etapa/<int:etapa_id>/riscos/todos')
+def api_etapa_riscos_todos(etapa_id):
+    """Retorna TODOS os riscos (ativos e inativos) - usado para edição"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        with engine.connect() as conn:
+            # ⭐ SEM o filtro de ativo
+            query = text("""
+                SELECT id, nome_risco, categoria, fator_risco, consequencia,
+                       impacto, probabilidade, magnitude, impacto_aceitavel, 
+                       probabilidade_aceitavel, tratamento,
+                       origem, desc_tratamento, motivo_classificacao, 
+                       financeiro, info_adicional, ativo, causas, prazo_implantacao
+                FROM riscos_etapa
+                WHERE etapa_id = :etapa_id
+                ORDER BY id
+            """)
+            
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchall()
+
+            riscos = []
+            for row in result:
+                riscos.append({
+                    'id': row[0],
+                    'nome_risco': row[1] or '',
+                    'categoria': row[2] or '',
+                    'fator_risco': row[3] or '',
+                    'consequencia': row[4] or '',
+                    'impacto': row[5] or 'Médio',
+                    'probabilidade': row[6] or 'Médio',
+                    'magnitude': row[7] or 0,
+                    'impacto_aceitavel': row[8] or 'Médio',
+                    'probabilidade_aceitavel': row[9] or 'Médio',
+                    'tratamento': row[10] or '',
+                    'origem': row[11] or '',
+                    'desc_tratamento': row[12] or '',
+                    'motivo_classificacao': row[13] or '',
+                    'financeiro': row[14] or False,
+                    'info_adicional': row[15] or '',
+                    'ativo': row[16] if row[16] is not None else True,
+                    'causas': [c.strip() for c in row[17].split(',')] if row[17] else [],
+                    'prazo_implantacao': row[18] or ''
+                })
+
+            return jsonify({'success': True, 'riscos': riscos})
+    
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos da etapa: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/detalhamento_riscos')
@@ -3797,6 +4478,136 @@ def api_relatorios_auditorias_por_area():
         print(f"❌ Erro ao buscar auditorias: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/relatorios/gerar-panorama', methods=['POST'])
+
+def api_gerar_relatorio_panorama():
+    """Gera relatório de validação - Matriz Panorama"""
+    from logic import gerar_validacao_relatorio_panorama
+    from flask import send_file, request, jsonify
+    import io
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        data = request.get_json()
+        area_id = data.get('area_id')
+        auditoria_id = data.get('auditoria_id')
+        processo_id = data.get('processo_id')  # Pode ser None
+        orientacao = data.get('orientacao', 'RETRATO')
+        
+        if not area_id or not auditoria_id:
+            return jsonify({'error': 'Área e auditoria são obrigatórios'}), 400
+        
+        # Buscar informações da área
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor, cargo 
+                FROM informacoes_area 
+                WHERE id_area = :area_id
+            """)
+            area_info = conn.execute(query_area, {"area_id": area_id}).fetchone()
+            
+            if not area_info:
+                return jsonify({'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0]
+            gestor = area_info[1] or 'Não informado'
+            cargo = area_info[2] or 'Não informado'
+        
+        # Gerar o relatório
+        pdf_bytes = gerar_validacao_relatorio_panorama(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            cargo=cargo,
+            orientacao=orientacao,
+            auditoria_id=auditoria_id,
+            processo_id=processo_id
+        )
+        
+        # Nome do arquivo
+        if processo_id:
+            nome_arquivo = f"relatorio_panorama_processo_{processo_id}.pdf"
+        else:
+            nome_arquivo = f"relatorio_panorama_auditoria_{auditoria_id}.pdf"
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/relatorios/gerar-detalhamento', methods=['POST'])
+
+def api_gerar_relatorio_detalhamento():
+    """Gera relatório de validação - Matriz Detalhamento"""
+    from logic import gerar_validacao_relatorio_detalhamento
+    from flask import send_file, request, jsonify
+    import io
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        data = request.get_json()
+        area_id = data.get('area_id')
+        auditoria_id = data.get('auditoria_id')
+        processo_id = data.get('processo_id')  # Pode ser None
+        orientacao = data.get('orientacao', 'RETRATO')
+        
+        if not area_id or not auditoria_id:
+            return jsonify({'error': 'Área e auditoria são obrigatórios'}), 400
+        
+        # Buscar informações da área
+        with engine.connect() as conn:
+            query_area = text("""
+                SELECT nome_area, gestor, cargo 
+                FROM informacoes_area 
+                WHERE id_area = :area_id
+            """)
+            area_info = conn.execute(query_area, {"area_id": area_id}).fetchone()
+            
+            if not area_info:
+                return jsonify({'error': 'Área não encontrada'}), 404
+            
+            area_nome = area_info[0]
+            gestor = area_info[1] or 'Não informado'
+            cargo = area_info[2] or 'Não informado'
+        
+        # Gerar o relatório
+        pdf_bytes = gerar_validacao_relatorio_detalhamento(
+            area_id=area_id,
+            area_nome=area_nome,
+            gestor=gestor,
+            cargo=cargo,
+            orientacao=orientacao,
+            auditoria_id=auditoria_id,
+            processo_id=processo_id
+        )
+        
+        # Nome do arquivo
+        if processo_id:
+            nome_arquivo = f"relatorio_detalhamento_processo_{processo_id}.pdf"
+        else:
+            nome_arquivo = f"relatorio_detalhamento_auditoria_{auditoria_id}.pdf"
+        
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/relatorios/gerar-gerencial', methods=['POST'])
 def api_relatorios_gerar_gerencial():
@@ -4247,7 +5058,7 @@ def api_usuarios():
 
 @app.route('/api/etapa/<int:etapa_id>/analises', methods=['GET'])
 def api_etapa_analises(etapa_id):
-    """Retorna todas as análises críticas de uma etapa"""
+    """Retorna todas as análises críticas de uma etapa com evidências"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -4260,6 +5071,7 @@ def api_etapa_analises(etapa_id):
                 SELECT id, etapa_id, tipo, categoria,
                        analise_critica, sugestao_melhoria,
                        necessidade_implantacao, ganho_previsto,
+                       evidencia_url, evidencia_nome,  -- ⭐ NOVO
                        created_at, updated_at
                 FROM analises_criticas
                 WHERE etapa_id = :etapa_id
@@ -4269,7 +5081,7 @@ def api_etapa_analises(etapa_id):
             
             analises = []
             for row in result:
-                analises.append({
+                analise = {
                     'id': row[0],
                     'etapa_id': row[1],
                     'tipo': row[2],
@@ -4278,9 +5090,12 @@ def api_etapa_analises(etapa_id):
                     'sugestao_melhoria': row[5] or '',
                     'necessidade_implantacao': row[6] or '',
                     'ganho_previsto': row[7] or '',
-                    'created_at': row[8].isoformat() if row[8] else '',
-                    'updated_at': row[9].strftime('%Y-%m-%d %H:%M') if row[9] else ''
-                })
+                    'evidencia_url': row[8],      # ⭐ NOVO
+                    'evidencia_nome': row[9],     # ⭐ NOVO
+                    'created_at': row[10].isoformat() if row[10] else '',
+                    'updated_at': row[11].strftime('%Y-%m-%d %H:%M') if row[11] else ''
+                }
+                analises.append(analise)
             
             return jsonify({'success': True, 'analises': analises})
             
@@ -4303,7 +5118,6 @@ def api_analises_criticas_por_processo():
     
     try:
         with engine.connect() as conn:
-            # ⭐ CORRIGIDO: nomes das colunas corretos para sua tabela
             query = text("""
                 SELECT 
                     ac.id,
@@ -4327,7 +5141,9 @@ def api_analises_criticas_por_processo():
                     ep.id as etapa_id,    
                     ep.codigo_etapa,
                     ep.nome_etapa,
-                    ep.processo_id
+                    ep.processo_id,
+                    ac.evidencia_url,      -- ⭐ NOVO
+                    ac.evidencia_nome      -- ⭐ NOVO
                 FROM analises_criticas ac
                 JOIN etapas_processo ep ON ac.etapa_id = ep.id
                 WHERE ep.processo_id = :processo_id
@@ -4346,7 +5162,7 @@ def api_analises_criticas_por_processo():
                     'ganho_previsto': row[4] or '',
                     'observacoes': row[5] or '',
                     'categoria': row[6] or 'governanca',
-                    'tipo': row[7],  # ← 'auditado'
+                    'tipo': row[7],
                     'sugestao_sera_implantada': row[8],
                     'plano_acao': row[9] or '',
                     'responsavel_implantacao': row[10] or '',
@@ -4360,7 +5176,9 @@ def api_analises_criticas_por_processo():
                     'etapa_id': row[18],
                     'codigo_etapa': row[19] or '',
                     'nome_etapa': row[20] or '',
-                    'processo_id': row[21]
+                    'processo_id': row[21],
+                    'evidencia_url': row[22] or None,      # ⭐ NOVO
+                    'evidencia_nome': row[23] or None      # ⭐ NOVO
                 })
             
             print(f"✅ Buscadas {len(analises)} análises do auditado para o processo {processo_id}")
@@ -4373,85 +5191,97 @@ def api_analises_criticas_por_processo():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ===== API - ANÁLISES DO AUDITOR (MÚLTIPLAS) =====
 
-@app.route('/api/analises-auditor/por-processo', methods=['GET'])
-def api_analises_auditor_por_processo():
-    """Retorna todas as análises do auditor para um processo específico"""
+@app.route('/api/analise-auditor/evidencia/<int:analise_id>/download', methods=['GET'])
+def api_analise_auditor_evidencia_download(analise_id):
+    """Regenera URL assinada e redireciona para a evidência no Storage (bucket privado)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    processo_id = request.args.get('processo_id')
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
-    
     from database import engine
     from sqlalchemy import text
+    from flask import redirect
+    import os
+    # from supabase import create_client
+    from urllib.parse import urlparse
     
     try:
         with engine.connect() as conn:
-            # ⭐ CORRIGIDO: nomes das colunas corretos
+            # Buscar a URL atual e o nome
             query = text("""
-                SELECT 
-                    id,
-                    analise_critica,
-                    sugestao_melhoria,
-                    necessidade_implantacao,
-                    ganho_previsto,
-                    observacoes,
-                    sugestao_sera_implantada,
-                    plano_acao,
-                    responsavel_implantacao,
-                    data_inicio_prevista,
-                    data_conclusao_prevista,
-                    anexo_nome,
-                    efetivamente_implantada,
-                    data_implantacao_efetiva,
-                    created_at,
-                    updated_at
+                SELECT evidencia_url, evidencia_nome
                 FROM analises_criticas
-                WHERE tipo = 'auditor'
-                  AND processo_id = :processo_id
-                  AND (etapa_id IS NULL OR etapa_id = 0)
-                ORDER BY created_at ASC
+                WHERE id = :id AND tipo = 'auditor'
             """)
+            result = conn.execute(query, {'id': analise_id}).fetchone()
             
-            result = conn.execute(query, {'processo_id': processo_id}).fetchall()
+            if not result or not result[0]:
+                return jsonify({'success': False, 'error': 'Evidência não encontrada'}), 404
             
-            analises = []
-            for row in result:
-                analise = {
-                    'id': row[0],
-                    'analise_critica': row[1] or '',
-                    'sugestao_melhoria': row[2] or '',
-                    'necessidade_implantacao': row[3] or '',
-                    'ganho_previsto': row[4] or '',
-                    'observacoes': row[5] or '',
-                    'sugestao_sera_implantada': row[6],
-                    'plano_acao': row[7] or '',
-                    'responsavel_implantacao': row[8] or '',
-                    'data_inicio_prevista': row[9].strftime('%Y-%m-%d') if row[9] else None,  # ← data_inicio_prevista
-                    'data_conclusao_prevista': row[10].strftime('%Y-%m-%d') if row[10] else None,
-                    'anexo_nome': row[11] or '',
-                    'efetivamente_implantada': row[12] if len(row) > 12 else None,
-                    'data_implantacao_efetiva': row[13].strftime('%Y-%m-%d') if len(row) > 13 and row[13] else None,
-                    'created_at': row[14].isoformat() if len(row) > 14 and row[14] else None,
-                    'updated_at': row[15].isoformat() if len(row) > 15 and row[15] else None
-                }
-                analises.append(analise)
+            evidencia_url_atual = result[0]
+            evidencia_nome = result[1] or 'evidencia.pdf'
             
-            print(f"✅ Buscadas {len(analises)} análises para o processo {processo_id}")
-            return jsonify({'success': True, 'analises': analises})
+            # Extrair o caminho da URL atual
+            parsed = urlparse(evidencia_url_atual)
+            path_parts = parsed.path.split('/')
+            
+            # Encontrar a parte do caminho após 'sign/evidencia_analises_auditor/'
+            caminho = None
+            for i, part in enumerate(path_parts):
+                if part == 'evidencia_analises_auditor' and i + 1 < len(path_parts):
+                    caminho = '/'.join(path_parts[i+1:])
+                    if '?' in caminho:
+                        caminho = caminho.split('?')[0]
+                    break
+            
+            if not caminho:
+                return jsonify({'success': False, 'error': 'Caminho da evidência não encontrado'}), 404
+            
+            print(f"📎 Caminho extraído: {caminho}")
+            
+            # Conectar ao Supabase
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            
+            if not supabase_url or not supabase_key:
+                return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
+            
+            supabase = create_client(supabase_url, supabase_key)
+            
+            # Gerar nova URL assinada (válida por 7 dias)
+            url_assinada = supabase.storage.from_('evidencia_analises_auditor').create_signed_url(
+                path=caminho,
+                expires_in=604800  # 7 dias
+            )
+            
+            nova_url = url_assinada['signedURL']
+            
+            # Atualizar a URL no banco
+            update_query = text("""
+                UPDATE analises_criticas 
+                SET evidencia_url = :evidencia_url,
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            conn.execute(update_query, {
+                'evidencia_url': nova_url,
+                'id': analise_id
+            })
+            conn.commit()
+            
+            print(f"📎 Nova URL assinada gerada: {nova_url}")
+            
+            return redirect(nova_url)
             
     except Exception as e:
-        print(f"❌ Erro ao buscar análises do auditor: {e}")
+        print(f"❌ Erro ao baixar evidência: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/analise-auditor/<int:analise_id>', methods=['PUT'])
 def api_analise_auditor_atualizar(analise_id):
-    """Atualiza uma análise do auditor existente (incluindo anexo)"""
+    """Atualiza uma análise do auditor existente"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -4460,49 +5290,113 @@ def api_analise_auditor_atualizar(analise_id):
     from database import engine
     from sqlalchemy import text
     import base64
-    from psycopg2 import Binary  # Para PostgreSQL
+    from psycopg2 import Binary
+    from datetime import datetime
+    import os
+    # from supabase import create_client
     
-    # Verificar se deve remover o anexo
+    # Verificar se deve remover o anexo do plano de ação
     remover_anexo = data.get('remover_anexo', False)
     
-    # Novo anexo (se veio)
+    # ⭐ Verificar se deve remover a evidência
+    remover_evidencia = data.get('remover_evidencia', False)
+    
+    # Novo anexo (se veio) - mantido no banco
     anexo_base64 = data.get('anexo_base64')
     anexo_nome = data.get('anexo_nome')
     
+    # ⭐ Nova evidência (vai para o Storage)
+    evidencia_base64 = data.get('evidencia_base64')
+    evidencia_nome = data.get('evidencia_nome')
+    
     try:
         with engine.connect() as conn:
-            # Buscar dados atuais para manter o anexo se não for alterado
+            # Buscar dados atuais
             result_current = conn.execute(text("""
-                SELECT anexo_base64, anexo_nome 
+                SELECT anexo_base64, anexo_nome, evidencia_url, evidencia_nome
                 FROM analises_criticas 
-                WHERE id = :id
+                WHERE id = :id AND tipo = 'auditor'
             """), {'id': analise_id})
             current = result_current.fetchone()
             
+            if not current:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            # Processar anexo do plano de ação
             anexo_bytes = None
             anexo_nome_final = None
             
             if remover_anexo:
-                # Remover anexo existente
                 print(f"🗑️ Removendo anexo da análise {analise_id}")
                 anexo_bytes = None
                 anexo_nome_final = None
             elif anexo_base64:
-                # Tem novo anexo
                 if ',' in anexo_base64:
                     anexo_base64 = anexo_base64.split(',')[1]
                 anexo_bytes = base64.b64decode(anexo_base64)
                 anexo_nome_final = anexo_nome
-                print(f"📎 Atualizando anexo: {anexo_nome_final}, tamanho: {len(anexo_bytes)} bytes")
+                print(f"📎 Atualizando anexo: {anexo_nome_final}")
             else:
-                # Manter anexo existente
                 if current and current[0]:
-                    anexo_bytes = current[0]  # mantém o mesmo
-                    anexo_nome_final = current[1]  # mantém o mesmo
+                    anexo_bytes = current[0]
+                    anexo_nome_final = current[1]
             
-            # Converter para Binary do PostgreSQL se tiver dados
             anexo_param = Binary(anexo_bytes) if anexo_bytes else None
             
+            # ⭐ Processar evidência (Storage)
+            evidencia_url_final = current[2] if current else None
+            evidencia_nome_final = current[3] if current else None
+            
+            if remover_evidencia:
+                print(f"🗑️ Removendo evidência da análise {analise_id}")
+                evidencia_url_final = None
+                evidencia_nome_final = None
+            elif evidencia_base64 and evidencia_nome:
+                # Upload da nova evidência para o Storage
+                try:
+                    # Decodificar Base64
+                    if ',' in evidencia_base64:
+                        evidencia_base64 = evidencia_base64.split(',')[1]
+                    evidencia_bytes = base64.b64decode(evidencia_base64)
+                    
+                    # Validar tamanho (10MB)
+                    if len(evidencia_bytes) > 10 * 1024 * 1024:
+                        raise ValueError("Arquivo muito grande. Máximo 10MB")
+                    
+                    # Conectar ao Supabase
+                    supabase_url = os.getenv('SUPABASE_URL')
+                    supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                    
+                    if not supabase_url or not supabase_key:
+                        raise ValueError("Configuração do Supabase não encontrada")
+                    
+                    supabase = create_client(supabase_url, supabase_key)
+                    
+                    # Gerar caminho único
+                    extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
+                    timestamp = int(datetime.now().timestamp())
+                    caminho = f"analises_auditor/{analise_id}/evidencia_{analise_id}_{timestamp}.{extensao}"
+                    
+                    # Fazer upload
+                    supabase.storage.from_('evidencia_analises_auditor').upload(
+                        path=caminho,
+                        file=evidencia_bytes,
+                        file_options={"content-type": "application/pdf"}
+                    )
+                    
+                    # Obter URL pública
+                    evidencia_url_final = supabase.storage.from_('evidencia_analises_auditor').get_public_url(caminho)
+                    evidencia_nome_final = evidencia_nome
+                    
+                    print(f"📎 Nova evidência salva no Storage: {evidencia_url_final}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
+                    # Mantém a evidência existente
+                    evidencia_url_final = current[2] if current else None
+                    evidencia_nome_final = current[3] if current else None
+            
+            # Atualizar a análise
             query = text("""
                 UPDATE analises_criticas 
                 SET analise_critica = :analise_critica,
@@ -4517,6 +5411,8 @@ def api_analise_auditor_atualizar(analise_id):
                     data_conclusao_prevista = :data_conclusao_prevista,
                     anexo_base64 = :anexo_base64,
                     anexo_nome = :anexo_nome,
+                    evidencia_url = :evidencia_url,
+                    evidencia_nome = :evidencia_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo = 'auditor'
             """)
@@ -4534,7 +5430,9 @@ def api_analise_auditor_atualizar(analise_id):
                 'data_inicio_prevista': data.get('data_inicio_prevista'),
                 'data_conclusao_prevista': data.get('data_conclusao_prevista'),
                 'anexo_base64': anexo_param,
-                'anexo_nome': anexo_nome_final
+                'anexo_nome': anexo_nome_final,
+                'evidencia_url': evidencia_url_final,
+                'evidencia_nome': evidencia_nome_final
             })
             conn.commit()
             
@@ -4543,7 +5441,11 @@ def api_analise_auditor_atualizar(analise_id):
             
             print(f"✅ Análise {analise_id} atualizada com sucesso")
             
-            return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
+            return jsonify({
+                'success': True, 
+                'message': 'Análise atualizada com sucesso',
+                'evidencia_url': evidencia_url_final
+            })
             
     except Exception as e:
         print(f"❌ Erro ao atualizar análise do auditor: {e}")
@@ -4581,7 +5483,7 @@ def api_analise_auditor_excluir(analise_id):
 
 @app.route('/api/analise-auditor/salvar', methods=['POST'])
 def api_analise_auditor_salvar():
-    """Salva uma nova análise do auditor com plano de ação e anexo"""
+    """Salva uma nova análise do auditor com evidência no Storage (bucket privado)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -4602,9 +5504,13 @@ def api_analise_auditor_salvar():
     data_inicio_prevista = data.get('data_inicio_prevista')
     data_conclusao_prevista = data.get('data_conclusao_prevista')
     
-    # Anexo (se veio)
+    # Anexo do plano de ação (fica no banco)
     anexo_base64 = data.get('anexo_base64')
     anexo_nome = data.get('anexo_nome')
+    
+    # Evidência da análise (vai para o Storage)
+    evidencia_base64 = data.get('evidencia_base64')
+    evidencia_nome = data.get('evidencia_nome')
     
     if not processo_id:
         return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
@@ -4615,21 +5521,21 @@ def api_analise_auditor_salvar():
     from database import engine
     from sqlalchemy import text
     import base64
-    from psycopg2 import Binary  # Para PostgreSQL
+    from psycopg2 import Binary
     
     try:
         with engine.connect() as conn:
-            # Processar anexo se existir
+            # Processar anexo do plano de ação (mantido no banco)
             anexo_bytes = None
             if anexo_base64:
                 if ',' in anexo_base64:
                     anexo_base64 = anexo_base64.split(',')[1]
                 anexo_bytes = base64.b64decode(anexo_base64)
-                print(f"📎 Anexo recebido: {anexo_nome}, tamanho: {len(anexo_bytes)} bytes")
+                print(f"📎 Anexo recebido: {anexo_nome}")
             
-            # Converter para Binary do PostgreSQL
             anexo_param = Binary(anexo_bytes) if anexo_bytes else None
             
+            # Inserir a análise para obter o ID
             query = text("""
                 INSERT INTO analises_criticas (
                     processo_id, etapa_id, tipo, categoria,
@@ -4667,14 +5573,138 @@ def api_analise_auditor_salvar():
                 'anexo_nome': anexo_nome
             })
             novo_id = result.fetchone()[0]
+            
+            # ⭐ Salvar evidência no Storage (bucket privado)
+            evidencia_url = None
+            if evidencia_base64 and evidencia_nome:
+                try:
+                    # Usar a função auxiliar
+                    evidencia_url = upload_evidencia_storage(
+                        novo_id, 
+                        evidencia_base64, 
+                        evidencia_nome
+                    )
+                    
+                    # Atualizar a análise com a URL assinada
+                    update_query = text("""
+                        UPDATE analises_criticas 
+                        SET evidencia_url = :evidencia_url,
+                            evidencia_nome = :evidencia_nome
+                        WHERE id = :id
+                    """)
+                    conn.execute(update_query, {
+                        'evidencia_url': evidencia_url,
+                        'evidencia_nome': evidencia_nome,
+                        'id': novo_id
+                    })
+                    
+                    print(f"📎 Evidência salva no Storage (bucket privado): {evidencia_url}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
+                    # Não falha a criação da análise, apenas loga o erro
+            
             conn.commit()
             
-            print(f"✅ Análise salva com ID: {novo_id}, anexo: {anexo_nome if anexo_nome else 'sem anexo'}")
+            print(f"✅ Análise salva com ID: {novo_id}")
             
-            return jsonify({'success': True, 'id': novo_id, 'message': 'Análise salva com sucesso'})
+            return jsonify({
+                'success': True, 
+                'id': novo_id, 
+                'message': 'Análise salva com sucesso'
+            })
             
     except Exception as e:
         print(f"❌ Erro ao salvar análise do auditor: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analises-auditor/por-processo', methods=['GET'])
+def api_analises_auditor_por_processo():
+    """Retorna todas as análises do auditor para um processo"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    processo_id = request.args.get('processo_id')
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    id, processo_id, etapa_id, tipo, categoria,
+                    analise_critica, sugestao_melhoria,
+                    necessidade_implantacao, ganho_previsto, observacoes,
+                    sugestao_sera_implantada, plano_acao, responsavel_implantacao,
+                    data_inicio_prevista, data_conclusao_prevista,
+                    anexo_nome,
+                    efetivamente_implantada, data_implantacao_efetiva, comentario_implantacao,
+                    status, created_by, created_at, updated_at,
+                    evidencia_url, evidencia_nome  -- ⭐ NOVO: campos da evidência
+                FROM analises_criticas
+                WHERE processo_id = :processo_id 
+                    AND tipo = 'auditor'
+                    AND status = 'ativo'
+                ORDER BY created_at DESC
+            """)
+            
+            result = conn.execute(query, {'processo_id': processo_id})
+            
+            analises = []
+            for row in result:
+                analise = {
+                    'id': row[0],
+                    'processo_id': row[1],
+                    'etapa_id': row[2],
+                    'tipo': row[3],
+                    'categoria': row[4],
+                    'analise_critica': row[5],
+                    'sugestao_melhoria': row[6],
+                    'necessidade_implantacao': row[7],
+                    'ganho_previsto': row[8],
+                    'observacoes': row[9],
+                    'sugestao_sera_implantada': row[10],
+                    'plano_acao': row[11],
+                    'responsavel_implantacao': row[12],
+                    'data_inicio_prevista': row[13].isoformat() if row[13] else None,
+                    'data_conclusao_prevista': row[14].isoformat() if row[14] else None,
+                    'anexo_nome': row[15],
+                    'efetivamente_implantada': row[16],
+                    'data_implantacao_efetiva': row[17].isoformat() if row[17] else None,
+                    'comentario_implantacao': row[18],
+                    'status': row[19],
+                    'created_by': row[20],
+                    'created_at': row[21].isoformat() if row[21] else None,
+                    'updated_at': row[22].isoformat() if row[22] else None,
+                    # ⭐ NOVO: Evidências
+                    'evidencia_url': row[23],
+                    'evidencia_nome': row[24],
+                    'evidencias': []
+                }
+                
+                # Se tiver evidência, adicionar na lista
+                if row[24]:  # evidencia_nome
+                    analise['evidencias'].append({
+                        'id': row[0],
+                        'nome_arquivo': row[24],
+                        'url': row[23]
+                    })
+                
+                analises.append(analise)
+            
+            return jsonify({
+                'success': True,
+                'analises': analises
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar análises do auditor: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -4940,7 +5970,7 @@ def api_melhorias_ativas():
 
 @app.route('/api/analise/salvar', methods=['POST'])
 def api_analise_salvar():
-    """Salva ou atualiza uma análise crítica (auditado)"""
+    """Salva ou atualiza uma análise crítica (auditado) com evidência"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -4954,15 +5984,24 @@ def api_analise_salvar():
     necessidade_implantacao = data.get('necessidade_implantacao', '')
     ganho_previsto = data.get('ganho_previsto', '')
     
+    # ⭐ NOVO: Campos de evidência
+    evidencia_base64 = data.get('evidencia_base64')
+    evidencia_nome = data.get('evidencia_nome')
+    remover_evidencia = data.get('remover_evidencia', False)
+    
     if not etapa_id:
         return jsonify({'success': False, 'error': 'etapa_id é obrigatório'}), 400
     
     from database import engine
     from sqlalchemy import text
+    import base64
+    import os
+    # from supabase import create_client
+    from datetime import datetime
     
     try:
         with engine.connect() as conn:
-            # ⭐⭐⭐ BUSCAR O processo_id DA ETAPA ⭐⭐⭐
+            # Buscar o processo_id da etapa
             query_processo = text("""
                 SELECT processo_id FROM etapas_processo WHERE id = :etapa_id
             """)
@@ -4971,8 +6010,94 @@ def api_analise_salvar():
             
             print(f"🔍 Etapa {etapa_id} pertence ao processo {processo_id}")
             
+            # ⭐ Processar evidência (se houver)
+            evidencia_url_final = None
+            evidencia_nome_final = None
+            
+            if remover_evidencia:
+                # Remover evidência existente
+                print(f"🗑️ Removendo evidência da análise {analise_id or 'nova'}")
+                evidencia_url_final = None
+                evidencia_nome_final = None
+            elif evidencia_base64 and evidencia_nome:
+                try:
+                    # Decodificar Base64
+                    if ',' in evidencia_base64:
+                        evidencia_base64 = evidencia_base64.split(',')[1]
+                    evidencia_bytes = base64.b64decode(evidencia_base64)
+                    
+                    # Validar tamanho (10MB)
+                    if len(evidencia_bytes) > 10 * 1024 * 1024:
+                        return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 10MB'}), 400
+                    
+                    # Conectar ao Supabase
+                    supabase_url = os.getenv('SUPABASE_URL')
+                    supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                    
+                    if not supabase_url or not supabase_key:
+                        print("⚠️ Configuração do Supabase não encontrada")
+                        # Se não tiver Supabase, salvar no banco como fallback
+                        # (opcional: pode retornar erro também)
+                    else:
+                        supabase = create_client(supabase_url, supabase_key)
+                        
+                        # Se for edição, buscar ID da análise para criar o caminho
+                        if analise_id:
+                            query_analise = text("""
+                                SELECT id FROM analises_criticas WHERE id = :id
+                            """)
+                            result_analise = conn.execute(query_analise, {'id': analise_id}).fetchone()
+                            if result_analise:
+                                analise_id_para_path = analise_id
+                            else:
+                                # Se não encontrou, usar um ID temporário (será atualizado depois)
+                                analise_id_para_path = int(datetime.now().timestamp())
+                        else:
+                            # Nova análise, usar timestamp
+                            analise_id_para_path = int(datetime.now().timestamp())
+                        
+                        # Gerar caminho único
+                        extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
+                        timestamp = int(datetime.now().timestamp())
+                        caminho = f"analises_auditado/{analise_id_para_path}/evidencia_{analise_id_para_path}_{timestamp}.{extensao}"
+                        
+                        # Fazer upload
+                        supabase.storage.from_('evidencia_analises_auditado').upload(
+                            path=caminho,
+                            file=evidencia_bytes,
+                            file_options={"content-type": "application/pdf"}
+                        )
+                        
+                        # Gerar URL assinada
+                        url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
+                            path=caminho,
+                            expires_in=604800  # 7 dias
+                        )
+                        
+                        evidencia_url_final = url_assinada['signedURL']
+                        evidencia_nome_final = evidencia_nome
+                        
+                        print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
+                    # Não falha o salvamento da análise, apenas loga o erro
+                    # Se falhar, mantém a evidência existente (se houver)
+            
+            # ⭐ Buscar evidência existente se não houver nova e não for remoção
+            if not evidencia_base64 and not remover_evidencia and analise_id:
+                query_existente = text("""
+                    SELECT evidencia_url, evidencia_nome 
+                    FROM analises_criticas 
+                    WHERE id = :id
+                """)
+                result_existente = conn.execute(query_existente, {'id': analise_id}).fetchone()
+                if result_existente and result_existente[0]:
+                    evidencia_url_final = result_existente[0]
+                    evidencia_nome_final = result_existente[1]
+            
             if analise_id:
-                # Atualizar (mantém o processo_id existente)
+                # Atualizar
                 query = text("""
                     UPDATE analises_criticas
                     SET tipo = :tipo,
@@ -4981,6 +6106,8 @@ def api_analise_salvar():
                         sugestao_melhoria = :sugestao_melhoria,
                         necessidade_implantacao = :necessidade_implantacao,
                         ganho_previsto = :ganho_previsto,
+                        evidencia_url = :evidencia_url,
+                        evidencia_nome = :evidencia_nome,
                         updated_at = NOW()
                     WHERE id = :id
                 """)
@@ -4991,33 +6118,55 @@ def api_analise_salvar():
                     'analise_critica': analise_critica,
                     'sugestao_melhoria': sugestao_melhoria,
                     'necessidade_implantacao': necessidade_implantacao,
-                    'ganho_previsto': ganho_previsto
+                    'ganho_previsto': ganho_previsto,
+                    'evidencia_url': evidencia_url_final,
+                    'evidencia_nome': evidencia_nome_final
                 })
                 print(f"✏️ Análise {analise_id} atualizada")
+                
+                # Se a evidência foi salva com ID temporário, mas a análise já tinha ID,
+                # o caminho já está correto
+                
             else:
-                # Inserir nova (com processo_id)
+                # Inserir nova
                 query = text("""
                     INSERT INTO analises_criticas
                     (etapa_id, processo_id, tipo, categoria, 
                      analise_critica, sugestao_melhoria, 
-                     necessidade_implantacao, ganho_previsto)
+                     necessidade_implantacao, ganho_previsto,
+                     evidencia_url, evidencia_nome)
                     VALUES (:etapa_id, :processo_id, :tipo, :categoria,
                             :analise_critica, :sugestao_melhoria,
-                            :necessidade_implantacao, :ganho_previsto)
+                            :necessidade_implantacao, :ganho_previsto,
+                            :evidencia_url, :evidencia_nome)
                     RETURNING id
                 """)
                 result = conn.execute(query, {
                     'etapa_id': etapa_id,
-                    'processo_id': processo_id,  # ⭐ AGORA PREENCHE!
+                    'processo_id': processo_id,
                     'tipo': tipo,
                     'categoria': categoria,
                     'analise_critica': analise_critica,
                     'sugestao_melhoria': sugestao_melhoria,
                     'necessidade_implantacao': necessidade_implantacao,
-                    'ganho_previsto': ganho_previsto
+                    'ganho_previsto': ganho_previsto,
+                    'evidencia_url': evidencia_url_final,
+                    'evidencia_nome': evidencia_nome_final
                 })
                 analise_id = result.fetchone()[0]
                 print(f"✅ Nova análise criada! ID: {analise_id}, processo_id: {processo_id}")
+                
+                # ⭐ Se a evidência foi salva com ID temporário, precisamos atualizar o caminho
+                if evidencia_url_final and 'analises_auditado/' in evidencia_url_final:
+                    try:
+                        # Extrair o caminho atual e renomear/mover para o novo ID
+                        # Como o Supabase não tem rename, podemos apenas ignorar e
+                        # manter o caminho com o ID temporário, ou refazer o upload
+                        # Para simplificar, vamos manter o caminho com o timestamp
+                        # (não afeta a funcionalidade)
+                        print(f"📎 Evidência salva com caminho contendo ID temporário (ok)")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao atualizar caminho da evidência: {e}")
             
             conn.commit()
             
@@ -5206,9 +6355,86 @@ def api_analise_auditado_salvar():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/analise-auditado/<int:analise_id>/evidencia', methods=['GET'])
+def api_analise_auditado_evidencia(analise_id):
+    """Baixa a evidência de uma análise do auditado"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from flask import redirect
+    import os
+    # from supabase import create_client
+    from urllib.parse import urlparse
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar a URL da evidência
+            query = text("""
+                SELECT evidencia_url, evidencia_nome
+                FROM analises_criticas
+                WHERE id = :id AND tipo = 'auditado'
+            """)
+            result = conn.execute(query, {'id': analise_id}).fetchone()
+            
+            if not result or not result[0]:
+                return jsonify({'success': False, 'error': 'Evidência não encontrada'}), 404
+            
+            evidencia_url = result[0]
+            evidencia_nome = result[1] or 'evidencia.pdf'
+            
+            # Extrair o caminho da URL para regenerar assinatura
+            parsed = urlparse(evidencia_url)
+            path_parts = parsed.path.split('/')
+            
+            caminho = None
+            for i, part in enumerate(path_parts):
+                if part == 'evidencia_analises_auditado' and i + 1 < len(path_parts):
+                    caminho = '/'.join(path_parts[i+1:])
+                    if '?' in caminho:
+                        caminho = caminho.split('?')[0]
+                    break
+            
+            if caminho:
+                # Regenerar URL assinada
+                supabase_url = os.getenv('SUPABASE_URL')
+                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                
+                if supabase_url and supabase_key:
+                    supabase = create_client(supabase_url, supabase_key)
+                    url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
+                        path=caminho,
+                        expires_in=604800  # 7 dias
+                    )
+                    
+                    # Atualizar a URL no banco
+                    update_query = text("""
+                        UPDATE analises_criticas 
+                        SET evidencia_url = :evidencia_url,
+                            updated_at = NOW()
+                        WHERE id = :id
+                    """)
+                    conn.execute(update_query, {
+                        'evidencia_url': url_assinada['signedURL'],
+                        'id': analise_id
+                    })
+                    conn.commit()
+                    
+                    return redirect(url_assinada['signedURL'])
+            
+            # Fallback: redirecionar para a URL atual
+            return redirect(evidencia_url)
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar evidência do auditado: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/analise-auditado/<int:analise_id>', methods=['PUT'])
 def api_analise_auditado_atualizar(analise_id):
-    """Atualiza uma análise do auditado existente (incluindo anexo)"""
+    """Atualiza uma análise do auditado existente (incluindo anexo e evidência)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -5218,21 +6444,31 @@ def api_analise_auditado_atualizar(analise_id):
     from sqlalchemy import text
     import base64
     from psycopg2 import Binary
+    import os
+    # from supabase import create_client
+    from datetime import datetime
     
+    # Anexo do plano de ação (se veio)
     remover_anexo = data.get('remover_anexo', False)
     anexo_base64 = data.get('anexo_base64')
     anexo_nome = data.get('anexo_nome')
     
+    # ⭐ NOVO: Evidência da análise
+    evidencia_base64 = data.get('evidencia_base64')
+    evidencia_nome = data.get('evidencia_nome')
+    remover_evidencia = data.get('remover_evidencia', False)
+    
     try:
         with engine.connect() as conn:
-            # Buscar dados atuais para manter o anexo se não for alterado
+            # Buscar dados atuais
             result_current = conn.execute(text("""
-                SELECT anexo_base64, anexo_nome 
+                SELECT anexo_base64, anexo_nome, evidencia_url, evidencia_nome
                 FROM analises_criticas 
                 WHERE id = :id AND tipo = 'auditado'
             """), {'id': analise_id})
             current = result_current.fetchone()
             
+            # Processar anexo do plano de ação
             anexo_bytes = None
             anexo_nome_final = None
             
@@ -5251,6 +6487,63 @@ def api_analise_auditado_atualizar(analise_id):
             
             anexo_param = Binary(anexo_bytes) if anexo_bytes else None
             
+            # ⭐ Processar evidência (Storage)
+            evidencia_url_final = current[2] if current else None
+            evidencia_nome_final = current[3] if current else None
+            
+            if remover_evidencia:
+                print(f"🗑️ Removendo evidência da análise {analise_id}")
+                evidencia_url_final = None
+                evidencia_nome_final = None
+            elif evidencia_base64 and evidencia_nome:
+                try:
+                    # Decodificar Base64
+                    if ',' in evidencia_base64:
+                        evidencia_base64 = evidencia_base64.split(',')[1]
+                    evidencia_bytes = base64.b64decode(evidencia_base64)
+                    
+                    # Validar tamanho (10MB)
+                    if len(evidencia_bytes) > 10 * 1024 * 1024:
+                        return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 10MB'}), 400
+                    
+                    # Conectar ao Supabase
+                    supabase_url = os.getenv('SUPABASE_URL')
+                    supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                    
+                    if not supabase_url or not supabase_key:
+                        print("⚠️ Configuração do Supabase não encontrada")
+                    else:
+                        supabase = create_client(supabase_url, supabase_key)
+                        
+                        # Gerar caminho único
+                        extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
+                        timestamp = int(datetime.now().timestamp())
+                        caminho = f"analises_auditado/{analise_id}/evidencia_{analise_id}_{timestamp}.{extensao}"
+                        
+                        # Fazer upload
+                        supabase.storage.from_('evidencia_analises_auditado').upload(
+                            path=caminho,
+                            file=evidencia_bytes,
+                            file_options={"content-type": "application/pdf"}
+                        )
+                        
+                        # Gerar URL assinada
+                        url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
+                            path=caminho,
+                            expires_in=604800  # 7 dias
+                        )
+                        
+                        evidencia_url_final = url_assinada['signedURL']
+                        evidencia_nome_final = evidencia_nome
+                        
+                        print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
+                    # Mantém a evidência existente em caso de erro
+                    evidencia_url_final = current[2] if current else None
+                    evidencia_nome_final = current[3] if current else None
+            
             query = text("""
                 UPDATE analises_criticas 
                 SET analise_critica = :analise_critica,
@@ -5265,6 +6558,8 @@ def api_analise_auditado_atualizar(analise_id):
                     data_conclusao_prevista = :data_conclusao_prevista,
                     anexo_base64 = :anexo_base64,
                     anexo_nome = :anexo_nome,
+                    evidencia_url = :evidencia_url,
+                    evidencia_nome = :evidencia_nome,
                     updated_at = NOW()
                 WHERE id = :id AND tipo = 'auditado'
             """)
@@ -5282,12 +6577,16 @@ def api_analise_auditado_atualizar(analise_id):
                 'data_inicio_prevista': data.get('data_inicio_prevista'),
                 'data_conclusao_prevista': data.get('data_conclusao_prevista'),
                 'anexo_base64': anexo_param,
-                'anexo_nome': anexo_nome_final
+                'anexo_nome': anexo_nome_final,
+                'evidencia_url': evidencia_url_final,
+                'evidencia_nome': evidencia_nome_final
             })
             conn.commit()
             
             if result.rowcount == 0:
                 return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            print(f"✅ Análise {analise_id} atualizada com sucesso")
             
             return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
             

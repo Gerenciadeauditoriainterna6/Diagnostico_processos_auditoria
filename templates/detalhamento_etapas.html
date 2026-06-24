@@ -274,6 +274,23 @@
                         <textarea id="analise-ganho" class="form-control" rows="2" placeholder="Ganhos previstos..."></textarea>
                     </div>
 
+                    <!-- Dentro da seção de Análises Críticas, após o campo Ganho Previsto -->
+                    <div class="form-group">
+                        <label><i class="fas fa-paperclip"></i> Evidência (PDF)</label>
+                        <div class="custom-file-upload">
+                            <input type="file" id="analise_evidencia_input" accept=".pdf" style="display: none;">
+                            <button type="button" id="btn_analise_evidencia" class="btn-file-upload" style="background: #184145; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-cloud-upload-alt"></i> Anexar Evidência da análise (PDF)
+                            </button>
+                            <div id="analise_evidencia_info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                                <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
+                                <span id="analise_evidencia_nome"></span>
+                                <button type="button" id="btn_remover_analise_evidencia" style="background: none; border: none; color: #dc3545; cursor: pointer; margin-left: 10px;">&times;</button>
+                            </div>
+                            <small class="text-muted">Anexe arquivos PDF que fundamentam sua análise (máx. 10MB)</small>
+                        </div>
+                    </div>
+
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
                         <button type="button" class="btn-cancelar-modal-etapa" id="btn-cancelar-analise">Cancelar</button>
                         <button type="button" class="btn-salvar-modal-etapa" id="btn-salvar-analise">Salvar Análise</button>
@@ -1399,6 +1416,14 @@
     let etapaIdAtual = null;       // ID da etapa atual (se já salva)
 
     // ============================================================
+    // VARIÁVEIS PARA EVIDÊNCIA DA ANÁLISE
+    // ============================================================
+
+    let analiseEvidenciaArquivo = null;  // Arquivo da evidência selecionado
+    let analiseEvidenciaExistente = null; // URL da evidência existente (para edição)
+    let analiseEvidenciaNomeExistente = null; // Nome da evidência existente
+
+    // ============================================================
     // AUTOSAVE - Salvar rascunho automaticamente
     // ============================================================
 
@@ -1411,6 +1436,113 @@
         const processoId = processoAtualId;
         const isNova = !etapaId || etapaId === '';
         return `autosave_etapa_${processoId}_${isNova ? 'nova': etapaId}`;
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA UPLOAD DE EVIDÊNCIA DA ANÁLISE
+    // ============================================================
+
+    function setupAnaliseEvidenciaUpload() {
+        const btnUpload = document.getElementById('btn_analise_evidencia');
+        const inputFile = document.getElementById('analise_evidencia_input');
+        const infoDiv = document.getElementById('analise_evidencia_info');
+        const nomeSpan = document.getElementById('analise_evidencia_nome');
+        const btnRemover = document.getElementById('btn_remover_analise_evidencia');
+        
+        if (!btnUpload || !inputFile) {
+            console.warn('⚠️ Elementos de upload de evidência não encontrados');
+            return;
+        }
+        
+        // Botão para abrir seletor de arquivo
+        btnUpload.addEventListener('click', () => {
+            inputFile.click();
+        });
+        
+        // Quando selecionar um arquivo
+        inputFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validar tipo
+            if (file.type !== 'application/pdf') {
+                mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
+                inputFile.value = '';
+                return;
+            }
+            
+            // Validar tamanho (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                inputFile.value = '';
+                return;
+            }
+            
+            // Armazenar o arquivo
+            analiseEvidenciaArquivo = file;
+            
+            // Mostrar na interface
+            if (nomeSpan) nomeSpan.textContent = file.name;
+            if (infoDiv) infoDiv.style.display = 'block';
+            
+            // Remover referência a arquivo existente
+            analiseEvidenciaExistente = null;
+            analiseEvidenciaNomeExistente = null;
+            
+            console.log('📎 Evidência da análise selecionada:', file.name);
+            mostrarToast('📎 Evidência anexada. Salve a análise para confirmar.', 'info');
+        });
+        
+        // Botão para remover arquivo
+        if (btnRemover) {
+            btnRemover.addEventListener('click', () => {
+                inputFile.value = '';
+                analiseEvidenciaArquivo = null;
+                if (infoDiv) infoDiv.style.display = 'none';
+                if (nomeSpan) nomeSpan.textContent = '';
+                
+                // Se tinha evidência existente, marcar para remover
+                if (analiseEvidenciaExistente || analiseEvidenciaNomeExistente) {
+                    // Criar campo hidden para indicar remoção
+                    let hiddenRemover = document.getElementById('remover_analise_evidencia');
+                    if (!hiddenRemover) {
+                        hiddenRemover = document.createElement('input');
+                        hiddenRemover.type = 'hidden';
+                        hiddenRemover.id = 'remover_analise_evidencia';
+                        hiddenRemover.value = 'true';
+                        document.getElementById('form-analise').appendChild(hiddenRemover);
+                    } else {
+                        hiddenRemover.value = 'true';
+                    }
+                    analiseEvidenciaExistente = null;
+                    analiseEvidenciaNomeExistente = null;
+                }
+                
+                console.log('🗑️ Evidência da análise removida');
+            });
+        }
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA RESETAR EVIDÊNCIA DA ANÁLISE
+    // ============================================================
+
+    function resetarEvidenciaAnalise() {
+        const infoDiv = document.getElementById('analise_evidencia_info');
+        const nomeSpan = document.getElementById('analise_evidencia_nome');
+        const inputFile = document.getElementById('analise_evidencia_input');
+        const hiddenRemover = document.getElementById('remover_analise_evidencia');
+        
+        if (infoDiv) infoDiv.style.display = 'none';
+        if (nomeSpan) nomeSpan.textContent = '';
+        if (inputFile) inputFile.value = '';
+        if (hiddenRemover) hiddenRemover.remove();
+        
+        analiseEvidenciaArquivo = null;
+        analiseEvidenciaExistente = null;
+        analiseEvidenciaNomeExistente = null;
+        
+        console.log('🧹 Evidência da análise resetada');
     }
 
     // ============================================================
@@ -2636,6 +2768,43 @@
         }
     }
 
+    // ============================================================
+    // FUNÇÃO PARA BAIXAR EVIDÊNCIA DO AUDITADO (DETALHAMENTO)
+    // ============================================================
+
+    async function baixarEvidenciaAuditadoDetalhamento(analiseId, nomeArquivo) {
+        try {
+            console.log('📥 Baixando evidência do auditado (detalhamento):', analiseId, nomeArquivo);
+            
+            const response = await fetch(`/api/analise-auditado/${analiseId}/evidencia`);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                mostrarToast('❌ Erro ao baixar evidência: ' + (errorData.error || 'Erro desconhecido'), 'error');
+                return;
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeArquivo || 'evidencia.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
+            mostrarToast('✅ Download iniciado!', 'success');
+            
+        } catch (error) {
+            console.error('❌ Erro ao baixar evidência:', error);
+            mostrarToast('❌ Erro ao baixar evidência: ' + error.message, 'error');
+        }
+    }
+
     // Renderizar lista de análises (combinando existentes + temporárias)
     function renderizarAnalises() {
         const container = document.getElementById('analises-lista');
@@ -2653,6 +2822,9 @@
             const isTemporaria = analise._temporaria === true;
             const originalIndex = isTemporaria ? index - analisesExistentes.length : index;
             
+            // ⭐ Verificar se tem evidência
+            const temEvidencia = analise.evidencia_nome && analise.evidencia_nome.trim() !== '';
+            
             return `
                 <div class="analise-card" data-analise-temp="${isTemporaria}">
                     <div class="analise-card-info">
@@ -2665,12 +2837,23 @@
                             <span class="analise-card-categoria">
                                 ${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}
                             </span>
+                            ${temEvidencia ? '<span style="background: #0b5b99; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                         </div>
                         <div class="analise-card-detalhes">
                             ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise Crítica:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
                             ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
                             ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                             ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
+                            ${temEvidencia ? `
+                                <div class="analise-detalhe" style="background: #e8f4f8; border-left: 3px solid #0b5b99;">
+                                    <strong><i class="fas fa-paperclip" style="color: #0b5b99;"></i> Evidência:</strong>
+                                    <span style="margin-left: 8px;">${escapeHtml(analise.evidencia_nome)}</span>
+                                    <button onclick="event.stopPropagation(); baixarEvidenciaAuditadoDetalhamento(${analise.id}, '${escapeHtml(analise.evidencia_nome)}')" 
+                                            style="background: #0b5b99; color: white; border: none; padding: 2px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 10px;">
+                                        <i class="fas fa-download"></i> Baixar
+                                    </button>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                     <div class="analise-card-actions">
@@ -2693,6 +2876,21 @@
         
         form.style.display = 'block';
         
+        // ⭐ Resetar evidência ao abrir o formulário
+        const infoDiv = document.getElementById('analise_evidencia_info');
+        const nomeSpan = document.getElementById('analise_evidencia_nome');
+        const inputFile = document.getElementById('analise_evidencia_input');
+        const hiddenRemover = document.getElementById('remover_analise_evidencia');
+        
+        if (infoDiv) infoDiv.style.display = 'none';
+        if (nomeSpan) nomeSpan.textContent = '';
+        if (inputFile) inputFile.value = '';
+        if (hiddenRemover) hiddenRemover.remove();
+        
+        analiseEvidenciaArquivo = null;
+        analiseEvidenciaExistente = null;
+        analiseEvidenciaNomeExistente = null;
+        
         if (modo === 'editar' && index !== null) {
             let analise;
             if (isTemporaria) {
@@ -2705,12 +2903,25 @@
             if (analise) {
                 document.getElementById('analise-id').value = analise.id || '';
                 document.getElementById('analise-temp-id').value = isTemporaria ? index : '';
-                // ⭐ Não precisa mais carregar o tipo, pois é fixo
                 document.getElementById('analise-categoria').value = analise.categoria;
                 document.getElementById('analise-texto').value = analise.analise_critica || '';
                 document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
                 document.getElementById('analise-necessidade').value = analise.necessidade_implantacao || '';
                 document.getElementById('analise-ganho').value = analise.ganho_previsto || '';
+                
+                // ⭐ Carregar evidência existente (se houver)
+                if (analise.evidencia_url && analise.evidencia_nome) {
+                    analiseEvidenciaExistente = analise.evidencia_url;
+                    analiseEvidenciaNomeExistente = analise.evidencia_nome;
+                    
+                    if (infoDiv && nomeSpan) {
+                        nomeSpan.textContent = analise.evidencia_nome;
+                        infoDiv.style.display = 'block';
+                    }
+                    
+                    // Remover hidden de remoção se existir
+                    if (hiddenRemover) hiddenRemover.remove();
+                }
             }
         } else {
             document.getElementById('analise-id').value = '';
@@ -2722,6 +2933,9 @@
             document.getElementById('analise-ganho').value = '';
         }
         
+        // ⭐ Configurar upload da evidência
+        setupAnaliseEvidenciaUpload();
+        
         form.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
@@ -2729,6 +2943,9 @@
     function esconderFormAnalise() {
         const form = document.getElementById('form-analise');
         if (form) form.style.display = 'none';
+        
+        // ⭐ Resetar evidência ao esconder o formulário
+        resetarEvidenciaAnalise();
     }
 
     // Editar análise
@@ -2737,9 +2954,40 @@
     }
 
     function salvarAnalise() {
-        // ⭐ FIXAR O TIPO COMO 'entrevistado' (sempre auditado)
-        const tipoAnalise = 'entrevistado';  // ← Fixo, não vem mais do select
+        console.log('🔍 salvarAnalise chamada');
+        console.log('📎 analiseEvidenciaArquivo:', analiseEvidenciaArquivo);
+
+        const tipoAnalise = 'auditado';
         
+        // ⭐ VERIFICAR SE TEM EVIDÊNCIA
+        const temEvidencia = analiseEvidenciaArquivo !== null;
+        const removerEvidencia = document.getElementById('remover_analise_evidencia')?.value === 'true';
+        
+        // ⭐ Se tem evidência, converter para Base64 e salvar
+        if (temEvidencia) {
+            converterParaBase64(analiseEvidenciaArquivo)
+                .then(base64 => {
+                    const analiseData = {
+                        tipo_analise: tipoAnalise,
+                        categoria: document.getElementById('analise-categoria').value,
+                        analise_critica: document.getElementById('analise-texto').value,
+                        sugestao_melhoria: document.getElementById('analise-sugestao').value,
+                        necessidade_implantacao: document.getElementById('analise-necessidade').value,
+                        ganho_previsto: document.getElementById('analise-ganho').value,
+                        evidencia_base64: base64,
+                        evidencia_nome: analiseEvidenciaArquivo.name
+                    };
+                    
+                    continuarSalvarAnalise(analiseData);
+                })
+                .catch(error => {
+                    console.error('Erro ao converter evidência:', error);
+                    mostrarToast('❌ Erro ao processar evidência', 'error');
+                });
+            return;
+        }
+        
+        // ⭐ Se não tem evidência, salvar sem
         const analiseData = {
             tipo_analise: tipoAnalise,
             categoria: document.getElementById('analise-categoria').value,
@@ -2749,12 +2997,32 @@
             ganho_previsto: document.getElementById('analise-ganho').value
         };
         
+        // ⭐ Se deve remover evidência existente
+        if (removerEvidencia) {
+            analiseData.remover_evidencia = true;
+        }
+        
+        continuarSalvarAnalise(analiseData);
+    }
+
+    // ⭐ NOVA FUNÇÃO: Continuar o salvamento
+    function continuarSalvarAnalise(analiseData) {
+        console.log('📤 continuarSalvarAnalise chamada');
+        console.log('📊 analiseData recebido:', analiseData);
+        console.log('📎 evidencia_base64 presente?', !!analiseData.evidencia_base64);
+        console.log('📎 evidencia_nome:', analiseData.evidencia_nome || '❌ Ausente');
+        
         const analiseId = document.getElementById('analise-id').value;
         const tempId = document.getElementById('analise-temp-id').value;
         const etapaId = document.getElementById('modal-etapa-id').value;
         
+        console.log('📋 analiseId:', analiseId || '❌ Vazio');
+        console.log('📋 tempId:', tempId || '❌ Vazio');
+        console.log('📋 etapaId:', etapaId || '❌ Vazio');
+        
         // Caso 1: Editando análise existente no banco
         if (analiseId && analiseId !== '') {
+            console.log('📌 Caso 1: Editando análise existente ID:', analiseId);
             salvarAnaliseNoBanco(analiseId, analiseData, etapaId);
             return;
         }
@@ -2762,32 +3030,51 @@
         // Caso 2: Editando análise temporária
         if (tempId && tempId !== '') {
             const tempIndex = parseInt(tempId);
+            console.log('📌 Caso 2: Editando análise temporária index:', tempIndex);
             if (tempIndex >= 0 && tempIndex < analisesTemporarias.length) {
-                analisesTemporarias[tempIndex] = { ...analisesTemporarias[tempIndex], ...analiseData };
+                // Atualizar a análise temporária com todos os dados
+                analisesTemporarias[tempIndex] = { 
+                    ...analisesTemporarias[tempIndex], 
+                    ...analiseData,
+                    _temporaria: true 
+                };
+                console.log('✅ Análise temporária atualizada:', analisesTemporarias[tempIndex]);
                 mostrarToast('✅ Análise atualizada (será salva ao finalizar a etapa)!', 'success');
                 esconderFormAnalise();
                 renderizarAnalises();
+                resetarEvidenciaAnalise();
             }
             return;
         }
         
         // Caso 3: Nova análise
         if (!etapaId || etapaId === '') {
+            console.log('📌 Caso 3: Nova análise (etapa não salva)');
             const novaAnalise = {
                 ...analiseData,
                 _temporaria: true,
                 _id: Date.now()
             };
             analisesTemporarias.push(novaAnalise);
+            console.log('✅ Análise temporária adicionada:', novaAnalise);
             mostrarToast('✅ Análise adicionada (será salva ao finalizar a etapa)!', 'success');
             esconderFormAnalise();
             renderizarAnalises();
+            resetarEvidenciaAnalise();
         } else {
+            console.log('📌 Caso 4: Nova análise (etapa já salva) - ID:', etapaId);
             salvarAnaliseNoBanco(null, analiseData, etapaId);
         }
     }
     // Salvar análise no banco
     async function salvarAnaliseNoBanco(analiseId, analiseData, etapaId) {
+        console.log('📊 salvarAnaliseNoBanco chamada');
+        console.log('📋 analiseId:', analiseId || '❌ Nova');
+        console.log('📋 etapaId:', etapaId);
+        console.log('📊 analiseData recebido:', analiseData);
+        console.log('📎 evidencia_base64 presente?', !!analiseData.evidencia_base64);
+        console.log('📎 evidencia_nome:', analiseData.evidencia_nome || '❌ Ausente');
+        
         if (!etapaId || etapaId === '') {
             mostrarToast('⚠️ Erro: Etapa não identificada', 'error');
             return;
@@ -2796,13 +3083,24 @@
         const payload = {
             id: analiseId || null,
             etapa_id: parseInt(etapaId),
-            tipo_analise: 'entrevistado',  // ⭐ Fixo!
+            tipo_analise: 'auditado',
             categoria: analiseData.categoria,
             analise_critica: analiseData.analise_critica,
             sugestao_melhoria: analiseData.sugestao_melhoria,
             necessidade_implantacao: analiseData.necessidade_implantacao,
             ganho_previsto: analiseData.ganho_previsto
         };
+        
+        // ⭐ Adicionar evidência se houver
+        if (analiseData.evidencia_base64 && analiseData.evidencia_nome) {
+            payload.evidencia_base64 = analiseData.evidencia_base64;
+            payload.evidencia_nome = analiseData.evidencia_nome;
+        }
+        
+        // ⭐ Se deve remover evidência existente
+        if (analiseData.remover_evidencia) {
+            payload.remover_evidencia = true;
+        }
         
         try {
             const response = await fetch('/api/analise/salvar', {
@@ -2816,6 +3114,7 @@
             if (data.success) {
                 mostrarToast('✅ Análise salva com sucesso!', 'success');
                 esconderFormAnalise();
+                resetarEvidenciaAnalise(); // ⭐ Resetar evidência após salvar
                 await carregarAnalises(etapaId);
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Tente novamente'), 'error');
@@ -2880,13 +3179,25 @@
         for (const analise of analisesTemporarias) {
             const payload = {
                 etapa_id: parseInt(etapaId),
-                tipo_analise: analise.tipo_analise,
+                tipo_analise: 'auditado',
                 categoria: analise.categoria,
                 analise_critica: analise.analise_critica,
                 sugestao_melhoria: analise.sugestao_melhoria,
                 necessidade_implantacao: analise.necessidade_implantacao,
                 ganho_previsto: analise.ganho_previsto
             };
+            
+            // ⭐ Adicionar evidência se houver na análise temporária
+            if (analise.evidencia_base64 && analise.evidencia_nome) {
+                payload.evidencia_base64 = analise.evidencia_base64;
+                payload.evidencia_nome = analise.evidencia_nome;
+                console.log(`📎 Enviando evidência: ${analise.evidencia_nome}`);
+            }
+            
+            // ⭐ Se deve remover evidência
+            if (analise.remover_evidencia) {
+                payload.remover_evidencia = true;
+            }
             
             console.log('📤 Enviando payload:', payload);
             

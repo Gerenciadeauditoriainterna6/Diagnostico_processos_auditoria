@@ -5,6 +5,21 @@ from fpdf.enums import XPos, YPos
 from sqlalchemy import text
 from database import engine
 from datetime import datetime
+from zoneinfo import ZoneInfo
+from flask import session, request
+import re
+import json
+import io
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+from reportlab.lib.utils import ImageReader
+from PIL import Image as PILImage
+import copy
+from PyPDF2 import PdfReader
+
 # ===== MIGRAÇÃO PARA FLASK =====
 # Streamlit removido - sistema agora usa Flask
 # import streamlit as st  # REMOVIDO
@@ -17,889 +32,55 @@ class _DummyStreamlit:
 st = _DummyStreamlit()
 # ===== FIM DA MIGRAÇÃO =====
 
-from modules.shared.log_sistema import registrar_log
+def registrar_log(tabela, registro_id, operacao, dados_anteriores=None, dados_novos=None, query_sql=None):
+    """
+    Registra uma ação do usuário na tabela de log (adaptado para Flask)
+    """
+    try:
+        with engine.begin() as conn:
+            # Pega informações do usuário logado (agora do Flask session)
+            usuario_id = session.get('usuario_id', None)
+            usuario_nome = session.get('usuario_nome', session.get('usuario_logado', 'Sistema'))
 
-#local_storage = LocalStorage()
+            # Pega o IP do cliente (Flask request)
+            ip_origem = request.remote_addr if request else '0.0.0.0'
+
+            # Converte dicionários para JSON (STRING)
+            dados_anteriores_json = json.dumps(dados_anteriores, default=str) if dados_anteriores else None
+            dados_novos_json = json.dumps(dados_novos, default=str) if dados_novos else None
+
+            conn.execute(text("""
+                INSERT INTO log_auditoria
+                    (tabela_afetada, registro_id, operacao, dados_anteriores, dados_novos,
+                     usuario_id, usuario_nome, ip_origem, query_sql, data_hora)
+                VALUES
+                    (:tabela, :registro_id, :operacao, :dados_anteriores, :dados_novos,
+                     :usuario_id, :usuario_nome, :ip_origem, :query_sql, :data_hora)
+            """), {
+                'tabela': tabela,
+                'registro_id': registro_id,
+                'operacao': operacao,
+                'dados_anteriores': dados_anteriores_json,
+                'dados_novos': dados_novos_json,
+                'usuario_id': usuario_id,
+                'usuario_nome': usuario_nome,
+                'ip_origem': ip_origem,
+                'query_sql': query_sql,
+                'data_hora': datetime.now()
+            })
+
+            print(f"✅ Log registrado: {tabela} - {operacao} - ID: {registro_id}")
+            return True
+    except Exception as e:
+        print(f"❌ Erro ao registrar log: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 # --- CONFIGURAÇÕES ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_LOGO = os.path.join(BASE_DIR, "assets", "logo_fusve.png")
 CAMINHO_LOGO2 = os.path.join(BASE_DIR, "assets", "logo_auditoria.png")
-
-# Tempo da sessão do usuário
-TEMPO_SESSAO_SEGUNDOS = 1800
-
-#MAPPING_AREAS = {"Gerência de Gente e gestão - GGG": 1, "Gerência de Finanças": 2,"Gerência de TI": 3}
-
-def resetar_timer_sessao():
-    """Reseta o timestamp da sessão para a hora atual"""
-    if st.session_state.get('autenticado'):
-        st.session_state['login_timestamp'] = datetime.now()
-
-# =====================================================
-# NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
-# =====================================================
-
-def criar_nova_auditoria(dados_auditoria):
-    """
-    Cria uma nova auditoria no banco de dados.
-    dados_auditoria deve conter: id_area, titulo, objetivo, escopo, ano, trimestre
-    """
-    try:
-        # Gera o código automático: AUD-SIGLA-ANO-TRIM
-        query_area = text("""
-            SELECT nome_area FROM informacoes_area WHERE id_area = :id
-        """)
-        
-        with engine.connect() as conn:
-            nome_area = conn.execute(query_area, {"id": dados_auditoria['id_area']}).scalar()
-
-        # Extrai sigla
-        sigla = nome_area.split('-')[-1].strip() if '-' in nome_area else nome_area[:3]
-        codigo = f"AUD-{sigla}-{dados_auditoria['ano']}-{dados_auditoria['trimestre']}T"
-
-        # Query de inserção (corrigi os nomes das colunas - verifique se estão corretos)
-        query = text("""
-            INSERT INTO auditorias
-            (codigo_auditoria, id_area, titulo, objetivo, escopo, ano, trimestre,
-             data_inicio, data_fim, status, responsavel_equipe)
-            VALUES
-            (:codigo, :id_area, :titulo, :objetivo, :escopo, :ano, :trimestre,
-             :data_inicio, :data_fim, :status, :responsavel)
-            RETURNING id
-        """)
-
-        with engine.begin() as conn:
-            auditoria_id = conn.execute(query, {
-                "codigo": codigo,
-                "id_area": dados_auditoria['id_area'],
-                "titulo": dados_auditoria['titulo'],
-                "objetivo": dados_auditoria.get('objetivo', ''),
-                "escopo": dados_auditoria.get('escopo', ''),
-                "ano": dados_auditoria['ano'],
-                "trimestre": dados_auditoria['trimestre'],
-                "data_inicio": dados_auditoria.get('data_inicio'),
-                "data_fim": dados_auditoria.get('data_fim'),
-                "status": dados_auditoria.get('status', 'Planejamento'),
-                "responsavel": dados_auditoria.get('responsavel_equipe', [])
-            }).scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            # Prepara os dados que foram inseridos
-            dados_inseridos = {
-                'id': auditoria_id,
-                'codigo_auditoria': codigo,
-                'id_area': dados_auditoria['id_area'],
-                'titulo': dados_auditoria['titulo'],
-                'objetivo': dados_auditoria.get('objetivo', ''),
-                'escopo': dados_auditoria.get('escopo', ''),
-                'ano': dados_auditoria['ano'],
-                'trimestre': dados_auditoria['trimestre'],
-                'status': dados_auditoria.get('status', 'Planejamento')
-            }
-            
-            registrar_log(
-                tabela='auditorias',
-                registro_id=auditoria_id,
-                operacao='INSERT',
-                dados_anteriores=None,
-                dados_novos=dados_inseridos
-            )
-            # ===== FIM DO LOG =====
-
-        return auditoria_id, codigo
-        
-    except Exception as e:
-        print(f"Erro ao criar auditoria: {e}")
-        return None, None
-
-def listar_auditorias_por_ano(ano=None):
-    """
-    Retorna todas as auditorias, opcionalmente filtradas por ano
-    """
-
-    if ano:
-        query = text(
-            """
-            SELECT a.*, i.nome_area
-            FROM auditorias a
-            JOIN informacoes_area i ON a.id_area = i.id_area
-            WHERE a.ano = :ano
-            ORDER BY a.ano DESC, a.trimestre
-        """)
-        params = {"ano": ano}
-    else:
-        query = text("""
-            SELECT a.*, i.nome_area 
-            FROM auditorias a
-            JOIN informacoes_area i ON a.id_area = i.id_area
-            ORDER BY a.ano DESC, a.trimestre
-        """)
-        params = {}
-
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params=params)
-
-def buscar_auditoria_por_id(auditoria_id):
-    """
-    Busca detalhes completos de uma auditoria específica
-    """
-    query = text("""
-        SELECT a.*, i.nome_area, i.gestor
-        FROM auditorias a
-        JOIN informacoes_area i ON a.id_area = i.id_area
-        WHERE a.id = :id
-    """)
-    with engine.connect() as conn:
-        result = conn.execute(query, {"id": auditoria_id}).mappings().first()
-        return dict(result) if result else None
-
-def vincular_processo_a_auditoria(auditoria_id, processo_id, motivo=""):
-    """
-    Vincula um processo a uma auditoria (seleciona para ser auditado)
-    """
-    try:
-        # Primeiro, vamos buscar informações para o log (ANTES de inserir)
-        with engine.connect() as conn:
-            # Buscar dados da auditoria
-            auditoria_info = conn.execute(
-                text("SELECT codigo_auditoria, titulo FROM auditorias WHERE id = :id"),
-                {"id": auditoria_id}
-            ).mappings().fetchone()
-            
-            # Buscar dados do processo
-            processo_info = conn.execute(
-                text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
-                {"id": processo_id}
-            ).mappings().fetchone()
-        
-        query = text("""
-            INSERT INTO auditoria_processos (auditoria_id, processo_id, motivo_selecao)
-            VALUES (:auditoria_id, :processo_id, :motivo)
-            ON CONFLICT (auditoria_id, processo_id) DO NOTHING
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, {
-                "auditoria_id": auditoria_id,
-                "processo_id": processo_id,
-                "motivo": motivo
-            }).scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            if result is not None:  # Só registra se realmente inseriu (não existia)
-                dados_inseridos = {
-                    'auditoria_id': auditoria_id,
-                    'auditoria_codigo': auditoria_info['codigo_auditoria'] if auditoria_info else None,
-                    'auditoria_titulo': auditoria_info['titulo'] if auditoria_info else None,
-                    'processo_id': processo_id,
-                    'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
-                    'processo_nome': processo_info['nome_processo'] if processo_info else None,
-                    'motivo_selecao': motivo
-                }
-                
-                registrar_log(
-                    tabela='auditoria_processos',
-                    registro_id=result,
-                    operacao='INSERT',
-                    dados_anteriores=None,
-                    dados_novos=dados_inseridos
-                )
-            # ===== FIM DO LOG =====
-            
-        return result is not None
-    except Exception as e:
-        print(f"Erro ao vincular processo: {e}")
-        return False
-    
-def listar_processos_da_auditoria(auditoria_id):
-    """
-    Retorna todos os processos vinculados a uma auditoria
-    """
-    query = text("""
-        SELECT ap.*, p.codigo_processo, p.nome_processo, p.area,
-               COUNT(r.id) as total_riscos,
-               MAX(r.score_risco) as maior_risco
-        FROM auditoria_processos ap
-        JOIN processos p ON ap.processo_id = p.id
-        LEFT JOIN riscos r ON p.id = r.processo_id
-        WHERE ap.auditoria_id = :id
-        GROUP BY ap.id, p.codigo_processo, p.nome_processo, p.area
-        ORDER BY p.codigo_processo
-    """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"id": auditoria_id})
-
-def salvar_checklist_eficacia(dados_checklist):
-    """
-    Salva uma resposta de checklist
-    dados_checklist deve conter: auditoria_id, processo_id, pilar, pergunta, 
-                                  peso, resposta, pontuacao, evidencia, conclusao
-    """
-    try:
-        query = text("""
-            INSERT INTO checklists_eficacia 
-            (auditoria_id, processo_id, pilar, pergunta, peso, 
-             resposta, pontuacao, evidencia, conclusao)
-            VALUES 
-            (:auditoria_id, :processo_id, :pilar, :pergunta, :peso,
-             :resposta, :pontuacao, :evidencia, :conclusao)
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            checklist_id = conn.execute(query, dados_checklist).scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            # Prepara os dados que foram inseridos (sem dados sensíveis)
-            dados_inseridos = {
-                'id': checklist_id,
-                'auditoria_id': dados_checklist.get('auditoria_id'),
-                'processo_id': dados_checklist.get('processo_id'),
-                'pilar': dados_checklist.get('pilar'),
-                'pergunta': dados_checklist.get('pergunta')[:100] if dados_checklist.get('pergunta') else None,  # Limita tamanho
-                'peso': dados_checklist.get('peso'),
-                'resposta': dados_checklist.get('resposta'),
-                'pontuacao': dados_checklist.get('pontuacao'),
-                'conclusao': dados_checklist.get('conclusao')[:200] if dados_checklist.get('conclusao') else None
-            }
-            
-            registrar_log(
-                tabela='checklists_eficacia',
-                registro_id=checklist_id,
-                operacao='INSERT',
-                dados_anteriores=None,
-                dados_novos=dados_inseridos
-            )
-            # ===== FIM DO LOG =====
-            
-        return checklist_id
-    except Exception as e:
-        print(f"Erro ao salvar checklist: {e}")
-        return None
-
-def listar_checklists_da_auditoria(auditoria_id, processo_id=None, pilar=None):
-    """
-    Lista checklists de uma auditoria, com filtros opcionais
-    """
-    query = text("""
-        SELECT c.*, p.codigo_processo, p.nome_processo
-        FROM checklists_eficacia c
-        JOIN processos p ON c.processo_id = p.id
-        WHERE c.auditoria_id = :auditoria_id
-        AND (:processo_id IS NULL OR c.processo_id = :processo_id)
-        AND (:pilar IS NULL OR c.pilar = :pilar)
-        ORDER BY c.pilar, c.id
-    """)
-    
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={
-            "auditoria_id": auditoria_id,
-            "processo_id": processo_id,
-            "pilar": pilar
-        })
-
-def calcular_maturidade_por_pilar(auditoria_id, pilar):
-    """
-    Calcula a média de pontuação para um pilar específico
-    """
-    query = text("""
-        SELECT AVG(pontuacao) as media, COUNT(*) as total_perguntas
-        FROM checklists_eficacia
-        WHERE auditoria_id = :auditoria_id
-        AND pilar = :pilar
-        AND pontuacao IS NOT NULL
-    """)
-    
-    with engine.connect() as conn:
-        result = conn.execute(query, {
-            "auditoria_id": auditoria_id,
-            "pilar": pilar
-        }).mappings().first()
-        
-        if result and result['media']:
-            return round(result['media'], 2), result['total_perguntas']
-        return 0, 0
-
-def salvar_conclusao_auditoria(dados_conclusao):
-    """
-    Salva o parecer final da auditoria
-    dados_conclusao deve conter: auditoria_id, resumo_executivo, pontos_fortes,
-                                  oportunidades_melhoria, recomendacoes, parecer_final
-    """
-    try:
-        # Primeiro, verificar se já existe uma conclusão para esta auditoria
-        with engine.connect() as conn:
-            existe = conn.execute(
-                text("SELECT id FROM conclusao_auditoria WHERE auditoria_id = :id"),
-                {"id": dados_conclusao['auditoria_id']}
-            ).scalar()
-            
-            if existe:
-                # Buscar dados ANTIGOS para o log (UPDATE)
-                dados_antigos = conn.execute(
-                    text("SELECT * FROM conclusao_auditoria WHERE auditoria_id = :id"),
-                    {"id": dados_conclusao['auditoria_id']}
-                ).mappings().fetchone()
-        
-        query = text("""
-            INSERT INTO conclusao_auditoria 
-            (auditoria_id, resumo_executivo, pontos_fortes, oportunidades_melhoria,
-             recomendacoes, parecer_final, data_conclusao, pdf_relatorio)
-            VALUES 
-            (:auditoria_id, :resumo, :pontos_fortes, :oportunidades,
-             :recomendacoes, :parecer, :data_conclusao, :pdf)
-            ON CONFLICT (auditoria_id) DO UPDATE SET
-                resumo_executivo = EXCLUDED.resumo_executivo,
-                pontos_fortes = EXCLUDED.pontos_fortes,
-                oportunidades_melhoria = EXCLUDED.oportunidades_melhoria,
-                recomendacoes = EXCLUDED.recomendacoes,
-                parecer_final = EXCLUDED.parecer_final,
-                data_conclusao = EXCLUDED.data_conclusao,
-                pdf_relatorio = EXCLUDED.pdf_relatorio
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            conclusao_id = conn.execute(query, {
-                "auditoria_id": dados_conclusao['auditoria_id'],
-                "resumo": dados_conclusao.get('resumo_executivo', ''),
-                "pontos_fortes": dados_conclusao.get('pontos_fortes', []),
-                "oportunidades": dados_conclusao.get('oportunidades_melhoria', []),
-                "recomendacoes": dados_conclusao.get('recomendacoes', []),
-                "parecer": dados_conclusao.get('parecer_final', ''),
-                "data_conclusao": dados_conclusao.get('data_conclusao'),
-                "pdf": dados_conclusao.get('pdf_relatorio')
-            }).scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            # Prepara os dados para o log (sem PDF que pode ser grande)
-            dados_novos = {
-                'id': conclusao_id,
-                'auditoria_id': dados_conclusao['auditoria_id'],
-                'resumo_executivo': dados_conclusao.get('resumo_executivo', '')[:200] if dados_conclusao.get('resumo_executivo') else None,
-                'pontos_fortes': dados_conclusao.get('pontos_fortes', []),
-                'oportunidades_melhoria': dados_conclusao.get('oportunidades_melhoria', []),
-                'recomendacoes': dados_conclusao.get('recomendacoes', []),
-                'parecer_final': dados_conclusao.get('parecer_final', ''),
-                'data_conclusao': str(dados_conclusao.get('data_conclusao')) if dados_conclusao.get('data_conclusao') else None
-            }
-            
-            if existe:
-                # É um UPDATE
-                registrar_log(
-                    tabela='conclusao_auditoria',
-                    registro_id=conclusao_id,
-                    operacao='UPDATE',
-                    dados_anteriores=dict(dados_antigos) if dados_antigos else None,
-                    dados_novos=dados_novos
-                )
-            else:
-                # É um INSERT
-                registrar_log(
-                    tabela='conclusao_auditoria',
-                    registro_id=conclusao_id,
-                    operacao='INSERT',
-                    dados_anteriores=None,
-                    dados_novos=dados_novos
-                )
-            # ===== FIM DO LOG =====
-            
-        return conclusao_id
-    except Exception as e:
-        print(f"Erro ao salvar conclusão: {e}")
-        return None
-    
-def buscar_conclusao_auditoria(auditoria_id):
-    """
-    Busca a conclusão de uma auditoria específica
-    """
-    query = text("SELECT * FROM conclusao_auditoria WHERE auditoria_id = :id")
-    with engine.connect() as conn:
-        result = conn.execute(query, {"id": auditoria_id}).mappings().first()
-        return dict(result) if result else None
-
-def get_resumo_trimestre(ano, trimestre):
-    """
-    Retorna um resumo consolidado do trimestre para dashboard
-    """
-    query = text("""
-        SELECT 
-            a.id,
-            a.codigo_auditoria,
-            i.nome_area,
-            a.status,
-            COUNT(DISTINCT ap.processo_id) as total_processos,
-            COUNT(DISTINCT c.id) as total_checklists,
-            AVG(c.pontuacao) as media_geral
-        FROM auditorias a
-        JOIN informacoes_area i ON a.id_area = i.id_area
-        LEFT JOIN auditoria_processos ap ON a.id = ap.auditoria_id
-        LEFT JOIN checklists_eficacia c ON a.id = c.auditoria_id
-        WHERE a.ano = :ano AND a.trimestre = :trimestre
-        GROUP BY a.id, i.nome_area
-    """)
-    
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"ano": ano, "trimestre": trimestre})
-
-def listar_processos_da_auditoria_com_riscos(auditoria_id):
-    """
-    Retorna os processos vinculados a uma auditoria com informações de riscos
-    """
-    query = text("""
-        SELECT 
-            ap.*,
-            p.codigo_processo,
-            p.nome_processo,
-            p.area,
-            COUNT(r.id) as total_riscos,
-            MAX(r.score_risco) as maior_risco,
-            STRING_AGG(DISTINCT r.impacto || ' - ' || r.probabilidade, '; ') as riscos_resumo
-        FROM auditoria_processos ap
-        JOIN processos p ON ap.processo_id = p.id
-        LEFT JOIN riscos r ON p.id = r.processo_id
-        WHERE ap.auditoria_id = :auditoria_id
-        GROUP BY ap.id, p.codigo_processo, p.nome_processo, p.area
-        ORDER BY maior_risco DESC NULLS LAST, p.codigo_processo
-    """)
-    
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"auditoria_id": auditoria_id})
-
-def get_cores_por_score(score):
-    """Retorna cor e emoji baseado no score do risco"""
-    if score is None:
-        return "#6c757d", "⚪"  # Cinza para sem risco
-    elif score >= 12:
-        return "#dc3545", "🔴"  # Vermelho - Muito Alto
-    elif score >= 8:
-        return "#fd7e14", "🟠"  # Laranja - Alto
-    elif score >= 4:
-        return "#ffc107", "🟡"  # Amarelo - Médio
-    else:
-        return "#28a745", "🟢"  # Verde - Baixo
-
-def listar_processos_disponiveis_para_auditoria(auditoria_id, id_area):
-    """
-    Lista processos da área que AINDA NÃO estão vinculados a esta auditoria.
-    Retorna DataFrame com id, codigo_processo, nome_processo, maior_risco, total_riscos
-    """
-    query = text("""
-        SELECT 
-            p.id,
-            p.codigo_processo,
-            p.nome_processo,
-            COALESCE(MAX(r.score_risco), 0) as maior_risco,
-            COUNT(r.id) as total_riscos,
-            STRING_AGG(DISTINCT r.impacto || ' - ' || r.probabilidade, '; ') as riscos_resumo
-        FROM processos p
-        LEFT JOIN riscos r ON p.id = r.processo_id
-        WHERE p.id_area = :id_area
-        AND p.id NOT IN (
-            SELECT processo_id 
-            FROM auditoria_processos 
-            WHERE auditoria_id = :auditoria_id
-        )
-        GROUP BY p.id
-        ORDER BY maior_risco DESC, p.codigo_processo
-    """)
-    
-    try:
-        with engine.connect() as conn:
-            df = pd.read_sql(query, conn, params={
-                "auditoria_id": auditoria_id,
-                "id_area": id_area
-            })
-            return df
-    except Exception as e:
-        print(f"Erro ao listar processos disponíveis: {e}")
-        return pd.DataFrame()
-
-# =====================================================
-# NOVAS FUNÇÕES PARA AUDITORIAS TRIMESTRAIS
-# =====================================================
-
-
-def listar_categorias():
-    """Retorna as categorias de risco pré-definidas"""
-    categorias = {
-        1: "Risco Financeiro",
-        2: "Risco Legal",
-        3: "Risco Inerente",
-        4: "Risco de TI",
-        5: "Risco Reputacional",
-        6: "Risco de Integridade",
-        7: "Risco Ambiental"
-    }
-    return categorias
-
-def buscar_processo_por_codigo(codigo):
-    """Busca todos os detalhes de um processo e o nome do gestor da área."""
-    query = text("""
-            SELECT p.*, i.nome_area, i.gestor AS responsavel_area
-            FROM processos p
-            JOIN informacoes_area i ON p.id_area = i.id_area
-            WHERE p.codigo_processo = :c
-    """)
-    with engine.connect() as conn:
-        result = conn.execute(query, {"c": str(codigo)}).mappings().first()
-        return dict(result) if result else None
-
-def salvar_etapa_no_banco(dados_etapa, auditoria_id=None):
-    """Salva os dados de uma etapa no banco de dados, opcionalmente vinculada a uma auditoria."""
-    try:
-        # Buscar informações do processo para o log
-        with engine.connect() as conn:
-            processo_info = conn.execute(
-                text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
-                {"id": dados_etapa.get('processo_id')}
-            ).mappings().fetchone()
-        
-        if auditoria_id:
-            query = text("""
-                INSERT INTO etapas_processo (
-                    processo_id, auditoria_id, codigo_etapa, descricao_etapa, oque_faz, 
-                    status_etapa, como_e_feito, objetivo_etapa, realizado_corretamente, 
-                    link_diagrama_etapa, politica_interna, analise_critica,
-                    sugestao_melhoria, necessidade_implantacao, ganho_previsto, 
-                    obrigacoes_regulatorias, criticidade_etapa, manual_processo_link
-                ) VALUES (
-                    :p_id, :auditoria_id, :cod, :desc, :oque, :status, :como, :obj, 
-                    :real, :link_d, :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
-                )
-                RETURNING id
-            """)
-            dados_etapa['auditoria_id'] = auditoria_id
-        else:
-            query = text("""
-                INSERT INTO etapas_processo (
-                    processo_id, codigo_etapa, descricao_etapa, oque_faz, status_etapa, 
-                    como_e_feito, objetivo_etapa, realizado_corretamente, link_diagrama_etapa, 
-                    politica_interna, analise_critica, sugestao_melhoria, necessidade_implantacao, 
-                    ganho_previsto, obrigacoes_regulatorias, criticidade_etapa, manual_processo_link
-                ) VALUES (
-                    :p_id, :cod, :desc, :oque, :status, :como, :obj, :real, :link_d, 
-                    :pol, :ana, :sug, :nec, :gan, :obri, :crit, :man
-                )
-                RETURNING id
-            """)
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, dados_etapa)
-            etapa_id = result.scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            dados_inseridos = {
-                'id': etapa_id,
-                'processo_id': dados_etapa.get('processo_id'),
-                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
-                'processo_nome': processo_info['nome_processo'] if processo_info else None,
-                'auditoria_id': auditoria_id,
-                'codigo_etapa': dados_etapa.get('codigo_etapa'),
-                'descricao_etapa': dados_etapa.get('descricao_etapa')[:100] if dados_etapa.get('descricao_etapa') else None,
-                'status_etapa': dados_etapa.get('status_etapa'),
-                'criticidade_etapa': dados_etapa.get('criticidade_etapa')
-            }
-            
-            registrar_log(
-                tabela='etapas_processo',
-                registro_id=etapa_id,
-                operacao='INSERT',
-                dados_anteriores=None,
-                dados_novos=dados_inseridos
-            )
-            # ===== FIM DO LOG =====
-            
-        return True
-    except Exception as e:
-        print(f"Erro ao salvar etapa: {e}")
-        return False
-    
-from modules.shared.log_sistema import registrar_log  # Adicione no topo
-
-def atualizar_etapa_no_banco(dados):
-    """Atualiza os dados de uma etapa existente"""
-    try:
-        # Buscar dados ANTIGOS da etapa antes de atualizar
-        with engine.connect() as conn:
-            dados_antigos = conn.execute(
-                text("SELECT * FROM etapas_processo WHERE id = :etapa_id"),
-                {"etapa_id": dados['etapa_id']}
-            ).mappings().fetchone()
-        
-        query = text("""
-            UPDATE etapas_processo SET
-                descricao_etapa = :desc,
-                oque_faz = :oque,
-                como_e_feito = :como,
-                objetivo_etapa = :obj,
-                status_etapa = :status,
-                realizado_corretamente = :real,
-                criticidade_etapa = :crit,
-                executor = :exec,
-                link_diagrama_etapa = :link_d,
-                manual_processo_link = :link_m,
-                politica_interna = :pol,
-                analise_critica = :ana,
-                sugestao_melhoria = :sug,
-                necessidade_implantacao = :nec,
-                ganho_previsto = :gan,
-                obrigacoes_regulatorias = :obri,
-                updated_at = NOW()
-            WHERE id = :etapa_id
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, {
-                "etapa_id": dados['etapa_id'],
-                "desc": dados.get('desc', ''),
-                "oque": dados.get('oque', ''),
-                "como": dados.get('como', ''),
-                "obj": dados.get('obj', ''),
-                "status": dados.get('status', 'Ativa'),
-                "real": dados.get('real', 'Sim'),
-                "crit": dados.get('crit', 'Em Aprovação'),
-                "exec": dados.get('exec', ''),
-                "link_d": dados.get('link_d', ''),
-                "link_m": dados.get('link_m', ''),
-                "pol": dados.get('pol', ''),
-                "ana": dados.get('ana', ''),
-                "sug": dados.get('sug', ''),
-                "nec": dados.get('nec', ''),
-                "gan": dados.get('gan', ''),
-                "obri": dados.get('obri', '')
-            })
-            
-            etapa_id = result.scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            # Preparar dados novos (apenas campos relevantes para o log)
-            dados_novos = {
-                'id': dados['etapa_id'],
-                'descricao_etapa': dados.get('desc', '')[:100],
-                'oque_faz': dados.get('oque', '')[:100],
-                'como_e_feito': dados.get('como', '')[:100],
-                'objetivo_etapa': dados.get('obj', '')[:100],
-                'status_etapa': dados.get('status', 'Ativa'),
-                'realizado_corretamente': dados.get('real', 'Sim'),
-                'criticidade_etapa': dados.get('crit', 'Em Aprovação')
-            }
-            
-            # Preparar dados antigos (apenas campos relevantes)
-            dados_antigos_resumidos = {
-                'id': dados_antigos['id'],
-                'descricao_etapa': dados_antigos.get('descricao_etapa', '')[:100] if dados_antigos else None,
-                'oque_faz': dados_antigos.get('oque_faz', '')[:100] if dados_antigos else None,
-                'como_e_feito': dados_antigos.get('como_e_feito', '')[:100] if dados_antigos else None,
-                'objetivo_etapa': dados_antigos.get('objetivo_etapa', '')[:100] if dados_antigos else None,
-                'status_etapa': dados_antigos.get('status_etapa', '') if dados_antigos else None,
-                'realizado_corretamente': dados_antigos.get('realizado_corretamente', '') if dados_antigos else None,
-                'criticidade_etapa': dados_antigos.get('criticidade_etapa', '') if dados_antigos else None
-            }
-            
-            registrar_log(
-                tabela='etapas_processo',
-                registro_id=dados['etapa_id'],
-                operacao='UPDATE',
-                dados_anteriores=dados_antigos_resumidos if dados_antigos else None,
-                dados_novos=dados_novos
-            )
-            # ===== FIM DO LOG =====
-            
-        return True
-    except Exception as e:
-        print(f"Erro ao atualizar etapa: {e}")
-        return False
-
-def listar_etapas_do_processo(processo_id, auditoria_id=None):
-    """Lista todas as etapas de um processo"""
-    if auditoria_id:
-        query = text("""
-            SELECT 
-                id, processo_id, codigo_etapa, descricao_etapa, oque_faz,
-                como_e_feito, objetivo_etapa, status_etapa, realizado_corretamente,
-                criticidade_etapa, politica_interna, analise_critica, sugestao_melhoria,
-                necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
-                diagrama_bpmn, diagrama_nome, diagrama_tipo,
-                manual_etapa, manual_nome, manual_tipo
-            FROM etapas_processo
-            WHERE processo_id = :processo_id AND auditoria_id = :auditoria_id
-            ORDER BY codigo_etapa
-        """)
-        with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={
-                "processo_id": processo_id,
-                "auditoria_id": auditoria_id
-            })
-    else:
-        query = text("""
-            SELECT 
-                id, processo_id, codigo_etapa, descricao_etapa, oque_faz,
-                como_e_feito, objetivo_etapa, status_etapa, realizado_corretamente,
-                criticidade_etapa, politica_interna, analise_critica, sugestao_melhoria,
-                necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
-                diagrama_bpmn, diagrama_nome, diagrama_tipo,
-                manual_etapa, manual_nome, manual_tipo
-            FROM etapas_processo
-            WHERE processo_id = :processo_id
-            ORDER BY codigo_etapa
-        """)
-        with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={"processo_id": processo_id})
-
-def obter_proximo_codigo_etapa(processo_id, codigo_processo):
-    """Gera o código 1.2.1 baseado no número de etapas existentes."""
-    query = text("SELECT COUNT(*) FROM etapas_processo WHERE processo_id = :id")
-    with engine.connect() as conn:
-        contagem = conn.execute(query, {"id": processo_id}).scalar() or 0
-    return f"{codigo_processo}.{contagem + 1}"
-
-def salvar_risco_etapa(dados, auditoria_id=None):
-    """Salva risco de etapa, opcionalmente vinculado a uma auditoria"""
-    
-    # Buscar informações da etapa para o log
-    with engine.connect() as conn:
-        etapa_info = conn.execute(
-            text("""
-                SELECT e.codigo_etapa, e.descricao_etapa, p.nome_processo, p.codigo_processo
-                FROM etapas_processo e
-                JOIN processos p ON e.processo_id = p.id
-                WHERE e.id = :id
-            """),
-            {"id": dados.get('etapa_id')}
-        ).mappings().fetchone()
-    
-    if auditoria_id:
-        query = text("""
-            INSERT INTO riscos_etapa 
-            (etapa_id, auditoria_id, categoria, fator_risco, consequencia, info_adicional, 
-             financeiro, ativo, origem, doc_legal, impacto, probabilidade, magnitude, 
-             apetite, tratamento)
-            VALUES 
-            (:etapa_id, :auditoria_id, :cat, :fator, :cons, :info, :fin, :ativo, 
-             :ori, :doc, :imp, :prob, :mag, :apet, :trat)
-            RETURNING id
-        """)
-        dados['auditoria_id'] = auditoria_id
-    else:
-        query = text("""
-            INSERT INTO riscos_etapa 
-            (etapa_id, categoria, fator_risco, consequencia, info_adicional, financeiro, 
-             ativo, origem, doc_legal, impacto, probabilidade, magnitude, apetite, tratamento)
-            VALUES 
-            (:etapa_id, :cat, :fator, :cons, :info, :fin, :ativo, :ori, :doc, 
-             :imp, :prob, :mag, :apet, :trat)
-            RETURNING id
-        """)
-    
-    with engine.begin() as conn:
-        result = conn.execute(query, dados)
-        risco_id = result.scalar()
-        
-        # ===== ADICIONAR LOG AQUI =====
-        dados_inseridos = {
-            'id': risco_id,
-            'etapa_id': dados.get('etapa_id'),
-            'etapa_codigo': etapa_info['codigo_etapa'] if etapa_info else None,
-            'etapa_descricao': etapa_info['descricao_etapa'][:100] if etapa_info and etapa_info.get('descricao_etapa') else None,
-            'processo_nome': etapa_info['nome_processo'] if etapa_info else None,
-            'processo_codigo': etapa_info['codigo_processo'] if etapa_info else None,
-            'auditoria_id': auditoria_id,
-            'categoria': dados.get('cat'),
-            'fator_risco': dados.get('fator')[:100] if dados.get('fator') else None,
-            'consequencia': dados.get('cons')[:100] if dados.get('cons') else None,
-            'impacto': dados.get('imp'),
-            'probabilidade': dados.get('prob'),
-            'magnitude': dados.get('mag')
-        }
-        
-        registrar_log(
-            tabela='riscos_etapa',
-            registro_id=risco_id,
-            operacao='INSERT',
-            dados_anteriores=None,
-            dados_novos=dados_inseridos
-        )
-        # ===== FIM DO LOG =====
-        
-        return True
-
-def listar_riscos_etapa(etapa_id, auditoria_id=None):
-    """Lista todos os riscos de uma etapa"""
-    if auditoria_id:
-        query = text("""
-            SELECT 
-                id,
-                categoria,
-                fator_risco,
-                consequencia,
-                impacto,
-                probabilidade,
-                magnitude,
-                apetite,
-                tratamento,
-                origem,
-                financeiro,
-                ativo,
-                info_adicional,
-                doc_legal
-            FROM riscos_etapa
-            WHERE etapa_id = :etapa_id AND (auditoria_id = :auditoria_id OR auditoria_id IS NULL)
-            ORDER BY magnitude DESC
-        """)
-        with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={
-                "etapa_id": etapa_id,
-                "auditoria_id": auditoria_id
-            })
-    else:
-        query = text("""
-            SELECT 
-                id,
-                categoria,
-                fator_risco,
-                consequencia,
-                impacto,
-                probabilidade,
-                magnitude,
-                apetite,
-                tratamento,
-                origem,
-                financeiro,
-                ativo,
-                info_adicional,
-                doc_legal
-            FROM riscos_etapa
-            WHERE etapa_id = :etapa_id
-            ORDER BY magnitude DESC
-        """)
-        with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={"etapa_id": etapa_id})
-
-def buscar_todos_processos():
-    query = text("""
-            SELECT 
-                p.area,
-                p.codigo_processo,
-                p.nome_processo,
-                i.gestor,
-                p.aprovacao
-            FROM processos p
-            JOIN informacoes_area i ON p.area = i.nome_area
-            ORDER BY
-                string_to_array(p.codigo_processo, '.')::int[]    
-                """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn)
-
-MAPA_RISCO = {
-    ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
-    ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
-    ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6, ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
-    ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
-}
 
 # --- CLASSE DO PDF ---
 class PDF(FPDF):
@@ -941,565 +122,6 @@ class PDF(FPDF):
         self.set_font("helvetica", "I", 8)
         self.cell(0, 10, f"Página {self.page_no()}", align="C")
 
-# --- LÓGICA DE BANCO DE DADOS ---
-def obter_proximo_codigo(id_area):
-    query = text("SELECT COUNT(*) FROM processos WHERE id_area = :id")
-    with engine.connect() as conn:
-        contagem = conn.execute(query, {"id": id_area}).scalar() or 0
-    return f"{id_area}.{contagem + 1}"
-
-def processar_codigo_inteligente():
-    """Gera o código do processo e verifica se já existe para carregar dados"""
-    resetar_timer_sessao()
-    
-    id_area = st.session_state.get("id_area_selecionado") 
-    nome = st.session_state.get("input_processo", "").strip()
-    
-    if not id_area or not nome:
-        st.session_state['codigo_processo_display'] = ""
-        return
-    
-    # Verificar se já existe um processo com este nome na mesma área
-    query_check = text("""
-        SELECT id, codigo_processo, objetivo, executor, descricao, 
-               etapa_ini, etapa_fim, produto
-        FROM processos 
-        WHERE id_area = :id_area AND nome_processo = :nome
-    """)
-    
-    with engine.connect() as conn:
-        resultado = conn.execute(query_check, {
-            "id_area": id_area, 
-            "nome": nome
-        }).mappings().first()
-    
-    if resultado:
-        # Processo já existe - carregar todos os dados
-        st.session_state['novo_processo_existente_id'] = resultado['id']
-        st.session_state['codigo_processo_display'] = resultado['codigo_processo']
-        
-        # NÃO carregar os detalhamentos para não enganar o usuário
-        # NÃO setar info_basicas_salvas = True
-
-        # Mostrar aviso claro para o usuário
-        st.warning(f"⚠️ O processo '{nome}' já existe na área selecionada. "
-                   f"Por favor, utilize a aba '✏️ Editar Processo Existente' para modificá-lo.")
-        
-        # Limpar campos que poderiam dar a impressão de que é um novo processo
-        st.session_state['input_objetivo'] = ""
-        st.session_state['input_descricao'] = ""
-        st.session_state['input_etapa_ini'] = ""
-        st.session_state['input_etapa_fim'] = ""
-        st.session_state['input_produto'] = ""
-        
-        return
-        
-    else:
-
-        # Processo novo - gerar código baseado no último código da área
-        ultimo_codigo_query = text("""
-            SELECT codigo_processo 
-            FROM processos 
-            WHERE id_area = :id_area
-            ORDER BY 
-                CAST(split_part(codigo_processo, '.', 1) AS INTEGER),
-                CAST(split_part(codigo_processo, '.', 2) AS INTEGER) DESC
-            LIMIT 1
-        """)
-        
-        with engine.connect() as conn:
-            ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area}).scalar()
-        
-        if ultimo:
-            partes = ultimo.split('.')
-            if len(partes) >= 2:
-                ultimo_numero = int(partes[1])
-                novo_numero = ultimo_numero + 1
-                codigo = f"{id_area}.{novo_numero}"
-            else:
-                codigo = f"{id_area}.1"
-        else:
-            codigo = f"{id_area}.1"
-        
-        st.session_state['codigo_processo_display'] = codigo
-        # Limpar dados de edição anterior
-        if 'processo_existente_id' in st.session_state:
-            st.session_state.pop('processo_existente_id', None)
-        # Limpar campos de detalhamento (opcional)
-        st.session_state['input_objetivo'] = ""
-        st.session_state['input_descricao'] = ""
-        st.session_state['input_etapa_ini'] = ""
-        st.session_state['input_etapa_fim'] = ""
-        st.session_state['input_produto'] = ""
-        st.session_state['info_basicas_salvas'] = False
-
-def normalizar_valor_risco(valor):
-    """
-    Converte valores de risco para o formato correto:
-    'MUITO ALTO' → 'Muito Alto'
-    'ALTO' → 'Alto'
-    'MÉDIO' → 'Médio'
-    'BAIXO' → 'Baixo'
-    """
-    if not valor:
-        return "Baixo"
-    
-    valor_str = str(valor).strip().upper()
-    
-    if valor_str == 'MUITO ALTO':
-        return "Muito Alto"
-    elif valor_str == 'ALTO':
-        return "Alto"
-    elif valor_str == 'MÉDIO' or valor_str == 'MEDIO':
-        return "Médio"
-    elif valor_str == 'BAIXO':
-        return "Baixo"
-    else:
-        # Se não for nenhum dos padrões, tenta encontrar no texto
-        if 'MUITO ALTO' in valor_str:
-            return "Muito Alto"
-        elif 'ALTO' in valor_str:
-            return "Alto"
-        elif 'MÉDIO' in valor_str or 'MEDIO' in valor_str:
-            return "Médio"
-        else:
-            return "Baixo"
-
-def salvar_no_banco():
-    """Salva novo processo ou atualiza existente, traduzindo categorias para nomes"""
-    from logic import listar_categorias, resetar_timer_sessao
-    resetar_timer_sessao()
-    
-    try:
-        with engine.begin() as conn:
-            id_area_val = st.session_state.get("id_area_selecionado")
-            nome_area_val = st.session_state.get("area_selectbox")
-            nome_val = st.session_state.get("input_processo", "").strip()
-
-            # === CONCATENAR OBJETIVO ===
-            objetivo_raw = st.session_state.get('input_objetivo', '').strip()
-            objetivo_com_prefixo = f"Garantir {objetivo_raw}" if objetivo_raw else ''
-
-            # === 1. VERIFICAR SE O PROCESSO JÁ EXISTE ===
-            check_query = text("""
-                SELECT id FROM processos 
-                WHERE id_area = :id_area AND nome_processo = :nome
-            """)
-            existing = conn.execute(check_query, {
-                "id_area": id_area_val,
-                "nome": nome_val
-            }).fetchone()
-
-            if existing:
-                # === MODO EDIÇÃO: Atualizar processo existente ===
-                processo_id = existing[0]
-                st.session_state['processo_existente_id'] = processo_id
-                
-                # Buscar dados ANTIGOS do processo para o log
-                dados_antigos_processo = conn.execute(
-                    text("SELECT * FROM processos WHERE id = :pid"),
-                    {"pid": processo_id}
-                ).mappings().fetchone()
-
-                sql_update = text("""
-                    UPDATE processos 
-                    SET objetivo=:o, descricao=:d, 
-                        etapa_ini=:ei, etapa_fim=:ef, produto=:p
-                    WHERE id = :pid
-                """)
-
-                conn.execute(sql_update, {
-                    "pid": processo_id,
-                    "o": objetivo_com_prefixo,
-                    "d": st.session_state.get('input_descricao', ''),
-                    "ei": st.session_state.get('input_etapa_ini', ''),
-                    "ef": st.session_state.get('input_etapa_fim', ''),
-                    "p": st.session_state.get('input_produto', '')
-                })
-                
-                # Buscar dados NOVOS do processo para o log
-                dados_novos_processo = conn.execute(
-                    text("SELECT * FROM processos WHERE id = :pid"),
-                    {"pid": processo_id}
-                ).mappings().fetchone()
-                
-                # ===== LOG DO UPDATE DO PROCESSO =====
-                registrar_log(
-                    tabela='processos',
-                    registro_id=processo_id,
-                    operacao='UPDATE',
-                    dados_anteriores=dict(dados_antigos_processo),
-                    dados_novos=dict(dados_novos_processo)
-                )
-                # ===== FIM DO LOG =====
-
-            else:
-                # === MODO CRIAÇÃO: Inserir novo processo ===
-                codigo_processo = st.session_state.get('codigo_processo_display', '')
-
-                sql_insert = text("""
-                    INSERT INTO processos 
-                    (id_area, area, codigo_processo, nome_processo, objetivo, 
-                    descricao, etapa_ini, etapa_fim, produto, status) 
-                    VALUES 
-                    (:id_a, :a, :c, :n, :o, :d, :ei, :ef, :p, :st) 
-                    RETURNING id
-                """)
-
-                params_insert = {
-                    "id_a": id_area_val,
-                    "a": nome_area_val,
-                    "c": codigo_processo,
-                    "n": nome_val,
-                    "o": objetivo_com_prefixo,
-                    "d": st.session_state.get('input_descricao', ''),
-                    "ei": st.session_state.get('input_etapa_ini', ''),
-                    "ef": st.session_state.get('input_etapa_fim', ''),
-                    "p": st.session_state.get('input_produto', ''),
-                    "st": "Ativo"
-                }
-
-                processo_id = conn.execute(sql_insert, params_insert).scalar()
-                st.session_state['processo_existente_id'] = processo_id
-                
-                # ===== LOG DO INSERT DO PROCESSO =====
-                dados_novos_processo = {
-                    'id': processo_id,
-                    'id_area': id_area_val,
-                    'area': nome_area_val,
-                    'codigo_processo': codigo_processo,
-                    'nome_processo': nome_val,
-                    'objetivo': objetivo_com_prefixo,
-                    'status': 'Ativo'
-                }
-                
-                registrar_log(
-                    tabela='processos',
-                    registro_id=processo_id,
-                    operacao='INSERT',
-                    dados_anteriores=None,
-                    dados_novos=dados_novos_processo
-                )
-                # ===== FIM DO LOG =====
-
-            # ===== 2. RISCOS: REMOVE OS ANTIGOS E INSERE OS NOVOS =====
-            # Buscar riscos ANTIGOS antes de deletar (para o log)
-            riscos_antigos = conn.execute(
-                text("SELECT id, nome_risco, score_risco, categoria FROM riscos WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchall()
-            
-            # Registrar DELETE dos riscos antigos (um por um ou em lote)
-            for risco_antigo in riscos_antigos:
-                registrar_log(
-                    tabela='riscos',
-                    registro_id=risco_antigo['id'],
-                    operacao='DELETE',
-                    dados_anteriores=dict(risco_antigo),
-                    dados_novos=None
-                )
-            
-            # Executar DELETE
-            conn.execute(
-                text("DELETE FROM riscos WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            )
-
-            # Query de Risco
-            sql_risco = text("""
-                INSERT INTO riscos 
-                (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
-                VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
-                RETURNING id
-            """)
-
-            mapa_categorias = listar_categorias()
-
-            for i in range(len(st.session_state['riscos'])):
-                nome_risco_raw = st.session_state.get(f"nome_{i}", '').strip()
-                nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}" if nome_risco_raw else ''
-                
-                fator_raw = st.session_state.get(f"fator_{i}", '').strip()
-                fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
-
-                imp = st.session_state.get(f"imp_{i}")
-                prob = st.session_state.get(f"prob_{i}")
-                score = MAPA_RISCO.get((imp, prob), 0)
-                
-                categorias_ids = st.session_state.get(f"categorias_{i}", [])
-                if categorias_ids:
-                    nomes_selecionados = [mapa_categorias.get(cid) for cid in categorias_ids if cid in mapa_categorias]
-                    categoria_str = ', '.join(nomes_selecionados)
-                else:
-                    categoria_str = None
-
-                result = conn.execute(sql_risco, {
-                    "pid": processo_id,
-                    "nome": nome_risco_com_prefixo,
-                    "fator": fator_com_prefixo,
-                    "melhoria": st.session_state.get(f"melhoria_{i}"),
-                    "imp": imp,
-                    "prob": prob,
-                    "apetite": st.session_state.get(f"apetite_{i}"),
-                    "motivo": st.session_state.get(f"motivo_{i}"),
-                    "score": score,
-                    "categoria": categoria_str
-                })
-                
-                risco_id = result.scalar()
-                
-                # ===== LOG DO INSERT DO RISCO =====
-                dados_novos_risco = {
-                    'id': risco_id,
-                    'processo_id': processo_id,
-                    'nome_risco': nome_risco_com_prefixo,
-                    'impacto': imp,
-                    'probabilidade': prob,
-                    'score_risco': score,
-                    'categoria': categoria_str
-                }
-                
-                registrar_log(
-                    tabela='riscos',
-                    registro_id=risco_id,
-                    operacao='INSERT',
-                    dados_anteriores=None,
-                    dados_novos=dados_novos_risco
-                )
-                # ===== FIM DO LOG =====
-
-            st.session_state['ultimo_processo_id'] = processo_id
-
-        return True
-
-    except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
-        return False
-
-def buscar_processos_pendentes():
-    query = text("""
-        SELECT DISTINCT 
-            p.id, 
-            p.codigo_processo, 
-            i.nome_area, 
-            p.nome_processo,
-            string_to_array(p.codigo_processo, '.')::int[] AS ordem_logica -- Incluído aqui
-        FROM processos p
-        JOIN riscos r ON p.id = r.processo_id
-        JOIN informacoes_area i ON p.id_area = i.id_area
-        WHERE r.relatorio_gerado != 'Sim' OR r.relatorio_gerado IS NULL
-        ORDER BY 
-            ordem_logica -- Agora usamos o apelido que está no SELECT
-    """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn)
-
-def buscar_dados_do_processo(codigo_processo):
-    # Usamos o JOIN para buscar o nome da área baseado no ID
-    query = text("""
-        SELECT 
-            i.nome_area AS "AREA", 
-            p.nome_processo AS "PROCESSO", 
-            p.objetivo AS "OBJETIVO",
-            p.descricao AS "DESCRIÇÃO DO PROCESSO", 
-            p.executor AS "QUEM EXECUTA?",
-            p.produto AS "PRODUTO DO PROCESSO", 
-            p.etapa_ini AS "ETAPA INICIAL",
-            p.etapa_fim AS "ETAPA FINAL", 
-            r.nome_risco AS "RISCO",
-            r.fator_risco AS "FATOR DE RISCO", 
-            r.melhoria AS "O QUE PODERIA MELHORAR?",
-            r.impacto AS "IMPACTO", 
-            r.probabilidade AS "PROBABILIDADE",
-            r.score_risco AS "RISCO BRUTO"
-        FROM processos p
-        JOIN riscos r ON p.id = r.processo_id
-        JOIN informacoes_area i ON p.id_area = i.id_area
-        WHERE p.codigo_processo = :codigo
-    """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={"codigo": codigo_processo})
-
-def draw_table_header(pdf, headers, widths):
-    pdf.set_fill_color(200, 220, 255) # Cor de fundo azul claro
-    pdf.set_font('helvetica', "B", 6)
-    
-    line_h = 5
-    padding = 1
-    
-    # 1. Pré-processa os cabeçalhos (quebra as linhas se necessário)
-    wrapped_headers = [wrap_text_lines(pdf, h, w - 2*padding) for h, w in zip(headers, widths)]
-    
-    # 2. Calcula a altura necessária para o cabeçalho (baseado na linha mais longa)
-    max_lines = max(len(col) for col in wrapped_headers)
-    header_height = max_lines * line_h + 2 # + 2 de respiro
-    
-    x_start = pdf.get_x()
-    y_start = pdf.get_y()
-    
-    # 3. Desenha cada célula do cabeçalho
-    for i, (lines, w) in enumerate(zip(wrapped_headers, widths)):
-        x_col = x_start + sum(widths[:i])
-        
-        # Desenha o fundo e a borda
-        pdf.rect(x_col, y_start, w, header_height, style='F') # 'F' preenche
-        pdf.rect(x_col, y_start, w, header_height)            # Desenha borda
-        
-        # Centraliza o texto verticalmente dentro do cabeçalho
-        # Se max_lines for maior que a qtd de linhas desta célula, centralizamos visualmente
-        offset_y = (header_height - (len(lines) * line_h)) / 2
-        
-        for j, line in enumerate(lines):
-            pdf.set_xy(x_col + padding, y_start + offset_y + (j * line_h))
-            pdf.cell(w - 2*padding, line_h, line, align="C")
-            
-    # 4. Posiciona o cursor para começar a tabela exatamente abaixo do cabeçalho
-    pdf.set_xy(x_start, y_start + header_height)
-
-# --- 1. A FUNÇÃO DE AJUDA ---
-def wrap_text_lines(pdf_obj, text, width):
-    """Calcula a quebra de texto por largura."""
-    paragraphs = str(text).splitlines() or ['']
-    out_lines = []
-    for para in paragraphs:
-        words = para.split()
-        if not words:
-            out_lines.append('')
-            continue
-        cur = ''
-        for w in words:
-            test = (cur + ' ' + w).strip()
-            if pdf_obj.get_string_width(test) <= width:
-                cur = test
-            else:
-                if cur:
-                    out_lines.append(cur)
-                part = ''
-                for ch in w:
-                    if pdf_obj.get_string_width(part + ch) <= width:
-                        part += ch
-                    else:
-                        if part:
-                            out_lines.append(part)
-                        part = ch
-                cur = part
-        if cur:
-            out_lines.append(cur)
-    return out_lines
-
-# --- 2. A FUNÇÃO QUE DESENHA A LINHA ---
-def draw_table_row(pdf, data, widths, headers):
-    line_h = 5
-    padding = 2
-    
-    # Agora ela encontra a função wrap_text_lines acima!
-    wrapped = []
-    for i, item in enumerate(data):
-        wrapped.append(wrap_text_lines(pdf, str(item), widths[i] - 2*padding))
-    
-    max_lines = max(len(col) for col in wrapped)
-    altura_linha = max_lines * line_h
-    
-    # Verifica quebra de página
-    if pdf.get_y() + altura_linha > (pdf.h - pdf.b_margin):
-        pdf.add_page()
-        # Certifique-se de que sua função draw_table_header está definida neste mesmo arquivo ou importada
-        draw_table_header(pdf, headers, widths) 
-    
-    x_start = pdf.get_x()
-    y_start = pdf.get_y()
-    
-    for i, (w, lines_list) in enumerate(zip(widths, wrapped)):
-        x_col = x_start + sum(widths[:i])
-        pdf.rect(x_col, y_start, w, altura_linha)
-        
-        for j, line in enumerate(lines_list):
-            pdf.set_xy(x_col + padding, y_start + (j * line_h) + padding/2)
-            pdf.cell(w - 2*padding, line_h, line, border=0, align="L")
-            
-    pdf.set_xy(x_start, y_start + altura_linha)
-
-def gerar_pdf_em_memoria(id_proc):
-    df_processo = buscar_dados_do_processo(id_proc)
-    if df_processo.empty: return None
-
-    pdf = PDF()
-    pdf.add_page()
-    primeira_linha = df_processo.iloc[0]
-
-    # --- Cabeçalho e Detalhes ---
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_font("helvetica", "B", 10)
-    pdf.cell(0, 8, f"ID DO PROCESSO: {id_proc}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, fill=True)
-    pdf.cell(0, 8, f"ÁREA: {primeira_linha['AREA']}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    
-    pdf.set_font("helvetica", "B", 10)
-    pdf.cell(30, 8, "PROCESSO:", border=False)
-    pdf.set_font("helvetica", "", 10)
-    pdf.multi_cell(0, 6, str(primeira_linha['PROCESSO']), border=0, align="L")
-    
-    pdf.ln(2)
-    pdf.set_font("helvetica", "B", 9)
-    pdf.cell(0, 6, "OBJETIVO DO PROCESSO:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.set_font("helvetica", "", 9)
-    pdf.multi_cell(0, 6, str(primeira_linha['OBJETIVO']))
-
-    pdf.ln(2)
-    pdf.set_font("helvetica", "B", 9)
-    pdf.cell(0, 6, "DESCRIÇÃO DETALHADA:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.set_font("helvetica", "", 9)
-    pdf.multi_cell(0, 6, str(primeira_linha['DESCRIÇÃO DO PROCESSO']))
-    
-    pdf.ln(5)
-
-    # --- Tabela ---
-    headers = ["RISCO", "FATOR DE RISCO", "O QUE PODERIA MELHORAR?", "IMPACTO", "PROBABILIDADE", "RISCO BRUTO"]
-    widths = [50, 40, 40, 15, 15, 20]
-
-    draw_table_header(pdf, headers, widths)
-
-    for _, linha in df_processo.iterrows():
-        data = [
-            linha['RISCO'],
-            linha['FATOR DE RISCO'],
-            linha['O QUE PODERIA MELHORAR?'],
-            linha['IMPACTO'],
-            linha['PROBABILIDADE'],
-            int(linha['RISCO BRUTO'])
-        ]
-        draw_table_row(pdf, data, widths, headers)
-    
-    # --- Seção de Assinaturas (Ao final da página) ---
-    posicao_ancora = 240
-    
-    # Se a tabela não chegou no final, pula para a âncora
-    if pdf.get_y() < posicao_ancora:
-        pdf.set_y(posicao_ancora)
-    
-    # 1. Desenha a Data
-    data_hoje = datetime.now()
-    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
-             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
-    data_formatada = f"Vassouras, {data_hoje.day} de {meses[data_hoje.month - 1]} de {data_hoje.year}."
-    
-    pdf.set_font("helvetica", "", 10)
-    pdf.cell(0, 10, data_formatada, align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    
-    # 2. Desenha as assinaturas
-    y_assinatura = pdf.get_y() + 10
-    pdf.line(20, y_assinatura, 90, y_assinatura)
-    pdf.line(110, y_assinatura, 180, y_assinatura)
-    
-    pdf.set_y(y_assinatura + 2)
-    pdf.set_font("helvetica", "B", 8)
-    pdf.cell(90, 5, "Gerência", align="C")
-    pdf.cell(90, 5, "Superintendência", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    
-    # --- IMPORTANTE: O Retorno ---
-    return pdf.output(dest='S')
-
 def get_estilo_risco(score):
     """Retorna cor e emoji baseado no score do risco"""
     # Tratar valores nulos
@@ -1513,102 +135,6 @@ def get_estilo_risco(score):
         return "#f7ed94", "🟡" 
     else:
         return "#5cb85c", "🟢"
-
-def salvar_controle_no_banco(dados):
-    query = text("""
-        INSERT INTO controles_etapa (
-            risco_id, risco_avaliacao, nome_controle, como_executado, 
-            objetivo_controle, periodicidade_execucao, evidencia_realizacao, 
-            forma_execucao, natureza, status_controle, data_atualizacao, 
-            frequencia_evidencia, responsaveis_tratamento, causa_motivo
-        ) VALUES (
-            :risco_id, :aval, :nome, :como, 
-            :obj, :periodo, :evid, 
-            :forma, :natureza, :status, :data_atu, 
-            :freq, :resp, :causa
-        )
-        RETURNING id
-    """)
-    
-    try:
-        with engine.begin() as conn:
-            # Buscar informações do risco para o log
-            risco_info = conn.execute(
-                text("""
-                    SELECT r.id, r.nome_risco, r.categoria, p.nome_processo
-                    FROM riscos r
-                    JOIN processos p ON r.processo_id = p.id
-                    WHERE r.id = :id
-                """),
-                {"id": int(dados.get('risco_id'))}
-            ).mappings().fetchone()
-            
-            result = conn.execute(query, {
-                "risco_id": int(dados.get('risco_id')),
-                "aval": str(dados.get('avaliacao', '')),
-                "nome": str(dados.get('nome', '')),
-                "como": str(dados.get('como_executado', '')),
-                "obj": str(dados.get('objetivo', '')),
-                "periodo": str(dados.get('periodicidade', '')),
-                "evid": str(dados.get('evidencia', '')), 
-                "forma": str(dados.get('forma', '')),
-                "natureza": str(dados.get('natureza', '')),
-                "status": str(dados.get('status', '')),
-                "data_atu": dados.get('data_atualizacao'),
-                "freq": str(dados.get('frequencia', '')),
-                "resp": str(dados.get('responsavel', '')),
-                "causa": str(dados.get('causa_motivo', ''))
-            })
-            
-            controle_id = result.scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            dados_inseridos = {
-                'id': controle_id,
-                'risco_id': int(dados.get('risco_id')),
-                'risco_nome': risco_info['nome_risco'][:100] if risco_info and risco_info.get('nome_risco') else None,
-                'risco_categoria': risco_info['categoria'] if risco_info else None,
-                'processo_nome': risco_info['nome_processo'] if risco_info else None,
-                'nome_controle': str(dados.get('nome', ''))[:100],
-                'objetivo_controle': str(dados.get('objetivo', ''))[:100],
-                'status_controle': str(dados.get('status', '')),
-                'natureza': str(dados.get('natureza', ''))
-            }
-            
-            registrar_log(
-                tabela='controles_etapa',
-                registro_id=controle_id,
-                operacao='INSERT',
-                dados_anteriores=None,
-                dados_novos=dados_inseridos
-            )
-            # ===== FIM DO LOG =====
-            
-        return True
-    except Exception as e:
-        print(f"❌ Erro detalhado no banco: {e}") 
-        return False
-
-def listar_controles_da_etapa(etapa_id, auditoria_id=None):
-    query = text("""
-        SELECT 
-            c.*, 
-            r.fator_risco as risco_pai
-        FROM controles_etapa c
-        JOIN riscos_etapa r ON c.risco_id = r.id
-        WHERE r.etapa_id = :etapa_id
-        AND (:auditoria_id IS NULL OR r.auditoria_id = :auditoria_id)
-    """)
-    try:
-        with engine.connect() as conn:
-            return pd.read_sql(query, conn, params={
-                "etapa_id": etapa_id,
-                "auditoria_id": auditoria_id
-            })
-    except Exception as e:
-        print(f"Erro ao listar controles_etapa: {e}")
-        return pd.DataFrame()
-
 
 def validar_login_no_banco(usuario_digitado, senha_digitada):
     from datetime import datetime, timedelta
@@ -1708,355 +234,6 @@ def validar_login_no_banco(usuario_digitado, senha_digitada):
         print(f"Erro ao validar login: {e}")
         return (False, None, None, None, 0, False, 0, False)
 
-def atualizar_status_processo(id_processo, novo_status, coluna):
-    """Atualiza link_diagrama ou aprovacao na tabela processos"""
-    
-    # Validação de segurança: apenas colunas permitidas
-    colunas_permitidas = ['link_diagrama', 'aprovacao', 'status', 'relatorio_gerencial_gerado']
-    if coluna not in colunas_permitidas:
-        print(f"Erro: Coluna '{coluna}' não é permitida para atualização")
-        return False
-    
-    try:
-        # Buscar dados ANTIGOS do processo antes de atualizar
-        with engine.connect() as conn:
-            dados_antigos = conn.execute(
-                text("SELECT id, nome_processo, codigo_processo, link_diagrama, aprovacao, status, relatorio_gerencial_gerado FROM processos WHERE id = :id"),
-                {"id": id_processo}
-            ).mappings().fetchone()
-            
-            if not dados_antigos:
-                print(f"Erro: Processo {id_processo} não encontrado")
-                return False
-        
-        # Query segura com texto puro (sem f-string para valores)
-        query = text(f"UPDATE processos SET {coluna} = :valor WHERE id = :id RETURNING id")
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, {"valor": novo_status, "id": id_processo})
-            resultado_id = result.scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            dados_novos = {
-                'id': id_processo,
-                'nome_processo': dados_antigos['nome_processo'],
-                'codigo_processo': dados_antigos['codigo_processo'],
-                f'{coluna}_anterior': dados_antigos.get(coluna),
-                f'{coluna}_novo': novo_status
-            }
-            
-            # Dados antigos resumidos para o log
-            dados_antigos_resumidos = {
-                'id': id_processo,
-                'nome_processo': dados_antigos['nome_processo'],
-                'codigo_processo': dados_antigos['codigo_processo'],
-                f'{coluna}': dados_antigos.get(coluna)
-            }
-            
-            registrar_log(
-                tabela='processos',
-                registro_id=id_processo,
-                operacao='UPDATE',
-                dados_anteriores=dados_antigos_resumidos,
-                dados_novos=dados_novos
-            )
-            # ===== FIM DO LOG =====
-        
-        return True
-        
-    except Exception as e:
-        print(f"Erro ao atualizar status do processo: {e}")
-        return False
-
-def remover_processo_da_auditoria(auditoria_id, processo_id):
-    """
-    Remove um processo da lista de selecionados da auditoria
-    """
-    try:
-        # Buscar informações ANTES de deletar (para o log)
-        with engine.connect() as conn:
-            # Buscar dados da relação que será removida
-            relacao = conn.execute(
-                text("""
-                    SELECT ap.id, ap.auditoria_id, ap.processo_id, ap.motivo_selecao,
-                           a.codigo_auditoria, a.titulo,
-                           p.codigo_processo, p.nome_processo
-                    FROM auditoria_processos ap
-                    JOIN auditorias a ON a.id = ap.auditoria_id
-                    JOIN processos p ON p.id = ap.processo_id
-                    WHERE ap.auditoria_id = :auditoria_id 
-                    AND ap.processo_id = :processo_id
-                """),
-                {
-                    "auditoria_id": auditoria_id,
-                    "processo_id": processo_id
-                }
-            ).mappings().fetchone()
-        
-        query = text("""
-            DELETE FROM auditoria_processos 
-            WHERE auditoria_id = :auditoria_id 
-            AND processo_id = :processo_id
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, {
-                "auditoria_id": auditoria_id,
-                "processo_id": processo_id
-            }).fetchone()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            if relacao:
-                dados_antigos = {
-                    'id': relacao['id'],
-                    'auditoria_id': auditoria_id,
-                    'auditoria_codigo': relacao['codigo_auditoria'],
-                    'auditoria_titulo': relacao['titulo'],
-                    'processo_id': processo_id,
-                    'processo_codigo': relacao['codigo_processo'],
-                    'processo_nome': relacao['nome_processo'],
-                    'motivo_selecao': relacao.get('motivo_selecao')
-                }
-                
-                registrar_log(
-                    tabela='auditoria_processos',
-                    registro_id=relacao['id'],
-                    operacao='DELETE',
-                    dados_anteriores=dados_antigos,
-                    dados_novos=None
-                )
-            # ===== FIM DO LOG =====
-        
-        return True
-    except Exception as e:
-        print(f"Erro ao remover processo: {e}")
-        return False
-
-def validar_basicos():
-    """Valida nome do processo e pelo menos um executor selecionado"""
-    
-    if not st.session_state.get("input_processo", "").strip():
-        st.error("❌ O campo 'Nome do Processo' é obrigatório.")
-        return False
-    
-    if not st.session_state.get('novo_executores_selecionados'):
-        st.error("❌ Selecione pelo menos um funcionário para executar o processo.")
-        return False
-    
-    return True
-
-def salvar_informacoes_basicas():
-    """Salva as informações básicas do processo
-    Retorna: (bool, str) - (sucesso, codigo_do_processo)
-    """
-    resetar_timer_sessao()
-    try:
-        with engine.begin() as conn:
-            id_area_val = st.session_state.get("id_area_selecionado")
-            nome_area_val = st.session_state.get("area_selectbox")
-            nome_val = st.session_state.get("input_processo", "").strip()
-            
-            # VERIFICAR SE O PROCESSO JÁ EXISTE
-            check_query = text("""
-                SELECT id, codigo_processo FROM processos 
-                WHERE id_area = :id_area AND nome_processo = :nome
-            """)
-            existing = conn.execute(check_query, {
-                "id_area": id_area_val,
-                "nome": nome_val
-            }).mappings().fetchone()
-            
-            if existing:
-                # Processo já existe
-                processo_id = existing['id']
-                st.session_state['processo_existente_id'] = processo_id
-                st.info(f"Processo já existe.")
-                return True, existing['codigo_processo']
-            
-            # GERAR CÓDIGO DO PROCESSO
-            ultimo_codigo_query = text("""
-                SELECT codigo_processo 
-                FROM processos 
-                WHERE id_area = :id_area
-                ORDER BY 
-                    CAST(split_part(codigo_processo, '.', 1) AS INTEGER),
-                    CAST(split_part(codigo_processo, '.', 2) AS INTEGER) DESC
-                LIMIT 1
-            """)
-            
-            ultimo = conn.execute(ultimo_codigo_query, {"id_area": id_area_val}).scalar()
-            
-            if ultimo:
-                partes = ultimo.split('.')
-                if len(partes) >= 2:
-                    ultimo_numero = int(partes[1])
-                    novo_numero = ultimo_numero + 1
-                    codigo_processo = f"{id_area_val}.{novo_numero}"
-                else:
-                    codigo_processo = f"{id_area_val}.1"
-            else:
-                codigo_processo = f"{id_area_val}.1"
-            
-            # Inserir novo processo
-            sql_insert = text("""
-                INSERT INTO processos 
-                (id_area, area, codigo_processo, nome_processo, status, aprovacao) 
-                VALUES 
-                (:id_a, :a, :c, :n, :st, :aprov) 
-                RETURNING id
-            """)
-            
-            params = {
-                "id_a": id_area_val,
-                "a": nome_area_val,
-                "c": codigo_processo,
-                "n": nome_val,
-                "st": "Ativo",
-                "aprov": "Em Aprovação"
-            }
-            processo_id = conn.execute(sql_insert, params).scalar()
-            st.session_state['processo_existente_id'] = processo_id
-            
-            # ===== LOG DO INSERT DO PROCESSO =====
-            dados_novos_processo = {
-                'id': processo_id,
-                'id_area': id_area_val,
-                'area': nome_area_val,
-                'codigo_processo': codigo_processo,
-                'nome_processo': nome_val,
-                'status': 'Ativo',
-                'aprovacao': 'Em Aprovação'
-            }
-            
-            registrar_log(
-                tabela='processos',
-                registro_id=processo_id,
-                operacao='INSERT',
-                dados_anteriores=None,
-                dados_novos=dados_novos_processo
-            )
-            # ===== FIM DO LOG =====
-            
-            # ===== SALVAR EXECUTORES =====
-            # Buscar executores antigos (se houver)
-            executores_antigos = conn.execute(
-                text("SELECT funcionario_id FROM processo_executores WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            ).fetchall()
-            
-            # Registrar DELETE dos executores antigos
-            for exec_antigo in executores_antigos:
-                registrar_log(
-                    tabela='processo_executores',
-                    registro_id=exec_antigo[0],
-                    operacao='DELETE',
-                    dados_anteriores={'processo_id': processo_id, 'funcionario_id': exec_antigo[0]},
-                    dados_novos=None
-                )
-            
-            conn.execute(
-                text("DELETE FROM processo_executores WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            )
-            
-            executores_ids = st.session_state.get('novo_executores_selecionados', [])
-            if executores_ids:
-                # Buscar nomes dos funcionários para o log
-                funcionarios_info = {}
-                for fid in executores_ids:
-                    func_info = conn.execute(
-                        text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id"),
-                        {"id": fid}
-                    ).scalar()
-                    funcionarios_info[fid] = func_info
-                
-                sql_exec = text("""
-                    INSERT INTO processo_executores (processo_id, funcionario_id)
-                    VALUES (:pid, :fid)
-                    RETURNING id
-                """)
-                
-                for fid in executores_ids:
-                    result = conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
-                    exec_id = result.scalar()
-                    
-                    # ===== LOG DO INSERT DO EXECUTOR =====
-                    dados_novos_executor = {
-                        'id': exec_id,
-                        'processo_id': processo_id,
-                        'funcionario_id': fid,
-                        'funcionario_nome': funcionarios_info.get(fid)
-                    }
-                    
-                    registrar_log(
-                        tabela='processo_executores',
-                        registro_id=exec_id,
-                        operacao='INSERT',
-                        dados_anteriores=None,
-                        dados_novos=dados_novos_executor
-                    )
-                    # ===== FIM DO LOG =====
-            
-            # Vincular à auditoria
-            if 'auditoria_diagnostico' in st.session_state:
-                auditoria_id = st.session_state['auditoria_diagnostico']
-                vincular_processo_a_auditoria(
-                    auditoria_id=auditoria_id,
-                    processo_id=processo_id,
-                    motivo="Processo identificado durante diagnóstico da área"
-                )
-            
-            st.session_state['ultimo_processo_id'] = processo_id
-            
-            return True, codigo_processo
-            
-    except Exception as e:
-        st.error(f"Erro ao salvar informações básicas: {e}")
-        return False, None
-    
-def listar_riscos_do_processo(processo_id):
-    """Retorna todos os riscos de um processo com sua categoria"""
-    query = text("""
-        SELECT r.id, r.nome_risco, r.fator_risco, r.melhoria, r.impacto, 
-               r.probabilidade, r.apetite_risco, r.motivo_risco, r.score_risco,
-               r.categoria
-        FROM riscos r
-        WHERE r.processo_id = :pid
-        ORDER BY r.id
-    """)
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={"pid": processo_id})
-        
-        # Adicionar função para converter a string de categorias em lista de IDs
-        if not df.empty:
-            categorias_dict = {
-                1: "Risco Financeiro",
-                2: "Risco Legal", 
-                3: "Risco Inerente",
-                4: "Risco de TI",
-                5: "Risco Reputacional",
-                6: "Risco de Integridade",
-                7: "Risco Ambiental"
-            }
-            
-            # Criar dicionário reverso: nome -> id
-            nome_para_id = {v: k for k, v in categorias_dict.items()}
-            
-            def converter_categoria_para_ids(categoria_str):
-                if not categoria_str or pd.isna(categoria_str):
-                    return []
-                # Separar a string por vírgula
-                nomes = [nome.strip() for nome in categoria_str.split(',') if nome.strip()]
-                # Converter nomes para IDs
-                ids = [nome_para_id[nome] for nome in nomes if nome in nome_para_id]
-                return ids
-            
-            # Criar coluna categorias_ids
-            df['categorias_ids'] = df['categoria'].apply(converter_categoria_para_ids)
-        
-        return df
-
 def salvar_area(dados_area):
     try:
         query = text("""
@@ -2084,7 +261,6 @@ def salvar_area(dados_area):
             }).scalar()
             
             # ====== REGISTRAR LOG ======
-            from modules.shared.log_sistema import registrar_log
             registrar_log(
                 tabela='informacoes_area',
                 registro_id=id_area,
@@ -2126,73 +302,6 @@ def listar_areas(apenas_ativas=True):
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
-def salvar_funcionarios_area(id_area, funcionarios):
-    """Salva múltiplos funcionários para uma área"""
-    try:
-        with engine.begin() as conn:
-            # Buscar nome da área para o log
-            area_info = conn.execute(
-                text("SELECT nome_area FROM informacoes_area WHERE id_area = :id"),
-                {"id": id_area}
-            ).scalar()
-            
-            for func in funcionarios:
-                # Verificar se funcionário já existe
-                check_query = text("""
-                    SELECT id FROM funcionarios_area 
-                    WHERE id_area = :id_area AND nome_funcionario = :nome
-                """)
-                existing = conn.execute(check_query, {
-                    "id_area": id_area,
-                    "nome": func['nome']
-                }).fetchone()
-                
-                if not existing:
-                    insert_query = text("""
-                        INSERT INTO funcionarios_area 
-                        (id_area, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa, ativo, created_at, updated_at)
-                        VALUES (:id_area, :nome, :cargo, :data_funcao, :data_empresa, TRUE, NOW(), NOW())
-                        RETURNING id
-                    """)
-                    result = conn.execute(insert_query, {
-                        "id_area": id_area,
-                        "nome": func['nome'],
-                        "cargo": func.get('cargo', ''),
-                        "data_funcao": func.get('data_inicio_funcao'),
-                        "data_empresa": func.get('data_inicio_empresa')
-                    })
-                    
-                    funcionario_id = result.scalar()
-                    
-                    # ===== ADICIONAR LOG AQUI =====
-                    dados_inseridos = {
-                        'id': funcionario_id,
-                        'id_area': id_area,
-                        'nome_area': area_info,
-                        'nome_funcionario': func['nome'],
-                        'cargo': func.get('cargo', ''),
-                        'data_inicio_funcao': str(func.get('data_inicio_funcao')) if func.get('data_inicio_funcao') else None,
-                        'data_inicio_empresa': str(func.get('data_inicio_empresa')) if func.get('data_inicio_empresa') else None,
-                        'ativo': True
-                    }
-                    
-                    registrar_log(
-                        tabela='funcionarios_area',
-                        registro_id=funcionario_id,
-                        operacao='INSERT',
-                        dados_anteriores=None,
-                        dados_novos=dados_inseridos
-                    )
-                    # ===== FIM DO LOG =====
-                else:
-                    # Funcionário já existe - não faz nada
-                    pass
-                    
-        return True
-    except Exception as e:
-        print(f"Erro ao salvar funcionários: {e}")
-        return False
-
 def listar_funcionarios_area(id_area):
     """Retorna todos os funcionários de uma área com datas"""
     query = text("""
@@ -2227,6 +336,25 @@ def listar_funcionarios_area_todos(area_id):
     
     with engine.connect() as conn:
         return pd.read_sql(query, conn, params={"area_id": area_id})
+
+def buscar_funcionario_por_id(funcionario_id):
+    """Busca um funcionario pelo ID"""
+    from database import engine
+    from sqlalchemy import text
+
+    try:
+        query = text("""
+            SELECT id, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa
+            FROM funcionarios_area
+            WHERE id = :id
+        """)
+
+        with engine.connect() as conn:
+            result = conn.execute(query, {"id": funcionario_id}).mappings().first()
+            return dict(result) if result else None
+    except Exception as e:
+        print(f"Erro ao buscar funcionário: {e}")
+        return None
 
 def excluir_funcionario(funcionario_id):
     """Desativa um funcionário (soft delete) - mantém o histórico"""
@@ -2276,11 +404,27 @@ def excluir_funcionario(funcionario_id):
         print(f"❌ Erro ao desativar funcionário: {e}")
         return False
 
+def buscar_area_por_id(area_id):
+    """Buscar uma área pelo ID (retorna dicionário para log)"""
+    from database import engine
+    from sqlalchemy import text
+
+    query = text("""
+        SELECT id_area, nome_area, email, telefone, gestor, 
+               superintendente, diretor, objetivo_area, status,
+               loc_unidade
+        FROM informacoes_area
+        WHERE id_area = :id
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {"id": area_id}).mappings().first()
+        return dict(result) if result else None
+
 def excluir_area(area_id):
     """Desativa uma área e todos os seus funcionários (soft delete em cascata)"""
     from database import engine
     from sqlalchemy import text
-    from modules.shared.log_sistema import registrar_log
     
     print(f"🔍 Desativando área ID: {area_id} e seus funcionários")
     
@@ -2315,564 +459,6 @@ def excluir_area(area_id):
     except Exception as e:
         print(f"❌ Erro ao desativar área: {e}")
         return False
-
-
-def listar_funcionarios_por_area(id_area):
-    """Retorna lista de funcionários com nome e ID (para selects)"""
-    query = text("""
-        SELECT id, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa
-        FROM funcionarios_area
-        WHERE id_area = :id_area AND ativo = TRUE
-        ORDER BY nome_funcionario
-    """)
-    with engine.connect() as conn:
-        result = conn.execute(query, {"id_area": id_area})
-        return [(row[0], row[1]) for row in result]  # id, nome
-
-def listar_executores_processo(processo_id):
-    """Retorna os IDs dos funcionários que executam um processo"""
-    query = text("""
-        SELECT funcionario_id
-        FROM processo_executores
-        WHERE processo_id = :pid
-    """)
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={"pid": processo_id})
-        return df['funcionario_id'].tolist() if not df.empty else []
-
-def buscar_funcionario_por_id(funcionario_id):
-    """Busca dados de um funcionário pelo ID"""
-    query = text("""
-        SELECT id, nome_funcionario, cargo
-        FROM funcionarios_area
-        WHERE id = :fid
-    """)
-    with engine.connect() as conn:
-        return conn.execute(query, {"fid": funcionario_id}).mappings().first()
-
-def listar_executores_processo_com_nomes(processo_id):
-    """Retorna os nomes dos funcionários que executam um processo"""
-    query = text("""
-        SELECT f.nome_funcionario, f.cargo
-        FROM processo_executores pe
-        JOIN funcionarios_area f ON pe.funcionario_id = f.id
-        WHERE pe.processo_id = :pid
-        ORDER BY f.nome_funcionario
-    """)
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params={"pid": processo_id})
-        if df.empty:
-            return []
-        return [f"{row['nome_funcionario']} ({row['cargo']})" 
-                for _, row in df.iterrows()]
-
-def get_categorias_lista():
-    """Retorna apenas a lista de nomes das categorias"""
-    return [
-        "Risco Financeiro",
-        "Risco Legal", 
-        "Risco Inerente",
-        "Risco de TI",
-        "Risco Reputacional",
-        "Risco de Integridade",
-        "Risco Ambiental"
-    ]
-
-def carregar_riscos_processo_para_edicao(processo_id):
-    """Carrega os riscos do processo para a session_state de edição"""
-    import streamlit as st
-    
-    # ===== LIMPEZA AGRESSIVA =====
-    # Remover todas as keys de edição de riscos
-    keys_to_remove = []
-    for key in list(st.session_state.keys()):
-        if key.startswith('edit_nome_') or key.startswith('edit_fator_') or \
-           key.startswith('edit_melhoria_') or key.startswith('edit_apetite_') or \
-           key.startswith('edit_imp_') or key.startswith('edit_prob_') or \
-           key.startswith('edit_motivo_') or key.startswith('edit_categorias_'):
-            keys_to_remove.append(key)
-    
-    for key in keys_to_remove:
-        st.session_state.pop(key, None)
-    
-    # ===== CARREGAR NOVOS RISCOS =====
-    df_riscos = listar_riscos_do_processo(processo_id)
-    
-    # CRUCIAL: Se não há riscos, criar lista VAZIA, não [{}]
-    if not df_riscos.empty:
-        st.session_state['edit_riscos'] = []
-        
-        for idx, (_, row) in enumerate(df_riscos.iterrows()):
-            st.session_state['edit_riscos'].append({})
-            st.session_state[f'edit_nome_{idx}'] = row['nome_risco'] or ""
-            st.session_state[f'edit_fator_{idx}'] = row['fator_risco'] or ""
-            st.session_state[f'edit_melhoria_{idx}'] = row['melhoria'] or ""
-            st.session_state[f'edit_apetite_{idx}'] = row['apetite_risco'] or ""
-            st.session_state[f'edit_motivo_{idx}'] = row['motivo_risco'] or ""
-            st.session_state[f'edit_categorias_{idx}'] = row['categorias_ids'] if row['categorias_ids'] else []
-            st.session_state[f'edit_imp_{idx}'] = normalizar_valor_risco(row['impacto'])
-            st.session_state[f'edit_prob_{idx}'] = normalizar_valor_risco(row['probabilidade'])
-    else:
-        # ===== MUDANÇA CRÍTICA: LISTA VAZIA, NÃO [{}] =====
-        st.session_state['edit_riscos'] = []  # ← LISTA VAZIA
-    
-    # DEBUG
-    print(f"🔍 Carregados {len(st.session_state['edit_riscos'])} riscos para o processo {processo_id}")
-
-def salvar_edicao_processo():
-    """Salva as alterações de um processo existente"""
-    resetar_timer_sessao()
-    try:
-        with engine.begin() as conn:
-            processo_id = st.session_state.get('edit_processo_existente_id')
-            if not processo_id:
-                st.error("Processo não identificado.")
-                return False
-            
-            # === BUSCAR DADOS ANTIGOS DO PROCESSO ===
-            dados_antigos_processo = conn.execute(
-                text("SELECT * FROM processos WHERE id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchone()
-            
-            # === CONCATENAR OBJETIVO ===
-            objetivo_raw = st.session_state.get('edit_input_objetivo', '').strip()
-            if objetivo_raw:
-                objetivo_com_prefixo = f"Garantir {objetivo_raw}"
-            else:
-                objetivo_com_prefixo = ''
-            
-            # Atualizar dados básicos
-            sql_update = text("""
-                UPDATE processos 
-                SET nome_processo=:nome, objetivo=:o, descricao=:d, 
-                    etapa_ini=:ei, etapa_fim=:ef, produto=:p
-                WHERE id = :pid
-            """)
-            
-            conn.execute(sql_update, {
-                "pid": processo_id,
-                "nome": st.session_state.get('edit_input_processo', ''),
-                "o": objetivo_com_prefixo,
-                "d": st.session_state.get('edit_input_descricao', ''),
-                "ei": st.session_state.get('edit_input_etapa_ini', ''),
-                "ef": st.session_state.get('edit_input_etapa_fim', ''),
-                "p": st.session_state.get('edit_input_produto', '')
-            })
-            
-            # === LOG DO UPDATE DO PROCESSO ===
-            dados_novos_processo = conn.execute(
-                text("SELECT * FROM processos WHERE id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchone()
-            
-            registrar_log(
-                tabela='processos',
-                registro_id=processo_id,
-                operacao='UPDATE',
-                dados_anteriores=dict(dados_antigos_processo),
-                dados_novos=dict(dados_novos_processo)
-            )
-            # ===== FIM DO LOG =====
-            
-            # === ATUALIZAR EXECUTORES ===
-            # Buscar executores antigos
-            executores_antigos = conn.execute(
-                text("SELECT id, funcionario_id FROM processo_executores WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchall()
-            
-            # Registrar DELETE dos executores antigos
-            for exec_antigo in executores_antigos:
-                registrar_log(
-                    tabela='processo_executores',
-                    registro_id=exec_antigo['id'],
-                    operacao='DELETE',
-                    dados_anteriores={'processo_id': processo_id, 'funcionario_id': exec_antigo['funcionario_id']},
-                    dados_novos=None
-                )
-            
-            conn.execute(
-                text("DELETE FROM processo_executores WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            )
-            
-            executores_ids = st.session_state.get('edit_executores_selecionados', [])
-            if executores_ids:
-                # Buscar nomes dos funcionários
-                for fid in executores_ids:
-                    func_nome = conn.execute(
-                        text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id"),
-                        {"id": fid}
-                    ).scalar()
-                    
-                    sql_exec = text("""
-                        INSERT INTO processo_executores (processo_id, funcionario_id)
-                        VALUES (:pid, :fid)
-                        RETURNING id
-                    """)
-                    result = conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
-                    exec_id = result.scalar()
-                    
-                    # LOG do INSERT do executor
-                    registrar_log(
-                        tabela='processo_executores',
-                        registro_id=exec_id,
-                        operacao='INSERT',
-                        dados_anteriores=None,
-                        dados_novos={
-                            'processo_id': processo_id,
-                            'funcionario_id': fid,
-                            'funcionario_nome': func_nome
-                        }
-                    )
-            
-            # === ATUALIZAR RISCOS ===
-            # Buscar riscos antigos
-            riscos_antigos = conn.execute(
-                text("SELECT id, nome_risco, score_risco, categoria FROM riscos WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchall()
-            
-            # Registrar DELETE dos riscos antigos
-            for risco_antigo in riscos_antigos:
-                registrar_log(
-                    tabela='riscos',
-                    registro_id=risco_antigo['id'],
-                    operacao='DELETE',
-                    dados_anteriores=dict(risco_antigo),
-                    dados_novos=None
-                )
-            
-            conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
-            
-            sql_risco = text("""
-                INSERT INTO riscos 
-                (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
-                VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :categoria)
-                RETURNING id
-            """)
-            
-            # Carregar mapa de categorias para conversão
-            from logic import listar_categorias
-            mapa_categorias = listar_categorias()
-            
-            for i in range(len(st.session_state.get('edit_riscos', []))):
-                # === CONCATENAR NOME DO RISCO ===
-                nome_risco_raw = st.session_state.get(f"edit_nome_{i}", '').strip()
-                if nome_risco_raw:
-                    nome_risco_com_prefixo = f"Risco pela possibilidade {nome_risco_raw}"
-                else:
-                    nome_risco_com_prefixo = ''
-                
-                # === CONCATENAR FATOR DO RISCO ===
-                fator_raw = st.session_state.get(f"edit_fator_{i}", '').strip()
-                if fator_raw:
-                    fator_com_prefixo = f"Pelo motivo {fator_raw}"
-                else:
-                    fator_com_prefixo = ''
-                
-                imp = st.session_state.get(f"edit_imp_{i}")
-                prob = st.session_state.get(f"edit_prob_{i}")
-                score = MAPA_RISCO.get((imp, prob), 0)
-                
-                # === CONVERTER CATEGORIAS (IDs -> NOMES) ===
-                categorias_ids = st.session_state.get(f"edit_categorias_{i}", [])
-                if categorias_ids:
-                    nomes_categorias = [mapa_categorias.get(cid) for cid in categorias_ids if cid in mapa_categorias]
-                    categoria_str = ', '.join(nomes_categorias)
-                else:
-                    categoria_str = None
-                
-                result = conn.execute(sql_risco, {
-                    "pid": processo_id, 
-                    "nome": nome_risco_com_prefixo,
-                    "fator": fator_com_prefixo,
-                    "melhoria": st.session_state.get(f"edit_melhoria_{i}"), 
-                    "imp": imp, 
-                    "prob": prob, 
-                    "apetite": st.session_state.get(f"edit_apetite_{i}"), 
-                    "motivo": st.session_state.get(f"edit_motivo_{i}"), 
-                    "score": score,
-                    "categoria": categoria_str
-                })
-                
-                risco_id = result.scalar()
-                
-                # LOG do INSERT do novo risco
-                registrar_log(
-                    tabela='riscos',
-                    registro_id=risco_id,
-                    operacao='INSERT',
-                    dados_anteriores=None,
-                    dados_novos={
-                        'processo_id': processo_id,
-                        'nome_risco': nome_risco_com_prefixo,
-                        'impacto': imp,
-                        'probabilidade': prob,
-                        'score_risco': score,
-                        'categoria': categoria_str
-                    }
-                )
-            
-        return True
-    except Exception as e:
-        st.error(f"Erro ao salvar edição: {e}")
-        return False
-    
-def tempo_restante_sessao():
-    """Retorna o tempo restante em minutos e segundos"""
-    if st.session_state.get('autenticado'):
-        login_time = st.session_state.get('login_timestamp')
-        if login_time:
-            tempo_decorrido = (datetime.now() - login_time).total_seconds()
-            tempo_restante = max(0, TEMPO_SESSAO_SEGUNDOS - tempo_decorrido)
-            minutos = int(tempo_restante // 60)
-            segundos = int(tempo_restante % 60)
-            return f"{minutos:02d}:{segundos:02d}"
-    return "00:00"
-
-def salvar_edicao_processo_completa(dados):
-    """Salva as alterações de um processo existente e seus riscos"""
-    try:
-        with engine.begin() as conn:
-            processo_id = dados.get('processo_id')
-            if not processo_id:
-                return False
-            
-            # === BUSCAR DADOS ANTIGOS DO PROCESSO ===
-            dados_antigos_processo = conn.execute(
-                text("SELECT * FROM processos WHERE id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchone()
-            
-            # 1. Preparar Objetivo
-            objetivo_raw = dados.get('objetivo', '').strip()
-            objetivo_com_prefixo = f"Garantir {objetivo_raw}" if objetivo_raw else ''
-            
-            # 2. Atualizar dados básicos da tabela PROCESSOS
-            sql_update = text("""
-                UPDATE processos 
-                SET nome_processo=:nome, objetivo=:o, descricao=:d, 
-                    etapa_ini=:ei, etapa_fim=:ef, produto=:p
-                WHERE id = :pid
-            """)
-            
-            conn.execute(sql_update, {
-                "pid": processo_id,
-                "nome": dados.get('nome_processo', ''),
-                "o": objetivo_com_prefixo,
-                "d": dados.get('descricao', ''),
-                "ei": dados.get('etapa_ini', ''),
-                "ef": dados.get('etapa_fim', ''),
-                "p": dados.get('produto', '')
-            })
-            
-            # === LOG DO UPDATE DO PROCESSO ===
-            dados_novos_processo = conn.execute(
-                text("SELECT * FROM processos WHERE id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchone()
-            
-            registrar_log(
-                tabela='processos',
-                registro_id=processo_id,
-                operacao='UPDATE',
-                dados_anteriores=dict(dados_antigos_processo),
-                dados_novos=dict(dados_novos_processo)
-            )
-            # ===== FIM DO LOG =====
-            
-            # 3. Atualizar executores (Limpa e reinsere)
-            # Buscar executores antigos
-            executores_antigos = conn.execute(
-                text("SELECT id, funcionario_id FROM processo_executores WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchall()
-            
-            # Registrar DELETE dos executores antigos
-            for exec_antigo in executores_antigos:
-                registrar_log(
-                    tabela='processo_executores',
-                    registro_id=exec_antigo['id'],
-                    operacao='DELETE',
-                    dados_anteriores={'processo_id': processo_id, 'funcionario_id': exec_antigo['funcionario_id']},
-                    dados_novos=None
-                )
-            
-            conn.execute(
-                text("DELETE FROM processo_executores WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            )
-            
-            executores_ids = dados.get('executores', [])
-            if executores_ids:
-                sql_exec = text("INSERT INTO processo_executores (processo_id, funcionario_id) VALUES (:pid, :fid) RETURNING id")
-                for fid in executores_ids:
-                    # Buscar nome do funcionário
-                    func_nome = conn.execute(
-                        text("SELECT nome_funcionario FROM funcionarios_area WHERE id = :id"),
-                        {"id": fid}
-                    ).scalar()
-                    
-                    result = conn.execute(sql_exec, {"pid": processo_id, "fid": fid})
-                    exec_id = result.scalar()
-                    
-                    # LOG do INSERT do executor
-                    registrar_log(
-                        tabela='processo_executores',
-                        registro_id=exec_id,
-                        operacao='INSERT',
-                        dados_anteriores=None,
-                        dados_novos={
-                            'processo_id': processo_id,
-                            'funcionario_id': fid,
-                            'funcionario_nome': func_nome
-                        }
-                    )
-            
-            # 4. Atualizar RISCOS (Limpa e reinsere)
-            # Buscar riscos antigos
-            riscos_antigos = conn.execute(
-                text("SELECT id, nome_risco, score_risco, categoria FROM riscos WHERE processo_id = :pid"),
-                {"pid": processo_id}
-            ).mappings().fetchall()
-            
-            # Registrar DELETE dos riscos antigos
-            for risco_antigo in riscos_antigos:
-                registrar_log(
-                    tabela='riscos',
-                    registro_id=risco_antigo['id'],
-                    operacao='DELETE',
-                    dados_anteriores=dict(risco_antigo),
-                    dados_novos=None
-                )
-            
-            conn.execute(text("DELETE FROM riscos WHERE processo_id = :pid"), {"pid": processo_id})
-            
-            sql_risco = text("""
-                INSERT INTO riscos 
-                (processo_id, nome_risco, fator_risco, melhoria, impacto, 
-                 probabilidade, apetite_risco, motivo_risco, score_risco, categoria) 
-                VALUES 
-                (:pid, :nome, :fator, :melhoria, :imp, :prob, :apetite, :motivo, :score, :cat)
-                RETURNING id
-            """)
-            
-            for risco in dados.get('riscos', []):
-                mapa_categorias = listar_categorias()
-                categorias_selecionadas = risco.get('categorias', [])
-                
-                if isinstance(categorias_selecionadas, list):
-                    nomes_cats = [mapa_categorias.get(cid) for cid in categorias_selecionadas if cid in mapa_categorias]
-                    categoria_final = ", ".join(nomes_cats)
-                else:
-                    categoria_final = mapa_categorias.get(categorias_selecionadas, str(categorias_selecionadas))
-
-                nome_raw = risco.get('nome', '').strip()
-                nome_com_prefixo = f"Risco pela possibilidade {nome_raw}" if nome_raw else ''
-                
-                fator_raw = risco.get('fator', '').strip()
-                fator_com_prefixo = f"Pelo motivo {fator_raw}" if fator_raw else ''
-                
-                imp = risco.get('impacto', 'Médio')
-                prob = risco.get('probabilidade', 'Médio')
-                score = MAPA_RISCO.get((imp, prob), 0)
-                
-                result = conn.execute(sql_risco, {
-                    "pid": processo_id,
-                    "nome": nome_com_prefixo,
-                    "fator": fator_com_prefixo,
-                    "melhoria": risco.get('melhoria', ''),
-                    "imp": imp,
-                    "prob": prob,
-                    "apetite": risco.get('apetite', ''),
-                    "motivo": risco.get('motivo', ''),
-                    "score": score,
-                    "cat": categoria_final
-                })
-                
-                risco_id = result.scalar()
-                
-                # LOG do INSERT do novo risco
-                registrar_log(
-                    tabela='riscos',
-                    registro_id=risco_id,
-                    operacao='INSERT',
-                    dados_anteriores=None,
-                    dados_novos={
-                        'processo_id': processo_id,
-                        'nome_risco': nome_com_prefixo,
-                        'impacto': imp,
-                        'probabilidade': prob,
-                        'score_risco': score,
-                        'categoria': categoria_final
-                    }
-                )
-            
-        return True
-    except Exception as e:
-        print(f"Erro ao salvar edição: {e}")
-        return False
-
-def listar_respostas_checklist(processo_id, auditoria_id):
-    """Lista todas as respostas do checklist para um processo"""
-    query = text("""
-        SELECT 
-            cgp.pergunta,
-            cgp.tipo_resposta,
-            cr.resposta,
-            cr.comentario,
-            cr.data_resposta,
-            COUNT(ce.id) as num_evidencias
-        FROM checklist_sessoes cg
-        JOIN checklist_respostas cr ON cr.checklist_id = cg.id
-        JOIN checklist_perguntas_padrao cgp ON cgp.id = cr.pergunta_id
-        LEFT JOIN checklist_evidencias ce ON ce.resposta_id = cr.id
-        WHERE cg.processo_id = :processo_id AND cg.auditoria_id = :auditoria_id
-        GROUP BY cgp.id, cr.id
-        ORDER BY cgp.ordem
-    """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={
-            "processo_id": processo_id,
-            "auditoria_id": auditoria_id
-        })
-
-def listar_controles_do_processo(processo_id, auditoria_id):
-    """Lista todos os controles de todas as etapas de um processo"""
-    query = text("""
-        SELECT 
-            c.id as controle_id,
-            c.nome_controle,
-            c.natureza,
-            c.forma_execucao,
-            c.status_controle,
-            c.frequencia_evidencia,
-            c.responsaveis_tratamento,
-            c.risco_avaliacao,
-            c.causa_motivo,
-            c.objetivo_controle,
-            e.id as etapa_id,
-            e.codigo_etapa,
-            e.descricao_etapa,
-            r.fator_risco as risco_fator,
-            r.categoria as risco_categoria
-        FROM controles_etapa c
-        JOIN riscos_etapa r ON c.risco_id = r.id
-        JOIN etapas_processo e ON r.etapa_id = e.id
-        WHERE e.processo_id = :processo_id 
-          AND e.auditoria_id = :auditoria_id
-          AND c.status_controle = 'Ativo'
-        ORDER BY e.codigo_etapa, c.nome_controle
-    """)
-    with engine.connect() as conn:
-        return pd.read_sql(query, conn, params={
-            "processo_id": processo_id,
-            "auditoria_id": auditoria_id
-        })
 
 def calcular_tempo(data_inicio):
     """Calcula o tempo decorrido desde uma data até hoje"""
@@ -2916,207 +502,6 @@ def calcular_tempo(data_inicio):
     
     return " e ".join(resultado) if len(resultado) > 1 else resultado[0]
 
-def formatar_tempo_funcionario(funcionario):
-    """Formata o tempo de função e empresa para exibição"""
-    data_funcao = funcionario.get('data_inicio_funcao')
-    data_empresa = funcionario.get('data_inicio_empresa')
-    tempo_funcao = calcular_tempo(data_funcao) if data_funcao else "Não informado"
-    tempo_empresa = calcular_tempo(data_empresa) if data_empresa else "Não informado"
-
-    return tempo_funcao, tempo_empresa
-
-def salvar_diagrama_etapa(etapa_id, arquivo):
-    """Salva o diagrama BPMN de uma etapa"""
-    if arquivo is not None:
-        conteudo = arquivo.read()
-        
-        # Buscar dados ANTIGOS da etapa antes de atualizar
-        with engine.connect() as conn:
-            dados_antigos = conn.execute(
-                text("""
-                    SELECT id, codigo_etapa, descricao_etapa, 
-                           diagrama_nome, diagrama_tipo, processo_id
-                    FROM etapas_processo 
-                    WHERE id = :etapa_id
-                """),
-                {"etapa_id": etapa_id}
-            ).mappings().fetchone()
-            
-            if not dados_antigos:
-                print(f"Erro: Etapa {etapa_id} não encontrada")
-                return False
-        
-        query = text("""
-            UPDATE etapas_processo
-            SET diagrama_bpmn = :conteudo,
-                diagrama_nome = :nome,
-                diagrama_tipo = :tipo,
-                updated_at = NOW()
-            WHERE id = :etapa_id
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, {
-                "etapa_id": etapa_id,
-                "conteudo": conteudo,
-                "nome": arquivo.name,
-                "tipo": arquivo.type
-            }).scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            # Buscar nome do processo para contexto
-            with engine.connect() as conn:
-                processo_info = conn.execute(
-                    text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
-                    {"id": dados_antigos['processo_id']}
-                ).mappings().fetchone()
-            
-            dados_novos = {
-                'id': etapa_id,
-                'codigo_etapa': dados_antigos['codigo_etapa'],
-                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
-                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
-                'processo_nome': processo_info['nome_processo'] if processo_info else None,
-                'diagrama_nome_anterior': dados_antigos.get('diagrama_nome'),
-                'diagrama_nome_novo': arquivo.name,
-                'diagrama_tipo': arquivo.type
-            }
-            
-            dados_antigos_resumidos = {
-                'id': etapa_id,
-                'codigo_etapa': dados_antigos['codigo_etapa'],
-                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
-                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
-                'processo_nome': processo_info['nome_processo'] if processo_info else None,
-                'diagrama_nome': dados_antigos.get('diagrama_nome'),
-                'diagrama_tipo': dados_antigos.get('diagrama_tipo')
-            }
-            
-            registrar_log(
-                tabela='etapas_processo',
-                registro_id=etapa_id,
-                operacao='UPDATE',
-                dados_anteriores=dados_antigos_resumidos,
-                dados_novos=dados_novos
-            )
-            # ===== FIM DO LOG =====
-        
-        return True
-    return False
-
-def salvar_manual_etapa(etapa_id, arquivo):
-    """Salva o manual da etapa"""
-    if arquivo is not None:
-        conteudo = arquivo.read()
-        
-        # Buscar dados ANTIGOS da etapa antes de atualizar
-        with engine.connect() as conn:
-            dados_antigos = conn.execute(
-                text("""
-                    SELECT id, codigo_etapa, descricao_etapa, 
-                           manual_nome, manual_tipo, processo_id
-                    FROM etapas_processo 
-                    WHERE id = :etapa_id
-                """),
-                {"etapa_id": etapa_id}
-            ).mappings().fetchone()
-            
-            if not dados_antigos:
-                print(f"Erro: Etapa {etapa_id} não encontrada")
-                return False
-        
-        query = text("""
-            UPDATE etapas_processo 
-            SET manual_etapa = :conteudo,
-                manual_nome = :nome,
-                manual_tipo = :tipo,
-                updated_at = NOW()
-            WHERE id = :etapa_id
-            RETURNING id
-        """)
-        
-        with engine.begin() as conn:
-            result = conn.execute(query, {
-                "etapa_id": etapa_id,
-                "conteudo": conteudo,
-                "nome": arquivo.name,
-                "tipo": arquivo.type
-            }).scalar()
-            
-            # ===== ADICIONAR LOG AQUI =====
-            # Buscar nome do processo para contexto
-            with engine.connect() as conn:
-                processo_info = conn.execute(
-                    text("SELECT codigo_processo, nome_processo FROM processos WHERE id = :id"),
-                    {"id": dados_antigos['processo_id']}
-                ).mappings().fetchone()
-            
-            dados_novos = {
-                'id': etapa_id,
-                'codigo_etapa': dados_antigos['codigo_etapa'],
-                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
-                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
-                'processo_nome': processo_info['nome_processo'] if processo_info else None,
-                'manual_nome_anterior': dados_antigos.get('manual_nome'),
-                'manual_nome_novo': arquivo.name,
-                'manual_tipo': arquivo.type
-            }
-            
-            dados_antigos_resumidos = {
-                'id': etapa_id,
-                'codigo_etapa': dados_antigos['codigo_etapa'],
-                'descricao_etapa': dados_antigos['descricao_etapa'][:100] if dados_antigos['descricao_etapa'] else None,
-                'processo_codigo': processo_info['codigo_processo'] if processo_info else None,
-                'processo_nome': processo_info['nome_processo'] if processo_info else None,
-                'manual_nome': dados_antigos.get('manual_nome'),
-                'manual_tipo': dados_antigos.get('manual_tipo')
-            }
-            
-            registrar_log(
-                tabela='etapas_processo',
-                registro_id=etapa_id,
-                operacao='UPDATE',
-                dados_anteriores=dados_antigos_resumidos,
-                dados_novos=dados_novos
-            )
-            # ===== FIM DO LOG =====
-        
-        return True
-    return False
-
-def baixar_diagrama_etapa(etapa_id):
-    """Recupera o diagrama da etapa para download"""
-    query = text("""
-        SELECT diagrama_bpmn, diagrama_nome, diagrama_tipo
-        FROM etapas_processo
-        WHERE id = :etapa_id
-    """)
-    with engine.connect() as conn:
-        result = conn.execute(query, {"etapa_id": etapa_id}).fetchone()
-        if result and result[0]:
-            conteudo = result[0]
-            if isinstance(conteudo, memoryview):
-                conteudo = bytes(conteudo)
-            return conteudo, result[1], result[2]
-    return None, None, None
-
-def baixar_manual_etapa(etapa_id):
-    """Recupera o manual da etapa para download"""
-    query = text("""
-        SELECT manual_etapa, manual_nome, manual_tipo
-        FROM etapas_processo
-        WHERE id = :etapa_id
-    """)
-    with engine.connect() as conn:
-        result = conn.execute(query, {"etapa_id": etapa_id}).fetchone()
-        if result and result[0]:
-            conteudo = result[0]
-            if isinstance(conteudo, memoryview):
-                conteudo = bytes(conteudo)
-            return conteudo, result[1], result[2]
-    return None, None, None
-
 def salvar_funcionario(dados):
     """Salva um novo funcionário no banco de dados"""
     from database import engine
@@ -3159,29 +544,12 @@ def salvar_funcionario(dados):
         print(f"Erro ao salvar funcionário: {e}")
         return None
 
-def buscar_area_por_id(area_id):
-    """Buscar uma área pelo ID (retorna dicionário para log)"""
-    from database import engine
-    from sqlalchemy import text
-
-    query = text("""
-        SELECT id_area, nome_area, email, telefone, gestor, objetivo_area, status
-        FROM informacoes_area
-        WHERE id_area = :id
-    """)
-
-    with engine.connect() as conn:
-        result = conn.execute(query, {"id": area_id}).mappings().first()
-        return dict(result) if result else None
-    
-
 def atualizar_area(area_id, dados):
     """Atualiza uma área existente"""
     from database import engine
     from sqlalchemy import text
     
     try:
-
         # 1. Buscar dados ANTES da alteração
         dados_anteriores = buscar_area_por_id(area_id)
 
@@ -3189,7 +557,7 @@ def atualizar_area(area_id, dados):
             print(f"❌ Área ID {area_id} não encontrada para atualização")
             return False
         
-        # 2. Executar o UPDATE
+        # 2. Executar o UPDATE com TODOS os campos
         query = text("""
             UPDATE informacoes_area 
             SET nome_area = :nome,
@@ -3197,19 +565,23 @@ def atualizar_area(area_id, dados):
                 telefone = :telefone,
                 gestor = :gestor,
                 objetivo_area = :objetivo,
-                loc_unidade = :loc_unidade
+                loc_unidade = :loc_unidade,
+                superintendente = :superintendente,  -- ⭐ NOVO
+                diretor = :diretor                   -- ⭐ NOVO
             WHERE id_area = :id
         """)
         
         with engine.connect() as conn:
             result = conn.execute(query, {
                 "id": area_id,
-                "nome": dados['nome'],
+                "nome": dados.get('nome', ''),
                 "email": dados.get('email', ''),
                 "telefone": dados.get('telefone', ''),
                 "gestor": dados.get('gestor', ''),
                 "objetivo": dados.get('objetivo', ''),
-                "loc_unidade": dados.get('loc_unidade', '')
+                "loc_unidade": dados.get('loc_unidade', ''),
+                "superintendente": dados.get('superintendente', ''),  # ⭐ NOVO
+                "diretor": dados.get('diretor', '')                   # ⭐ NOVO
             })
             conn.commit()
 
@@ -3221,11 +593,14 @@ def atualizar_area(area_id, dados):
                     operacao='UPDATE',
                     dados_anteriores=dados_anteriores,
                     dados_novos=dados,
-                    query_sql="UPDATE informacoes_area SET nome_area, email, telefone, gestor, objetivo_area"
+                    query_sql="UPDATE informacoes_area SET nome_area, email, telefone, gestor, objetivo_area, loc_unidade, superintendente, diretor"
                 )
             return result.rowcount > 0
+            
     except Exception as e:
         print(f"Erro ao atualizar área: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def atualizar_funcionario(funcionario_id, dados):
@@ -3277,25 +652,6 @@ def atualizar_funcionario(funcionario_id, dados):
     except Exception as e:
         print(f"Erro ao atualizar funcionário: {e}")
         return False
-    
-def buscar_funcionario_por_id(funcionario_id):
-    """Busca um funcionario pelo ID"""
-    from database import engine
-    from sqlalchemy import text
-
-    try:
-        query = text("""
-            SELECT id, nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa
-            FROM funcionarios_area
-            WHERE id = :id
-        """)
-
-        with engine.connect() as conn:
-            result = conn.execute(query, {"id": funcionario_id}).mappings().first()
-            return dict(result) if result else None
-    except Exception as e:
-        print(f"Erro ao buscar funcionário: {e}")
-        return None
     
 def reativar_area(area_id):
     """Reativa uma área (soft delete reverso)"""
@@ -3376,16 +732,6 @@ def gerar_codigo_processo(id_area, auditoria_id):
         traceback.print_exc()
         return f"{id_area}.1"
 
-def carregar_areas_banco():
-    """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
-    query = text("SELECT id_area, nome_area FROM informacoes_area")
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-
-    # Transforma o DataFrame em um dicionário {'Nome da Área': id_area}
-    # Zip junta as duas colunas: a primeira vira chave, a segunda vira valor
-    return dict(zip(df['nome_area'], df['id_area']))
-
 def calcular_score_risco_etapa(impacto, probabilidade):
     """Calcula o score do risco baseado no impacto e probabilidade"""
     mapa_impacto = {
@@ -3400,6 +746,225 @@ def calcular_score_risco_etapa(impacto, probabilidade):
     
     return imp_val * prob_val
 
+
+# ============================================================
+# ====== FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
+# ============================================================
+
+# ====== CONSTANTES ======
+COR_PRIMARIA = '#0b5b99'
+COR_SECUNDARIA = '#184145'
+COR_DESTAQUE = '#fd6a14'
+COR_FUNDO_TABELA = '#e8f4f8'
+COR_RODAPE = '#F0F0F0'
+
+# ====== MAPA DE RISCO PARA CÁLCULO RESIDUAL ======
+MAPA_RISCO = {
+    ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14, ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
+    ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10, ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
+    ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6, ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
+    ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
+}
+
+def calcular_risco_residual(apetite_impacto, apetite_probabilidade):
+    """
+    Calcula o risco residual baseado no apetite ao risco
+    Retorna o score ou None se não houver dados
+    """
+    if not apetite_impacto or not apetite_probabilidade:
+        return None
+    return MAPA_RISCO.get((apetite_impacto, apetite_probabilidade), None)
+
+# ====== ESTILOS PADRÃO ======
+def get_estilos_padrao():
+    """Retorna os estilos padrão para uso nos relatórios"""
+    styles = getSampleStyleSheet()
+    
+    titulo_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=5,
+        textColor=colors.HexColor(COR_PRIMARIA)
+    )
+
+    titulo_style2 = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=30,
+        textColor=colors.HexColor(COR_PRIMARIA)
+    )
+    
+    subtitulo_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Heading2'],
+        fontSize=13,
+        alignment=1,
+        spaceAfter=15,
+        textColor=colors.HexColor(COR_SECUNDARIA)
+    )
+    
+    normal_style = styles['Normal']
+    
+    label_style = ParagraphStyle(
+        'LabelStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#666666'),
+        fontName='Helvetica-Bold'
+    )
+    
+    valor_style = ParagraphStyle(
+        'ValorStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#184145')
+    )
+    
+    cabecalho_tabela = ParagraphStyle(
+        'CabecalhoTabela',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.white,
+        fontName='Helvetica-Bold',
+        alignment=1
+    )
+    
+    return {
+        'titulo': titulo_style,
+        'titulo2': titulo_style2,
+        'subtitulo': subtitulo_style,
+        'normal': normal_style,
+        'label': label_style,
+        'valor': valor_style,
+        'cabecalho_tabela': cabecalho_tabela
+    }
+
+
+# ====== FUNÇÃO PARA DESENHAR OS LOGOS ======
+def desenhar_logos(canvas, pagesize, root_dir=None):
+    """Desenha os três logos no cabeçalho do relatório"""
+    if root_dir is None:
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
+    logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
+    logo3_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
+    
+    y_logo = 0.8 * cm
+    altura_max_logo = 5 * cm
+    
+    def desenhar_png(caminho, x, y, largura_max, altura_max):
+        if not os.path.exists(caminho):
+            return False
+        try:
+            pil_img = PILImage.open(caminho)
+            if pil_img.mode != 'RGBA':
+                pil_img = pil_img.convert('RGBA')
+            img_width, img_height = pil_img.size
+            proporcao = img_width / img_height
+            largura = min(largura_max, 5*cm)
+            altura = largura / proporcao
+            if altura > altura_max:
+                altura = altura_max
+                largura = altura * proporcao
+            buffer_temp = io.BytesIO()
+            pil_img.save(buffer_temp, format='PNG')
+            buffer_temp.seek(0)
+            img = ImageReader(buffer_temp)
+            canvas.drawImage(img, x - largura/2, y - altura/2, 
+                           width=largura, height=altura, mask='auto', 
+                           preserveAspectRatio=True)
+            return True
+        except Exception as e:
+            print(f"Erro ao desenhar logo {caminho}: {e}")
+            return False
+    
+    espacamento = pagesize[0] / 4
+    x1 = espacamento
+    x2 = pagesize[0] / 2
+    x3 = pagesize[0] - espacamento
+    
+    desenhar_png(logo1_path, x2, y_logo, 2.5*cm, altura_max_logo)
+    desenhar_png(logo2_path, x1, y_logo, 3.5*cm, 3.5*cm)
+    desenhar_png(logo3_path, x3, y_logo, 3*cm, 3*cm)
+
+
+# ====== FUNÇÃO PARA CRIAR RODAPÉ ======
+def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None):
+    """Cria o rodapé padronizado"""
+    canvas.saveState()
+    
+    altura_rodape = 1.8 * cm
+    y_fundo = 0
+    
+    canvas.setFillColor(colors.HexColor(COR_RODAPE))
+    canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+    
+    canvas.setFont('Helvetica', 8)
+    canvas.setFillColor(colors.HexColor('#666666'))
+    canvas.drawCentredString(
+        pagesize[0]/2, 
+        2*cm, 
+        f"{titulo_rodape} - Página {doc.page}/{total_paginas}"
+    )
+    
+    desenhar_logos(canvas, pagesize, root_dir)
+    
+    canvas.restoreState()
+
+
+# ====== FUNÇÃO PARA CRIAR TABELA ESTILIZADA ======
+def criar_tabela_estilizada(dados, col_widths, cabecalho_cor=COR_PRIMARIA, 
+                            fonte_tamanho=8):
+    """Cria uma tabela com o estilo padrão"""
+    tabela = Table(dados, colWidths=col_widths, repeatRows=1)
+    
+    estilo = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(cabecalho_cor)),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), fonte_tamanho),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ])
+    
+    for i in range(1, len(dados)):
+        if i % 2 == 1:
+            estilo.add('BACKGROUND', (0, i), (-1, i), colors.HexColor(COR_FUNDO_TABELA))
+    
+    tabela.setStyle(estilo)
+    return tabela
+
+
+# ====== FUNÇÃO PARA CRIAR A PÁGINA DE VALIDAÇÃO ======
+def criar_pagina_validacao(story, gestor, styles, normal_style):
+    """Adiciona a página de validação do gestor ao story"""
+    story.append(PageBreak())
+    story.append(Paragraph("Validação do Gestor", styles['titulo']))  # ⭐ ALTERADO
+    story.append(Spacer(1, 30))
+    story.append(Paragraph(
+        "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
+        "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido.",
+        normal_style
+    ))
+    story.append(Spacer(1, 50))
+    story.append(Paragraph(f"Gestor: {gestor}", normal_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("Data: ___/___/_______", normal_style))
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("Assinatura: ________________________________", normal_style))
+
 def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMargin, rightMargin, 
                                 rodape_func, cabecalho_func=None):
     """
@@ -3408,85 +973,1709 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
     """
     from reportlab.platypus import SimpleDocTemplate
     import io
+    import copy
     
-    # Primeira passada: contar páginas
-    buffer_temp = io.BytesIO()
-    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
-                                topMargin=topMargin, bottomMargin=bottomMargin,
-                                leftMargin=leftMargin, rightMargin=rightMargin)
+    print(f"📄 contar_paginas_e_gerar_pdf: story recebido com {len(story)} elementos")
     
-    page_counter = {'count': 0}
+    # ⭐ FAZER UMA CÓPIA PROFUNDA DO STORY PARA NÃO MODIFICAR O ORIGINAL
+    story_copy = copy.deepcopy(story)
+    print(f"📄 story_copy criado com {len(story_copy)} elementos")
     
-    def rodape_temp(canvas, doc):
-        page_counter['count'] += 1
+    try:
+        # Primeira passada: contar páginas
+        buffer_temp = io.BytesIO()
+        doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                    topMargin=topMargin, bottomMargin=bottomMargin,
+                                    leftMargin=leftMargin, rightMargin=rightMargin)
+        
+        page_counter = {'count': 0}
+        
+        def rodape_temp(canvas, doc):
+            page_counter['count'] += 1
+        
+        print("📄 Construindo PDF temporário para contagem...")
+        doc_temp.build(story_copy, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
+        total_paginas = page_counter['count']
+        print(f"📄 Total de páginas: {total_paginas}")
+        
+        if total_paginas == 0:
+            print("⚠️ ATENÇÃO: Nenhuma página foi contada! O story pode estar vazio ou com erro.")
+            # Tentar gerar um PDF com apenas uma página para não falhar
+            total_paginas = 1
+        
+        # ⭐ RECRIAR A CÓPIA PARA A SEGUNDA PASSADA
+        story_copy2 = copy.deepcopy(story)
+        print(f"📄 story_copy2 criado com {len(story_copy2)} elementos")
+        
+        # Segunda passada: gerar o PDF final com o total
+        buffer_final = io.BytesIO()
+        doc_final = SimpleDocTemplate(buffer_final, pagesize=pagesize,
+                                     topMargin=topMargin, bottomMargin=bottomMargin,
+                                     leftMargin=leftMargin, rightMargin=rightMargin)
+        
+        def rodape_com_total(canvas, doc):
+            rodape_func(canvas, doc, total_paginas)
+        
+        print("📄 Gerando PDF final...")
+        if cabecalho_func:
+            doc_final.build(story_copy2, 
+                           onFirstPage=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)],
+                           onLaterPages=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)])
+        else:
+            doc_final.build(story_copy2, onFirstPage=rodape_com_total, onLaterPages=rodape_com_total)
+        
+        buffer_final.seek(0)
+        pdf_bytes = buffer_final.getvalue()
+        print(f"📄 PDF final gerado: {len(pdf_bytes)} bytes")
+        
+        if len(pdf_bytes) < 1000:
+            print("⚠️ ATENÇÃO: PDF muito pequeno! Pode estar vazio.")
+            # Tentar gerar um PDF simples com o story
+            print("📄 Tentando gerar PDF com método alternativo...")
+            buffer_alt = io.BytesIO()
+            doc_alt = SimpleDocTemplate(buffer_alt, pagesize=pagesize,
+                                       topMargin=topMargin, bottomMargin=bottomMargin,
+                                       leftMargin=leftMargin, rightMargin=rightMargin)
+            doc_alt.build(story_copy2)
+            buffer_alt.seek(0)
+            pdf_bytes_alt = buffer_alt.getvalue()
+            print(f"📄 PDF alternativo gerado: {len(pdf_bytes_alt)} bytes")
+            if len(pdf_bytes_alt) > len(pdf_bytes):
+                print("✅ PDF alternativo é maior! Usando ele.")
+                return pdf_bytes_alt
+        
+        return pdf_bytes
+        
+    except Exception as e:
+        print(f"❌ ERRO AO GERAR PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+def buscar_processos_riscos_por_area(area_id, auditoria_id=None, processo_id=None):
+    """
+    Busca processos e seus riscos para uma área/auditoria
+    Retorna lista de dicionários com processos e riscos
+    """
+    from database import engine
+    from sqlalchemy import text
+    import pandas as pd
     
-    doc_temp.build(story, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
-    total_paginas = page_counter['count']
+    print(f"🔍 Buscando processos - area_id: {area_id}, auditoria_id: {auditoria_id}, processo_id: {processo_id}")
     
-    # Segunda passada: gerar o PDF final com o total
-    buffer_final = io.BytesIO()
-    doc_final = SimpleDocTemplate(buffer_final, pagesize=pagesize,
-                                 topMargin=topMargin, bottomMargin=bottomMargin,
-                                 leftMargin=leftMargin, rightMargin=rightMargin)
-    
-    # Criar um novo rodapé que recebe o total
-    def rodape_com_total(canvas, doc):
-        # Chamar a função de rodapé original com o total
-        rodape_func(canvas, doc, total_paginas)
-    
-    if cabecalho_func:
-        doc_final.build(story, 
-                       onFirstPage=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)],
-                       onLaterPages=lambda c, d: [cabecalho_func(c, d), rodape_com_total(c, d)])
+    if processo_id:
+        query = text("""
+            SELECT 
+                p.id as processo_id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.executor,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto,
+                r.id as risco_id,
+                r.nome_risco,
+                r.fator_risco,
+                r.categoria,
+                r.causas,
+                r.melhoria,
+                r.impacto,
+                r.probabilidade,
+                r.motivo_risco,
+                r.apetite_impacto,
+                r.apetite_probabilidade,
+                r.score_risco,
+                r.tratamento_risco,
+                r.descricao_tratamento,
+                r.prazo_implantacao
+            FROM processos p
+            LEFT JOIN riscos r ON p.id = r.processo_id
+            WHERE p.id_area = :area_id
+                AND p.status = 'Ativo'
+                AND p.id = :processo_id
+            ORDER BY p.codigo_processo, r.nome_risco
+        """)
+        params = {"area_id": area_id, "processo_id": processo_id}
     else:
-        doc_final.build(story, onFirstPage=rodape_com_total, onLaterPages=rodape_com_total)
+        query = text("""
+            SELECT 
+                p.id as processo_id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.descricao,
+                p.executor,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto,
+                r.id as risco_id,
+                r.nome_risco,
+                r.fator_risco,
+                r.categoria,
+                r.causas,
+                r.melhoria,
+                r.impacto,
+                r.probabilidade,
+                r.motivo_risco,
+                r.apetite_impacto,
+                r.apetite_probabilidade,
+                r.score_risco,
+                r.tratamento_risco,
+                r.descricao_tratamento,
+                r.prazo_implantacao
+            FROM processos p
+            LEFT JOIN riscos r ON p.id = r.processo_id
+            WHERE p.id_area = :area_id
+                AND p.status = 'Ativo'
+                AND p.auditoria_id = :auditoria_id
+            ORDER BY p.codigo_processo, r.nome_risco
+        """)
+        params = {"area_id": area_id, "auditoria_id": auditoria_id}
     
-    buffer_final.seek(0)
-    return buffer_final.getvalue()
+    print(f"🔍 Executando query com params: {params}")
+    
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn, params=params)
+    
+    print(f"📊 Query retornou {len(df)} linhas")
+    
+    if df.empty:
+        print("❌ Nenhum dado encontrado!")
+        return []
+    
+    # Mostrar primeiras linhas para debug
+    print(f"📋 Colunas: {df.columns.tolist()}")
+    print(f"📋 Primeiras linhas:\n{df.head()}")
+    
+    # Organizar dados por processo
+    processos_dict = {}
+    for _, row in df.iterrows():
+        proc_id = row['processo_id']
+        if proc_id not in processos_dict:
+            processos_dict[proc_id] = {
+                'processo_id': proc_id,
+                'codigo_processo': row['codigo_processo'],
+                'nome_processo': row['nome_processo'],
+                'objetivo': row['objetivo'],
+                'executor': row.get('executor', ''),
+                'descricao': row['descricao'],
+                'etapa_ini': row['etapa_ini'],
+                'etapa_fim': row['etapa_fim'],
+                'produto': row['produto'],
+                'riscos': []
+            }
+        
+        if pd.notna(row['risco_id']):
+            risco = {
+                'risco_id': row['risco_id'],
+                'nome_risco': row['nome_risco'],
+                'fator_risco': row['fator_risco'],
+                'categoria': row['categoria'],
+                'causas': row['causas'],
+                'melhoria': row['melhoria'],
+                'impacto': row['impacto'],
+                'probabilidade': row['probabilidade'],
+                'motivo_risco': row['motivo_risco'],
+                'apetite_impacto': row['apetite_impacto'],
+                'apetite_probabilidade': row['apetite_probabilidade'],
+                'score_risco': row['score_risco'],
+                'tratamento_risco': row['tratamento_risco'],
+                'descricao_tratamento': row['descricao_tratamento'],
+                'prazo_implantacao': row['prazo_implantacao'],
+                'risco_residual': calcular_risco_residual(
+                    row['apetite_impacto'], 
+                    row['apetite_probabilidade']
+                )
+            }
+            processos_dict[proc_id]['riscos'].append(risco)
+    
+    print(f"✅ Retornando {len(processos_dict)} processos")
+    return list(processos_dict.values())
+
+# ============================================================
+# ====== FIM FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
+# ============================================================
+
+def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+
+    """
+    Gera relatório de validação - Matriz Panorama
+    Contém: informações da área, funcionários, processos e riscos
+    """
+
+    print(f"🔍 Iniciando geração do relatório Panorama...")
+    print(f"   area_id: {area_id}")
+    print(f"   area_nome: {area_nome}")
+    print(f"   auditoria_id: {auditoria_id}")
+    print(f"   processo_id: {processo_id}")
+    
+
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+
+    # Definir orientação da página
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    # Estilos
+    styles = get_estilos_padrao()
+    normal_style = styles['normal']
+    
+    # ===== CONSTRUIR O STORY =====
+    story = []
+    
+    # ===== 1. BUSCAR DADOS DA ÁREA =====
+    dados_area = buscar_area_por_id(area_id)
+    if not dados_area:
+        raise Exception(f"Área {area_id} não encontrada")
+    
+    area_nome = dados_area.get('nome_area', area_nome)
+    area_unidade = dados_area.get('loc_unidade', 'Não informado')
+    area_objetivo = dados_area.get('objetivo_area', 'Não informado')
+    area_superintendente = dados_area.get('superintendente', 'Não informado')
+    area_diretor = dados_area.get('diretor', 'Não informado')
+    area_gestor = dados_area.get('gestor', gestor)
+    area_cargo = dados_area.get('cargo', cargo)
+    
+    # ===== 2. BUSCAR FUNCIONÁRIOS DA ÁREA =====
+    funcionarios_df = listar_funcionarios_area_todos(area_id)
+    
+    # ===== 3. BUSCAR PROCESSOS E RISCOS =====
+    processos_riscos = buscar_processos_riscos_por_area(area_id, auditoria_id, processo_id)
+    
+    if not processos_riscos:
+        raise Exception("Nenhum processo encontrado para os critérios selecionados.")
+    
+     # ===== 4. MONTAR O RELATÓRIO =====
+    
+    # ===== 4a. CABEÇALHO COM LOGOS =====
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+
+    header_data = []
+    tem_logo = os.path.exists(logo_auditoria_path)
+
+    if tem_logo:
+        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+        header_data = [[img_central]]
+        header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 10))
+    
+    print(f"📄 Após cabeçalho: {len(story)} elementos")
+
+    # ===== 4b. TÍTULO =====
+    titulo_style = styles['titulo']
+    titulo_style2 = styles['titulo2']
+    story.append(Paragraph("Relatório de Validação", titulo_style))
+    story.append(Paragraph("Matriz de Panorama", titulo_style2))
+    story.append(Spacer(1, 5))
+
+    print(f"📄 Após título: {len(story)} elementos")
+    
+    # ===== 4c. INFORMAÇÕES DA AUDITORIA E ÁREA =====
+    # Buscar código da auditoria
+    codigo_auditoria = ""
+    if auditoria_id:
+        from database import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            query_auditoria = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+            if result_aud:
+                codigo_auditoria = result_aud[0]
+    
+    # ⭐ ESTILO PARA AS INFORMAÇÕES
+    info_label_style = ParagraphStyle(
+        'InfoLabel',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_valor_style = ParagraphStyle(
+        'InfoValor',
+        parent=normal_style,
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    info_data = [
+        [Paragraph("<b>Auditoria:</b>", info_label_style), Paragraph(codigo_auditoria or 'N/A', info_valor_style)],
+        [Paragraph("<b>Área:</b>", info_label_style), Paragraph(area_nome, info_valor_style)],
+        [Paragraph("<b>Gestor Responsável:</b>", info_label_style), Paragraph(f"{area_gestor} - {area_cargo}", info_valor_style)],
+        [Paragraph("<b>Data/Hora de Emissão:</b>", info_label_style), Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), info_valor_style)],
+    ]
+    
+    # ⭐ CALCULAR LARGURAS
+    largura_label_info = 4.5 * cm
+    largura_valor_info = pagesize[0] - leftMargin - rightMargin - largura_label_info - 2*cm
+    
+    info_table = Table(info_data, colWidths=[largura_label_info, largura_valor_info])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 15))
+
+    print(f"📄 Após informações: {len(story)} elementos")
+
+    # ===== 4d. INFORMAÇÕES COMPLETAS DA ÁREA =====
+    story.append(Paragraph("Informações da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    # ⭐ ESTILO COM QUEBRA DE LINHA PARA OS TEXTOS DA ÁREA
+    texto_area_style = ParagraphStyle(
+        'TextoArea',
+        parent=normal_style,
+        fontSize=9,
+        leading=11,
+        wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
+    )
+    
+    label_area_style = ParagraphStyle(
+        'LabelArea',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_area_data = [
+        [Paragraph("Código da Área:", label_area_style), Paragraph(str(area_id), texto_area_style)],
+        [Paragraph("Nome da Área:", label_area_style), Paragraph(area_nome, texto_area_style)],
+        [Paragraph("Unidade:", label_area_style), Paragraph(area_unidade or 'Não informado', texto_area_style)],
+        [Paragraph("Objetivo:", label_area_style), Paragraph(area_objetivo or 'Não informado', texto_area_style)],
+        [Paragraph("Superintendente:", label_area_style), Paragraph(area_superintendente or 'Não informado', texto_area_style)],
+        [Paragraph("Diretor:", label_area_style), Paragraph(area_diretor or 'Não informado', texto_area_style)],
+    ]
+    
+    # ⭐ CALCULAR LARGURAS DINÂMICAS
+    largura_label_area = 4.5 * cm
+    largura_valor_area = pagesize[0] - leftMargin - rightMargin - largura_label_area - 2*cm
+    
+    info_area_table = Table(info_area_data, colWidths=[largura_label_area, largura_valor_area])
+    info_area_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+    ]))
+    story.append(info_area_table)
+    story.append(Spacer(1, 15))
+
+    print(f"📄 Após informações da área: {len(story)} elementos")
+
+    # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
+    story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    if not funcionarios_df.empty:
+        # Converter DataFrame para lista de dicionários
+        funcionarios = funcionarios_df.to_dict('records')
+        func_data = [["Nome", "Cargo"]]
+        for f in funcionarios:
+            func_data.append([
+                Paragraph(f.get('nome_funcionario', '-'), normal_style),
+                Paragraph(f.get('cargo', '-'), normal_style)
+            ])
+        
+        func_table = criar_tabela_estilizada(func_data, [8*cm, 8*cm])
+        story.append(func_table)
+    else:
+        story.append(Paragraph("<i>Nenhum funcionário cadastrado para esta área.</i>", normal_style))
+    
+    story.append(Spacer(1, 15))
+
+    print(f"📄 Após funcionários: {len(story)} elementos")
+
+    # ===== 4f. PROCESSOS E RISCOS (CARDS POR PROCESSO) =====
+    story.append(Paragraph("Processos e Riscos Identificados", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    # Contar total de riscos
+    total_riscos = sum(len(p.get('riscos', [])) for p in processos_riscos)
+    story.append(Paragraph(f"Total de Processos: {len(processos_riscos)} | Total de Riscos: {total_riscos}", normal_style))
+    story.append(Spacer(1, 10))
+    
+    # ⭐ CALCULAR A LARGURA DISPONÍVEL PARA O CARD
+    largura_disponivel = pagesize[0] - leftMargin - rightMargin - 2*cm  # 2cm de padding interno
+    
+    # Estilos
+    card_titulo_style = ParagraphStyle(
+        'CardTitulo',
+        parent=normal_style,
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=5
+    )
+    
+    card_subtitulo_style = ParagraphStyle(
+        'CardSubtitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=3
+    )
+    
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=10
+    )
+
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=10
+    )
+    
+    # ⭐ ADICIONAR ESTES DOIS ESTILOS
+    risco_titulo_style = ParagraphStyle(
+        'RiscoTitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        leftIndent=15,
+        spaceAfter=2
+    )
+    
+    risco_item_style = ParagraphStyle(
+        'RiscoItem',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=30
+    )
+    
+    normal_style_pequeno = ParagraphStyle(
+        'NormalPequeno',
+        parent=normal_style,
+        fontSize=7,
+        leading=9
+    )
+    
+    # Função para obter emoji do risco
+    def get_emoji_risco(score):
+        if score is None:
+            return ""
+        elif score >= 12:
+            return ""
+        elif score >= 8:
+            return ""
+        elif score >= 4:
+            return ""
+        else:
+            return ""
+    
+    # Para cada processo
+    for idx, proc in enumerate(processos_riscos):
+        # Quebra de página a cada 3 processos
+        if idx > 0 and idx % 3 == 0:
+            story.append(PageBreak())
+        
+        codigo = proc.get('codigo_processo', '-')
+        nome = proc.get('nome_processo', '-')
+        riscos = proc.get('riscos', [])
+        
+        # ⭐ CONTEÚDO DO CARD (uma lista de elementos)
+        conteudo_card = []
+        
+        # Cabeçalho do processo
+        conteudo_card.append(
+            Paragraph(f"<b>Processo {codigo}: {nome}</b>", card_titulo_style)
+        )
+        conteudo_card.append(Spacer(1, 3))
+        
+        # ⭐ INFORMAÇÕES DO PROCESSO (UMA TABELA COM LARGURA AJUSTADA)
+        info_processo = []
+        
+        # Criar estilo com wordWrap para quebra de linha
+        texto_processo_style = ParagraphStyle(
+            'TextoProcesso',
+            parent=normal_style,
+            fontSize=8,
+            leading=10,
+            wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
+        )
+        
+        if proc.get('objetivo'):
+            info_processo.append([
+                Paragraph("<b>Objetivo:</b>", card_texto_style),
+                Paragraph(proc['objetivo'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
+            ])
+        
+        if proc.get('descricao'):
+            info_processo.append([
+                Paragraph("<b>Descrição:</b>", card_texto_style),
+                Paragraph(proc['descricao'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
+            ])
+        
+        # ⭐ EXECUTOR - SEMPRE MOSTRAR, MESMO SE VAZIO
+        executor_valor = proc.get('executor') or 'Não informado'
+        info_processo.append([
+            Paragraph("<b>Executor(es):</b>", card_texto_style),
+            Paragraph(executor_valor, texto_processo_style)
+        ])
+        
+        if proc.get('etapa_ini'):
+            info_processo.append([
+                Paragraph("<b>Início:</b>", card_texto_style),
+                Paragraph(proc['etapa_ini'], texto_processo_style)
+            ])
+        
+        if proc.get('etapa_fim'):
+            info_processo.append([
+                Paragraph("<b>Fim:</b>", card_texto_style),
+                Paragraph(proc['etapa_fim'], texto_processo_style)
+            ])
+        
+        if proc.get('produto'):
+            info_processo.append([
+                Paragraph("<b>Produto:</b>", card_texto_style),
+                Paragraph(proc['produto'], texto_processo_style)
+            ])
+        
+        if info_processo:
+            # ⭐ LARGURA AJUSTADA PARA O CARD
+            largura_label = 3.0 * cm
+            largura_valor = largura_disponivel - largura_label - 1*cm
+            
+            info_table = Table(info_processo, colWidths=[largura_label, largura_valor])
+            info_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+            ]))
+            conteudo_card.append(info_table)
+            conteudo_card.append(Spacer(1, 5))
+        
+                # ⭐ RISCOS DO PROCESSO (CARDS INDIVIDUAIS)
+        if riscos:
+            conteudo_card.append(Paragraph(f"<b>Riscos ({len(riscos)})</b>", card_subtitulo_style))
+            conteudo_card.append(Spacer(1, 3))
+            
+            # Para cada risco, criar um card interno
+            for risco_idx, risco in enumerate(riscos):
+                # Card do risco com borda colorida
+                risco_conteudo = []
+                
+                # Cabeçalho do risco com emoji e nome
+                score = risco.get('score_risco')
+                emoji = get_emoji_risco(score)
+                nome_risco = risco.get('nome_risco', 'Risco não nomeado')
+                
+                risco_conteudo.append(
+                    Paragraph(f"{emoji} <b>Risco {risco_idx + 1}: {nome_risco}</b>", risco_titulo_style)
+                )
+                risco_conteudo.append(Spacer(1, 2))
+                
+                # Informações do risco em grade (2 colunas)
+                info_risco = []
+                
+                # Criar estilo com wordWrap para quebra de linha
+                texto_risco_style = ParagraphStyle(
+                    'TextoRisco',
+                    parent=normal_style,
+                    fontSize=8,
+                    leading=10,
+                    wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
+                )
+                
+                # Coluna 1: Fator de Risco, Categoria, Causas
+                if risco.get('fator_risco'):
+                    info_risco.append([
+                        Paragraph("<b>Fator de Risco:</b>", risco_item_style),
+                        Paragraph(risco['fator_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('categoria'):
+                    info_risco.append([
+                        Paragraph("<b>Categoria:</b>", risco_item_style),
+                        Paragraph(risco['categoria'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('causas'):
+                    info_risco.append([
+                        Paragraph("<b>Causas:</b>", risco_item_style),
+                        Paragraph(risco['causas'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('melhoria'):
+                    info_risco.append([
+                        Paragraph("<b>O que mais incomoda:</b>", risco_item_style),
+                        Paragraph(risco['melhoria'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                # Coluna 2: Impacto, Probabilidade, Motivo
+                if risco.get('impacto'):
+                    info_risco.append([
+                        Paragraph("<b>Impacto:</b>", risco_item_style),
+                        Paragraph(risco['impacto'], texto_risco_style)
+                    ])
+                
+                if risco.get('probabilidade'):
+                    info_risco.append([
+                        Paragraph("<b>Probabilidade:</b>", risco_item_style),
+                        Paragraph(risco['probabilidade'], texto_risco_style)
+                    ])
+                
+                if risco.get('motivo_risco'):
+                    info_risco.append([
+                        Paragraph("<b>Motivo da Classificação:</b>", risco_item_style),
+                        Paragraph(risco['motivo_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                # Apetite ao Risco
+                if risco.get('apetite_impacto') or risco.get('apetite_probabilidade'):
+                    apetite_texto = f"Impacto: {risco.get('apetite_impacto', '-')} | Probabilidade: {risco.get('apetite_probabilidade', '-')}"
+                    info_risco.append([
+                        Paragraph("<b>Apetite ao Risco:</b>", risco_item_style),
+                        Paragraph(apetite_texto, texto_risco_style)
+                    ])
+                
+                # Scores
+                texto_score = str(int(score)) if score is not None else "-"
+                residual = risco.get('risco_residual')
+                texto_residual = str(int(residual)) if residual is not None else "-"
+                
+                info_risco.append([
+                    Paragraph("<b>Risco Bruto:</b>", risco_item_style),
+                    Paragraph(f"{emoji} {texto_score}", texto_risco_style)
+                ])
+                
+                info_risco.append([
+                    Paragraph("<b>Risco Residual:</b>", risco_item_style),
+                    Paragraph(texto_residual, texto_risco_style)
+                ])
+                
+                # Tratamento
+                if risco.get('tratamento_risco'):
+                    info_risco.append([
+                        Paragraph("<b>Tratamento:</b>", risco_item_style),
+                        Paragraph(risco['tratamento_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('descricao_tratamento'):
+                    info_risco.append([
+                        Paragraph("<b>Descrição do Tratamento:</b>", risco_item_style),
+                        Paragraph(risco['descricao_tratamento'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
+                
+                if risco.get('prazo_implantacao'):
+                    info_risco.append([
+                        Paragraph("<b>Prazo para Implementação:</b>", risco_item_style),
+                        Paragraph(risco['prazo_implantacao'], texto_risco_style)
+                    ])
+                
+                # Criar tabela 2 colunas para as informações do risco
+                if info_risco:
+                    # Calcular larguras dinamicamente
+                    largura_label_risco = 4.0 * cm  # Largura fixa para os labels
+                    largura_valor_risco = largura_disponivel - 2*cm - largura_label_risco - 1*cm
+                    
+                    # Garantir que a largura do valor não fique negativa
+                    if largura_valor_risco < 4*cm:
+                        largura_valor_risco = 4*cm
+                        largura_label_risco = largura_disponivel - 2*cm - largura_valor_risco - 1*cm
+                        if largura_label_risco < 3*cm:
+                            largura_label_risco = 3*cm
+                    
+                    info_risco_table = Table(info_risco, colWidths=[largura_label_risco, largura_valor_risco])
+                    info_risco_table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+                        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FFF8F0')),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#EEEEEE')),
+                    ]))
+                    risco_conteudo.append(info_risco_table)
+                
+                # Criar o card do risco com borda colorida
+                largura_risco_card = largura_disponivel - 2*cm
+                
+                # Garantir largura mínima
+                if largura_risco_card < 10*cm:
+                    largura_risco_card = 10*cm
+                
+                risco_card = Table([[item] for item in risco_conteudo], colWidths=[largura_risco_card])
+                
+                # Cor da borda baseada no score
+                if score is None:
+                    cor_borda = '#CCCCCC'
+                elif score >= 12:
+                    cor_borda = '#dc3545'  # Vermelho
+                elif score >= 8:
+                    cor_borda = '#fd7e14'  # Laranja
+                elif score >= 4:
+                    cor_borda = '#ffc107'  # Amarelo
+                else:
+                    cor_borda = '#28a745'  # Verde
+                
+                risco_card.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.99, 0.97, 0.95, alpha=0.40)),
+                    ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor(cor_borda)),
+                    ('ROUNDEDCORNERS', (0, 0), (-1, -1), 6),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                
+                conteudo_card.append(risco_card)
+                conteudo_card.append(Spacer(1, 5))
+        else:
+            conteudo_card.append(Paragraph("<i>Nenhum risco cadastrado para este processo.</i>", normal_style))
+        
+        # ⭐ CRIAR O CARD COM TODOS OS ELEMENTOS
+
+        card_conteudo = []
+        for item in conteudo_card:
+            if isinstance(item, Spacer):
+                card_conteudo.append([item])
+            else:
+                card_conteudo.append([item])
+        
+        # ⭐ LARGURA DINÂMICA DO CARD
+        largura_card_principal = largura_disponivel
+        
+        card_table = Table(card_conteudo, colWidths=[largura_card_principal])
+        card_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.97, 0.97, 0.97, alpha=0.60)),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        story.append(card_table)
+        story.append(Spacer(1, 10))
+
+    print(f"📄 Após processos e riscos: {len(story)} elementos")
+
+    # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
+    criar_pagina_validacao(story, area_gestor, styles, normal_style)
+    print(f"📄 Após validação: {len(story)} elementos")
+    
+    # ⭐ VERIFICAR SE O STORY TEM CONTEÚDO ANTES DE GERAR O PDF
+    print(f"📄 Story FINAL tem {len(story)} elementos")
+    if story:
+        print("✅ Story NÃO está vazio!")
+        print(f"   Primeiro elemento: {type(story[0]).__name__}")
+        print(f"   Último elemento: {type(story[-1]).__name__}")
+    else:
+        print("❌ Story está vazio! Verifique o código.")
+        raise Exception("Story vazio - nenhum conteúdo foi adicionado ao relatório")
+    
+    # ===== 5. GERAR O PDF =====
+    def rodape_panorama(canvas, doc, total_paginas):
+        """Rodapé específico do relatório Panorama"""
+        titulo_rodape = f"Relatório de Validação Matriz de Panorama - {area_nome[:50]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape)
+    
+    pdf_bytes = contar_paginas_e_gerar_pdf(
+        story=story,
+        pagesize=pagesize,
+        topMargin=topMargin,
+        bottomMargin=bottomMargin,
+        leftMargin=leftMargin,
+        rightMargin=rightMargin,
+        rodape_func=rodape_panorama,
+        cabecalho_func=None
+    )
+    
+    print(f"📄 PDF gerado! Tamanho: {len(pdf_bytes)} bytes")
+    
+    # ⭐ SALVAR O PDF PARA INSPEÇÃO (APENAS PARA TESTE)
+    with open("teste_panorama.pdf", "wb") as f:
+        f.write(pdf_bytes)
+    print("📄 PDF salvo como 'teste_panorama.pdf'")
+    
+    return pdf_bytes
+
+# ============================================================
+# ====== RELATÓRIO DE VALIDAÇÃO - DETALHAMENTO ======
+# ============================================================
+
+def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+    """
+    Gera relatório de validação - Matriz Detalhamento
+    Contém: informações da área, funcionários, processos, etapas, riscos e controles
+    """
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    import io
+    import os
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import pandas as pd
+    
+    print(f"🔍 Iniciando geração do relatório Detalhamento...")
+    print(f"   area_id: {area_id}")
+    print(f"   area_nome: {area_nome}")
+    print(f"   auditoria_id: {auditoria_id}")
+    print(f"   processo_id: {processo_id}")
+    
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    
+    # Definir orientação da página
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    # Estilos
+    styles = get_estilos_padrao()
+    normal_style = styles['normal']
+    
+    # ===== CONSTRUIR O STORY =====
+    story = []
+    
+    # ===== 1. BUSCAR DADOS DA ÁREA =====
+    dados_area = buscar_area_por_id(area_id)
+    if not dados_area:
+        raise Exception(f"Área {area_id} não encontrada")
+    
+    area_nome = dados_area.get('nome_area', area_nome)
+    area_unidade = dados_area.get('loc_unidade', 'Não informado')
+    area_objetivo = dados_area.get('objetivo_area', 'Não informado')
+    area_superintendente = dados_area.get('superintendente', 'Não informado')
+    area_diretor = dados_area.get('diretor', 'Não informado')
+    area_gestor = dados_area.get('gestor', gestor)
+    area_cargo = dados_area.get('cargo', cargo)
+    
+    # ===== 2. BUSCAR FUNCIONÁRIOS DA ÁREA =====
+    funcionarios_df = listar_funcionarios_area_todos(area_id)
+    
+    # ===== 3. BUSCAR PROCESSOS =====
+    processos = buscar_processos_detalhamento(area_id, auditoria_id, processo_id)
+    
+    if not processos:
+        raise Exception("Nenhum processo encontrado para os critérios selecionados.")
+    
+    # ===== 4. MONTAR O RELATÓRIO =====
+    
+    # ===== 4a. CABEÇALHO COM LOGOS =====
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+
+    header_data = []
+    tem_logo = os.path.exists(logo_auditoria_path)
+
+    if tem_logo:
+        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+        header_data = [[img_central]]
+        header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+        header_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 10))
+    
+    # ===== 4b. TÍTULO =====
+    titulo_style = styles['titulo']
+    story.append(Paragraph("Relatório de Validação", titulo_style))
+    
+    subtitulo_central_style = ParagraphStyle(
+        'SubtituloCentral',
+        parent=normal_style,
+        fontSize=14,
+        alignment=1,
+        spaceAfter=15,
+        textColor=colors.HexColor('#0b5b99'),
+        fontName='Helvetica-Bold'
+    )
+    story.append(Paragraph("Matriz de Detalhamento", subtitulo_central_style))
+    story.append(Spacer(1, 5))
+    
+    # ===== 4c. INFORMAÇÕES DA AUDITORIA E ÁREA =====
+    codigo_auditoria = ""
+    if auditoria_id:
+        with engine.connect() as conn:
+            query_auditoria = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
+            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+            if result_aud:
+                codigo_auditoria = result_aud[0]
+    
+    info_label_style = ParagraphStyle(
+        'InfoLabel',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_valor_style = ParagraphStyle(
+        'InfoValor',
+        parent=normal_style,
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    info_data = [
+        [Paragraph("<b>Auditoria:</b>", info_label_style), Paragraph(codigo_auditoria or 'N/A', info_valor_style)],
+        [Paragraph("<b>Área:</b>", info_label_style), Paragraph(area_nome, info_valor_style)],
+        [Paragraph("<b>Gestor Responsável:</b>", info_label_style), Paragraph(f"{area_gestor} - {area_cargo}", info_valor_style)],
+        [Paragraph("<b>Data/Hora de Emissão:</b>", info_label_style), Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), info_valor_style)],
+    ]
+    
+    largura_label_info = 4.5 * cm
+    largura_valor_info = pagesize[0] - leftMargin - rightMargin - largura_label_info - 2*cm
+    
+    info_table = Table(info_data, colWidths=[largura_label_info, largura_valor_info])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 15))
+    
+    # ===== 4d. INFORMAÇÕES COMPLETAS DA ÁREA =====
+    story.append(Paragraph("Informações da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    texto_area_style = ParagraphStyle(
+        'TextoArea',
+        parent=normal_style,
+        fontSize=9,
+        leading=11,
+        wordWrap='CJK'
+    )
+    
+    label_area_style = ParagraphStyle(
+        'LabelArea',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_area_data = [
+        [Paragraph("Código da Área:", label_area_style), Paragraph(str(area_id), texto_area_style)],
+        [Paragraph("Nome da Área:", label_area_style), Paragraph(area_nome, texto_area_style)],
+        [Paragraph("Unidade:", label_area_style), Paragraph(area_unidade or 'Não informado', texto_area_style)],
+        [Paragraph("Objetivo:", label_area_style), Paragraph(area_objetivo or 'Não informado', texto_area_style)],
+        [Paragraph("Superintendente:", label_area_style), Paragraph(area_superintendente or 'Não informado', texto_area_style)],
+        [Paragraph("Diretor:", label_area_style), Paragraph(area_diretor or 'Não informado', texto_area_style)],
+    ]
+    
+    largura_label_area = 4.5 * cm
+    largura_valor_area = pagesize[0] - leftMargin - rightMargin - largura_label_area - 2*cm
+    
+    info_area_table = Table(info_area_data, colWidths=[largura_label_area, largura_valor_area])
+    info_area_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+    ]))
+    story.append(info_area_table)
+    story.append(Spacer(1, 15))
+    
+    # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
+    story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    if not funcionarios_df.empty:
+        funcionarios = funcionarios_df.to_dict('records')
+        func_data = [["Nome", "Cargo"]]
+        for f in funcionarios:
+            func_data.append([
+                Paragraph(f.get('nome_funcionario', '-'), normal_style),
+                Paragraph(f.get('cargo', '-'), normal_style)
+            ])
+        
+        func_table = criar_tabela_estilizada(func_data, [8*cm, 8*cm])
+        story.append(func_table)
+    else:
+        story.append(Paragraph("<i>Nenhum funcionário cadastrado para esta área.</i>", normal_style))
+    
+    story.append(Spacer(1, 15))
+    
+    # ===== 4f. PROCESSOS COM DETALHAMENTO =====
+    story.append(Paragraph("Detalhamento dos Processos", styles['subtitulo']))
+    story.append(Spacer(1, 5))
+    
+    # Calcular largura disponível para os cards
+    largura_disponivel = pagesize[0] - leftMargin - rightMargin - 2*cm
+    
+    # Estilos para os cards
+    card_titulo_style = ParagraphStyle(
+        'CardTitulo',
+        parent=normal_style,
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=5
+    )
+    
+    card_subtitulo_style = ParagraphStyle(
+        'CardSubtitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=3
+    )
+    
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=10
+    )
+    
+    texto_risco_style = ParagraphStyle(
+        'TextoRisco',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        wordWrap='CJK'
+    )
+    
+    texto_controle_style = ParagraphStyle(
+        'TextoControle',
+        parent=normal_style,
+        fontSize=7.5,
+        leading=9,
+        wordWrap='CJK'
+    )
+    
+    # Função para obter emoji do risco
+    def get_emoji_risco(magnitude):
+        if magnitude is None:
+            return ""
+        elif magnitude >= 12:
+            return "🔴"
+        elif magnitude >= 8:
+            return "🟠"
+        elif magnitude >= 4:
+            return "🟡"
+        else:
+            return "🟢"
+    
+    # Para cada processo
+    for proc_idx, proc in enumerate(processos):
+        if proc_idx > 0:
+            story.append(PageBreak())
+        
+        codigo = proc.get('codigo_processo', '-')
+        nome = proc.get('nome_processo', '-')
+        etapas = proc.get('etapas', [])
+        
+        # Card do processo
+        conteudo_processo = []
+        
+        # Cabeçalho do processo
+        conteudo_processo.append(
+            Paragraph(f"<b>Processo {codigo}: {nome}</b>", card_titulo_style)
+        )
+        conteudo_processo.append(Spacer(1, 3))
+        
+        # Informações do processo
+        info_processo = []
+        
+        texto_processo_style = ParagraphStyle(
+            'TextoProcesso',
+            parent=normal_style,
+            fontSize=8,
+            leading=10,
+            wordWrap='CJK'
+        )
+        
+        if proc.get('objetivo'):
+            info_processo.append([
+                Paragraph("<b>Objetivo:</b>", card_texto_style),
+                Paragraph(proc['objetivo'], texto_processo_style)
+            ])
+        
+        if proc.get('descricao'):
+            info_processo.append([
+                Paragraph("<b>Descrição:</b>", card_texto_style),
+                Paragraph(proc['descricao'], texto_processo_style)
+            ])
+        
+        executor_valor = proc.get('executor') or 'Não informado'
+        info_processo.append([
+            Paragraph("<b>Executor(es):</b>", card_texto_style),
+            Paragraph(executor_valor, texto_processo_style)
+        ])
+        
+        if proc.get('etapa_ini'):
+            info_processo.append([
+                Paragraph("<b>Início:</b>", card_texto_style),
+                Paragraph(proc['etapa_ini'], texto_processo_style)
+            ])
+        
+        if proc.get('etapa_fim'):
+            info_processo.append([
+                Paragraph("<b>Fim:</b>", card_texto_style),
+                Paragraph(proc['etapa_fim'], texto_processo_style)
+            ])
+        
+        if proc.get('produto'):
+            info_processo.append([
+                Paragraph("<b>Produto:</b>", card_texto_style),
+                Paragraph(proc['produto'], texto_processo_style)
+            ])
+        
+        if info_processo:
+            largura_label = 3.0 * cm
+            largura_valor = largura_disponivel - largura_label - 1*cm
+            
+            info_table = Table(info_processo, colWidths=[largura_label, largura_valor])
+            info_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+            ]))
+            conteudo_processo.append(info_table)
+            conteudo_processo.append(Spacer(1, 8))
+        
+        # ===== ETAPAS DO PROCESSO =====
+        if not etapas:
+            conteudo_processo.append(
+                Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style)
+            )
+        else:
+            for etapa_idx, etapa in enumerate(etapas):
+                # Quebra de página a cada 3 etapas
+                if etapa_idx > 0 and etapa_idx % 3 == 0:
+                    conteudo_processo.append(PageBreak())
+                
+                etapa_codigo = etapa.get('codigo_etapa', '')
+                etapa_nome = etapa.get('nome_etapa', 'Etapa sem nome')
+                
+                conteudo_processo.append(
+                    Paragraph(f"<b>Etapa {etapa_codigo}: {etapa_nome}</b>", card_subtitulo_style)
+                )
+                conteudo_processo.append(Spacer(1, 2))
+                
+                # Descrição da etapa
+                if etapa.get('descricao_etapa'):
+                    conteudo_processo.append(
+                        Paragraph(f"<i>{etapa['descricao_etapa'][:200]}{'...' if len(etapa['descricao_etapa']) > 200 else ''}</i>", normal_style)
+                    )
+                    conteudo_processo.append(Spacer(1, 3))
+                
+                # Riscos da etapa
+                riscos = etapa.get('riscos', [])
+                if riscos:
+                    for risco_idx, risco in enumerate(riscos):
+                        # Card do risco
+                        risco_conteudo = []
+                        
+                        magnitude = risco.get('magnitude')
+                        emoji = get_emoji_risco(magnitude)
+                        nome_risco = risco.get('nome_risco', 'Risco não nomeado')
+                        
+                        risco_conteudo.append(
+                            Paragraph(f"{emoji} <b>Risco {risco_idx + 1}: {nome_risco}</b>", card_subtitulo_style)
+                        )
+                        risco_conteudo.append(Spacer(1, 2))
+                        
+                        # Informações do risco
+                        info_risco = []
+                        
+                        if risco.get('categoria'):
+                            info_risco.append([
+                                Paragraph("<b>Categoria:</b>", card_texto_style),
+                                Paragraph(risco['categoria'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('fator_risco'):
+                            info_risco.append([
+                                Paragraph("<b>Fator de Risco:</b>", card_texto_style),
+                                Paragraph(risco['fator_risco'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('consequencia'):
+                            info_risco.append([
+                                Paragraph("<b>Consequência:</b>", card_texto_style),
+                                Paragraph(risco['consequencia'][:150] + ('...' if len(risco['consequencia']) > 150 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('causas'):
+                            info_risco.append([
+                                Paragraph("<b>Causas:</b>", card_texto_style),
+                                Paragraph(risco['causas'][:150] + ('...' if len(risco['causas']) > 150 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('impacto'):
+                            info_risco.append([
+                                Paragraph("<b>Impacto:</b>", card_texto_style),
+                                Paragraph(risco['impacto'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('probabilidade'):
+                            info_risco.append([
+                                Paragraph("<b>Probabilidade:</b>", card_texto_style),
+                                Paragraph(risco['probabilidade'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('magnitude') is not None:
+                            info_risco.append([
+                                Paragraph("<b>Magnitude:</b>", card_texto_style),
+                                Paragraph(str(risco['magnitude']), texto_risco_style)
+                            ])
+                        
+                        if risco.get('motivo_classificacao'):
+                            info_risco.append([
+                                Paragraph("<b>Motivo da Classificação:</b>", card_texto_style),
+                                Paragraph(risco['motivo_classificacao'][:120] + ('...' if len(risco['motivo_classificacao']) > 120 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('tratamento'):
+                            info_risco.append([
+                                Paragraph("<b>Tratamento:</b>", card_texto_style),
+                                Paragraph(risco['tratamento'], texto_risco_style)
+                            ])
+                        
+                        if risco.get('desc_tratamento'):
+                            info_risco.append([
+                                Paragraph("<b>Descrição do Tratamento:</b>", card_texto_style),
+                                Paragraph(risco['desc_tratamento'][:120] + ('...' if len(risco['desc_tratamento']) > 120 else ''), texto_risco_style)
+                            ])
+                        
+                        if risco.get('prazo_implantacao'):
+                            info_risco.append([
+                                Paragraph("<b>Prazo para Implementação:</b>", card_texto_style),
+                                Paragraph(risco['prazo_implantacao'], texto_risco_style)
+                            ])
+                        
+                        if info_risco:
+                            largura_label_risco = 3.5 * cm
+                            largura_valor_risco = largura_disponivel - 2*cm - largura_label_risco - 1*cm
+                            
+                            if largura_valor_risco < 4*cm:
+                                largura_valor_risco = 4*cm
+                                largura_label_risco = largura_disponivel - 2*cm - largura_valor_risco - 1*cm
+                                if largura_label_risco < 3*cm:
+                                    largura_label_risco = 3*cm
+                            
+                            info_risco_table = Table(info_risco, colWidths=[largura_label_risco, largura_valor_risco])
+                            info_risco_table.setStyle(TableStyle([
+                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                                ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+                                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FFF8F0')),
+                                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#EEEEEE')),
+                            ]))
+                            risco_conteudo.append(info_risco_table)
+                            risco_conteudo.append(Spacer(1, 3))
+                        
+                        # Controles do risco
+                        controles = risco.get('controles', [])
+                        if controles:
+                            risco_conteudo.append(
+                                Paragraph("<b>Controles:</b>", card_texto_style)
+                            )
+                            
+                            for controle_idx, controle in enumerate(controles):
+                                controle_texto = []
+                                
+                                nome_controle = controle.get('nome_controle', 'Controle não nomeado')
+                                controle_texto.append(f"• {nome_controle}")
+                                
+                                if controle.get('como_executado'):
+                                    controle_texto.append(f"  Como executado: {controle['como_executado'][:80]}{'...' if len(controle['como_executado']) > 80 else ''}")
+                                
+                                if controle.get('natureza'):
+                                    controle_texto.append(f"  Natureza: {controle['natureza']}")
+                                
+                                if controle.get('periodicidade_execucao'):
+                                    controle_texto.append(f"  Periodicidade: {controle['periodicidade_execucao']}")
+                                
+                                risco_conteudo.append(
+                                    Paragraph("<br/>".join(controle_texto), texto_controle_style)
+                                )
+                                risco_conteudo.append(Spacer(1, 1))
+                        else:
+                            risco_conteudo.append(
+                                Paragraph("<i>Nenhum controle cadastrado para este risco.</i>", normal_style)
+                            )
+                        
+                        # Criar card do risco com borda colorida
+                        largura_risco_card = largura_disponivel - 2*cm
+                        
+                        if largura_risco_card < 10*cm:
+                            largura_risco_card = 10*cm
+                        
+                        risco_card = Table([[item] for item in risco_conteudo], colWidths=[largura_risco_card])
+                        
+                        if magnitude is None:
+                            cor_borda = '#CCCCCC'
+                        elif magnitude >= 12:
+                            cor_borda = '#dc3545'
+                        elif magnitude >= 8:
+                            cor_borda = '#fd7e14'
+                        elif magnitude >= 4:
+                            cor_borda = '#ffc107'
+                        else:
+                            cor_borda = '#28a745'
+                        
+                        risco_card.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.99, 0.97, 0.95, alpha=0.30)),
+                            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor(cor_borda)),
+                            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 4),
+                            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                            ('TOPPADDING', (0, 0), (-1, -1), 6),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ]))
+                        
+                        risco_conteudo.clear()
+                        risco_conteudo = None
+                        
+                        conteudo_processo.append(risco_card)
+                        conteudo_processo.append(Spacer(1, 5))
+                else:
+                    conteudo_processo.append(
+                        Paragraph("<i>Nenhum risco cadastrado para esta etapa.</i>", normal_style)
+                    )
+        
+        # Criar card do processo
+        card_conteudo = []
+        for item in conteudo_processo:
+            if isinstance(item, Spacer):
+                card_conteudo.append([item])
+            else:
+                card_conteudo.append([item])
+        
+        card_table = Table(card_conteudo, colWidths=[largura_disponivel])
+        card_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.97, 0.97, 0.97, alpha=0.60)),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        story.append(card_table)
+        story.append(Spacer(1, 10))
+    
+    # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
+    criar_pagina_validacao(story, area_gestor, styles, normal_style)
+    
+    # ===== 5. GERAR O PDF =====
+    def rodape_detalhamento(canvas, doc, total_paginas):
+        titulo_rodape = f"Relatório de Validação Matriz de Detalhamento - {area_nome[:50]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape)
+    
+    pdf_bytes = contar_paginas_e_gerar_pdf(
+        story=story,
+        pagesize=pagesize,
+        topMargin=topMargin,
+        bottomMargin=bottomMargin,
+        leftMargin=leftMargin,
+        rightMargin=rightMargin,
+        rodape_func=rodape_detalhamento,
+        cabecalho_func=None
+    )
+    
+    print(f"📄 PDF do Detalhamento gerado! Tamanho: {len(pdf_bytes)} bytes")
+    
+    with open("teste_detalhamento.pdf", "wb") as f:
+        f.write(pdf_bytes)
+    print("📄 PDF salvo como 'teste_detalhamento.pdf'")
+    
+    return pdf_bytes
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def buscar_processos_detalhamento(area_id, auditoria_id=None, processo_id=None):
+    """
+    Busca processos com suas etapas, riscos e controles para o relatório de Detalhamento
+    """
+    from database import engine
+    from sqlalchemy import text
+    
+    print(f"🔍 Buscando processos para Detalhamento")
+    print(f"   area_id: {area_id}")
+    print(f"   auditoria_id: {auditoria_id}")
+    print(f"   processo_id: {processo_id}")
+    
+    # ⭐ 1. BUSCAR PROCESSOS USANDO fetchall() EM VEZ DE DataFrame
+    if processo_id:
+        query = text("""
+            SELECT 
+                p.id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.executor,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto
+            FROM processos p
+            WHERE p.id_area = :area_id
+                AND p.id = :processo_id
+                AND p.status = 'Ativo'
+            ORDER BY p.codigo_processo
+        """)
+        params = {"area_id": area_id, "processo_id": processo_id}
+    else:
+        query = text("""
+            SELECT 
+                p.id,
+                p.codigo_processo,
+                p.nome_processo,
+                p.objetivo,
+                p.executor,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto
+            FROM processos p
+            WHERE p.id_area = :area_id
+                AND p.auditoria_id = :auditoria_id
+                AND p.status = 'Ativo'
+            ORDER BY p.codigo_processo
+        """)
+        params = {"area_id": area_id, "auditoria_id": auditoria_id}
+    
+    with engine.connect() as conn:
+        processos = conn.execute(query, params).fetchall()
+    
+    print(f"📊 Processos encontrados: {len(processos)}")
+    
+    if not processos:
+        print("❌ Nenhum processo encontrado!")
+        return []
+    
+    # ⭐ 2. Para CADA processo, buscar etapas
+    resultados = []
+    
+    for proc in processos:
+        proc_id = proc[0]  # id
+        proc_codigo = proc[1]
+        proc_nome = proc[2]
+        
+        print(f"   🔍 Buscando etapas para processo: {proc_codigo} (ID: {proc_id})")
+        
+        # ⭐ Buscar etapas
+        query_etapas = text("""
+            SELECT 
+                e.id,
+                e.codigo_etapa,
+                e.nome_etapa,
+                e.descricao_etapa,
+                e.objetivo_etapa,
+                e.como_e_feito,
+                e.analise_critica
+            FROM etapas_processo e
+            WHERE e.processo_id = :processo_id
+                AND (e.status_etapa = 'Ativa' OR e.status_etapa IS NULL)
+            ORDER BY e.codigo_etapa
+        """)
+        
+        with engine.connect() as conn:
+            etapas = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
+        
+        print(f"      Etapas encontradas: {len(etapas)}")
+        
+        etapas_lista = []
+        
+        for etapa in etapas:
+            etapa_id = etapa[0]
+            
+            # ⭐ Buscar riscos da etapa
+            query_riscos = text("""
+                SELECT 
+                    r.id,
+                    r.nome_risco,
+                    r.categoria,
+                    r.fator_risco,
+                    r.consequencia,
+                    r.causas,
+                    r.impacto,
+                    r.probabilidade,
+                    r.magnitude,
+                    r.motivo_classificacao,
+                    r.tratamento,
+                    r.desc_tratamento,
+                    r.prazo_implantacao
+                FROM riscos_etapa r
+                WHERE r.etapa_id = :etapa_id
+                ORDER BY r.id
+            """)
+            
+            with engine.connect() as conn:
+                riscos = conn.execute(query_riscos, {"etapa_id": etapa_id}).fetchall()
+            
+            print(f"         Riscos encontrados: {len(riscos)}")
+            
+            riscos_lista = []
+            
+            for risco in riscos:
+                risco_id = risco[0]
+                
+                # ⭐ Buscar controles do risco
+                query_controles = text("""
+                    SELECT 
+                        c.id,
+                        c.nome_controle,
+                        c.como_executado,
+                        c.objetivo_controle,
+                        c.natureza,
+                        c.periodicidade_execucao,
+                        c.evidencia_realizacao,
+                        c.responsaveis_tratamento
+                    FROM controles_etapa c
+                    WHERE c.risco_id = :risco_id
+                    ORDER BY c.id
+                """)
+                
+                with engine.connect() as conn:
+                    controles = conn.execute(query_controles, {"risco_id": risco_id}).fetchall()
+                
+                controles_lista = []
+                for controle in controles:
+                    controles_lista.append({
+                        'controle_id': controle[0],
+                        'nome_controle': controle[1],
+                        'como_executado': controle[2],
+                        'objetivo_controle': controle[3],
+                        'natureza': controle[4],
+                        'periodicidade_execucao': controle[5],
+                        'evidencia_realizacao': controle[6],
+                        'responsaveis_tratamento': controle[7]
+                    })
+                
+                riscos_lista.append({
+                    'risco_id': risco_id,
+                    'nome_risco': risco[1],
+                    'categoria': risco[2],
+                    'fator_risco': risco[3],
+                    'consequencia': risco[4],
+                    'causas': risco[5],
+                    'impacto': risco[6],
+                    'probabilidade': risco[7],
+                    'magnitude': risco[8],
+                    'motivo_classificacao': risco[9],
+                    'tratamento': risco[10],
+                    'desc_tratamento': risco[11],
+                    'prazo_implantacao': risco[12],
+                    'controles': controles_lista
+                })
+            
+            etapas_lista.append({
+                'etapa_id': etapa_id,
+                'codigo_etapa': etapa[1],
+                'nome_etapa': etapa[2],
+                'descricao_etapa': etapa[3],
+                'objetivo_etapa': etapa[4],
+                'como_e_feito': etapa[5],
+                'analise_critica': etapa[6],
+                'riscos': riscos_lista
+            })
+        
+        resultados.append({
+            'processo_id': proc_id,
+            'codigo_processo': proc_codigo,
+            'nome_processo': proc_nome,
+            'objetivo': proc[3],
+            'executor': proc[4],
+            'descricao': proc[5],
+            'etapa_ini': proc[6],
+            'etapa_fim': proc[7],
+            'produto': proc[8],
+            'etapas': etapas_lista
+        })
+    
+    print(f"✅ Retornando {len(resultados)} processos para Detalhamento")
+    return resultados
 
 
 def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
@@ -3584,8 +2773,8 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     # Informações
     story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
     story.append(Paragraph(f"Área: {area_nome}", normal_style))
-    story.append(Paragraph(f"Gestor Responsável: {gestor} - {cargo}", normal_style))
-    story.append(Paragraph(f"Data de Geração: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
+    story.append(Paragraph(f"Gestor Responsável e Cargo: {gestor} - {cargo}", normal_style))
+    story.append(Paragraph(f"Data/Hora de Emissão: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
     story.append(Spacer(1, 20))
     
     # ===== BUSCAR PROCESSOS =====
@@ -4101,95 +3290,6 @@ def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao
     buffer.seek(0)
     return buffer.getvalue()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
     query = text("""
@@ -4210,9 +3310,6 @@ def carregar_areas_banco():
     df['nome_completo'] = df.apply(formatar_nome, axis=1)
 
     return dict(zip(df['nome_completo'], df['id_area']))
-
-import re
-import json
 
 def limpar_dados_exibicao(dados):
     """Remove conteúdo de arquivos binários, mantendo metadados"""
@@ -4235,7 +3332,6 @@ def limpar_dados_exibicao(dados):
         texto = texto[:5000] + '...[truncado]'
     
     return texto
-
 
 def limpar_binario(dados):
     if not dados:

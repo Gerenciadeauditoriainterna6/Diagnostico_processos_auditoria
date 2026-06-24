@@ -1,0 +1,2304 @@
+{% extends "base.html" %}
+
+{% block title %}Auditorias Emergenciais - Sistema de Auditoria Interna{% endblock %}
+
+{% block content %}
+<div class="emergenciais-container">
+    <div class="page-header">
+        <h1><i class="fas fa-calendar-alt"></i> Auditorias Emergenciais</h1>
+        <p>Lista de auditorias emergenciais realizadas fora do Plano Anual</p>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="form-section filtros-section">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="filtro_area_select"><i class="fas fa-building"></i> Área:</label>
+                <select id="filtro_area_select" class="form-control">
+                    <option value="">Todas as áreas...</option>
+                    {% for nome, id in areas.items() %}
+                    <option value="{{ id }}">{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button id="btn-filtrar" class="btn-primary">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+                <button id="btn-limpar-filtros" class="btn-neutral" style="margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Limpar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTA DE AUDITORIAS EMERGENCIAIS -->
+    <div class="form-section">
+        <div class="section-header">
+            <div>
+                <h3><i class="fas fa-list"></i> Auditorias Emergenciais</h3>
+                <p class="section-desc">Visualize as auditorias emergenciais cadastradas</p>
+            </div>
+            <div class="badge-info" id="total-emergenciais">
+                <span>Total: <strong id="contador-emergenciais">0</strong></span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="emergenciais-table" id="tabela-emergenciais">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Título</th>
+                        <th>Área</th>
+                        <th>Ano/Trim</th>
+                        <th>Período</th>
+                        <th>Status</th>
+                        <th>Unidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="loading-message">Carregando auditorias emergenciais...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ⭐ MODAL DE DETALHES DA AUDITORIA EMERGENCIAL -->
+<div id="modal-detalhes" class="modal-detalhes" style="display: none;">
+    <div class="modal-detalhes-content">
+        <!-- Header do Modal -->
+        <div class="modal-detalhes-header">
+            <div>
+                <h3><i class="fas fa-exclamation-triangle" style="color: #fd6a14;"></i> Detalhes da Auditoria Emergencial</h3>
+                <div id="modal-auditoria-info" style="font-size: 13px; color: #666; margin-top: 4px;">
+                    <span id="modal-codigo"></span> - <span id="modal-titulo"></span>
+                </div>
+            </div>
+            <button class="modal-detalhes-fechar" onclick="fecharModalDetalhes()">&times;</button>
+        </div>
+
+        <!-- Corpo do Modal -->
+        <div class="modal-detalhes-body">
+            <!-- SEÇÃO DO PDF -->
+            <div class="pdf-section">
+                <div class="section-header">
+                    <h4><i class="fas fa-file-pdf"></i> Plano da Auditoria Emergencial</h4>
+                </div>
+                <div class="pdf-actions">
+                    <button id="btn-download-pdf" class="btn-download-pdf" style="display: none;">
+                        <i class="fas fa-download"></i> Baixar Plano em PDF
+                    </button>
+                    <div id="pdf-nao-encontrado" class="alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i> Nenhum arquivo PDF encontrado para esta auditoria.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⭐⭐⭐ AQUI ENTRA A SEÇÃO DE EVIDÊNCIAS ⭐⭐⭐ -->
+            <div class="evidencias-section">
+                <div class="section-header">
+                    <div>
+                        <h4><i class="fas fa-paperclip" style="color: #17a2b8;"></i> Evidências da Solicitação</h4>
+                        <p class="text-muted">Anexe documentos que fundamentam a solicitação desta auditoria emergencial</p>
+                    </div>
+                    <div>
+                        <button id="btn-anexar-evidencia" class="btn-upload-evidencia">
+                            <i class="fas fa-upload"></i> Anexar Evidência
+                        </button>
+                        <input type="file" id="input-evidencia" style="display: none;" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip">
+                    </div>
+                </div>
+                
+                <div id="evidencias-container">
+                    <div class="empty-message">
+                        <i class="fas fa-info-circle"></i> Nenhuma evidência anexada.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO DOS FUNDAMENTOS -->
+            <div class="fundamentos-section">
+                <div class="section-header">
+                    <div>
+                        <h4><i class="fas fa-exclamation-triangle" style="color: #fd6a14;"></i> Auditoria Baseada em Risco</h4>
+                        <p class="text-muted">Registre os fatores de risco que fundamentam esta auditoria emergencial</p>
+                    </div>
+                    <div class="badge-info" id="total-riscos-modal">
+                        <span>Total: <strong id="contador-riscos-modal">0</strong> risco(s)</span>
+                    </div>
+                </div>
+
+                <div id="fundamentos-container-modal">
+                    <div class="empty-message">
+                        <i class="fas fa-info-circle"></i> Nenhum fundamento cadastrado. 
+                        <br>Clique em <strong>"Adicionar Risco"</strong> para começar.
+                    </div>
+                </div>
+
+                <button id="btn-adicionar-fundamento-modal" class="btn-outline-primary">
+                    <i class="fas fa-plus-circle"></i> Adicionar Risco
+                </button>
+
+                <div class="salvar-actions">
+                    <button id="btn-salvar-fundamentos-modal" class="btn-primary">
+                        <i class="fas fa-save"></i> Salvar Todos os Fundamentos
+                    </button>
+                </div>
+            </div>
+
+            
+
+        </div>
+
+        <!-- Footer do Modal -->
+        <div class="modal-detalhes-footer">
+            <button class="btn-secondary" onclick="fecharModalDetalhes()">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ====== ESTILOS GERAIS ====== */
+    .emergenciais-container {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        margin-bottom: 25px;
+    }
+
+    .page-header h1 {
+        color: #184145;
+        font-size: 32px;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-header h1 i {
+        background: linear-gradient(135deg, #184145 40%, #dc3545 100%);
+        color: #e4e4e4;
+        padding: 12px;
+        border-radius: 14px;
+        font-size: 28px;
+    }
+
+    .page-header p {
+        color: #666;
+        font-size: 14px;
+        margin-left: 52px;
+    }
+
+    /* ====== SEÇÕES ====== */
+    .form-section {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .section-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .section-header h3 {
+        margin: 0;
+        color: #184145;
+        font-size: 18px;
+    }
+
+    .section-header h3 i {
+        margin-right: 8px;
+    }
+
+    .section-header .text-muted {
+        color: #666;
+        font-size: 13px;
+        margin: 5px 0 0 0;
+        width: 100%;
+    }
+
+    .section-desc {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 13px;
+    }
+
+    /* ====== FILTROS ====== */
+    .form-row {
+        display: flex;
+        gap: 25px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #184145;
+        font-size: 13px;
+    }
+
+    .form-group label i {
+        margin-right: 6px;
+        color: #0b5b99;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #184145;
+        box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+    }
+
+    /* ====== BOTÕES ====== */
+    .btn-primary {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        height: 42px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #0b5b99;
+        transform: translateY(-2px);
+    }
+
+    .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        height: 42px;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .btn-neutral {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        height: 42px;
+    }
+
+    .btn-neutral:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        border: 2px solid #184145;
+        color: #184145;
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        margin-top: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-outline-primary:hover {
+        background: #184145;
+        color: white;
+    }
+
+    .btn-download-pdf {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-download-pdf:hover {
+        background: #0b5b99;
+        transform: translateY(-2px);
+    }
+
+    .btn-visualizar-icon {
+        background: transparent;
+        color: #17a2b8;
+        border: none;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-visualizar-icon:hover {
+        background: rgba(23,162,184,0.1);
+        transform: scale(1.05);
+        color: #138496;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .salvar-actions {
+        margin-top: 25px;
+        text-align: right;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    /* ====== BADGE ====== */
+    .badge-info {
+        background: #fff3e0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        color: #fd6a14;
+        font-size: 13px;
+        border: 1px solid #fd6a14;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .badge-info strong {
+        font-size: 16px;
+    }
+
+    /* ====== TABELA ====== */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .emergenciais-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .emergenciais-table th,
+    .emergenciais-table td {
+        padding: 10px 8px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .emergenciais-table th {
+        background: #f8f9fa;
+        color: #184145;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .emergenciais-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .loading-message {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    /* ====== STATUS BADGE ====== */
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .status-planejamento { background: #e3f2fd; color: #0b5b99; }
+    .status-execucao { background: #fff3e0; color: #fd6a14; }
+    .status-eficacia { background: #c8e6c9; color: #2e7d32; }
+    .status-followup { background: #e1bee7; color: #6a1b9a; }
+    .status-concluida { background: #d4edda; color: #28a745; }
+    .status-atraso { background: #f8d7da; color: #dc3545; }
+    .status-inconclusiva { background: #ffccbc; color: #bf360c; }
+    .status-cancelada { background: #f5f5f5; color: #757575; }
+
+    /* ====== MODAL ====== */
+    .modal-detalhes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-detalhes-content {
+        background: white;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-detalhes-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 20px 25px;
+        border-bottom: 2px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 20px 20px 0 0;
+        flex-shrink: 0;
+    }
+
+    .modal-detalhes-header h3 {
+        margin: 0;
+        color: #184145;
+        font-size: 18px;
+    }
+
+    .modal-detalhes-header h3 i {
+        margin-right: 8px;
+    }
+
+    .modal-detalhes-fechar {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s;
+        padding: 0 4px;
+        line-height: 1;
+    }
+
+    .modal-detalhes-fechar:hover {
+        color: #dc3545;
+    }
+
+    .modal-detalhes-body {
+        padding: 25px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-detalhes-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .modal-detalhes-body::-webkit-scrollbar-track {
+        background: #f0f0f0;
+        border-radius: 10px;
+    }
+
+    .modal-detalhes-body::-webkit-scrollbar-thumb {
+        background: #184145;
+        border-radius: 10px;
+    }
+
+    .modal-detalhes-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding: 15px 25px;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        border-radius: 0 0 20px 20px;
+        flex-shrink: 0;
+    }
+
+    /* ====== PDF ====== */
+    .pdf-section {
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .pdf-section .section-header {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+    }
+
+    .pdf-section .section-header h4 {
+        margin: 0;
+        color: #184145;
+        font-size: 16px;
+    }
+
+    .pdf-actions {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #856404;
+        font-size: 14px;
+    }
+
+    .alert-warning i {
+        margin-right: 8px;
+    }
+
+    /* ====== FUNDAMENTOS NO MODAL ====== */
+    .fundamentos-section {
+        margin-top: 5px;
+    }
+
+    .fundamentos-section .section-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+    }
+
+    .fundamentos-section .section-header h4 {
+        margin: 0;
+        color: #184145;
+        font-size: 16px;
+    }
+
+    .fundamentos-section .text-muted {
+        color: #666;
+        font-size: 13px;
+        margin: 5px 0 0 0;
+        width: 100%;
+    }
+
+    /* Cards de risco dentro do modal */
+    .risco-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        border-left: 4px solid #fd6a14;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .risco-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .risco-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+        margin-bottom: 12px;
+    }
+
+    .risco-titulo {
+        flex: 1;
+    }
+
+    .risco-titulo label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .risco-titulo label i {
+        color: #fd6a14;
+        margin-right: 4px;
+    }
+
+    .risco-titulo textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        resize: vertical;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        min-height: 50px;
+    }
+
+    .risco-titulo textarea:focus {
+        outline: none;
+        border-color: #fd6a14;
+        box-shadow: 0 0 0 3px rgba(253,106,20,0.1);
+    }
+
+    .risco-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .btn-remover-risco {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .btn-remover-risco:hover {
+        background: rgba(220,53,69,0.1);
+        transform: scale(1.1);
+    }
+
+    /* Pontos */
+    .pontos-container {
+        margin-top: 10px;
+        padding-left: 10px;
+    }
+
+    .pontos-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pontos-label i {
+        color: #17a2b8;
+    }
+
+    .ponto-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .ponto-item .ponto-numero {
+        font-size: 11px;
+        color: #999;
+        font-weight: 600;
+        min-width: 28px;
+    }
+
+    .ponto-item input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 13px;
+        transition: border-color 0.2s;
+    }
+
+    .ponto-item input:focus {
+        outline: none;
+        border-color: #17a2b8;
+        box-shadow: 0 0 0 3px rgba(23,162,184,0.1);
+    }
+
+    .btn-remover-ponto {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .btn-remover-ponto:hover {
+        background: rgba(220,53,69,0.1);
+        transform: scale(1.1);
+    }
+
+    .btn-adicionar-ponto {
+        background: none;
+        border: 1px dashed #17a2b8;
+        color: #17a2b8;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-top: 4px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .btn-adicionar-ponto:hover {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+        background: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    .empty-message i {
+        margin-right: 8px;
+        color: #fd6a14;
+    }
+
+    /* ====== MODO SOMENTE LEITURA ====== */
+    .readonly-mode .risco-titulo textarea:disabled,
+    .readonly-mode .ponto-item input:disabled {
+        background-color: #f8f9fa;
+        color: #666;
+        cursor: not-allowed;
+    }
+
+    .readonly-mode .btn-remover-risco,
+    .readonly-mode .btn-remover-ponto,
+    .readonly-mode .btn-adicionar-ponto {
+        display: none !important;
+    }
+
+    .readonly-indicator {
+        display: inline-block;
+        background: #e9ecef;
+        color: #666;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        margin-left: 15px;
+    }
+
+    /* ====== ANIMAÇÕES ====== */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* ====== TOAST ====== */
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+
+    /* ====== RESPONSIVIDADE ====== */
+    @media (max-width: 768px) {
+        .emergenciais-container {
+            padding: 0 10px;
+        }
+        
+        .page-header h1 {
+            font-size: 24px;
+        }
+
+        .page-header p {
+            margin-left: 0;
+        }
+        
+        .emergenciais-table th,
+        .emergenciais-table td {
+            padding: 8px 6px;
+            font-size: 12px;
+        }
+        
+        .status-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+        }
+
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .badge-info {
+            align-self: flex-start;
+        }
+
+        .modal-detalhes-content {
+            width: 95%;
+            max-height: 95vh;
+        }
+
+        .modal-detalhes-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .modal-detalhes-fechar {
+            align-self: flex-end;
+        }
+
+        .risco-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .risco-actions {
+            align-self: flex-end;
+        }
+
+        .ponto-item {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-remover-ponto {
+            align-self: flex-end;
+        }
+
+        .form-row {
+            flex-direction: column;
+        }
+
+        .form-group {
+            min-width: 100%;
+        }
+    }
+
+    /* ====== EVIDÊNCIAS ====== */
+    .evidencias-section {
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .evidencias-section .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .evidencias-section .section-header h4 {
+        margin: 0;
+        color: #184145;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .evidencias-section .section-header h4 i {
+        color: #17a2b8;
+    }
+
+    .evidencias-section .text-muted {
+        color: #666;
+        font-size: 13px;
+        margin: 5px 0 0 0;
+        width: 100%;
+    }
+
+    /* Botão Upload */
+    .btn-upload-evidencia {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 4px rgba(23,162,184,0.2);
+    }
+
+    .btn-upload-evidencia:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23,162,184,0.3);
+    }
+
+    .btn-upload-evidencia:active {
+        transform: translateY(0);
+    }
+
+    /* Grid de evidências */
+    .evidencias-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    /* Card de evidência */
+    .evidencia-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+
+    .evidencia-card:hover {
+        border-color: #17a2b8;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        background: #f0f9ff;
+    }
+
+    .evidencia-card .evidencia-icon {
+        font-size: 28px;
+        flex-shrink: 0;
+        width: 36px;
+        text-align: center;
+    }
+
+    .evidencia-card .evidencia-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .evidencia-card .evidencia-nome {
+        font-size: 13px;
+        font-weight: 500;
+        color: #184145;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .evidencia-card .evidencia-tamanho {
+        font-size: 11px;
+        color: #999;
+        margin-top: 2px;
+    }
+
+    .evidencia-card .evidencia-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .evidencia-card .evidencia-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    /* Botão Baixar */
+    .evidencia-card .btn-baixar-evidencia {
+        color: #17a2b8;
+    }
+
+    .evidencia-card .btn-baixar-evidencia:hover {
+        background: rgba(23,162,184,0.12);
+        transform: scale(1.05);
+    }
+
+    /* Botão Remover */
+    .evidencia-card .btn-remover-evidencia {
+        color: #dc3545;
+    }
+
+    .evidencia-card .btn-remover-evidencia:hover {
+        background: rgba(220,53,69,0.10);
+        transform: scale(1.05);
+    }
+
+    /* Mensagem vazia dentro de evidências */
+    .evidencias-section .empty-message {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+        background: #f8f9fa;
+        border-radius: 10px;
+        font-size: 14px;
+        border: 1px dashed #d0d0d0;
+    }
+
+    .evidencias-section .empty-message i {
+        color: #17a2b8;
+        margin-right: 8px;
+    }
+
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .evidencias-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .evidencias-section .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .btn-upload-evidencia {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .evidencia-card {
+            padding: 10px 14px;
+        }
+    }
+</style>
+
+<script>
+    // ====== DADOS DO USUÁRIO ======
+    const usuarioNome = '{{ session.get("usuario_nome", "") }}';
+    const usuarioPerfil = '{{ session.get("usuario_perfil", "") }}';
+    const isAdmin = (usuarioPerfil === 'administrador' || usuarioPerfil === 'admin');
+
+    console.log('👤 Usuário:', usuarioNome);
+    console.log('🔑 Perfil:', usuarioPerfil);
+    console.log('👑 É admin?', isAdmin);
+
+    // ====== ELEMENTOS DO DOM ======
+    const filtroAreaSelect = document.getElementById('filtro_area_select');
+    const btnFiltrar = document.getElementById('btn-filtrar');
+    const btnLimparFiltros = document.getElementById('btn-limpar-filtros');
+    const tabelaBody = document.querySelector('#tabela-emergenciais tbody');
+    const contadorEmergenciais = document.getElementById('contador-emergenciais');
+
+    // ====== ELEMENTOS DO MODAL ======
+    const modalDetalhes = document.getElementById('modal-detalhes');
+    const fundamentosContainerModal = document.getElementById('fundamentos-container-modal');
+    const btnAdicionarFundamentoModal = document.getElementById('btn-adicionar-fundamento-modal');
+    const btnSalvarFundamentosModal = document.getElementById('btn-salvar-fundamentos-modal');
+    const btnDownloadPdf = document.getElementById('btn-download-pdf');
+    const pdfNaoEncontrado = document.getElementById('pdf-nao-encontrado');
+    const contadorRiscosModal = document.getElementById('contador-riscos-modal');
+
+    // ====== VARIÁVEIS GLOBAIS ======
+    let auditoriaAtualId = null;
+    let auditoriaAtualCodigo = null;
+    let fundamentosLista = [];
+    let usuarioAutorizado = false;
+
+    // ====== FUNÇÃO PARA FORMATAR DATA ======
+    function formatarData(dataISO) {
+        if (!dataISO || dataISO === '-') return '-';
+        try {
+            // Se já estiver no formato DD/MM/YYYY, retorna
+            if (dataISO.includes('/')) return dataISO;
+            
+            // Tentar criar um objeto Date
+            const data = new Date(dataISO);
+            if (isNaN(data.getTime())) {
+                return dataISO; // Se não for uma data válida, retorna o original
+            }
+            
+            // Formatar como DD/MM/YYYY
+            const dia = String(data.getDate()).padStart(2, '0');
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        } catch (error) {
+            console.error('Erro ao formatar data:', error);
+            return dataISO;
+        }
+    }
+
+    // ====== ESCAPE HTML ======
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ====== TOAST ======
+    function mostrarToast(mensagem, tipo = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 999999;
+            `;
+            document.body.appendChild(toastContainer);
+        }
+        
+        const cores = {
+            success: { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '✅' },
+            error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '❌' },
+            warning: { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '⚠️' },
+            info: { bg: '#d1ecf1', border: '#17a2b8', text: '#0c5460', icon: 'ℹ️' }
+        };
+        
+        const cor = cores[tipo] || cores.info;
+        
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${cor.bg};
+            border-left: 4px solid ${cor.border};
+            color: ${cor.text};
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        `;
+        toast.innerHTML = `
+            <span style="font-size: 18px;">${cor.icon}</span>
+            <span>${mensagem}</span>
+            <span style="margin-left: auto; cursor: pointer; opacity: 0.7;" onclick="this.parentElement.remove()">✕</span>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast && toast.parentElement) {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
+
+    // ====== VERIFICAR PERMISSÃO EM MASSA ======
+    async function carregarEmergenciais(areaId = null) {
+        tabelaBody.innerHTML = '<tr><td colspan="8" class="loading-message"><i class="fas fa-spinner fa-spin"></i> Carregando...</td>';
+
+        try {
+            let url = '/api/auditorias-emergenciais';
+            if (areaId) {
+                url += `?area_id=${areaId}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (!data.success) {
+                tabelaBody.innerHTML = `<tr><td colspan="8" class="loading-message">Erro: ${data.error || 'Erro ao carregar'}</td>`;
+                return;
+            }
+
+            const auditorias = data.auditorias || [];
+
+            contadorEmergenciais.textContent = auditorias.length;
+
+            if (auditorias.length === 0) {
+                tabelaBody.innerHTML = '<tr><td colspan="8" class="loading-message">Nenhuma auditoria emergencial encontrada</td>';
+                return;
+            }
+
+            // ⭐ VERIFICAR PERMISSÃO PARA CADA AUDITORIA
+            const auditoriasComPermissao = await Promise.all(auditorias.map(async (aud) => {
+                // Se for admin, tem permissão automática
+                if (isAdmin) {
+                    return { ...aud, temPermissao: true };
+                }
+                
+                // Verificar se é responsável
+                try {
+                    const resp = await fetch(`/api/auditoria/${aud.id}/responsavel`);
+                    const dataResp = await resp.json();
+                    return { ...aud, temPermissao: dataResp.autorizado || false };
+                } catch (error) {
+                    console.error(`Erro ao verificar permissão para auditoria ${aud.id}:`, error);
+                    return { ...aud, temPermissao: false };
+                }
+            }));
+
+            // ⭐ RENDERIZAR TABELA
+            renderizarTabela(auditoriasComPermissao);
+
+        } catch (error) {
+            console.error('Erro ao carregar auditorias emergenciais:', error);
+            tabelaBody.innerHTML = `<tr><td colspan="8" class="loading-message">Erro ao carregar: ${error.message}</td>`;
+        }
+    }
+
+    // ====== RENDERIZAR TABELA ======
+    function renderizarTabela(auditorias) {
+        tabelaBody.innerHTML = auditorias.map(aud => {
+            let statusClass = '';
+            const status = aud.status || '';
+
+            if (status === 'Planejamento') statusClass = 'status-planejamento';
+            else if (status === 'Em Execução') statusClass = 'status-execucao';
+            else if (status === 'Eficácia Validada') statusClass = 'status-eficacia';
+            else if (status === 'Follow-up') statusClass = 'status-followup';
+            else if (status === 'Concluída') statusClass = 'status-concluida';
+            else if (status === 'Em Atraso') statusClass = 'status-atraso';
+            else if (status === 'Inconclusiva') statusClass = 'status-inconclusiva';
+            else if (status === 'Cancelada') statusClass = 'status-cancelada';
+            else statusClass = 'status-planejamento';
+
+            const tituloTruncado = aud.titulo && aud.titulo.length > 40 
+                ? aud.titulo.substring(0, 40) + '...' 
+                : (aud.titulo || '-');
+
+            // ⭐ MOSTRAR BOTÃO APENAS SE TIVER PERMISSÃO
+            const botaoVisualizar = aud.temPermissao ? `
+                <button class="btn-visualizar-icon" onclick="abrirModalDetalhes(${aud.id}, '${aud.codigo_auditoria}', '${escapeHtml(aud.titulo || '')}')" title="Visualizar detalhes">
+                    <i class="fas fa-ellipsis"></i>
+                </button>
+            ` : `
+                <span title="Sem permissão para visualizar" style="color: #999; font-size: 14px;">
+                    <i class="fas fa-lock"></i>
+                </span>
+            `;
+
+            return `
+                <tr>
+                    <td><strong>${aud.codigo_auditoria || '-'}</strong></td>
+                    <td title="${aud.titulo || ''}">${tituloTruncado}</td>
+                    <td>${aud.area_nome || '-'}</td>
+                    <td>${aud.ano}/${aud.trimestre}º</td>
+                    <td>${formatarData(aud.data_inicio)}<br/><small>a</small><br/>${formatarData(aud.data_fim)}</td>
+                    <td><span class="status-badge ${statusClass}">${status || '-'}</span></td>
+                    <td>${aud.unidade || '-'}</td>
+                    <td>
+                        <div class="btn-group">
+                            ${botaoVisualizar}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // ====== RENDERIZAR TABELA COM BOTÕES ======
+    function renderizarTabelaComBotoes(auditorias, isAdminUser) {
+        tabelaBody.innerHTML = auditorias.map(aud => {
+            let statusClass = '';
+            const status = aud.status || '';
+
+            if (status === 'Planejamento') statusClass = 'status-planejamento';
+            else if (status === 'Em Execução') statusClass = 'status-execucao';
+            else if (status === 'Eficácia Validada') statusClass = 'status-eficacia';
+            else if (status === 'Follow-up') statusClass = 'status-followup';
+            else if (status === 'Concluída') statusClass = 'status-concluida';
+            else if (status === 'Em Atraso') statusClass = 'status-atraso';
+            else if (status === 'Inconclusiva') statusClass = 'status-inconclusiva';
+            else if (status === 'Cancelada') statusClass = 'status-cancelada';
+            else statusClass = 'status-planejamento';
+
+            const tituloTruncado = aud.titulo && aud.titulo.length > 40 
+                ? aud.titulo.substring(0, 40) + '...' 
+                : (aud.titulo || '-');
+
+            // ⭐ VERIFICAR PERMISSÃO
+            const temPermissao = isAdminUser || aud.temPermissao === true;
+
+            const botaoVisualizar = temPermissao ? `
+                <button class="btn-visualizar-icon" onclick="abrirModalDetalhes(${aud.id}, '${aud.codigo_auditoria}', '${escapeHtml(aud.titulo || '')}')" title="Visualizar detalhes">
+                    <i class="fas fa-ellipsis"></i>
+                </button>
+            ` : `
+                <span title="Sem permissão para visualizar" style="color: #999; font-size: 14px;">
+                    <i class="fas fa-lock"></i>
+                </span>
+            `;
+
+            return `
+                <tr>
+                    <td><strong>${aud.codigo_auditoria || '-'}</strong></td>
+                    <td title="${aud.titulo || ''}">${tituloTruncado}</td>
+                    <td>${aud.area_nome || '-'}</td>
+                    <td>${aud.ano}/${aud.trimestre}º</td>
+                    <td>${formatarData(aud.data_inicio)}<br/><small>a</small><br/>${formatarData(aud.data_fim)}</td>
+                    <td><span class="status-badge ${statusClass}">${status || '-'}</span></td>
+                    <td>${aud.unidade || '-'}</td>
+                    <td>
+                        <div class="btn-group">
+                            ${botaoVisualizar}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // ====== VERIFICAR SE USUÁRIO É RESPONSÁVEL PELA AUDITORIA ======
+    async function verificarResponsavel(auditoriaId) {
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const data = await response.json();
+            return data.autorizado || false;
+        } catch (error) {
+            console.error('Erro ao verificar responsável:', error);
+            return false;
+        }
+    }
+
+    // ====== ABRIR MODAL DETALHES ======
+    async function abrirModalDetalhes(id, codigo, titulo) {
+        console.log('👁️ Abrindo modal - ID:', id, 'Código:', codigo);
+        
+        auditoriaAtualId = id;
+        auditoriaAtualCodigo = codigo;
+        
+        // Atualizar informações no modal
+        document.getElementById('modal-codigo').textContent = codigo;
+        document.getElementById('modal-titulo').textContent = titulo;
+        
+        // Resetar estado do PDF
+        btnDownloadPdf.style.display = 'none';
+        pdfNaoEncontrado.style.display = 'none';
+        
+        // Mostrar modal
+        modalDetalhes.style.display = 'flex';
+        
+        // ⭐ VERIFICAR PERMISSÃO
+        await verificarPermissaoAuditoria(id);
+        
+        // ⭐ CARREGAR PDF, FUNDAMENTOS E EVIDÊNCIAS (se autorizado)
+        if (usuarioAutorizado) {
+            await verificarPdf(codigo);
+            await carregarFundamentos(id);
+            await carregarEvidencias(id);  // ⭐ ADICIONAR ESTA LINHA
+        } else {
+            // Mostrar mensagem de acesso negado
+            fundamentosContainerModal.innerHTML = `
+                <div class="empty-message" style="border-left: 4px solid #dc3545;">
+                    <i class="fas fa-lock" style="color: #dc3545;"></i>
+                    <strong>Acesso negado!</strong><br>
+                    Você não tem permissão para visualizar os detalhes desta auditoria.
+                    Apenas o gestor responsável e administradores têm acesso.
+                </div>
+            `;
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'none';
+            
+            // ⭐ TAMBÉM LIMPAR A SEÇÃO DE EVIDÊNCIAS EM CASO DE ACESSO NEGADO
+            const evidenciasContainer = document.getElementById('evidencias-container');
+            if (evidenciasContainer) {
+                evidenciasContainer.innerHTML = `
+                    <div class="empty-message" style="border-left: 4px solid #dc3545;">
+                        <i class="fas fa-lock" style="color: #dc3545;"></i>
+                        <strong>Acesso negado!</strong><br>
+                        Você não tem permissão para visualizar as evidências desta auditoria.
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // ====== FECHAR MODAL DETALHES ======
+    function fecharModalDetalhes() {
+        modalDetalhes.style.display = 'none';
+        auditoriaAtualId = null;
+        auditoriaAtualCodigo = null;
+        fundamentosLista = [];
+    }
+
+    function aplicarPermissoesModal() {
+        // Controles de edição (adicionar/remover riscos e pontos)
+        const btnAdicionarRisco = document.querySelectorAll('.btn-adicionar-risco, .btn-adicionar-risco-inline');
+        const btnRemoverRisco = document.querySelectorAll('.btn-remover-risco');
+        const btnAdicionarPonto = document.querySelectorAll('.btn-adicionar-ponto');
+        const btnRemoverPonto = document.querySelectorAll('.btn-remover-ponto');
+        const btnSalvar = document.querySelectorAll('.btn-salvar-auditoria');
+        const inputs = document.querySelectorAll('.risco-titulo-input, .ponto-input');
+        
+        if (!usuarioAutorizado) {
+            // Desabilitar edição
+            btnAdicionarRisco.forEach(btn => btn.style.display = 'none');
+            btnRemoverRisco.forEach(btn => btn.style.display = 'none');
+            btnAdicionarPonto.forEach(btn => btn.style.display = 'none');
+            btnRemoverPonto.forEach(btn => btn.style.display = 'none');
+            btnSalvar.forEach(btn => btn.style.display = 'none');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.style.backgroundColor = '#f8f9fa';
+                input.style.cursor = 'not-allowed';
+            });
+            
+            // Adicionar indicador de somente leitura no modal
+            const sectionHeader = document.querySelector('.fundamentos-section .section-header');
+            if (sectionHeader && !document.querySelector('.readonly-indicator')) {
+                const indicator = document.createElement('span');
+                indicator.className = 'readonly-indicator';
+                indicator.innerHTML = '<i class="fas fa-eye"></i> Modo somente leitura';
+                indicator.style.cssText = `
+                    display: inline-block;
+                    background: #e9ecef;
+                    color: #666;
+                    padding: 4px 12px;
+                    border-radius: 20px;
+                    font-size: 11px;
+                    margin-left: 15px;
+                `;
+                sectionHeader.appendChild(indicator);
+            }
+        } else {
+            // Habilitar edição
+            btnAdicionarRisco.forEach(btn => btn.style.display = '');
+            btnRemoverRisco.forEach(btn => btn.style.display = '');
+            btnAdicionarPonto.forEach(btn => btn.style.display = '');
+            btnRemoverPonto.forEach(btn => btn.style.display = '');
+            btnSalvar.forEach(btn => btn.style.display = '');
+            inputs.forEach(input => {
+                input.disabled = false;
+                input.style.backgroundColor = 'white';
+                input.style.cursor = 'text';
+            });
+            
+            // Remover indicador de somente leitura
+            const indicator = document.querySelector('.readonly-indicator');
+            if (indicator) indicator.remove();
+        }
+    }
+
+    // ====== VERIFICAR PERMISSÃO ======
+    async function verificarPermissaoAuditoria(auditoriaId) {
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const data = await response.json();
+            
+            console.log('🔍 Verificação de permissão:', data);
+            
+            if (isAdmin) {
+                usuarioAutorizado = true;
+                console.log('✅ Administrador - acesso total');
+            } else if (data.autorizado) {
+                usuarioAutorizado = true;
+                console.log('✅ Usuário é responsável - acesso total');
+            } else {
+                usuarioAutorizado = false;
+                console.log('❌ Usuário NÃO autorizado');
+            }
+            
+            // Aplicar permissões na interface
+            aplicarPermissoesModal();
+            
+            return usuarioAutorizado;
+            
+        } catch (error) {
+            console.error('Erro ao verificar permissão:', error);
+            usuarioAutorizado = false;
+            aplicarPermissoesModal();
+            return false;
+        }
+    }
+
+    // ====== HABILITAR EDIÇÃO ======
+    function habilitarEdicaoFundamentos() {
+        document.querySelectorAll('#fundamentos-container-modal .risco-titulo textarea, #fundamentos-container-modal .ponto-item input').forEach(input => {
+            input.disabled = false;
+            input.style.backgroundColor = 'white';
+            input.style.cursor = 'text';
+        });
+        
+        document.querySelectorAll('#fundamentos-container-modal .btn-remover-risco, #fundamentos-container-modal .btn-remover-ponto, #fundamentos-container-modal .btn-adicionar-ponto').forEach(btn => {
+            btn.style.display = '';
+        });
+        
+        const indicator = document.querySelector('.readonly-indicator');
+        if (indicator) indicator.remove();
+    }
+
+    // ====== DESABILITAR EDIÇÃO ======
+    function desabilitarEdicaoFundamentos() {
+        document.querySelectorAll('#fundamentos-container-modal .risco-titulo textarea, #fundamentos-container-modal .ponto-item input').forEach(input => {
+            input.disabled = true;
+            input.style.backgroundColor = '#f8f9fa';
+            input.style.cursor = 'not-allowed';
+        });
+        
+        document.querySelectorAll('#fundamentos-container-modal .btn-remover-risco, #fundamentos-container-modal .btn-remover-ponto, #fundamentos-container-modal .btn-adicionar-ponto').forEach(btn => {
+            btn.style.display = 'none';
+        });
+        
+        const sectionHeader = document.querySelector('.fundamentos-section .section-header');
+        if (sectionHeader && !document.querySelector('.readonly-indicator')) {
+            const indicator = document.createElement('span');
+            indicator.className = 'readonly-indicator';
+            indicator.innerHTML = '<i class="fas fa-eye"></i> Modo somente leitura';
+            indicator.style.cssText = `
+                display: inline-block;
+                background: #e9ecef;
+                color: #666;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                margin-left: 15px;
+            `;
+            sectionHeader.appendChild(indicator);
+        }
+    }
+
+    // ====== VERIFICAR EXISTÊNCIA DO PDF ======
+    async function verificarPdf(codigoAuditoria) {
+        try {
+            // ⭐ CORRIGIDO: usar a mesma API do plano_anual
+            const response = await fetch(`/api/plano-anual-pdf?codigo=${codigoAuditoria}&tipo=emergencial`);
+            console.log('Status da resposta:', response.status);
+            
+            if (response.ok) {
+                console.log('✅ PDF encontrado - mostrando botão');
+                btnDownloadPdf.style.display = 'inline-flex';
+                pdfNaoEncontrado.style.display = 'none';
+                return true;
+            } else {
+                const errorData = await response.json();
+                console.log('❌ PDF NÃO encontrado');
+                btnDownloadPdf.style.display = 'none';
+                pdfNaoEncontrado.style.display = 'block';
+                pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${errorData.error || 'Arquivo PDF não encontrado'}`;
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao verificar PDF:', error);
+            btnDownloadPdf.style.display = 'none';
+            pdfNaoEncontrado.style.display = 'block';
+            pdfNaoEncontrado.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro ao verificar arquivo PDF.`;
+            return false;
+        }
+    }
+
+    // ====== DOWNLOAD DO PDF ======
+    function baixarPdf() {
+        if (auditoriaAtualCodigo) {
+            // ⭐ CORRIGIDO: usar a mesma API do plano_anual
+            window.open(`/api/plano-anual-pdf?codigo=${auditoriaAtualCodigo}&tipo=emergencial`, '_blank');
+        }
+    }
+
+    // ====== CARREGAR FUNDAMENTOS ======
+    async function carregarFundamentos(auditoriaId) {
+        console.log('🔍 Carregando fundamentos para auditoria ID:', auditoriaId);
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`);
+            const data = await response.json();
+            
+            console.log('📦 Dados recebidos da API:', data);
+            
+            if (typeof data.fundamentos === 'string') {
+                try {
+                    fundamentosLista = JSON.parse(data.fundamentos);
+                } catch(e) {
+                    fundamentosLista = [];
+                }
+            } else if (Array.isArray(data.fundamentos)) {
+                fundamentosLista = data.fundamentos;
+            } else {
+                fundamentosLista = [];
+            }
+            
+            renderizarFundamentos();
+            
+        } catch (error) {
+            console.error('Erro ao carregar fundamentos:', error);
+            fundamentosLista = [];
+            renderizarFundamentos();
+        }
+    }
+
+    // ====== RENDERIZAR FUNDAMENTOS ======
+    function renderizarFundamentos() {
+        if (!fundamentosContainerModal) return;
+        
+        // Atualizar contador
+        contadorRiscosModal.textContent = fundamentosLista.length;
+        
+        if (fundamentosLista.length === 0) {
+            fundamentosContainerModal.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-info-circle"></i> Nenhum fundamento para esta auditoria emergencial cadastrado. 
+                    <br>Clique em <strong>"Adicionar Risco"</strong> para começar.
+                </div>
+            `;
+            return;
+        }
+        
+        fundamentosContainerModal.innerHTML = fundamentosLista.map((fundamento, idx) => `
+            <div class="risco-card" data-fundamento-idx="${idx}">
+                <div class="risco-header">
+                    <div class="risco-titulo">
+                        <label><i class="fas fa-exclamation-triangle"></i> Risco ${idx + 1}:</label>
+                        <textarea class="risco-titulo-input" rows="2" placeholder="Descreva brevemente o risco que fundamentou a auditoria emergencial..." data-idx="${idx}">${escapeHtml(fundamento.titulo || '')}</textarea>
+                    </div>
+                    <div class="risco-actions">
+                        <button class="btn-remover-risco" data-idx="${idx}" title="Remover risco">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="pontos-container">
+                    <label class="pontos-label"><i class="fas fa-list"></i> Pontos que fundamentam o risco:</label>
+                    <div class="pontos-list" data-idx="${idx}">
+                        ${(fundamento.pontos || []).map((ponto, pIdx) => `
+                            <div class="ponto-item">
+                                <span class="ponto-numero">${pIdx + 1}.</span>
+                                <input type="text" class="ponto-input" placeholder="Ex: Não conformidade com a Lei 123/2026..." 
+                                    data-idx="${idx}" data-pidx="${pIdx}" value="${escapeHtml(ponto)}">
+                                <button class="btn-remover-ponto" data-idx="${idx}" data-pidx="${pIdx}" title="Remover ponto">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-adicionar-ponto" data-idx="${idx}">
+                        <i class="fas fa-plus"></i> Adicionar ponto
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        adicionarEventosFundamentos();
+
+        // Adicionar eventos de edição
+        adicionarEventosEdicao();
+        
+        // ⭐ APLICAR PERMISSÕES NOVAMENTE (para garantir)
+        if (!usuarioAutorizado) {
+            aplicarPermissoesModal();
+        }
+
+    }
+
+    // ====== ADICIONAR EVENTOS DE EDIÇÃO ======
+    function adicionarEventosEdicao() {
+        // Adicionar Risco
+        document.querySelectorAll('#fundamentos-container-modal .btn-adicionar-risco, #fundamentos-container-modal .btn-adicionar-risco-inline').forEach(btn => {
+            btn.removeEventListener('click', handleAdicionarRisco);
+            btn.addEventListener('click', handleAdicionarRisco);
+        });
+        
+        // Remover Risco
+        document.querySelectorAll('#fundamentos-container-modal .btn-remover-risco').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverRisco);
+            btn.addEventListener('click', handleRemoverRisco);
+        });
+        
+        // Adicionar Ponto
+        document.querySelectorAll('#fundamentos-container-modal .btn-adicionar-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleAdicionarPonto);
+            btn.addEventListener('click', handleAdicionarPonto);
+        });
+        
+        // Remover Ponto
+        document.querySelectorAll('#fundamentos-container-modal .btn-remover-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverPonto);
+            btn.addEventListener('click', handleRemoverPonto);
+        });
+        
+        // Salvar Auditoria
+        document.querySelectorAll('#fundamentos-container-modal .btn-salvar-auditoria').forEach(btn => {
+            btn.removeEventListener('click', handleSalvarAuditoria);
+            btn.addEventListener('click', handleSalvarAuditoria);
+        });
+    }
+
+    // ====== HANDLERS DE EDIÇÃO ======
+    function handleAdicionarRisco(e) {
+        const btn = e.target.closest('.btn-adicionar-risco, .btn-adicionar-risco-inline');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria) return;
+        
+        if (!auditoria.fundamentos) {
+            auditoria.fundamentos = [];
+        }
+        
+        auditoria.fundamentos.push({
+            titulo: '',
+            pontos: ['']
+        });
+        
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    function handleRemoverRisco(e) {
+        const btn = e.target.closest('.btn-remover-risco');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria || !auditoria.fundamentos) return;
+        
+        auditoria.fundamentos.splice(fundamentoIdx, 1);
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    function handleAdicionarPonto(e) {
+        const btn = e.target.closest('.btn-adicionar-ponto');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
+        
+        auditoria.fundamentos[fundamentoIdx].pontos.push('');
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    function handleRemoverPonto(e) {
+        const btn = e.target.closest('.btn-remover-ponto');
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
+        const pontoIdx = parseInt(btn.getAttribute('data-ponto-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
+        
+        auditoria.fundamentos[fundamentoIdx].pontos.splice(pontoIdx, 1);
+        renderizarFundamentos(dadosAuditorias);
+    }
+
+    async function handleSalvarAuditoria(e) {
+        const btn = e.target.closest('.btn-salvar-auditoria');
+        const auditoriaId = parseInt(btn.getAttribute('data-auditoria-id'));
+        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
+        const auditoria = dadosAuditorias[auditoriaIdx];
+        
+        if (!auditoria) return;
+        
+        // Coletar dados dos inputs
+        const card = btn.closest('.auditoria-fundamento-card');
+        const riscosInputs = card.querySelectorAll('.risco-titulo-input');
+        const pontosInputs = card.querySelectorAll('.ponto-input');
+        
+        // Atualizar dados da auditoria com os valores dos inputs
+        riscosInputs.forEach(input => {
+            const fIdx = parseInt(input.getAttribute('data-fundamento-idx'));
+            if (auditoria.fundamentos && auditoria.fundamentos[fIdx]) {
+                auditoria.fundamentos[fIdx].titulo = input.value;
+            }
+        });
+        
+        pontosInputs.forEach(input => {
+            const fIdx = parseInt(input.getAttribute('data-fundamento-idx'));
+            const pIdx = parseInt(input.getAttribute('data-ponto-idx'));
+            if (auditoria.fundamentos && auditoria.fundamentos[fIdx] && auditoria.fundamentos[fIdx].pontos[pIdx] !== undefined) {
+                auditoria.fundamentos[fIdx].pontos[pIdx] = input.value;
+            }
+        });
+        
+        // Filtrar fundamentos vazios
+        const fundamentosFiltrados = (auditoria.fundamentos || []).filter(f => {
+            if (!f.titulo || f.titulo.trim() === '') return false;
+            const pontosValidos = (f.pontos || []).filter(p => p && p.trim() !== '');
+            return pontosValidos.length > 0;
+        });
+        
+        // Salvar
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            
+            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fundamentos: fundamentosFiltrados })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                mostrarToast('✅ Fundamentos salvos com sucesso!', 'success');
+                auditoria.fundamentos = fundamentosFiltrados;
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (result.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar:', error);
+            mostrarToast('❌ Erro de conexão', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Salvar Fundamentos desta Auditoria';
+        }
+    }
+
+    // ====== ADICIONAR EVENTOS ======
+    function adicionarEventosFundamentos() {
+        document.querySelectorAll('#fundamentos-container-modal .risco-titulo-input').forEach(input => {
+            input.removeEventListener('input', handleTituloChange);
+            input.addEventListener('input', handleTituloChange);
+        });
+        
+        document.querySelectorAll('#fundamentos-container-modal .btn-remover-risco').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverRisco);
+            btn.addEventListener('click', handleRemoverRisco);
+        });
+        
+        document.querySelectorAll('#fundamentos-container-modal .ponto-input').forEach(input => {
+            input.removeEventListener('input', handlePontoChange);
+            input.addEventListener('input', handlePontoChange);
+        });
+        
+        document.querySelectorAll('#fundamentos-container-modal .btn-remover-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleRemoverPonto);
+            btn.addEventListener('click', handleRemoverPonto);
+        });
+        
+        document.querySelectorAll('#fundamentos-container-modal .btn-adicionar-ponto').forEach(btn => {
+            btn.removeEventListener('click', handleAdicionarPonto);
+            btn.addEventListener('click', handleAdicionarPonto);
+        });
+    }
+
+    function handleTituloChange(e) {
+        const idx = parseInt(e.target.getAttribute('data-idx'));
+        if (fundamentosLista[idx]) {
+            fundamentosLista[idx].titulo = e.target.value;
+        }
+    }
+
+    function handleRemoverRisco(e) {
+        const idx = parseInt(e.target.closest('.btn-remover-risco').getAttribute('data-idx'));
+        fundamentosLista.splice(idx, 1);
+        renderizarFundamentos();
+    }
+
+    function handlePontoChange(e) {
+        const idx = parseInt(e.target.getAttribute('data-idx'));
+        const pIdx = parseInt(e.target.getAttribute('data-pidx'));
+        if (fundamentosLista[idx] && fundamentosLista[idx].pontos[pIdx] !== undefined) {
+            fundamentosLista[idx].pontos[pIdx] = e.target.value;
+        }
+    }
+
+    function handleRemoverPonto(e) {
+        const idx = parseInt(e.target.closest('.btn-remover-ponto').getAttribute('data-idx'));
+        const pIdx = parseInt(e.target.closest('.btn-remover-ponto').getAttribute('data-pidx'));
+        if (fundamentosLista[idx] && fundamentosLista[idx].pontos) {
+            fundamentosLista[idx].pontos.splice(pIdx, 1);
+            renderizarFundamentos();
+        }
+    }
+
+    function handleAdicionarPonto(e) {
+        const idx = parseInt(e.target.closest('.btn-adicionar-ponto').getAttribute('data-idx'));
+        if (fundamentosLista[idx]) {
+            if (!fundamentosLista[idx].pontos) {
+                fundamentosLista[idx].pontos = [];
+            }
+            fundamentosLista[idx].pontos.push('');
+            renderizarFundamentos();
+        }
+    }
+
+    // ====== ADICIONAR FUNDAMENTO ======
+    function adicionarFundamento() {
+        fundamentosLista.push({
+            titulo: '',
+            pontos: ['']
+        });
+        renderizarFundamentos();
+    }
+
+    // ====== SALVAR FUNDAMENTOS ======
+    async function salvarFundamentos() {
+        if (!auditoriaAtualId) {
+            mostrarToast('❌ Nenhuma auditoria selecionada', 'error');
+            return;
+        }
+        
+        const fundamentosFiltrados = fundamentosLista.filter(f => {
+            if (!f.titulo || f.titulo.trim() === '') return false;
+            const pontosValidos = (f.pontos || []).filter(p => p && p.trim() !== '');
+            return pontosValidos.length > 0;
+        });
+        
+        const payload = {
+            fundamentos: fundamentosFiltrados
+        };
+        
+        try {
+            const btnSalvar = btnSalvarFundamentosModal;
+            const textoOriginal = btnSalvar.innerHTML;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSalvar.disabled = true;
+            
+            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/fundamentos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                mostrarToast('✅ Fundamentos salvos com sucesso!', 'success');
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (result.error || 'Tente novamente'), 'error');
+            }
+            
+            btnSalvar.innerHTML = textoOriginal;
+            btnSalvar.disabled = false;
+            
+        } catch (error) {
+            console.error('Erro ao salvar fundamentos:', error);
+            mostrarToast('❌ Erro de conexão', 'error');
+            btnSalvarFundamentosModal.innerHTML = '<i class="fas fa-save"></i> Salvar Todos os Fundamentos';
+            btnSalvarFundamentosModal.disabled = false;
+        }
+    }
+
+    // ====== FUNÇÕES DE EVIDÊNCIAS ======
+    
+    // ====== CARREGAR EVIDÊNCIAS ======
+    async function carregarEvidencias(auditoriaId) {
+        console.log('📎 Carregando evidências para auditoria ID:', auditoriaId);
+        
+        const evidenciasContainer = document.getElementById('evidencias-container');
+        if (!evidenciasContainer) return;
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/evidencias`);
+            const data = await response.json();
+            
+            console.log('📦 Evidências recebidas:', data);
+            
+            if (data.success) {
+                renderizarEvidencias(data.evidencias);
+            } else {
+                evidenciasContainer.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-exclamation-triangle"></i> Erro ao carregar evidências: ${data.error || 'Erro desconhecido'}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar evidências:', error);
+            evidenciasContainer.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar evidências
+                </div>
+            `;
+        }
+    }
+
+    // ====== RENDERIZAR EVIDÊNCIAS ======
+    function renderizarEvidencias(evidencias) {
+        const evidenciasContainer = document.getElementById('evidencias-container');
+        if (!evidenciasContainer) return;
+        
+        if (!evidencias || evidencias.length === 0) {
+            evidenciasContainer.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-info-circle"></i> Nenhuma evidência anexada.
+                </div>
+            `;
+            return;
+        }
+        
+        evidenciasContainer.innerHTML = `
+            <div class="evidencias-grid">
+                ${evidencias.map((ev, idx) => `
+                    <div class="evidencia-card" data-idx="${idx}">
+                        <div class="evidencia-icon">
+                            ${getIconByTipo(ev.tipo)}
+                        </div>
+                        <div class="evidencia-info">
+                            <div class="evidencia-nome" title="${escapeHtml(ev.nome)}">${escapeHtml(ev.nome)}</div>
+                            <div class="evidencia-tamanho">${formatarTamanho(ev.tamanho)}</div>
+                        </div>
+                        <div class="evidencia-actions">
+                            <button class="btn-baixar-evidencia" onclick="baixarEvidencia('${ev.url}')" title="Baixar">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn-remover-evidencia" onclick="removerEvidencia(${idx})" title="Remover">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // ====== ÍCONE POR TIPO DE ARQUIVO ======
+    function getIconByTipo(tipo) {
+        if (!tipo) return '<i class="fas fa-file"></i>';
+        
+        if (tipo.includes('pdf')) return '<i class="fas fa-file-pdf" style="color: #dc3545;"></i>';
+        if (tipo.includes('word') || tipo.includes('doc')) return '<i class="fas fa-file-word" style="color: #2b579a;"></i>';
+        if (tipo.includes('excel') || tipo.includes('sheet')) return '<i class="fas fa-file-excel" style="color: #217346;"></i>';
+        if (tipo.includes('image')) return '<i class="fas fa-file-image" style="color: #17a2b8;"></i>';
+        if (tipo.includes('zip') || tipo.includes('rar')) return '<i class="fas fa-file-archive" style="color: #ffc107;"></i>';
+        return '<i class="fas fa-file" style="color: #6c757d;"></i>';
+    }
+
+    // ====== FORMATAR TAMANHO ======
+    function formatarTamanho(bytes) {
+        if (!bytes) return 'Desconhecido';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1073741824).toFixed(1) + ' GB';
+    }
+
+    // ====== UPLOAD DE EVIDÊNCIA ======
+    async function uploadEvidencia(file) {
+        const formData = new FormData();
+        formData.append('arquivo', file);
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/upload-evidencia`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast(`✅ Arquivo "${file.name}" enviado com sucesso!`, 'success');
+                await carregarEvidencias(auditoriaAtualId);
+            } else {
+                mostrarToast(`❌ Erro ao enviar "${file.name}": ${data.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erro no upload:', error);
+            mostrarToast(`❌ Erro ao enviar "${file.name}"`, 'error');
+        }
+    }
+
+    // ====== BAIXAR EVIDÊNCIA ======
+    async function baixarEvidencia(caminho) {
+        try {
+            const response = await fetch(`/api/evidencia/${encodeURIComponent(caminho)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                window.open(data.url, '_blank');
+            } else {
+                mostrarToast('❌ Erro ao baixar evidência', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao baixar:', error);
+            mostrarToast('❌ Erro ao baixar evidência', 'error');
+        }
+    }
+
+    // ====== REMOVER EVIDÊNCIA ======
+    async function removerEvidencia(idx) {
+        if (!confirm('Tem certeza que deseja remover esta evidência?')) return;
+        
+        try {
+            // Buscar a lista atual de evidências
+            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/evidencias`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                mostrarToast('❌ Erro ao buscar evidências', 'error');
+                return;
+            }
+            
+            const evidencias = data.evidencias;
+            const evidencia = evidencias[idx];
+            
+            if (!evidencia) return;
+            
+            // Remover
+            const deleteResponse = await fetch(`/api/auditoria/${auditoriaAtualId}/evidencia`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caminho: evidencia.url })
+            });
+            
+            const deleteData = await deleteResponse.json();
+            
+            if (deleteData.success) {
+                mostrarToast('✅ Evidência removida com sucesso!', 'success');
+                await carregarEvidencias(auditoriaAtualId);
+            } else {
+                mostrarToast(`❌ ${deleteData.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover evidência:', error);
+            mostrarToast('❌ Erro ao remover evidência', 'error');
+        }
+    }
+
+
+
+    // // ====== FECHAR MODAL AO CLICAR FORA ======
+    // modalDetalhes.addEventListener('click', function(e) {
+    //     if (e.target === modalDetalhes) {
+    //         fecharModalDetalhes();
+    //     }
+    // });
+
+    // ====== FECHAR MODAL COM ESC ======
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalDetalhes.style.display === 'flex') {
+            fecharModalDetalhes();
+        }
+    });
+
+    // ====== EVENTOS ======
+    if (btnFiltrar) {
+        btnFiltrar.addEventListener('click', () => {
+            const areaId = filtroAreaSelect.value;
+            carregarEmergenciais(areaId || null);
+        });
+    }
+
+    if (btnLimparFiltros) {
+        btnLimparFiltros.addEventListener('click', () => {
+            filtroAreaSelect.value = '';
+            carregarEmergenciais(null);
+        });
+    }
+
+    if (filtroAreaSelect) {
+        filtroAreaSelect.addEventListener('change', () => {
+            const areaId = filtroAreaSelect.value;
+            carregarEmergenciais(areaId || null);
+        });
+    }
+
+    if (btnAdicionarFundamentoModal) {
+        btnAdicionarFundamentoModal.addEventListener('click', adicionarFundamento);
+    }
+
+    if (btnSalvarFundamentosModal) {
+        btnSalvarFundamentosModal.addEventListener('click', salvarFundamentos);
+    }
+
+    if (btnDownloadPdf) {
+        btnDownloadPdf.addEventListener('click', baixarPdf);
+    }
+
+    // ====== INICIALIZAÇÃO ======
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 Página de Auditorias Emergenciais carregada');
+        
+        // Carregar auditorias
+        carregarEmergenciais(null);
+        
+        // ====== EVENTOS DE EVIDÊNCIAS ======
+        const btnAnexarEvidencia = document.getElementById('btn-anexar-evidencia');
+        const inputEvidencia = document.getElementById('input-evidencia');
+        
+        if (btnAnexarEvidencia && inputEvidencia) {
+            btnAnexarEvidencia.addEventListener('click', () => {
+                inputEvidencia.click();
+            });
+            
+            inputEvidencia.addEventListener('change', async (e) => {
+                const files = e.target.files;
+                if (files.length === 0) return;
+                
+                // Mostrar feedback de carregamento
+                mostrarToast(`📤 Enviando ${files.length} arquivo(s)...`, 'info');
+                
+                for (const file of files) {
+                    await uploadEvidencia(file);
+                }
+                
+                // Resetar input
+                inputEvidencia.value = '';
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -37,7 +37,9 @@
             <div class="form-group">
                 <label><i class="fas fa-file-pdf"></i> Tipo de Relatório:</label>
                 <select id="tipo_relatorio" class="form-control">
-                    <option value="gerencial">Relatório de Validação (Matrizes Panorama e Detalhamento)</option>
+                    <option value="">Selecione um tipo...</option>
+                    <option value="panorama">Validação - Matriz de Panorama</option>
+                    <option value="detalhamento">Validação - Matriz de Detalhamento</option>
                     <option value="parecer">Parecer da Auditoria Interna</option>
                 </select>
             </div>
@@ -100,9 +102,11 @@
                     id="incluir_abr"
                     name="incluir_abr"
                     value="true">
-
                 <label for="incluir_abr" style="margin: 0;">
                     <strong>Incluir seção ABR - Auditoria Baseada em Risco</strong>
+                    <span style="font-weight: normal; color: #666; font-size: 12px; display: block; margin-top: 2px;">
+                        (Disponível apenas para administradores)
+                    </span>
                 </label>
             </div>
         </div>
@@ -616,19 +620,24 @@
 
         const areaId = selectArea?.value;
         const auditoriaId = selectAuditoria?.value;
-        const processoId = selectProcesso?.value;  // ⭐ PODE SER VAZIO ("")
+        const processoId = selectProcesso?.value;
         const orientacao = orientacaoSelecionada?.value || 'RETRATO';
-        const tipoRelatorio = selectTipo?.value || 'gerencial';
+        const tipoRelatorio = selectTipo?.value;
 
+        // ⭐ Validações
         if (!areaId || !auditoriaId) {
-            mostrarToast('Selecione a área e a auditoria primeiro', 'warning');
+            mostrarToast('⚠️ Selecione a área e a auditoria primeiro', 'warning');
             return;
         }
 
-        // ⭐ VALIDAÇÃO: Se for parecer, o processo é OBRIGATÓRIO
+        if (!tipoRelatorio) {
+            mostrarToast('⚠️ Selecione o tipo de relatório', 'warning');
+            return;
+        }
+
+        // ⭐ PARA PARECER: processo é obrigatório
         if (tipoRelatorio === 'parecer' && !processoId) {
-            mostrarToast('⚠️ Selecione um processo específico para gerar o Parecer da Auditoria Interna', 'warning');
-            // Destacar o select de processo
+            mostrarToast('⚠️ Selecione um processo específico para gerar o Parecer', 'warning');
             const selectProcessoEl = document.getElementById('processo_relatorio');
             if (selectProcessoEl) {
                 selectProcessoEl.style.borderColor = '#dc3545';
@@ -638,6 +647,7 @@
             }
             return;
         }
+
         const btnGerar = document.getElementById('btn-gerar-relatorio');
         const btnLoading = btnGerar?.querySelector('.btn-loading');
 
@@ -647,6 +657,7 @@
             if (btnLoading) btnLoading.style.display = 'inline-flex';
         }
 
+        // ⭐ Definir URL e payload baseado no tipo
         let url = '';
         let nomeBase = '';
         let bodyData = {
@@ -655,25 +666,32 @@
             orientacao: orientacao
         };
 
-        // ⭐ ADICIONAR PARÂMETRO ABR
+        // ⭐ PARÂMETRO ABR (apenas para parecer)
         const incluirABR = document.getElementById('incluir_abr')?.checked || false;
-        bodyData.incluir_abr = incluirABR
-        
-        if (tipoRelatorio === 'gerencial') {
-            url = '/api/relatorios/gerar-gerencial';
-            nomeBase = processoId ? `relatorio_gerencial_processo_${processoId}` : 'relatorio_gerencial_todos';
-            // ⭐ SE TIVER PROCESSO, ADICIONA AO BODY
-            if (processoId) {
-                bodyData.processo_id = processoId;
-            }
-        } else if (tipoRelatorio === 'parecer') {
-            url = '/api/relatorios/gerar-parecer';
-            nomeBase = processoId ? `parecer_auditoria_processo_${processoId}` : 'parecer_auditoria_todos';
-            // ⭐ SEMPRE ENVIA O PROCESSO_ID (SE TIVER)
-            if (processoId) {
-                bodyData.processo_id = processoId;
-            }
-            // ⭐ SE NÃO TIVER PROCESSO, O BACKEND DEVE GERAR PARA TODOS
+
+        switch (tipoRelatorio) {
+            case 'panorama':
+                url = '/api/relatorios/gerar-panorama';
+                nomeBase = processoId ? `relatorio_panorama_processo_${processoId}` : 'relatorio_panorama_todos';
+                if (processoId) bodyData.processo_id = processoId;
+                break;
+
+            case 'detalhamento':
+                url = '/api/relatorios/gerar-detalhamento';
+                nomeBase = processoId ? `relatorio_detalhamento_processo_${processoId}` : 'relatorio_detalhamento_todos';
+                if (processoId) bodyData.processo_id = processoId;
+                break;
+
+            case 'parecer':
+                url = '/api/relatorios/gerar-parecer';
+                nomeBase = `parecer_auditoria_processo_${processoId}`;
+                bodyData.processo_id = processoId;  // ⭐ Obrigatório
+                if (incluirABR) bodyData.incluir_abr = true;
+                break;
+
+            default:
+                mostrarToast('⚠️ Tipo de relatório inválido', 'warning');
+                return;
         }
 
         try {
@@ -860,34 +878,32 @@
             });
         }
 
+        // ⭐ Evento de mudança do tipo de relatório
         if (selectTipo) {
             selectTipo.addEventListener('change', async () => {
                 const auditoriaId = selectAuditoria?.value;
                 const tipoSelecionado = selectTipo.value;
+                const rowProcesso = document.getElementById('row_processo');
+                const selectProcesso = document.getElementById('processo_relatorio');
+                const checkboxAbr = document.getElementById('checkbox-abr-container');
+                const checkboxIncluirAbr = document.getElementById('incluir_abr');
                 
-                // ⭐ AGORA MOSTRA PARA AMBOS OS TIPOS
-                if ((tipoSelecionado === 'parecer' || tipoSelecionado === 'gerencial') && auditoriaId) {
+                // ⭐ Mostrar/esconder checkbox ABR (apenas para parecer)
+                if (tipoSelecionado === 'parecer') {
+                    checkboxAbr.style.display = 'block';
+                } else {
+                    checkboxAbr.style.display = 'none';
+                    if (checkboxIncluirAbr) checkboxIncluirAbr.checked = false;
+                }
+                
+                // ⭐ Mostrar select de processo para todos os tipos
+                if (tipoSelecionado && auditoriaId) {
                     rowProcesso.style.display = 'flex';
                     await carregarProcessosPorAuditoria(auditoriaId);
                     
-                    // ⭐ SE FOR PARECER, REMOVE A OPÇÃO "TODOS OS PROCESSOS"
-                    const selectProcesso = document.getElementById('processo_relatorio');
-                    if (selectProcesso && tipoSelecionado === 'parecer') {
-                        // Remove a opção "Todos os processos" se existir
-                        const options = selectProcesso.options;
-                        for (let i = 0; i < options.length; i++) {
-                            if (options[i].value === '' && options[i].text === 'Todos os processos da auditoria') {
-                                selectProcesso.remove(i);
-                                break;
-                            }
-                        }
-                        // Adiciona a opção padrão se não existir
-                        if (selectProcesso.options.length > 0 && selectProcesso.options[0].value !== '') {
-                            const defaultOption = document.createElement('option');
-                            defaultOption.value = '';
-                            defaultOption.textContent = 'Selecione um processo...';
-                            selectProcesso.insertBefore(defaultOption, selectProcesso.firstChild);
-                        }
+                    // ⭐ Se for parecer, forçar seleção
+                    if (tipoSelecionado === 'parecer' && selectProcesso) {
+                        selectProcesso.style.borderColor = '#184145';
                     }
                 } else {
                     rowProcesso.style.display = 'none';
@@ -917,11 +933,9 @@
         
         if (!selectProcesso) return;
         
-        // Se não for parecer OU gerencial, não carrega
-        if (tipoRelatorio !== 'parecer' && tipoRelatorio !== 'gerencial') {
-            rowProcesso.style.display = 'none';
-            return;
-        }
+        // ⭐ SEMPRE MOSTRA PARA QUALQUER TIPO (comportamentos diferentes)
+        // Para parecer: obrigatório
+        // Para panorama/detalhamento: opcional
         
         // Mostra a linha de processo
         rowProcesso.style.display = 'flex';
@@ -933,11 +947,11 @@
             const data = await response.json();
 
             if (data.success && data.processos && data.processos.length > 0) {
-                // ⭐ SE FOR PARECER, NÃO MOSTRA A OPÇÃO "TODOS OS PROCESSOS"
+                // ⭐ PARA PARECER: NÃO MOSTRA A OPÇÃO "TODOS"
                 if (tipoRelatorio === 'parecer') {
                     selectProcesso.innerHTML = '<option value="">Selecione um processo...</option>';
                 } else {
-                    // Gerencial: mostra "Todos os processos"
+                    // Panorama e Detalhamento: mostra "Todos"
                     selectProcesso.innerHTML = '<option value="">Todos os processos da auditoria</option>';
                 }
                 
