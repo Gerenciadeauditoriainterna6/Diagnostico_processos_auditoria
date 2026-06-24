@@ -13,7 +13,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from logic import validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria
+from logic import (validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria, listar_areas,
+                   listar_funcionarios_area)
 
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
@@ -2530,7 +2531,7 @@ def api_processos_por_area():
 @app.route('/api/areas')
 def api_areas():
     """Retorna todas as áreas (ativas e inativas)"""
-    from modules.execucao.areas import listar_areas
+    
     
     # Passar apenas_ativas=False para buscar TODAS as áreas
     df = listar_areas(apenas_ativas=False)
@@ -2543,7 +2544,6 @@ def api_areas():
 @app.route('/api/totais')
 def api_totais():
     """Retorna totais de áreas e funcionários"""
-    from modules.execucao.areas import listar_areas, listar_funcionarios_area
     
     df_areas = listar_areas()
     total_areas = len(df_areas) if not df_areas.empty else 0
@@ -2608,7 +2608,6 @@ def api_area_detalhes(area_id):
 @app.route('/api/area/<int:area_id>/funcionarios')
 def api_area_funcionarios(area_id):
     """Retorna todos os funcionários de uma área com tempo calculado"""
-    from modules.execucao.areas import listar_funcionarios_area
     
     df = listar_funcionarios_area(area_id)
     
