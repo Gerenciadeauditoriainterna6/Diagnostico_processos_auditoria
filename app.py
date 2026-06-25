@@ -138,7 +138,7 @@ def calcular_tempo(data_inicio):
 # CRIAÇÃO DA APLICAÇÃO FLASK
 # ============================================================
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Configurações da sessão
 app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
