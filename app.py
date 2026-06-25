@@ -7133,6 +7133,7 @@ def api_auditorias_listar():
                     a.status,
                     a.responsavel_equipe,
                     a.unidade,
+                    a.emergencial,
                     i.nome_area
                 FROM auditorias a
                 LEFT JOIN informacoes_area i ON a.id_area = i.id_area
@@ -7338,7 +7339,8 @@ def api_auditorias_buscar(auditoria_id):
                     data_fim, 
                     status, 
                     responsavel_equipe, 
-                    unidade
+                    unidade,
+                    emergencial
                 FROM auditorias 
                 WHERE id = :id
             """)
@@ -7346,6 +7348,12 @@ def api_auditorias_buscar(auditoria_id):
             
             if not result:
                 return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
+            
+            # ⭐ DEBUG: Imprimir todos os campos
+            print(f"🔍 RESULT COMPLETO: {result}")
+            print(f"🔍 QUANTIDADE DE CAMPOS: {len(result)}")
+            print(f"🔍 ÍNDICE 0 (id): {result[0]}")
+            print(f"🔍 ÍNDICE 11 (emergencial): {result[11] if len(result) > 11 else 'NÃO EXISTE'}")
             
             # responsavel_equipe está no índice 9
             responsaveis = result[9] if result[9] else []
@@ -7364,7 +7372,10 @@ def api_auditorias_buscar(auditoria_id):
                 'status': result[8],
                 'responsavel_equipe': responsaveis,
                 'unidade': result[10] if len(result) > 10 else None,
+                'emergencial': result[11] if len(result) > 11 and result[11] is not None else False
             }
+            
+            print(f"🔍 AUDITORIA DICT: {auditoria}")
             
             return jsonify({'success': True, 'auditoria': auditoria})
             
