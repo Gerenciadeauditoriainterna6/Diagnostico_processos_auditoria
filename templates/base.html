@@ -1434,7 +1434,24 @@
 
             <nav class="nav-menu">
 
-                <!-- SEÇÃO 0: ADMINISTRAÇÃO -->
+                <!-- SEÇÃO 0: PLANEJAMENTO -->
+                <div class="nav-section">
+                    <div class="nav-section-title nav-section-planejamento">PLANEJAMENTO</div>
+                    
+                    <!-- Plano Anual (SEM SUBMENU) -->
+                    <a href="{{ url_for('plano_anual') }}" class="nav-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Plano Anual de Auditoria</span>
+                    </a>
+
+                    <!-- Auditorias Emergenciais (ITEM INDEPENDENTE) -->
+                    <a href="{{ url_for('auditorias_emergenciais') }}" class="nav-item">
+                        <i class="fas fa-circle-exclamation"></i>
+                        <span>Auditorias Emergenciais</span>
+                    </a>
+                </div>
+
+                <!-- SEÇÃO 1: ADMINISTRAÇÃO -->
                 <div class="nav-section">
                     <div class="nav-section-title nav-section-administracao">ADMINISTRAÇÃO</div>
                     <a href="{{ url_for('areas') }}" class="nav-item">
@@ -1454,28 +1471,7 @@
                     {% endif %}
                 </div>
 
-                <!-- SEÇÃO 1: PLANEJAMENTO -->
-                <div class="nav-section">
-                    <div class="nav-section-title nav-section-planejamento">PLANEJAMENTO</div>
-                    
-                    <!-- Plano Anual com Submenu -->
-                    <div class="nav-item-parent">
-                        <a href="{{ url_for('plano_anual') }}" class="nav-item" id="togglePlanoAnualSubmenu">
-                            <span class="nav-item-content">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>Plano Anual de Auditoria</span>
-                            </span>
-                            <i class="fas fa-chevron-down submenu-arrow"></i>
-                        </a>
-                        <div class="submenu" id="planoAnualSubmenu">
-    
-                            <a href="{{ url_for('auditorias_emergenciais') }}" class="submenu-item submenu-emergenciais">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>Auditorias Emergenciais</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                
 
                 <!-- SEÇÃO 2: EXECUÇÃO -->
                 <div class="nav-section">
@@ -1717,12 +1713,6 @@
                     toggleId: 'toggleDetalhamentoSubmenu',
                     submenuId: 'detalhamentoSubmenu',
                     relatedUrls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles']
-                },
-
-                {
-                    toggleId: 'togglePlanoAnualSubmenu',
-                    submenuId: 'planoAnualSubmenu',
-                    relatedUrls: ['/plano-anual', '/auditorias-emergenciais']
                 }
             ];
             
@@ -1806,9 +1796,11 @@
                             { url: '/auditorias', selector: 'a[href="/auditorias"]' },      // ← NOVO: Cadastro de Auditorias
                             { url: '/log-alteracoes', selector: 'a[href="/log-alteracoes"]' },
                             { url: '/plano-anual', selector: 'a[href="/plano-anual"]' },
+                            { url: '/auditorias-emergenciais', selector: 'a[href="/auditorias-emergenciais"]' },
                             { url: '/checklists', selector: 'a[href="/checklists"]' },
                             { url: '/diagnostico', selector: 'a[href="/diagnostico"]' }
                         ],
+
                         // Itens com submenu
                         submenuItems: [
                             {
@@ -1820,17 +1812,6 @@
                                     '/detalhamento': '#detalhamentoSubmenu .submenu-visao',
                                     '/detalhamento_riscos': '#detalhamentoSubmenu .submenu-riscos',
                                     '/detalhamento_controles': '#detalhamentoSubmenu .submenu-controles'
-                                }
-                            },
-
-                            {
-                                name: 'planoAnual',
-                                parentId: 'togglePlanoAnualSubmenu',
-                                submenuId: 'planoAnualSubmenu',
-                                urls: ['/plano-anual', '/auditorias-emergenciais'],
-                                submenuSelectors: {
-                                    '/plano-anual': '#planoAnualSubmenu .submenu-planejamento',
-                                    '/auditorias-emergenciais': '#planoAnualSubmenu .submenu-emergenciais'
                                 }
                             }
                         ]
