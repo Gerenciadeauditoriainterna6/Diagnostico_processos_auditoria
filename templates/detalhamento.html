@@ -1342,19 +1342,13 @@
                             const anexo = achado.anexos[idx];
                             const icone = getIconeArquivo(anexo.nome);
                             html += `
-                                <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
+                                <span class="anexo-badge">
                                     <a href="#" onclick="baixarAnexo(${achado.id}, ${idx}); return false;" 
                                     title="Baixar ${escapeHtml(anexo.nome)}" style="color: inherit; text-decoration: none;">
                                         <i class="fas ${icone}"></i>
                                         ${escapeHtml(anexo.nome)}
                                         <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
                                     </a>
-                                    ${achado.pode_editar ? `
-                                        <button class="btn-remove-anexo" onclick="removerAnexo(${achado.id}, ${idx})" 
-                                                title="Remover anexo" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    ` : ''}
                                 </span>
                             `;
                         }
@@ -1499,10 +1493,43 @@
         const textoElemento = elemento.querySelector('.comentario-texto');
         const textoAtual = textoElemento ? textoElemento.textContent : '';
         
+        // Pegar os anexos atuais
+        const anexosExistentes = [];
+        const anexosContainer = elemento.querySelector('.comentario-anexos');
+        if (anexosContainer) {
+            const badges = anexosContainer.querySelectorAll('.anexo-badge');
+            badges.forEach(badge => {
+                const link = badge.querySelector('a');
+                if (link) {
+                    const nome = link.textContent.replace(/\(\d+\.\d+ [KM]B\)/, '').trim();
+                    anexosExistentes.push({ nome });
+                }
+            });
+        }
+        
+        // Construir HTML dos anexos existentes com botão de remover
+        let anexosHtml = '';
+        if (anexosExistentes.length > 0) {
+            anexosHtml = `<div class="comentario-anexos" style="margin-top: 10px;">`;
+            for (let idx = 0; idx < anexosExistentes.length; idx++) {
+                const anexo = anexosExistentes[idx];
+                const icone = getIconeArquivo(anexo.nome);
+                anexosHtml += `
+                    <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fas ${icone}"></i>
+                        ${escapeHtml(anexo.nome)}
+                        <button class="btn-remove-anexo" onclick="removerAnexo(${achadoId}, ${idx})" 
+                                title="Remover anexo" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `;
+            }
+            anexosHtml += `</div>`;
+        }
+        
         // Substituir o conteúdo pelo formulário de edição
         const headerHtml = elemento.querySelector('.comentario-header').outerHTML;
-        const anexosHtml = elemento.querySelector('.comentario-anexos') ? 
-            elemento.querySelector('.comentario-anexos').outerHTML : '';
         
         elemento.innerHTML = `
             ${headerHtml}
@@ -1512,7 +1539,9 @@
                     <textarea id="editar_achado_texto_${achadoId}" class="form-control" rows="3">${escapeHtml(textoAtual)}</textarea>
                 </div>
                 
-                <div class="comentario-actions">
+                ${anexosHtml}
+                
+                <div class="comentario-actions" style="margin-top: 10px;">
                     <div class="anexo-wrapper">
                         <label for="editar_achado_anexo_${achadoId}" class="btn-anexo">
                             <i class="fas fa-paperclip"></i> Adicionar anexo
@@ -1530,7 +1559,6 @@
                     </div>
                 </div>
             </div>
-            ${anexosHtml}
         `;
         
         // Adicionar evento para mostrar nome do arquivo
