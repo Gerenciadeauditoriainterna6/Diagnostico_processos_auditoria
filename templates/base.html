@@ -1526,10 +1526,12 @@
                         <i class="fas fa-file-alt"></i>
                         <span>Geração de Relatórios</span>
                     </a>
-                    <a href="{{ url_for('dashboard') }}" class="nav-item">
-                        <i class="fas fa-chart-pie"></i>
-                        <span>Dashboard</span>
-                    </a>
+                    {% if session.get('usuario_perfil') == 'administrador' or session.get('usuario_perfil') == 'admin' %}
+                        <a href="{{ url_for('dashboard') }}" class="nav-item">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    {% endif %}
                 </div>
 
                 
