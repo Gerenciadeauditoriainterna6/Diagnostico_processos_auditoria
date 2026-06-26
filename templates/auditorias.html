@@ -77,8 +77,8 @@
                 <div class="form-group">
                     <label><i class="fas fa-exclamation-triangle"></i> Categoria da Auditoria:</label>
                     <select id="tipo_auditoria" class="form-control">
-                        <option value="FALSE">Planejada (Parte do Plano Anual)</option>
-                        <option value="TRUE">Emergencial (Fora do Plano Anual)</option>
+                        <option value="false">Planejada (Parte do Plano Anual)</option>
+                        <option value="true">Emergencial (Fora do Plano Anual)</option>
                     </select>
                 </div>
             </div>
@@ -783,19 +783,44 @@
                 document.getElementById('status_auditoria').value = aud.status || 'Planejamento';
                 document.getElementById('unidade_auditoria').value = aud.unidade || '';
                 
-                // Carregar o valor do campo emergencial
+                // ⭐ CARREGAR O VALOR DO CAMPO EMERGENCIAL (COM LOG PARA DEBUG)
                 const tipoSelect = document.getElementById('tipo_auditoria');
-                if (aud.emergencial !== undefined && eud.emergencial !== null) {
-                    tipoSelect.value = aud.emergencial ? 'true' : 'false';
-                } else {
-                    tipoSelect.value = 'false'; // Valor padrão
+                
+                // ⭐ LOG PARA VER O QUE ESTÁ VINDO DO BANCO
+                console.log('🔍 Valor de emergencial recebido:', aud.emergencial);
+                console.log('🔍 Tipo do valor:', typeof aud.emergencial);
+                
+                // ⭐ TRATAMENTO ROBUSTO
+                let valorEmergencial = false;
+                
+                if (aud.emergencial !== undefined && aud.emergencial !== null) {
+                    // Se for booleano
+                    if (typeof aud.emergencial === 'boolean') {
+                        valorEmergencial = aud.emergencial;
+                    }
+                    // Se for string
+                    else if (typeof aud.emergencial === 'string') {
+                        valorEmergencial = aud.emergencial.toLowerCase() === 'true';
+                    }
+                    // Se for número (0 ou 1)
+                    else if (typeof aud.emergencial === 'number') {
+                        valorEmergencial = aud.emergencial === 1;
+                    }
+                    // Se for outro tipo, tenta converter
+                    else {
+                        valorEmergencial = Boolean(aud.emergencial);
+                    }
                 }
+                
+                // ⭐ DEFINIR O VALOR NO SELECT
+                tipoSelect.value = valorEmergencial ? 'true' : 'false';
+                
+                console.log('🔍 Select definido para:', tipoSelect.value);
 
-                await carregarUsuarios();  // ← Carrega usuários antes de selecionar
+                await carregarUsuarios();
                 
                 if (aud.responsavel_equipe && aud.responsavel_equipe.length > 0) {
                     const select = document.getElementById('responsaveis_equipe');
-                    // Aguarda um pequeno delay para o select ser preenchido
                     setTimeout(() => {
                         Array.from(select.options).forEach(opt => {
                             if (aud.responsavel_equipe.includes(opt.value)) {

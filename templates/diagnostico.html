@@ -2794,7 +2794,6 @@
         
         // Restaurar área se existir
         if (areaSalva && filtroAreaSelect) {
-            // Verificar se a opção existe
             let optionExists = false;
             for (let i = 0; i < filtroAreaSelect.options.length; i++) {
                 if (filtroAreaSelect.options[i].value == areaSalva) {
@@ -2805,32 +2804,15 @@
             
             if (optionExists) {
                 filtroAreaSelect.value = areaSalva;
-                // Disparar evento change para carregar as auditorias
-                const changeEvent = new Event('change');
-                filtroAreaSelect.dispatchEvent(changeEvent);
-            }
-        }
-        
-        // Restaurar auditoria se existir (com um pequeno delay para as auditorias carregarem)
-        if (auditoriaSalva) {
-            setTimeout(() => {
-                if (filtroAuditoriaSelect) {
-                    let optionExists = false;
-                    for (let i = 0; i < filtroAuditoriaSelect.options.length; i++) {
-                        if (filtroAuditoriaSelect.options[i].value == auditoriaSalva) {
-                            optionExists = true;
-                            break;
-                        }
-                    }
-                    
-                    if (optionExists) {
-                        filtroAuditoriaSelect.value = auditoriaSalva;
-                        // Disparar evento change para carregar a tabela
-                        const changeEvent = new Event('change');
-                        filtroAuditoriaSelect.dispatchEvent(changeEvent);
-                    }
+                
+                // ⭐ CARREGAR AUDITORIAS COM A SELECIONADA
+                carregarAuditoriasFiltro(areaSalva, auditoriaSalva || null);
+                
+                // Carregar tabela
+                if (areaSalva) {
+                    carregarTabelaProcessos(auditoriaSalva || null, areaSalva);
                 }
-            }, 500); // Aguardar as auditorias carregarem
+            }
         }
     }
 
@@ -2931,11 +2913,79 @@
         if (modalWizard) modalWizard.style.display = 'flex';
     }
 
-    // ===== FECHAR MODAL WIZARD =====
+    // ===== FECHAR MODAL WIZARD COM LIMPEZA COMPLETA =====
     function fecharModalWizard() {
         if (modalWizard) {
             modalWizard.style.display = 'none';
         }
+        
+        // ⭐ LIMPEZA COMPLETA AO FECHAR O MODAL
+        // Isso evita que dados antigos interfiram na próxima abertura
+        setTimeout(() => {
+            // Resetar variáveis globais
+            riscosLista = [];
+            executoresSelecionados = [];
+            
+            // Limpar sessionStorage (mantendo apenas filtros)
+            const areaSalva = sessionStorage.getItem('filtro_area_id');
+            const auditoriaSalva = sessionStorage.getItem('filtro_auditoria_id');
+            
+            sessionStorage.removeItem('processo_id');
+            sessionStorage.removeItem('auditoria_id');
+            sessionStorage.removeItem('modo_edicao');
+            sessionStorage.removeItem('etapa_atual');
+            sessionStorage.removeItem('detalhes_temp');
+            sessionStorage.removeItem('riscos_temp');
+            sessionStorage.removeItem('area_id_selecionada');
+            
+            // Restaurar filtros
+            if (areaSalva) {
+                sessionStorage.setItem('filtro_area_id', areaSalva);
+            }
+            if (auditoriaSalva) {
+                sessionStorage.setItem('filtro_auditoria_id', auditoriaSalva);
+            }
+            
+            // Resetar campos
+            resetarCamposDetalhes();
+            if (nomeProcessoInput) nomeProcessoInput.value = '';
+            if (codigoProcessoInput) codigoProcessoInput.value = '';
+            atualizarBadges();
+            
+            // Resetar selects do wizard
+            if (areaSelect) areaSelect.value = '';
+            if (auditoriaSelect) {
+                auditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
+                auditoriaSelect.value = '';
+            }
+            
+            // Esconder o inner da auditoria
+            const auditoriaInner = document.getElementById('auditoria-inner');
+            if (auditoriaInner) {
+                auditoriaInner.style.display = 'none';
+            }
+            
+            // Desabilitar botão próximo
+            habilitarProximoEtapa1(false);
+            
+            // Remover avisos
+            removerAvisoProcessoExistente();
+            
+            // Resetar lista de funcionários
+            funcionariosDisponiveis = [];
+            const listaDiv = document.getElementById('lista-funcionarios');
+            if (listaDiv) {
+                listaDiv.innerHTML = '<div class="loading-message">Carregando funcionários...</div>';
+            }
+            const totalSpan = document.getElementById('total-funcionarios');
+            if (totalSpan) totalSpan.textContent = '0';
+            
+            // Ir para etapa 1
+            etapaWizard = 1;
+            atualizarProgressoWizard(1);
+            
+            console.log('🧹 Wizard completamente limpo');
+        }, 100);
     }
 
     // Evento para fechar o modal
@@ -3460,18 +3510,18 @@
     }
 
     // ====== FILTROS DA PÁGINA PRINCIPAL ======
-    async function carregarAuditoriasFiltro(areaId) {
+    async function carregarAuditoriasFiltro(areaId, auditoriaSelecionada = null) {
         if (!areaId) {
-            filtroAuditoriaSelect.innerHTML = '<option value=""> Selecione uma área primeiro...</option>';
+            filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
             filtroAuditoriaSelect.disabled = true;
             return;
         }
 
-        filtroAuditoriaSelect.innerHTML = '<option value="">carregando auditorias...</option>';
+        filtroAuditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
         filtroAuditoriaSelect.disabled = true;
 
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`)
+            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (data.auditorias && data.auditorias.length > 0) {
@@ -3483,12 +3533,35 @@
                     filtroAuditoriaSelect.appendChild(option);
                 });
                 filtroAuditoriaSelect.disabled = false;
+                
+                // ⭐ SE TIVER UMA AUDITORIA SELECIONADA, MARCAR
+                if (auditoriaSelecionada) {
+                    // Verificar se a opção existe
+                    let optionExists = false;
+                    for (let i = 0; i < filtroAuditoriaSelect.options.length; i++) {
+                        if (filtroAuditoriaSelect.options[i].value == auditoriaSelecionada) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (optionExists) {
+                        filtroAuditoriaSelect.value = auditoriaSelecionada;
+                        console.log('✅ Auditoria selecionada no filtro:', auditoriaSelecionada);
+                        
+                        // Disparar evento change para carregar a tabela
+                        const changeEvent = new Event('change', { bubbles: true });
+                        filtroAuditoriaSelect.dispatchEvent(changeEvent);
+                    } else {
+                        console.warn('⚠️ Auditoria', auditoriaSelecionada, 'não encontrada nas opções');
+                    }
+                }
             } else {
                 filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
                 filtroAuditoriaSelect.disabled = true;
             }
         } catch (error) {
-            console.error('Erro o carregar auditorias:', error);
+            console.error('Erro ao carregar auditorias:', error);
             filtroAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
         }
     }
@@ -3506,10 +3579,15 @@
             // Se não tem área selecionada, não carrega nada
             if (!areaId) {
                 if (tabelaProcessosContainer) {
-                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos cadastrados ou adicionar um novo processo." </div>';
+                    tabelaProcessosContainer.innerHTML = '<div class="alert-info" style="text-align: center; padding: 40px;"><i class="fas fa-info-circle"></i> Selecione uma área para visualizar os processos.</div>';
                 }
                 return;
             }
+            
+            // ⭐ SE AUDITORIA_ID FOR NULL OU VAZIO, BUSCAR TODOS OS PROCESSOS DA ÁREA
+            const url = auditoriaId 
+                ? `/api/processos-por-area?area_id=${areaId}&auditoria_id=${auditoriaId}`
+                : `/api/processos-por-area?area_id=${areaId}`;
             
             tabelaProcessosContainer.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px;">
@@ -3523,12 +3601,6 @@
             `;
             
             try {
-                // Construir URL baseada nos filtros
-                let url = `/api/processos-por-area?area_id=${areaId}`;
-                if (auditoriaId) {
-                    url += `&auditoria_id=${auditoriaId}`;
-                }
-                
                 const response = await fetch(url);
                 const data = await response.json();
                 
@@ -3771,10 +3843,10 @@
                 filtroAuditoriaSelect.disabled = false;
             }
             
-            // Carregar auditorias para o filtro
+            // ⭐ CARREGAR AUDITORIAS (sem selecionar nenhuma)
             await carregarAuditoriasFiltro(areaId);
             
-            // ⭐ NOVO: Carregar processos diretamente (sem precisar de auditoria)
+            // ⭐ CARREGAR PROCESSOS DA ÁREA
             if (areaId) {
                 // Resetar autorização
                 usuarioAutorizado = true;
@@ -4450,16 +4522,13 @@
     
     // ===== EVENTO DE MUDANÇA DE ÁREA =====
     areaSelect.addEventListener('change', async function() {
-
         // VERIFICAR SE ESTÁ CARREGANDO A PÁGINA (NÃO LIMPAR STORAGE NESSE CASO)
         const isLoading = document.readyState !== 'complete';
         if (!isLoading) {
-            // Verificar se é um novo processo (não está em modo edição)
             const modoEdicaoAtivo = sessionStorage.getItem('modo_edicao');
             if (modoEdicaoAtivo !== 'true') {
-                resetarCamposDetalhes();  // Só limpa se for novo processo
+                resetarCamposDetalhes();
             }
-            // ===== SÓ REMOVE SE NÃO FOR EDIÇÃO =====
             if (modoEdicaoAtivo !== 'true') {
                 sessionStorage.removeItem('modo_edicao');
                 sessionStorage.removeItem('processo_id');
@@ -4471,18 +4540,15 @@
         }
         
         const areaId = this.value;
-        // Salvar área selecionada no sessionStorage
         if (areaId) {
             sessionStorage.setItem('area_id_selecionada', areaId);
         }
         const areaNome = this.options[this.selectedIndex]?.text || '';
 
-        // ATUALIZAR O HIDDEN INPUT
         if (areaId) {
             document.getElementById('id_area_selecionado').value = areaId;
         }
 
-        // Carregar funcionários da área selecionada
         if (areaId) {
             await carregarFuncionariosArea(parseInt(areaId));
         }
@@ -4493,6 +4559,11 @@
         auditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
         auditoriaSelect.value = '';
         
+        // ⭐ GARANTIR QUE O INNER DA AUDITORIA FIQUE VISÍVEL
+        const auditoriaInner = document.getElementById('auditoria-inner');
+        if (auditoriaInner) {
+            auditoriaInner.style.display = 'block';
+        }
 
         // Esconder seção de informações básicas
         const infoBasicasSection = document.getElementById('info-basicas-section');
@@ -4500,16 +4571,13 @@
             infoBasicasSection.style.display = 'none';
         }
 
-        // Esconder o inner da auditoria inicialmente
-        const auditoriaInner = document.getElementById('auditoria-inner');
-        if (auditoriaInner) {
-            auditoriaInner.style.display = 'none';
-        }
-
         if (!areaId) {
+            // ⭐ SE NÃO TIVER ÁREA, ESCONDER O INNER
+            if (auditoriaInner) {
+                auditoriaInner.style.display = 'none';
+            }
             return;
         }
-        
         
         if (novaAuditoriaBtn) {
             novaAuditoriaBtn.style.display = 'none';
@@ -4522,7 +4590,7 @@
             console.log('Auditorias recebidas:', data);
             
             if (data.auditorias && data.auditorias.length > 0) {
-                // Mostrar o inner da auditoria
+                // ⭐ GARANTIR QUE O INNER ESTEJA VISÍVEL
                 if (auditoriaInner) {
                     auditoriaInner.style.display = 'block';
                 }
@@ -4543,6 +4611,7 @@
                 }
                 
             } else {
+                // ⭐ GARANTIR QUE O INNER ESTEJA VISÍVEL MESMO SEM AUDITORIAS
                 if (auditoriaInner) {
                     auditoriaInner.style.display = 'block';
                 }
@@ -4581,7 +4650,6 @@
             console.error('Erro ao carregar auditorias:', error);
             auditoriaSelect.innerHTML = '<option value="">Erro ao carregar auditorias</option>';
         }
-        
     });
 
     // ===== VERIFICAR RESPONSÁVEL PELA AUDITORIA =====
@@ -6043,127 +6111,139 @@
     }
 
     // ===== FUNÇÃO PARA EDITAR PROCESSO EXISTENTE ======
-    // 'processoId' é o n´mero de identificação do processo (ex: 123)
-    // 'processoCodigo' é o código visível do processo (ex: 1.05)
     function abrirModalEdicao(processoId, processoCodigo) {
         console.log('✏️ Abrindo edição do processo:', processoId, '-', processoCodigo);
 
-        // ===== SALVAR ID IMEDIATAMENTE (ANTES DE TUDO) =====
+        // ⭐ LIMPEZA COMPLETA ANTES DE CARREGAR
+        // Limpar sessionStorage (mantendo apenas filtros)
+        const areaSalva = sessionStorage.getItem('filtro_area_id');
+        const auditoriaSalva = sessionStorage.getItem('filtro_auditoria_id');
+        
+        sessionStorage.clear(); // Limpa tudo
+        
+        // Restaurar filtros
+        if (areaSalva) sessionStorage.setItem('filtro_area_id', areaSalva);
+        if (auditoriaSalva) sessionStorage.setItem('filtro_auditoria_id', auditoriaSalva);
+        
+        // ===== SALVAR ID IMEDIATAMENTE =====
         sessionStorage.setItem('processo_id', processoId);
         sessionStorage.setItem('modo_edicao', 'true');
 
-        // ===== LOG PARA VERIFICAR =====
-        console.log('💾 [INÍCIO] processo_id salvo:', sessionStorage.getItem('processo_id'));
-        console.log('💾 [INÍCIO] modo_edicao salvo:', sessionStorage.getItem('modo_edicao'));
-
-        // PASSO 1: Limpar dados antigos do sessionStorage
-        // sessionStorage é como uma "mochila" que guarda os dados enquanto a página está aberta
-        // Precisamos limpar para não mistar dados de um processo anterior
-        //sessionStorage.removeItem('processo_id');
-        sessionStorage.removeItem('auditoria_id');
-        //sessionStorage.removeItem('modo_edicao');
-        sessionStorage.removeItem('etapa_atual');
-        sessionStorage.removeItem('detalhes_temp');
-        sessionStorage.removeItem('riscos_temp');
-
-        // PASSO 2: Limpar variáveis globais (listas que guardam dados em memória)
-        // riscosLista guarda os riscos do processo atual
-        // executoresSelecionados guarda os funcionários selecionados 
+        // ===== LIMPAR VARIÁVEIS GLOBAIS =====
         riscosLista = [];
         executoresSelecionados = [];
 
-        // PASSO 3: Resetar os campos do formulário (para não ficar sujeira de processos anteriores)
-        resetarCamposDetalhes(); // limpa descricao, etapa_ini, produto, etc.
-
-        // Limpar o campo de nome do processo
-        if (nomeProcessoInput) {
-            nomeProcessoInput.value = '';
-        }
-
-        //Limpar o campo de código do processo
-        if (codigoProcessoInput) {
-            codigoProcessoInput.value = '';
-        }
-
-        // Limpar badges de executores (aqueles "cards" que mostram os funcionários)
+        // ===== RESETAR CAMPOS =====
+        resetarCamposDetalhes();
+        if (nomeProcessoInput) nomeProcessoInput.value = '';
+        if (codigoProcessoInput) codigoProcessoInput.value = '';
         atualizarBadges();
 
-        // PASSO 4: Buscar os dados do processo no backend
-        // Vamos fazer uma requisição HTTP para o servido (Flask)
-        // A URL é /api/processo/{id}/dados (ex: api/processo/123/dados)
+        // ===== GARANTIR QUE O AUDITORIA-INNER ESTEJA VISÍVEL =====
+        const auditoriaInner = document.getElementById('auditoria-inner');
+        if (auditoriaInner) {
+            auditoriaInner.style.display = 'block';
+        }
+
+        // ===== BUSCAR DADOS DO PROCESSO =====
         fetch(`/api/processo/${processoId}/dados`)
             .then(response => response.json())
             .then(data => {
-                // 'data' é o objeto que veio do backend com todos os dados do processo
                 console.log('📦 Dados recebidos do backend:', data);
-                console.log('🔍 Dados recebidos do backend:', data);
-                console.log('📝 nome_processo:', data.nome_processo);
-                console.log('🏷️ codigo_processo:', data.codigo_processo);
 
                 if (data.success) {
-                    // PASSO 5: Salvar osdads mo sessionStorage
-                    //Precisamos guardar o ID do processo (para sabr qual estamos editando)
+                    // ===== SALVAR DADOS NO SESSIONSTORAGE =====
+                    sessionStorage.setItem('id_area_selecionado', data.id_area || '');
 
-                    //sessionStorage.setItem('processo_id', processoId);
+                    // ===== 1. PREENCHER ÁREA =====
+                    const areaSelectElement = document.getElementById('area_select');
+                    if (areaSelectElement && data.id_area) {
+                        console.log('🔍 Selecionando área ID:', data.id_area);
+                        
+                        // Forçar o valor da área
+                        areaSelectElement.value = data.id_area;
+                        
+                        // ⭐ GARANTIR QUE O INNER DA AUDITORIA FIQUE VISÍVEL
+                        const auditoriaInnerEl = document.getElementById('auditoria-inner');
+                        if (auditoriaInnerEl) {
+                            auditoriaInnerEl.style.display = 'block';
+                        }
+                        
+                        // Disparar evento change para carregar auditorias E funcionários
+                        const changeEvent = new Event('change', { bubbles: true });
+                        areaSelectElement.dispatchEvent(changeEvent);
+                        
+                        console.log('✅ Área selecionada:', areaSelectElement.value);
+                    }
 
-                    // SAlvar o ID da auditoria (para manter o vínculo)
-                    // Nota: Na visualização, a auditoria pode não vir no campo 'id_area'
-                    // Vamos usar o ID area depois buscar a auditoria do processo
-
-                    if (data.id_area) {
-                        // Salvar o ID da área que será usada ppara recarregar a auditoria
-                        sessionStorage.setItem('id_area_selecionado', data.id_area);
-
-                        // Também precisamos encotnrar o nome da área para o selectbox
-                        // Você pode fazer uma busca no select ou guardar o nome vindo do backend
-
-
-                        // 1. Primeiro, define a área
-                        const areaSelectElement = document.getElementById('area_select');
-                        if (areaSelectElement && data.nome_area) {
-                            // Procura a opção com o texto igual ao nome da área
-                            for (let i = 0; i < areaSelectElement.options.length; i++) {
-                                if (areaSelectElement.options[i].text === data.nome_area) {
-                                    areaSelectElement.selectedIndex = i;
+                    // ===== 2. PREENCHER AUDITORIA (APÓS CARREGAR) =====
+                    // ⭐ RESETAR O VALOR ANTERIOR DO SELECT
+                    const auditoriaSelectEl = document.getElementById('auditoria_select');
+                    if (auditoriaSelectEl) {
+                        auditoriaSelectEl.value = '';
+                    }
+                    
+                    function tentarSelecionarAuditoria(tentativa = 0) {
+                        const auditoriaSelectEl = document.getElementById('auditoria_select');
+                        
+                        if (auditoriaSelectEl && data.auditoria_id) {
+                            // Verificar se a opção existe
+                            let optionExists = false;
+                            for (let i = 0; i < auditoriaSelectEl.options.length; i++) {
+                                if (auditoriaSelectEl.options[i].value == data.auditoria_id) {
+                                    optionExists = true;
                                     break;
                                 }
                             }
-                            // Dispara o evento change para carregar as auditorias
-                            const changeEvent = new Event('change');
-                            areaSelectElement.dispatchEvent(changeEvent);
-                        }
-
-                        // 2. Depois de disparar o change da área, as auditorias vão carregar
-                        // Aí usamos o setTimeout para aguardar o carregamento e selecionar a auditoria
-
-                        setTimeout(() => {
-                            const auditoriaSelect = document.getElementById('auditoria_select');
-                            if (auditoriaSelect && data.auditoria_id) {
-                                auditoriaSelect.value = data.auditoria_id;
-                                const auditEvent = new Event('change');
-                                auditoriaSelect.dispatchEvent(auditEvent)
+                            
+                            if (optionExists) {
+                                auditoriaSelectEl.value = data.auditoria_id;
+                                console.log('✅ Auditoria selecionada:', data.auditoria_id);
+                                
+                                // ⭐ GARANTIR QUE O INNER DA AUDITORIA FIQUE VISÍVEL
+                                const auditoriaInnerEl = document.getElementById('auditoria-inner');
+                                if (auditoriaInnerEl) {
+                                    auditoriaInnerEl.style.display = 'block';
+                                }
+                                
+                                // Disparar evento change para validar responsável
+                                const auditEvent = new Event('change', { bubbles: true });
+                                auditoriaSelectEl.dispatchEvent(auditEvent);
+                                
+                                // HABILITAR O BOTÃO PRÓXIMO DA ETAPA 1
+                                habilitarProximoEtapa1(true);
+                                return true;
+                            } else if (tentativa < 15) { // Aumentei para 15 tentativas
+                                // Tentar novamente após 200ms
+                                console.log(`⏳ Aguardando auditorias carregarem... tentativa ${tentativa + 1}`);
+                                setTimeout(() => tentarSelecionarAuditoria(tentativa + 1), 200);
+                                return false;
+                            } else {
+                                console.warn('⚠️ Auditoria não encontrada após várias tentativas');
+                                // ⭐ MESMO ASSIM, MANTER O INNER VISÍVEL
+                                const auditoriaInnerEl = document.getElementById('auditoria-inner');
+                                if (auditoriaInnerEl) {
+                                    auditoriaInnerEl.style.display = 'block';
+                                }
+                                return false;
                             }
-                        }, 500);
+                        }
+                        return false;
                     }
 
-                    // Marcar que estamos no modo EDIÇÃO (não criação)
-                    //sessionStorage.setItem('modo_edicao', 'true');
+                    // Iniciar tentativa de selecionar auditoria
+                    setTimeout(() => tentarSelecionarAuditoria(0), 500);
 
-                    // PASSO 6: Salvar os riscos em uma variavel global
-                    // Os riscos vêm do backend no campo 'riscos'
-                    console.log('🔍 RISCOS RECEBIDOS DO BACKEND:', data.riscos);
-                    if (data.riscos && data.riscos.length > 0) {
-                        console.log('🔍 Primeiro risco - prazo_implantacao:', data.riscos[0].prazo_implantacao);
+                    // ===== 3. PREENCHER NOME E CÓDIGO =====
+                    if (nomeProcessoInput) {
+                        nomeProcessoInput.value = data.nome_processo || '';
                     }
-                    riscosLista = data.riscos || [];
+                    
+                    if (codigoProcessoInput) {
+                        codigoProcessoInput.value = data.codigo_processo || '';
+                    }
 
-                    // Salvar os riscos no sessionStorage (para recuperar depois)
-                    sessionStorage.setItem('riscos_temp', JSON.stringify(riscosLista));
-                    console.log('🔍 Riscos salvos no sessionStorage:', sessionStorage.getItem('riscos_temp'));
-
-                    // PASSO 7: Salvar os executores (funcionários) em uma variável global
-                    // Os executores vêm no campo 'executores' como um array de objetos
-                    // cada objeto tem {id, nome, cargo}
+                    // ===== 4. CARREGAR EXECUTORES =====
                     if (data.executores && data.executores.length > 0) {
                         executoresSelecionados = data.executores.map(exec => ({
                             id: exec.id,
@@ -6173,34 +6253,14 @@
                     } else {
                         executoresSelecionados = [];
                     }
-                    atualizarBadges(); // Atualiza a visualização dos badges
+                    atualizarBadges();
 
-                    // PASSO 8: Preencher os campos básicos do wizard
-                    // O campo 'nome_processo' já existe na etapa 2
-                    const nomeProcessoField = document.getElementById('nome_processo');
-                    if (nomeProcessoField) {
-                        nomeProcessoField.value = data.nome_processo || '';
+                    // ===== 5. CARREGAR FUNCIONÁRIOS DA ÁREA =====
+                    if (data.id_area) {
+                        carregarFuncionariosArea(parseInt(data.id_area));
                     }
 
-                    // ===== HABILITAR BOTÃO PRÓXIMO NA EDIÇÃO =====
-                    const btnProximoEtapa3 = document.getElementById('btn-proximo-etapa3');
-                    if (btnProximoEtapa3) {
-                        btnProximoEtapa3.disabled = false;
-                    }
-                    // ====== PREENCHER CÓDIGO DO PROCESSO ======
-                    const codigoProcessoField = document.getElementById('codigo_processo');
-                    if (codigoProcessoField) {
-                        codigoProcessoField.value = data.codigo_processo || '';
-                        console.log('🔧 Campo código encontrado, valor preenchido:', codigoProcessoField.value);
-                        console.log('🔧 data.codigo_processo original:', data.codigo_processo);
-                    } else {
-                        console.log('❌ Campo código_processo NÃO encontrado no DOM!')
-                    }
-
-                    mostrarAvisoProcessoExistente(data.nome_processo, data.codigo_processo);
-
-                    // PASSO 9: Preencher os detalhes do processo (etapa 3)
-                    // Estes campos ficam no sessionStorage para serem carregados quando entrar na etapa 3
+                    // ===== 6. SALVAR DETALHES PARA ETAPA 3 =====
                     const detalhesTemp = {
                         descricao: data.descricao || '',
                         etapa_ini: data.etapa_ini || '',
@@ -6209,53 +6269,37 @@
                         objetivo: data.objetivo || ''
                     };
                     sessionStorage.setItem('detalhes_temp', JSON.stringify(detalhesTemp));
-                    console.log('💾 Detalhes salvos no sessionStorage:', detalhesTemp);
 
-                    // Se já estamos na etapa de detalhes (etapa 3), carregar imediatamente
-                    // Isso será feito dentro da função carregarDetalhesProcesso
+                    // ===== 7. SALVAR RISCOS =====
+                    riscosLista = data.riscos || [];
+                    sessionStorage.setItem('riscos_temp', JSON.stringify(riscosLista));
 
-                    // PASSO 10: Definir a área selecionada
-                    // Precisamos saber qual área este processo pertence para carregar os funcionários corretos
-                    if (data.id_area) {
-                        // Salvar em uma variável que será usada pelo areaSelect
-                        sessionStorage.setItem('area_id_selecionada', data.id_area);
-
-                        // Também atualizar o hidden input da área
-                        const idAreaHidden = document.getElementById('id_area_selecionado');
-                        if (idAreaHidden) {
-                            idAreaHidden.value = data.id_area;
-                        }
+                    // ===== 8. HABILITAR BOTÃO PRÓXIMO =====
+                    const btnProximoEtapa3 = document.getElementById('btn-proximo-etapa3');
+                    if (btnProximoEtapa3 && executoresSelecionados.length > 0) {
+                        btnProximoEtapa3.disabled = false;
                     }
 
-                    // PASSO 11: Abrir o wizard na etapa 1 (vínculo com auditoria)
-                    // Vamos usar a função existente irParaEtapa(1)
-                    // Mas precisamos primeiro garantir que o wizard está visível
+                    // ===== 9. MOSTRAR AVISO DE EDIÇÃO =====
+                    mostrarAvisoProcessoExistente(data.nome_processo, data.codigo_processo);
+
+                    // ===== 10. GARANTIR QUE O BOTÃO PRÓXIMO ESTEJA HABILITADO =====
+                    habilitarProximoEtapa1(true);
+
+                    // ===== 11. ABRIR WIZARD NA ETAPA 1 =====
                     if (modalWizard) {
                         modalWizard.style.display = 'flex';
                     }
 
-                    console.log('💾 [ANTES DE irParaEtapa] processo_id:', sessionStorage.getItem('processo_id'));
-
-                    // Ir para a etapa 1 (vinculo com auditoria)
-                    // O usuário vai clicar em "Próximo" para avançar
+                    // ===== 12. IR PARA ETAPA 1 =====
                     irParaEtapa(1);
 
-                    // PASSO 12: Recarregar a lista de funcionários da área
-                    // Para que os card de funcionários apareça corretamente
-                    if (data.id_area) {
-                        carregarFuncionariosArea(parseInt(data.id_area));
-                    }
-
-                    // Mostrar mensagem de sucesso
-                    mostrarToast('Processo carregado para edição!', 'success');
-
+                    mostrarToast('✅ Processo carregado para edição!', 'success');
                 } else {
-                    // Se o backend retornou erro
                     mostrarToast('❌ Erro ao carregar dados do processo', 'error');
                 }
             })
             .catch(error => {
-                // Se aconteceu algum erro na requisição (rede, servidor fora, etc.)
                 console.error('❌ Erro ao buscar processo:', error);
                 mostrarToast('❌ Erro ao carregar dados. Tente novamente.', 'error');
             });
