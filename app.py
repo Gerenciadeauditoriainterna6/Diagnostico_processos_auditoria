@@ -7977,7 +7977,8 @@ def api_auditorias_listar():
                     'status': row[8],
                     'responsavel_equipe': responsaveis_lista,
                     'unidade': row[10] if len(row) > 10 else None,
-                    'area_nome': row[11] if len(row) > 11 else None,
+                    'emergecial': row[11] if len(row) > 11 else None,
+                    'nome_area': row[12] if len(row) > 12 else None
                 })
             
             return jsonify(auditorias)
