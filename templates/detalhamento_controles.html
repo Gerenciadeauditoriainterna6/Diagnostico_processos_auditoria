@@ -23,7 +23,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="filtro_auditoria_select"><i class="fas fa-clipboard-list"></i> Auditoria:</label>
+                <label for="filtro_auditoria_select"><i class="fas fa-clipboard-list"></i> Tema de Auditoria:</label>
                 <select id="filtro_auditoria_select" class="form-control" disabled>
                     <option value="">Selecione uma área primeiro...</option>
                 </select>
@@ -93,7 +93,7 @@
             <!-- 7. Periodicidade e 14. Frequência (lado a lado) -->
             <div class="form-row">
                 <div class="form-group">
-                    <label><i class="fas fa-calendar-alt"></i> Qual a periodicidade da ação de controle?</label>
+                    <label><i class="fas fa-calendar-alt"></i> Qual a frequência da ação de controle?</label>
                     <select id="controle_periodicidade" class="form-control">
                         <option value="">Selecione...</option>
                         <option value="Diário">Diário</option>
@@ -157,7 +157,7 @@
             <!-- 12. LGPD -->
             <div class="form-group">
                 <label><i class="fas fa-lock"></i> LGPD - Como estão protegidos os dados da pessoa física nas evidências do controle?</label>
-                <textarea id="controle_lgpd" class="form-control" rows="2" placeholder="Descreva as medidas de proteção de dados pessoais..."></textarea>
+                <textarea id="controle_lgpd" class="form-control" rows="2" placeholder="Descreva as medidas de proteção de dados sensíveis e pessoais da pessoa física..."></textarea>
             </div>
 
             <!-- 13. Status -->
@@ -1432,7 +1432,7 @@
                             </div>` : ''}
                             ${controle.periodicidade_execucao ? `
                             <div class="controle-detalhe">
-                                <span class="detalhe-label">Periodicidade:</span>
+                                <span class="detalhe-label">Frequência da execução:</span>
                                 <span class="detalhe-valor">${controle.periodicidade_execucao}</span>
                             </div>` : ''}
                             ${controle.evidencia_realizacao ? `

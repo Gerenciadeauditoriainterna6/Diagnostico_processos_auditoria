@@ -551,9 +551,20 @@ def auditorias_emergenciais():
 
 @app.route('/dashboard')
 def dashboard():
-    """Dashboard principal"""
+    """Dashboard principal - apenas administradores podem acessar"""
+    
+    # 1. Verificar se o usuário está logado
     if not session.get('autenticado'):
         return redirect(url_for('login'))
+    
+    # 2. Verifica se o usuário é administrador
+    usuario_perfil = session.get('usuario_perfil')
+    if usuario_perfil not in ['administrador', 'admin']:
+        # Se não for admin, redireciona para home com mensagem de erro
+        flash('Acesso negado. Apenas administradores podem visualizar o dashboard', 'error')
+        return redirect(url_for('home'))
+    
+    # 3. Se for admin, mostra a página
     return render_template('dashboard.html')
 
 @app.route('/auditorias')
@@ -2229,17 +2240,19 @@ def api_area_funcionarios_para_select(area_id):
 
 @app.route('/api/area/<int:area_id>/upload-organograma', methods=['POST'])
 def api_upload_organograma(area_id):
-    """Faz upload do organograma para o Supabase Storage"""
+    """Faz upload do organograma para o Supabase Storage - qualquer usuário autenticado"""
+    # ⭐ MANTER: verificação de autenticação
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    perfil = session.get('usuario_perfil')
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    # ⭐ REMOVER: verificação de perfil de administrador
+    # perfil = session.get('usuario_perfil')
+    # if perfil not in ['administrador', 'admin']:
+    #     return jsonify({'success': False, 'error': 'Permissão negada'}), 403
     
     from database import engine
     from sqlalchemy import text
-    # from supabase import create_client
+    from supabase import create_client
     import base64
     import os
     
@@ -2264,6 +2277,12 @@ def api_upload_organograma(area_id):
         # 3. Conectar ao Supabase
         supabase_url = os.getenv('SUPABASE_URL')
         supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        # ⭐ VALIDAÇÃO DAS CREDENCIAIS
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return jsonify({'success': False, 'error': 'Erro interno: credenciais não configuradas'}), 500
+        
         supabase = create_client(supabase_url, supabase_key)
         
         # 4. Gerar caminho único
@@ -2271,6 +2290,7 @@ def api_upload_organograma(area_id):
         caminho = f"area_{area_id}/organograma.{extensao}"
         
         # 5. Fazer upload
+        print(f"📎 Fazendo upload do organograma: {caminho}")
         supabase.storage.from_('organogramas').upload(
             path=caminho,
             file=arquivo_bytes,
@@ -2295,6 +2315,8 @@ def api_upload_organograma(area_id):
             })
             conn.commit()
         
+        print(f"✅ Organograma salvo com sucesso para área {area_id}")
+        
         return jsonify({
             'success': True,
             'url': public_url,
@@ -2303,7 +2325,7 @@ def api_upload_organograma(area_id):
         })
         
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro no upload do organograma: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -2345,17 +2367,14 @@ def api_buscar_organograma(area_id):
 
 @app.route('/api/area/<int:area_id>/organograma', methods=['DELETE'])
 def api_remover_organograma(area_id):
-    """Remove o organograma da área"""
+    """Remove o organograma da área - qualquer usuário autenticado"""
+
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    perfil = session.get('usuario_perfil')
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
-    
     from database import engine
     from sqlalchemy import text
-    # from supabase import create_client
+    from supabase import create_client
     import os
     
     try:
@@ -2368,10 +2387,15 @@ def api_remover_organograma(area_id):
                 # Remover do Storage
                 supabase_url = os.getenv('SUPABASE_URL')
                 supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                
+                # ⭐ VALIDAÇÃO DAS CREDENCIAIS
+                if not supabase_url or not supabase_key:
+                    print("❌ Credenciais do Supabase não configuradas")
+                    return jsonify({'success': False, 'error': 'Erro interno: credenciais não configuradas'}), 500
+                
                 supabase = create_client(supabase_url, supabase_key)
                 
                 # Extrair caminho da URL
-                # Exemplo: https://xxx.supabase.co/storage/v1/object/public/organogramas/organogramas/area_1/organograma.pdf
                 if '/organogramas/' in result[0]:
                     caminho = result[0].split('/organogramas/')[-1]
                     try:
@@ -2390,10 +2414,10 @@ def api_remover_organograma(area_id):
             conn.execute(query, {'area_id': area_id})
             conn.commit()
         
-        return jsonify({'success': True, 'message': 'Organograma removido'})
+        return jsonify({'success': True, 'message': 'Organograma removido com sucesso!'})
         
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro ao remover organograma: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -3198,13 +3222,11 @@ def api_area_funcionarios(area_id):
 
 @app.route('/api/area/<int:area_id>', methods=['DELETE'])
 def api_excluir_area(area_id):
-    """Desativa uma área (soft delete) - apenas administradores"""
+    """Desativa uma área (soft delete) - qualquer usuário autenticado"""
     from logic import excluir_area
     
-    perfil = session.get('usuario_perfil')
-    
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     resultado = excluir_area(area_id)
     print(f"🔍 Resultado de excluir_area({area_id}): {resultado}")
@@ -3277,26 +3299,31 @@ def api_organograma_url(area_id):
 
 @app.route('/api/salvar-area', methods=['POST'])
 def api_salvar_area():
-    """Salva uma nova área"""
     from logic import salvar_area
     
-    dados = request.json
-    dados['superintendente'] = dados.get('superintendente', '')
-    dados['diretor'] = dados.get('diretor', '')
-
-    area_id = salvar_area(dados)
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    if area_id:
-        return jsonify({'success': True, 'id': area_id})
-    return jsonify({'success': False}), 400
+    dados = request.json
+    
+    if not dados.get('nome'):
+        return jsonify({'success': False, 'error': 'Nome da área é obrigatório'}), 400
+    
+    if not dados.get('gestor'):
+        return jsonify({'success': False, 'error': 'Gestor é obrigatório'}), 400
+    
+    resultado = salvar_area(dados)
+    
+    if resultado:
+        return jsonify({'success': True, 'id': resultado})
+    return jsonify({'success': False, 'error': 'Falha ao salvar área'}), 400
 
 @app.route('/api/area/<int:area_id>', methods=['PUT'])
 def api_atualizar_area(area_id):
     from logic import atualizar_area
     
-    perfil = session.get('usuario_perfil')
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     dados = request.json
     dados['superintendente'] = dados.get('superintendente', '')
@@ -3306,22 +3333,21 @@ def api_atualizar_area(area_id):
     
     if resultado:
         return jsonify({'success': True})
-    return jsonify({'success': False}), 400
+    return jsonify({'success': False, 'error': 'Falha ao atualizar área'}), 400
 
 @app.route('/api/area/<int:area_id>/reativar', methods=['PUT'])
-def api_reativar_area(area_id):  # ← NOME DIFERENTE!
-    """Reativa uma área (apenas administradores)"""
+def api_reativar_area(area_id):
+    """Reativa uma área - qualquer usuário autenticado"""
     from logic import reativar_area
     
-    perfil = session.get('usuario_perfil')
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     resultado = reativar_area(area_id)
     
     if resultado:
         return jsonify({'success': True})
-    return jsonify({'success': False, 'error': 'Falha ao reativar'}), 400
+    return jsonify({'success': False, 'error': 'Falha ao reativar área'}), 400
 
 @app.route('/api/area/<int:area_id>/todos-funcionarios')
 def api_area_todos_funcionarios(area_id):
@@ -3344,34 +3370,37 @@ def api_area_todos_funcionarios(area_id):
 
 @app.route('/api/funcionario/<int:funcionario_id>', methods=['DELETE'])
 def api_excluir_funcionario(funcionario_id):
-    """Exclui um funcionário (apenas administradores)"""
+    """Exclui um funcionário - qualquer usuário autenticado"""
     from logic import excluir_funcionario
     
-    perfil = session.get('usuario_perfil')
-    
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     resultado = excluir_funcionario(funcionario_id)
     
     if resultado:
         return jsonify({'success': True})
-    return jsonify({'success': False, 'error': 'Falha ao excluir'}), 400
+    return jsonify({'success': False, 'error': 'Falha ao excluir funcionário'}), 400
 
 @app.route('/api/funcionario/<int:funcionario_id>', methods=['PUT'])
 def api_atualizar_funcionario(funcionario_id):
+    """Atualiza um funcionário - qualquer usuário autenticado"""
     from logic import atualizar_funcionario
 
-    perfil = session.get('usuario_perfil')
-    if perfil not in ['administrador', 'admin']:
-        return jsonify({'success': False, 'error': 'Permissão negada'}), 403
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     dados = request.json
+    
+    # ⭐ VALIDAÇÃO BÁSICA
+    if not dados.get('nome'):
+        return jsonify({'success': False, 'error': 'Nome do funcionário é obrigatório'}), 400
+    
     resultado = atualizar_funcionario(funcionario_id, dados)
 
     if resultado:
         return jsonify({'success': True})
-    return jsonify({'success': False}), 400
+    return jsonify({'success': False, 'error': 'Falha ao atualizar funcionário'}), 400
 
 @app.route('/api/funcionario/<int:funcionario_id>')
 def api_funcionario_detalhes(funcionario_id):
@@ -3386,15 +3415,25 @@ def api_funcionario_detalhes(funcionario_id):
 
 @app.route('/api/salvar-funcionario', methods=['POST'])
 def api_salvar_funcionario():
-    """Salva um novo funcionário no banco de dados"""
+    """Salva um novo funcionário - qualquer usuário autenticado"""
     from logic import salvar_funcionario
+
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     dados = request.json
+
+    if not dados.get('nome'):
+        return jsonify({'success': False, 'error': 'Nome do funcionário é obrigatório'}), 400
+    
+    if not dados.get('id_area'):
+        return jsonify({'success': False, 'error': 'Área é obrigatória'}), 400
+    
     resultado = salvar_funcionario(dados)
     
     if resultado:
         return jsonify({'success': True, 'id': resultado})
-    return jsonify({'success': False}), 400
+    return jsonify({'success': False, 'error': 'Falha ao salvar funcionário'}), 400
 
 # ============================================================
 # DETALHAMENTO DOS PROCESSOS
@@ -4252,7 +4291,7 @@ def api_salvar_etapa():
                         :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
                         :manual_etapa, :manual_nome, :manual_tipo,
                         :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,
-                        :manual_em_andamento
+                        :manual_em_andamento,
                         NOW()
                     )
                     RETURNING id
@@ -7977,7 +8016,8 @@ def api_auditorias_listar():
                     'status': row[8],
                     'responsavel_equipe': responsaveis_lista,
                     'unidade': row[10] if len(row) > 10 else None,
-                    'area_nome': row[11] if len(row) > 11 else None,
+                    'emergecial': row[11] if len(row) > 11 else None,
+                    'nome_area': row[12] if len(row) > 12 else None
                 })
             
             return jsonify(auditorias)

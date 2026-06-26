@@ -1887,7 +1887,7 @@
                             <small><i class="fas fa-clock"></i> Tempo na função: ${func.tempo_funcao || 'Não informado'}</small>
                             <small><i class="fas fa-building"></i> Tempo na empresa: ${func.tempo_empresa || 'Não informado'}</small>
                         </div>
-                        ${isAdmin && isAreaAtiva && isFuncAtivo ? `
+                        ${isAreaAtiva && isFuncAtivo ? `
                         <div class="funcionario-actions">
                             <button class="btn-edit-icon btn-edit-func" data-id="${funcId}" data-nome="${func.nome_funcionario}" title="Editar Funcionário">
                                 <i class="fas fa-pencil-alt"></i>
@@ -1902,29 +1902,29 @@
             }).join('');
             
             // ====== ADICIONAR EVENTO DE EXCLUSÃO (apenas se for admin e área ativa) ======
-            if (isAdmin && isAreaAtiva) {
-                document.querySelectorAll('.btn-delete-func').forEach(btn => {
-                    btn.removeEventListener('click', btn.clickHandler);
-                    btn.clickHandler = async (e) => {
-                        e.stopPropagation();
-                        const funcId = btn.getAttribute('data-id');
-                        const funcNome = btn.getAttribute('data-nome');
-                        const confirmado = await mostrarConfirmacao(`Tem certeza que deseja excluir o funcionário "${funcNome}"?`);
-                        if (confirmado) {
-                            await excluirFuncionario(funcId, areaId, btn);
-                        }
-                    };
-                    btn.addEventListener('click', btn.clickHandler);
+            
+            document.querySelectorAll('.btn-delete-func').forEach(btn => {
+                btn.removeEventListener('click', btn.clickHandler);
+                btn.clickHandler = async (e) => {
+                    e.stopPropagation();
+                    const funcId = btn.getAttribute('data-id');
+                    const funcNome = btn.getAttribute('data-nome');
+                    const confirmado = await mostrarConfirmacao(`Tem certeza que deseja excluir o funcionário "${funcNome}"?`);
+                    if (confirmado) {
+                        await excluirFuncionario(funcId, areaId, btn);
+                    }
+                };
+                btn.addEventListener('click', btn.clickHandler);
+            });
+            
+            document.querySelectorAll('.btn-edit-func').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const funcId = btn.getAttribute('data-id');
+                    await abrirModalEditarFuncionario(funcId, areaId);
                 });
-                
-                document.querySelectorAll('.btn-edit-func').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        const funcId = btn.getAttribute('data-id');
-                        await abrirModalEditarFuncionario(funcId, areaId);
-                    });
-                });
-            }
+            });
+            
             
             console.log('✅ Lista de funcionários atualizada com sucesso!');
             
@@ -2761,7 +2761,7 @@
                 <p><i class="fas fa-user-tie"></i> <strong>Diretor:</strong> ${diretor}</p>
                 <p><i class="fas fa-envelope"></i> ${area.email || 'Sem e-mail'}</p>
                 <p><i class="fas fa-phone"></i> ${formatarTelefoneExibicao(area.telefone) || 'Sem telefone'}</p>
-                ${isAdmin ? `
+        
                 <div class="area-actions">
                     ${isAtivo ? `
                         <button class="btn-edit-icon btn-edit-area" data-id="${id}" data-nome="${nome}" title="Editar Área">
@@ -2776,7 +2776,7 @@
                         </button>
                     `}
                 </div>
-                ` : ''}
+
             </div>
         `;
     }).join('');
@@ -2841,41 +2841,41 @@
             });
         });
 
-        if (isAdmin) {
-            document.querySelectorAll('.btn-delete-area').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const areaId = btn.getAttribute('data-id');
-                    const areaNome = btn.getAttribute('data-nome');
-                    
-                    const confirmado = await mostrarConfirmacao(`Tem certeza que deseja desativar a área "${areaNome}"?`);
-                    if (confirmado) {
-                        await excluirArea(areaId, areaNome, btn);
-                    }
-                });
+        
+        document.querySelectorAll('.btn-delete-area').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const areaId = btn.getAttribute('data-id');
+                const areaNome = btn.getAttribute('data-nome');
+                
+                const confirmado = await mostrarConfirmacao(`Tem certeza que deseja desativar a área "${areaNome}"?`);
+                if (confirmado) {
+                    await excluirArea(areaId, areaNome, btn);
+                }
             });
-            
-            document.querySelectorAll('.btn-edit-area').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const areaId = btn.getAttribute('data-id');
-                    await abrirModalEditarArea(areaId);
-                });
+        });
+        
+        document.querySelectorAll('.btn-edit-area').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const areaId = btn.getAttribute('data-id');
+                await abrirModalEditarArea(areaId);
             });
+        });
 
-            document.querySelectorAll('.btn-reativar-area').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const areaId = btn.getAttribute('data-id');
-                    const areaNome = btn.getAttribute('data-nome');
-                    
-                    const confirmado = await mostrarConfirmacao(`Tem certeza que deseja reativar a área "${areaNome}"?`);
-                    if (confirmado) {
-                        await reativarArea(areaId, areaNome, btn);
-                    }
-                });
+        document.querySelectorAll('.btn-reativar-area').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const areaId = btn.getAttribute('data-id');
+                const areaNome = btn.getAttribute('data-nome');
+                
+                const confirmado = await mostrarConfirmacao(`Tem certeza que deseja reativar a área "${areaNome}"?`);
+                if (confirmado) {
+                    await reativarArea(areaId, areaNome, btn);
+                }
             });
-        }
+        });
+        
     }
 
     // Eventos da busca
