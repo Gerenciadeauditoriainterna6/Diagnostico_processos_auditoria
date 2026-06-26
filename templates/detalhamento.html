@@ -71,7 +71,7 @@
         <!-- Formulário de novo comentário -->
         <div class="comentario-form">
             <div class="form-group" style="margin-bottom: 12px;">
-                <label for="comentario_texto"><i class="fas fa-pencil-alt"></i> Novo Comentário:</label>
+                <label for="comentario_texto"><i class="fas fa-pencil-alt"></i> Novo Achado:</label>
                 <textarea id="comentario_texto" class="form-control" rows="3" placeholder="Digite seu comentário sobre esta auditoria..."></textarea>
             </div>
             
@@ -85,7 +85,7 @@
                     <span id="anexo-nome" class="anexo-nome"></span>
                 </div>
                 <button id="btn-enviar-comentario" class="btn-primary">
-                    <i class="fas fa-paper-plane"></i> Enviar Comentário
+                    <i class="fas fa-paper-plane"></i> Registrar Achado
                 </button>
             </div>
         </div>
@@ -1256,6 +1256,27 @@
     let arquivosAnexados = [];
 
     // ============================================================
+    // BAIXAR ANEXO
+    // ============================================================
+
+    async function baixarAnexo(achadoId, anexoIndex) {
+        try {
+            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
+            const data = await response.json();
+            
+            if (data.success && data.url) {
+                // Abrir a URL assinada em uma nova aba
+                window.open(data.url, '_blank');
+            } else {
+                mostrarToast('❌ Erro ao baixar anexo: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao baixar anexo:', error);
+            mostrarToast('❌ Erro ao baixar anexo.', 'error');
+        }
+    }
+
+    // ============================================================
     // CARREGAR COMENTÁRIOS
     // ============================================================
 
@@ -1278,15 +1299,15 @@
         `;
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/comentarios`);
+            const response = await fetch(`/api/auditoria/${auditoriaId}/achados`);
             const data = await response.json();
             
-            if (data.success && data.comentarios && data.comentarios.length > 0) {
+            if (data.success && data.achados && data.achados.length > 0) {
                 let html = '';
                 
-                for (const comentario of data.comentarios) {
+                for (const achado of data.achados) {
                     // Formatar data/hora para Brasília
-                    const dataObj = new Date(comentario.data_criacao);
+                    const dataObj = new Date(achado.data_criacao);
                     const options = {
                         timeZone: 'America/Sao_Paulo',
                         day: '2-digit',
@@ -1298,46 +1319,56 @@
                     const dataFormatada = dataObj.toLocaleString('pt-BR', options);
                     
                     // Iniciais do nome
-                    const iniciais = comentario.usuario_nome
-                        ? comentario.usuario_nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+                    const iniciais = achado.usuario_nome
+                        ? achado.usuario_nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
                         : '?';
                     
                     html += `
-                        <div class="comentario-item" id="comentario-${comentario.id}">
+                        <div class="comentario-item" id="achado-${achado.id}">
                             <div class="comentario-header">
                                 <div class="comentario-autor">
                                     <div class="avatar">${escapeHtml(iniciais)}</div>
-                                    <span class="nome">${escapeHtml(comentario.usuario_nome || 'Usuário')}</span>
+                                    <span class="nome">${escapeHtml(achado.usuario_nome || 'Usuário')}</span>
                                     <span class="data-hora">${dataFormatada}</span>
                                 </div>
                             </div>
-                            <div class="comentario-texto">${escapeHtml(comentario.texto)}</div>
+                            <div class="comentario-texto">${escapeHtml(achado.texto)}</div>
                     `;
                     
-                    // Anexos
-                    if (comentario.anexos && comentario.anexos.length > 0) {
+                    // Anexos (com botão de remover)
+                    if (achado.anexos && achado.anexos.length > 0) {
                         html += `<div class="comentario-anexos">`;
-                        for (const anexo of comentario.anexos) {
-                            const icone = getIconeArquivo(anexo.nome_arquivo);
+                        for (let idx = 0; idx < achado.anexos.length; idx++) {
+                            const anexo = achado.anexos[idx];
+                            const icone = getIconeArquivo(anexo.nome);
                             html += `
-                                <a href="/api/comentario/${comentario.id}/download/${anexo.id}" 
-                                class="anexo-badge" 
-                                target="_blank"
-                                title="Baixar ${escapeHtml(anexo.nome_arquivo)}">
-                                    <i class="fas ${icone}"></i>
-                                    ${escapeHtml(anexo.nome_arquivo)}
-                                    <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
-                                </a>
+                                <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <a href="#" onclick="baixarAnexo(${achado.id}, ${idx}); return false;" 
+                                    title="Baixar ${escapeHtml(anexo.nome)}" style="color: inherit; text-decoration: none;">
+                                        <i class="fas ${icone}"></i>
+                                        ${escapeHtml(anexo.nome)}
+                                        <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
+                                    </a>
+                                    ${achado.pode_editar ? `
+                                        <button class="btn-remove-anexo" onclick="removerAnexo(${achado.id}, ${idx})" 
+                                                title="Remover anexo" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    ` : ''}
+                                </span>
                             `;
                         }
                         html += `</div>`;
                     }
                     
-                    // Ações (apenas para o próprio usuário)
-                    if (comentario.pode_editar) {
+                    // Ações (apenas para o próprio usuário ou admin)
+                    if (achado.pode_editar) {
                         html += `
                             <div class="comentario-acoes">
-                                <button class="btn-danger-outline" onclick="excluirComentario(${comentario.id})">
+                                <button class="btn-outline" onclick="abrirEdicaoAchado(${achado.id})">
+                                    <i class="fas fa-pencil-alt"></i> Editar
+                                </button>
+                                <button class="btn-danger-outline" onclick="excluirAchado(${achado.id})">
                                     <i class="fas fa-trash"></i> Excluir
                                 </button>
                             </div>
@@ -1352,15 +1383,15 @@
                 listaContainer.innerHTML = `
                     <div class="comentario-vazio">
                         <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
-                        Nenhum comentário ainda. Seja o primeiro a comentar!
+                        Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
                     </div>
                 `;
             }
         } catch (error) {
-            console.error('Erro ao carregar comentários:', error);
+            console.error('Erro ao carregar achados:', error);
             listaContainer.innerHTML = `
                 <div class="alert-error" style="text-align: center; padding: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar comentários. Tente novamente.
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar achados. Tente novamente.
                 </div>
             `;
         }
@@ -1378,13 +1409,13 @@
         
         const textoValue = texto.value.trim();
         if (!textoValue) {
-            mostrarToast('⚠️ Digite um comentário antes de enviar.', 'warning');
+            mostrarToast('⚠️ Digite um achado antes de enviar.', 'warning');
             texto.focus();
             return;
         }
         
         if (!comentarioAuditoriaAtual) {
-            mostrarToast('⚠️ Selecione uma auditoria para comentar.', 'warning');
+            mostrarToast('⚠️ Selecione uma auditoria para registrar achados.', 'warning');
             return;
         }
         
@@ -1418,8 +1449,8 @@
                 });
             }
             
-            // Enviar para o servidor
-            const response = await fetch(`/api/auditoria/${comentarioAuditoriaAtual}/comentarios`, {
+            // ⭐ ROTA CORRETA: /api/auditoria/{id}/achados
+            const response = await fetch(`/api/auditoria/${comentarioAuditoriaAtual}/achados`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1431,7 +1462,7 @@
             const data = await response.json();
             
             if (data.success) {
-                mostrarToast('✅ Comentário enviado com sucesso!', 'success');
+                mostrarToast('✅ Achado registrado com sucesso!', 'success');
                 
                 // Limpar formulário
                 texto.value = '';
@@ -1439,14 +1470,14 @@
                 document.getElementById('anexo-nome').textContent = '';
                 arquivosAnexados = [];
                 
-                // Recarregar comentários
+                // Recarregar achados
                 await carregarComentarios(comentarioAuditoriaAtual);
             } else {
-                mostrarToast('❌ Erro ao enviar comentário: ' + (data.error || 'Tente novamente'), 'error');
+                mostrarToast('❌ Erro ao registrar achado: ' + (data.error || 'Tente novamente'), 'error');
             }
         } catch (error) {
-            console.error('Erro ao enviar comentário:', error);
-            mostrarToast('❌ Erro ao enviar comentário. Tente novamente.', 'error');
+            console.error('Erro ao enviar achado:', error);
+            mostrarToast('❌ Erro ao enviar achado. Tente novamente.', 'error');
         } finally {
             btnEnviar.disabled = false;
             btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Comentário';
@@ -1454,24 +1485,179 @@
     }
 
     // ============================================================
-    // EXCLUIR COMENTÁRIO
+    // EDIÇÃO DE ACHADO
     // ============================================================
 
-    async function excluirComentario(comentarioId) {
-        if (!confirm('Tem certeza que deseja excluir este comentário?')) return;
+    let achadoEditandoId = null;
+
+    function abrirEdicaoAchado(achadoId) {
+        // Buscar o elemento do achado
+        const elemento = document.getElementById(`achado-${achadoId}`);
+        if (!elemento) return;
+        
+        // Pegar o texto atual
+        const textoElemento = elemento.querySelector('.comentario-texto');
+        const textoAtual = textoElemento ? textoElemento.textContent : '';
+        
+        // Substituir o conteúdo pelo formulário de edição
+        const headerHtml = elemento.querySelector('.comentario-header').outerHTML;
+        const anexosHtml = elemento.querySelector('.comentario-anexos') ? 
+            elemento.querySelector('.comentario-anexos').outerHTML : '';
+        
+        elemento.innerHTML = `
+            ${headerHtml}
+            <div class="comentario-form" style="margin-top: 10px;">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="editar_achado_texto_${achadoId}"><i class="fas fa-pencil-alt"></i> Editar Achado:</label>
+                    <textarea id="editar_achado_texto_${achadoId}" class="form-control" rows="3">${escapeHtml(textoAtual)}</textarea>
+                </div>
+                
+                <div class="comentario-actions">
+                    <div class="anexo-wrapper">
+                        <label for="editar_achado_anexo_${achadoId}" class="btn-anexo">
+                            <i class="fas fa-paperclip"></i> Adicionar anexo
+                        </label>
+                        <input type="file" id="editar_achado_anexo_${achadoId}" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
+                        <span id="editar_anexo-nome_${achadoId}" class="anexo-nome"></span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-outline" onclick="cancelarEdicaoAchado(${achadoId})">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="btn-primary" onclick="salvarEdicaoAchado(${achadoId})">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ${anexosHtml}
+        `;
+        
+        // Adicionar evento para mostrar nome do arquivo
+        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
+        if (inputAnexo) {
+            inputAnexo.addEventListener('change', function(e) {
+                const nomeSpan = document.getElementById(`editar_anexo-nome_${achadoId}`);
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const nomes = Array.from(files).map(f => f.name);
+                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
+                } else {
+                    nomeSpan.textContent = '';
+                }
+            });
+        }
+    }
+
+    function cancelarEdicaoAchado(achadoId) {
+        // Recarregar os achados para voltar ao estado original
+        carregarComentarios(comentarioAuditoriaAtual);
+    }
+
+    async function salvarEdicaoAchado(achadoId) {
+        const textarea = document.getElementById(`editar_achado_texto_${achadoId}`);
+        if (!textarea) return;
+        
+        const texto = textarea.value.trim();
+        if (!texto) {
+            mostrarToast('⚠️ O texto do achado não pode ficar vazio.', 'warning');
+            return;
+        }
+        
+        // Preparar novos anexos
+        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
+        const anexos = [];
+        
+        if (inputAnexo) {
+            const files = inputAnexo.files;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
+                    return;
+                }
+                const base64 = await converterParaBase64(file);
+                anexos.push({
+                    nome: file.name,
+                    tipo: file.type,
+                    tamanho: file.size,
+                    base64: base64
+                });
+            }
+        }
         
         try {
-            const response = await fetch(`/api/comentario/${comentarioId}`, {
+            const response = await fetch(`/api/achado/${achadoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texto: texto,
+                    anexos: anexos
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Achado atualizado com sucesso!', 'success');
+                // Recarregar achados
+                await carregarComentarios(comentarioAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao atualizar achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar edição:', error);
+            mostrarToast('❌ Erro ao salvar edição.', 'error');
+        }
+    }
+
+    // ============================================================
+    // REMOVER ANEXO INDIVIDUAL
+    // ============================================================
+
+    async function removerAnexo(achadoId, anexoIndex) {
+        if (!confirm('Tem certeza que deseja remover este anexo?')) return;
+        
+        try {
+            const response = await fetch(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
                 method: 'DELETE'
             });
             
             const data = await response.json();
             
             if (data.success) {
-                mostrarToast('✅ Comentário excluído.', 'success');
+                mostrarToast('✅ Anexo removido com sucesso!', 'success');
+                // Recarregar achados
+                await carregarComentarios(comentarioAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao remover anexo: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover anexo:', error);
+            mostrarToast('❌ Erro ao remover anexo.', 'error');
+        }
+    }
+
+    // ============================================================
+    // EXCLUIR ACHADO
+    // ============================================================
+
+    async function excluirAchado(achadoId) {
+        if (!confirm('Tem certeza que deseja excluir este achado?')) return;
+        
+        try {
+            // ⭐ ROTA CORRETA: /api/achado/{id}
+            const response = await fetch(`/api/achado/${achadoId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Achado excluído.', 'success');
                 
                 // Remover da lista visualmente
-                const elemento = document.getElementById(`comentario-${comentarioId}`);
+                const elemento = document.getElementById(`achado-${achadoId}`);
                 if (elemento) {
                     elemento.style.transition = 'all 0.3s';
                     elemento.style.opacity = '0';
@@ -1479,24 +1665,24 @@
                     setTimeout(() => {
                         elemento.remove();
                         
-                        // Verificar se ainda há comentários
+                        // Verificar se ainda há achados
                         const lista = document.getElementById('lista-comentarios');
                         if (lista && lista.children.length === 0) {
                             lista.innerHTML = `
                                 <div class="comentario-vazio">
                                     <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
-                                    Nenhum comentário ainda. Seja o primeiro a comentar!
+                                    Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
                                 </div>
                             `;
                         }
                     }, 300);
                 }
             } else {
-                mostrarToast('❌ Erro ao excluir comentário.', 'error');
+                mostrarToast('❌ Erro ao excluir achado: ' + (data.error || 'Tente novamente'), 'error');
             }
         } catch (error) {
-            console.error('Erro ao excluir comentário:', error);
-            mostrarToast('❌ Erro ao excluir comentário.', 'error');
+            console.error('Erro ao excluir achado:', error);
+            mostrarToast('❌ Erro ao excluir achado.', 'error');
         }
     }
 
