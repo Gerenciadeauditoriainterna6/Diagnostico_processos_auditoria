@@ -4291,7 +4291,7 @@ def api_salvar_etapa():
                         :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
                         :manual_etapa, :manual_nome, :manual_tipo,
                         :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,
-                        :manual_em_andamento
+                        :manual_em_andamento,
                         NOW()
                     )
                     RETURNING id
