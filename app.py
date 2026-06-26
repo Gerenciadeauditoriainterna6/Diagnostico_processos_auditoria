@@ -1546,6 +1546,574 @@ def api_get_evidencias(auditoria_id):
             'evidencias': []
         }), 500
 
+# ============================================================
+# MATRIZ DE ACHADOS (COMENTÁRIOS COM ANEXOS)
+# ============================================================
+
+@app.route('/api/auditoria/<int:auditoria_id>/achados', methods=['GET'])
+def api_get_achados(auditoria_id):
+    """Lista todos os achados (comentários) de uma auditoria"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    import json
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT 
+                    a.id,
+                    a.texto,
+                    a.data_criacao,
+                    a.data_edicao,
+                    a.anexos,
+                    a.usuario_id,
+                    u.nome as usuario_nome
+                FROM matriz_achados a
+                JOIN usuarios u ON a.usuario_id = u.id
+                WHERE a.auditoria_id = :auditoria_id
+                ORDER BY a.data_criacao DESC
+            """)
+            result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchall()
+            
+            achados = []
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            
+            for row in result:
+                # Parse dos anexos (JSON)
+                anexos = []
+                if row[4]:
+                    if isinstance(row[4], str):
+                        anexos = json.loads(row[4])
+                    else:
+                        anexos = row[4] or []
+                
+                # Gerar URLs assinadas para cada anexo
+                if supabase and anexos:
+                    for anexo in anexos:
+                        try:
+                            caminho = anexo.get('caminho')
+                            if caminho:
+                                signed_url = supabase.storage.from_('matriz_achados_anexos').create_signed_url(
+                                    path=caminho,
+                                    expires_in=86400  # 24 horas
+                                )
+                                anexo['url'] = signed_url['signedURL'] if isinstance(signed_url, dict) else signed_url
+                        except Exception as e:
+                            print(f"⚠️ Erro ao gerar URL assinada: {e}")
+                            anexo['url'] = None
+                
+                achados.append({
+                    'id': row[0],
+                    'texto': row[1],
+                    'data_criacao': row[2].isoformat() if row[2] else None,
+                    'data_edicao': row[3].isoformat() if row[3] else None,
+                    'anexos': anexos,
+                    'usuario_id': row[5],
+                    'usuario_nome': row[6] or 'Usuário',
+                    'pode_editar': row[5] == session.get('usuario_id') or session.get('usuario_perfil') in ['administrador', 'admin']
+                })
+            
+            return jsonify({'success': True, 'achados': achados})
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar achados: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auditoria/<int:auditoria_id>/achados', methods=['POST'])
+def api_adicionar_achado(auditoria_id):
+    """Adiciona um novo achado (comentário) com anexos"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    import base64
+    import json
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        texto = data.get('texto', '').strip()
+        anexos = data.get('anexos', [])
+        
+        if not texto:
+            return jsonify({'success': False, 'error': 'Texto do achado é obrigatório'}), 400
+        
+        usuario_id = session.get('usuario_id')
+        if not usuario_id:
+            return jsonify({'success': False, 'error': 'Usuário não autenticado'}), 401
+        
+        # Validar limite de anexos
+        if len(anexos) > 5:
+            return jsonify({'success': False, 'error': 'Máximo de 5 anexos por achado'}), 400
+        
+        with engine.connect() as conn:
+            # ⭐ 1. INSERIR ACHADO (SEM ANEXOS PRIMEIRO)
+            query = text("""
+                INSERT INTO matriz_achados (auditoria_id, usuario_id, texto, data_criacao, anexos)
+                VALUES (:auditoria_id, :usuario_id, :texto, NOW(), '[]'::jsonb)
+                RETURNING id
+            """)
+            result = conn.execute(query, {
+                'auditoria_id': auditoria_id,
+                'usuario_id': usuario_id,
+                'texto': texto
+            })
+            achado_id = result.fetchone()[0]
+            
+            # ⭐ 2. PROCESSAR ANEXOS (UPLOAD PARA STORAGE)
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            
+            anexos_salvos = []
+            
+            for anexo in anexos:
+                nome_arquivo = anexo.get('nome')
+                tipo_arquivo = anexo.get('tipo', 'application/octet-stream')
+                tamanho = anexo.get('tamanho', 0)
+                base64_data = anexo.get('base64')
+                
+                if not base64_data or not nome_arquivo:
+                    continue
+                
+                # Decodificar Base64
+                if ',' in base64_data:
+                    base64_data = base64_data.split(',')[1]
+                arquivo_bytes = base64.b64decode(base64_data)
+                
+                # Validar tamanho (10MB)
+                if len(arquivo_bytes) > 10 * 1024 * 1024:
+                    continue
+                
+                # Gerar caminho único no Storage
+                timestamp = int(datetime.now().timestamp())
+                caminho_storage = f"matriz_achados_auditoria/{auditoria_id}/{achado_id}/{timestamp}_{nome_arquivo}"
+                
+                # Upload para o Storage
+                if supabase:
+                    try:
+                        supabase.storage.from_('matriz_achados_anexos').upload(
+                            path=caminho_storage,
+                            file=arquivo_bytes,
+                            file_options={"content-type": tipo_arquivo}
+                        )
+                        
+                        anexos_salvos.append({
+                            'nome': nome_arquivo,
+                            'caminho': caminho_storage,
+                            'tipo': tipo_arquivo,
+                            'tamanho': tamanho,
+                            'data_upload': datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        print(f"⚠️ Erro no upload do anexo {nome_arquivo}: {e}")
+            
+            # ⭐ 3. ATUALIZAR O CAMPO ANEXOS COM OS DADOS SALVOS
+            if anexos_salvos:
+                anexos_json = json.dumps(anexos_salvos)
+                query_update = text("""
+                    UPDATE matriz_achados 
+                    SET anexos = CAST(:anexos AS jsonb),
+                        updated_at = NOW()
+                    WHERE id = :id
+                """)
+                conn.execute(query_update, {
+                    'anexos': anexos_json,
+                    'id': achado_id
+                })
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'achado_id': achado_id,
+                'message': 'Achado adicionado com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao adicionar achado: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/achado/<int:achado_id>', methods=['PUT'])
+def api_editar_achado(achado_id):
+    """Edita um achado existente (texto e anexos)"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    import base64
+    import json
+    from datetime import datetime
+    
+    try:
+        data = request.get_json()
+        texto = data.get('texto', '').strip()
+        novos_anexos = data.get('anexos', [])
+        
+        if not texto:
+            return jsonify({'success': False, 'error': 'Texto do achado é obrigatório'}), 400
+        
+        usuario_id = session.get('usuario_id')
+        is_admin = session.get('usuario_perfil') in ['administrador', 'admin']
+        
+        with engine.connect() as conn:
+            # ⭐ 1. VERIFICAR PERMISSÃO
+            query_check = text("""
+                SELECT usuario_id, anexos
+                FROM matriz_achados
+                WHERE id = :achado_id
+            """)
+            result_check = conn.execute(query_check, {'achado_id': achado_id}).fetchone()
+            
+            if not result_check:
+                return jsonify({'success': False, 'error': 'Achado não encontrado'}), 404
+            
+            autor_id = result_check[0]
+            anexos_existentes = []
+            if result_check[1]:
+                if isinstance(result_check[1], str):
+                    anexos_existentes = json.loads(result_check[1])
+                else:
+                    anexos_existentes = result_check[1] or []
+            
+            # Verificar se é o autor ou admin
+            if autor_id != usuario_id and not is_admin:
+                return jsonify({'success': False, 'error': 'Sem permissão para editar este achado'}), 403
+            
+            # ⭐ 2. ATUALIZAR TEXTO
+            query_update = text("""
+                UPDATE matriz_achados 
+                SET texto = :texto,
+                    data_edicao = NOW(),
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            conn.execute(query_update, {
+                'texto': texto,
+                'id': achado_id
+            })
+            
+            # ⭐ 3. PROCESSAR NOVOS ANEXOS
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            
+            anexos_salvos = anexos_existentes.copy()  # Mantém os anexos existentes
+            
+            for anexo in novos_anexos:
+                nome_arquivo = anexo.get('nome')
+                tipo_arquivo = anexo.get('tipo', 'application/octet-stream')
+                tamanho = anexo.get('tamanho', 0)
+                base64_data = anexo.get('base64')
+                
+                if not base64_data or not nome_arquivo:
+                    continue
+                
+                # Decodificar Base64
+                if ',' in base64_data:
+                    base64_data = base64_data.split(',')[1]
+                arquivo_bytes = base64.b64decode(base64_data)
+                
+                # Validar tamanho (10MB)
+                if len(arquivo_bytes) > 10 * 1024 * 1024:
+                    continue
+                
+                # Gerar caminho único no Storage
+                timestamp = int(datetime.now().timestamp())
+                caminho_storage = f"matriz_achados_auditoria/{achado_id}/{timestamp}_{nome_arquivo}"
+                
+                # Upload para o Storage
+                if supabase:
+                    try:
+                        supabase.storage.from_('matriz_achados_anexos').upload(
+                            path=caminho_storage,
+                            file=arquivo_bytes,
+                            file_options={"content-type": tipo_arquivo}
+                        )
+                        
+                        anexos_salvos.append({
+                            'nome': nome_arquivo,
+                            'caminho': caminho_storage,
+                            'tipo': tipo_arquivo,
+                            'tamanho': tamanho,
+                            'data_upload': datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        print(f"⚠️ Erro no upload do anexo {nome_arquivo}: {e}")
+            
+            # ⭐ 4. ATUALIZAR CAMPO ANEXOS
+            if anexos_salvos:
+                anexos_json = json.dumps(anexos_salvos)
+                query_update_anexos = text("""
+                    UPDATE matriz_achados 
+                    SET anexos = CAST(:anexos AS jsonb)
+                    WHERE id = :id
+                """)
+                conn.execute(query_update_anexos, {
+                    'anexos': anexos_json,
+                    'id': achado_id
+                })
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Achado atualizado com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao editar achado: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/achado/<int:achado_id>', methods=['DELETE'])
+def api_excluir_achado(achado_id):
+    """Exclui um achado e seus anexos do Storage"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    import json
+    
+    try:
+        usuario_id = session.get('usuario_id')
+        usuario_perfil = session.get('usuario_perfil')
+        is_admin = usuario_perfil in ['administrador', 'admin']
+        
+        with engine.connect() as conn:
+            # ⭐ 1. VERIFICAR PERMISSÃO
+            query_check = text("""
+                SELECT usuario_id, anexos
+                FROM matriz_achados
+                WHERE id = :achado_id
+            """)
+            result_check = conn.execute(query_check, {'achado_id': achado_id}).fetchone()
+            
+            if not result_check:
+                return jsonify({'success': False, 'error': 'Achado não encontrado'}), 404
+            
+            autor_id = result_check[0]
+            anexos_json = result_check[1]
+            
+            # Verificar se é o autor ou admin
+            if autor_id != usuario_id and not is_admin:
+                return jsonify({'success': False, 'error': 'Sem permissão para excluir este achado'}), 403
+            
+            # ⭐ 2. REMOVER ANEXOS DO STORAGE
+            anexos = []
+            if anexos_json:
+                if isinstance(anexos_json, str):
+                    anexos = json.loads(anexos_json)
+                else:
+                    anexos = anexos_json or []
+            
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            
+            if supabase and anexos:
+                try:
+                    caminhos = [a.get('caminho') for a in anexos if a.get('caminho')]
+                    if caminhos:
+                        supabase.storage.from_('matriz_achados_anexos').remove(caminhos)
+                        print(f"🗑️ Removidos {len(caminhos)} arquivos do Storage")
+                except Exception as e:
+                    print(f"⚠️ Erro ao remover arquivos do Storage: {e}")
+            
+            # ⭐ 3. REMOVER DO BANCO
+            query_delete = text("DELETE FROM matriz_achados WHERE id = :achado_id")
+            conn.execute(query_delete, {'achado_id': achado_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Achado excluído com sucesso'})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir achado: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/achado/<int:achado_id>/anexo/<int:anexo_index>', methods=['DELETE'])
+def api_remover_anexo(achado_id, anexo_index):
+    """Remove um anexo específico de um achado"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    import json
+    
+    try:
+        usuario_id = session.get('usuario_id')
+        is_admin = session.get('usuario_perfil') in ['administrador', 'admin']
+        
+        with engine.connect() as conn:
+            # ⭐ 1. VERIFICAR PERMISSÃO
+            query_check = text("""
+                SELECT usuario_id, anexos
+                FROM matriz_achados
+                WHERE id = :achado_id
+            """)
+            result_check = conn.execute(query_check, {'achado_id': achado_id}).fetchone()
+            
+            if not result_check:
+                return jsonify({'success': False, 'error': 'Achado não encontrado'}), 404
+            
+            autor_id = result_check[0]
+            
+            # Verificar se é o autor ou admin
+            if autor_id != usuario_id and not is_admin:
+                return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+            
+            # ⭐ 2. BUSCAR ANEXOS
+            anexos = []
+            if result_check[1]:
+                if isinstance(result_check[1], str):
+                    anexos = json.loads(result_check[1])
+                else:
+                    anexos = result_check[1] or []
+            
+            if anexo_index >= len(anexos):
+                return jsonify({'success': False, 'error': 'Anexo não encontrado'}), 404
+            
+            anexo_removido = anexos[anexo_index]
+            caminho_storage = anexo_removido.get('caminho')
+            
+            # ⭐ 3. REMOVER DO STORAGE
+            if caminho_storage:
+                supabase_url = os.getenv('SUPABASE_URL')
+                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                supabase = create_client(supabase_url, supabase_key)
+                
+                try:
+                    supabase.storage.from_('matriz_achados_anexos').remove([caminho_storage])
+                    print(f"🗑️ Arquivo removido do Storage: {caminho_storage}")
+                except Exception as e:
+                    print(f"⚠️ Erro ao remover do Storage: {e}")
+            
+            # ⭐ 4. REMOVER DO JSON
+            anexos.pop(anexo_index)
+            anexos_json = json.dumps(anexos)
+            
+            query_update = text("""
+                UPDATE matriz_achados 
+                SET anexos = CAST(:anexos AS jsonb),
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            conn.execute(query_update, {
+                'anexos': anexos_json,
+                'id': achado_id
+            })
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Anexo removido com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover anexo: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/achado/anexo/<int:achado_id>/<int:anexo_index>/download', methods=['GET'])
+def api_download_anexo_achado(achado_id, anexo_index):
+    """Baixa um anexo de um achado pelo índice no JSON"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    from supabase import create_client
+    import os
+    import json
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT anexos
+                FROM matriz_achados
+                WHERE id = :achado_id
+            """)
+            result = conn.execute(query, {'achado_id': achado_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Achado não encontrado'}), 404
+            
+            anexos = []
+            if result[0]:
+                if isinstance(result[0], str):
+                    anexos = json.loads(result[0])
+                else:
+                    anexos = result[0] or []
+            
+            if anexo_index >= len(anexos):
+                return jsonify({'success': False, 'error': 'Anexo não encontrado'}), 404
+            
+            anexo = anexos[anexo_index]
+            caminho_storage = anexo.get('caminho')
+            nome_arquivo = anexo.get('nome')
+            
+            if not caminho_storage:
+                return jsonify({'success': False, 'error': 'Caminho do arquivo não encontrado'}), 404
+            
+            # ⭐ GERAR URL ASSINADA
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            supabase = create_client(supabase_url, supabase_key)
+            
+            url_assinada = supabase.storage.from_('matriz_achados_anexos').create_signed_url(
+                path=caminho_storage,
+                expires_in=3600  # 1 hora
+            )
+            
+            signed_url = url_assinada['signedURL'] if isinstance(url_assinada, dict) else url_assinada
+            
+            return jsonify({
+                'success': True,
+                'url': signed_url,
+                'nome_arquivo': nome_arquivo
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao baixar anexo: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+# ============================================================
+# FIM - MATRIZ DE ACHADOS (COMENTÁRIOS COM ANEXOS)
+# ============================================================
+
 @app.route('/api/evidencia/<path:caminho>')
 def api_baixar_evidencia(caminho):
     """Baixa uma evidência do Supabase Storage"""

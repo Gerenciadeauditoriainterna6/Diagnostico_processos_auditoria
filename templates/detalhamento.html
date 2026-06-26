@@ -57,6 +57,60 @@
     </div>
 </div>
 
+<!-- TABELA DE PROCESSOS -->
+    <div class="form-section comentarios-section">
+    <div class="tabela-header">
+        <h3><i class="fas fa-comments"></i> Matriz de Achados</h3>
+        <span id="comentarios-auditoria-info" style="font-size: 13px; color: #666; font-weight: normal;">
+            Selecione uma auditoria para comentar
+        </span>
+    </div>
+    
+    <!-- Área de comentários - visível apenas quando auditoria selecionada -->
+    <div id="comentarios-area" style="display: none;">
+        <!-- Formulário de novo comentário -->
+        <div class="comentario-form">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="comentario_texto"><i class="fas fa-pencil-alt"></i> Novo Achado:</label>
+                <textarea id="comentario_texto" class="form-control" rows="3" placeholder="Digite seu comentário sobre esta auditoria..."></textarea>
+            </div>
+            
+            <div class="comentario-actions">
+                <div class="anexo-wrapper">
+                    <label for="comentario_anexo" class="btn-anexo">
+                        <i class="fas fa-paperclip"></i> Anexar arquivo
+                        <span style="font-size: 11px; color: #999; font-weight: normal;">(máx. 10MB)</span>
+                    </label>
+                    <input type="file" id="comentario_anexo" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
+                    <span id="anexo-nome" class="anexo-nome"></span>
+                </div>
+                <button id="btn-enviar-comentario" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i> Registrar Achado
+                </button>
+            </div>
+        </div>
+        
+        <!-- Lista de comentários -->
+        <div id="lista-comentarios" style="margin-top: 20px;">
+            <div class="comentarios-loading" style="text-align: center; padding: 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando comentários...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mensagem quando nenhuma auditoria selecionada -->
+    <div id="comentarios-placeholder">
+        <div class="alert-info" style="text-align: center; padding: 40px;">
+            <i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar e adicionar comentários.
+        </div>
+    </div>
+</div>
+
 <style>
     /* ===== ESTILOS PARA TELA DE DETALHAMENTO ===== */
     .detalhamento-container {
@@ -362,9 +416,286 @@
 
     .btn-bpmn-processo:hover {
         background: #0b5b99;
+        transform: translateY(-1px);    
+    }
+
+    .comentarios-section .tabela-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .comentarios-section .tabela-header h3 {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .comentario-form {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #e8e8e8;
+    }
+
+    .comentario-form .form-group label {
+        font-weight: 600;
+        color: #184145;
+        font-size: 14px;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .comentario-form textarea {
+        resize: vertical;
+        min-height: 80px;
+        font-family: inherit;
+    }
+
+    .comentario-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .anexo-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-anexo {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: white;
+        border: 2px dashed #ccc;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #555;
+        transition: all 0.2s;
+    }
+
+    .btn-anexo:hover {
+        border-color: #184145;
+        color: #184145;
+        background: #f0f7f7;
+    }
+
+    .anexo-input {
+        display: none;
+    }
+
+    .anexo-nome {
+        font-size: 12px;
+        color: #666;
+        background: #e8f0fe;
+        padding: 4px 10px;
+        border-radius: 4px;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: #184145;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #0b5b99;
         transform: translateY(-1px);
     }
 
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: #184145;
+        border: 2px solid #184145;
+        padding: 8px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-outline:hover {
+        background: #184145;
+        color: white;
+    }
+
+    .btn-danger-outline {
+        background: transparent;
+        color: #dc3545;
+        border: 2px solid #dc3545;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-danger-outline:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    /* Lista de comentários */
+    .comentario-item {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        border: 1px solid #e8e8e8;
+        transition: all 0.2s;
+    }
+
+    .comentario-item:hover {
+        border-color: #c8d6d8;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .comentario-item .comentario-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .comentario-item .comentario-autor {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .comentario-item .comentario-autor .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #184145;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .comentario-item .comentario-autor .nome {
+        font-weight: 600;
+        color: #184145;
+        font-size: 14px;
+    }
+
+    .comentario-item .comentario-autor .data-hora {
+        font-size: 12px;
+        color: #999;
+        margin-left: 4px;
+    }
+
+    .comentario-item .comentario-texto {
+        color: #333;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 6px 0 10px 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .comentario-item .comentario-anexos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .comentario-item .comentario-anexos .anexo-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #e8f0fe;
+        color: #184145;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .comentario-item .comentario-anexos .anexo-badge:hover {
+        background: #184145;
+        color: white;
+    }
+
+    .comentario-item .comentario-acoes {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 10px;
+    }
+
+    .comentario-vazio {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+        font-size: 14px;
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .comentario-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .anexo-wrapper {
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            justify-content: center;
+        }
+        
+        .comentario-item .comentario-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
 </style>
 
 <script>
@@ -916,5 +1247,582 @@
             if (e.target === this) fecharModalBPMN();
         });
     }
+
+    // ============================================================
+    // FUNÇÕES PARA COMENTÁRIOS
+    // ============================================================
+
+    let comentarioAuditoriaAtual = null;
+    let arquivosAnexados = [];
+
+    // ============================================================
+    // BAIXAR ANEXO
+    // ============================================================
+
+    async function baixarAnexo(achadoId, anexoIndex) {
+        try {
+            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
+            const data = await response.json();
+            
+            if (data.success && data.url) {
+                // Abrir a URL assinada em uma nova aba
+                window.open(data.url, '_blank');
+            } else {
+                mostrarToast('❌ Erro ao baixar anexo: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao baixar anexo:', error);
+            mostrarToast('❌ Erro ao baixar anexo.', 'error');
+        }
+    }
+
+    // ============================================================
+    // CARREGAR COMENTÁRIOS
+    // ============================================================
+
+    async function carregarComentarios(auditoriaId) {
+        const listaContainer = document.getElementById('lista-comentarios');
+        if (!listaContainer) return;
+        
+        comentarioAuditoriaAtual = auditoriaId;
+        
+        // Mostrar loading
+        listaContainer.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando comentários...</p>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/achados`);
+            const data = await response.json();
+            
+            if (data.success && data.achados && data.achados.length > 0) {
+                let html = '';
+                
+                for (const achado of data.achados) {
+                    // Formatar data/hora para Brasília
+                    const dataObj = new Date(achado.data_criacao);
+                    const options = {
+                        timeZone: 'America/Sao_Paulo',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    };
+                    const dataFormatada = dataObj.toLocaleString('pt-BR', options);
+                    
+                    // Iniciais do nome
+                    const iniciais = achado.usuario_nome
+                        ? achado.usuario_nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+                        : '?';
+                    
+                    html += `
+                        <div class="comentario-item" id="achado-${achado.id}">
+                            <div class="comentario-header">
+                                <div class="comentario-autor">
+                                    <div class="avatar">${escapeHtml(iniciais)}</div>
+                                    <span class="nome">${escapeHtml(achado.usuario_nome || 'Usuário')}</span>
+                                    <span class="data-hora">${dataFormatada}</span>
+                                </div>
+                            </div>
+                            <div class="comentario-texto">${escapeHtml(achado.texto)}</div>
+                    `;
+                    
+                    // Anexos (com botão de remover)
+                    if (achado.anexos && achado.anexos.length > 0) {
+                        html += `<div class="comentario-anexos">`;
+                        for (let idx = 0; idx < achado.anexos.length; idx++) {
+                            const anexo = achado.anexos[idx];
+                            const icone = getIconeArquivo(anexo.nome);
+                            html += `
+                                <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <a href="#" onclick="baixarAnexo(${achado.id}, ${idx}); return false;" 
+                                    title="Baixar ${escapeHtml(anexo.nome)}" style="color: inherit; text-decoration: none;">
+                                        <i class="fas ${icone}"></i>
+                                        ${escapeHtml(anexo.nome)}
+                                        <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
+                                    </a>
+                                    ${achado.pode_editar ? `
+                                        <button class="btn-remove-anexo" onclick="removerAnexo(${achado.id}, ${idx})" 
+                                                title="Remover anexo" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    ` : ''}
+                                </span>
+                            `;
+                        }
+                        html += `</div>`;
+                    }
+                    
+                    // Ações (apenas para o próprio usuário ou admin)
+                    if (achado.pode_editar) {
+                        html += `
+                            <div class="comentario-acoes">
+                                <button class="btn-outline" onclick="abrirEdicaoAchado(${achado.id})">
+                                    <i class="fas fa-pencil-alt"></i> Editar
+                                </button>
+                                <button class="btn-danger-outline" onclick="excluirAchado(${achado.id})">
+                                    <i class="fas fa-trash"></i> Excluir
+                                </button>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                listaContainer.innerHTML = html;
+            } else {
+                listaContainer.innerHTML = `
+                    <div class="comentario-vazio">
+                        <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
+                        Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar achados:', error);
+            listaContainer.innerHTML = `
+                <div class="alert-error" style="text-align: center; padding: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar achados. Tente novamente.
+                </div>
+            `;
+        }
+    }
+
+    // ============================================================
+    // ENVIAR COMENTÁRIO
+    // ============================================================
+
+    async function enviarComentario() {
+        const texto = document.getElementById('comentario_texto');
+        const btnEnviar = document.getElementById('btn-enviar-comentario');
+        
+        if (!texto || !btnEnviar) return;
+        
+        const textoValue = texto.value.trim();
+        if (!textoValue) {
+            mostrarToast('⚠️ Digite um achado antes de enviar.', 'warning');
+            texto.focus();
+            return;
+        }
+        
+        if (!comentarioAuditoriaAtual) {
+            mostrarToast('⚠️ Selecione uma auditoria para registrar achados.', 'warning');
+            return;
+        }
+        
+        // Desabilitar botão durante envio
+        btnEnviar.disabled = true;
+        btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        
+        try {
+            // Preparar arquivos
+            const anexos = [];
+            const inputFile = document.getElementById('comentario_anexo');
+            const files = inputFile.files;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Validar tamanho (10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
+                    btnEnviar.disabled = false;
+                    btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Comentário';
+                    return;
+                }
+                
+                const base64 = await converterParaBase64(file);
+                anexos.push({
+                    nome: file.name,
+                    tipo: file.type,
+                    tamanho: file.size,
+                    base64: base64
+                });
+            }
+            
+            // ⭐ ROTA CORRETA: /api/auditoria/{id}/achados
+            const response = await fetch(`/api/auditoria/${comentarioAuditoriaAtual}/achados`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texto: textoValue,
+                    anexos: anexos
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Achado registrado com sucesso!', 'success');
+                
+                // Limpar formulário
+                texto.value = '';
+                document.getElementById('comentario_anexo').value = '';
+                document.getElementById('anexo-nome').textContent = '';
+                arquivosAnexados = [];
+                
+                // Recarregar achados
+                await carregarComentarios(comentarioAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao registrar achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao enviar achado:', error);
+            mostrarToast('❌ Erro ao enviar achado. Tente novamente.', 'error');
+        } finally {
+            btnEnviar.disabled = false;
+            btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Comentário';
+        }
+    }
+
+    // ============================================================
+    // EDIÇÃO DE ACHADO
+    // ============================================================
+
+    let achadoEditandoId = null;
+
+    function abrirEdicaoAchado(achadoId) {
+        // Buscar o elemento do achado
+        const elemento = document.getElementById(`achado-${achadoId}`);
+        if (!elemento) return;
+        
+        // Pegar o texto atual
+        const textoElemento = elemento.querySelector('.comentario-texto');
+        const textoAtual = textoElemento ? textoElemento.textContent : '';
+        
+        // Substituir o conteúdo pelo formulário de edição
+        const headerHtml = elemento.querySelector('.comentario-header').outerHTML;
+        const anexosHtml = elemento.querySelector('.comentario-anexos') ? 
+            elemento.querySelector('.comentario-anexos').outerHTML : '';
+        
+        elemento.innerHTML = `
+            ${headerHtml}
+            <div class="comentario-form" style="margin-top: 10px;">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="editar_achado_texto_${achadoId}"><i class="fas fa-pencil-alt"></i> Editar Achado:</label>
+                    <textarea id="editar_achado_texto_${achadoId}" class="form-control" rows="3">${escapeHtml(textoAtual)}</textarea>
+                </div>
+                
+                <div class="comentario-actions">
+                    <div class="anexo-wrapper">
+                        <label for="editar_achado_anexo_${achadoId}" class="btn-anexo">
+                            <i class="fas fa-paperclip"></i> Adicionar anexo
+                        </label>
+                        <input type="file" id="editar_achado_anexo_${achadoId}" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
+                        <span id="editar_anexo-nome_${achadoId}" class="anexo-nome"></span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-outline" onclick="cancelarEdicaoAchado(${achadoId})">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="btn-primary" onclick="salvarEdicaoAchado(${achadoId})">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ${anexosHtml}
+        `;
+        
+        // Adicionar evento para mostrar nome do arquivo
+        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
+        if (inputAnexo) {
+            inputAnexo.addEventListener('change', function(e) {
+                const nomeSpan = document.getElementById(`editar_anexo-nome_${achadoId}`);
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const nomes = Array.from(files).map(f => f.name);
+                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
+                } else {
+                    nomeSpan.textContent = '';
+                }
+            });
+        }
+    }
+
+    function cancelarEdicaoAchado(achadoId) {
+        // Recarregar os achados para voltar ao estado original
+        carregarComentarios(comentarioAuditoriaAtual);
+    }
+
+    async function salvarEdicaoAchado(achadoId) {
+        const textarea = document.getElementById(`editar_achado_texto_${achadoId}`);
+        if (!textarea) return;
+        
+        const texto = textarea.value.trim();
+        if (!texto) {
+            mostrarToast('⚠️ O texto do achado não pode ficar vazio.', 'warning');
+            return;
+        }
+        
+        // Preparar novos anexos
+        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
+        const anexos = [];
+        
+        if (inputAnexo) {
+            const files = inputAnexo.files;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
+                    return;
+                }
+                const base64 = await converterParaBase64(file);
+                anexos.push({
+                    nome: file.name,
+                    tipo: file.type,
+                    tamanho: file.size,
+                    base64: base64
+                });
+            }
+        }
+        
+        try {
+            const response = await fetch(`/api/achado/${achadoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texto: texto,
+                    anexos: anexos
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Achado atualizado com sucesso!', 'success');
+                // Recarregar achados
+                await carregarComentarios(comentarioAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao atualizar achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar edição:', error);
+            mostrarToast('❌ Erro ao salvar edição.', 'error');
+        }
+    }
+
+    // ============================================================
+    // REMOVER ANEXO INDIVIDUAL
+    // ============================================================
+
+    async function removerAnexo(achadoId, anexoIndex) {
+        if (!confirm('Tem certeza que deseja remover este anexo?')) return;
+        
+        try {
+            const response = await fetch(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Anexo removido com sucesso!', 'success');
+                // Recarregar achados
+                await carregarComentarios(comentarioAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao remover anexo: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover anexo:', error);
+            mostrarToast('❌ Erro ao remover anexo.', 'error');
+        }
+    }
+
+    // ============================================================
+    // EXCLUIR ACHADO
+    // ============================================================
+
+    async function excluirAchado(achadoId) {
+        if (!confirm('Tem certeza que deseja excluir este achado?')) return;
+        
+        try {
+            // ⭐ ROTA CORRETA: /api/achado/{id}
+            const response = await fetch(`/api/achado/${achadoId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Achado excluído.', 'success');
+                
+                // Remover da lista visualmente
+                const elemento = document.getElementById(`achado-${achadoId}`);
+                if (elemento) {
+                    elemento.style.transition = 'all 0.3s';
+                    elemento.style.opacity = '0';
+                    elemento.style.transform = 'translateX(-20px)';
+                    setTimeout(() => {
+                        elemento.remove();
+                        
+                        // Verificar se ainda há achados
+                        const lista = document.getElementById('lista-comentarios');
+                        if (lista && lista.children.length === 0) {
+                            lista.innerHTML = `
+                                <div class="comentario-vazio">
+                                    <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
+                                    Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                }
+            } else {
+                mostrarToast('❌ Erro ao excluir achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao excluir achado:', error);
+            mostrarToast('❌ Erro ao excluir achado.', 'error');
+        }
+    }
+
+    // ============================================================
+    // FUNÇÕES AUXILIARES
+    // ============================================================
+
+    function getIconeArquivo(nome) {
+        const ext = nome.split('.').pop().toLowerCase();
+        const icones = {
+            'pdf': 'fa-file-pdf',
+            'doc': 'fa-file-word',
+            'docx': 'fa-file-word',
+            'xls': 'fa-file-excel',
+            'xlsx': 'fa-file-excel',
+            'jpg': 'fa-file-image',
+            'jpeg': 'fa-file-image',
+            'png': 'fa-file-image',
+            'gif': 'fa-file-image',
+            'txt': 'fa-file-alt',
+            'zip': 'fa-file-archive',
+            'rar': 'fa-file-archive',
+            'ppt': 'fa-file-powerpoint',
+            'pptx': 'fa-file-powerpoint'
+        };
+        return icones[ext] || 'fa-file';
+    }
+
+    function formatarTamanho(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    // ============================================================
+    // EVENTOS PARA COMENTÁRIOS
+    // ============================================================
+
+    // Mostrar/exibir área de comentários quando auditoria selecionada
+    function atualizarComentariosUI(auditoriaId) {
+        const area = document.getElementById('comentarios-area');
+        const placeholder = document.getElementById('comentarios-placeholder');
+        const info = document.getElementById('comentarios-auditoria-info');
+        
+        if (auditoriaId) {
+            area.style.display = 'block';
+            placeholder.style.display = 'none';
+            info.textContent = `Comentários da auditoria selecionada`;
+            
+            // Carregar comentários
+            carregarComentarios(auditoriaId);
+        } else {
+            area.style.display = 'none';
+            placeholder.style.display = 'block';
+            info.textContent = 'Selecione uma auditoria para comentar';
+            
+            // Limpar lista
+            const lista = document.getElementById('lista-comentarios');
+            if (lista) {
+                lista.innerHTML = '';
+            }
+        }
+    }
+
+    // Anexo - mostrar nome do arquivo selecionado
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputAnexo = document.getElementById('comentario_anexo');
+        if (inputAnexo) {
+            inputAnexo.addEventListener('change', function(e) {
+                const nomeSpan = document.getElementById('anexo-nome');
+                const files = e.target.files;
+                
+                if (files.length > 0) {
+                    const nomes = Array.from(files).map(f => f.name);
+                    if (nomes.length === 1) {
+                        nomeSpan.textContent = nomes[0];
+                    } else {
+                        nomeSpan.textContent = `${nomes.length} arquivos selecionados`;
+                    }
+                } else {
+                    nomeSpan.textContent = '';
+                }
+            });
+        }
+        
+        // Botão enviar
+        const btnEnviar = document.getElementById('btn-enviar-comentario');
+        if (btnEnviar) {
+            btnEnviar.addEventListener('click', enviarComentario);
+        }
+        
+        // Enter para enviar (Ctrl+Enter)
+        const textarea = document.getElementById('comentario_texto');
+        if (textarea) {
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    enviarComentario();
+                }
+            });
+        }
+    });
+
+    // ============================================================
+    // INTEGRAÇÃO COM O CARREGAMENTO DE AUDITORIA
+    // ============================================================
+
+    // Sobrescrever a função carregarProcessosDetalhamento para incluir comentários
+    // Mantém a função original e adiciona a chamada para comentários
+
+    // Salvar a função original
+    const _carregarProcessosDetalhamentoOriginal = window.carregarProcessosDetalhamento || function() {};
+
+    // Substituir com versão estendida
+    window.carregarProcessosDetalhamento = async function(auditoriaId) {
+        // Chamar a função original
+        await _carregarProcessosDetalhamentoOriginal(auditoriaId);
+        
+        // Atualizar UI de comentários
+        atualizarComentariosUI(auditoriaId);
+    };
+
+    // Também atualizar quando mudar auditoria no select
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAuditoria = document.getElementById('detalhamento_auditoria_select');
+        if (selectAuditoria) {
+            // Adicionar evento para atualizar comentários quando mudar auditoria
+            selectAuditoria.addEventListener('change', function() {
+                const auditoriaId = this.value;
+                if (auditoriaId) {
+                    // Os processos já serão carregados pela função existente
+                    // Mas precisamos carregar os comentários
+                    setTimeout(() => {
+                        atualizarComentariosUI(auditoriaId);
+                    }, 300);
+                } else {
+                    atualizarComentariosUI(null);
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}
