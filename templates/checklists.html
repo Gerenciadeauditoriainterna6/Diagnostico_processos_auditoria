@@ -2347,49 +2347,51 @@
             else seraImplantada = null;
         }
         
-        const analiseData = {
-            analise_critica: document.getElementById('analise-auditor-texto').value,
-            sugestao_melhoria: document.getElementById('analise-auditor-sugestao').value,
-            necessidade_implantacao: document.getElementById('analise-auditor-necessidade').value,
-            ganho_previsto: document.getElementById('analise-auditor-ganho').value,
-            observacoes: document.getElementById('analise-auditor-observacoes').value,
-            sugestao_sera_implantada: seraImplantada
-        };
+        const analiseCritica = document.getElementById('analise-auditor-texto').value;
+        if (!analiseCritica.trim()) {
+            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
+            return;
+        }
+        
+        // CRIAR FormData EM VEZ DE JSON
+        const formData = new FormData();
+        formData.append('processo_id', parseInt(processoIdAtual));
+        formData.append('analise_critica', analiseCritica);
+        formData.append('sugestao_melhoria', document.getElementById('analise-auditor-sugestao').value || '');
+        formData.append('necessidade_implantacao', document.getElementById('analise-auditor-necessidade').value || '');
+        formData.append('ganho_previsto', document.getElementById('analise-auditor-ganho').value || '');
+        formData.append('observacoes', document.getElementById('analise-auditor-observacoes').value || '');
+        formData.append('sugestao_sera_implantada', seraImplantada === true ? 'true' : (seraImplantada === false ? 'false' : ''));
         
         if (seraImplantada === true) {
-            analiseData.plano_acao = document.getElementById('plano-acao').value;
-            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao').value;
-            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao').value || null;
-            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista').value || null;
+            formData.append('plano_acao', document.getElementById('plano-acao').value || '');
+            formData.append('responsavel_implantacao', document.getElementById('responsavel-implantacao').value || '');
+            formData.append('data_inicio_implantacao', document.getElementById('data-inicio-implantacao').value || '');
+            formData.append('data_conclusao_prevista', document.getElementById('data-conclusao-prevista').value || '');
+            
+            // Se tiver arquivo de anexo
             if (arquivoSelecionado) {
-                analiseData.anexo_base64 = await converterParaBase64(arquivoSelecionado);
-                analiseData.anexo_nome = arquivoSelecionado.name;
+                formData.append('anexo', arquivoSelecionado);
+                formData.append('anexo_nome', arquivoSelecionado.name);
             }
         } else {
-            analiseData.plano_acao = null;
-            analiseData.responsavel_implantacao = null;
-            analiseData.data_inicio_implantacao = null;
-            analiseData.data_conclusao_prevista = null;
-            if (anexoExistenteNome || arquivoSelecionado) analiseData.remover_anexo = true;
+            // Se não for implantada, indicar para remover anexo
+            if (anexoExistenteNome || arquivoSelecionado) {
+                formData.append('remover_anexo', 'true');
+            }
         }
         
         // ⭐ NOVO: Adicionar evidência da análise
         const removerEvidencia = document.getElementById('remover-evidencia-hidden')?.value === 'true';
         
         if (arquivoSelecionadoAuditor) {
-            // Se tem um novo arquivo selecionado, enviar
-            analiseData.evidencia_base64 = await converterParaBase64(arquivoSelecionadoAuditor);
-            analiseData.evidencia_nome = arquivoSelecionadoAuditor.name;
+            // Se tem um novo arquivo selecionado, adicionar ao FormData
+            formData.append('evidencia', arquivoSelecionadoAuditor);
+            formData.append('evidencia_nome', arquivoSelecionadoAuditor.name);
             console.log('📎 Enviando nova evidência:', arquivoSelecionadoAuditor.name);
         } else if (removerEvidencia && anexoExistenteNomeAuditor) {
-            // Se marcou para remover e tem evidência existente
-            analiseData.remover_evidencia = true;
+            formData.append('remover_evidencia', 'true');
             console.log('🗑️ Removendo evidência existente');
-        }
-        
-        if (!analiseData.analise_critica.trim()) {
-            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
-            return;
         }
         
         const btnSalvar = document.getElementById('btn-salvar-analise-auditor');
@@ -2400,14 +2402,27 @@
         try {
             const url = analiseId ? `/api/analise-auditor/${analiseId}` : '/api/analise-auditor/salvar';
             const method = analiseId ? 'PUT' : 'POST';
-            const body = { processo_id: parseInt(processoIdAtual), ...analiseData };
             
+            // ⭐ NÃO USAR HEADERS - O FormData define o Content-Type automaticamente
             const response = await fetch(url, { 
-                method, 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(body) 
+                method: method,
+                body: formData  // FormData em vez de JSON
             });
-            const data = await response.json();
+            
+            // A resposta pode ser JSON ou texto
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Resposta não é JSON:', text);
+                    data = { success: false, error: 'Resposta inválida do servidor' };
+                }
+            }
             
             if (data.success) {
                 mostrarToast(analiseId ? '✅ Análise atualizada!' : '✅ Análise salva!', 'success');
@@ -2424,7 +2439,7 @@
             }
         } catch (error) {
             console.error('Erro:', error);
-            mostrarToast('❌ Erro ao conectar', 'error');
+            mostrarToast('❌ Erro ao conectar: ' + error.message, 'error');
         } finally {
             btnSalvar.disabled = false;
             btnSalvar.innerHTML = textoOriginal;
@@ -3409,15 +3424,6 @@
             return;
         }
 
-        // ⭐ DEBUG: Verificar todos os radios
-        const todosRadios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
-        console.log('📊 Total de radios encontrados:', todosRadios.length);
-        
-        todosRadios.forEach((radio, idx) => {
-            console.log(`📊 Radio ${idx}: value="${radio.value}", checked=${radio.checked}`);
-        });
-        
-        // Pegar o radio selecionado
         const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
         
         let seraImplantada = null;
@@ -3430,73 +3436,55 @@
                 seraImplantada = null;
             }
         } else {
-            console.log('⚠️ NENHUM radio está selecionado!');
             mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
-            return; // ⭐ Impedir salvar sem seleção
+            return;
         }
         
-        console.log('📊 Salvando análise do auditado - Radio selecionado:', radioSelecionado?.value);
-        console.log('📊 seraImplantada:', seraImplantada);
+        // CRIAR FormData
+        const formData = new FormData();
+        formData.append('processo_id', parseInt(processoIdAtual));
+        formData.append('etapa_id', parseInt(etapaId));
+        formData.append('categoria', categoria);
+        formData.append('analise_critica', analiseCritica);
+        formData.append('sugestao_melhoria', document.getElementById('analise-auditado-sugestao').value || '');
+        formData.append('necessidade_implantacao', document.getElementById('analise-auditado-necessidade').value || '');
+        formData.append('ganho_previsto', document.getElementById('analise-auditado-ganho').value || '');
+        formData.append('observacoes', document.getElementById('analise-auditado-observacoes').value || '');
+        formData.append('sugestao_sera_implantada', seraImplantada === true ? 'true' : (seraImplantada === false ? 'false' : ''));
         
-        const analiseData = {
-            processo_id: parseInt(processoIdAtual),
-            etapa_id: parseInt(etapaId),
-            categoria: categoria,
-            analise_critica: analiseCritica,
-            sugestao_melhoria: document.getElementById('analise-auditado-sugestao').value,
-            necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value,
-            ganho_previsto: document.getElementById('analise-auditado-ganho').value,
-            observacoes: document.getElementById('analise-auditado-observacoes').value,
-            sugestao_sera_implantada: seraImplantada
-        };
-
-        // ⭐ Processar evidência do auditado
-        let evidencia_base64 = null;
-        let evidencia_nome = null;
+        // Processar evidência do auditado
         const removerEvidencia = document.getElementById('remover-evidencia-auditado-hidden')?.value === 'true';
         
         if (arquivoSelecionadoAuditadoEvidencia) {
-            evidencia_base64 = await converterParaBase64(arquivoSelecionadoAuditadoEvidencia);
-            evidencia_nome = arquivoSelecionadoAuditadoEvidencia.name;
-            console.log('📎 Enviando evidência do auditado:', evidencia_nome);
+            formData.append('evidencia', arquivoSelecionadoAuditadoEvidencia);
+            formData.append('evidencia_nome', arquivoSelecionadoAuditadoEvidencia.name);
+            console.log('📎 Enviando evidência do auditado:', arquivoSelecionadoAuditadoEvidencia.name);
         } else if (removerEvidencia && anexoExistenteAuditadoEvidencia) {
+            formData.append('remover_evidencia', 'true');
             console.log('🗑️ Removendo evidência do auditado');
-            // Marcar para remover no backend
-        }
-        
-        // Adicionar ao payload
-        if (evidencia_base64 && evidencia_nome) {
-            analiseData.evidencia_base64 = evidencia_base64;
-            analiseData.evidencia_nome = evidencia_nome;
-        }
-        if (removerEvidencia && anexoExistenteAuditadoEvidencia) {
-            analiseData.remover_evidencia = true;
         }
         
         // Só incluir plano de ação se for true
         if (seraImplantada === true) {
-            analiseData.plano_acao = document.getElementById('plano-acao-auditado').value;
-            analiseData.responsavel_implantacao = document.getElementById('responsavel-implantacao-auditado').value;
-            analiseData.data_inicio_implantacao = document.getElementById('data-inicio-implantacao-auditado').value || null;
-            analiseData.data_conclusao_prevista = document.getElementById('data-conclusao-prevista-auditado').value || null;
+            formData.append('plano_acao', document.getElementById('plano-acao-auditado').value || '');
+            formData.append('responsavel_implantacao', document.getElementById('responsavel-implantacao-auditado').value || '');
+            formData.append('data_inicio_implantacao', document.getElementById('data-inicio-implantacao-auditado').value || '');
+            formData.append('data_conclusao_prevista', document.getElementById('data-conclusao-prevista-auditado').value || '');
             
             if (arquivoSelecionadoAuditado) {
-                analiseData.anexo_base64 = await converterParaBase64(arquivoSelecionadoAuditado);
-                analiseData.anexo_nome = arquivoSelecionadoAuditado.name;
+                formData.append('anexo', arquivoSelecionadoAuditado);
+                formData.append('anexo_nome', arquivoSelecionadoAuditado.name);
             }
         } else {
-            // Se não for implantada, enviar null para limpar os campos
-            analiseData.plano_acao = null;
-            analiseData.responsavel_implantacao = null;
-            analiseData.data_inicio_implantacao = null;
-            analiseData.data_conclusao_prevista = null;
-            
             if (anexoExistenteNomeAuditado || arquivoSelecionadoAuditado) {
-                analiseData.remover_anexo = true;
+                formData.append('remover_anexo', 'true');
             }
         }
         
         const removerAnexo = document.getElementById('remover-anexo-hidden-auditado')?.value === 'true';
+        if (removerAnexo) {
+            formData.append('remover_anexo', 'true');
+        }
         
         const btnSalvar = document.getElementById('btn-salvar-analise-auditado');
         const textoOriginal = btnSalvar.innerHTML;
@@ -3506,18 +3494,25 @@
         try {
             const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
             const method = analiseId ? 'PUT' : 'POST';
-            const body = { ...analiseData };
-            if (removerAnexo) body.remover_anexo = true;
-            
-            console.log('📤 Enviando para API:', JSON.stringify(body, null, 2));
             
             const response = await fetch(url, { 
-                method: method, 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(body) 
+                method: method,
+                body: formData  // FormData
             });
             
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Resposta não é JSON:', text);
+                    data = { success: false, error: 'Resposta inválida do servidor' };
+                }
+            }
             
             if (data.success) {
                 mostrarToast(analiseId ? '✅ Análise atualizada com sucesso!' : '✅ Análise salva com sucesso!', 'success');
@@ -3906,22 +3901,62 @@
         try {
             console.log('📥 Baixando evidência:', evidenciaId, nomeArquivo);
             
+            // ⭐ MOSTRAR LOADING
+            mostrarToast('⏳ Baixando arquivo...', 'info');
+            
             const response = await fetch(`/api/analise-auditor/evidencia/${evidenciaId}/download`);
             
+            console.log('📥 Status da resposta:', response.status);
+            console.log('📥 Headers:', response.headers);
+            
             if (!response.ok) {
-                const errorData = await response.json();
-                mostrarToast('❌ Erro ao baixar evidência: ' + (errorData.error || 'Erro desconhecido'), 'error');
+                let errorMsg = 'Erro ao baixar evidência';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorMsg;
+                    console.log('❌ Erro do servidor:', errorData);
+                } catch (e) {
+                    const text = await response.text();
+                    console.log('❌ Resposta não-JSON:', text);
+                    errorMsg = `Erro ${response.status}: ${response.statusText}`;
+                }
+                mostrarToast('❌ ' + errorMsg, 'error');
                 return;
             }
             
-            // Obter o blob do arquivo
-            const blob = await response.blob();
+            // ⭐ VERIFICAR O TIPO DE CONTEÚDO
+            const contentType = response.headers.get('content-type') || '';
+            console.log('📄 Content-Type:', contentType);
             
-            // Criar URL para download
+            // Se a resposta for JSON, é um erro
+            if (contentType.includes('application/json')) {
+                const errorData = await response.json();
+                mostrarToast('❌ ' + (errorData.error || 'Erro ao baixar'), 'error');
+                return;
+            }
+            
+            // ⭐ OBTER O BLOB
+            const blob = await response.blob();
+            console.log('📄 Tamanho do blob:', blob.size, 'bytes');
+            console.log('📄 Tipo do blob:', blob.type);
+            
+            // Verificar se o blob é válido
+            if (blob.size === 0) {
+                mostrarToast('❌ Arquivo vazio ou corrompido', 'error');
+                return;
+            }
+            
+            // Verificar se o blob parece ser um PDF
+            if (blob.type && !blob.type.includes('pdf')) {
+                console.warn('⚠️ Content-Type não é PDF:', blob.type);
+                // Ainda tenta baixar, mas com aviso
+            }
+            
+            // ⭐ CRIAR URL PARA DOWNLOAD
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = nomeArquivo || 'evidencia.pdf';
+            link.download = nomeArquivo || `evidencia_${evidenciaId}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -3929,7 +3964,7 @@
             // Limpar URL após o download
             setTimeout(() => {
                 window.URL.revokeObjectURL(url);
-            }, 100);
+            }, 1000);
             
             mostrarToast('✅ Download iniciado!', 'success');
             
