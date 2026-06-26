@@ -110,13 +110,13 @@
                         <option value="Inativa">Inativa</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label><i class="fas fa-chart-line"></i> Criticidade</label>
-                    <select id="modal-criticidade-etapa" class="form-control">  <!-- ← AQUI! É "modal-criticidade_etapa" com UNDERSCORE -->
+                    <select id="modal-criticidade-etapa" class="form-control">  
                         <option value="Em aprovação">Em aprovação</option>
                         <option value="Aprovado">Aprovado</option>
                     </select>
-                </div>
+                </div> -->
             </div>
 
             <!-- ====== MANUAL DA ETAPA ====== -->
@@ -1432,10 +1432,10 @@
 
     // Chave única para o autoSave baseada no processo e etapa
     function getAutoSaveKey() {
-        const etapaId = document.getElementById('modal-etapa-id').value;
-        const processoId = processoAtualId;
+        const etapaId = document.getElementById('modal-etapa-id')?.value || '';
+        const processoId = processoAtualId || 'sem_processo';
         const isNova = !etapaId || etapaId === '';
-        return `autosave_etapa_${processoId}_${isNova ? 'nova': etapaId}`;
+        return `autosave_etapa_${processoId}_${isNova ? 'nova' : etapaId}`;
     }
 
     // ============================================================
@@ -1591,24 +1591,22 @@
     function salvarRascunho() {
         if (!autoSaveEnabled) return;
 
-        const nomeEtapa = document.getElementById('modal-nome-etapa').value.trim();
+        const nomeEtapa = document.getElementById('modal-nome-etapa')?.value?.trim() || '';
         // Não salvar se estiver vazio ou só com campos vazios
-        if (!nomeEtapa && !document.getElementById('modal-descricao-etapa').value) {
+        if (!nomeEtapa && !document.getElementById('modal-descricao-etapa')?.value) {
             return;
         }
 
         const rascunho = {
-            id: document.getElementById('modal-etapa-id').value,
-            codigo_etapa: document.getElementById('modal-codigo-etapa').value,
+            id: document.getElementById('modal-etapa-id')?.value || '',
+            codigo_etapa: document.getElementById('modal-codigo-etapa')?.value || '',
             nome_etapa: nomeEtapa,
-            descricao_etapa: document.getElementById('modal-descricao-etapa').value,
-            como_e_feito: document.getElementById('modal-como-feito').value,
-             objetivo_etapa: document.getElementById('modal-objetivo-etapa').value,
-            status_etapa: document.getElementById('modal-status-etapa').value,
-            criticidade_etapa: document.getElementById('modal-criticidade-etapa').value,
-            politica_interna: document.getElementById('modal-politica-interna').value,
-            obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias').value,
-            // Salvar IDs dos executores selecionados
+            descricao_etapa: document.getElementById('modal-descricao-etapa')?.value || '',
+            como_e_feito: document.getElementById('modal-como-feito')?.value || '',
+            objetivo_etapa: document.getElementById('modal-objetivo-etapa')?.value || '',
+            status_etapa: document.getElementById('modal-status-etapa')?.value || 'Ativa',
+            politica_interna: document.getElementById('modal-politica-interna')?.value || '',
+            obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias')?.value || '',
             executores_ids: Array.from(selectedExecutoresMap.keys()).join(','),
             timestamp: new Date().getTime()
         };
@@ -1694,14 +1692,26 @@
 
     // Restaurar dados do rascunho
     function restaurarRascunho(rascunho) {
-        document.getElementById('modal-nome-etapa').value = rascunho.nome_etapa || '';
-        document.getElementById('modal-descricao-etapa').value = rascunho.descricao_etapa || '';
-        document.getElementById('modal-como-feito').value = rascunho.como_e_feito || '';
-        document.getElementById('modal-objetivo-etapa').value = rascunho.objetivo_etapa || '';
-        document.getElementById('modal-status-etapa').value = rascunho.status_etapa || 'Ativa';
-        document.getElementById('modal-criticidade-etapa').value = rascunho.criticidade_etapa || 'Em aprovação';
-        document.getElementById('modal-politica-interna').value = rascunho.politica_interna || '';
-        document.getElementById('modal-obrigacoes-regulatorias').value = rascunho.obrigacoes_regulatorias || '';
+        const nomeInput = document.getElementById('modal-nome-etapa');
+        if (nomeInput) nomeInput.value = rascunho.nome_etapa || '';
+        
+        const descInput = document.getElementById('modal-descricao-etapa');
+        if (descInput) descInput.value = rascunho.descricao_etapa || '';
+        
+        const comoInput = document.getElementById('modal-como-feito');
+        if (comoInput) comoInput.value = rascunho.como_e_feito || '';
+        
+        const objInput = document.getElementById('modal-objetivo-etapa');
+        if (objInput) objInput.value = rascunho.objetivo_etapa || '';
+        
+        const statusSelect = document.getElementById('modal-status-etapa');
+        if (statusSelect) statusSelect.value = rascunho.status_etapa || 'Ativa';
+        
+        const politicaInput = document.getElementById('modal-politica-interna');
+        if (politicaInput) politicaInput.value = rascunho.politica_interna || '';
+        
+        const obrigacoesInput = document.getElementById('modal-obrigacoes-regulatorias');
+        if (obrigacoesInput) obrigacoesInput.value = rascunho.obrigacoes_regulatorias || '';
         
         // Restaurar executores selecionados
         if (rascunho.executores_ids && rascunho.executores_ids.trim() !== '') {
@@ -1727,32 +1737,45 @@
     // Configurar auto save nos campos do modal
     function setupAutoSave() {
         const campos = [
-            'modal-nome-etapa', 'modal-descricao-etapa', 'modal-como-feito',
-            'modal-objetivo-etapa', 'modal-status-etapa', 'modal-criticidade-etapa',
-            'modal-politica-interna', /*'modal-analise-critica', 'modal-sugestao-melhoria',
-            'modal-necessidade-implantacao', 'modal-ganho-previsto',*/ 'modal-obrigacoes-regulatorias'
+            'modal-nome-etapa', 
+            'modal-descricao-etapa', 
+            'modal-como-feito',
+            'modal-objetivo-etapa', 
+            'modal-status-etapa',
+            'modal-politica-interna',
+            'modal-obrigacoes-regulatorias'
         ];
         
         campos.forEach(campoId => {
             const campo = document.getElementById(campoId);
             if (campo) {
-                campo.addEventListener('input', () => {
-                    if (autoSaveTimer) clearTimeout(autoSaveTimer);
-                    autoSaveTimer = setTimeout(() => salvarRascunho(), 1000);
-                });
+                // Remover listener antigo para evitar duplicação
+                campo.removeEventListener('input', autoSaveHandler);
+                campo.addEventListener('input', autoSaveHandler);
             }
         });
         
         // Observar mudanças nos executores
-        const observer = new MutationObserver(() => {
-            if (autoSaveTimer) clearTimeout(autoSaveTimer);
-            autoSaveTimer = setTimeout(() => salvarRascunho(), 1000);
-        });
-        
         const executoresContainer = document.getElementById('executores-display');
         if (executoresContainer) {
-            observer.observe(executoresContainer, { childList: true, subtree: true });
+            // Remover observer antigo se existir
+            if (window.executoresObserver) {
+                window.executoresObserver.disconnect();
+            }
+            
+            window.executoresObserver = new MutationObserver(() => {
+                if (autoSaveTimer) clearTimeout(autoSaveTimer);
+                autoSaveTimer = setTimeout(() => salvarRascunho(), 1000);
+            });
+            
+            window.executoresObserver.observe(executoresContainer, { childList: true, subtree: true });
         }
+    }
+
+    // Handler separado para o auto save
+    function autoSaveHandler() {
+        if (autoSaveTimer) clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => salvarRascunho(), 1000);
     }
 
     // ============================================================
@@ -2181,23 +2204,76 @@
     }
 
     function limparFormularioEtapa() {
-        document.getElementById('modal-etapa-id').value = '';
-        document.getElementById('modal-codigo-etapa').value = '';
-        document.getElementById('modal-nome-etapa').value = '';
-        document.getElementById('modal-descricao-etapa').value = '';
-        document.getElementById('modal-como-feito').value = '';
-        document.getElementById('modal-objetivo-etapa').value = '';
-        document.getElementById('modal-status-etapa').value = 'Ativa';
-        document.getElementById('modal-criticidade-etapa').value = 'Em aprovação';
-        document.getElementById('modal-politica-interna').value = '';
-        document.getElementById('modal-obrigacoes-regulatorias').value = '';
+        // ⭐ VERIFICAR CADA ELEMENTO ANTES DE USAR
+        const campos = [
+            { id: 'modal-etapa-id', valor: '' },
+            { id: 'modal-codigo-etapa', valor: '' },
+            { id: 'modal-nome-etapa', valor: '' },
+            { id: 'modal-descricao-etapa', valor: '' },
+            { id: 'modal-como-feito', valor: '' },
+            { id: 'modal-objetivo-etapa', valor: '' },
+            { id: 'modal-politica-interna', valor: '' },
+            { id: 'modal-obrigacoes-regulatorias', valor: '' }
+        ];
         
-
-        limparExecutoresSelecionados();
+        campos.forEach(campo => {
+            const elemento = document.getElementById(campo.id);
+            if (elemento) {
+                elemento.value = campo.valor;
+            }
+        });
         
+        // ⭐ Status (com valores padrão)
+        const statusSelect = document.getElementById('modal-status-etapa');
+        if (statusSelect) statusSelect.value = 'Ativa';
+        
+        // ⭐ Criticidade (com valores padrão)
+        const criticidadeSelect = document.getElementById('modal-criticidade-etapa');
+        if (criticidadeSelect) criticidadeSelect.value = 'Em aprovação';
+        
+        // ⭐ Limpar executores selecionados
+        if (typeof limparExecutoresSelecionados === 'function') {
+            limparExecutoresSelecionados();
+        }
+        
+        // ⭐ Remover classes de erro
         document.querySelectorAll('#modal-etapa .form-group').forEach(group => {
             group.classList.remove('error');
         });
+        
+        // ⭐ ⭐ ⭐ NOVO: Resetar os containers do manual ⭐ ⭐ ⭐
+        const divAnexado = document.getElementById('manual_anexado');
+        const divAndamento = document.getElementById('manual_andamento');
+        const divNenhum = document.getElementById('manual_nenhum');
+        const checkboxAndamento = document.getElementById('manual_em_andamento');
+        const inputFile = document.getElementById('manual_file_input');
+        
+        if (divAnexado) divAnexado.style.display = 'none';
+        if (divAndamento) divAndamento.style.display = 'none';
+        if (divNenhum) divNenhum.style.display = 'block';
+        if (checkboxAndamento) checkboxAndamento.checked = false;
+        if (inputFile) inputFile.value = '';
+        
+        // ⭐ Resetar estado do manual
+        if (typeof manualEstadoAtual !== 'undefined' && manualEstadoAtual) {
+            manualEstadoAtual.temArquivo = false;
+            manualEstadoAtual.nomeArquivo = null;
+            manualEstadoAtual.emAndamento = false;
+        }
+        
+        // ⭐ Resetar análises
+        if (typeof analisesTemporarias !== 'undefined') {
+            analisesTemporarias = [];
+        }
+        if (typeof analisesExistentes !== 'undefined') {
+            analisesExistentes = [];
+        }
+        if (typeof renderizarAnalises === 'function') {
+            renderizarAnalises();
+        }
+        if (typeof esconderFormAnalise === 'function') {
+            esconderFormAnalise();
+        }
     }
 
     // ============================================================
@@ -2544,7 +2620,8 @@
                 document.getElementById('modal-como-feito').value = etapa.como_e_feito;
                 document.getElementById('modal-objetivo-etapa').value = etapa.objetivo_etapa;
                 document.getElementById('modal-status-etapa').value = etapa.status_etapa;
-                document.getElementById('modal-criticidade-etapa').value = etapa.criticidade_etapa;
+                // ⭐ REMOVER ESSA LINHA (não existe mais)
+                // document.getElementById('modal-criticidade-etapa').value = etapa.criticidade_etapa;
                 document.getElementById('modal-politica-interna').value = etapa.politica_interna;
                 document.getElementById('modal-obrigacoes-regulatorias').value = etapa.obrigacoes_regulatorias;
 
@@ -2576,37 +2653,28 @@
                     checkboxAndamento.checked = etapa.manual_em_andamento || false;
                 }
 
-                // 3. Verificar se tem arquivo manual
-                const manualNomeDiv = document.getElementById('manual-nome');
-                if (manualNomeDiv) {
-                    if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
-                        // Tem arquivo anexado
-                        manualNomeDiv.innerHTML = `
-                            <i class="fas fa-paperclip"></i> 
-                            ${escapeHtml(etapa.manual_nome)} 
-                            <span class="file-info">(arquivo atual)</span>
-                            <span class="remove-file" onclick="removeFile('manual')">&times;</span>
-                        `;
-                        manualNomeDiv.style.display = 'block';
-                        manualNomeDiv.setAttribute('data-tem-arquivo', 'true');
-                        manualNomeDiv.setAttribute('data-arquivo-nome', etapa.manual_nome);
-                    } else if (etapa.manual_em_andamento) {
-                        // Em andamento (sem arquivo)
-                        manualNomeDiv.innerHTML = `
-                            <i class="fas fa-clock" style="color: #ffc107;"></i> 
-                            <span style="color: #856404;">📝 Manual em andamento</span>
-                            <span class="file-info" style="color: #856404;">(aguardando finalização)</span>
-                            <span class="remove-file" onclick="cancelarAndamento()">&times;</span>
-                        `;
-                        manualNomeDiv.style.display = 'block';
-                        manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
-                        manualNomeDiv.setAttribute('data-em-andamento', 'true');
-                    } else {
-                        // Nenhum manual
-                        manualNomeDiv.style.display = 'none';
-                        manualNomeDiv.setAttribute('data-tem-arquivo', 'false');
-                        manualNomeDiv.setAttribute('data-em-andamento', 'false');
-                    }
+                // 3. Verificar se tem arquivo manual (usando o container correto)
+                const divAnexado = document.getElementById('manual_anexado');
+                const divAndamento = document.getElementById('manual_andamento');
+                const divNenhum = document.getElementById('manual_nenhum');
+                const nomeExibicao = document.getElementById('manual_nome_exibicao');
+                
+                if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
+                    // Tem arquivo anexado
+                    if (divAnexado) divAnexado.style.display = 'block';
+                    if (divAndamento) divAndamento.style.display = 'none';
+                    if (divNenhum) divNenhum.style.display = 'none';
+                    if (nomeExibicao) nomeExibicao.textContent = etapa.manual_nome;
+                } else if (etapa.manual_em_andamento) {
+                    // Em andamento (sem arquivo)
+                    if (divAnexado) divAnexado.style.display = 'none';
+                    if (divAndamento) divAndamento.style.display = 'block';
+                    if (divNenhum) divNenhum.style.display = 'none';
+                } else {
+                    // Nenhum manual
+                    if (divAnexado) divAnexado.style.display = 'none';
+                    if (divAndamento) divAndamento.style.display = 'none';
+                    if (divNenhum) divNenhum.style.display = 'block';
                 }
 
                 // 4. Atualizar o campo hidden para salvar o estado
@@ -2662,26 +2730,29 @@
 
         const etapaId = document.getElementById('modal-etapa-id').value || null;
         
+        // ⭐ USAR OPERADOR OPTIONAL (?.) PARA EVITAR ERRO
         const payload = {
             id: etapaId,
             processo_id: processoAtualId,
             auditoria_id: null,
-            codigo_etapa: document.getElementById('modal-codigo-etapa').value,
+            codigo_etapa: document.getElementById('modal-codigo-etapa')?.value || '',
             nome_etapa: nomeEtapa,
-            descricao_etapa: document.getElementById('modal-descricao-etapa').value,
-            como_e_feito: document.getElementById('modal-como-feito').value,
-            objetivo_etapa: document.getElementById('modal-objetivo-etapa').value,
-            status_etapa: document.getElementById('modal-status-etapa').value,
-            criticidade_etapa: document.getElementById('modal-criticidade-etapa').value,
-            politica_interna: document.getElementById('modal-politica-interna').value,
-            obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias').value,
+            descricao_etapa: document.getElementById('modal-descricao-etapa')?.value || '',
+            como_e_feito: document.getElementById('modal-como-feito')?.value || '',
+            objetivo_etapa: document.getElementById('modal-objetivo-etapa')?.value || '',
+            status_etapa: document.getElementById('modal-status-etapa')?.value || 'Ativa',
+            politica_interna: document.getElementById('modal-politica-interna')?.value || '',
+            obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias')?.value || '',
             executores_etapa: executoresEtapa,
             // ⭐ ADICIONAR O ESTADO DO MANUAL
-            manual_em_andamento: document.getElementById('manual_em_andamento').checked
+            manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false
         };
 
+        // ⭐ REMOVER A LINHA QUE TENTA ACESSAR modal-criticidade-etapa
+        // NÃO EXISTE MAIS ESSE CAMPO NO HTML
+
         // ⭐ Verificar se tem arquivo no input
-        const manualFile = document.getElementById('manual_file_input').files[0];
+        const manualFile = document.getElementById('manual_file_input')?.files[0];
         
         if (manualFile) {
             const manualBase64 = await converterParaBase64(manualFile);
@@ -2691,7 +2762,6 @@
             payload.remover_manual = false;
         } else {
             payload.remover_manual = false;
-            // Não enviar manual se não tiver arquivo
         }
 
         try {
@@ -3298,12 +3368,7 @@
                                         <span class="etapa-status ${etapa.status_etapa.toLowerCase()}">${escapeHtml(etapa.status_etapa)}</span>
                                     </span>
                                 </div>
-                                <div class="vis-item">
-                                    <label>Criticidade</label>
-                                    <span>
-                                        <span class="etapa-criticidade ${etapa.criticidade_etapa.toLowerCase().replace(' ', '-')}">${escapeHtml(etapa.criticidade_etapa)}</span>
-                                    </span>
-                                </div>
+                            
                                 <div class="vis-item vis-full">
                                     <label>Executores</label>
                                     <span>${escapeHtml(executoresNomes)}</span>

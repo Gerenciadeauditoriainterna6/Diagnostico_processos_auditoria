@@ -11,7 +11,7 @@
         <p>Bem vindo ao MAPA!</p>
     </div>
 
-    <!-- SEÇÃO 1: SOBRE O SISTEMA -->
+    <!-- SEÇÃO 0: SOBRE A ÁREA -->
     <div class="about-section">
         <div class="section-header">
             <div class="section-line"></div>
@@ -25,9 +25,36 @@
                 </p>
             </div>
         </div>
-
     </div>
-        <img src="/static/assets/organograma_fusve.jpg" alt="Organograma FUSVE" class="about-image">
+
+    <!-- SEÇÃO 0.5: SOBRE O ORGANOGRAMA -->
+    <div class="about-section">
+        <div class="section-header">
+            <div class="section-line"></div>
+            <h2>Organograma</h2>
+        </div>
+        
+        <!-- Expander do Organograma -->
+        <div class="organograma-expander">
+            <div class="expander-header" onclick="toggleOrganograma()">
+                <div class="expander-title">
+                    <i class="fas fa-sitemap"></i>
+                    <span>Organograma FUSVE</span>
+                </div>
+                <div class="expander-icon">
+                    <i class="fas fa-chevron-down" id="organograma-icon"></i>
+                </div>
+            </div>
+            <div class="expander-body" id="organograma-body" style="display: none;">
+                <!-- ⭐ USANDO A MESMA ESTRUTURA DO about-content -->
+    
+                <img src="/static/assets/organograma_fusve.jpg" alt="Organograma FUSVE" class="organograma-img">
+                   
+                
+            </div>
+        </div>
+    </div>
+        
 
     <!-- SEÇÃO 1: SOBRE O SISTEMA -->
     <div class="about-section">
@@ -460,7 +487,7 @@
                 </div>
                 <div class="node-content">
                     <div class="node-date">FEV/2026</div>
-                    <h4>Início do Projeto</h4>
+                    <h4>Início do Projeto MAPA</h4>
                     <p>
                         Desenvolvimento da primeira solução para automatizar e integrar
                         a metodologia de trabalho da Auditoria Interna.
@@ -1285,15 +1312,10 @@
         display: flex;
         gap: 40px;
         align-items: center;
-        border: 1px solid rgba(0, 0, 0, 0.04);
         transition: all 0.3s ease;
         margin-bottom: 10px;
     }
 
-    .about-image:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
-    }
 
     /* Responsivo */
     @media (max-width: 768px) {
@@ -1328,9 +1350,169 @@
         margin: 6px 0;
         line-height: 1.4;
     }
+
+    /* ===== ORGANOGRAMA EXPANDER ===== */
+    .organograma-expander {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+    }
+
+    .organograma-expander:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .expander-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+
+    .expander-header:hover {
+        background: #f8f9fa;
+    }
+
+    .expander-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 15px;
+        color: #184145;
+        font-weight: 500;
+    }
+
+    .expander-title i {
+        color: #0b5b99;
+        font-size: 20px;
+    }
+
+    .expander-icon {
+        transition: transform 0.3s ease;
+        color: #999;
+        font-size: 18px;
+    }
+
+    .expander-icon.rotated {
+        transform: rotate(180deg);
+    }
+
+    .expander-body {
+        background: white;
+        border-radius: 24px;
+        padding: 32px;
+        display: flex;
+        gap: 40px;
+        align-items: center;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+    }
+
+    .expander-body:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ⭐ CORREÇÃO: Container da imagem com estilo igual ao about-content */
+    .organograma-content {
+        background: white;
+        border-radius: 24px;
+        padding: 20px; /* ⭐ Reduzido para não ter tanto espaço */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid rgba(0,0,0,0.04);
+        transition: all 0.3s ease;
+        overflow: hidden; /* ⭐ Impede que a imagem vaze */
+    }
+
+    .organograma-content:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ⭐ HOVER NA DIV PAI QUANDO A IMAGEM É HOVER */
+    .organograma-content:has(.organograma-img:hover) {
+        background: #f8f9fa;
+        box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        border-color: #184145;
+    }
+
+    .organograma-img-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        overflow: hidden; /* ⭐ Impede que a imagem vaze */
+        border-radius: 12px;
+    }
+
+    .organograma-img {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    /* ⭐ HOVER NA IMAGEM */
+    .organograma-img:hover {
+        transform: scale(1.02);
+    }
+
+    @keyframes expanderSlideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .expander-header {
+            padding: 14px 18px;
+        }
+        
+        .expander-title {
+            font-size: 13px;
+        }
+        
+        .expander-body {
+            padding: 0 18px 18px 18px;
+        }
+        
+        .organograma-content {
+            padding: 12px;
+        }
+    }
 </style>
 
 <script>
+    // ===== TOGGLE ORGANOGRAMA =====
+    function toggleOrganograma() {
+        const body = document.getElementById('organograma-body');
+        const icon = document.getElementById('organograma-icon');
+        
+        if (body && icon) {
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                icon.classList.add('rotated');
+            } else {
+                body.style.display = 'none';
+                icon.classList.remove('rotated');
+            }
+        }
+    }
+
     // Adiciona tooltips com imagens para cada ponto da timeline
     document.addEventListener('DOMContentLoaded', () => {
         // ========== FUNÇÃO PARA ABRIR MODAL DE IMAGEM ==========
@@ -1429,124 +1611,80 @@
         
         // Dados das imagens para cada ponto
         const slidesData = [
-            {   // PONTO 1
+            {   // PONTO 1 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/construcao_area.jpg',
+                    '/static/images/construcao_area2.jpg'
                 ],
                 captions: [
-                    '...'
-                    
+                    'Construção da área HMK',
+                    'Construção da área HMK'
                 ]
             },
-            {   // PONTO 2
+            {   // PONTO 2 - SEM IMAGENS (vazio)
+                images: [],
+                captions: []
+            },
+            {   // PONTO 3 - SEM IMAGENS (vazio)
+                images: [],
+                captions: []
+            },
+            {   // PONTO 4 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/mudancas_no_setor.jpg'
                 ],
                 captions: [
-                    '...'
-                    
+                    'Mudança de setor'
                 ]
             },
-            {   // PONTO 3
+            {   // PONTO 5 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/metodologias_internas.jpg'
+                ],
+                captions: ['']
+            },
+            {   // PONTO 6 - SEM IMAGENS
+                images: [],
+                captions: []
+            },
+            {   // PONTO 7 - SEM IMAGENS
+                images: [],
+                captions: []
+            },
+            {   // PONTO 8 - TEM IMAGENS
+                images: [
+                    '/static/images/rotina_vassouras.jpg'
                 ],
                 captions: [
-                    '...'
-                    
+                    'Rotina em Vassouras'
                 ]
             },
-            {   // PONTO 4
+            {   // PONTO 9 - SEM IMAGENS
+                images: [],
+                captions: []
+            },
+            {   // PONTO 10 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/estruturacao_fisica_equipe.jpg',
+                    '/static/images/estruturacao_fisica_equipe2.jpg'
                 ],
-                captions: [
-                    '...'
-                    
-                ]
+                captions: ['', '']
             },
-            {   // PONTO 5
+            {   // PONTO 11 - SEM IMAGENS
+                images: [],
+                captions: []
+            },
+            {   // PONTO 12 - SEM IMAGENS
+                images: [],
+                captions: []
+            },
+            {   // PONTO 13 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/execucao_planejamento.jpg'
                 ],
-                captions: [
-                    '...'
-                    
-                ]
+                captions: ['']
             },
-            {   // PONTO 6
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 7
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 8
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 9
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 10
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 11
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 12
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 13
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
-            },
-            {   // PONTO 14
+            {   // PONTO 14 - TEM IMAGENS
                 images: [
                     '/static/images/sistema-v1.jpg',
                     '/static/images/sistema-v1-powerautomate.jpg',
@@ -1556,58 +1694,58 @@
                     'Desenho inicial - Automação do formulário com PowerAutomate',
                 ]
             },
-            {   // PONTO 15
+            {   // PONTO 15 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/streamlitlogin-v1.jpg',
+                    '/static/images/streamlitlogado-v1.jpg',
                 ],
                 captions: [
-                    '...'
-                    
+                    'Tela de login da primeira versão',
+                    'Tela de diagnóstico dos processos na primeira versão'
                 ]
             },
-            {   // PONTO 16
+            {   // PONTO 16 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/aprimoramentov1.jpg'
                 ],
                 captions: [
-                    '...'
-                    
+                    'Ambiente de desenvolvimento da versão 1, atribuindo uso de novas tecnologias.'
                 ]
             },
-            {   // PONTO 17
+            {   // PONTO 17 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/criacaoambienteflaskbackendv2.jpg'
                 ],
                 captions: [
-                    '...'
-                    
+                    'Ambiente de desenvolvimento utilizando o framework Flask'
                 ]
             },
-            {   // PONTO 18
+            {   // PONTO 18 - TEM IMAGENS
                 images: [
-                    '...'
+                    '/static/images/paginaloginnovainterfacev2.jpg',
+                    '/static/images/paginaqualquerv2.jpg'
                 ],
                 captions: [
-                    '...'
-                    
+                    'Página de login replicada e desenvolvida com outra tecnologia',
+                    'Página do sistema evidenciando a melhora na interface'
                 ]
             },
-            {   // PONTO 19
-                images: [
-                    '...'
-                ],
-                captions: [
-                    '...'
-                    
-                ]
+            {   // PONTO 19 - SEM IMAGENS
+                images: [],
+                captions: []
             }
-            
         ];
         
         timelineNodes.forEach((node, index) => {
-            // Verifica se o ponto tem imagens (apenas pontos 0,1,2,3)
-            if (!slidesData[index]) {
-                return; // Pontos 5 e 6 - não cria tooltip
+            // ⭐ VERIFICAÇÃO MELHORADA: Só cria tooltip se tiver imagens válidas
+            const hasValidImages = slidesData[index] && 
+                                slidesData[index].images && 
+                                slidesData[index].images.length > 0 &&
+                                slidesData[index].images[0] !== '...' &&
+                                slidesData[index].images[0] !== '';
+            
+            if (!hasValidImages) {
+                return; // Não cria tooltip para pontos sem imagens
             }
             
             // Cria o elemento da tooltip
