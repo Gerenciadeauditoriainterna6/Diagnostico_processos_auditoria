@@ -2967,9 +2967,9 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         emoji = get_emoji_risco(magnitude)
                         nome_risco = risco.get('nome_risco', 'Risco não nomeado')
                         
-                        # Limitar nome do risco
-                        if len(nome_risco) > 50:
-                            nome_risco = nome_risco[:47] + '...'
+                        # # Limitar nome do risco
+                        # if len(nome_risco) > 80:
+                        #     nome_risco = nome_risco[:77] + '...'
                         
                         story.append(Paragraph(f"{emoji} <b>Risco {risco_idx + 1}:</b> {nome_risco}", card_subtitulo_style))
                         story.append(Spacer(1, 2))
