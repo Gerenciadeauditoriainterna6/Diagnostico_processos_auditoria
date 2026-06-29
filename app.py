@@ -3862,6 +3862,16 @@ def detalhamento_controles():
     
     return render_template('detalhamento_controles.html', areas=areas)
 
+@app.route('/matriz_achados')
+def matriz_achados():
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    from logic import carregar_areas_banco
+    areas = carregar_areas_banco()
+    
+    return render_template('matriz_achados.html', areas=areas)
+
 @app.route('/api/etapa/<int:etapa_id>/download/<tipo>')
 def api_etapa_download(etapa_id, tipo):
     """Download do diagrama ou manual da etapa"""
