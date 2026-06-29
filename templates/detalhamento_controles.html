@@ -38,6 +38,61 @@
         </div>
     </div>
 </div>
+
+<!-- ===== MATRIZ DE ACHADOS (usando os mesmos filtros) ===== -->
+<div class="form-section achados-section">
+    <div class="tabela-header">
+        <h3><i class="fas fa-comments"></i> Matriz de Achados</h3>
+        <span id="achados-auditoria-info" style="font-size: 13px; color: #666; font-weight: normal;">
+            Selecione uma auditoria para visualizar os achados
+        </span>
+    </div>
+
+    <!-- Área de achados - visível apenas quando auditoria selecionada -->
+    <div id="achados-area" style="display: none;">
+        <!-- Formulário de novo achado -->
+        <div class="achado-form">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="achado_texto"><i class="fas fa-pencil-alt"></i> Novo Achado:</label>
+                <textarea id="achado_texto" class="form-control" rows="3" placeholder="Digite seu achado sobre esta auditoria..."></textarea>
+            </div>
+
+            <div class="achado-actions">
+                <div class="anexo-wrapper">
+                    <label for="achado_anexo" class="btn-anexo">
+                        <i class="fas fa-paperclip"></i> Anexar arquivo
+                        <span style="font-size: 11px; color: #999; font-weight: normal;">(máx. 10MB)</span>
+                    </label>
+                    <input type="file" id="achado_anexo" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
+                    <span id="anexo-nome" class="anexo-nome"></span>
+                </div>
+                <button id="btn-enviar-achado" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i> Registrar Achado
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista de achados -->
+        <div id="lista-achados" style="margin-top: 20px;">
+            <div class="achados-loading" style="text-align: center; padding: 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando achados...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagem quando nenhuma auditoria selecionada -->
+    <div id="achados-placeholder">
+        <div class="alert-info" style="text-align: center; padding: 40px;">
+            <i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar e adicionar achados.
+        </div>
+    </div>
+</div>
+
 <!-- MODAL PARA ADICIONAR/EDITAR CONTROLE -->
 <div id="modal-controle" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
@@ -227,10 +282,12 @@
         display: flex;
         gap: 20px;
         margin-bottom: 15px;
+        flex-wrap: wrap;
     }
 
     .form-group {
         flex: 1;
+        min-width: 200px;
     }
 
     .form-group label {
@@ -282,6 +339,15 @@
         font-size: 14px;
     }
 
+    .alert-error {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: #721c24;
+        font-size: 14px;
+    }
+
     .etapas-container {
         margin-top: 20px;
     }
@@ -313,6 +379,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        flex-wrap: wrap;
     }
 
     .processo-info strong {
@@ -351,7 +418,9 @@
         align-items: center;
         padding: 12px 15px;
         cursor: pointer;
-        border-left: 3px solid #17a2b8;  /* ← Verde em vez de azul */
+        border-left: 3px solid #17a2b8;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .etapa-header:hover {
@@ -362,10 +431,11 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        flex-wrap: wrap;
     }
 
     .etapa-info strong {
-        color: #17a2b8;  /* ← Verde em vez de azul */
+        color: #17a2b8;
         font-size: 13px;
     }
 
@@ -391,7 +461,7 @@
         font-size: 13px;
     }
 
-    /* Cards de Risco (para os riscos dentro da etapa) */
+    /* Cards de Risco */
     .risco-card {
         background: white;
         border-radius: 10px;
@@ -450,6 +520,7 @@
     .risco-actions {
         display: flex;
         gap: 5px;
+        flex-wrap: wrap;
     }
 
     /* Botões de ação */
@@ -566,6 +637,9 @@
         border-bottom: 1px solid #e0e0e0;
         background: #f8f9fa;
         border-radius: 16px 16px 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
 
     .modal-header h3 {
@@ -597,6 +671,9 @@
         gap: 12px;
         background: #f8f9fa;
         border-radius: 0 0 16px 16px;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
     }
 
     .btn-add-controle {
@@ -614,7 +691,7 @@
         background: #0b5b99;
     }
 
-    /* ===== SPINNER DE BOLINHAS ===== */
+    /* Spinner */
     .dot-spinner {
         display: flex;
         justify-content: center;
@@ -644,20 +721,6 @@
         }
     }
 
-    .alert-error {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
-        padding: 12px 16px;
-        border-radius: 8px;
-        color: #721c24;
-        font-size: 14px;
-    }
-
-    .alert-error i {
-        margin-right: 8px;
-    }
-
-    /* Hint de expansão */
     .expandir-hint {
         font-size: 11px;
         color: #17a2b8;
@@ -699,6 +762,8 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 6px;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .controle-info {
@@ -716,8 +781,6 @@
         color: #17a2b8;
         font-size: 14px;
     }
-
-
 
     .controle-actions {
         display: flex;
@@ -739,7 +802,6 @@
         gap: 2px;
     }
 
-    /* Seção de controles dentro do card de risco */
     .controles-section {
         margin-top: 10px;
         padding-top: 10px;
@@ -770,8 +832,6 @@
         font-style: italic;
     }
 
-
-    /* Modal melhorias */
     .modal-body .form-group {
         margin-bottom: 15px;
     }
@@ -792,7 +852,7 @@
         gap: 15px;
     }
 
-    /* Badge de CONTROLES na ETAPA (mostra total de controles da etapa) */
+    /* Badges */
     .etapa-controles-badge {
         display: inline-flex;
         align-items: center;
@@ -806,7 +866,6 @@
         margin-left: 8px;
     }
 
-    /* Badge de CONTROLES no RISCO (mostra controles do risco específico) */
     .risco-controles-badge {
         display: inline-flex;
         align-items: center;
@@ -824,6 +883,7 @@
         font-size: 10px;
     }
 
+    /* Help icon */
     .help-icon {
         position: relative;
         display: inline-flex;
@@ -838,11 +898,10 @@
         color: #0b5b99;
     }
 
-    /* Tooltip que aparece em cima do ícone */
     .help-icon:hover::after {
         content: attr(data-tooltip);
         position: absolute;
-        bottom: 100%;           /* ← FIXO: aparece ACIMA do ícone */
+        bottom: 100%;
         left: 50%;
         transform: translateX(-50%);
         background: #333;
@@ -857,11 +916,10 @@
         word-wrap: break-word;
         line-height: 1.4;
         z-index: 100001;
-        margin-bottom: 8px;     /* ← FIXO: espaço entre tooltip e ícone */
+        margin-bottom: 8px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
-    /* Seta do tooltip (triângulo que aponta para o ícone) */
     .help-icon:hover::before {
         content: '';
         position: absolute;
@@ -871,56 +929,348 @@
         border-width: 6px;
         border-style: solid;
         border-color: #333 transparent transparent transparent;
-        margin-bottom: 2px;     /* ← FIXO: gruda no tooltip */
+        margin-bottom: 2px;
         z-index: 100001;
     }
 
-    /* Help icon */
-    .help-icon-categorias {
-        position: relative;
+    /* Achados da Matriz */
+    .achados-section .tabela-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .achados-section .tabela-header h3 {
+        color: #184145;
+        font-size: 18px;
+        margin: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .achado-form {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #e8e8e8;
+    }
+
+    .achado-form .form-group label {
+        font-weight: 600;
+        color: #184145;
+        font-size: 14px;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .achado-form textarea {
+        resize: vertical;
+        min-height: 80px;
+        font-family: inherit;
+    }
+
+    .achado-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .anexo-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-anexo {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        width: 14px;
-        height: 14px;
-        background: #0b5b99;
+        gap: 6px;
+        background: white;
+        border: 2px dashed #ccc;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #555;
+        transition: all 0.2s;
+    }
+
+    .btn-anexo:hover {
+        border-color: #184145;
+        color: #184145;
+        background: #f0f7f7;
+    }
+
+    .anexo-input {
+        display: none;
+    }
+
+    .anexo-nome {
+        font-size: 12px;
+        color: #666;
+        background: #e8f0fe;
+        padding: 4px 10px;
+        border-radius: 4px;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: #184145;
         color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #0b5b99;
+        transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: #184145;
+        border: 2px solid #184145;
+        padding: 8px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-outline:hover {
+        background: #184145;
+        color: white;
+    }
+
+    .btn-danger-outline {
+        background: transparent;
+        color: #dc3545;
+        border: 2px solid #dc3545;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-danger-outline:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    /* Achado item */
+    .achado-item {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        border: 1px solid #e8e8e8;
+        transition: all 0.2s;
+    }
+
+    .achado-item:hover {
+        border-color: #c8d6d8;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .achado-item .achado-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .achado-item .achado-autor {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .achado-item .achado-autor .avatar {
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        font-size: 11px;
+        background: #184145;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .achado-item .achado-autor .nome {
+        font-weight: 600;
+        color: #184145;
+        font-size: 14px;
+    }
+
+    .achado-item .achado-autor .data-hora {
+        font-size: 12px;
+        color: #999;
+        margin-left: 4px;
+    }
+
+    .achado-item .achado-texto {
+        color: #333;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 6px 0 10px 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .achado-item .achado-anexos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .achado-item .achado-anexos .anexo-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #e8f0fe;
+        color: #184145;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        text-decoration: none;
+        transition: all 0.2s;
         cursor: pointer;
     }
 
-    /* Form section inline */
-    .form-section-inline {
-        margin-bottom: 20px;
+    .achado-item .achado-anexos .anexo-badge:hover {
+        background: #184145;
+        color: white;
     }
 
-    /* Forçar card de informações a aparecer */
-    #info-categorias, #info-criterios, #info-categorias-causa {
-        position: relative !important;
-        z-index: 100000 !important;
-        background: #e8f4f8 !important;
-        border-left: 4px solid #0b5b99 !important;
-        border-radius: 8px !important;
-        padding: 12px !important;
-        margin: 10px 0 !important;
-        display: none;
+    .achado-item .achado-acoes {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 10px;
     }
-    
+
+    .achado-vazio {
+        text-align: center;
+        padding: 30px;
+        color: #999;
+        font-size: 14px;
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            min-width: 100%;
+        }
+
+        .modal-body .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .controle-detalhes {
+            grid-template-columns: 1fr;
+        }
+
+        .achado-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .anexo-wrapper {
+            justify-content: center;
+        }
+
+        .btn-primary {
+            justify-content: center;
+        }
+
+        .risco-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .risco-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .etapa-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .etapa-actions {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+    }
 </style>
 
 <script>
-
-    // ====== VARIÁVEIS GLOBAIS PARA O MODAL DE CONTROLE ======
-    let riscoIdAtual = null;      // Armazena o ID do risco que está recebendo o controle
-    let controleIdEditando = null; // Para saber se estamos editando (null = novo)
-
-    // ====== ELEMENTOS DO DOM ======
-    const filtroAreaSelect = document.getElementById('filtro_area_select');
-    const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select')
-    const etapasContainer = document.getElementById('etapas-container');
-
-    // ====== FUNÇÃO PARA ESCAPAR HTML (evita injeção de código malicioso) ======
+    // ====== FUNÇÃO PARA ESCAPAR HTML ======
     function escapeHtml(text) {
         if (!text) return '';
         return text
@@ -931,50 +1281,100 @@
             .replace(/'/g, "&#039;");
     }
 
-    // ====== FUNÇÃO PARA LIMITAR TAMANHO DO TEXTO ======
+    // ====== FUNÇÃO PARA LIMITAR TEXTO ======
     function limitarTexto(texto, limite = 60) {
         if (!texto) return '';
         if (texto.length <= limite) return texto;
         return texto.substring(0, limite) + '...';
     }
 
+    // ====== FUNÇÃO PARA MOSTRAR TOAST ======
+    function mostrarToast(mensagem, tipo = 'info') {
+        if (typeof window.mostrarToast === 'function') {
+            window.mostrarToast(mensagem, tipo);
+            return;
+        }
+        alert(mensagem);
+    }
+
+    // ====== FUNÇÕES PARA CONVERSÃO DE ARQUIVOS ======
+    function converterParaBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function getIconeArquivo(nome) {
+        const ext = nome.split('.').pop().toLowerCase();
+        const icones = {
+            'pdf': 'fa-file-pdf',
+            'doc': 'fa-file-word',
+            'docx': 'fa-file-word',
+            'xls': 'fa-file-excel',
+            'xlsx': 'fa-file-excel',
+            'jpg': 'fa-file-image',
+            'jpeg': 'fa-file-image',
+            'png': 'fa-file-image',
+            'gif': 'fa-file-image',
+            'txt': 'fa-file-alt',
+            'zip': 'fa-file-archive',
+            'rar': 'fa-file-archive',
+            'ppt': 'fa-file-powerpoint',
+            'pptx': 'fa-file-powerpoint'
+        };
+        return icones[ext] || 'fa-file';
+    }
+
+    function formatarTamanho(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    // ====== VARIÁVEIS GLOBAIS ======
+    let riscoIdAtual = null;
+    let controleIdEditando = null;
+    let etapaIdAtualControle = null;
+    let achadoAuditoriaAtual = null;
+
+    // ====== ELEMENTOS DO DOM ======
+    const filtroAreaSelect = document.getElementById('filtro_area_select');
+    const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
+    const etapasContainer = document.getElementById('etapas-container');
+
     // ====== CARREGAR AUDITORIAS POR ÁREA ======
     async function carregarAuditorias(areaId) {
-        // Se não tem área selecionada, limpa o select de auditoria
         if (!areaId) {
             filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
             filtroAuditoriaSelect.disabled = true;
             return;
         }
 
-        // Mostra loading enquanto busca as auditorias
-        filtroAuditoriaSelect.innerHTML = '<option value"">Carregando auditorias...</option>';
+        filtroAuditoriaSelect.innerHTML = '<option value="">Carregando auditorias...</option>';
         filtroAuditoriaSelect.disabled = true;
 
         try {
-            // Faz a requisição apra o backend
             const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
-            // Se encontrou auditorias, popula o select
             if (data.auditorias && data.auditorias.length > 0) {
                 filtroAuditoriaSelect.innerHTML = '<option value="">Selecione uma auditoria...</option>';
-
                 data.auditorias.forEach(aud => {
                     const option = document.createElement('option');
                     option.value = aud.id;
                     option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre}º trim) - ${aud.unidade || ''}`;
                     filtroAuditoriaSelect.appendChild(option);
                 });
-
                 filtroAuditoriaSelect.disabled = false;
             } else {
-                // Nenhuma auditoria encontrada
-                filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada para esta áreas.</option>';
+                filtroAuditoriaSelect.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
                 filtroAuditoriaSelect.disabled = true;
             }
         } catch (error) {
-            console.error('Error o carregar auditorias:', error);
+            console.error('Erro ao carregar auditorias:', error);
             filtroAuditoriaSelect.innerHTML = '<option value="">Erro ao carregar</option>';
             filtroAuditoriaSelect.disabled = true;
         }
@@ -986,12 +1386,14 @@
             const areaId = filtroAreaSelect.value;
             carregarAuditorias(areaId);
 
-            // Limpar container de etapas (para não mostrar dados antigos)
             etapasContainer.innerHTML = `
                 <div class="alert-info" style="text-align: center; padding: 40px;">
                     <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar as etapas.
                 </div>
             `;
+
+            // Limpar achados também
+            atualizarUI(null);
         });
     }
 
@@ -999,6 +1401,13 @@
     if (filtroAuditoriaSelect) {
         filtroAuditoriaSelect.addEventListener('change', async () => {
             const auditoriaId = filtroAuditoriaSelect.value;
+
+            // Atualizar a Matriz de Achados com a auditoria selecionada
+            if (auditoriaId) {
+                atualizarUI(auditoriaId);
+            } else {
+                atualizarUI(null);
+            }
 
             if (!auditoriaId) {
                 etapasContainer.innerHTML = `
@@ -1009,7 +1418,6 @@
                 return;
             }
 
-            // Mostrar loading enquanto verifica premissão
             etapasContainer.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px;">
                     <div class="dot-spinner">
@@ -1022,16 +1430,13 @@
             `;
 
             try {
-                // 1. Verificar se o usuário tem permissão
                 const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
                 const data = await response.json();
 
                 if (data.autorizado) {
-                    // 2. Usuário autorizado - carregar as etapas
                     console.log('✅ Usuário autorizado:', data.usuario);
                     await carregarEtapas(auditoriaId);
                 } else {
-                    // 3. Usuário NÃO autorizado
                     console.log('❌ Usuário NÃO autorizado:', data.usuario);
                     etapasContainer.innerHTML = `
                         <div class="alert-error" style="text-align: center; padding: 40px;">
@@ -1050,31 +1455,27 @@
         });
     }
 
-    // ====== FUNÇÃO PARA CARREGAR ETAPAS (e depois riscos) ======
+    // ====== FUNÇÃO PARA CARREGAR ETAPAS ======
     async function carregarEtapas(auditoriaId) {
         console.log('📋 Carregando etapas para auditoria:', auditoriaId);
 
-        // Mostrar loading
         etapasContainer.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
-                    <div class="dot-spinner">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando etapas e seus controles...</p>
+            <div style="text-align: center; padding: 60px 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
                 </div>
-            `;
-
+                <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando etapas e seus controles...</p>
+            </div>
+        `;
 
         try {
-            // 1. Buscar todos os processos da auditoria
             const responseProcessos = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const dataProcessos = await responseProcessos.json();
 
             console.log('📦 Processos encontrados:', dataProcessos);
 
-            // 2. Verificar se tem processos
             if (!dataProcessos.success || !dataProcessos.processos || dataProcessos.processos.length === 0) {
                 etapasContainer.innerHTML = `
                     <div class="alert-info" style="text-align: center; padding: 40px;">
@@ -1084,20 +1485,16 @@
                 return;
             }
 
-            // 3. Vamos montar o HTML (próximo passo)
             let htmlFinal = '';
 
-            // 4. Percorrer cada processo (um por um)
             for (const processo of dataProcessos.processos) {
                 console.log(`🔍 Buscando etapas do processo: ${processo.codigo_processo} - ${processo.nome_processo}`);
 
-                // Buscar etapas deste processo específico
                 const responseEtapas = await fetch(`/api/processo/${processo.id}/etapas`);
                 const dataEtapas = await responseEtapas.json();
 
                 console.log(`   📋 Etapas encontradas: ${dataEtapas.etapas?.length || 0}`);
 
-                // Adicionar o cabeçalho do processo (card que agrupa as etapas)
                 htmlFinal += `
                     <div class="processo-card" data-processo-id="${processo.id}">
                         <div class="processo-header" onclick="toggleProcesso(this)">
@@ -1112,9 +1509,7 @@
                             <div class="etapas-list">
                 `;
 
-                // Verificar se o processo tem etapas
                 if (dataEtapas.success && dataEtapas.etapas && dataEtapas.etapas.length > 0) {
-                    // Percorrer cada etapa do processo
                     for (const etapa of dataEtapas.etapas) {
                         htmlFinal += `
                             <div class="etapa-card" data-etapa-id="${etapa.id}" data-etapa-codigo="${etapa.codigo_etapa}" data-etapa-nome="${escapeHtml(etapa.nome_etapa)}">
@@ -1135,7 +1530,7 @@
                                 </div>
                             </div>
                         `;
-                    } 
+                    }
                 } else {
                     htmlFinal += `
                         <div class="empty-etapas">
@@ -1151,10 +1546,9 @@
                 `;
             }
 
-            // Depois de processar todos os processos, colocar o HTML na tela
             etapasContainer.innerHTML = htmlFinal;
 
-            // AGORA SIM: buscar contagem de controles (após o HTML existir no DOM)
+            // Buscar contagem de controles
             document.querySelectorAll('.etapa-card').forEach(async (card) => {
                 const etapaId = card.getAttribute('data-etapa-id');
                 try {
@@ -1181,7 +1575,7 @@
         }
     }
 
-    // Função para expandir/colapsar processo
+    // ====== FUNÇÕES DE EXPANSÃO ======
     function toggleProcesso(header) {
         const processoCard = header.closest('.processo-card');
         const body = processoCard.querySelector('.processo-body');
@@ -1196,7 +1590,6 @@
         }
     }
 
-    // Função para expandir/colapsar etapa
     function toggleEtapa(header) {
         const etapaCard = header.closest('.etapa-card');
         const body = etapaCard.querySelector('.etapa-body');
@@ -1207,9 +1600,7 @@
             body.style.display = 'block';
             if (arrow) arrow.classList.add('open');
 
-            // Verificar se já carregou os riscos desta etapa
             const riscosContainer = body.querySelector('.riscos-container');
-            // Se ainda tem o loading, carregar os riscos
             if (riscosContainer && riscosContainer.innerHTML.includes('Carregando riscos')) {
                 carregarRiscosDaEtapa(etapaId);
             }
@@ -1219,7 +1610,7 @@
         }
     }
 
-    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA (COM BADGE DE CONTROLES) ======
+    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA ======
     async function carregarRiscosDaEtapa(etapaId) {
         console.log(`🔍 Buscando riscos da etapa ${etapaId}...`);
 
@@ -1227,7 +1618,6 @@
         if (!container) return;
 
         try {
-            // Buscar os riscos da API
             const response = await fetch(`/api/etapa/${etapaId}/riscos`);
             const data = await response.json();
 
@@ -1242,9 +1632,7 @@
                 return;
             }
 
-            // ⭐ PASSO 1: Criar array de promessas para buscar contagem de controles
             const promessasContagem = [];
-
             for (const risco of data.riscos) {
                 const promessa = fetch(`/api/risco/${risco.id}/controles/count`)
                     .then(res => res.json())
@@ -1252,30 +1640,21 @@
                         id: risco.id,
                         total: data.success ? data.total : 0
                     }))
-                    .catch(error => {
-                        console.error(`Erro ao contar controles do risco ${risco.id}:`, error);
-                        return { id: risco.id, total: 0 };
-                    });
-                
+                    .catch(() => ({ id: risco.id, total: 0 }));
                 promessasContagem.push(promessa);
             }
 
-            // ⭐ PASSO 2: Aguardar todas as contagens
             const contagens = await Promise.all(promessasContagem);
-
-            // ⭐ PASSO 3: Criar mapa para acesso rápido
             const mapaContagens = {};
             contagens.forEach(cont => {
                 mapaContagens[cont.id] = cont.total;
             });
 
-            // ⭐ PASSO 4: Montar o HTML dos riscos com os badges
             let riscosHtml = '';
 
             for (const risco of data.riscos) {
                 const totalControles = mapaContagens[risco.id] || 0;
                 
-                // Calcular a cor do badge de risco baseado na magnitude
                 let badgeClass = '';
                 let badgeIcon = '';
 
@@ -1293,7 +1672,6 @@
                     badgeIcon = '🔴';
                 }
 
-                // ⭐ Badge de controles (só mostra se tiver controles)
                 const controlesBadge = `
                     <span class="risco-controles-badge" title="${totalControles} controle(s) cadastrado(s)">
                         <i class="fas fa-shield-alt"></i> ${totalControles}
@@ -1307,7 +1685,7 @@
                                 <span class="risco-icon">${badgeIcon}</span>
                                 <strong class="risco-nome">${limitarTexto(escapeHtml(risco.nome_risco), 60)}</strong>
                                 <span class="risco-score">Magnitude: ${risco.magnitude}</span>
-                                ${controlesBadge}  <!-- ⭐ SEMPRE APARECE ⭐ -->
+                                ${controlesBadge}
                             </div>
                             <div class="risco-actions">
                                 <span class="expandir-hint" title="Clique para ver controles">
@@ -1346,7 +1724,6 @@
                             </div>
                             ` : ''}
                             
-                            <!-- SEÇÃO DE CONTROLES -->
                             <div class="controles-section">
                                 <div class="controles-header">
                                     <span class="controles-titulo"><i class="fas fa-shield-alt"></i> Controles</span>
@@ -1374,17 +1751,12 @@
 
     // ====== FUNÇÃO PARA CARREGAR CONTROLES DE UM RISCO ======
     async function carregarControlesDoRisco(riscoId, etapaId) {
-        console.log(`🔍 Buscando controles do risco ${riscoId}...`);
-
         const container = document.getElementById(`controles-risco-${riscoId}`);
         if (!container) return;
 
         try {
-            // Buscar os controles da API
             const response = await fetch(`/api/risco/${riscoId}/controles`);
             const data = await response.json();
-
-            console.log(`📦 Controles encontrados:`, data);
 
             if (!data.success || !data.controles || data.controles.length === 0) {
                 container.innerHTML = `
@@ -1492,46 +1864,36 @@
         }
     }
 
-    // Função para expandir/colapsar detalhes do risco (mostrar/esconder detalhes)
+    // ====== FUNÇÃO PARA EXPANDIR RISCO ======
     function toggleRisco(riscoCard, event) {
-        // Se o clique foi no botão de editar, excluir ou adicionar controle, NÃO expande o card
         if (event.target.closest('.btn-edit-icon') || 
             event.target.closest('.btn-delete-icon') ||
             event.target.closest('.btn-add-controle')) {
             return;
         }
 
-        // Verificar se o card estava expandido antes de alternar
         const wasExpanded = riscoCard.classList.contains('expandido');
-
-        // Alternar a classe 'expandido'
         riscoCard.classList.toggle('expandido');
 
-        // ⭐ Passar etapaId também
         if (!wasExpanded) {
             const riscoId = riscoCard.getAttribute('data-risco-id');
             const etapaCard = riscoCard.closest('.etapa-card');
-            const etapaId = etapaCard.getAttribute('data-etapa-id');  // ← Buscar etapaId
+            const etapaId = etapaCard.getAttribute('data-etapa-id');
             
             const controlesContainer = riscoCard.querySelector('.controles-container');
             if (controlesContainer && controlesContainer.innerHTML.includes('Carregando controles')) {
-                carregarControlesDoRisco(riscoId, etapaId);  // ← Passar etapaId
+                carregarControlesDoRisco(riscoId, etapaId);
             }
         }
     }
 
-    // ====== FUNÇÃO PARA ABRIR MODAL DE CONTROLE ======
-    // Esta função é chamada quando o usuário clica no botão "Controle"
-    // No início do script, adicione:
-    let etapaIdAtualControle = null;  // Guarda o ID da etapa do risco
-
-    // Modifique a função abrirModalControle:
+    // ====== FUNÇÕES DO MODAL DE CONTROLE ======
     function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
-        // Guardar o ID da etapa também
         etapaIdAtualControle = etapaId;
         riscoIdAtual = riscoId;
+        controleIdEditando = null;
         
-        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome} (ID do risco: ${riscoId}, ID da etapa: ${etapaId})`);
+        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome}`);
         
         const modalTitle = document.getElementById('modal-controle-title');
         if (modalTitle) {
@@ -1551,9 +1913,7 @@
         }
     }
 
-    // ====== FUNÇÃO PARA LIMPAR O FORMULÁRIO DE CONTROLE ======
     function limparFormularioControle() {
-        // Limpar campos de texto
         document.getElementById('controle_id').value = '';
         document.getElementById('controle_nome').value = '';
         document.getElementById('controle_como_executado').value = '';
@@ -1568,21 +1928,17 @@
         document.getElementById('controle_forma_execucao').value = '';
         document.getElementById('controle_status').value = '';
         document.getElementById('controle_frequencia_evidencia').value = '';
-        
-        // Resetar ID do controle (indicando que é novo)
         controleIdEditando = null;
     }
 
-    // ====== FUNÇÃO PARA FECHAR O MODAL ======
     function fecharModalControle() {
         const modal = document.getElementById('modal-controle');
         if (modal) {
             modal.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Restaura a rolagem
+            document.body.style.overflow = 'auto';
         }
     }
 
-    // ====== FUNÇÃO PARA SALVAR CONTROLE ======
     async function salvarControle() {
         console.log('💾 Iniciando salvamento do controle...');
         
@@ -1629,13 +1985,9 @@
                 mostrarToast('✅ Controle salvo com sucesso!', 'success');
                 fecharModalControle();
                 
-                // Recarregar os controles do risco
                 await carregarControlesDoRisco(riscoIdAtual, etapaIdAtualControle);
-                
-                // Atualizar badge do RISCO
                 await atualizarBadgeControles(riscoIdAtual);
                 
-                // ⭐ ATUALIZAR BADGE DA ETAPA ⭐
                 if (etapaIdAtualControle) {
                     await atualizarBadgeEtapaControles(etapaIdAtualControle);
                 }
@@ -1659,16 +2011,10 @@
         }
     }
 
-    // ====== FUNÇÃO PARA EXCLUIR CONTROLE ======
     async function excluirControle(controleId, nomeControle, riscoId, etapaId) {
-        console.log(`🗑️ Excluir controle ${controleId}: ${nomeControle}`);
-        
-        const confirmado = confirm(`Tem certeza que deseja excluir o controle "${nomeControle}"?`);
-        if (!confirmado) return;
+        if (!confirm(`Tem certeza que deseja excluir o controle "${nomeControle}"?`)) return;
         
         try {
-            mostrarToast('⏳ Excluindo controle...', 'info');
-            
             const response = await fetch(`/api/controle-etapa/${controleId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
@@ -1678,31 +2024,22 @@
             
             if (resultado.success) {
                 mostrarToast('✅ Controle excluído com sucesso!', 'success');
-                
                 await carregarControlesDoRisco(riscoId, etapaId);
                 await atualizarBadgeControles(riscoId);
-                
-                // ⭐ ATUALIZAR BADGE DA ETAPA ⭐
                 if (etapaId) {
                     await atualizarBadgeEtapaControles(etapaId);
                 }
-                
             } else {
                 mostrarToast('❌ Erro ao excluir: ' + (resultado.error || 'Tente novamente'), 'error');
             }
-            
         } catch (error) {
             console.error('❌ Erro ao excluir controle:', error);
             mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
         }
     }
 
-    // ====== FUNÇÃO PARA EDITAR CONTROLE ======
     async function editarControle(controleId, riscoId) {
-        console.log(`✏️ Editando controle ${controleId} do risco ${riscoId}`);
-        
         try {
-            // Buscar os dados do controle
             const response = await fetch(`/api/controle-etapa/${controleId}`);
             const data = await response.json();
             
@@ -1713,11 +2050,9 @@
             
             const controle = data.controle;
             
-            // Guardar o ID do controle que está sendo editado
             controleIdEditando = controleId;
             riscoIdAtual = riscoId;
             
-            // Preencher o modal com os dados
             document.getElementById('controle_nome').value = controle.nome_controle || '';
             document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
             document.getElementById('controle_como_executado').value = controle.como_executado || '';
@@ -1732,17 +2067,14 @@
             document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
             document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
             
-            // Buscar o nome do risco para o título
             const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
             const riscoNome = riscoCard ? riscoCard.getAttribute('data-risco-nome') : 'Controle';
             
-            // Mudar o título do modal
             const modalTitle = document.getElementById('modal-controle-title');
             if (modalTitle) {
                 modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Editar Controle - ${riscoNome}`;
             }
             
-            // Abrir o modal
             const modal = document.getElementById('modal-controle');
             if (modal) {
                 modal.style.display = 'flex';
@@ -1755,38 +2087,7 @@
         }
     }
 
-    // ====== CONFIGURAR EVENTOS DO MODAL DE CONTROLE ======
-    function setupModalControle() {
-        // Botão fechar (X)
-        const btnFechar = document.getElementById('btn-fechar-modal-controle');
-        if (btnFechar) {
-            btnFechar.addEventListener('click', fecharModalControle);
-        }
-        
-        // Botão Cancelar
-        const btnCancelar = document.getElementById('btn-cancelar-modal-controle');
-        if (btnCancelar) {
-            btnCancelar.addEventListener('click', fecharModalControle);
-        }
-        
-        // Fechar ao clicar fora do modal (no fundo escuro)
-        const modal = document.getElementById('modal-controle');
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    fecharModalControle();
-                }
-            });
-        }
-
-        // Botão salvar
-        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
-        if (btnSalvar) {
-            btnSalvar.addEventListener('click', salvarControle)
-        }
-    }
-
-    // Função para atualizar o badge de CONTROLES de um RISCO específico
+    // ====== FUNÇÕES PARA ATUALIZAR BADGES ======
     async function atualizarBadgeControles(riscoId) {
         try {
             const response = await fetch(`/api/risco/${riscoId}/controles/count`);
@@ -1796,11 +2097,11 @@
                 const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
                 if (riscoCard) {
                     const riscoInfo = riscoCard.querySelector('.risco-info');
-                    const existingBadge = riscoInfo.querySelector('.risco-controles-badge');  // ← classe corrigida
+                    const existingBadge = riscoInfo.querySelector('.risco-controles-badge');
                     const total = data.total || 0;
                     
                     const newBadge = document.createElement('span');
-                    newBadge.className = 'risco-controles-badge';  // ← classe corrigida
+                    newBadge.className = 'risco-controles-badge';
                     newBadge.title = `${total} controle(s) cadastrado(s)`;
                     newBadge.innerHTML = `<i class="fas fa-shield-alt"></i> ${total}`;
                     
@@ -1816,7 +2117,6 @@
         }
     }
 
-    // Função para atualizar o badge de CONTROLES de uma ETAPA específica
     async function atualizarBadgeEtapaControles(etapaId) {
         try {
             const response = await fetch(`/api/etapa/${etapaId}/controles/count`);
@@ -1852,9 +2152,500 @@
         }
     }
 
-    // ====== INICIALIZAR OS EVENTOS DO MODAL ======
-    setupModalControle();
+    // ====== FUNÇÕES DA MATRIZ DE ACHADOS ======
 
+    // CARREGAR ACHADOS
+    async function carregarAchados(auditoriaId) {
+        const listaContainer = document.getElementById('lista-achados');
+        if (!listaContainer) return;
+
+        achadoAuditoriaAtual = auditoriaId;
+
+        listaContainer.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando achados...</p>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/api/auditoria/${auditoriaId}/achados`);
+            const data = await response.json();
+
+            if (data.success && data.achados && data.achados.length > 0) {
+                let html = '';
+
+                for (const achado of data.achados) {
+                    const dataObj = new Date(achado.data_criacao);
+                    const options = {
+                        timeZone: 'America/Sao_Paulo',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    };
+                    const dataFormatada = dataObj.toLocaleString('pt-BR', options);
+
+                    const iniciais = achado.usuario_nome
+                        ? achado.usuario_nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+                        : '?';
+
+                    html += `
+                        <div class="achado-item" id="achado-${achado.id}">
+                            <div class="achado-header">
+                                <div class="achado-autor">
+                                    <div class="avatar">${escapeHtml(iniciais)}</div>
+                                    <span class="nome">${escapeHtml(achado.usuario_nome || 'Usuário')}</span>
+                                    <span class="data-hora">${dataFormatada}</span>
+                                </div>
+                            </div>
+                            <div class="achado-texto">${escapeHtml(achado.texto)}</div>
+                    `;
+
+                    if (achado.anexos && achado.anexos.length > 0) {
+                        html += `<div class="achado-anexos">`;
+                        for (let idx = 0; idx < achado.anexos.length; idx++) {
+                            const anexo = achado.anexos[idx];
+                            const icone = getIconeArquivo(anexo.nome);
+                            html += `
+                                <span class="anexo-badge" onclick="baixarAnexo(${achado.id}, ${idx})">
+                                    <i class="fas ${icone}"></i>
+                                    ${escapeHtml(anexo.nome)}
+                                    <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
+                                </span>
+                            `;
+                        }
+                        html += `</div>`;
+                    }
+
+                    if (achado.pode_editar) {
+                        html += `
+                            <div class="achado-acoes">
+                                <button class="btn-outline" onclick="abrirEdicaoAchado(${achado.id})">
+                                    <i class="fas fa-pencil-alt"></i> Editar
+                                </button>
+                                <button class="btn-danger-outline" onclick="excluirAchado(${achado.id})">
+                                    <i class="fas fa-trash"></i> Excluir
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    html += `</div>`;
+                }
+
+                listaContainer.innerHTML = html;
+            } else {
+                listaContainer.innerHTML = `
+                    <div class="achado-vazio">
+                        <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
+                        Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar achados:', error);
+            listaContainer.innerHTML = `
+                <div class="alert-error" style="text-align: center; padding: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar achados. Tente novamente.
+                </div>
+            `;
+        }
+    }
+
+    // ENVIAR ACHADO
+    async function enviarAchado() {
+        const texto = document.getElementById('achado_texto');
+        const btnEnviar = document.getElementById('btn-enviar-achado');
+
+        if (!texto || !btnEnviar) return;
+
+        const textoValue = texto.value.trim();
+        if (!textoValue) {
+            mostrarToast('⚠️ Digite um achado antes de enviar.', 'warning');
+            texto.focus();
+            return;
+        }
+
+        if (!achadoAuditoriaAtual) {
+            mostrarToast('⚠️ Selecione uma auditoria para registrar achados.', 'warning');
+            return;
+        }
+
+        btnEnviar.disabled = true;
+        btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+        try {
+            const anexos = [];
+            const inputFile = document.getElementById('achado_anexo');
+            const files = inputFile.files;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
+                    btnEnviar.disabled = false;
+                    btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Registrar Achado';
+                    return;
+                }
+
+                const base64 = await converterParaBase64(file);
+                anexos.push({
+                    nome: file.name,
+                    tipo: file.type,
+                    tamanho: file.size,
+                    base64: base64
+                });
+            }
+
+            const response = await fetch(`/api/auditoria/${achadoAuditoriaAtual}/achados`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texto: textoValue,
+                    anexos: anexos
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarToast('✅ Achado registrado com sucesso!', 'success');
+
+                texto.value = '';
+                document.getElementById('achado_anexo').value = '';
+                document.getElementById('anexo-nome').textContent = '';
+
+                await carregarAchados(achadoAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao registrar achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao enviar achado:', error);
+            mostrarToast('❌ Erro ao enviar achado. Tente novamente.', 'error');
+        } finally {
+            btnEnviar.disabled = false;
+            btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Registrar Achado';
+        }
+    }
+
+    // BAIXAR ANEXO
+    async function baixarAnexo(achadoId, anexoIndex) {
+        try {
+            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
+            const data = await response.json();
+
+            if (data.success && data.url) {
+                window.open(data.url, '_blank');
+            } else {
+                mostrarToast('❌ Erro ao baixar anexo: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao baixar anexo:', error);
+            mostrarToast('❌ Erro ao baixar anexo.', 'error');
+        }
+    }
+
+    // EXCLUIR ACHADO
+    async function excluirAchado(achadoId) {
+        if (!confirm('Tem certeza que deseja excluir este achado?')) return;
+
+        try {
+            const response = await fetch(`/api/achado/${achadoId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarToast('✅ Achado excluído.', 'success');
+
+                const elemento = document.getElementById(`achado-${achadoId}`);
+                if (elemento) {
+                    elemento.style.transition = 'all 0.3s';
+                    elemento.style.opacity = '0';
+                    elemento.style.transform = 'translateX(-20px)';
+                    setTimeout(() => {
+                        elemento.remove();
+
+                        const lista = document.getElementById('lista-achados');
+                        if (lista && lista.children.length === 0) {
+                            lista.innerHTML = `
+                                <div class="achado-vazio">
+                                    <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
+                                    Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                }
+            } else {
+                mostrarToast('❌ Erro ao excluir achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao excluir achado:', error);
+            mostrarToast('❌ Erro ao excluir achado.', 'error');
+        }
+    }
+
+    // ABRIR EDIÇÃO DE ACHADO
+    function abrirEdicaoAchado(achadoId) {
+        const elemento = document.getElementById(`achado-${achadoId}`);
+        if (!elemento) return;
+
+        const textoElemento = elemento.querySelector('.achado-texto');
+        const textoAtual = textoElemento ? textoElemento.textContent : '';
+
+        const anexosExistentes = [];
+        const anexosContainer = elemento.querySelector('.achado-anexos');
+        if (anexosContainer) {
+            const badges = anexosContainer.querySelectorAll('.anexo-badge');
+            badges.forEach(badge => {
+                const texto = badge.textContent.replace(/\(\d+\.\d+ [KM]B\)/, '').trim();
+                anexosExistentes.push({ nome: texto });
+            });
+        }
+
+        let anexosHtml = '';
+        if (anexosExistentes.length > 0) {
+            anexosHtml = `<div class="achado-anexos" style="margin-top: 10px;">`;
+            for (let idx = 0; idx < anexosExistentes.length; idx++) {
+                const anexo = anexosExistentes[idx];
+                const icone = getIconeArquivo(anexo.nome);
+                anexosHtml += `
+                    <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fas ${icone}"></i>
+                        ${escapeHtml(anexo.nome)}
+                        <button onclick="removerAnexo(${achadoId}, ${idx})" 
+                                style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `;
+            }
+            anexosHtml += `</div>`;
+        }
+
+        const headerHtml = elemento.querySelector('.achado-header').outerHTML;
+
+        elemento.innerHTML = `
+            ${headerHtml}
+            <div class="achado-form" style="margin-top: 10px;">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="editar_achado_texto_${achadoId}"><i class="fas fa-pencil-alt"></i> Editar Achado:</label>
+                    <textarea id="editar_achado_texto_${achadoId}" class="form-control" rows="3">${escapeHtml(textoAtual)}</textarea>
+                </div>
+
+                ${anexosHtml}
+
+                <div class="achado-actions" style="margin-top: 10px;">
+                    <div class="anexo-wrapper">
+                        <label for="editar_achado_anexo_${achadoId}" class="btn-anexo">
+                            <i class="fas fa-paperclip"></i> Adicionar anexo
+                        </label>
+                        <input type="file" id="editar_achado_anexo_${achadoId}" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
+                        <span id="editar_anexo-nome_${achadoId}" class="anexo-nome"></span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-outline" onclick="cancelarEdicaoAchado(${achadoId})">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="btn-primary" onclick="salvarEdicaoAchado(${achadoId})">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
+        if (inputAnexo) {
+            inputAnexo.addEventListener('change', function(e) {
+                const nomeSpan = document.getElementById(`editar_anexo-nome_${achadoId}`);
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const nomes = Array.from(files).map(f => f.name);
+                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
+                } else {
+                    nomeSpan.textContent = '';
+                }
+            });
+        }
+    }
+
+    function cancelarEdicaoAchado(achadoId) {
+        carregarAchados(achadoAuditoriaAtual);
+    }
+
+    async function salvarEdicaoAchado(achadoId) {
+        const textarea = document.getElementById(`editar_achado_texto_${achadoId}`);
+        if (!textarea) return;
+
+        const texto = textarea.value.trim();
+        if (!texto) {
+            mostrarToast('⚠️ O texto do achado não pode ficar vazio.', 'warning');
+            return;
+        }
+
+        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
+        const anexos = [];
+
+        if (inputAnexo) {
+            const files = inputAnexo.files;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
+                    return;
+                }
+                const base64 = await converterParaBase64(file);
+                anexos.push({
+                    nome: file.name,
+                    tipo: file.type,
+                    tamanho: file.size,
+                    base64: base64
+                });
+            }
+        }
+
+        try {
+            const response = await fetch(`/api/achado/${achadoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texto: texto,
+                    anexos: anexos
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarToast('✅ Achado atualizado com sucesso!', 'success');
+                await carregarAchados(achadoAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao atualizar achado: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar edição:', error);
+            mostrarToast('❌ Erro ao salvar edição.', 'error');
+        }
+    }
+
+    // REMOVER ANEXO
+    async function removerAnexo(achadoId, anexoIndex) {
+        if (!confirm('Tem certeza que deseja remover este anexo?')) return;
+
+        try {
+            const response = await fetch(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                mostrarToast('✅ Anexo removido com sucesso!', 'success');
+                await carregarAchados(achadoAuditoriaAtual);
+            } else {
+                mostrarToast('❌ Erro ao remover anexo: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover anexo:', error);
+            mostrarToast('❌ Erro ao remover anexo.', 'error');
+        }
+    }
+
+    // ATUALIZAR UI DA MATRIZ DE ACHADOS
+    function atualizarUI(auditoriaId) {
+        const area = document.getElementById('achados-area');
+        const placeholder = document.getElementById('achados-placeholder');
+        const info = document.getElementById('achados-auditoria-info');
+
+        if (auditoriaId) {
+            area.style.display = 'block';
+            placeholder.style.display = 'none';
+            info.textContent = 'Achados da auditoria selecionada';
+            carregarAchados(auditoriaId);
+        } else {
+            area.style.display = 'none';
+            placeholder.style.display = 'block';
+            info.textContent = 'Selecione uma auditoria para visualizar os achados';
+            const lista = document.getElementById('lista-achados');
+            if (lista) lista.innerHTML = '';
+        }
+    }
+
+    // ====== CONFIGURAR EVENTOS DO MODAL DE CONTROLE ======
+    function setupModalControle() {
+        const btnFechar = document.getElementById('btn-fechar-modal-controle');
+        if (btnFechar) {
+            btnFechar.addEventListener('click', fecharModalControle);
+        }
+
+        const btnCancelar = document.getElementById('btn-cancelar-modal-controle');
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', fecharModalControle);
+        }
+
+        const modal = document.getElementById('modal-controle');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    fecharModalControle();
+                }
+            });
+        }
+
+        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+        if (btnSalvar) {
+            btnSalvar.addEventListener('click', salvarControle);
+        }
+    }
+
+    // ====== EVENTOS DA MATRIZ DE ACHADOS ======
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Página de Controles carregada');
+
+        // Evento: anexo - mostrar nome do arquivo
+        const inputAnexo = document.getElementById('achado_anexo');
+        if (inputAnexo) {
+            inputAnexo.addEventListener('change', function(e) {
+                const nomeSpan = document.getElementById('anexo-nome');
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const nomes = Array.from(files).map(f => f.name);
+                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
+                } else {
+                    nomeSpan.textContent = '';
+                }
+            });
+        }
+
+        // Evento: botão enviar achado
+        const btnEnviar = document.getElementById('btn-enviar-achado');
+        if (btnEnviar) {
+            btnEnviar.addEventListener('click', enviarAchado);
+        }
+
+        // Ctrl+Enter para enviar
+        const textarea = document.getElementById('achado_texto');
+        if (textarea) {
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    enviarAchado();
+                }
+            });
+        }
+
+        setupModalControle();
+    });
 </script>
 
 {% endblock %}
