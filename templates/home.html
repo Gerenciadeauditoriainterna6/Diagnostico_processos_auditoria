@@ -1405,15 +1405,25 @@
     .expander-body {
         background: white;
         border-radius: 24px;
-        padding: 32px;
         display: flex;
         gap: 40px;
         align-items: center;
-        border: 1px solid rgba(0, 0, 0, 0.04);
         transition: all 0.3s ease;
     }
 
     .expander-body:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+
+    .organograma-expander {
+        background: white;
+        border-radius: 24px;
+        gap: 40px;
+        transition: all 0.3s ease;
+    }
+
+    .organograma-expander:hover {
         transform: translateY(-4px);
         box-shadow: 0 12px 24px rgba(0,0,0,0.08);
     }
