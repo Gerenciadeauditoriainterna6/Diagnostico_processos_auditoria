@@ -204,7 +204,7 @@
                 <div class="form-group">
                     <label>
                         <i class="fas fa-map-marker-alt"></i> Origem do Risco
-                        <span class="help-icon" data-tooltip="Origem do risco (externo, interno ou área)">
+                        <span class="help-icon" data-tooltip="Origem do risco (externo, interno e área)">
                             <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
@@ -1773,7 +1773,7 @@
             document.getElementById('risco_origem').value = risco.origem;
             document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
             document.getElementById('risco_info_adicional').value = risco.info_adicional;
-            document.getElementById('risco_motivo').value = risco.motivo || '';
+            document.getElementById('risco_motivo').value = risco.motivo_classificacao || '';
             document.getElementById('risco_prazo_implantacao').value = risco.prazo_implantacao || '';
             // document.getElementById('risco_descricao_prazo').value = risco.descricao_prazo || '';
             
@@ -2242,7 +2242,7 @@
             financeiro: document.getElementById('risco_financeiro').value === 'true',
             info_adicional: document.getElementById('risco_info_adicional').value,
             causas: causasSelecionadas,
-            motivo: document.getElementById('risco_motivo').value,
+            motivo_classificacao: document.getElementById('risco_motivo').value,
             prazo_implantacao: document.getElementById('risco_prazo_implantacao').value || null,
             // descricao_prazo: document.getElementById('risco_descricao_prazo').value,
             
