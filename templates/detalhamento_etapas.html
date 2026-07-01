@@ -207,10 +207,102 @@
             </div>
 
 
+            <!-- ===== OBRIGAÇÕES REGULATÓRIAS ===== -->
             <div class="form-group">
                 <label><i class="fas fa-balance-scale"></i> Obrigações Regulatórias</label>
-                <textarea id="modal-obrigacoes-regulatorias" class="form-control" rows="2" placeholder="Normas e regulamentações aplicáveis..."></textarea>
+                <p class="text-muted" style="margin-bottom: 10px; font-size: 12px;">
+                    Cadastre as obrigações regulatórias aplicáveis a esta etapa.
+                </p>
+                
+                <!-- Container para as obrigações -->
+                <div id="obrigacoes-container">
+                    <!-- Template será clonado via JavaScript -->
+                </div>
+                
+                <!-- Botão para adicionar nova obrigação -->
+                <button type="button" id="btn-adicionar-obrigacao" class="btn-secondary" style="width: 100%; margin-top: 10px;">
+                    <i class="fas fa-plus"></i> Adicionar Obrigação Regulatória
+                </button>
             </div>
+
+            <!-- Template de obrigação (oculto) - ATUALIZADO -->
+            <template id="template-obrigacao">
+                <div class="obrigacao-item" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
+                    <!-- Cabeçalho com índice -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <strong style="color: #184145;">Obrigação <span class="obrigacao-index">1</span></strong>
+                        <button type="button" class="btn-remover-obrigacao" 
+                                onclick="excluirObrigacao(parseInt(this.closest('.obrigacao-item').getAttribute('data-index')))" 
+                                style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;" 
+                                title="Excluir obrigação">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-gavel"></i> Título da Obrigação *</label>
+                            <input type="text" class="obrigacao-titulo form-control" placeholder="Ex: Lei Geral de Proteção de Dados">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-building"></i> Órgão Regulador</label>
+                            <input type="text" class="obrigacao-orgao form-control" placeholder="Ex: ANPD">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Prazo</label>
+                            <input type="date" class="obrigacao-prazo form-control">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-check-circle"></i> Com obrigatoriedade de entrega?</label>
+                            <select class="obrigacao-obrigatorio form-control">
+                                <option value="false">Não</option>
+                                <option value="true">Sim</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-file-alt"></i> Documento Necessário</label>
+                        <input type="text" class="obrigacao-documento form-control" placeholder="Ex: Relatório de conformidade">
+                    </div>
+                    
+                    <!-- Upload de arquivo -->
+                    <div class="obrigacao-upload-area" style="display: block;">
+                        <div class="form-group">
+                            <label><i class="fas fa-paperclip"></i> Documento Legal (PDF)</label>
+                            <div class="custom-file-upload">
+                                <input type="file" class="obrigacao-arquivo" accept=".pdf" style="display: none;">
+                                <button type="button" class="btn-upload-obrigacao btn-file-upload" style="background: #184145; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                                    <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
+                                </button>
+                                
+                                <!-- ⭐ NOVO: Área para mostrar o arquivo anexado com download -->
+                                <div class="obrigacao-arquivo-info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #e8f4f8; border-radius: 6px; border-left: 3px solid #28a745;">
+                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                        <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 18px;"></i>
+                                        <span class="obrigacao-arquivo-nome" style="flex: 1; font-size: 13px; color: #333;"></span>
+                                        <div style="display: flex; gap: 8px;">
+                                            <!-- ⭐ BOTÃO DE DOWNLOAD -->
+                                            <button type="button" class="btn-download-arquivo" onclick="baixarArquivoObrigacao(this)" 
+                                                    style="background: #0b5b99; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                                                <i class="fas fa-download"></i> Baixar
+                                            </button>
+                                            <!-- ⭐ BOTÃO DE REMOVER -->
+                                            <button type="button" class="btn-remover-arquivo-obrigacao" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted">Anexe o documento legal em PDF (máx. 10MB)</small>
+                        </div>
+                    </div>
+                </div>
+            </template>
 
             <!-- Seção de Análises Críticas -->
             <div class="form-section-inline" style="margin-top: 20px; border-top: 2px solid #e0e0e0; padding-top: 20px;">
@@ -1405,6 +1497,35 @@
         transform: translateY(-1px);
     }
 
+    /* ===== OBRIGAÇÕES REGULATÓRIAS ===== */
+    .obrigacao-item {
+        transition: all 0.2s ease;
+    }
+
+    .obrigacao-item:hover {
+        border-color: #0b5b99;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .btn-remover-obrigacao {
+        transition: all 0.2s ease;
+    }
+
+    .btn-remover-obrigacao:hover {
+        background: rgba(220, 53, 69, 0.1);
+        border-radius: 50%;
+    }
+
+    .obrigacao-arquivo-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-remover-arquivo-obrigacao:hover {
+        color: #c82333 !important;
+    }
+
 </style>
 
 <script>
@@ -1429,6 +1550,301 @@
 
     let autoSaveTimer = null;
     let autoSaveEnabled = true;
+
+    // ============================================================
+    // OBRIGAÇÕES REGULATÓRIAS
+    // ============================================================
+
+    let arquivosObrigacoes = {};
+    let obrigacoesLista = [];
+
+    // Adicionar nova obrigação
+    function adicionarObrigacao(dados = null) {
+        const container = document.getElementById('obrigacoes-container');
+        const template = document.getElementById('template-obrigacao');
+        
+        if (!container || !template) return;
+        
+        // Clonar o template
+        const item = template.content.cloneNode(true);
+        const div = item.querySelector('.obrigacao-item');
+        
+        // Gerar índice
+        const index = container.querySelectorAll('.obrigacao-item').length;
+        div.setAttribute('data-index', index);
+        div.querySelector('.obrigacao-index').textContent = index + 1;
+        
+        // 🔥 SE TIVER DADOS, PREENCHER
+        if (dados) {
+            div.querySelector('.obrigacao-titulo').value = dados.titulo || '';
+            div.querySelector('.obrigacao-orgao').value = dados.orgao_regulador || '';
+            div.querySelector('.obrigacao-prazo').value = dados.prazo || '';
+            div.querySelector('.obrigacao-obrigatorio').value = dados.obrigatorio ? 'true' : 'false';
+            div.querySelector('.obrigacao-documento').value = dados.documento_necessario || '';
+            
+            // ⭐ SE TIVER ARQUIVO, MOSTRAR COM DOWNLOAD
+            if (dados.arquivo_nome && dados.arquivo_url) {
+                const infoDiv = div.querySelector('.obrigacao-arquivo-info');
+                const nomeSpan = div.querySelector('.obrigacao-arquivo-nome');
+                
+                nomeSpan.textContent = dados.arquivo_nome;
+                infoDiv.style.display = 'flex';
+                
+                // ⭐ ARMazenar URL no elemento para download
+                infoDiv.setAttribute('data-arquivo-url', dados.arquivo_url);
+                infoDiv.setAttribute('data-arquivo-nome', dados.arquivo_nome);
+                div.setAttribute('data-arquivo-url', dados.arquivo_url);
+                div.setAttribute('data-arquivo-nome', dados.arquivo_nome);
+                
+                // ⭐ Configurar botão de download
+                const btnDownload = div.querySelector('.btn-download-arquivo');
+                if (btnDownload) {
+                    btnDownload.setAttribute('data-url', dados.arquivo_url);
+                    btnDownload.setAttribute('data-nome', dados.arquivo_nome);
+                }
+            }
+        }
+        
+        // Configurar upload
+        const uploadArea = div.querySelector('.obrigacao-upload-area');
+        const obrigatorioSelect = div.querySelector('.obrigacao-obrigatorio');
+        
+        function toggleUploadArea() {
+            uploadArea.style.display = 'block';
+        }
+        toggleUploadArea();
+        
+        // Configurar upload de arquivo
+        const btnUpload = div.querySelector('.btn-upload-obrigacao');
+        const inputFile = div.querySelector('.obrigacao-arquivo');
+        const infoDiv = div.querySelector('.obrigacao-arquivo-info');
+        const nomeSpan = div.querySelector('.obrigacao-arquivo-nome');
+        const btnRemover = div.querySelector('.btn-remover-arquivo-obrigacao');
+        
+        if (btnUpload && inputFile) {
+            btnUpload.addEventListener('click', () => {
+                inputFile.click();
+            });
+            
+            inputFile.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                if (file.type !== 'application/pdf') {
+                    mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                
+                if (file.size > 10 * 1024 * 1024) {
+                    mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                    inputFile.value = '';
+                    return;
+                }
+                
+                // 🔥 SALVAR O ARQUIVO COMO FILE OBJETO (não converte para Base64)
+                const idx = parseInt(div.getAttribute('data-index'));
+                
+                if (!arquivosObrigacoes[idx]) {
+                    arquivosObrigacoes[idx] = {};
+                }
+                arquivosObrigacoes[idx] = {
+                    file: file,
+                    nome: file.name,
+                    tamanho: file.size
+                };
+                
+                nomeSpan.textContent = file.name;
+                infoDiv.style.display = 'flex';
+                
+                // 🔥 REMOVER URL SALVA (se existia) para não confundir
+                div.removeAttribute('data-arquivo-url');
+                div.removeAttribute('data-arquivo-nome');
+                infoDiv.removeAttribute('data-arquivo-url');
+                infoDiv.removeAttribute('data-arquivo-nome');
+                
+                // 🔥 ATUALIZAR O BOTÃO DE DOWNLOAD PARA USAR O ARQUIVO LOCAL
+                const btnDownload = div.querySelector('.btn-download-arquivo');
+                if (btnDownload) {
+                    btnDownload.removeAttribute('data-url');
+                    btnDownload.removeAttribute('data-nome');
+                }
+                
+                mostrarToast('📎 Arquivo selecionado! Salve para enviar.', 'info');
+            });
+        }
+        
+        // Dentro da função adicionarObrigacao(), no evento do btnRemover:
+
+        if (btnRemover) {
+            btnRemover.addEventListener('click', async () => {
+                const inputFile = div.querySelector('.obrigacao-arquivo');
+                const infoDiv = div.querySelector('.obrigacao-arquivo-info');
+                const nomeSpan = div.querySelector('.obrigacao-arquivo-nome');
+                const idx = parseInt(div.getAttribute('data-index'));
+                
+                // Verificar se tem URL salva (arquivo já foi enviado para o storage)
+                const urlSalva = div.getAttribute('data-arquivo-url');
+                const etapaId = document.getElementById('modal-etapa-id').value;
+                
+                // 🔥 Se tem URL salva e a etapa já está salva, excluir do storage
+                if (urlSalva && urlSalva.trim() !== '' && etapaId && etapaId !== '') {
+                    if (confirm('Deseja remover apenas o arquivo anexado?')) {
+                        try {
+                            mostrarToast('🗑️ Removendo arquivo...', 'info');
+                            
+                            const response = await fetch('/api/obrigacao/remover-arquivo', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    etapa_id: parseInt(etapaId),
+                                    indice: idx,
+                                    arquivo_url: urlSalva
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (data.success) {
+                                // Limpar a interface
+                                inputFile.value = '';
+                                infoDiv.style.display = 'none';
+                                infoDiv.removeAttribute('data-arquivo-url');
+                                infoDiv.removeAttribute('data-arquivo-nome');
+                                nomeSpan.textContent = '';
+                                div.removeAttribute('data-arquivo-url');
+                                div.removeAttribute('data-arquivo-nome');
+                                
+                                // Limpar do objeto arquivosObrigacoes se existir
+                                if (arquivosObrigacoes[idx]) {
+                                    delete arquivosObrigacoes[idx];
+                                }
+                                
+                                mostrarToast('✅ Arquivo removido com sucesso!', 'success');
+                            } else {
+                                mostrarToast('❌ Erro ao remover arquivo: ' + (data.error || 'Tente novamente'), 'error');
+                            }
+                        } catch (error) {
+                            console.error('Erro ao remover arquivo:', error);
+                            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+                        }
+                    }
+                } else {
+                    // Se não tem URL salva (arquivo local, não salvo), apenas limpar a interface
+                    inputFile.value = '';
+                    infoDiv.style.display = 'none';
+                    infoDiv.removeAttribute('data-arquivo-url');
+                    infoDiv.removeAttribute('data-arquivo-nome');
+                    nomeSpan.textContent = '';
+                    div.removeAttribute('data-arquivo-url');
+                    div.removeAttribute('data-arquivo-nome');
+                    
+                    if (arquivosObrigacoes[idx]) {
+                        delete arquivosObrigacoes[idx];
+                    }
+                    
+                    mostrarToast('📎 Arquivo removido', 'info');
+                }
+            });
+        }
+        
+        
+        // 🔥 IMPORTANTE: container.appendChild(div) DEVE ESTAR AQUI, FORA DO EVENTO
+        container.appendChild(div);
+    }
+
+    // Carregar obrigações existentes
+    function carregarObrigacoes(dadosJson) {
+        if (!dadosJson) return;
+        
+        try {
+            const dados = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
+            
+            if (!Array.isArray(dados) || dados.length === 0) {
+                adicionarObrigacao();
+                return;
+            }
+            
+            dados.forEach((obrigacao) => {
+                // Garantir que a estrutura está completa
+                const dadosCompletos = {
+                    prazo: obrigacao.prazo || '',
+                    titulo: obrigacao.titulo || 'INEXISTENTE',
+                    arquivo_url: obrigacao.arquivo_url || '',
+                    obrigatorio: obrigacao.obrigatorio || false,
+                    arquivo_nome: obrigacao.arquivo_nome || '',
+                    arquivo_tamanho: obrigacao.arquivo_tamanho || 0,
+                    orgao_regulador: obrigacao.orgao_regulador || '',
+                    descricao_completa: obrigacao.descricao_completa || 'INEXISTENTE',
+                    documento_necessario: obrigacao.documento_necessario || ''
+                };
+                adicionarObrigacao(dadosCompletos);
+            });
+        } catch (e) {
+            console.error('Erro ao carregar obrigações:', e);
+            adicionarObrigacao();
+        }
+    }
+
+    // Coletar dados das obrigações para salvar
+    async function coletarObrigacoes() {
+        const items = document.querySelectorAll('.obrigacao-item');
+        const obrigacoes = [];
+        
+        for (const item of items) {
+            const titulo = item.querySelector('.obrigacao-titulo').value.trim();
+            const index = parseInt(item.getAttribute('data-index'));
+            
+            // 🔥 ESTRUTURA FIXA COM TODOS OS CAMPOS
+            const obrigacao = {
+                prazo: item.querySelector('.obrigacao-prazo').value || '',
+                titulo: titulo || 'INEXISTENTE',
+                arquivo_url: '',
+                obrigatorio: item.querySelector('.obrigacao-obrigatorio').value === 'true',
+                arquivo_nome: '',
+                arquivo_tamanho: 0,
+                orgao_regulador: item.querySelector('.obrigacao-orgao').value.trim() || '',
+                descricao_completa: 'INEXISTENTE',
+                documento_necessario: item.querySelector('.obrigacao-documento').value.trim() || ''
+            };
+            
+            // Verificar se tem arquivo novo para upload
+            if (arquivosObrigacoes[index] && arquivosObrigacoes[index].file) {
+                obrigacao._upload_file = true;
+                obrigacao._file_data = arquivosObrigacoes[index];
+                obrigacao._index = index;
+            } else if (item.getAttribute('data-arquivo-url')) {
+                // Arquivo já existe (referência salva)
+                obrigacao.arquivo_url = item.getAttribute('data-arquivo-url');
+                obrigacao.arquivo_nome = item.getAttribute('data-arquivo-nome');
+                obrigacao.arquivo_tamanho = parseInt(item.getAttribute('data-arquivo-tamanho')) || 0;
+            }
+            
+            obrigacoes.push(obrigacao);
+        }
+        
+        return obrigacoes;
+    }
+
+    // Limpar obrigações (usado ao fechar modal)
+    function limparObrigacoes() {
+        const container = document.getElementById('obrigacoes-container');
+        if (container) {
+            container.innerHTML = '';
+        }
+        arquivosObrigacoes = {};
+    }
+
+    // Inicializar obrigações no modal (chamar ao abrir)
+    function inicializarObrigacoes(dadosJson) {
+        limparObrigacoes();
+        if (dadosJson) {
+            carregarObrigacoes(dadosJson);
+        } else {
+            // Adicionar uma obrigação vazia
+            adicionarObrigacao();
+        }
+    }
 
     // Chave única para o autoSave baseada no processo e etapa
     function getAutoSaveKey() {
@@ -2260,6 +2676,8 @@
             manualEstadoAtual.nomeArquivo = null;
             manualEstadoAtual.emAndamento = false;
         }
+
+        limparObrigacoes();
         
         // ⭐ Resetar análises
         if (typeof analisesTemporarias !== 'undefined') {
@@ -2452,6 +2870,110 @@
     }
 
     // ============================================================
+    // EXCLUIR OBRIGAÇÃO REGULATÓRIA
+    // ============================================================
+
+    async function excluirObrigacao(indice) {
+        // Buscar o elemento da obrigação
+        const items = document.querySelectorAll('.obrigacao-item');
+        if (indice >= items.length) {
+            mostrarToast('⚠️ Obrigação não encontrada', 'warning');
+            return;
+        }
+        
+        const item = items[indice];
+        const titulo = item.querySelector('.obrigacao-titulo').value.trim() || 'Obrigação';
+        
+        // Confirmar exclusão
+        if (!confirm(`Tem certeza que deseja excluir "${titulo}"?`)) {
+            return;
+        }
+        
+        // Verificar se a etapa já foi salva (tem ID)
+        const etapaId = document.getElementById('modal-etapa-id').value;
+        const arquivoUrl = item.getAttribute('data-arquivo-url');
+        
+        // Se a etapa já foi salva, excluir do banco e storage
+        if (etapaId && etapaId !== '') {
+            try {
+                mostrarToast('🗑️ Excluindo obrigação...', 'info');
+
+                const arquivoUrl = item.getAttribute('data-arquivo-url');
+                console.log('📎 URL do arquivo a ser excluído:', arquivoUrl);
+                console.log('📎 Tipo da URL:', typeof arquivoUrl);
+                console.log('📎 URL está vazia?', arquivoUrl === '' || arquivoUrl === null);
+                
+                const response = await fetch('/api/obrigacao/excluir', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        etapa_id: parseInt(etapaId),
+                        indice: indice,
+                        arquivo_url: arquivoUrl || ''
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remover do DOM
+                    item.remove();
+                    
+                    // Reindexar os itens restantes
+                    document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
+                        el.setAttribute('data-index', i);
+                        el.querySelector('.obrigacao-index').textContent = i + 1;
+                    });
+                    
+                    // Limpar do objeto arquivosObrigacoes se existir
+                    delete arquivosObrigacoes[indice];
+                    
+                    // Reorganizar o objeto arquivosObrigacoes
+                    const novoArquivosObrigacoes = {};
+                    document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
+                        const idx = parseInt(el.getAttribute('data-index'));
+                        if (arquivosObrigacoes[idx]) {
+                            novoArquivosObrigacoes[i] = arquivosObrigacoes[idx];
+                        }
+                    });
+                    arquivosObrigacoes = novoArquivosObrigacoes;
+                    
+                    mostrarToast('✅ Obrigação excluída com sucesso!', 'success');
+                } else {
+                    mostrarToast('❌ Erro ao excluir: ' + (data.error || 'Tente novamente'), 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir obrigação:', error);
+                mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+            }
+        } else {
+            // Etapa ainda não salva, apenas remover do DOM e do objeto
+            item.remove();
+            
+            // Reindexar os itens restantes
+            document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
+                el.setAttribute('data-index', i);
+                el.querySelector('.obrigacao-index').textContent = i + 1;
+            });
+            
+            // Remover do objeto arquivosObrigacoes
+            delete arquivosObrigacoes[indice];
+            
+            // Reorganizar o objeto arquivosObrigacoes
+            const novoArquivosObrigacoes = {};
+            document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
+                const idx = parseInt(el.getAttribute('data-index'));
+                if (arquivosObrigacoes[idx]) {
+                    novoArquivosObrigacoes[i] = arquivosObrigacoes[idx];
+                }
+            });
+            arquivosObrigacoes = novoArquivosObrigacoes;
+            
+            mostrarToast('🗑️ Obrigação removida (não salva)', 'info');
+        }
+    }
+
+    // ============================================================
     // RENDERIZAÇÃO DAS ETAPAS (SEM EXPANDER E SEM DETALHES)
     // ============================================================
 
@@ -2539,6 +3061,8 @@
         limparExecutoresSelecionados();
         setupExecutoresSelector();
         setupAutoSave();
+
+        inicializarObrigacoes('[]');
         
         // ⭐ Resetar análises para nova etapa ⭐
         analisesTemporarias = [];
@@ -2620,10 +3144,9 @@
                 document.getElementById('modal-como-feito').value = etapa.como_e_feito;
                 document.getElementById('modal-objetivo-etapa').value = etapa.objetivo_etapa;
                 document.getElementById('modal-status-etapa').value = etapa.status_etapa;
-                // ⭐ REMOVER ESSA LINHA (não existe mais)
-                // document.getElementById('modal-criticidade-etapa').value = etapa.criticidade_etapa;
                 document.getElementById('modal-politica-interna').value = etapa.politica_interna;
-                document.getElementById('modal-obrigacoes-regulatorias').value = etapa.obrigacoes_regulatorias;
+                inicializarObrigacoes(etapa.obrigacoes_regulatorias);
+
 
                 await carregarExecutoresProcesso();
                 limparExecutoresSelecionados();
@@ -2716,6 +3239,59 @@
         }
     }
 
+    // ============================================================
+    // PROCESSAR UPLOADS DAS OBRIGAÇÕES REGULATÓRIAS
+    // ============================================================
+
+    async function processarUploadsObrigacoes(obrigacoes, etapaId) {
+        const obrigacoesProcessadas = [];
+        
+        for (const obrigacao of obrigacoes) {
+            // Se tiver arquivo para upload
+            if (obrigacao._upload_file && obrigacao._file_data) {
+                try {
+                    const formData = new FormData();
+                    formData.append('arquivo', obrigacao._file_data.file);
+                    formData.append('tipo', 'obrigacao');
+                    formData.append('etapa_id', etapaId || 'temp');
+                    formData.append('titulo_obrigacao', obrigacao.titulo);
+                    
+                    const response = await fetch('/api/upload/detalhamento', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // ✅ PREENCHER OS CAMPOS CORRETOS
+                        obrigacao.arquivo_url = data.url || '';
+                        obrigacao.arquivo_nome = data.nome_arquivo || '';
+                        obrigacao.arquivo_tamanho = data.tamanho || 0;
+                    } else {
+                        mostrarToast(`⚠️ Erro ao enviar arquivo: ${data.error || 'Erro desconhecido'}`, 'warning');
+                    }
+                } catch (error) {
+                    console.error('Erro no upload:', error);
+                    mostrarToast('⚠️ Erro ao enviar arquivo da obrigação', 'warning');
+                }
+            }
+            
+            // Remover campos temporários
+            delete obrigacao._upload_file;
+            delete obrigacao._file_data;
+            delete obrigacao._index;
+            
+            // Garantir que todos os campos existam
+            if (!obrigacao.titulo) obrigacao.titulo = 'INEXISTENTE';
+            if (!obrigacao.descricao_completa) obrigacao.descricao_completa = 'INEXISTENTE';
+            
+            obrigacoesProcessadas.push(obrigacao);
+        }
+        
+        return obrigacoesProcessadas;
+    }
+
     async function salvarEtapa() {
         if (!validarFormularioEtapa()) {
             mostrarToast('⚠️ Preencha o campo Nome da Etapa', 'warning');
@@ -2730,7 +3306,12 @@
 
         const etapaId = document.getElementById('modal-etapa-id').value || null;
         
-        // ⭐ USAR OPERADOR OPTIONAL (?.) PARA EVITAR ERRO
+        // 🔥 COLETAR OBRIGAÇÕES (sem Base64)
+        const obrigacoes = await coletarObrigacoes(); // <-- AGORA É async
+        
+        // 🔥 PROCESSA OS UPLOADS DE ARQUIVOS DAS OBRIGAÇÕES
+        const obrigacoesProcessadas = await processarUploadsObrigacoes(obrigacoes, etapaId);
+
         const payload = {
             id: etapaId,
             processo_id: processoAtualId,
@@ -2742,27 +3323,11 @@
             objetivo_etapa: document.getElementById('modal-objetivo-etapa')?.value || '',
             status_etapa: document.getElementById('modal-status-etapa')?.value || 'Ativa',
             politica_interna: document.getElementById('modal-politica-interna')?.value || '',
-            obrigacoes_regulatorias: document.getElementById('modal-obrigacoes-regulatorias')?.value || '',
+            obrigacoes_regulatorias: JSON.stringify(obrigacoesProcessadas), // <-- JSON sem Base64
             executores_etapa: executoresEtapa,
-            // ⭐ ADICIONAR O ESTADO DO MANUAL
             manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false
         };
 
-        // ⭐ REMOVER A LINHA QUE TENTA ACESSAR modal-criticidade-etapa
-        // NÃO EXISTE MAIS ESSE CAMPO NO HTML
-
-        // ⭐ Verificar se tem arquivo no input
-        const manualFile = document.getElementById('manual_file_input')?.files[0];
-        
-        if (manualFile) {
-            const manualBase64 = await converterParaBase64(manualFile);
-            payload.manual_base64 = manualBase64;
-            payload.manual_nome = manualFile.name;
-            payload.manual_tipo = manualFile.type;
-            payload.remover_manual = false;
-        } else {
-            payload.remover_manual = false;
-        }
 
         try {
             const response = await fetch('/api/etapa/salvar', {
@@ -3317,11 +3882,9 @@
         `;
         
         try {
-            // Buscar dados da etapa
             const responseEtapa = await fetch(`/api/etapa/${etapaId}`);
             const dataEtapa = await responseEtapa.json();
             
-            // Buscar análises da etapa
             const responseAnalises = await fetch(`/api/etapa/${etapaId}/analises`);
             const dataAnalises = await responseAnalises.json();
             
@@ -3329,16 +3892,13 @@
                 const etapa = dataEtapa.etapa;
                 const analises = dataAnalises.success ? (dataAnalises.analises || []) : [];
                 
-                // Buscar nomes dos executores
                 const executoresNomes = await getNomesExecutores(etapa.executores_etapa);
                 
-                // Verificar se tem arquivos
                 const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
                 const temDiagrama = etapa.diagrama_nome && etapa.diagrama_nome.trim() !== '';
                 const temMapeamento = etapa.arquivo_mapeamento_nome && etapa.arquivo_mapeamento_nome.trim() !== '';
                 const emAndamento = etapa.manual_em_andamento || false;
                 
-                // Badge do manual
                 let manualBadge = '';
                 if (temManual) {
                     manualBadge = `<span style="display: inline-block; background: #d4edda; color: #155724; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-check-circle"></i> Concluído</span>`;
@@ -3368,7 +3928,6 @@
                                         <span class="etapa-status ${etapa.status_etapa.toLowerCase()}">${escapeHtml(etapa.status_etapa)}</span>
                                     </span>
                                 </div>
-                            
                                 <div class="vis-item vis-full">
                                     <label>Executores</label>
                                     <span>${escapeHtml(executoresNomes)}</span>
@@ -3405,11 +3964,46 @@
                                 </div>
                                 <div class="vis-item vis-full">
                                     <label>Obrigações Regulatórias</label>
-                                    <span>${escapeHtml(etapa.obrigacoes_regulatorias) || '-'}</span>
+                                    <div>
+                                        ${(() => {
+                                            try {
+                                                const obrigacoes = typeof etapa.obrigacoes_regulatorias === 'string' 
+                                                    ? JSON.parse(etapa.obrigacoes_regulatorias) 
+                                                    : (etapa.obrigacoes_regulatorias || []);
+                                                
+                                                if (obrigacoes.length === 0) {
+                                                    return '<span style="color: #999;">Nenhuma obrigação cadastrada</span>';
+                                                }
+                                                
+                                                return obrigacoes.map((obrigacao, idx) => `
+                                                    <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 3px solid #184145;">
+                                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                                                            <div style="flex: 1;">
+                                                                <strong style="color: #184145;">${escapeHtml(obrigacao.titulo || 'INEXISTENTE')}</strong>
+                                                                ${obrigacao.orgao_regulador ? `<span style="color: #666; font-size: 12px; margin-left: 10px;">${escapeHtml(obrigacao.orgao_regulador)}</span>` : ''}
+                                                                ${obrigacao.obrigatorio ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; margin-left: 10px;">Obrigatório</span>' : ''}
+                                                            </div>
+                                                            ${obrigacao.arquivo_url && obrigacao.arquivo_url.trim() !== '' ? `
+                                                                <button onclick="baixarArquivoObrigacaoPorUrl('${obrigacao.arquivo_url}', '${escapeHtml(obrigacao.arquivo_nome || 'documento.pdf')}')" 
+                                                                        style="background: #0b5b99; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+                                                                    <i class="fas fa-download"></i> ${escapeHtml(obrigacao.arquivo_nome || 'Baixar PDF')}
+                                                                </button>
+                                                            ` : ''}
+                                                        </div>
+                                                        ${obrigacao.documento_necessario ? `<div style="font-size: 12px; color: #666; margin-top: 5px;"><i class="fas fa-file-alt"></i> ${escapeHtml(obrigacao.documento_necessario)}</div>` : ''}
+                                                        ${obrigacao.prazo ? `<div style="font-size: 12px; color: #666; margin-top: 3px;"><i class="fas fa-calendar-alt"></i> Prazo: ${escapeHtml(obrigacao.prazo)}</div>` : ''}
+                                                        ${obrigacao.descricao_completa && obrigacao.descricao_completa !== 'INEXISTENTE' ? `<div style="font-size: 12px; color: #666; margin-top: 3px;">${escapeHtml(obrigacao.descricao_completa)}</div>` : ''}
+                                                    </div>
+                                                `).join('');
+                                            } catch (e) {
+                                                console.error('Erro ao parsear obrigações:', e);
+                                                return '<span style="color: #999;">Erro ao carregar obrigações</span>';
+                                            }
+                                        })()}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
                         
                         <!-- Arquivos -->
                         <div class="vis-secao">
@@ -3433,7 +4027,6 @@
                                         }
                                     </span>
                                 </div>
-                                
                             </div>
                         </div>
                         
@@ -3496,8 +4089,22 @@
 
 
 
+    // ============================================================
+    // DOWNLOAD DE ARQUIVOS DA ETAPA
+    // ============================================================
+
     function downloadArquivo(etapaId, tipo) {
-        window.open(`/api/etapa/${etapaId}/download/${tipo}`, '_blank');
+        if (tipo === 'manual') {
+            // 🔥 Usar o endpoint específico para manual
+            window.open(`/api/etapa/${etapaId}/download-manual`, '_blank');
+        } else if (tipo === 'diagrama') {
+            window.open(`/api/etapa/${etapaId}/download/diagrama`, '_blank');
+        } else if (tipo === 'mapeamento') {
+            window.open(`/api/etapa/${etapaId}/download/mapeamento`, '_blank');
+        } else {
+            // Fallback para outros tipos
+            window.open(`/api/etapa/${etapaId}/download/${tipo}`, '_blank');
+        }
     }
 
     // ====== VARIÁVEIS DO MANUAL ======
@@ -3511,17 +4118,17 @@
     function carregarEstadoManual(etapaId) {
         etapaIdAtual = etapaId;
         
-        // Buscar dados da etapa via API
         fetch(`/api/etapa/${etapaId}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.etapa) {
                     const etapa = data.etapa;
                     
-                    if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
+                    // 🔥 Verificar manual_url em vez de manual_etapa
+                    if (etapa.manual_url && etapa.manual_url.trim() !== '') {
                         // Caso 1: Tem arquivo
                         manualEstadoAtual.temArquivo = true;
-                        manualEstadoAtual.nomeArquivo = etapa.manual_nome;
+                        manualEstadoAtual.nomeArquivo = etapa.manual_nome || 'manual.pdf';
                         manualEstadoAtual.emAndamento = false;
                     } else if (etapa.manual_em_andamento) {
                         // Caso 2: Em andamento
@@ -3535,7 +4142,6 @@
                         manualEstadoAtual.emAndamento = false;
                     }
                     
-                    // Atualizar interface
                     atualizarInterfaceManual();
                 }
             })
@@ -3627,53 +4233,33 @@
 
     // ====== BAIXAR MANUAL ======
     function baixarManual() {
-        if (etapaIdAtual && manualEstadoAtual.temArquivo) {
-            window.open(`/api/etapa/${etapaIdAtual}/download-manual`, '_blank');
+        if (!etapaIdAtual || !manualEstadoAtual.temArquivo) {
+            mostrarToast('⚠️ Nenhum manual disponível para download', 'warning');
+            return;
         }
+        
+        // 🔥 Usar o endpoint de download
+        window.open(`/api/etapa/${etapaIdAtual}/download-manual`, '_blank');
+        mostrarToast('📥 Download do manual iniciado!', 'success');
     }
 
-    // ====== REMOVER MANUAL ======
-    async function removerManual() {
-        if (!etapaIdAtual) return;
-        
-        if (!confirm('Tem certeza que deseja remover o manual?')) return;
-        
-        try {
-            const response = await fetch(`/api/etapa/${etapaIdAtual}/remover-manual`, {
-                method: 'DELETE'
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                manualEstadoAtual.temArquivo = false;
-                manualEstadoAtual.nomeArquivo = null;
-                manualEstadoAtual.emAndamento = false;
-                atualizarInterfaceManual();
-                mostrarToast('✅ Manual removido', 'success');
-            } else {
-                mostrarToast('❌ Erro ao remover manual', 'error');
-            }
-        } catch (error) {
-            mostrarToast('❌ Erro de conexão', 'error');
-        }
-    }
+    // ============================================================
+    // SALVAR URL DO MANUAL NA ETAPA
+    // ============================================================
 
-    // ====== SALVAR ESTADO DO MANUAL ======
-    async function salvarEstadoManual(etapaId, emAndamento, arquivoBase64, nomeArquivo, tipoArquivo) {
+    async function salvarUrlManual(etapaId, url, nomeArquivo, tamanho, emAndamento) {
         try {
-            // Buscar dados atuais da etapa para não perder outros campos
+            // Buscar dados atuais da etapa
             const responseDados = await fetch(`/api/etapa/${etapaId}`);
             const dadosAtuais = await responseDados.json();
             
             if (!dadosAtuais.success) {
-                mostrarToast('❌ Erro ao carregar dados da etapa', 'error');
-                return false;
+                throw new Error('Erro ao carregar dados da etapa');
             }
             
             const etapa = dadosAtuais.etapa;
             
-            // Montar payload com todos os campos
+            // 🔥 Montar payload com a URL do manual
             const payload = {
                 id: etapaId,
                 processo_id: etapa.processo_id,
@@ -3684,34 +4270,178 @@
                 como_e_feito: etapa.como_e_feito,
                 objetivo_etapa: etapa.objetivo_etapa,
                 status_etapa: etapa.status_etapa,
-                criticidade_etapa: etapa.criticidade_etapa,
                 politica_interna: etapa.politica_interna,
-                analise_critica: etapa.analise_critica,
-                sugestao_melhoria: etapa.sugestao_melhoria,
-                necessidade_implantacao: etapa.necessidade_implantacao,
-                ganho_previsto: etapa.ganho_previsto,
                 obrigacoes_regulatorias: etapa.obrigacoes_regulatorias,
                 executores_etapa: etapa.executores_etapa,
-                manual_em_andamento: emAndamento,
-                // ⭐ NÃO ENVIAR ARQUIVOS QUE JÁ EXISTEM PARA NÃO SOBRESCREVER
+                // 🔥 Salvar URL e nome
+                manual_url: url,
+                manual_nome: nomeArquivo,
+                manual_em_andamento: emAndamento
             };
             
-            // Se tiver novo arquivo, adicionar
-            if (arquivoBase64) {
-                payload.manual_base64 = arquivoBase64;
+            const response = await fetch('/api/etapa/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                return true;
+            } else {
+                throw new Error(result.error || 'Erro ao salvar etapa');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar URL do manual:', error);
+            throw error;
+        }
+    }
+
+    // ============================================================
+    // REMOVER MANUAL - VERSÃO CORRIGIDA
+    // ============================================================
+
+    async function removerManual() {
+        if (!etapaIdAtual) return;
+        
+        if (!confirm('Tem certeza que deseja remover o manual?')) return;
+        
+        try {
+            // 🔥 Buscar a URL do manual antes de remover
+            const responseDados = await fetch(`/api/etapa/${etapaIdAtual}`);
+            const dados = await responseDados.json();
+            
+            if (!dados.success) {
+                mostrarToast('❌ Erro ao carregar dados da etapa', 'error');
+                return;
+            }
+            
+            if (!dados.etapa.manual_url) {
+                mostrarToast('⚠️ Nenhum manual para remover', 'warning');
+                return;
+            }
+            
+            const urlManual = dados.etapa.manual_url;
+            
+            // 🔥 Chamar API para remover do storage e limpar URL
+            const response = await fetch(`/api/etapa/${etapaIdAtual}/remover-manual`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    etapa_id: etapaIdAtual,
+                    arquivo_url: urlManual
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                manualEstadoAtual.temArquivo = false;
+                manualEstadoAtual.nomeArquivo = null;
+                manualEstadoAtual.emAndamento = false;
+                atualizarInterfaceManual();
+                mostrarToast('✅ Manual removido com sucesso!', 'success');
+            } else {
+                mostrarToast('❌ Erro ao remover manual: ' + (data.error || 'Tente novamente'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao remover manual:', error);
+            mostrarToast('❌ Erro de conexão', 'error');
+        }
+    }
+
+    // ============================================================
+    // UPLOAD DO MANUAL PARA O BUCKET
+    // ============================================================
+
+    async function uploadManualParaBucket(etapaId, arquivo, emAndamento = false) {
+        try {
+            // 🔥 Gerar nome personalizado: manual_eta_{etapa_id}.pdf
+            const nomePersonalizado = `manual_eta_${etapaId}.pdf`;
+            
+            // Criar FormData para upload
+            const formData = new FormData();
+            formData.append('arquivo', arquivo);
+            formData.append('tipo', 'manual');  // 🔥 Tipo 'manual' para criar pasta manuais/
+            formData.append('etapa_id', etapaId || 'temp');
+            formData.append('em_andamento', emAndamento ? 'true' : 'false');
+            formData.append('nome_personalizado', nomePersonalizado);
+            
+            // Fazer upload para a API
+            const response = await fetch('/api/upload/detalhamento', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // 🔥 Salvar a URL com o nome personalizado
+                const success = await salvarUrlManual(
+                    etapaId,
+                    data.url,
+                    nomePersonalizado,  // Usar o nome personalizado
+                    data.tamanho,
+                    emAndamento
+                );
+                
+                return success;
+            } else {
+                throw new Error(data.error || 'Erro no upload');
+            }
+        } catch (error) {
+            console.error('Erro no upload do manual:', error);
+            throw error;
+        }
+    }
+
+    // ============================================================
+    // SALVAR ESTADO DO MANUAL - VERSÃO CORRIGIDA
+    // ============================================================
+
+    async function salvarEstadoManual(etapaId, emAndamento, arquivoUrl = null, nomeArquivo = null) {
+        try {
+            // Buscar dados atuais da etapa
+            const responseDados = await fetch(`/api/etapa/${etapaId}`);
+            const dadosAtuais = await responseDados.json();
+            
+            if (!dadosAtuais.success) {
+                mostrarToast('❌ Erro ao carregar dados da etapa', 'error');
+                return false;
+            }
+            
+            const etapa = dadosAtuais.etapa;
+            
+            // Montar payload (sem Base64)
+            const payload = {
+                id: etapaId,
+                processo_id: etapa.processo_id,
+                auditoria_id: etapa.auditoria_id,
+                codigo_etapa: etapa.codigo_etapa,
+                nome_etapa: etapa.nome_etapa,
+                descricao_etapa: etapa.descricao_etapa,
+                como_e_feito: etapa.como_e_feito,
+                objetivo_etapa: etapa.objetivo_etapa,
+                status_etapa: etapa.status_etapa,
+                politica_interna: etapa.politica_interna,
+                obrigacoes_regulatorias: etapa.obrigacoes_regulatorias,
+                executores_etapa: etapa.executores_etapa,
+                manual_em_andamento: emAndamento
+            };
+            
+            // 🔥 Se tem URL, salvar no payload
+            if (arquivoUrl && arquivoUrl.trim() !== '') {
+                payload.manual_url = arquivoUrl;
                 payload.manual_nome = nomeArquivo;
-                payload.manual_tipo = tipoArquivo;
-            }
-            
-            // Se não tiver arquivo e não estiver em andamento, garantir que o manual seja removido
-            if (!emAndamento && !arquivoBase64) {
+            } else if (!emAndamento) {
+                // Se não tem URL e não está em andamento, remover manual
                 payload.remover_manual = true;
+                payload.manual_url = null;
+                payload.manual_nome = null;
             }
             
-            // ⭐ NÃO ENVIAR DIAGRAMA PARA NÃO SOBRESCREVER
-            // Se tiver diagrama, manter o que já existe
-            
-            const response = await fetch(`/api/etapa/salvar`, {
+            const response = await fetch('/api/etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -3730,6 +4460,124 @@
             mostrarToast('❌ Erro de conexão', 'error');
             return false;
         }
+    }
+
+    // ============================================================
+    // BAIXAR MANUAL - USANDO URL ASSINADA
+    // ============================================================
+
+    function baixarManual() {
+        if (!etapaIdAtual || !manualEstadoAtual.temArquivo) {
+            mostrarToast('⚠️ Nenhum manual disponível para download', 'warning');
+            return;
+        }
+        
+        // Buscar a URL do manual da etapa
+        fetch(`/api/etapa/${etapaIdAtual}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.etapa.manual_url) {
+                    // Abrir a URL assinada (ou fazer download via fetch)
+                    window.open(data.etapa.manual_url, '_blank');
+                    // Ou usar fetch para mais controle:
+                    // window.location.href = data.etapa.manual_url;
+                } else {
+                    mostrarToast('❌ Erro ao obter URL do manual', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Erro ao baixar manual:', err);
+                mostrarToast('❌ Erro ao baixar manual', 'error');
+            });
+    }
+
+    // ============================================================
+    // BAIXAR ARQUIVO DA OBRIGAÇÃO REGULATÓRIA
+    // ============================================================
+
+    function baixarArquivoObrigacao(botao) {
+        // Buscar os elementos
+        const itemDiv = botao.closest('.obrigacao-item');
+        const infoDiv = botao.closest('.obrigacao-arquivo-info') || itemDiv?.querySelector('.obrigacao-arquivo-info');
+        
+        if (!itemDiv) {
+            mostrarToast('⚠️ Erro: elemento não encontrado', 'error');
+            return;
+        }
+        
+        const index = parseInt(itemDiv.getAttribute('data-index'));
+        
+        // Verificar se tem URL salva (arquivo já foi salvo no bucket)
+        const urlSalva = itemDiv.getAttribute('data-arquivo-url');
+        const nomeSalvo = itemDiv.getAttribute('data-arquivo-nome');
+        
+        // Verificar se tem arquivo novo (anexado mas não salvo)
+        const arquivoNovo = arquivosObrigacoes[index]?.file;
+        const nomeNovo = arquivosObrigacoes[index]?.nome;
+        
+        // 🔥 PRIORIDADE: Se tem URL salva, baixar do bucket
+        if (urlSalva && urlSalva.trim() !== '') {
+            window.open(urlSalva, '_blank');
+            mostrarToast('📥 Download iniciado!', 'success');
+            return;
+        }
+        
+        // 🔥 Se não tem URL, mas tem arquivo novo, baixar localmente
+        if (arquivoNovo) {
+            baixarArquivoLocal(arquivoNovo, nomeNovo || 'documento.pdf');
+            return;
+        }
+        
+        // Se chegou aqui, não tem arquivo
+        mostrarToast('⚠️ Nenhum arquivo anexado a esta obrigação', 'warning');
+    }
+
+    // ============================================================
+    // BAIXAR ARQUIVO LOCALMENTE (antes de salvar)
+    // ============================================================
+
+    function baixarArquivoLocal(file, nomeArquivo) {
+        if (!file) {
+            mostrarToast('⚠️ Nenhum arquivo disponível para download', 'warning');
+            return;
+        }
+        
+        try {
+            // Criar URL para o objeto File
+            const url = URL.createObjectURL(file);
+            
+            // Criar link para download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeArquivo || file.name || 'documento.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Liberar URL após o download
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            mostrarToast('📥 Download do arquivo local iniciado!', 'success');
+        } catch (error) {
+            console.error('Erro ao baixar arquivo local:', error);
+            mostrarToast('❌ Erro ao baixar arquivo', 'error');
+        }
+    }
+
+    // ============================================================
+    // BAIXAR ARQUIVO POR URL (para uso no modal de visualização)
+    // ============================================================
+
+    function baixarArquivoObrigacaoPorUrl(url, nomeArquivo) {
+        if (!url || url.trim() === '') {
+            mostrarToast('⚠️ Nenhum arquivo anexado', 'warning');
+            return;
+        }
+        
+        window.open(url, '_blank');
+        mostrarToast('📥 Download iniciado!', 'success');
     }
 
     // ============================================================
@@ -3772,7 +4620,7 @@
             });
         }
 
-        // 2. Evento do input de arquivo
+        // 2. Evento do input de arquivo - VERSÃO CORRIGIDA
         const inputFile = document.getElementById('manual_file_input');
         if (inputFile) {
             inputFile.addEventListener('change', async function(e) {
@@ -3795,18 +4643,14 @@
                 }
                 
                 // Mostrar loading
-                mostrarToast('📤 Enviando manual...', 'info');
+                mostrarToast('📤 Enviando manual para o bucket...', 'info');
                 
                 try {
-                    const base64 = await converterParaBase64(file);
-                    
-                    // Salvar com emAndamento = false (concluído)
-                    const success = await salvarEstadoManual(
+                    // 🔥 NOVO: Fazer upload direto para o bucket
+                    const success = await uploadManualParaBucket(
                         etapaIdAtual,
-                        false,  // Concluído
-                        base64,
-                        file.name,
-                        file.type
+                        file,
+                        false  // Concluído (não é em andamento)
                     );
                     
                     if (success) {
@@ -3821,7 +4665,7 @@
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    mostrarToast('❌ Erro ao enviar manual', 'error');
+                    mostrarToast('❌ Erro ao enviar manual: ' + error.message, 'error');
                 }
                 
                 this.value = '';
@@ -3959,6 +4803,14 @@
         }
 
         console.log('✅ DOMContentLoaded - Configuração do Manual em Andamento adicionada!');
+
+        // Botão adicionar obrigação
+        const btnAdicionar = document.getElementById('btn-adicionar-obrigacao');
+        if (btnAdicionar) {
+            btnAdicionar.addEventListener('click', () => {
+                adicionarObrigacao();
+            });
+        }
     });
 
     
