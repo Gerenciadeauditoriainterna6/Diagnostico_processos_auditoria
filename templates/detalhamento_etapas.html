@@ -4079,13 +4079,6 @@
         if (modal) modal.style.display = 'none';
     }
 
-    // Fechar ao clicar fora
-    document.addEventListener('click', function(e) {
-        const modal = document.getElementById('modal-visualizar-etapa');
-        if (modal && e.target === modal) {
-            fecharModalVisualizar();
-        }
-    });
 
 
 

@@ -2993,15 +2993,6 @@
         btnFecharWizard.addEventListener('click', fecharModalWizard);
     }
 
-    // Fechar ao clicar fora do modal
-    if (modalWizard) {
-        modalWizard.addEventListener('click', (e) => {
-            if (e.target === modalWizard) {
-                fecharModalWizard();
-            }
-        });
-    }
-
     // ===== ABRIR MODAL DE VISUALIZAÇÃO DO PROCESSO =====
     async function abrirModalVisualizarProcesso(processoId) {
         const modal = document.getElementById('modal-visualizar-processo');
@@ -5729,12 +5720,7 @@
         btnSalvarModal.addEventListener('click', salvarDoModal);
     }
 
-    // Prevenir fechamento ao clicar dentro do modal
-    document.getElementById('modal-risco')?.addEventListener('click', (e) => {
-        if (e.target === document.getElementById('modal-risco')) {
-            fecharModal();
-        }
-    });
+
 
     // ⭐ EVENT LISTENERS PARA O RISCO BRUTO
     document.getElementById('modal-impacto')?.addEventListener('change', atualizarPreviewScore);
@@ -6003,11 +5989,7 @@
     if (btnFecharVisualizarModal) {
         btnFecharVisualizarModal.addEventListener('click', fecharModalVisualizar);
     }
-    if (modalVisualizar) {
-        modalVisualizar.addEventListener('click', (e) => {
-            if (e.target === modalVisualizar) fecharModalVisualizar();
-        });
-    }
+    
 
     // ===== FECHAR MODAL DE VISUALIZAÇÃO DE RISCO =====
     function fecharModalVisualizarRisco() {
@@ -6065,10 +6047,7 @@
             const newModal = modal.cloneNode(true);
             modal.parentNode.replaceChild(newModal, modal);
             newModal.addEventListener('click', function(e) {
-                // Fechar apenas se clicou no overlay (fora do conteúdo)
-                if (e.target === this) {
-                    fecharModalVisualizarRisco();
-                }
+            
             });
             console.log('✅ Evento de clique fora configurado');
         }
@@ -6104,11 +6083,7 @@
 
     if (btnFecharVisProcesso) btnFecharVisProcesso.addEventListener('click', fecharModalVisualizarProcesso);
     if (btnFecharVisProcessoFooter) btnFecharVisProcessoFooter.addEventListener('click', fecharModalVisualizarProcesso);
-    if (modalVisProcesso) {
-        modalVisProcesso.addEventListener('click', (e) => {
-            if (e.target === modalVisProcesso) fecharModalVisualizarProcesso();
-        });
-    }
+    
 
     // ===== FUNÇÃO PARA EDITAR PROCESSO EXISTENTE ======
     function abrirModalEdicao(processoId, processoCodigo) {

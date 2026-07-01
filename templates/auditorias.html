@@ -968,12 +968,6 @@
         document.getElementById('btn-nova-auditoria').addEventListener('click', abrirModalNovo);
         document.getElementById('btn-salvar-auditoria').addEventListener('click', salvarAuditoria);
         
-        // Fechar modal ao clicar fora
-        document.getElementById('modal-auditoria').addEventListener('click', function(e) {
-            if (e.target === this) {
-                fecharModal();
-            }
-        });
     });
 </script>
 {% endblock %}

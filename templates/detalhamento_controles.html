@@ -2593,15 +2593,6 @@
             btnCancelar.addEventListener('click', fecharModalControle);
         }
 
-        const modal = document.getElementById('modal-controle');
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    fecharModalControle();
-                }
-            });
-        }
-
         const btnSalvar = document.getElementById('btn-salvar-modal-controle');
         if (btnSalvar) {
             btnSalvar.addEventListener('click', salvarControle);
