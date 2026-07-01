@@ -1160,10 +1160,38 @@ def desenhar_logos(canvas, pagesize, root_dir=None):
     desenhar_png(logo2_path, x1, y_logo, 3.5*cm, 3.5*cm)
     desenhar_png(logo3_path, x3, y_logo, 3*cm, 3*cm)
 
+def formatar_telefone(telefone):
+    """
+    Formata um número de telefone para o padrão (XX) XXXX-XXXX ou (XX) XXXXX-XXXX
+    """
+    if not telefone:
+        return 'Não informado'
+    
+    # Remove tudo que não é número
+    numeros = re.sub(r'\D', '', str(telefone))
+    
+    if len(numeros) == 0:
+        return 'Não informado'
+    
+    # Se tiver 10 dígitos: (XX) XXXX-XXXX (telefone fixo)
+    if len(numeros) == 10:
+        return f"({numeros[:2]}) {numeros[2:6]}-{numeros[6:10]}"
+    # Se tiver 11 dígitos: (XX) XXXXX-XXXX (celular com 9)
+    elif len(numeros) == 11:
+        return f"({numeros[:2]}) {numeros[2:7]}-{numeros[7:11]}"
+    # Se tiver 8 dígitos: XXXX-XXXX (sem DDD)
+    elif len(numeros) == 8:
+        return f"{numeros[:4]}-{numeros[4:8]}"
+    # Se tiver 9 dígitos: XXXXX-XXXX (sem DDD, com 9)
+    elif len(numeros) == 9:
+        return f"{numeros[:5]}-{numeros[5:9]}"
+    # Caso contrário, retorna o número original
+    else:
+        return telefone
 
-# ====== FUNÇÃO PARA CRIAR RODAPÉ ======
-def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None):
-    """Cria o rodapé padronizado"""
+def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None,
+                 email_auditoria=None, telefone_auditoria=None):
+    """Cria o rodapé padronizado com logos, email e telefone"""
     canvas.saveState()
     
     altura_rodape = 1.8 * cm
@@ -1172,6 +1200,7 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
     canvas.setFillColor(colors.HexColor(COR_RODAPE))
     canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
     
+    # ⭐ LINHA 1: Título e página
     canvas.setFont('Helvetica', 8)
     canvas.setFillColor(colors.HexColor('#666666'))
     canvas.drawCentredString(
@@ -1180,6 +1209,28 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
         f"{titulo_rodape} - Página {doc.page}/{total_paginas}"
     )
     
+    # ⭐ LINHA 2: Email e Telefone (COM FORMATAÇÃO)
+    if email_auditoria or telefone_auditoria:
+        texto_contato = ""
+        if email_auditoria and email_auditoria != 'Não informado':
+            texto_contato += f"E-mail: {email_auditoria}"
+        if telefone_auditoria and telefone_auditoria != 'Não informado':
+            if texto_contato:
+                texto_contato += " | "
+            # ⭐ APLICAR FORMATAÇÃO AO TELEFONE
+            telefone_formatado = formatar_telefone(telefone_auditoria)
+            texto_contato += f"Tel: {telefone_formatado}"
+        
+        if texto_contato:
+            canvas.setFont('Helvetica', 7)
+            canvas.setFillColor(colors.HexColor('#888888'))
+            canvas.drawCentredString(
+                pagesize[0]/2, 
+                1.5*cm, 
+                texto_contato
+            )
+    
+    # ⭐ DESENHAR OS LOGOS
     desenhar_logos(canvas, pagesize, root_dir)
     
     canvas.restoreState()
@@ -1466,7 +1517,6 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
     
     print(f"📄 contar_paginas_e_gerar_pdf: story recebido com {len(story)} elementos")
     
-    # ⭐ FAZER UMA CÓPIA PROFUNDA DO STORY PARA NÃO MODIFICAR O ORIGINAL
     story_copy = copy.deepcopy(story)
     print(f"📄 story_copy criado com {len(story_copy)} elementos")
     
@@ -1488,8 +1538,7 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
         print(f"📄 Total de páginas: {total_paginas}")
         
         if total_paginas == 0:
-            print("⚠️ ATENÇÃO: Nenhuma página foi contada! O story pode estar vazio ou com erro.")
-            # Tentar gerar um PDF com apenas uma página para não falhar
+            print("⚠️ ATENÇÃO: Nenhuma página foi contada!")
             total_paginas = 1
         
         # ⭐ RECRIAR A CÓPIA PARA A SEGUNDA PASSADA
@@ -1503,6 +1552,7 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
                                      leftMargin=leftMargin, rightMargin=rightMargin)
         
         def rodape_com_total(canvas, doc):
+            # ⭐ A FUNÇÃO DE RODAPÉ JÁ TEM OS DADOS FIXOS DA GAI
             rodape_func(canvas, doc, total_paginas)
         
         print("📄 Gerando PDF final...")
@@ -1518,9 +1568,7 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
         print(f"📄 PDF final gerado: {len(pdf_bytes)} bytes")
         
         if len(pdf_bytes) < 1000:
-            print("⚠️ ATENÇÃO: PDF muito pequeno! Pode estar vazio.")
-            # Tentar gerar um PDF simples com o story
-            print("📄 Tentando gerar PDF com método alternativo...")
+            print("⚠️ ATENÇÃO: PDF muito pequeno!")
             buffer_alt = io.BytesIO()
             doc_alt = SimpleDocTemplate(buffer_alt, pagesize=pagesize,
                                        topMargin=topMargin, bottomMargin=bottomMargin,
@@ -1534,6 +1582,12 @@ def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMar
                 return pdf_bytes_alt
         
         return pdf_bytes
+        
+    except Exception as e:
+        print(f"❌ ERRO AO GERAR PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
         
     except Exception as e:
         print(f"❌ ERRO AO GERAR PDF: {e}")
@@ -1699,6 +1753,46 @@ def buscar_processos_riscos_por_area(area_id, auditoria_id=None, processo_id=Non
     
     print(f"✅ Retornando {len(processos_dict)} processos")
     return list(processos_dict.values())
+
+def buscar_dados_gerencia_auditoria():
+    """
+    Busca os dados da Gerência de Auditoria Interna na tabela informacoes_area
+    Retorna o email e telefone da GAI
+    """
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT email, telefone 
+                FROM informacoes_area 
+                WHERE nome_area ILIKE '%Auditoria Interna%' 
+                   OR nome_area ILIKE '%GAI%'
+                   OR id_area = 99 
+                LIMIT 1
+            """)
+            result = conn.execute(query).fetchone()
+            
+            if result:
+                telefone = result[1] or '(21) 99999-9999'
+                # ⭐ APLICAR FORMATAÇÃO
+                telefone_formatado = formatar_telefone(telefone)
+                return {
+                    'email': result[0] or 'auditoria@fusve.com.br',
+                    'telefone': telefone_formatado
+                }
+            else:
+                return {
+                    'email': 'auditoria@fusve.com.br',
+                    'telefone': '(21) 99999-9999'
+                }
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar dados da GAI: {e}")
+        return {
+            'email': 'auditoria@fusve.com.br',
+            'telefone': '(21) 99999-9999'
+        }
 
 # ============================================================
 # ====== FIM FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
@@ -2354,11 +2448,18 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
         print("❌ Story está vazio! Verifique o código.")
         raise Exception("Story vazio - nenhum conteúdo foi adicionado ao relatório")
     
+    # ===== BUSCAR DADOS DA GERÊNCIA DE AUDITORIA INTERNA (FIXOS) =====
+    dados_gai = buscar_dados_gerencia_auditoria()
+    email_gai = dados_gai['email']
+    telefone_gai = dados_gai['telefone']
+    
     # ===== 5. GERAR O PDF =====
     def rodape_panorama(canvas, doc, total_paginas):
         """Rodapé específico do relatório Panorama"""
         titulo_rodape = f"Relatório de Validação Matriz de Panorama - {area_nome[:50]}"
-        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape)
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, 
+                     email_auditoria=email_gai,      # ⬅️ Email da GAI (fixo)
+                     telefone_auditoria=telefone_gai) # ⬅️ Telefone da GAI (fixo)
     
     pdf_bytes = contar_paginas_e_gerar_pdf(
         story=story,
@@ -2967,9 +3068,9 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         emoji = get_emoji_risco(magnitude)
                         nome_risco = risco.get('nome_risco', 'Risco não nomeado')
                         
-                        # Limitar nome do risco
-                        if len(nome_risco) > 50:
-                            nome_risco = nome_risco[:47] + '...'
+                        # # Limitar nome do risco
+                        # if len(nome_risco) > 80:
+                        #     nome_risco = nome_risco[:77] + '...'
                         
                         story.append(Paragraph(f"{emoji} <b>Risco {risco_idx + 1}:</b> {nome_risco}", card_subtitulo_style))
                         story.append(Spacer(1, 2))
@@ -3155,11 +3256,19 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     
     # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
     criar_pagina_validacao(story, area_gestor, styles, normal_style, auditoria_id)
+
+    # ===== BUSCAR DADOS DA GERÊNCIA DE AUDITORIA INTERNA (FIXOS) =====
+    dados_gai = buscar_dados_gerencia_auditoria()
+    email_gai = dados_gai['email']
+    telefone_gai = dados_gai['telefone']
     
     # ===== 5. GERAR O PDF =====
     def rodape_detalhamento(canvas, doc, total_paginas):
+        """Rodapé específico do relatório Detalhamento"""
         titulo_rodape = f"Relatório de Validação Matriz de Detalhamento - {area_nome[:50]}"
-        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape)
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape,
+                     email_auditoria=email_gai,      # ⬅️ Email da GAI (fixo)
+                     telefone_auditoria=telefone_gai) # ⬅️ Telefone da GAI (fixo)
     
     pdf_bytes = contar_paginas_e_gerar_pdf(
         story=story,
@@ -5033,25 +5142,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(resumo_table)
             story.append(Spacer(1, 15))
     
-    # ===== SEÇÃO 3: CONCLUSÃO E RECOMENDAÇÕES =====
     story.append(PageBreak())
-    story.append(Paragraph("3. CONCLUSÃO E RECOMENDAÇÕES", secao_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph(
-        f"Com base nas análises realizadas para o processo {proc_codigo or 'N/A'} - {proc_nome or 'N/A'}, "
-        "este parecer consolida as principais observações e recomendações.",
-        normal_style
-    ))
-    story.append(Spacer(1, 5))
     
-    story.append(Paragraph("Conclusão Final do Auditor:", secao_style))
-    story.append(Spacer(1, 8))
-    
-    for i in range(6):
-        story.append(Paragraph("________________________________________________________________________________", normal_style))
-        story.append(Spacer(1, 5))
-    
-    story.append(Spacer(1, 5))
     
     # ===== ASSINATURAS =====
     assinatura_data = [
@@ -5089,6 +5181,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     from PIL import Image as PILImage
     import copy
     from PyPDF2 import PdfReader
+
+    # ⭐ BUSCAR DADOS DA GAI PARA O RODAPÉ
+    dados_gai = buscar_dados_gerencia_auditoria()
+    email_gai = dados_gai['email']
+    telefone_gai = dados_gai['telefone']
     
     # Função para desenhar as logos
     def desenhar_logos_parecer(canvas):
@@ -5134,10 +5231,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         desenhar_png(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
         desenhar_png(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
 
-    # ⭐ FAZER UMA CÓPIA DO STORY PARA A PRIMEIRA PASSADA
+    # FAZER UMA CÓPIA DO STORY PARA A PRIMEIRA PASSADA
     story_copy = copy.deepcopy(story)
     
-    # ⭐ PRIMEIRA PASSADA: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS
+    # PRIMEIRA PASSADA: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS
     buffer_temp = io.BytesIO()
     doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
                                 topMargin=1.5*cm, bottomMargin=2*cm,
@@ -5179,12 +5276,19 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         canvas.setFillColor(colors.HexColor('#F0F0F0'))
         canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
         
+        # ⭐ LINHA 1: Título e página
         canvas.setFont('Helvetica', 8)
         canvas.setFillColor(colors.HexColor('#666666'))
-        
         canvas.drawCentredString(pagesize[0]/2, 2*cm, 
-            f"Parecer do Processo {proc_codigo} - Página {doc.page}/{total_paginas}")
+            f"Parecer do Processo {proc_codigo} - {area_nome} - Página {doc.page}/{total_paginas}")
         
+        # ⭐ LINHA 2: Email e Telefone da GAI
+        texto_contato = f"E-mail: {email_gai} | Tel: {telefone_gai}"
+        canvas.setFont('Helvetica', 7)
+        canvas.setFillColor(colors.HexColor('#888888'))
+        canvas.drawCentredString(pagesize[0]/2, 1.5*cm, texto_contato)
+        
+        # ⭐ DESENHAR OS LOGOS
         desenhar_logos_parecer(canvas)
         canvas.restoreState()
     

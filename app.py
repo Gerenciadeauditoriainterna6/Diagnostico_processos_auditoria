@@ -110,6 +110,269 @@ def upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome, bucke
         traceback.print_exc()
         return None
 
+def excluir_arquivo_storage(arquivo_url, bucket_name=None):
+    """
+    Exclui um arquivo do Supabase Storage a partir da URL
+    """
+    from supabase import create_client
+    import os
+    from dotenv import load_dotenv
+    from urllib.parse import urlparse, unquote
+    
+    load_dotenv()
+    
+    if not arquivo_url or arquivo_url.strip() == '':
+        print("⚠️ URL vazia, nada para excluir")
+        return True
+    
+    print(f"📎 Excluindo arquivo: {arquivo_url}")
+    
+    try:
+        # ⭐ CREDENCIAIS
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return False
+        
+        # Extrair o caminho do arquivo da URL
+        parsed_url = urlparse(arquivo_url)
+        path = unquote(parsed_url.path)
+        
+        # 🔥 Extrair o caminho após "detalhamento_etapas"
+        if 'detalhamento_etapas' in path:
+            parts = path.split('detalhamento_etapas/')
+            if len(parts) == 2:
+                file_path = parts[1]
+                # Remover parâmetros de consulta (token, etc)
+                file_path = file_path.split('?')[0]
+                
+                bucket_name = "detalhamento_etapas"
+                
+                print(f"📎 Bucket: {bucket_name}")
+                print(f"📎 File path: {file_path}")
+                
+                supabase = create_client(supabase_url, supabase_key)
+                
+                # Excluir do storage
+                response = supabase.storage.from_(bucket_name).remove([file_path])
+                
+                print(f"📎 Resposta da exclusão: {response}")
+                return True
+            else:
+                print(f"❌ Formato de URL inesperado: {path}")
+                return False
+        else:
+            print(f"❌ 'detalhamento_etapas' não encontrado na URL: {path}")
+            return False
+        
+    except Exception as e:
+        print(f"❌ Erro ao excluir arquivo do storage: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def upload_para_bucket_detalhamento(arquivo, nome_unico, tipo, etapa_id):
+    """
+    Salva arquivo no bucket detalhamento_etapas do Supabase Storage
+    """
+    from supabase import create_client
+    import uuid
+    from datetime import datetime
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    
+    if not arquivo:
+        return None
+    
+    try:
+        # Ler o arquivo (se for um objeto File/Stream)
+        if hasattr(arquivo, 'read'):
+            file_bytes = arquivo.read()
+        else:
+            # Se for caminho ou bytes
+            file_bytes = arquivo if isinstance(arquivo, bytes) else open(arquivo, 'rb').read()
+        
+        # Nome do arquivo no storage
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # Organizar por pastas
+        if tipo == 'obrigacao':
+            pasta = 'obrigacoes'
+        elif tipo == 'manual':
+            pasta = 'manuais'
+        else:
+            pasta = 'outros'
+        
+        # Caminho: detalhamento_etapas/{pasta}/{etapa_id}/{timestamp}_{unique_id}_{nome_original}
+        # ou apenas com ID único
+        storage_filename = f"{pasta}/{etapa_id}/{timestamp}_{unique_id}.pdf"
+        
+        # ⭐ CREDENCIAIS
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        # Fallback
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return None
+        
+        bucket_name = "detalhamento_etapas"
+        
+        print(f"📎 Upload para bucket: {bucket_name}, path: {storage_filename}")
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # Upload para o bucket
+        response = supabase.storage.from_(bucket_name).upload(
+            storage_filename,
+            file_bytes,
+            file_options={"content-type": "application/pdf"}
+        )
+        
+        if response:
+            # Gerar URL assinada (válida por 1 ano = 31536000 segundos)
+            signed_url = supabase.storage.from_(bucket_name).create_signed_url(
+                storage_filename, 31536000
+            )
+            
+            if signed_url and signed_url.get('signedURL'):
+                print(f"✅ Upload concluído: {signed_url['signedURL']}")
+                return signed_url['signedURL']
+            
+            # Fallback: tentar URL pública
+            public_url = supabase.storage.from_(bucket_name).get_public_url(storage_filename)
+            if public_url:
+                print(f"✅ Upload concluído (público): {public_url}")
+                return public_url
+        
+        return None
+        
+    except Exception as e:
+        print(f"❌ Erro no upload para bucket detalhamento_etapas: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def atualizar_obrigacao_com_arquivo(etapa_id, indice_obrigacao, arquivo_url, arquivo_nome, arquivo_tamanho):
+    """
+    Atualiza a obrigação com a URL do arquivo
+    """
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar as obrigações atuais
+            query = text("""
+                SELECT obrigacoes_regulatorias 
+                FROM etapas_processo 
+                WHERE id = :etapa_id
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result or not result[0]:
+                print(f"❌ Nenhuma obrigação encontrada para etapa {etapa_id}")
+                return False
+            
+            # Parsear o JSON
+            try:
+                obrigacoes = json.loads(result[0])
+            except json.JSONDecodeError as e:
+                print(f"❌ Erro ao parsear JSON: {e}")
+                return False
+            
+            # Verificar se o índice existe
+            if indice_obrigacao >= len(obrigacoes):
+                print(f"❌ Índice {indice_obrigacao} não encontrado (total: {len(obrigacoes)})")
+                return False
+            
+            # Atualizar o arquivo na obrigação
+            obrigacoes[indice_obrigacao]['arquivo_url'] = arquivo_url
+            obrigacoes[indice_obrigacao]['arquivo_nome'] = arquivo_nome
+            obrigacoes[indice_obrigacao]['arquivo_tamanho'] = arquivo_tamanho
+            
+            # Salvar de volta
+            update_query = text("""
+                UPDATE etapas_processo 
+                SET obrigacoes_regulatorias = :obrigacoes::text
+                WHERE id = :etapa_id
+            """)
+            
+            conn.execute(update_query, {
+                'obrigacoes': json.dumps(obrigacoes, ensure_ascii=False),
+                'etapa_id': etapa_id
+            })
+            conn.commit()
+            
+            print(f"✅ Obrigação {indice_obrigacao} atualizada com arquivo: {arquivo_nome}")
+            return True
+            
+    except Exception as e:
+        print(f"❌ Erro ao atualizar obrigação: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+    
+def baixar_arquivo_obrigacao(etapa_id, indice_obrigacao):
+    """
+    Retorna a URL assinada do arquivo da obrigação
+    """
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar as obrigações
+            query = text("""
+                SELECT obrigacoes_regulatorias 
+                FROM etapas_processo 
+                WHERE id = :etapa_id
+            """)
+            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result or not result[0]:
+                return None
+            
+            obrigacoes = json.loads(result[0])
+            
+            if indice_obrigacao >= len(obrigacoes):
+                return None
+            
+            obrigacao = obrigacoes[indice_obrigacao]
+            arquivo_url = obrigacao.get('arquivo_url', '')
+            
+            if not arquivo_url:
+                return None
+            
+            # Retornar a URL assinada (já está na obrigação)
+            return arquivo_url
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar arquivo: {e}")
+        return None
+
 def calcular_tempo(data_inicio):
     """Calcula tempo decorrido desde a data de início até hoje"""
     if not data_inicio:
@@ -215,6 +478,350 @@ def verificar_perfil():
     except Exception as e:
         return jsonify({'error': str(e)}), 50
 
+@app.route('/api/obrigacao/upload', methods=['POST'])
+def api_upload_obrigacao():
+    """Faz upload do arquivo de uma obrigação regulatória"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    etapa_id = data.get('etapa_id')
+    indice = data.get('indice')
+    arquivo_base64 = data.get('arquivo_base64')
+    nome_arquivo = data.get('nome_arquivo')
+    
+    # Validações
+    if not etapa_id:
+        return jsonify({'success': False, 'error': 'etapa_id é obrigatório'}), 400
+    
+    if indice is None:
+        return jsonify({'success': False, 'error': 'indice é obrigatório'}), 400
+    
+    if not arquivo_base64:
+        return jsonify({'success': False, 'error': 'arquivo_base64 é obrigatório'}), 400
+    
+    if not nome_arquivo:
+        return jsonify({'success': False, 'error': 'nome_arquivo é obrigatório'}), 400
+    
+    # Validar tamanho (10MB)
+    import base64
+    try:
+        # Calcular tamanho aproximado
+        if ',' in arquivo_base64:
+            arquivo_base64_clean = arquivo_base64.split(',')[1]
+        else:
+            arquivo_base64_clean = arquivo_base64
+        
+        tamanho_bytes = len(arquivo_base64_clean) * 3 / 4  # Aproximado
+        if tamanho_bytes > 10 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 10MB'}), 400
+    except:
+        pass
+    
+    try:
+        from logic import upload_obrigacao_storage, atualizar_obrigacao_com_arquivo
+        
+        # Fazer upload
+        arquivo_url = upload_obrigacao_storage(
+            etapa_id, 
+            indice, 
+            arquivo_base64, 
+            nome_arquivo
+        )
+        
+        if not arquivo_url:
+            return jsonify({'success': False, 'error': 'Erro ao fazer upload do arquivo'}), 500
+        
+        # Atualizar a obrigação com a URL
+        sucesso = atualizar_obrigacao_com_arquivo(
+            etapa_id, 
+            indice, 
+            arquivo_url, 
+            nome_arquivo,
+            int(tamanho_bytes) if 'tamanho_bytes' in locals() else 0
+        )
+        
+        if not sucesso:
+            return jsonify({'success': False, 'error': 'Erro ao atualizar obrigação'}), 500
+        
+        return jsonify({
+            'success': True,
+            'arquivo_url': arquivo_url,
+            'arquivo_nome': nome_arquivo,
+            'message': 'Arquivo anexado com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro no upload: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def excluir_obrigacao_completa(etapa_id, indice_obrigacao, arquivo_url=None):
+    """
+    Exclui uma obrigação regulatória completa:
+    - Remove do banco de dados
+    - Remove o arquivo do storage (se existir)
+    
+    Args:
+        etapa_id (int): ID da etapa
+        indice_obrigacao (int): Índice da obrigação no array JSON
+        arquivo_url (str, optional): URL do arquivo para excluir
+    
+    Returns:
+        dict: Resultado da operação
+    """
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    try:
+        print(f"🗑️ Excluindo obrigação {indice_obrigacao} da etapa {etapa_id}")
+        
+        with engine.connect() as conn:
+            # Buscar a etapa atual
+            query_busca = text("""
+                SELECT obrigacoes_regulatorias FROM etapas_processo WHERE id = :etapa_id
+            """)
+            result = conn.execute(query_busca, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result:
+                return {'success': False, 'error': 'Etapa não encontrada'}
+            
+            # Parse do JSON
+            obrigacoes_str = result[0]
+            if obrigacoes_str:
+                obrigacoes = json.loads(obrigacoes_str)
+            else:
+                obrigacoes = []
+            
+            # Verificar se o índice existe
+            if indice_obrigacao >= len(obrigacoes):
+                return {'success': False, 'error': 'Obrigação não encontrada'}
+            
+            # Remover a obrigação do array
+            obrigacao_removida = obrigacoes.pop(indice_obrigacao)
+            
+            # 🔥 Se tiver URL, excluir do storage
+            url_para_excluir = None
+            
+            # Prioridade 1: URL passada como parâmetro
+            if arquivo_url and arquivo_url.strip() != '':
+                url_para_excluir = arquivo_url
+            # Prioridade 2: URL da obrigação removida
+            elif obrigacao_removida and obrigacao_removida.get('arquivo_url'):
+                url_para_excluir = obrigacao_removida.get('arquivo_url')
+            
+            if url_para_excluir and url_para_excluir.strip() != '':
+                print(f"📎 Excluindo arquivo do storage: {url_para_excluir}")
+                excluir_arquivo_storage(url_para_excluir)
+            else:
+                print("ℹ️ Nenhum arquivo para excluir do storage")
+            
+            # Atualizar o campo no banco
+            obrigacoes_json = json.dumps(obrigacoes, ensure_ascii=False)
+            
+            query_update = text("""
+                UPDATE etapas_processo 
+                SET obrigacoes_regulatorias = :obrigacoes, updated_at = NOW()
+                WHERE id = :etapa_id
+            """)
+            conn.execute(query_update, {
+                'obrigacoes': obrigacoes_json,
+                'etapa_id': etapa_id
+            })
+            conn.commit()
+            
+            print(f"✅ Obrigação {indice_obrigacao} excluída com sucesso")
+            
+            return {
+                'success': True,
+                'message': 'Obrigação excluída com sucesso',
+                'total_restantes': len(obrigacoes)
+            }
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir obrigação: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'error': str(e)}
+
+
+@app.route('/api/obrigacao/excluir', methods=['DELETE'])
+def api_excluir_obrigacao():
+    """
+    Exclui uma obrigação regulatória da etapa
+    Remove do banco de dados E do storage
+    """
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    try:
+        data = request.json
+        etapa_id = data.get('etapa_id')
+        indice_obrigacao = data.get('indice')  # Índice da obrigação no array
+        arquivo_url = data.get('arquivo_url')  # URL do arquivo para excluir do storage
+        
+        if not etapa_id:
+            return jsonify({'success': False, 'error': 'ID da etapa é obrigatório'}), 400
+        
+        if indice_obrigacao is None:
+            return jsonify({'success': False, 'error': 'Índice da obrigação é obrigatório'}), 400
+        
+        print(f"🗑️ Excluindo obrigação {indice_obrigacao} da etapa {etapa_id}")
+        
+        with engine.connect() as conn:
+            # Buscar a etapa atual
+            query_busca = text("""
+                SELECT obrigacoes_regulatorias FROM etapas_processo WHERE id = :etapa_id
+            """)
+            result = conn.execute(query_busca, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+            
+            # Parse do JSON
+            obrigacoes_str = result[0]
+            if obrigacoes_str:
+                obrigacoes = json.loads(obrigacoes_str)
+            else:
+                obrigacoes = []
+            
+            # Verificar se o índice existe
+            if indice_obrigacao >= len(obrigacoes):
+                return jsonify({'success': False, 'error': 'Obrigação não encontrada'}), 404
+            
+            # 🔥 Remover a obrigação do array
+            obrigacao_removida = obrigacoes.pop(indice_obrigacao)
+            
+            # 🔥 Se tiver URL, excluir do storage
+            if arquivo_url and arquivo_url.strip() != '':
+               
+                print(f"📎 Excluindo arquivo do storage: {arquivo_url}")
+                excluir_arquivo_storage(arquivo_url)
+            elif obrigacao_removida and obrigacao_removida.get('arquivo_url'):
+                # Se não veio a URL no payload, mas a obrigação tem URL
+                url_para_excluir = obrigacao_removida.get('arquivo_url')
+                if url_para_excluir and url_para_excluir.strip() != '':
+                   
+                    print(f"📎 Excluindo arquivo do storage: {url_para_excluir}")
+                    excluir_arquivo_storage(url_para_excluir)
+            
+            # Atualizar o campo no banco
+            obrigacoes_json = json.dumps(obrigacoes, ensure_ascii=False)
+            
+            query_update = text("""
+                UPDATE etapas_processo 
+                SET obrigacoes_regulatorias = :obrigacoes, updated_at = NOW()
+                WHERE id = :etapa_id
+            """)
+            conn.execute(query_update, {
+                'obrigacoes': obrigacoes_json,
+                'etapa_id': etapa_id
+            })
+            conn.commit()
+            
+            print(f"✅ Obrigação {indice_obrigacao} excluída com sucesso")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Obrigação excluída com sucesso',
+                'total_restantes': len(obrigacoes)
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir obrigação: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/obrigacao/remover-arquivo', methods=['POST'])
+def api_obrigacao_remover_arquivo():
+    """
+    Remove apenas o arquivo de uma obrigação (mantém a obrigação)
+    """
+    from database import engine
+    from sqlalchemy import text
+    import json
+    
+    try:
+        data = request.json
+        etapa_id = data.get('etapa_id')
+        indice_obrigacao = data.get('indice')
+        arquivo_url = data.get('arquivo_url')
+        
+        if not etapa_id:
+            return jsonify({'success': False, 'error': 'ID da etapa é obrigatório'}), 400
+        
+        if indice_obrigacao is None:
+            return jsonify({'success': False, 'error': 'Índice da obrigação é obrigatório'}), 400
+        
+        print(f"🗑️ Removendo arquivo da obrigação {indice_obrigacao} da etapa {etapa_id}")
+        print(f"📎 URL do arquivo: {arquivo_url}")
+        
+        with engine.connect() as conn:
+            # Buscar a etapa atual
+            query_busca = text("""
+                SELECT obrigacoes_regulatorias FROM etapas_processo WHERE id = :etapa_id
+            """)
+            result = conn.execute(query_busca, {'etapa_id': etapa_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+            
+            # Parse do JSON
+            obrigacoes_str = result[0]
+            if obrigacoes_str:
+                obrigacoes = json.loads(obrigacoes_str)
+            else:
+                obrigacoes = []
+            
+            # Verificar se o índice existe
+            if indice_obrigacao >= len(obrigacoes):
+                return jsonify({'success': False, 'error': 'Obrigação não encontrada'}), 404
+            
+            # 🔥 Se tiver URL, excluir do storage
+            if arquivo_url and arquivo_url.strip() != '':
+           
+                print(f"📎 Excluindo arquivo do storage: {arquivo_url}")
+                excluir_arquivo_storage(arquivo_url)
+            else:
+                print("⚠️ Nenhuma URL fornecida para excluir")
+                return jsonify({'success': False, 'error': 'URL do arquivo não fornecida'}), 400
+            
+            # 🔥 Limpar os campos de arquivo na obrigação
+            obrigacoes[indice_obrigacao]['arquivo_url'] = ''
+            obrigacoes[indice_obrigacao]['arquivo_nome'] = ''
+            obrigacoes[indice_obrigacao]['arquivo_tamanho'] = 0
+            
+            # Atualizar o campo no banco
+            obrigacoes_json = json.dumps(obrigacoes, ensure_ascii=False)
+            
+            query_update = text("""
+                UPDATE etapas_processo 
+                SET obrigacoes_regulatorias = :obrigacoes, updated_at = NOW()
+                WHERE id = :etapa_id
+            """)
+            conn.execute(query_update, {
+                'obrigacoes': obrigacoes_json,
+                'etapa_id': etapa_id
+            })
+            conn.commit()
+            
+            print(f"✅ Arquivo removido com sucesso da obrigação {indice_obrigacao}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Arquivo removido com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover arquivo: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 
@@ -876,6 +1483,10 @@ def log_alteracoes():
     
     # 3. Se for admin, mostra a página
     return render_template('log_alteracoes.html')
+    
+    
+
+
 
 @app.route('/api/processo/<int:processo_id>/etapas')
 def api_processo_etapas(processo_id):
@@ -3872,43 +4483,94 @@ def matriz_achados():
     
     return render_template('matriz_achados.html', areas=areas)
 
-@app.route('/api/etapa/<int:etapa_id>/download/<tipo>')
-def api_etapa_download(etapa_id, tipo):
-    """Download do diagrama ou manual da etapa"""
+@app.route('/api/etapa/<int:etapa_id>/download/<tipo>', methods=['GET'])
+def api_download_arquivo(etapa_id, tipo):
+    """
+    Baixa um arquivo da etapa (manual, diagrama, etc)
+    """
     from database import engine
     from sqlalchemy import text
-    from flask import send_file
+    from flask import redirect, send_file
     import io
-    
-    if tipo not in ['diagrama', 'manual']:
-        return jsonify({'error': 'Tipo inválido'}), 400
     
     try:
         with engine.connect() as conn:
-            if tipo == 'diagrama':
-                query = text("SELECT diagrama_bpmn, diagrama_nome, diagrama_tipo FROM etapas_processo WHERE id = :etapa_id")
+            if tipo == 'manual':
+                # 🔥 CORRIGIDO: Buscar apenas manual_url e manual_nome
+                query = text("""
+                    SELECT manual_url, manual_nome 
+                    FROM etapas_processo 
+                    WHERE id = :etapa_id
+                """)
+                result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+                
+                if not result:
+                    return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+                
+                # 🔥 Acessar pelos índices corretos (0 e 1)
+                manual_url = result[0]
+                manual_nome = result[1]
+                
+                if not manual_url or manual_url.strip() == '':
+                    return jsonify({'success': False, 'error': 'Nenhum manual anexado'}), 404
+                
+                # Redirecionar para a URL do Supabase
+                return redirect(manual_url)
+            
+            elif tipo == 'diagrama':
+                query = text("""
+                    SELECT diagrama_bpmn, diagrama_nome 
+                    FROM etapas_processo 
+                    WHERE id = :etapa_id
+                """)
+                result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+                
+                if not result:
+                    return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+                
+                diagrama_bytes = result[0]
+                diagrama_nome = result[1]
+                
+                if not diagrama_bytes:
+                    return jsonify({'success': False, 'error': 'Nenhum diagrama anexado'}), 404
+                
+                return send_file(
+                    io.BytesIO(diagrama_bytes),
+                    download_name=diagrama_nome or 'diagrama.bpmn',
+                    as_attachment=True
+                )
+            
+            elif tipo == 'mapeamento':
+                query = text("""
+                    SELECT arquivo_mapeamento, arquivo_mapeamento_nome 
+                    FROM etapas_processo 
+                    WHERE id = :etapa_id
+                """)
+                result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+                
+                if not result:
+                    return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+                
+                mapeamento_bytes = result[0]
+                mapeamento_nome = result[1]
+                
+                if not mapeamento_bytes:
+                    return jsonify({'success': False, 'error': 'Nenhum mapeamento anexado'}), 404
+                
+                return send_file(
+                    io.BytesIO(mapeamento_bytes),
+                    download_name=mapeamento_nome or 'mapeamento.pdf',
+                    as_attachment=True
+                )
+            
             else:
-                query = text("SELECT manual_etapa, manual_nome, manual_tipo FROM etapas_processo WHERE id = :etapa_id")
-            
-            result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
-            
-            if not result or not result[0]:
-                return jsonify({'error': 'Arquivo não encontrado'}), 404
-            
-            arquivo_bytes = result[0]
-            nome_arquivo = result[1] or f'{tipo}_{etapa_id}'
-            tipo_arquivo = result[2] or 'application/octet-stream'
-            
-            return send_file(
-                io.BytesIO(arquivo_bytes),
-                mimetype=tipo_arquivo,
-                as_attachment=True,
-                download_name=nome_arquivo
-            )
+                return jsonify({'success': False, 'error': f'Tipo de arquivo inválido: {tipo}'}), 400
             
     except Exception as e:
         print(f"❌ Erro ao baixar arquivo: {e}")
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/etapa/<int:etapa_id>/excluir', methods=['DELETE'])
 def api_excluir_etapa(etapa_id):
@@ -3944,7 +4606,7 @@ def api_etapa_detalhes(etapa_id):
                        necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
                        executores_etapa,
                        diagrama_bpmn, diagrama_nome, diagrama_tipo,
-                       manual_etapa, manual_nome, manual_tipo,
+                       manual_nome, manual_url,
                        arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,
                        -- ⭐ NOVO CAMPO
                        manual_em_andamento
@@ -3960,16 +4622,11 @@ def api_etapa_detalhes(etapa_id):
             diagrama_base64 = None
             if result[16]:  # diagrama_bpmn
                 diagrama_base64 = base64.b64encode(result[16]).decode('utf-8')
-            
-            # ===== CONVERTER MANUAL PARA BASE64 =====
-            manual_base64 = None
-            if result[19]:  # manual_etapa
-                manual_base64 = base64.b64encode(result[19]).decode('utf-8')
-            
+                        
             # ===== CONVERTER ARQUIVO DE MAPEAMENTO PARA BASE64 =====
             arquivo_mapeamento_base64 = None
-            if result[22]:  # arquivo_mapeamento
-                arquivo_mapeamento_base64 = base64.b64encode(result[22]).decode('utf-8')
+            if result[21]:  # arquivo_mapeamento
+                arquivo_mapeamento_base64 = base64.b64encode(result[21]).decode('utf-8')
             
             etapa = {
                 'id': result[0],
@@ -3995,17 +4652,16 @@ def api_etapa_detalhes(etapa_id):
                 'diagrama_tipo': result[18] or '',
                 
                 # Manual
-                'manual_base64': manual_base64,
-                'manual_nome': result[20] or '',
-                'manual_tipo': result[21] or '',
+                'manual_nome': result[19] or '',
+                'manual_url': result[20] or '',
                 
                 # Arquivo de Mapeamento
                 'arquivo_mapeamento_base64': arquivo_mapeamento_base64,
-                'arquivo_mapeamento_nome': result[23] or '',
-                'arquivo_mapeamento_tipo': result[24] or '',
+                'arquivo_mapeamento_nome': result[22] or '',
+                'arquivo_mapeamento_tipo': result[23] or '',
                 
                 # ⭐ NOVO CAMPO
-                'manual_em_andamento': result[25] if len(result) > 25 and result[25] else False
+                'manual_em_andamento': result[24] if len(result) > 24 and result[24] else False
             }
             
             return jsonify({'success': True, 'etapa': etapa})
@@ -4060,6 +4716,7 @@ def api_salvar_etapa():
     from database import engine
     from sqlalchemy import text
     import base64
+    import json
     
     data = request.json
     etapa_id = data.get('id')
@@ -4077,7 +4734,7 @@ def api_salvar_etapa():
     sugestao_melhoria = data.get('sugestao_melhoria', '')
     necessidade_implantacao = data.get('necessidade_implantacao', '')
     ganho_previsto = data.get('ganho_previsto', '')
-    obrigacoes_regulatorias = data.get('obrigacoes_regulatorias', '')
+    obrigacoes_regulatorias = data.get('obrigacoes_regulatorias', '[]')
     executores_etapa = data.get('executores_etapa', '')
     manual_em_andamento = data.get('manual_em_andamento', False)
     
@@ -4101,12 +4758,9 @@ def api_salvar_etapa():
     if data.get('diagrama_base64'):
         diagrama_bytes = base64.b64decode(data['diagrama_base64'].split(',')[1] if ',' in data['diagrama_base64'] else data['diagrama_base64'])
     
-    manual_bytes = None
+    # 🔥 CORRIGIDO: Removido processamento de manual_base64
     manual_nome = data.get('manual_nome')
-    manual_tipo = data.get('manual_tipo')
-    
-    if data.get('manual_base64'):
-        manual_bytes = base64.b64decode(data['manual_base64'].split(',')[1] if ',' in data['manual_base64'] else data['manual_base64'])
+    manual_url = data.get('manual_url')
     
     # Processar upload do arquivo do mapeamento
     arquivo_mapeamento_bytes = None
@@ -4115,6 +4769,55 @@ def api_salvar_etapa():
 
     if data.get('arquivo_mapeamento_base64'):
         arquivo_mapeamento_bytes = base64.b64decode(data['arquivo_mapeamento_base64'].split(',')[1] if ',' in data['arquivo_mapeamento_base64'] else data['arquivo_mapeamento_base64'])
+
+    # ⭐⭐⭐ PROCESSAR OBRIGAÇÕES REGULATÓRIAS - VERSÃO CORRIGIDA ⭐⭐⭐
+    try:
+        if isinstance(obrigacoes_regulatorias, str):
+            obrigacoes = json.loads(obrigacoes_regulatorias) if obrigacoes_regulatorias else []
+        else:
+            obrigacoes = obrigacoes_regulatorias or []
+        
+        if obrigacoes and isinstance(obrigacoes, list):
+            for idx, obrigacao in enumerate(obrigacoes):
+                if 'arquivo_base64' in obrigacao:
+                    del obrigacao['arquivo_base64']
+                    print(f"⚠️ Obrigação {idx}: removido campo arquivo_base64")
+                if '_upload_file' in obrigacao:
+                    del obrigacao['_upload_file']
+                if '_file_data' in obrigacao:
+                    del obrigacao['_file_data']
+                if '_index' in obrigacao:
+                    del obrigacao['_index']
+                
+                if 'titulo' not in obrigacao or not obrigacao['titulo']:
+                    obrigacao['titulo'] = 'INEXISTENTE'
+                if 'descricao_completa' not in obrigacao:
+                    obrigacao['descricao_completa'] = 'INEXISTENTE'
+                if 'arquivo_url' not in obrigacao:
+                    obrigacao['arquivo_url'] = ''
+                if 'arquivo_nome' not in obrigacao:
+                    obrigacao['arquivo_nome'] = ''
+                if 'arquivo_tamanho' not in obrigacao:
+                    obrigacao['arquivo_tamanho'] = 0
+                if 'prazo' not in obrigacao:
+                    obrigacao['prazo'] = ''
+                if 'obrigatorio' not in obrigacao:
+                    obrigacao['obrigatorio'] = False
+                if 'orgao_regulador' not in obrigacao:
+                    obrigacao['orgao_regulador'] = ''
+                if 'documento_necessario' not in obrigacao:
+                    obrigacao['documento_necessario'] = ''
+                
+                print(f"📋 Obrigação {idx}: {obrigacao.get('titulo')} - URL: {obrigacao.get('arquivo_url', 'sem arquivo')}")
+        
+        obrigacoes_regulatorias = json.dumps(obrigacoes, ensure_ascii=False)
+        print(f"✅ Obrigações processadas: {len(obrigacoes)} itens (sem Base64)")
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao processar obrigações regulatórias: {e}")
+        import traceback
+        traceback.print_exc()
+        pass
 
     if not processo_id:
         return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
@@ -4127,25 +4830,21 @@ def api_salvar_etapa():
             if etapa_id:
                 # ========== EDIÇÃO: atualizar etapa existente ==========
                 
-                # Verificar se deve remover arquivos
                 remover_diagrama = data.get('remover_diagrama', False)
                 remover_manual = data.get('remover_manual', False)
                 
-                # Se deve remover o diagrama, forçar None
                 if remover_diagrama:
                     diagrama_bytes = None
                     diagrama_nome = None
                     diagrama_tipo = None
                     print(f"🗑️ Removendo diagrama da etapa {etapa_id}")
                 
-                # Se deve remover o manual, forçar None
+                # 🔥 CORRIGIDO: Se remover_manual, limpar URL e nome
                 if remover_manual:
-                    manual_bytes = None
+                    manual_url = None
                     manual_nome = None
-                    manual_tipo = None
                     print(f"🗑️ Removendo manual da etapa {etapa_id}")
                 
-                # Parâmetros básicos
                 params = {
                     'etapa_id': etapa_id,
                     'nome_etapa': nome_etapa,
@@ -4164,11 +4863,9 @@ def api_salvar_etapa():
                     'manual_em_andamento': manual_em_andamento
                 }
                 
-                # ⭐⭐⭐ Se tem auditoria_id, atualizar também
                 if auditoria_id:
                     params['auditoria_id'] = auditoria_id
                 
-                # Campos base da query
                 base_fields = """
                     nome_etapa = :nome_etapa,
                     descricao_etapa = :descricao_etapa,
@@ -4186,13 +4883,12 @@ def api_salvar_etapa():
                     manual_em_andamento = :manual_em_andamento
                 """
                 
-                # ⭐⭐⭐ Adicionar auditoria_id ao UPDATE se disponível
                 if auditoria_id:
                     base_fields += ", auditoria_id = :auditoria_id"
                 
                 update_fields = []
                 
-                # Diagrama: se veio um novo arquivo OU foi marcado para remover
+                # Diagrama
                 if data.get('diagrama_base64') or remover_diagrama:
                     update_fields.append("diagrama_bpmn = :diagrama_bpmn")
                     update_fields.append("diagrama_nome = :diagrama_nome")
@@ -4201,16 +4897,14 @@ def api_salvar_etapa():
                     params['diagrama_nome'] = diagrama_nome
                     params['diagrama_tipo'] = diagrama_tipo
                 
-                # Manual: se veio um novo arquivo OU foi marcado para remover
-                if data.get('manual_base64') or remover_manual:
-                    update_fields.append("manual_etapa = :manual_etapa")
+                # 🔥 CORRIGIDO: Manual - usar URL em vez de Base64
+                if manual_url is not None or remover_manual:
                     update_fields.append("manual_nome = :manual_nome")
-                    update_fields.append("manual_tipo = :manual_tipo")
-                    params['manual_etapa'] = manual_bytes
+                    update_fields.append("manual_url = :manual_url")
                     params['manual_nome'] = manual_nome
-                    params['manual_tipo'] = manual_tipo
+                    params['manual_url'] = manual_url
                 
-                # Arquivo de Mapeamento
+                # Mapeamento
                 remover_arquivo_mapeamento = data.get('remover_arquivo_mapeamento', False)
                 if data.get('arquivo_mapeamento_base64') or remover_arquivo_mapeamento:
                     update_fields.append("arquivo_mapeamento = :arquivo_mapeamento")
@@ -4220,7 +4914,6 @@ def api_salvar_etapa():
                     params['arquivo_mapeamento_nome'] = arquivo_mapeamento_nome
                     params['arquivo_mapeamento_tipo'] = arquivo_mapeamento_tipo
                 
-                # Montar query final
                 if update_fields:
                     query_sql = f"""
                         UPDATE etapas_processo
@@ -4251,7 +4944,6 @@ def api_salvar_etapa():
             else:
                 # ========== NOVA ETAPA: inserir ==========
                 
-                # ⭐⭐⭐ CORREÇÃO CRÍTICA: Se ainda não tem auditoria_id, buscar do processo
                 if not auditoria_id and processo_id:
                     busca_query = text("SELECT auditoria_id FROM processos WHERE id = :processo_id")
                     result = conn.execute(busca_query, {'processo_id': processo_id}).fetchone()
@@ -4259,9 +4951,7 @@ def api_salvar_etapa():
                         auditoria_id = result[0]
                         print(f"🔍 Nova etapa - auditoria_id {auditoria_id} obtido do processo {processo_id}")
                 
-                # Se não veio código, gerar automaticamente
                 if not codigo_etapa:
-                    # Buscar código do processo e gerar próximo número
                     query_codigo = text("SELECT codigo_processo FROM processos WHERE id = :processo_id")
                     processo_codigo = conn.execute(query_codigo, {'processo_id': processo_id}).fetchone()
                     
@@ -4287,7 +4977,7 @@ def api_salvar_etapa():
                         necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
                         executores_etapa,
                         diagrama_bpmn, diagrama_nome, diagrama_tipo,
-                        manual_etapa, manual_nome, manual_tipo,
+                        manual_nome, manual_url,
                         arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,
                         manual_em_andamento,
                         created_at
@@ -4299,7 +4989,7 @@ def api_salvar_etapa():
                         :necessidade_implantacao, :ganho_previsto, :obrigacoes_regulatorias,
                         :executores_etapa,
                         :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
-                        :manual_etapa, :manual_nome, :manual_tipo,
+                        :manual_nome, :manual_url,
                         :arquivo_mapeamento, :arquivo_mapeamento_nome, :arquivo_mapeamento_tipo,
                         :manual_em_andamento,
                         NOW()
@@ -4309,7 +4999,7 @@ def api_salvar_etapa():
                 
                 result = conn.execute(query, {
                     'processo_id': processo_id,
-                    'auditoria_id': auditoria_id,  # ⭐ AGORA NÃO É MAIS NULL!
+                    'auditoria_id': auditoria_id,
                     'codigo_etapa': codigo_etapa,
                     'nome_etapa': nome_etapa,
                     'descricao_etapa': descricao_etapa,
@@ -4327,9 +5017,8 @@ def api_salvar_etapa():
                     'diagrama_bpmn': diagrama_bytes,
                     'diagrama_nome': diagrama_nome,
                     'diagrama_tipo': diagrama_tipo,
-                    'manual_etapa': manual_bytes,
                     'manual_nome': manual_nome,
-                    'manual_tipo': manual_tipo,
+                    'manual_url': manual_url,
                     'arquivo_mapeamento': arquivo_mapeamento_bytes,
                     'arquivo_mapeamento_nome': arquivo_mapeamento_nome,
                     'arquivo_mapeamento_tipo': arquivo_mapeamento_tipo,
@@ -4337,6 +5026,7 @@ def api_salvar_etapa():
                 })
                 
                 novo_id = result.fetchone()[0]
+                
                 print(f"✅ Nova etapa criada! ID: {novo_id}, Código: {codigo_etapa}, auditoria_id: {auditoria_id}")
                 conn.commit()
                 
@@ -4354,68 +5044,153 @@ def api_salvar_etapa():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ====== DOWNLOAD MANUAL ======
-@app.route('/api/etapa/<int:etapa_id>/download-manual')
-def api_etapa_download_manual(etapa_id):
-    """Faz o download do manual da etapa"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+@app.route('/api/upload/detalhamento', methods=['POST'])
+def api_upload_detalhamento():
+    """
+    Endpoint para upload de arquivos para o bucket detalhamento_etapas
+    """
+    try:
+        # Verificar se o arquivo foi enviado
+        if 'arquivo' not in request.files:
+            return jsonify({'success': False, 'error': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['arquivo']
+        if arquivo.filename == '':
+            return jsonify({'success': False, 'error': 'Nome do arquivo vazio'}), 400
+        
+        # Obter dados adicionais
+        tipo = request.form.get('tipo', 'obrigacao')
+        etapa_id = request.form.get('etapa_id', 'temp')
+        titulo_obrigacao = request.form.get('titulo_obrigacao', '')
+        
+        # Validar tipo de arquivo
+        tipos_permitidos = ['application/pdf']
+        if arquivo.content_type not in tipos_permitidos:
+            return jsonify({'success': False, 'error': 'Apenas arquivos PDF são permitidos'}), 400
+        
+        # Validar tamanho (10MB)
+        arquivo.seek(0, 2)
+        tamanho = arquivo.tell()
+        arquivo.seek(0)
+        
+        if tamanho > 10 * 1024 * 1024:
+            return jsonify({'success': False, 'error': 'Arquivo muito grande (máx. 10MB)'}), 400
+        
+        
+        
+        # Gerar nome único
+        import uuid
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        nome_unico = f"{timestamp}_{unique_id}"
+        
+        # Fazer upload para o bucket
+        url_arquivo = upload_para_bucket_detalhamento(
+            arquivo,
+            nome_unico,
+            tipo,
+            etapa_id
+        )
+        
+        if url_arquivo:
+            return jsonify({
+                'success': True,
+                'url': url_arquivo,
+                'nome_arquivo': arquivo.filename,
+                'tamanho': tamanho,
+                'nome_unico': nome_unico
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Erro ao fazer upload para o bucket'}), 500
+        
+    except Exception as e:
+        print(f"❌ Erro no upload: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
     
+@app.route('/api/etapa/<int:etapa_id>/download-manual', methods=['GET'])
+def api_download_manual(etapa_id):
+    """
+    Baixa o manual da etapa usando a URL salva
+    """
     from database import engine
     from sqlalchemy import text
-    from flask import send_file
-    import io
+    from flask import redirect
     
     try:
         with engine.connect() as conn:
             query = text("""
-                SELECT manual_etapa, manual_nome, manual_tipo
-                FROM etapas_processo
+                SELECT manual_url, manual_nome 
+                FROM etapas_processo 
                 WHERE id = :etapa_id
             """)
             result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
             
-            if not result or not result[0]:
-                return jsonify({'error': 'Manual não encontrado'}), 404
+            if not result:
+                return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
             
-            return send_file(
-                io.BytesIO(bytes(result[0])),
-                mimetype=result[2] or 'application/octet-stream',
-                as_attachment=True,
-                download_name=result[1] or f'manual_etapa_{etapa_id}'
-            )
+            manual_url = result[0]
+            manual_nome = result[1]
+            
+            if not manual_url or manual_url.strip() == '':
+                return jsonify({'success': False, 'error': 'Nenhum manual anexado'}), 404
+            
+            # 🔥 Redirecionar para a URL do Supabase (já é assinada)
+            return redirect(manual_url)
             
     except Exception as e:
         print(f"❌ Erro ao baixar manual: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# ====== REMOVER MANUAL ======
 @app.route('/api/etapa/<int:etapa_id>/remover-manual', methods=['DELETE'])
-def api_etapa_remover_manual(etapa_id):
-    """Remove o manual da etapa"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
+def api_remover_manual(etapa_id):
+    """
+    Remove o manual da etapa:
+    - Exclui do storage
+    - Limpa a URL na tabela
+    """
     from database import engine
     from sqlalchemy import text
     
     try:
+        data = request.json
+        arquivo_url = data.get('arquivo_url') if data else None
+        
+        if not arquivo_url:
+            return jsonify({'success': False, 'error': 'URL do manual não fornecida'}), 400
+        
+        print(f"🗑️ Removendo manual da etapa {etapa_id}")
+        print(f"📎 URL do manual: {arquivo_url}")
+        
+        # 🔥 Excluir do storage
+        excluir_arquivo_storage(arquivo_url)
+        
+        # 🔥 Limpar URL na tabela
         with engine.connect() as conn:
             query = text("""
                 UPDATE etapas_processo 
-                SET manual_etapa = NULL,
+                SET manual_url = NULL, 
                     manual_nome = NULL,
-                    manual_tipo = NULL,
-                    manual_em_andamento = FALSE
+                    manual_em_andamento = FALSE,
+                    updated_at = NOW()
                 WHERE id = :etapa_id
             """)
             conn.execute(query, {'etapa_id': etapa_id})
             conn.commit()
-            
-            return jsonify({'success': True, 'message': 'Manual removido'})
-            
+        
+        print(f"✅ Manual removido com sucesso da etapa {etapa_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Manual removido com sucesso'
+        })
+        
     except Exception as e:
         print(f"❌ Erro ao remover manual: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
