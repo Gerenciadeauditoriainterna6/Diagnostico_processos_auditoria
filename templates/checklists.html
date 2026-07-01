@@ -4283,20 +4283,6 @@
         document.getElementById('btn-salvar-followup')?.addEventListener('click', salvarFollowUp);
         document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
         
-        const modalChecklist = document.getElementById('modal-checklist');
-        if (modalChecklist) modalChecklist.addEventListener('click', (e) => { if (e.target === modalChecklist) fecharModalChecklist(); });
-        
-        const modalAnalise = document.getElementById('modal-analise-auditor');
-        if (modalAnalise) modalAnalise.addEventListener('click', (e) => { if (e.target === modalAnalise) fecharModalAnaliseAuditor(); });
-        
-        const modalHistorico = document.getElementById('modal-historico-andamento');
-        if (modalHistorico) modalHistorico.addEventListener('click', (e) => { if (e.target === modalHistorico) fecharModalHistorico(); });
-        
-        const modalFollowUp = document.getElementById('modal-follow-up');
-        if (modalFollowUp) modalFollowUp.addEventListener('click', (e) => { if (e.target === modalFollowUp) fecharModalFollowUp(); });
-        
-        const modalConfirmar = document.getElementById('modal-confirmar-implantacao');
-        if (modalConfirmar) modalConfirmar.addEventListener('click', (e) => { if (e.target === modalConfirmar) fecharModalConfirmarImplantacao(); });
         
         setupFileUploadEvidenciaAuditor();
         setupFileUploadEvidenciaAuditado();

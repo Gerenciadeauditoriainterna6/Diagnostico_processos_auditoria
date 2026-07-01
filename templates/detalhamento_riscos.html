@@ -2958,14 +2958,6 @@
             btnCancelar.addEventListener('click', fecharModalRisco);
         }
 
-        const modal = document.getElementById('modal-risco-etapa');
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    fecharModalRisco();
-                }
-            });
-        }
 
         const impactoSelect = document.getElementById('risco_impacto');
         const probSelect = document.getElementById('risco_probabilidade');
