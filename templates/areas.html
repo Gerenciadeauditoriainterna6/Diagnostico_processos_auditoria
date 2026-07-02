@@ -2072,13 +2072,6 @@
             btnCancelarModal.addEventListener('click', fecharModal);
         }
         
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    fecharModal();
-                }
-            });
-        }
         
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal && modal.style.display === 'block') {
@@ -2200,12 +2193,6 @@
         if (btnFecharModalFunc) btnFecharModalFunc.addEventListener('click', fecharModalFunc);
         if (btnCancelarModalFunc) btnCancelarModalFunc.addEventListener('click', fecharModalFunc);
         
-        // Clicar fora do modal fecha
-        if (modalFunc) {
-            modalFunc.addEventListener('click', (e) => {
-                if (e.target === modalFunc) fecharModalFunc();
-            });
-        }
         
         // Salvar funcionário
         if (formAddFuncionario) {
@@ -2350,11 +2337,6 @@
     if (btnFecharEditarArea) btnFecharEditarArea.addEventListener('click', fecharModalEditarArea);
     if (btnCancelarEditarArea) btnCancelarEditarArea.addEventListener('click', fecharModalEditarArea);
 
-    if (modalEditarArea) {
-        modalEditarArea.addEventListener('click', (e) => {
-            if (e.target === modalEditarArea) fecharModalEditarArea();
-        });
-    }
 
     async function abrirModalEditarArea(areaId) {
         try {
@@ -2498,11 +2480,6 @@
     if (btnFecharEditarFuncionario) btnFecharEditarFuncionario.addEventListener('click', fecharModalEditarFuncionario);
     if (btnCancelarEditarFuncionario) btnCancelarEditarFuncionario.addEventListener('click', fecharModalEditarFuncionario);
 
-    if (modalEditarFuncionario) {
-        modalEditarFuncionario.addEventListener('click', (e) => {
-            if (e.target === modalEditarFuncionario) fecharModalEditarFuncionario();
-        });
-    }
 
     async function abrirModalEditarFuncionario(funcionarioId, areaIdAtual) {
         try {

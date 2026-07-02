@@ -1955,6 +1955,7 @@
 
 <script>
 
+    let currentRespostaIds = {};
     let arquivoSelecionadoAuditor = null;  
     let anexoExistenteNomeAuditor = null;  
     let auditoriaIdAtual = null;
@@ -2722,24 +2723,46 @@
             const respostas = dados.success ? dados.respostas : [];
             currentRespostaId = dados.success ? dados.id : null;
             
+            // ⭐ MONTAR MAPA DE RESPOSTAS POR ORDEM
+            const respostasMap = {};
+            if (dados.success && dados.respostas) {
+                dados.respostas.forEach(r => {
+                    respostasMap[r.ordem] = r;
+                });
+            }
+            
+            // ⭐ CARREGAR EVIDÊNCIAS PARA CADA RESPOSTA
+            const evidenciasMap = {};
+            for (const [ordem, resposta] of Object.entries(respostasMap)) {
+                if (resposta.id) {
+                    try {
+                        const evResponse = await fetch(`/api/checklist/evidencias/${resposta.id}`);
+                        const evData = await evResponse.json();
+                        if (evData.success) {
+                            evidenciasMap[ordem] = evData.evidencias || [];
+                            // Guardar o ID da resposta para uso futuro
+                            currentRespostaIds[ordem] = resposta.id;
+                        }
+                    } catch (err) {
+                        console.error(`❌ Erro ao carregar evidências da pergunta ${ordem}:`, err);
+                        evidenciasMap[ordem] = [];
+                    }
+                }
+            }
+            
             console.log(`📊 Total de respostas: ${respostas.length}`);
+            console.log('📊 IDs das respostas:', currentRespostaIds);
             
             let html = `<div class="perguntas-container">`;
             
             for (let i = 0; i < perguntas.length; i++) {
                 const p = perguntas[i];
-                const r = respostas[i] || { resposta: '', comentario: '', evidencias: [] };
+                const r = respostasMap[p.ordem] || { resposta: '', comentario: '', evidencias: [] };
+                const evidencias = evidenciasMap[p.ordem] || [];
                 const precisaEvidencia = p.precisaEvidencia === true;
                 
-                // ⭐ LOG PARA CADA PERGUNTA
-                console.log(`📎 Pergunta ${i+1} (${p.ordem}):`, {
-                    resposta: r.resposta,
-                    comentario: r.comentario,
-                    evidencias: r.evidencias ? r.evidencias.length : 0
-                });
-                
                 html += `
-                    <div class="pergunta-card" data-pergunta-index="${i}">
+                    <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}">
                         <div class="pergunta-header">
                             <div class="pergunta-numero">${p.ordem}</div>
                             <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
@@ -2763,25 +2786,22 @@
                             <div class="evidencias-lista" id="evidencias-lista-${i}">
                     `;
                     
-                    if (r.evidencias && r.evidencias.length > 0) {
-                        console.log(`✅ Exibindo ${r.evidencias.length} evidências para pergunta ${i+1}`);
-                        r.evidencias.forEach(ev => {
-                            console.log(`  - Evidência: ${ev.nome_arquivo} (ID: ${ev.id})`);
+                    if (evidencias && evidencias.length > 0) {
+                        console.log(`✅ Exibindo ${evidencias.length} evidências para pergunta ${p.ordem}`);
+                        evidencias.forEach(ev => {
                             html += `
                                 <div class="evidencia-item" data-evidencia-id="${ev.id}">
                                     <i class="fas fa-file-pdf"></i>
-                                    <span>${escapeHtml(ev.nome_arquivo)}</span>
-                                    <button class="btn-baixar-evidencia" onclick="baixarEvidencia(${ev.id})" title="Baixar">
+                                    <span>${escapeHtml(ev.nome)}</span>
+                                    <button class="btn-baixar-evidencia" onclick="baixarEvidenciaChecklist(${ev.id})" title="Baixar">
                                         <i class="fas fa-download"></i>
                                     </button>
-                                    <button class="btn-remover-evidencia" onclick="removerEvidencia(${ev.id}, ${i})" title="Remover">
+                                    <button class="btn-remover-evidencia" onclick="removerEvidenciaChecklist(${ev.id}, ${i})" title="Remover">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             `;
                         });
-                    } else {
-                        console.log(`⚠️ Nenhuma evidência para pergunta ${i+1}`);
                     }
                     
                     html += `</div><small class="text-muted">Anexe evidências em PDF (máx. 10MB)</small></div>`;
@@ -2813,12 +2833,6 @@
     }
 
     function abrirUploadEvidencia(perguntaIndex) {
-        // ⭐ REMOVER A VERIFICAÇÃO QUE EXIGIA SALVAR PRIMEIRO
-        // if (!currentRespostaId) {
-        //     mostrarToast('⚠️ Salve o checklist primeiro antes de anexar evidências', 'warning');
-        //     return;
-        // }
-        
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.pdf';
@@ -2862,12 +2876,8 @@
                                 (não salvo - clique em Salvar para confirmar)
                             </small>
                         </div>
-
                         <div class="evidencia-acoes">
-                            <button
-                                class="btn-remover-evidencia"
-                                onclick="removerEvidenciaTemp('${tempId}', ${perguntaIndex})"
-                                title="Remover">
+                            <button class="btn-remover-evidencia" onclick="removerEvidenciaTemp('${tempId}', ${perguntaIndex})" title="Remover">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -2897,25 +2907,120 @@
         mostrarToast('📎 Evidência removida temporariamente', 'info');
     }
 
-    async function removerEvidencia(evidenciaId, perguntaIndex) {
-        if (!confirm('⚠️ Tem certeza que deseja remover esta evidência?')) return;
+    async function carregarEvidenciasPergunta(perguntaIndex) {
+        const perguntas = PERGUNTAS[tipoAtual]; // Você precisa ter o tipo atual
+        const pergunta = perguntas[perguntaIndex];
+        const respostaId = currentRespostaIds[pergunta.ordem];
+        
+        if (!respostaId) return;
+        
         try {
-            const response = await fetch(`/api/checklist/evidencia/${evidenciaId}`, { method: 'DELETE' });
+            const response = await fetch(`/api/checklist/evidencias/${respostaId}`);
             const data = await response.json();
+            
             if (data.success) {
-                mostrarToast('✅ Evidência removida!', 'success');
-                const tipo = document.querySelector('.btn-salvar-checklist')?.getAttribute('data-tipo');
-                if (tipo) await carregarChecklistModal(tipo);
-            } else {
-                mostrarToast('❌ Erro ao remover evidência', 'error');
+                const listaDiv = document.getElementById(`evidencias-lista-${perguntaIndex}`);
+                if (listaDiv) {
+                    // Limpar lista
+                    listaDiv.innerHTML = '';
+                    
+                    // Adicionar evidências
+                    if (data.evidencias && data.evidencias.length > 0) {
+                        data.evidencias.forEach(ev => {
+                            const evidenciaDiv = document.createElement('div');
+                            evidenciaDiv.className = 'evidencia-item';
+                            evidenciaDiv.setAttribute('data-evidencia-id', ev.id);
+                            evidenciaDiv.innerHTML = `
+                                <i class="fas fa-file-pdf"></i>
+                                <span>${escapeHtml(ev.nome)}</span>
+                                <button class="btn-baixar-evidencia" onclick="baixarEvidenciaChecklist(${ev.id})" title="Baixar">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn-remover-evidencia" onclick="removerEvidenciaChecklist(${ev.id}, ${perguntaIndex})" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            listaDiv.appendChild(evidenciaDiv);
+                        });
+                    } else {
+                        const mensagem = document.createElement('div');
+                        mensagem.className = 'text-muted';
+                        mensagem.style.padding = '8px';
+                        mensagem.style.textAlign = 'center';
+                        mensagem.textContent = 'Nenhuma evidência anexada';
+                        listaDiv.appendChild(mensagem);
+                    }
+                }
             }
         } catch (error) {
-            console.error('Erro:', error);
-            mostrarToast('❌ Erro ao conectar', 'error');
+            console.error('❌ Erro ao recarregar evidências:', error);
         }
     }
 
-    function baixarEvidencia(evidenciaId) {
+    async function removerEvidenciaChecklist(evidenciaId, perguntaIndex) {
+        if (!confirm('⚠️ Tem certeza que deseja remover esta evidência?')) return;
+        
+        // ⭐ MOSTRAR LOADING NO BOTÃO
+        const evidenciaItem = document.querySelector(`.evidencia-item[data-evidencia-id="${evidenciaId}"]`);
+        if (evidenciaItem) {
+            evidenciaItem.style.opacity = '0.5';
+            evidenciaItem.style.pointerEvents = 'none';
+            evidenciaItem.innerHTML = '<div style="padding: 8px;"><i class="fas fa-spinner fa-spin"></i> Removendo...</div>';
+        }
+        
+        try {
+            const response = await fetch(`/api/checklist/evidencia/${evidenciaId}`, { 
+                method: 'DELETE' 
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // ⭐ REMOVER APENAS O ELEMENTO DO DOM
+                if (evidenciaItem) {
+                    evidenciaItem.remove();
+                    console.log(`✅ Evidência ${evidenciaId} removida da tela`);
+                }
+                
+                // ⭐ ATUALIZAR O CONTADOR DE EVIDÊNCIAS (se houver)
+                const listaDiv = document.getElementById(`evidencias-lista-${perguntaIndex}`);
+                if (listaDiv) {
+                    const totalEvidencias = listaDiv.querySelectorAll('.evidencia-item').length;
+                    if (totalEvidencias === 0) {
+                        // Se não houver mais evidências, mostrar mensagem "Nenhuma evidência"
+                        const mensagem = document.createElement('div');
+                        mensagem.className = 'text-muted';
+                        mensagem.style.padding = '8px';
+                        mensagem.style.textAlign = 'center';
+                        mensagem.textContent = 'Nenhuma evidência anexada';
+                        listaDiv.appendChild(mensagem);
+                    }
+                }
+                
+                mostrarToast('✅ Evidência removida com sucesso!', 'success');
+                
+            } else {
+                mostrarToast('❌ Erro ao remover evidência: ' + (data.error || 'Erro desconhecido'), 'error');
+                // Restaurar o item se houve erro
+                if (evidenciaItem) {
+                    evidenciaItem.style.opacity = '1';
+                    evidenciaItem.style.pointerEvents = 'auto';
+                    // Recarregar o conteúdo original (opcional)
+                    await carregarEvidenciasPergunta(perguntaIndex);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erro ao remover evidência:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+            // Restaurar o item se houve erro
+            if (evidenciaItem) {
+                evidenciaItem.style.opacity = '1';
+                evidenciaItem.style.pointerEvents = 'auto';
+            }
+        }
+    }
+
+    async function baixarEvidenciaChecklist(evidenciaId) {
         window.open(`/api/checklist/evidencia/${evidenciaId}/download`, '_blank');
     }
 
@@ -2924,25 +3029,29 @@
         const perguntas = PERGUNTAS[tipo];
         const respostas = [];
         
+        // ⭐ LOG: VERIFICAR ARQUIVOS PENDENTES
+        console.log('📎 Arquivos pendentes ANTES de salvar:', arquivosPendentes);
+        console.log('📎 Total de arquivos pendentes:', Object.keys(arquivosPendentes).length);
+        
         for (let i = 0; i < perguntas.length; i++) {
             const radio = container.querySelector(`input[name="resp_${i}"]:checked`);
             const comentario = container.querySelector(`.comentario-textarea[data-index="${i}"]`).value;
-            respostas.push({ resposta: radio ? radio.value : '', comentario: comentario });
+            const pergunta = perguntas[i];
+            respostas.push({ 
+                ordem: pergunta.ordem,
+                resposta: radio ? radio.value : '', 
+                comentario: comentario 
+            });
         }
         
         try {
+            // 1. SALVAR AS RESPOSTAS PRIMEIRO
             const bodyData = { 
                 processo_id: parseInt(processoIdAtual), 
                 tipo, 
                 respostas, 
                 concluir 
             };
-            
-            // ⭐ ENVIAR APENAS OS ARQUIVOS PENDENTES (novos)
-            if (Object.keys(arquivosPendentes).length > 0) {
-                bodyData.arquivos = arquivosPendentes;
-                console.log('📎 Enviando novas evidências:', arquivosPendentes);
-            }
             
             console.log('📤 Salvando checklist:', bodyData);
             
@@ -2953,12 +3062,86 @@
             });
             
             const data = await response.json();
+            console.log('📥 Resposta do servidor:', data);
             
-            if (data.success) { 
-                // ⭐ LIMPAR APENAS OS ARQUIVOS QUE FORAM ENVIADOS (não todos)
-                // Isso evita perder evidências de outras perguntas
-                arquivosPendentes = {};
+            if (data.success) {
+                // ⭐ GUARDAR OS IDs DAS RESPOSTAS
+                currentRespostaIds = data.respostas_ids || {};
                 currentRespostaId = data.id;
+                
+                console.log('📊 IDs das respostas recebidas:', currentRespostaIds);
+                console.log('📊 Chaves disponíveis:', Object.keys(currentRespostaIds));
+                
+                // 2. ENVIAR EVIDÊNCIAS PENDENTES (UMA POR UMA)
+                if (Object.keys(arquivosPendentes).length > 0) {
+                    console.log('📎 Enviando evidências pendentes...');
+                    console.log('📎 arquivosPendentes:', arquivosPendentes);
+                    
+                    let evidenciasEnviadas = 0;
+                    let totalEvidencias = 0;
+                    
+                    for (const [perguntaIndex, arquivos] of Object.entries(arquivosPendentes)) {
+                        const pergunta = perguntas[parseInt(perguntaIndex)];
+                        const perguntaOrdem = pergunta.ordem;
+                        
+                        // ⭐⭐⭐ CORREÇÃO AQUI ⭐⭐⭐
+                        // Tentar com número e com string
+                        let respostaId = currentRespostaIds[perguntaOrdem];
+                        if (!respostaId) {
+                            respostaId = currentRespostaIds[String(perguntaOrdem)];
+                        }
+                        
+                        console.log(`🔍 Pergunta índice: ${perguntaIndex}, ordem: ${perguntaOrdem}, respostaId: ${respostaId}`);
+                        console.log(`🔍 currentRespostaIds tem chave ${perguntaOrdem}?`, currentRespostaIds.hasOwnProperty(perguntaOrdem));
+                        console.log(`🔍 currentRespostaIds tem chave "${perguntaOrdem}"?`, currentRespostaIds.hasOwnProperty(String(perguntaOrdem)));
+                        
+                        if (!respostaId) {
+                            console.warn(`⚠️ Resposta ID não encontrado para pergunta ${perguntaOrdem}`);
+                            console.warn(`⚠️ currentRespostaIds disponíveis:`, Object.keys(currentRespostaIds));
+                            continue;
+                        }
+                        
+                        for (const arquivo of arquivos) {
+                            totalEvidencias++;
+                            try {
+                                console.log(`📎 Enviando evidência: ${arquivo.nome} para resposta ${respostaId}`);
+                                
+                                const evidenciaResponse = await fetch('/api/checklist/evidencia/salvar', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        resposta_id: respostaId,
+                                        evidencia_base64: arquivo.conteudo,
+                                        evidencia_nome: arquivo.nome
+                                    })
+                                });
+                                
+                                const evidenciaData = await evidenciaResponse.json();
+                                console.log('📥 Resposta do servidor (evidência):', evidenciaData);
+                                
+                                if (evidenciaData.success) {
+                                    evidenciasEnviadas++;
+                                    console.log(`✅ Evidência ${arquivo.nome} salva com sucesso`);
+                                } else {
+                                    console.error(`❌ Erro ao salvar evidência ${arquivo.nome}:`, evidenciaData.error);
+                                    mostrarToast(`❌ Erro ao salvar evidência ${arquivo.nome}: ${evidenciaData.error}`, 'error');
+                                }
+                            } catch (err) {
+                                console.error(`❌ Erro ao enviar evidência ${arquivo.nome}:`, err);
+                                mostrarToast(`❌ Erro ao enviar evidência ${arquivo.nome}`, 'error');
+                            }
+                        }
+                    }
+                    
+                    if (totalEvidencias > 0) {
+                        mostrarToast(`📎 ${evidenciasEnviadas} de ${totalEvidencias} evidências salvas.`, 'info');
+                    }
+                    
+                    // Limpar arquivos pendentes
+                    arquivosPendentes = {};
+                } else {
+                    console.log('⚠️ NENHUM arquivo pendente para enviar!');
+                }
                 
                 mostrarToast(concluir ? '✅ Checklist concluído!' : '✅ Respostas salvas!', 'success');
                 
@@ -2973,7 +3156,7 @@
                 mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
             }
         } catch (error) { 
-            console.error('Erro:', error);
+            console.error('❌ Erro ao salvar checklist:', error);
             mostrarToast('❌ Erro ao conectar com o servidor', 'error'); 
         }
     }
@@ -4283,20 +4466,6 @@
         document.getElementById('btn-salvar-followup')?.addEventListener('click', salvarFollowUp);
         document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
         
-        const modalChecklist = document.getElementById('modal-checklist');
-        if (modalChecklist) modalChecklist.addEventListener('click', (e) => { if (e.target === modalChecklist) fecharModalChecklist(); });
-        
-        const modalAnalise = document.getElementById('modal-analise-auditor');
-        if (modalAnalise) modalAnalise.addEventListener('click', (e) => { if (e.target === modalAnalise) fecharModalAnaliseAuditor(); });
-        
-        const modalHistorico = document.getElementById('modal-historico-andamento');
-        if (modalHistorico) modalHistorico.addEventListener('click', (e) => { if (e.target === modalHistorico) fecharModalHistorico(); });
-        
-        const modalFollowUp = document.getElementById('modal-follow-up');
-        if (modalFollowUp) modalFollowUp.addEventListener('click', (e) => { if (e.target === modalFollowUp) fecharModalFollowUp(); });
-        
-        const modalConfirmar = document.getElementById('modal-confirmar-implantacao');
-        if (modalConfirmar) modalConfirmar.addEventListener('click', (e) => { if (e.target === modalConfirmar) fecharModalConfirmarImplantacao(); });
         
         setupFileUploadEvidenciaAuditor();
         setupFileUploadEvidenciaAuditado();
