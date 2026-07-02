@@ -12,6 +12,16 @@ from supabase import create_client
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy
+from database import (
+    engine, 
+    SessionLocal,
+    Checklist,
+    ChecklistResposta,
+    ChecklistEvidencia,
+    criar_tabelas
+)
+
 
 from logic import (validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria, listar_areas,
                    listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
@@ -108,6 +118,149 @@ def upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome, bucke
         print(f"❌ Erro no upload: {e}")
         import traceback
         traceback.print_exc()
+        return None
+
+def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, evidencia_nome, bucket_name=None):
+    """Salva evidência do checklist no bucket privado do Supabase Storage"""
+    from supabase import create_client
+    import base64
+    import uuid
+    from datetime import datetime
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    
+    if not evidencia_base64 or not evidencia_nome:
+        return None
+    
+    try:
+        # Remover prefixo (ex: "data:application/pdf;base64,")
+        if ',' in evidencia_base64:
+            evidencia_base64 = evidencia_base64.split(',')[1]
+        
+        # Decodificar base64
+        try:
+            file_bytes = base64.b64decode(evidencia_base64)
+        except Exception as e:
+            print(f"❌ Erro ao decodificar base64: {e}")
+            return None
+        
+        # Gerar nome único para o arquivo
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # Estrutura de pastas: checklists/{checklist_id}/pergunta_{ordem}/{timestamp}_{nome_original}
+        storage_filename = f"checklists/{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{evidencia_nome}"
+        
+        # ⭐ CREDENCIAIS
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # Nome correto do seu .env
+        
+        # Fallback
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return None
+        
+        bucket = bucket_name or "matriz_eficacia"  # ← Nome do novo bucket
+        
+        print(f"📎 Upload evidência checklist: bucket={bucket}, path={storage_filename}")
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # Upload do arquivo
+        response = supabase.storage.from_(bucket).upload(
+            storage_filename,
+            file_bytes,
+            file_options={"content-type": "application/pdf"}
+        )
+        
+        if response:
+            # Gerar URL assinada (válida por 1 ano)
+            signed_url = supabase.storage.from_(bucket).create_signed_url(
+                storage_filename, 31536000  # 1 ano em segundos
+            )
+            return signed_url.get('signedURL') if signed_url else None
+        
+        return None
+        
+    except Exception as e:
+        print(f"❌ Erro no upload da evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def remover_evidencia_checklist(caminho_arquivo, bucket_name=None):
+    """Remove uma evidência do bucket"""
+    from supabase import create_client
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    
+    if not caminho_arquivo:
+        return False
+    
+    try:
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return False
+        
+        bucket = bucket_name or "matriz_eficacia"
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # Remover o arquivo
+        response = supabase.storage.from_(bucket).remove([caminho_arquivo])
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
+        return False
+
+
+def baixar_evidencia_checklist(caminho_arquivo, bucket_name=None):
+    """Baixa uma evidência do bucket"""
+    from supabase import create_client
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    
+    if not caminho_arquivo:
+        return None
+    
+    try:
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return None
+        
+        bucket = bucket_name or "matriz_eficacia"
+        
+        supabase = create_client(supabase_url, supabase_key)
+        
+        # Baixar o arquivo
+        response = supabase.storage.from_(bucket).download(caminho_arquivo)
+        
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erro ao baixar evidência: {e}")
         return None
 
 def excluir_arquivo_storage(arquivo_url, bucket_name=None):
@@ -5350,122 +5503,53 @@ def api_checklist_analises_por_auditoria():
 
 @app.route('/api/checklist/carregar', methods=['GET'])
 def api_checklist_carregar():
-    """Carrega as respostas de um checklist para um processo ou auditoria"""
+    """Carrega as respostas de um checklist para um processo"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     processo_id = request.args.get('processo_id')
-    auditoria_id = request.args.get('auditoria_id')
     tipo = request.args.get('tipo')
     
-    if not tipo:
-        return jsonify({'success': False, 'error': 'tipo é obrigatório'}), 400
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
     
-    # Prioridade: processo_id (novo) ou auditoria_id (legado)
-    identificador = None
-    if processo_id:
-        identificador = ('processo_id', processo_id)
-    elif auditoria_id:
-        identificador = ('auditoria_id', auditoria_id)
-    else:
-        return jsonify({'success': False, 'error': 'processo_id ou auditoria_id é obrigatório'}), 400
+    if not tipo or tipo not in ['governanca', 'riscos', 'controles']:
+        return jsonify({'success': False, 'error': 'tipo inválido'}), 400
     
     from database import engine
     from sqlalchemy import text
     
     try:
         with engine.connect() as conn:
-            # Mapeamento das tabelas por tipo
-            tabelas = {
-                'governanca': 'checklist_governanca_respostas',
-                'riscos': 'checklist_riscos_respostas',
-                'controles': 'checklist_controles_respostas'
-            }
+            # ⭐ 1. BUSCAR O CHECKLIST
+            query_checklist = text("""
+                SELECT id, status, observacoes_gerais
+                FROM checklists
+                WHERE processo_id = :processo_id AND tipo = :tipo
+            """)
             
-            tabela = tabelas.get(tipo)
-            if not tabela:
-                return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
+            checklist = conn.execute(query_checklist, {
+                'processo_id': processo_id,
+                'tipo': tipo
+            }).fetchone()
             
-            # ⭐ DEFINIR O NÚMERO DE PERGUNTAS PARA CADA TIPO
             num_perguntas = {
                 'governanca': 13,
                 'riscos': 12,
                 'controles': 12
             }.get(tipo, 12)
             
-            # ⭐ CONSTRUIR A LISTA DE COLUNAS DINAMICAMENTE
-            colunas = []
-            for i in range(1, num_perguntas + 1):
-                colunas.append(f"p{i}_resposta")
-                colunas.append(f"p{i}_comentario")
-            
-            colunas_sql = ', '.join(colunas)
-            
-            # Buscar sessão existente
-            campo, valor = identificador
-            query = text(f"""
-                SELECT id, status, observacoes_gerais,
-                       {colunas_sql}
-                FROM {tabela}
-                WHERE {campo} = :valor
-                ORDER BY id DESC
-                LIMIT 1
-            """)
-            
-            result = conn.execute(query, {'valor': valor}).fetchone()
-            
-            if result:
-                resposta_id = result[0]
-                status = result[1] or 'Não iniciado'
-                observacoes = result[2] or ''
-                
-                # Montar respostas
-                respostas = []
+            if not checklist:
+                respostas_vazias = []
                 for i in range(1, num_perguntas + 1):
-                    # Índices: 0=id, 1=status, 2=observacoes
-                    # Depois vêm as respostas e comentários alternados
-                    idx_resposta = 3 + (i - 1) * 2
-                    idx_comentario = 4 + (i - 1) * 2
-                    
-                    resposta_valor = result[idx_resposta] if idx_resposta < len(result) else ''
-                    comentario_valor = result[idx_comentario] if idx_comentario < len(result) else ''
-                    
-                    # Buscar evidências
-                    evidencias = []
-                    query_evidencias = text("""
-                        SELECT id, nome_arquivo, tipo_arquivo, tamanho_bytes
-                        FROM checklist_evidencias
-                        WHERE resposta_id = :resposta_id AND pergunta_numero = :pergunta_numero
-                    """)
-                    ev_result = conn.execute(query_evidencias, {
-                        'resposta_id': resposta_id,
-                        'pergunta_numero': i
-                    }).fetchall()
-                    
-                    for ev in ev_result:
-                        evidencias.append({
-                            'id': ev[0],
-                            'nome_arquivo': ev[1],
-                            'tipo_arquivo': ev[2],
-                            'tamanho_bytes': ev[3]
-                        })
-                    
-                    respostas.append({
-                        'resposta': resposta_valor,
-                        'comentario': comentario_valor,
-                        'evidencias': evidencias
+                    respostas_vazias.append({
+                        'id': None,  # ← ID DA RESPOSTA (None)
+                        'ordem': i,
+                        'resposta': '',
+                        'comentario': '',
+                        'evidencias': []
                     })
                 
-                return jsonify({
-                    'success': True,
-                    'id': resposta_id,
-                    'status': status,
-                    'observacoes_gerais': observacoes,
-                    'respostas': respostas
-                })
-            else:
-                # Nenhum registro encontrado
-                respostas_vazias = [{'resposta': '', 'comentario': '', 'evidencias': []} for _ in range(num_perguntas)]
                 return jsonify({
                     'success': True,
                     'id': None,
@@ -5473,6 +5557,84 @@ def api_checklist_carregar():
                     'observacoes_gerais': '',
                     'respostas': respostas_vazias
                 })
+            
+            checklist_id = checklist[0]
+            status = checklist[1] or 'Não iniciado'
+            observacoes = checklist[2] or ''
+            
+            # ⭐ 2. BUSCAR AS RESPOSTAS
+            query_respostas = text("""
+                SELECT id, pergunta_ordem, resposta, comentario
+                FROM checklist_respostas
+                WHERE checklist_id = :checklist_id
+                ORDER BY pergunta_ordem
+            """)
+
+            respostas_db = conn.execute(query_respostas, {
+                'checklist_id': checklist_id
+            }).fetchall()
+
+            # ⭐ 3. CRIAR MAPA DE RESPOSTAS POR ORDEM COM O ID CORRETO
+            respostas_map = {}
+            for r in respostas_db:
+                respostas_map[r[1]] = {
+                    'id': r[0],          # ← ID DA RESPOSTA (do banco!)
+                    'ordem': r[1],
+                    'resposta': r[2] or '',
+                    'comentario': r[3] or ''
+                }
+
+            # ⭐ LOG PARA DEBUG
+            print(f"🔍 Respostas encontradas: {len(respostas_db)}")
+            print(f"🔍 Mapa de respostas: {respostas_map}")
+
+            # ⭐ 4. MONTAR RESPOSTAS PARA TODAS AS PERGUNTAS
+            respostas = []
+            for i in range(1, num_perguntas + 1):
+                resposta_data = respostas_map.get(i, {
+                    'id': None,
+                    'ordem': i,
+                    'resposta': '',
+                    'comentario': ''
+                })
+                
+                # ⭐ BUSCAR EVIDÊNCIAS (se houver resposta)
+                evidencias = []
+                if resposta_data['id']:
+                    query_evidencias = text("""
+                        SELECT id, nome_arquivo, tamanho_bytes
+                        FROM checklist_evidencias
+                        WHERE resposta_id = :resposta_id
+                    """)
+                    ev_result = conn.execute(query_evidencias, {
+                        'resposta_id': resposta_data['id']
+                    }).fetchall()
+                    
+                    for ev in ev_result:
+                        evidencias.append({
+                            'id': ev[0],
+                            'nome': ev[1],
+                            'tamanho': ev[2]
+                        })
+                
+                respostas.append({
+                    'id': resposta_data['id'],  # ← ID DA RESPOSTA (pode ser None)
+                    'ordem': i,
+                    'resposta': resposta_data['resposta'],
+                    'comentario': resposta_data['comentario'],
+                    'evidencias': evidencias  # ← JÁ VEM COM AS EVIDÊNCIAS
+                })
+
+            # ⭐ LOG PARA DEBUG
+            print(f"📤 Respostas sendo enviadas: {[{'id': r['id'], 'ordem': r['ordem']} for r in respostas]}")
+            
+            return jsonify({
+                'success': True,
+                'id': checklist_id,
+                'status': status,
+                'observacoes_gerais': observacoes,
+                'respostas': respostas  # ← CADA UMA COM SEU ID
+            })
             
     except Exception as e:
         print(f"❌ Erro ao carregar checklist: {e}")
@@ -5482,153 +5644,119 @@ def api_checklist_carregar():
 
 @app.route('/api/checklist/salvar', methods=['POST'])
 def api_checklist_salvar():
-    """Salva as respostas de um checklist (com suporte a processo_id)"""
+    """Salva as respostas de um checklist"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
     processo_id = data.get('processo_id')
-    auditoria_id = data.get('auditoria_id')
     tipo = data.get('tipo')
-    respostas = data.get('respostas')
-    observacoes_gerais = data.get('observacoes_gerais', '')
+    respostas = data.get('respostas', [])
     concluir = data.get('concluir', False)
-    arquivos = data.get('arquivos', {})
+    observacoes_gerais = data.get('observacoes_gerais', '')
     
-    if not tipo or not respostas:
-        return jsonify({'success': False, 'error': 'tipo e respostas são obrigatórios'}), 400
-    
-    # Prioridade: processo_id (novo) ou auditoria_id (legado)
-    if not processo_id and not auditoria_id:
-        return jsonify({'success': False, 'error': 'processo_id ou auditoria_id é obrigatório'}), 400
-    
-    tabelas = {
-        'governanca': 'checklist_governanca_respostas',
-        'riscos': 'checklist_riscos_respostas',
-        'controles': 'checklist_controles_respostas'
-    }
-    
-    if tipo not in tabelas:
-        return jsonify({'success': False, 'error': 'Tipo de checklist inválido'}), 400
+    if not processo_id or not tipo:
+        return jsonify({'success': False, 'error': 'Dados incompletos'}), 400
     
     from database import engine
     from sqlalchemy import text
-    import base64
     
     try:
         with engine.connect() as conn:
-            tabela = tabelas[tipo]
-            total_perguntas = len(respostas)
-            
-            # Definir qual campo usar (processo_id ou auditoria_id)
-            if processo_id:
-                campo_id = 'processo_id'
-                valor_id = processo_id
-            else:
-                campo_id = 'auditoria_id'
-                valor_id = auditoria_id
-            
-            # Verificar se já existe um registro
-            check_query = text(f"""
-                SELECT id FROM {tabela} 
-                WHERE {campo_id} = :valor_id
-                ORDER BY id DESC LIMIT 1
+            # 1. BUSCAR OU CRIAR O CHECKLIST
+            query_checklist = text("""
+                SELECT id FROM checklists
+                WHERE processo_id = :processo_id AND tipo = :tipo
             """)
-            existing = conn.execute(check_query, {'valor_id': valor_id}).fetchone()
+            checklist = conn.execute(query_checklist, {
+                'processo_id': processo_id,
+                'tipo': tipo
+            }).fetchone()
             
-            resposta_id = None
-            
-            if existing:
-                # UPDATE
-                set_parts = []
-                params = {'id': existing[0]}
-                
-                for i in range(1, total_perguntas + 1):
-                    if i - 1 < len(respostas):
-                        set_parts.append(f"p{i}_resposta = :p{i}_resposta")
-                        set_parts.append(f"p{i}_comentario = :p{i}_comentario")
-                        params[f'p{i}_resposta'] = respostas[i-1].get('resposta', '')
-                        params[f'p{i}_comentario'] = respostas[i-1].get('comentario', '')
-                
-                set_parts.append("observacoes_gerais = :observacoes")
-                set_parts.append("status = :status")
-                set_parts.append("updated_at = NOW()")
-                params['observacoes'] = observacoes_gerais
-                params['status'] = 'Concluído' if concluir else 'Em andamento'
-                
-                update_query = text(f"UPDATE {tabela} SET {', '.join(set_parts)} WHERE id = :id")
-                conn.execute(update_query, params)
-                resposta_id = existing[0]
-                
-            else:
-                # INSERT
-                colunas = [campo_id, 'status', 'observacoes_gerais']
-                valores_placeholders = [':valor_id', ':status', ':observacoes']
-                params = {
-                    'valor_id': valor_id,
-                    'status': 'Concluído' if concluir else 'Em andamento',
-                    'observacoes': observacoes_gerais
-                }
-                
-                for i in range(1, total_perguntas + 1):
-                    if i - 1 < len(respostas):
-                        colunas.append(f"p{i}_resposta")
-                        colunas.append(f"p{i}_comentario")
-                        valores_placeholders.append(f":p{i}_resposta")
-                        valores_placeholders.append(f":p{i}_comentario")
-                        params[f'p{i}_resposta'] = respostas[i-1].get('resposta', '')
-                        params[f'p{i}_comentario'] = respostas[i-1].get('comentario', '')
-                
-                insert_query = text(f"""
-                    INSERT INTO {tabela} ({', '.join(colunas)})
-                    VALUES ({', '.join(valores_placeholders)})
+            if not checklist:
+                # Criar novo checklist
+                query_insert = text("""
+                    INSERT INTO checklists (processo_id, tipo, status, observacoes_gerais)
+                    VALUES (:processo_id, :tipo, 'Não iniciado', :observacoes_gerais)
                     RETURNING id
                 """)
-                result = conn.execute(insert_query, params)
-                resposta_id = result.fetchone()[0]
+                result = conn.execute(query_insert, {
+                    'processo_id': processo_id,
+                    'tipo': tipo,
+                    'observacoes_gerais': observacoes_gerais
+                })
+                conn.commit()
+                checklist_id = result.fetchone()[0]
+                print(f"📝 Checklist criado: id={checklist_id}")
+            else:
+                checklist_id = checklist[0]
+                print(f"📝 Checklist encontrado: id={checklist_id}")
+                # Atualizar observações gerais
+                query_update = text("""
+                    UPDATE checklists SET observacoes_gerais = :observacoes_gerais
+                    WHERE id = :checklist_id
+                """)
+                conn.execute(query_update, {
+                    'observacoes_gerais': observacoes_gerais,
+                    'checklist_id': checklist_id
+                })
+                conn.commit()
             
-            # ⭐⭐⭐ PROCESSAR ARQUIVOS - VERSÃO CORRIGIDA ⭐⭐⭐
-            if arquivos and not concluir:
-                for pergunta_index, lista_arquivos in arquivos.items():
-                    pergunta_numero = int(pergunta_index) + 1
-                    
-                    # ⭐ Remover evidências APENAS desta pergunta (não todas)
-                    delete_evidencias = text("""
-                        DELETE FROM checklist_evidencias 
-                        WHERE resposta_id = :resposta_id 
-                        AND pergunta_numero = :pergunta_numero
-                    """)
-                    conn.execute(delete_evidencias, {
-                        'resposta_id': resposta_id,
-                        'pergunta_numero': pergunta_numero
-                    })
-                    
-                    # Inserir novas evidências para esta pergunta
-                    for arquivo in lista_arquivos:
-                        conteudo_base64 = arquivo['conteudo']
-                        if ',' in conteudo_base64:
-                            conteudo_base64 = conteudo_base64.split(',')[1]
-                        conteudo_bytes = base64.b64decode(conteudo_base64)
-                        
-                        insert_evidencia = text("""
-                            INSERT INTO checklist_evidencias (resposta_id, pergunta_numero, nome_arquivo, tipo_arquivo, conteudo, tamanho_bytes)
-                            VALUES (:resposta_id, :pergunta_numero, :nome_arquivo, :tipo_arquivo, :conteudo, :tamanho)
-                        """)
-                        conn.execute(insert_evidencia, {
-                            'resposta_id': resposta_id,
-                            'pergunta_numero': pergunta_numero,
-                            'nome_arquivo': arquivo['nome'],
-                            'tipo_arquivo': arquivo['tipo'],
-                            'conteudo': conteudo_bytes,
-                            'tamanho': len(conteudo_bytes)
-                        })
-            
+            # 2. REMOVER RESPOSTAS ANTIGAS
+            query_delete = text("""
+                DELETE FROM checklist_respostas WHERE checklist_id = :checklist_id
+            """)
+            conn.execute(query_delete, {'checklist_id': checklist_id})
             conn.commit()
+            
+            # 3. INSERIR NOVAS RESPOSTAS E GUARDAR IDs
+            respostas_ids = {}
+            
+            for resp in respostas:
+                pergunta_ordem = resp.get('ordem')
+                resposta_valor = resp.get('resposta', '')
+                comentario_valor = resp.get('comentario', '')
+                
+                print(f"📝 Inserindo resposta: pergunta={pergunta_ordem}, resposta='{resposta_valor}'")
+                
+                query_insert = text("""
+                    INSERT INTO checklist_respostas (checklist_id, pergunta_ordem, resposta, comentario)
+                    VALUES (:checklist_id, :pergunta_ordem, :resposta, :comentario)
+                    RETURNING id
+                """)
+                result = conn.execute(query_insert, {
+                    'checklist_id': checklist_id,
+                    'pergunta_ordem': pergunta_ordem,
+                    'resposta': resposta_valor,
+                    'comentario': comentario_valor
+                })
+                conn.commit()
+                
+                resposta_id = result.fetchone()[0]
+                respostas_ids[pergunta_ordem] = resposta_id
+                print(f"✅ Resposta salva: pergunta {pergunta_ordem} → id {resposta_id}")
+            
+            # 4. ATUALIZAR STATUS DO CHECKLIST
+            novo_status = 'Concluído' if concluir else 'Em andamento'
+            query_status = text("""
+                UPDATE checklists SET status = :status, updated_at = NOW()
+                WHERE id = :checklist_id
+            """)
+            conn.execute(query_status, {
+                'status': novo_status,
+                'checklist_id': checklist_id
+            })
+            conn.commit()
+            
+            # ⭐⭐⭐ LOG PARA DEBUG ⭐⭐⭐
+            print(f"📤 respostas_ids sendo retornados: {respostas_ids}")
+            print(f"📤 Tipo de respostas_ids: {type(respostas_ids)}")
             
             return jsonify({
                 'success': True,
-                'message': 'Respostas salvas com sucesso',
-                'id': resposta_id
+                'id': checklist_id,
+                'respostas_ids': respostas_ids,  # ← ESSENCIAL!
+                'message': 'Respostas salvas com sucesso'
             })
             
     except Exception as e:
@@ -5721,63 +5849,464 @@ def api_checklist_progresso():
         print(f"❌ Erro ao buscar progresso: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/checklist/evidencia/<int:evidencia_id>/download')
-def api_checklist_evidencia_download(evidencia_id):
-    """Faz o download de uma evidência do checklist"""
+
+@app.route('/api/checklist/evidencia/<int:evidencia_id>/download', methods=['GET'])
+def baixar_evidencia_checklist(evidencia_id):
+    """Baixa uma evidência do checklist do Supabase Storage"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
+    from supabase import create_client
+    import os
+    from dotenv import load_dotenv
+    from flask import send_file
     import io
+    import re
+    from urllib.parse import unquote
     
     try:
+        load_dotenv()
+        
+        # 1. BUSCAR EVIDÊNCIA NO BANCO (SQL PURO)
         with engine.connect() as conn:
             query = text("""
-                SELECT nome_arquivo, conteudo, tipo_arquivo
+                SELECT id, nome_arquivo, caminho_arquivo, tamanho_bytes, content_type
                 FROM checklist_evidencias
-                WHERE id = :id
+                WHERE id = :evidencia_id
             """)
-            result = conn.execute(query, {'id': evidencia_id}).fetchone()
             
-            if not result or not result[1]:
-                return jsonify({'error': 'Evidência não encontrada'}), 404
+            result = conn.execute(query, {'evidencia_id': evidencia_id}).fetchone()
             
-            nome_arquivo = result[0] or f'evidencia_{evidencia_id}.pdf'
-            conteudo = bytes(result[1]) if result[1] else b''
-            tipo_arquivo = result[2] or 'application/pdf'
+            if not result:
+                return jsonify({'success': False, 'error': 'Evidência não encontrada'}), 404
             
-            return send_file(
-                io.BytesIO(conteudo),
-                mimetype=tipo_arquivo,
-                as_attachment=True,
-                download_name=nome_arquivo
-            )
+            evidencia_id = result[0]
+            nome_arquivo = result[1]
+            caminho_arquivo = result[2]
+            tamanho_bytes = result[3]
+            content_type = result[4] or 'application/pdf'
+        
+        print(f"📥 Baixando evidência: id={evidencia_id}, nome={nome_arquivo}")
+        print(f"📥 Caminho: {caminho_arquivo}")
+        
+        # 2. VERIFICAR SE O CAMINHO É UMA URL OU UM PATH
+        if caminho_arquivo.startswith('https://'):
+            # Já é uma URL - pode redirecionar ou baixar
+            import requests
+            try:
+                response = requests.get(caminho_arquivo)
+                if response.status_code == 200:
+                    return send_file(
+                        io.BytesIO(response.content),
+                        download_name=nome_arquivo,
+                        mimetype=content_type,
+                        as_attachment=True
+                    )
+                else:
+                    return jsonify({'success': False, 'error': f'Erro ao baixar: status {response.status_code}'}), 500
+            except Exception as e:
+                return jsonify({'success': False, 'error': f'Erro ao baixar: {str(e)}'}), 500
+        
+        # 3. É UM PATH - GERAR URL ASSINADA
+        # Carregar credenciais
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_KEY')
+        if not supabase_key:
+            supabase_key = os.getenv('SUPABASE_ANON_KEY')
+        
+        if not supabase_url or not supabase_key:
+            print("❌ Credenciais do Supabase não configuradas")
+            return jsonify({'success': False, 'error': 'Storage não configurado'}), 500
+        
+        supabase = create_client(supabase_url, supabase_key)
+        bucket = "matriz_eficacia"
+        
+        try:
+            # Extrair o caminho do arquivo (remover possível prefixo)
+            file_path = caminho_arquivo
+            
+            # Se for URL com /sign/, extrair o caminho
+            if '/sign/' in file_path:
+                match = re.search(r'/sign/[^/]+/(.+)', file_path)
+                if match:
+                    file_path = match.group(1).split('?')[0]
+                    file_path = unquote(file_path)
+            
+            print(f"📥 File path extraído: {file_path}")
+            
+            # Tentar baixar diretamente
+            response = supabase.storage.from_(bucket).download(file_path)
+            
+            if response:
+                print(f"✅ Arquivo baixado! Tamanho: {len(response)} bytes")
+                return send_file(
+                    io.BytesIO(response),
+                    download_name=nome_arquivo,
+                    mimetype=content_type,
+                    as_attachment=True
+                )
+            else:
+                print("❌ Resposta vazia do Storage")
+                
+                # Tentar gerar URL assinada e redirecionar
+                signed_url = supabase.storage.from_(bucket).create_signed_url(
+                    file_path, 3600  # 1 hora
+                )
+                
+                if signed_url and signed_url.get('signedURL'):
+                    print(f"✅ URL assinada gerada: {signed_url['signedURL'][:100]}...")
+                    from flask import redirect
+                    return redirect(signed_url['signedURL'])
+                else:
+                    return jsonify({'success': False, 'error': 'Erro ao gerar URL assinada'}), 500
+                
+        except Exception as e:
+            print(f"❌ Erro no download: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Tentar URL direta como fallback
+            try:
+                if caminho_arquivo.startswith('https://'):
+                    import requests
+                    response = requests.get(caminho_arquivo)
+                    if response.status_code == 200:
+                        return send_file(
+                            io.BytesIO(response.content),
+                            download_name=nome_arquivo,
+                            mimetype=content_type,
+                            as_attachment=True
+                        )
+            except:
+                pass
+            
+            return jsonify({'success': False, 'error': f'Erro ao baixar: {str(e)}'}), 500
             
     except Exception as e:
-        print(f"❌ Erro ao baixar evidência: {e}")
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ Erro geral: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/checklist/evidencia/<int:evidencia_id>', methods=['DELETE'])
-def api_checklist_evidencia_delete(evidencia_id):
-    """Remove uma evidência do checklist"""
+def remover_evidencia_checklist(evidencia_id):
+    """Remove uma evidência do checklist (banco + storage)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
+    from supabase import create_client
+    import os
+    from dotenv import load_dotenv
+    import re
+    from urllib.parse import unquote
     
     try:
+        load_dotenv()
+        
+        # 1. BUSCAR EVIDÊNCIA NO BANCO (SQL PURO)
         with engine.connect() as conn:
-            query = text("DELETE FROM checklist_evidencias WHERE id = :id")
-            conn.execute(query, {'id': evidencia_id})
+            query = text("""
+                SELECT id, nome_arquivo, caminho_arquivo
+                FROM checklist_evidencias
+                WHERE id = :evidencia_id
+            """)
+            
+            result = conn.execute(query, {'evidencia_id': evidencia_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Evidência não encontrada'}), 404
+            
+            evidencia_id = result[0]
+            nome_arquivo = result[1]
+            caminho_arquivo = result[2]
+            
+            print(f"🗑️ Removendo evidência: id={evidencia_id}, nome={nome_arquivo}")
+            print(f"🗑️ Caminho: {caminho_arquivo}")
+            
+            # 2. REMOVER DO STORAGE
+            # Carregar credenciais
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            
+            if not supabase_key:
+                supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+            if not supabase_key:
+                supabase_key = os.getenv('SUPABASE_KEY')
+            if not supabase_key:
+                supabase_key = os.getenv('SUPABASE_ANON_KEY')
+            
+            if supabase_url and supabase_key:
+                try:
+                    supabase = create_client(supabase_url, supabase_key)
+                    bucket = "matriz_eficacia"
+                    
+                    # Extrair o caminho do arquivo do storage
+                    file_path = caminho_arquivo
+                    
+                    # Se for URL com /sign/, extrair o caminho
+                    if '/sign/' in file_path:
+                        match = re.search(r'/sign/[^/]+/(.+)', file_path)
+                        if match:
+                            file_path = match.group(1).split('?')[0]
+                            file_path = unquote(file_path)
+                    # Se for URL completa do storage, extrair o path
+                    elif 'supabase.co/storage/v1/object/' in file_path:
+                        # Extrair após o bucket
+                        parts = file_path.split('/object/')
+                        if len(parts) > 1:
+                            # Depois de 'object/' vem o bucket e o path
+                            # Formato: /object/sign/matriz_eficacia/path ou /object/public/matriz_eficacia/path
+                            path_parts = parts[1].split('/', 2)
+                            if len(path_parts) >= 3:
+                                # path_parts[0] = 'sign' ou 'public'
+                                # path_parts[1] = 'matriz_eficacia'
+                                # path_parts[2] = caminho real
+                                file_path = path_parts[2]
+                    
+                    print(f"🗑️ File path para remover: {file_path}")
+                    
+                    # Remover do storage
+                    response = supabase.storage.from_(bucket).remove([file_path])
+                    print(f"🗑️ Resposta do storage: {response}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Erro ao remover do storage: {e}")
+                    # Continuar mesmo se falhar no storage - vamos remover do banco
+            else:
+                print("⚠️ Credenciais não configuradas, pulando remoção do storage")
+            
+            # 3. REMOVER DO BANCO
+            query_delete = text("""
+                DELETE FROM checklist_evidencias
+                WHERE id = :evidencia_id
+            """)
+            
+            conn.execute(query_delete, {'evidencia_id': evidencia_id})
             conn.commit()
             
-            return jsonify({'success': True, 'message': 'Evidência removida'})
+            print(f"✅ Evidência removida com sucesso! ID: {evidencia_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Evidência removida com sucesso'
+            })
             
     except Exception as e:
         print(f"❌ Erro ao remover evidência: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/checklist/evidencia/salvar', methods=['POST'])
+def salvar_evidencia_checklist():
+    """Salva uma evidência para uma resposta do checklist"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    import base64
+    import uuid
+    from datetime import datetime
+    import os
+    from dotenv import load_dotenv
+    
+    try:
+        data = request.json
+        resposta_id = data.get('resposta_id')
+        evidencia_base64 = data.get('evidencia_base64')
+        evidencia_nome = data.get('evidencia_nome')
+        
+        print(f"📎 Recebendo evidência: resposta_id={resposta_id}, nome={evidencia_nome}")
+        print(f"📎 Base64 length: {len(evidencia_base64) if evidencia_base64 else 0}")
+        
+        if not resposta_id or not evidencia_base64 or not evidencia_nome:
+            return jsonify({'success': False, 'error': 'Dados incompletos'}), 400
+        
+        # Validar tipo do arquivo (apenas PDF)
+        if not evidencia_nome.lower().endswith('.pdf'):
+            return jsonify({'success': False, 'error': 'Apenas arquivos PDF são permitidos'}), 400
+        
+        with engine.connect() as conn:
+            # 1. VERIFICAR SE A RESPOSTA EXISTE
+            query_resposta = text("""
+                SELECT id, checklist_id, pergunta_ordem
+                FROM checklist_respostas
+                WHERE id = :resposta_id
+            """)
+            resposta = conn.execute(query_resposta, {'resposta_id': resposta_id}).fetchone()
+            
+            if not resposta:
+                return jsonify({'success': False, 'error': 'Resposta não encontrada'}), 404
+            
+            checklist_id = resposta[1]
+            pergunta_ordem = resposta[2]
+            
+            print(f"📎 Checklist ID: {checklist_id}, Pergunta: {pergunta_ordem}")
+            
+            # 2. REMOVER PREFIXO DO BASE64
+            if ',' in evidencia_base64:
+                evidencia_base64 = evidencia_base64.split(',')[1]
+            
+            # 3. DECODIFICAR BASE64
+            try:
+                file_bytes = base64.b64decode(evidencia_base64)
+                print(f"📎 Tamanho do arquivo decodificado: {len(file_bytes)} bytes")
+            except Exception as e:
+                print(f"❌ Erro ao decodificar base64: {e}")
+                return jsonify({'success': False, 'error': 'Erro ao decodificar arquivo'}), 400
+            
+            # 4. GERAR NOME ÚNICO
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_id = str(uuid.uuid4())[:8]
+            storage_filename = f"checklists/{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{evidencia_nome}"
+            
+            # 5. FAZER UPLOAD PARA O STORAGE
+            load_dotenv()
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            
+            if not supabase_key:
+                supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+            if not supabase_key:
+                supabase_key = os.getenv('SUPABASE_KEY')
+            if not supabase_key:
+                supabase_key = os.getenv('SUPABASE_ANON_KEY')
+            
+            if not supabase_url or not supabase_key:
+                print("❌ Credenciais do Supabase não configuradas")
+                return jsonify({'success': False, 'error': 'Storage não configurado'}), 500
+            
+            from supabase import create_client
+            supabase = create_client(supabase_url, supabase_key)
+            bucket = "matriz_eficacia"
+            
+            print(f"📎 Upload: bucket={bucket}, path={storage_filename}")
+            
+            try:
+                response = supabase.storage.from_(bucket).upload(
+                    storage_filename,
+                    file_bytes,
+                    file_options={"content-type": "application/pdf"}
+                )
+                
+                if not response:
+                    print("❌ Upload falhou - resposta vazia")
+                    return jsonify({'success': False, 'error': 'Erro ao fazer upload'}), 500
+                
+                print("✅ Upload realizado com sucesso!")
+                
+                # Gerar URL assinada
+                signed_url = supabase.storage.from_(bucket).create_signed_url(
+                    storage_filename, 31536000
+                )
+                caminho = signed_url.get('signedURL') if signed_url else storage_filename
+                
+            except Exception as e:
+                print(f"❌ Erro no upload: {e}")
+                return jsonify({'success': False, 'error': f'Erro no upload: {str(e)}'}), 500
+            
+            # 6. SALVAR NO BANCO
+            query_insert = text("""
+                INSERT INTO checklist_evidencias (resposta_id, nome_arquivo, caminho_arquivo, tamanho_bytes, content_type)
+                VALUES (:resposta_id, :nome_arquivo, :caminho_arquivo, :tamanho_bytes, :content_type)
+                RETURNING id
+            """)
+            
+            result = conn.execute(query_insert, {
+                'resposta_id': resposta_id,
+                'nome_arquivo': evidencia_nome,
+                'caminho_arquivo': caminho,
+                'tamanho_bytes': len(file_bytes),
+                'content_type': 'application/pdf'
+            })
+            conn.commit()
+            
+            evidencia_id = result.fetchone()[0]
+            
+            print(f"✅ Evidência salva com sucesso! ID: {evidencia_id}")
+            
+            return jsonify({
+                'success': True,
+                'evidencia': {
+                    'id': evidencia_id,
+                    'nome': evidencia_nome,
+                    'caminho': caminho,
+                    'tamanho': len(file_bytes)
+                }
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/checklist/evidencias/<int:resposta_id>', methods=['GET'])
+def listar_evidencias_checklist(resposta_id):
+    """Lista as evidências de uma resposta específica"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            # ⭐ VERIFICAR SE A RESPOSTA EXISTE
+            query_resposta = text("""
+                SELECT id FROM checklist_respostas WHERE id = :resposta_id
+            """)
+            resposta = conn.execute(query_resposta, {'resposta_id': resposta_id}).fetchone()
+            
+            if not resposta:
+                return jsonify({
+                    'success': True,
+                    'evidencias': [],
+                    'message': f'Resposta {resposta_id} não encontrada'
+                })
+            
+            # ⭐ BUSCAR EVIDÊNCIAS
+            query_evidencias = text("""
+                SELECT id, nome_arquivo, caminho_arquivo, tamanho_bytes, uploaded_at
+                FROM checklist_evidencias
+                WHERE resposta_id = :resposta_id
+                ORDER BY uploaded_at DESC
+            """)
+            
+            result = conn.execute(query_evidencias, {'resposta_id': resposta_id}).fetchall()
+            
+            evidencias = []
+            for row in result:
+                evidencias.append({
+                    'id': row[0],
+                    'nome': row[1],
+                    'caminho': row[2],
+                    'tamanho': row[3],
+                    'data': row[4].isoformat() if row[4] else None
+                })
+            
+            return jsonify({
+                'success': True,
+                'evidencias': evidencias
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao listar evidências: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 
 # ============================================================
