@@ -1977,19 +1977,91 @@
 
     const PERGUNTAS = {
         governanca: [
-            { id: 1, pergunta: "O fluxo das etapas e seus objetivos são de fato realizados? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 1, precisaEvidencia: true },
-            { id: 2, pergunta: "O fluxo das etapas e seus objetivos são de fato realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?", ordem: 2, precisaEvidencia: true },
-            { id: 3, pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", ordem: 3, precisaEvidencia: false },
-            { id: 4, pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", ordem: 4, precisaEvidencia: false },
-            { id: 5, pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", ordem: 5, precisaEvidencia: false },
-            { id: 6, pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", ordem: 6, precisaEvidencia: false },
-            { id: 7, pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", ordem: 7, precisaEvidencia: false },
-            { id: 8, pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", ordem: 8, precisaEvidencia: false },
-            { id: 9, pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", ordem: 9, precisaEvidencia: false },
-            { id: 10, pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", ordem: 10, precisaEvidencia: false },
-            { id: 11, pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", ordem: 11, precisaEvidencia: false },
-            { id: 12, pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", ordem: 12, precisaEvidencia: false },
-            { id: 13, pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", ordem: 13, precisaEvidencia: true },
+            {
+                id: 1,
+                pergunta: "O fluxo das etapas e seus objetivos são de fato realizados?",
+                ordem: 1,
+                precisaEvidencia: true,
+                temSubitens: true,
+                subitens: [
+                    {
+                        id: '1.1',
+                        texto: "Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?"
+                    },
+                    {
+                        id: '1.2',
+                        texto: "Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?"
+                    }
+                ],
+                compartilhaComentario: true,
+                compartilhaEvidencia: true
+            },
+            { 
+                id: 2, 
+                pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", 
+                ordem: 2, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 3, 
+                pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", 
+                ordem: 3, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 4, 
+                pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", 
+                ordem: 4, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 5, 
+                pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", 
+                ordem: 5, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 6, 
+                pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", 
+                ordem: 6, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 7, 
+                pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", 
+                ordem: 7, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 8, 
+                pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", 
+                ordem: 8, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 9, 
+                pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", 
+                ordem: 9, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 10, 
+                pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", 
+                ordem: 10, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 11, 
+                pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", 
+                ordem: 11, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 12, 
+                pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", 
+                ordem: 12, 
+                precisaEvidencia: true 
+            }
         ],
         riscos: [
             { id: 1, pergunta: "Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.", ordem: 1, precisaEvidencia: false },
@@ -2687,6 +2759,25 @@
         }
     }
 
+    function renderizarEvidencias(evidencias, perguntaIndex, itemIndex) {
+        if (!evidencias || evidencias.length === 0) {
+            return '';
+        }
+        
+        return evidencias.map(ev => `
+            <div class="evidencia-item" data-evidencia-id="${ev.id}">
+                <i class="fas fa-file-pdf"></i>
+                <span>${escapeHtml(ev.nome)}</span>
+                <button class="btn-baixar-evidencia" onclick="baixarEvidenciaChecklist(${ev.id})" title="Baixar">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn-remover-evidencia" onclick="removerEvidenciaChecklist(${ev.id}, ${perguntaIndex}, ${itemIndex})" title="Remover">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
     // ============================================================
     // FUNÇÕES DO CHECKLIST COM EVIDÊNCIAS
     // ============================================================
@@ -2727,7 +2818,8 @@
             const respostasMap = {};
             if (dados.success && dados.respostas) {
                 dados.respostas.forEach(r => {
-                    respostasMap[r.ordem] = r;
+                    const ordemKey = String(r.ordem);
+                    respostasMap[ordemKey] = r;
                 });
             }
             
@@ -2740,11 +2832,10 @@
                         const evData = await evResponse.json();
                         if (evData.success) {
                             evidenciasMap[ordem] = evData.evidencias || [];
-                            // Guardar o ID da resposta para uso futuro
                             currentRespostaIds[ordem] = resposta.id;
                         }
                     } catch (err) {
-                        console.error(`❌ Erro ao carregar evidências da pergunta ${ordem}:`, err);
+                        console.error(`❌ Erro ao carregar evidências da ordem ${ordem}:`, err);
                         evidenciasMap[ordem] = [];
                     }
                 }
@@ -2757,57 +2848,190 @@
             
             for (let i = 0; i < perguntas.length; i++) {
                 const p = perguntas[i];
-                const r = respostasMap[p.ordem] || { resposta: '', comentario: '', evidencias: [] };
-                const evidencias = evidenciasMap[p.ordem] || [];
-                const precisaEvidencia = p.precisaEvidencia === true;
                 
-                html += `
-                    <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}">
-                        <div class="pergunta-header">
-                            <div class="pergunta-numero">${p.ordem}</div>
-                            <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
-                        </div>
-                        <div class="pergunta-opcoes">
-                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim</label>
-                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não</label>
-                            <label class="radio-label"><input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica</label>
-                        </div>
-                        <div class="pergunta-comentario">
-                            <textarea class="comentario-textarea" data-index="${i}" placeholder="Comentários..." rows="2">${escapeHtml(r.comentario || '')}</textarea>
-                        </div>
-                `;
-                
-                if (precisaEvidencia) {
+                // ⭐ VERIFICAR SE TEM SUBITENS
+                if (p.temSubitens && p.subitens && p.subitens.length > 0) {
+                    // --- PERGUNTA COM SUBITENS ---
+                    
+                    // Buscar resposta da pergunta principal (ordem: p.ordem)
+                    const ordemPrincipal = String(p.ordem);
+                    const r = respostasMap[ordemPrincipal] || { 
+                        id: null,
+                        resposta: '', 
+                        comentario: '', 
+                        evidencias: [] 
+                    };
+                    const evidencias = evidenciasMap[ordemPrincipal] || [];
+                    
                     html += `
-                        <div class="evidencias-container">
-                            <button type="button" class="btn-evidencias" onclick="abrirUploadEvidencia(${i})">
-                                <i class="fas fa-paperclip"></i> Anexar Evidência (PDF)
-                            </button>
-                            <div class="evidencias-lista" id="evidencias-lista-${i}">
+                        <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}" style="border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                            <!-- PERGUNTA PRINCIPAL -->
+                            <div class="pergunta-header">
+                                <div class="pergunta-numero">${p.ordem}</div>
+                                <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
+                            </div>
+                            <div class="pergunta-opcoes">
+                                <label class="radio-label">
+                                    <input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica
+                                </label>
+                            </div>
+                            
+                            <!-- SUBITENS (cada um com sua própria resposta) -->
+                            <div class="subitens-container" style="padding-left: 40px; margin-top: 15px;">
                     `;
                     
-                    if (evidencias && evidencias.length > 0) {
-                        console.log(`✅ Exibindo ${evidencias.length} evidências para pergunta ${p.ordem}`);
-                        evidencias.forEach(ev => {
-                            html += `
-                                <div class="evidencia-item" data-evidencia-id="${ev.id}">
-                                    <i class="fas fa-file-pdf"></i>
-                                    <span>${escapeHtml(ev.nome)}</span>
-                                    <button class="btn-baixar-evidencia" onclick="baixarEvidenciaChecklist(${ev.id})" title="Baixar">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                    <button class="btn-remover-evidencia" onclick="removerEvidenciaChecklist(${ev.id}, ${i})" title="Remover">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                    p.subitens.forEach((sub, subIndex) => {
+                        const subOrdem = sub.id;
+                        const subResposta = respostasMap[subOrdem] || { 
+                            id: null,
+                            resposta: '', 
+                            comentario: '' 
+                        };
+                        
+                        html += `
+                            <div class="subitem-item" style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 3px solid #0b5b99;">
+                                <div style="font-weight: 500; margin-bottom: 8px; font-size: 13px;">
+                                    <span style="color: #0b5b99;">${subOrdem}</span>
+                                    ${escapeHtml(sub.texto)}
                                 </div>
-                            `;
-                        });
+                                <div class="pergunta-opcoes" style="padding-left: 0;">
+                                    <label class="radio-label">
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="Sim" ${subResposta.resposta === 'Sim' ? 'checked' : ''}> 
+                                        ✅ Sim
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="Não" ${subResposta.resposta === 'Não' ? 'checked' : ''}> 
+                                        ❌ Não
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="Não se aplica" ${subResposta.resposta === 'Não se aplica' ? 'checked' : ''}> 
+                                        ➖ Não se aplica
+                                    </label>
+                                </div>
+                                ${subResposta.comentario ? `<div style="font-size: 12px; color: #666; margin-top: 5px;">💬 ${escapeHtml(subResposta.comentario)}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                            
+                            <!-- COMENTÁRIO COMPARTILHADO -->
+                            <div class="pergunta-comentario" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e0e0e0;">
+                                <label style="font-weight: 600; color: #184145; font-size: 13px;">
+                                    <i class="fas fa-comment"></i> Comentário
+                                </label>
+                                <textarea class="comentario-textarea" data-index="${i}" data-ordem="${ordemPrincipal}" placeholder="Comentários gerais sobre esta pergunta..." rows="2" style="margin-top: 5px;">${escapeHtml(r.comentario || '')}</textarea>
+                            </div>
+                    `;
+                    
+                    // EVIDÊNCIA COMPARTILHADA
+                    if (p.precisaEvidencia) {
+                        html += `
+                            <div class="evidencias-container" style="margin-top: 10px;">
+                                <label style="font-weight: 600; color: #184145; font-size: 13px;">
+                                    <i class="fas fa-paperclip"></i> Evidência
+                                </label>
+                                <button type="button" class="btn-evidencias" onclick="abrirUploadEvidencia(${i})" style="margin-top: 5px;">
+                                    <i class="fas fa-cloud-upload-alt"></i> Anexar Evidência (PDF)
+                                </button>
+                                <div class="evidencias-lista" id="evidencias-lista-${i}">
+                        `;
+                        
+                        if (evidencias && evidencias.length > 0) {
+                            evidencias.forEach(ev => {
+                                html += `
+                                    <div class="evidencia-item" data-evidencia-id="${ev.id}">
+                                        <i class="fas fa-file-pdf"></i>
+                                        <span>${escapeHtml(ev.nome)}</span>
+                                        <button class="btn-baixar-evidencia" onclick="baixarEvidenciaChecklist(${ev.id})" title="Baixar">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button class="btn-remover-evidencia" onclick="removerEvidenciaChecklist(${ev.id}, ${i})" title="Remover">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                `;
+                            });
+                        }
+                        
+                        html += `
+                                </div>
+                                <small class="text-muted">Anexe evidências em PDF (máx. 10MB)</small>
+                            </div>
+                        `;
                     }
                     
-                    html += `</div><small class="text-muted">Anexe evidências em PDF (máx. 10MB)</small></div>`;
+                    html += `</div>`;
+                    
+                } else {
+                    // --- PERGUNTA NORMAL (sem subitens) ---
+                    const ordemPrincipal = String(p.ordem);
+                    const r = respostasMap[ordemPrincipal] || { 
+                        id: null,
+                        resposta: '', 
+                        comentario: '', 
+                        evidencias: [] 
+                    };
+                    const evidencias = evidenciasMap[ordemPrincipal] || [];
+                    
+                    html += `
+                        <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}">
+                            <div class="pergunta-header">
+                                <div class="pergunta-numero">${p.ordem}</div>
+                                <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
+                            </div>
+                            <div class="pergunta-opcoes">
+                                <label class="radio-label"><input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim</label>
+                                <label class="radio-label"><input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não</label>
+                                <label class="radio-label"><input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica</label>
+                            </div>
+                            <div class="pergunta-comentario">
+                                <textarea class="comentario-textarea" data-index="${i}" placeholder="Comentários..." rows="2">${escapeHtml(r.comentario || '')}</textarea>
+                            </div>
+                    `;
+                    
+                    if (p.precisaEvidencia) {
+                        html += `
+                            <div class="evidencias-container">
+                                <button type="button" class="btn-evidencias" onclick="abrirUploadEvidencia(${i})">
+                                    <i class="fas fa-paperclip"></i> Anexar Evidência (PDF)
+                                </button>
+                                <div class="evidencias-lista" id="evidencias-lista-${i}">
+                        `;
+                        
+                        if (evidencias && evidencias.length > 0) {
+                            evidencias.forEach(ev => {
+                                html += `
+                                    <div class="evidencia-item" data-evidencia-id="${ev.id}">
+                                        <i class="fas fa-file-pdf"></i>
+                                        <span>${escapeHtml(ev.nome)}</span>
+                                        <button class="btn-baixar-evidencia" onclick="baixarEvidenciaChecklist(${ev.id})" title="Baixar">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button class="btn-remover-evidencia" onclick="removerEvidenciaChecklist(${ev.id}, ${i})" title="Remover">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                `;
+                            });
+                        }
+                        
+                        html += `
+                                </div>
+                                <small class="text-muted">Anexe evidências em PDF (máx. 10MB)</small>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
                 }
-                
-                html += `</div>`;
             }
             
             html += `</div>
@@ -2830,6 +3054,63 @@
             console.error('❌ Erro ao carregar checklist:', error);
             body.innerHTML = `<div class="alert-error">❌ Erro ao carregar o checklist: ${error.message}</div>`;
         }
+    }
+
+    // Upload de evidência para item do grupo
+    function abrirUploadEvidenciaGrupo(grupoIndex, itemIndex) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                mostrarToast('⚠️ Apenas arquivos PDF são permitidos', 'warning');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                mostrarToast('⚠️ Arquivo muito grande. Máximo 10MB', 'warning');
+                return;
+            }
+            
+            const key = `${grupoIndex}_${itemIndex}`;
+            if (!arquivosPendentes[key]) arquivosPendentes[key] = [];
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                arquivosPendentes[key].push({
+                    nome: file.name,
+                    tipo: file.type,
+                    conteudo: event.target.result
+                });
+                
+                const listaDiv = document.getElementById(`evidencias-lista-${grupoIndex}_${itemIndex}`);
+                if (listaDiv) {
+                    const tempId = 'temp_' + Date.now() + '_' + Math.random();
+                    const evidenciaDiv = document.createElement('div');
+                    evidenciaDiv.className = 'evidencia-item';
+                    evidenciaDiv.setAttribute('data-temp-id', tempId);
+                    evidenciaDiv.innerHTML = `
+                        <div class="evidencia-info">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>${escapeHtml(file.name)}</span>
+                            <small class="evidencia-pendente">(não salvo - clique em Salvar para confirmar)</small>
+                        </div>
+                        <div class="evidencia-acoes">
+                            <button class="btn-remover-evidencia" onclick="removerEvidenciaTemp('${tempId}', '${key}')" title="Remover">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    listaDiv.appendChild(evidenciaDiv);
+                }
+                mostrarToast('📎 Evidência adicionada. Clique em Salvar para confirmar.', 'info');
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
     }
 
     function abrirUploadEvidencia(perguntaIndex) {
@@ -2872,9 +3153,7 @@
                         <div class="evidencia-info">
                             <i class="fas fa-file-pdf"></i>
                             <span>${escapeHtml(file.name)}</span>
-                            <small class="evidencia-pendente">
-                                (não salvo - clique em Salvar para confirmar)
-                            </small>
+                            <small class="evidencia-pendente">(não salvo - clique em Salvar para confirmar)</small>
                         </div>
                         <div class="evidencia-acoes">
                             <button class="btn-remover-evidencia" onclick="removerEvidenciaTemp('${tempId}', ${perguntaIndex})" title="Remover">
@@ -3005,8 +3284,6 @@
                 if (evidenciaItem) {
                     evidenciaItem.style.opacity = '1';
                     evidenciaItem.style.pointerEvents = 'auto';
-                    // Recarregar o conteúdo original (opcional)
-                    await carregarEvidenciasPergunta(perguntaIndex);
                 }
             }
         } catch (error) {
@@ -3029,23 +3306,53 @@
         const perguntas = PERGUNTAS[tipo];
         const respostas = [];
         
-        // ⭐ LOG: VERIFICAR ARQUIVOS PENDENTES
         console.log('📎 Arquivos pendentes ANTES de salvar:', arquivosPendentes);
         console.log('📎 Total de arquivos pendentes:', Object.keys(arquivosPendentes).length);
         
+        // ⭐ 1. COLETAR TODAS AS RESPOSTAS
         for (let i = 0; i < perguntas.length; i++) {
-            const radio = container.querySelector(`input[name="resp_${i}"]:checked`);
-            const comentario = container.querySelector(`.comentario-textarea[data-index="${i}"]`).value;
-            const pergunta = perguntas[i];
-            respostas.push({ 
-                ordem: pergunta.ordem,
-                resposta: radio ? radio.value : '', 
-                comentario: comentario 
-            });
+            const p = perguntas[i];
+            
+            // ⭐ VERIFICAR SE TEM SUBITENS
+            if (p.temSubitens && p.subitens && p.subitens.length > 0) {
+                // --- PERGUNTA COM SUBITENS ---
+                
+                // 1. Resposta da pergunta principal (ordem = p.ordem)
+                const radioPrincipal = container.querySelector(`input[name="resp_${i}"]:checked`);
+                const comentarioCompartilhado = container.querySelector(`.comentario-textarea[data-index="${i}"]`);
+                
+                respostas.push({
+                    ordem: p.ordem,  // ex: 1
+                    resposta: radioPrincipal ? radioPrincipal.value : '',
+                    comentario: comentarioCompartilhado ? comentarioCompartilhado.value : ''
+                });
+                
+                // 2. Respostas dos subitens (ordem = '1.1', '1.2', ...)
+                p.subitens.forEach((sub, subIndex) => {
+                    const radioSub = container.querySelector(`input[name="subresp_${i}_${subIndex}"]:checked`);
+                    // ⭐ Subitens NÃO têm comentário próprio (usam o compartilhado)
+                    respostas.push({
+                        ordem: sub.id,  // ex: '1.1', '1.2'
+                        resposta: radioSub ? radioSub.value : '',
+                        comentario: ''  // comentário vazio (usam o compartilhado)
+                    });
+                });
+                
+            } else {
+                // --- PERGUNTA NORMAL ---
+                const radio = container.querySelector(`input[name="resp_${i}"]:checked`);
+                const comentario = container.querySelector(`.comentario-textarea[data-index="${i}"]`);
+                
+                respostas.push({
+                    ordem: p.ordem,
+                    resposta: radio ? radio.value : '',
+                    comentario: comentario ? comentario.value : ''
+                });
+            }
         }
         
         try {
-            // 1. SALVAR AS RESPOSTAS PRIMEIRO
+            // ⭐ 2. SALVAR AS RESPOSTAS
             const bodyData = { 
                 processo_id: parseInt(processoIdAtual), 
                 tipo, 
@@ -3054,6 +3361,7 @@
             };
             
             console.log('📤 Salvando checklist:', bodyData);
+            console.log('📤 Respostas sendo enviadas:', respostas);
             
             const response = await fetch('/api/checklist/salvar', { 
                 method: 'POST', 
@@ -3072,7 +3380,7 @@
                 console.log('📊 IDs das respostas recebidas:', currentRespostaIds);
                 console.log('📊 Chaves disponíveis:', Object.keys(currentRespostaIds));
                 
-                // 2. ENVIAR EVIDÊNCIAS PENDENTES (UMA POR UMA)
+                // ⭐ 3. ENVIAR EVIDÊNCIAS PENDENTES
                 if (Object.keys(arquivosPendentes).length > 0) {
                     console.log('📎 Enviando evidências pendentes...');
                     console.log('📎 arquivosPendentes:', arquivosPendentes);
@@ -3081,26 +3389,39 @@
                     let totalEvidencias = 0;
                     
                     for (const [perguntaIndex, arquivos] of Object.entries(arquivosPendentes)) {
-                        const pergunta = perguntas[parseInt(perguntaIndex)];
-                        const perguntaOrdem = pergunta.ordem;
+                        const idx = parseInt(perguntaIndex);
+                        const pergunta = perguntas[idx];
                         
-                        // ⭐⭐⭐ CORREÇÃO AQUI ⭐⭐⭐
-                        // Tentar com número e com string
-                        let respostaId = currentRespostaIds[perguntaOrdem];
-                        if (!respostaId) {
-                            respostaId = currentRespostaIds[String(perguntaOrdem)];
-                        }
-                        
-                        console.log(`🔍 Pergunta índice: ${perguntaIndex}, ordem: ${perguntaOrdem}, respostaId: ${respostaId}`);
-                        console.log(`🔍 currentRespostaIds tem chave ${perguntaOrdem}?`, currentRespostaIds.hasOwnProperty(perguntaOrdem));
-                        console.log(`🔍 currentRespostaIds tem chave "${perguntaOrdem}"?`, currentRespostaIds.hasOwnProperty(String(perguntaOrdem)));
-                        
-                        if (!respostaId) {
-                            console.warn(`⚠️ Resposta ID não encontrado para pergunta ${perguntaOrdem}`);
-                            console.warn(`⚠️ currentRespostaIds disponíveis:`, Object.keys(currentRespostaIds));
+                        if (!pergunta) {
+                            console.warn(`⚠️ Pergunta não encontrada para índice: ${idx}`);
                             continue;
                         }
                         
+                        // ⭐ DETERMINAR A ORDEM PARA A EVIDÊNCIA
+                        let ordemEvidencia;
+                        
+                        if (pergunta.temSubitens && pergunta.subitens && pergunta.subitens.length > 0) {
+                            // ⭐ Para perguntas com subitens, a evidência vai para a pergunta principal (ordem = p.ordem)
+                            ordemEvidencia = String(pergunta.ordem);
+                        } else {
+                            // ⭐ Para perguntas normais, a evidência vai para a própria pergunta
+                            ordemEvidencia = String(pergunta.ordem);
+                        }
+                        
+                        // ⭐ BUSCAR O ID DA RESPOSTA
+                        let respostaId = currentRespostaIds[ordemEvidencia];
+                        if (!respostaId) {
+                            respostaId = currentRespostaIds[String(ordemEvidencia)];
+                        }
+                        
+                        console.log(`🔍 Pergunta índice: ${perguntaIndex}, ordemEvidencia: ${ordemEvidencia}, respostaId: ${respostaId}`);
+                        
+                        if (!respostaId) {
+                            console.warn(`⚠️ Resposta ID não encontrado para ordem ${ordemEvidencia}`);
+                            continue;
+                        }
+                        
+                        // ⭐ ENVIAR CADA ARQUIVO
                         for (const arquivo of arquivos) {
                             totalEvidencias++;
                             try {
@@ -3137,14 +3458,16 @@
                         mostrarToast(`📎 ${evidenciasEnviadas} de ${totalEvidencias} evidências salvas.`, 'info');
                     }
                     
-                    // Limpar arquivos pendentes
+                    // ⭐ LIMPAR ARQUIVOS PENDENTES
                     arquivosPendentes = {};
                 } else {
                     console.log('⚠️ NENHUM arquivo pendente para enviar!');
                 }
                 
+                // ⭐ 4. MENSAGEM DE SUCESSO
                 mostrarToast(concluir ? '✅ Checklist concluído!' : '✅ Respostas salvas!', 'success');
                 
+                // ⭐ 5. RECARREGAR OU FECHAR
                 if (concluir) {
                     fecharModalChecklist();
                 } else {
@@ -3152,9 +3475,11 @@
                 }
                 
                 carregarProgressoChecklists();
+                
             } else {
                 mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
             }
+            
         } catch (error) { 
             console.error('❌ Erro ao salvar checklist:', error);
             mostrarToast('❌ Erro ao conectar com o servidor', 'error'); 
