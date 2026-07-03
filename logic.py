@@ -2192,6 +2192,12 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
                 Paragraph("<b>Onde Inicia?:</b>", card_texto_style),
                 Paragraph(proc['etapa_ini'], texto_processo_style)
             ])
+
+        if proc.get('produto'):
+            info_processo.append([
+                Paragraph("<b>Qual o Produto Gerado?:</b>", card_texto_style),
+                Paragraph(proc['produto'], texto_processo_style)
+            ])
         
         if proc.get('etapa_fim'):
             info_processo.append([
@@ -2199,11 +2205,6 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
                 Paragraph(proc['etapa_fim'], texto_processo_style)
             ])
         
-        if proc.get('produto'):
-            info_processo.append([
-                Paragraph("<b>Qual o Produto Gerado?:</b>", card_texto_style),
-                Paragraph(proc['produto'], texto_processo_style)
-            ])
         
         if info_processo:
             # ⭐ LARGURA AJUSTADA PARA O CARD
@@ -2878,13 +2879,13 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         if proc.get('objetivo'):
             info_processo.append([
                 Paragraph("<b>Objetivo:</b>", card_texto_style),
-                Paragraph(limitar_texto(proc['objetivo'], 120), texto_processo_style)
+                Paragraph(limitar_texto(proc['objetivo'], 200), texto_processo_style)
             ])
         
         if proc.get('descricao'):
             info_processo.append([
                 Paragraph("<b>Descrição:</b>", card_texto_style),
-                Paragraph(limitar_texto(proc['descricao'], 120), texto_processo_style)
+                Paragraph(limitar_texto(proc['descricao'], 200), texto_processo_style)
             ])
         
         executor_valor = proc.get('executor') or 'Não informado'
@@ -2899,17 +2900,18 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 Paragraph(proc['etapa_ini'], texto_processo_style)
             ])
         
+        if proc.get('produto'):
+            info_processo.append([
+                Paragraph("<b>Produto:</b>", card_texto_style),
+                Paragraph(proc['produto'], texto_processo_style)
+            ])
+        
         if proc.get('etapa_fim'):
             info_processo.append([
                 Paragraph("<b>Fim:</b>", card_texto_style),
                 Paragraph(proc['etapa_fim'], texto_processo_style)
             ])
         
-        if proc.get('produto'):
-            info_processo.append([
-                Paragraph("<b>Produto:</b>", card_texto_style),
-                Paragraph(proc['produto'], texto_processo_style)
-            ])
         
         if info_processo:
             largura_label = 3.0 * cm
@@ -2958,55 +2960,70 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 if etapa.get('descricao_etapa'):
                     info_etapa.append([
                         Paragraph("<b>Descrição:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['descricao_etapa'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['descricao_etapa'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('como_e_feito'):
                     info_etapa.append([
                         Paragraph("<b>Como é feito:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['como_e_feito'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['como_e_feito'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('objetivo_etapa'):
                     info_etapa.append([
                         Paragraph("<b>Objetivo da Etapa:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['objetivo_etapa'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['objetivo_etapa'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('politica_interna'):
                     info_etapa.append([
                         Paragraph("<b>Política Interna:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['politica_interna'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['politica_interna'], 400), texto_etapa_style)
                     ])
 
+                # Dentro do loop de etapas, modifique:
                 if etapa.get('obrigacoes_regulatorias'):
+                    try:
+                        dados_obrigacoes = etapa['obrigacoes_regulatorias']
+                        if isinstance(dados_obrigacoes, str):
+                            dados_obrigacoes = json.loads(dados_obrigacoes)
+                        
+                        # Extrai apenas os títulos
+                        if isinstance(dados_obrigacoes, list):
+                            titulos = [item.get('titulo', 'Sem título') for item in dados_obrigacoes if isinstance(item, dict)]
+                            texto_obrigacoes = " • ".join(titulos) if titulos else "Nenhuma obrigação cadastrada"
+                        else:
+                            texto_obrigacoes = str(dados_obrigacoes)
+                    except:
+                        texto_obrigacoes = str(etapa['obrigacoes_regulatorias'])
+                    
                     info_etapa.append([
                         Paragraph("<b>Obrigações Regulatórias:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['obrigacoes_regulatorias'], 150), texto_etapa_style)
+                        Paragraph(texto_obrigacoes, texto_etapa_style)
                     ])
 
                 if etapa.get('analise_critica'):
                     info_etapa.append([
                         Paragraph("<b>Análise Crítica:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['analise_critica'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['analise_critica'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('sugestao_melhoria'):
                     info_etapa.append([
                         Paragraph("<b>Sugestão de Melhoria:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['sugestao_melhoria'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['sugestao_melhoria'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('necessidade_implantacao'):
                     info_etapa.append([
                         Paragraph("<b>Necessidade para Implantação:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['necessidade_implantacao'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['necessidade_implantacao'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('ganho_previsto'):
                     info_etapa.append([
                         Paragraph("<b>Ganho Previsto:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['ganho_previsto'], 150), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['ganho_previsto'], 400), texto_etapa_style)
                     ])
                 
                 # Manual da etapa
@@ -3093,6 +3110,39 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                             info_risco.append([
                                 Paragraph("<b>Consequência:</b>", card_texto_style),
                                 Paragraph(limitar_texto(risco['consequencia'], 120), texto_risco_style)
+                            ])
+                        
+                        # ⭐ NOVOS CAMPOS AQUI (entre consequencia e desc_tratamento)
+                        if risco.get('info_adicional'):
+                            info_risco.append([
+                                Paragraph("<b>Informações Adicionais:</b>", card_texto_style),
+                                Paragraph(limitar_texto(str(risco['info_adicional']), 120), texto_risco_style)
+                            ])
+
+                        if risco.get('financeiro') is not None:  # Verifica se não é None
+                            valor_financeiro = risco['financeiro']
+                            # Converte booleano para "Sim" ou "Não"
+                            if isinstance(valor_financeiro, bool):
+                                valor_financeiro = "Sim" if valor_financeiro else "Não"
+                            info_risco.append([
+                                Paragraph("<b>Impacta Financeiramente?:</b>", card_texto_style),
+                                Paragraph(str(valor_financeiro), texto_risco_style)
+                            ])
+
+                        if risco.get('ativo') is not None:  # Verifica se não é None
+                            valor_ativo = risco['ativo']
+                            # Converte booleano para "Sim" ou "Não"
+                            if isinstance(valor_ativo, bool):
+                                valor_ativo = "Sim" if valor_ativo else "Não"
+                            info_risco.append([
+                                Paragraph("<b>Risco está ativo?:</b>", card_texto_style),
+                                Paragraph(str(valor_ativo), texto_risco_style)
+                            ])
+
+                        if risco.get('origem'):
+                            info_risco.append([
+                                Paragraph("<b>Origem:</b>", card_texto_style),
+                                Paragraph(str(risco['origem']), texto_risco_style)
                             ])
 
                         if risco.get('causas'):
@@ -3423,7 +3473,11 @@ def buscar_processos_detalhamento(area_id, auditoria_id=None, processo_id=None):
                     r.desc_tratamento,
                     r.prazo_implantacao,
                     r.impacto_aceitavel,
-                    r.probabilidade_aceitavel
+                    r.probabilidade_aceitavel,
+                    r.info_adicional,
+                    r.financeiro,
+                    r.ativo,
+                    r.origem
                 FROM riscos_etapa r
                 WHERE r.etapa_id = :etapa_id
                 ORDER BY r.id
@@ -3496,8 +3550,12 @@ def buscar_processos_detalhamento(area_id, auditoria_id=None, processo_id=None):
                     'tratamento': risco[10],
                     'desc_tratamento': risco[11],
                     'prazo_implantacao': risco[12],
-                    'apetite_impacto': risco[13],      # ⭐ impacto_aceitavel
-                    'apetite_probabilidade': risco[14], # ⭐ probabilidade_aceitavel
+                    'apetite_impacto': risco[13],      
+                    'apetite_probabilidade': risco[14], 
+                    'info_adicional': risco[15],
+                    'financeiro': risco[16],
+                    'ativo': risco[17],
+                    'origem': risco[18],
                     'controles': controles_lista
                 })
             
