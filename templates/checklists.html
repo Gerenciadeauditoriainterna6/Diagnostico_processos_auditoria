@@ -1986,80 +1986,86 @@
                 subitens: [
                     {
                         id: '1.1',
-                        texto: "Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?"
+                        texto: "Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento?"
                     },
                     {
                         id: '1.2',
-                        texto: "Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?"
+                        texto: "Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?"
                     }
                 ],
                 compartilhaComentario: true,
                 compartilhaEvidencia: true
             },
-            { 
-                id: 2, 
-                pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", 
-                ordem: 2, 
-                precisaEvidencia: false 
+            {
+                id: 2,
+                pergunta: "Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?",
+                ordem: 2,
+                precisaEvidencia: false
             },
             { 
                 id: 3, 
-                pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", 
+                pergunta: "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?", 
                 ordem: 3, 
                 precisaEvidencia: false 
             },
             { 
                 id: 4, 
-                pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", 
+                pergunta: "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?", 
                 ordem: 4, 
                 precisaEvidencia: false 
             },
             { 
                 id: 5, 
-                pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", 
+                pergunta: "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?", 
                 ordem: 5, 
                 precisaEvidencia: false 
             },
             { 
                 id: 6, 
-                pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", 
+                pergunta: "A gestão da área realiza monitoramento contínuo dos processos?", 
                 ordem: 6, 
                 precisaEvidencia: false 
             },
             { 
                 id: 7, 
-                pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", 
+                pergunta: "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?", 
                 ordem: 7, 
                 precisaEvidencia: false 
             },
             { 
                 id: 8, 
-                pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", 
+                pergunta: "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?", 
                 ordem: 8, 
                 precisaEvidencia: false 
             },
             { 
                 id: 9, 
-                pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", 
+                pergunta: "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?", 
                 ordem: 9, 
                 precisaEvidencia: false 
             },
             { 
                 id: 10, 
-                pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", 
+                pergunta: "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?", 
                 ordem: 10, 
                 precisaEvidencia: false 
             },
             { 
                 id: 11, 
-                pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", 
+                pergunta: "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?", 
                 ordem: 11, 
                 precisaEvidencia: false 
             },
             { 
                 id: 12, 
-                pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", 
+                pergunta: "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?", 
                 ordem: 12, 
+                precisaEvidencia: false 
+            },
+            { 
+                id: 13, 
+                pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", 
+                ordem: 13, 
                 precisaEvidencia: true 
             }
         ],
@@ -2810,6 +2816,13 @@
             
             const dados = await response.json();
             console.log('📦 Dados recebidos do checklist:', dados);
+
+            if (dados.success && dados.respostas) {
+                console.log('📊 Detalhes das respostas:');
+                dados.respostas.forEach((r, index) => {
+                    console.log(`  ${index + 1}. ordem: ${r.ordem}, id: ${r.id}, resposta: ${r.resposta}`);
+                });
+            }
             
             const respostas = dados.success ? dados.respostas : [];
             currentRespostaId = dados.success ? dados.id : null;
@@ -2853,32 +2866,33 @@
                 if (p.temSubitens && p.subitens && p.subitens.length > 0) {
                     // --- PERGUNTA COM SUBITENS ---
                     
-                    // Buscar resposta da pergunta principal (ordem: p.ordem)
-                    const ordemPrincipal = String(p.ordem);
-                    const r = respostasMap[ordemPrincipal] || { 
-                        id: null,
-                        resposta: '', 
-                        comentario: '', 
-                        evidencias: [] 
-                    };
-                    const evidencias = evidenciasMap[ordemPrincipal] || [];
+                    // ⭐ BUSCAR AS RESPOSTAS INDIVIDUAIS
+                    const pergunta1 = respostasMap['1'] || { id: null, resposta: '', comentario: '', evidencias: [] };
+                    const pergunta1_1 = respostasMap['1.1'] || { id: null, resposta: '', comentario: '', evidencias: [] };
+                    const pergunta1_2 = respostasMap['1.2'] || { id: null, resposta: '', comentario: '', evidencias: [] };
+                    
+                    // ⭐ COMENTÁRIO COMPARTILHADO (vem da pergunta 1)
+                    const comentarioCompartilhado = pergunta1.comentario || '';
+                    
+                    // ⭐ EVIDÊNCIAS COMPARTILHADAS (vêm da pergunta 1)
+                    const evidenciasCompartilhadas = pergunta1.evidencias || [];
                     
                     html += `
-                        <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}" style="border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                            <!-- PERGUNTA PRINCIPAL -->
+                        <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}" style="border: 2px solid #184145; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                            <!-- PERGUNTA PRINCIPAL (1) -->
                             <div class="pergunta-header">
                                 <div class="pergunta-numero">${p.ordem}</div>
                                 <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
                             </div>
                             <div class="pergunta-opcoes">
                                 <label class="radio-label">
-                                    <input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim
+                                    <input type="radio" name="resp_${i}" value="Sim" ${pergunta1.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim
                                 </label>
                                 <label class="radio-label">
-                                    <input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não
+                                    <input type="radio" name="resp_${i}" value="Não" ${pergunta1.resposta === 'Não' ? 'checked' : ''}> ❌ Não
                                 </label>
                                 <label class="radio-label">
-                                    <input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica
+                                    <input type="radio" name="resp_${i}" value="Não se aplica" ${pergunta1.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica
                                 </label>
                             </div>
                             
@@ -2887,17 +2901,20 @@
                     `;
                     
                     p.subitens.forEach((sub, subIndex) => {
-                        const subOrdem = sub.id;
-                        const subResposta = respostasMap[subOrdem] || { 
-                            id: null,
-                            resposta: '', 
-                            comentario: '' 
-                        };
+                        // ⭐ PEGAR A RESPOSTA DO SUBITEM CORRETO
+                        let subResposta;
+                        if (sub.id === '1.1') {
+                            subResposta = pergunta1_1;
+                        } else if (sub.id === '1.2') {
+                            subResposta = pergunta1_2;
+                        } else {
+                            subResposta = { id: null, resposta: '', comentario: '' };
+                        }
                         
                         html += `
                             <div class="subitem-item" style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 3px solid #0b5b99;">
                                 <div style="font-weight: 500; margin-bottom: 8px; font-size: 13px;">
-                                    <span style="color: #0b5b99;">${subOrdem}</span>
+                                    <span style="color: #0b5b99;">${sub.id}</span>
                                     ${escapeHtml(sub.texto)}
                                 </div>
                                 <div class="pergunta-opcoes" style="padding-left: 0;">
@@ -2914,7 +2931,6 @@
                                         ➖ Não se aplica
                                     </label>
                                 </div>
-                                ${subResposta.comentario ? `<div style="font-size: 12px; color: #666; margin-top: 5px;">💬 ${escapeHtml(subResposta.comentario)}</div>` : ''}
                             </div>
                         `;
                     });
@@ -2925,9 +2941,9 @@
                             <!-- COMENTÁRIO COMPARTILHADO -->
                             <div class="pergunta-comentario" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e0e0e0;">
                                 <label style="font-weight: 600; color: #184145; font-size: 13px;">
-                                    <i class="fas fa-comment"></i> Comentário
+                                    <i class="fas fa-comment"></i> Comentário Compartilhado
                                 </label>
-                                <textarea class="comentario-textarea" data-index="${i}" data-ordem="${ordemPrincipal}" placeholder="Comentários gerais sobre esta pergunta..." rows="2" style="margin-top: 5px;">${escapeHtml(r.comentario || '')}</textarea>
+                                <textarea class="comentario-textarea" data-index="${i}" data-ordem="1" placeholder="Comentários gerais sobre esta pergunta..." rows="2" style="margin-top: 5px;">${escapeHtml(comentarioCompartilhado)}</textarea>
                             </div>
                     `;
                     
@@ -2936,7 +2952,7 @@
                         html += `
                             <div class="evidencias-container" style="margin-top: 10px;">
                                 <label style="font-weight: 600; color: #184145; font-size: 13px;">
-                                    <i class="fas fa-paperclip"></i> Evidência
+                                    <i class="fas fa-paperclip"></i> Evidência Compartilhada
                                 </label>
                                 <button type="button" class="btn-evidencias" onclick="abrirUploadEvidencia(${i})" style="margin-top: 5px;">
                                     <i class="fas fa-cloud-upload-alt"></i> Anexar Evidência (PDF)
@@ -2944,8 +2960,8 @@
                                 <div class="evidencias-lista" id="evidencias-lista-${i}">
                         `;
                         
-                        if (evidencias && evidencias.length > 0) {
-                            evidencias.forEach(ev => {
+                        if (evidenciasCompartilhadas && evidenciasCompartilhadas.length > 0) {
+                            evidenciasCompartilhadas.forEach(ev => {
                                 html += `
                                     <div class="evidencia-item" data-evidencia-id="${ev.id}">
                                         <i class="fas fa-file-pdf"></i>
@@ -2969,7 +2985,6 @@
                     }
                     
                     html += `</div>`;
-                    
                 } else {
                     // --- PERGUNTA NORMAL (sem subitens) ---
                     const ordemPrincipal = String(p.ordem);
