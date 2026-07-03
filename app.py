@@ -5577,8 +5577,10 @@ def api_checklist_carregar():
             # ⭐ 3. CRIAR MAPA DE RESPOSTAS POR ORDEM COM O ID CORRETO
             respostas_map = {}
             for r in respostas_db:
-                respostas_map[r[1]] = {
-                    'id': r[0],          # ← ID DA RESPOSTA (do banco!)
+                # ⭐ CONVERTER PARA STRING (já que pergunta_ordem é VARCHAR)
+                chave = str(r[1])
+                respostas_map[chave] = {
+                    'id': r[0],
                     'ordem': r[1],
                     'resposta': r[2] or '',
                     'comentario': r[3] or ''
@@ -5588,42 +5590,105 @@ def api_checklist_carregar():
             print(f"🔍 Respostas encontradas: {len(respostas_db)}")
             print(f"🔍 Mapa de respostas: {respostas_map}")
 
-            # ⭐ 4. MONTAR RESPOSTAS PARA TODAS AS PERGUNTAS
+            # ⭐ 4. MONTAR RESPOSTAS NA ORDEM CORRETA
             respostas = []
-            for i in range(1, num_perguntas + 1):
-                resposta_data = respostas_map.get(i, {
-                    'id': None,
-                    'ordem': i,
-                    'resposta': '',
-                    'comentario': ''
-                })
+
+            if tipo == 'governanca':
+                # Definição das ordens do frontend
+                ordens_frontend = ['1', '1.1', '1.2', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13']
                 
-                # ⭐ BUSCAR EVIDÊNCIAS (se houver resposta)
-                evidencias = []
-                if resposta_data['id']:
-                    query_evidencias = text("""
-                        SELECT id, nome_arquivo, tamanho_bytes
-                        FROM checklist_evidencias
-                        WHERE resposta_id = :resposta_id
-                    """)
-                    ev_result = conn.execute(query_evidencias, {
-                        'resposta_id': resposta_data['id']
-                    }).fetchall()
+                # Mapeamento: frontend_ordem -> banco_pergunta_ordem
+                mapeamento_banco = {
+                    '1': '1',
+                    '1.1': '1.1',
+                    '1.2': '1.2',
+                    '2': '2',
+                    '3': '3',
+                    '4': '4',
+                    '5': '5',
+                    '6': '6',
+                    '7': '7',
+                    '8': '8',
+                    '9': '9',
+                    '10': '10',
+                    '11': '11',
+                    '12': '12',
+                    '13': '13'   # ← AGORA CORRETO!
+                }
+                
+                for ordem_frontend in ordens_frontend:
+                    ordem_banco = mapeamento_banco.get(ordem_frontend, ordem_frontend)
+                    resposta_data = respostas_map.get(ordem_banco, {
+                        'id': None,
+                        'ordem': ordem_frontend,
+                        'resposta': '',
+                        'comentario': ''
+                    })
                     
-                    for ev in ev_result:
-                        evidencias.append({
-                            'id': ev[0],
-                            'nome': ev[1],
-                            'tamanho': ev[2]
-                        })
-                
-                respostas.append({
-                    'id': resposta_data['id'],  # ← ID DA RESPOSTA (pode ser None)
-                    'ordem': i,
-                    'resposta': resposta_data['resposta'],
-                    'comentario': resposta_data['comentario'],
-                    'evidencias': evidencias  # ← JÁ VEM COM AS EVIDÊNCIAS
-                })
+                    # Buscar evidências
+                    evidencias = []
+                    if resposta_data['id']:
+                        query_evidencias = text("""
+                            SELECT id, nome_arquivo, tamanho_bytes
+                            FROM checklist_evidencias
+                            WHERE resposta_id = :resposta_id
+                        """)
+                        ev_result = conn.execute(query_evidencias, {
+                            'resposta_id': resposta_data['id']
+                        }).fetchall()
+                        
+                        for ev in ev_result:
+                            evidencias.append({
+                                'id': ev[0],
+                                'nome': ev[1],
+                                'tamanho': ev[2]
+                            })
+                    
+                    respostas.append({
+                        'id': resposta_data['id'],
+                        'ordem': ordem_frontend,
+                        'resposta': resposta_data['resposta'],
+                        'comentario': resposta_data['comentario'],
+                        'evidencias': evidencias
+                    })
+
+            else:
+                # Para riscos e controles, ordem normal
+                for i in range(1, num_perguntas + 1):
+                    ordem = str(i)
+                    resposta_data = respostas_map.get(ordem, {
+                        'id': None,
+                        'ordem': ordem,
+                        'resposta': '',
+                        'comentario': ''
+                    })
+                    
+                    # Buscar evidências
+                    evidencias = []
+                    if resposta_data['id']:
+                        query_evidencias = text("""
+                            SELECT id, nome_arquivo, tamanho_bytes
+                            FROM checklist_evidencias
+                            WHERE resposta_id = :resposta_id
+                        """)
+                        ev_result = conn.execute(query_evidencias, {
+                            'resposta_id': resposta_data['id']
+                        }).fetchall()
+                        
+                        for ev in ev_result:
+                            evidencias.append({
+                                'id': ev[0],
+                                'nome': ev[1],
+                                'tamanho': ev[2]
+                            })
+                    
+                    respostas.append({
+                        'id': resposta_data['id'],
+                        'ordem': ordem,
+                        'resposta': resposta_data['resposta'],
+                        'comentario': resposta_data['comentario'],
+                        'evidencias': evidencias
+                    })
 
             # ⭐ LOG PARA DEBUG
             print(f"📤 Respostas sendo enviadas: {[{'id': r['id'], 'ordem': r['ordem']} for r in respostas]}")
@@ -5674,7 +5739,6 @@ def api_checklist_salvar():
             }).fetchone()
             
             if not checklist:
-                # Criar novo checklist
                 query_insert = text("""
                     INSERT INTO checklists (processo_id, tipo, status, observacoes_gerais)
                     VALUES (:processo_id, :tipo, 'Não iniciado', :observacoes_gerais)
@@ -5691,7 +5755,6 @@ def api_checklist_salvar():
             else:
                 checklist_id = checklist[0]
                 print(f"📝 Checklist encontrado: id={checklist_id}")
-                # Atualizar observações gerais
                 query_update = text("""
                     UPDATE checklists SET observacoes_gerais = :observacoes_gerais
                     WHERE id = :checklist_id
@@ -5733,7 +5796,8 @@ def api_checklist_salvar():
                 conn.commit()
                 
                 resposta_id = result.fetchone()[0]
-                respostas_ids[pergunta_ordem] = resposta_id
+                # ⭐⭐⭐ CONVERTER PARA STRING ⭐⭐⭐
+                respostas_ids[str(pergunta_ordem)] = resposta_id
                 print(f"✅ Resposta salva: pergunta {pergunta_ordem} → id {resposta_id}")
             
             # 4. ATUALIZAR STATUS DO CHECKLIST
@@ -5748,14 +5812,12 @@ def api_checklist_salvar():
             })
             conn.commit()
             
-            # ⭐⭐⭐ LOG PARA DEBUG ⭐⭐⭐
             print(f"📤 respostas_ids sendo retornados: {respostas_ids}")
-            print(f"📤 Tipo de respostas_ids: {type(respostas_ids)}")
             
             return jsonify({
                 'success': True,
                 'id': checklist_id,
-                'respostas_ids': respostas_ids,  # ← ESSENCIAL!
+                'respostas_ids': respostas_ids,  # ← TODAS AS CHAVES SÃO STRINGS
                 'message': 'Respostas salvas com sucesso'
             })
             
