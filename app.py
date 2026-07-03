@@ -132,10 +132,11 @@ def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, e
     load_dotenv()
     
     if not evidencia_base64 or not evidencia_nome:
+        print("❌ Evidência ou nome vazio")
         return None
     
     try:
-        # Remover prefixo (ex: "data:application/pdf;base64,")
+        # Remover prefixo
         if ',' in evidencia_base64:
             evidencia_base64 = evidencia_base64.split(',')[1]
         
@@ -146,18 +147,15 @@ def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, e
             print(f"❌ Erro ao decodificar base64: {e}")
             return None
         
-        # Gerar nome único para o arquivo
+        # Gerar nome único
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_id = str(uuid.uuid4())[:8]
-        
-        # Estrutura de pastas: checklists/{checklist_id}/pergunta_{ordem}/{timestamp}_{nome_original}
         storage_filename = f"checklists/{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{evidencia_nome}"
         
-        # ⭐ CREDENCIAIS
+        # Credenciais
         supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # Nome correto do seu .env
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
         
-        # Fallback
         if not supabase_key:
             supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
         if not supabase_key:
@@ -169,13 +167,13 @@ def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, e
             print("❌ Credenciais do Supabase não configuradas")
             return None
         
-        bucket = bucket_name or "matriz_eficacia"  # ← Nome do novo bucket
+        bucket = bucket_name or "matriz_eficacia"
         
-        print(f"📎 Upload evidência checklist: bucket={bucket}, path={storage_filename}")
+        print(f"📎 Upload: bucket={bucket}, path={storage_filename}")
         
         supabase = create_client(supabase_url, supabase_key)
         
-        # Upload do arquivo
+        # Upload
         response = supabase.storage.from_(bucket).upload(
             storage_filename,
             file_bytes,
@@ -183,16 +181,15 @@ def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, e
         )
         
         if response:
-            # Gerar URL assinada (válida por 1 ano)
-            signed_url = supabase.storage.from_(bucket).create_signed_url(
-                storage_filename, 31536000  # 1 ano em segundos
-            )
-            return signed_url.get('signedURL') if signed_url else None
+            print("✅ Upload realizado com sucesso!")
+            # ⭐ RETORNAR O CAMINHO (NÃO A URL ASSINADA)
+            return storage_filename  # ← IMPORTANTE: retornar o caminho, não a URL
         
+        print("❌ Upload falhou")
         return None
         
     except Exception as e:
-        print(f"❌ Erro no upload da evidência: {e}")
+        print(f"❌ Erro no upload: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -5829,24 +5826,23 @@ def api_checklist_salvar():
     
 @app.route('/api/checklist/progresso')
 def api_checklist_progresso():
-    """Retorna o progresso dos checklists para um processo ou auditoria"""
+    """Retorna o progresso dos checklists para um processo"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     processo_id = request.args.get('processo_id')
-    auditoria_id = request.args.get('auditoria_id')
     
-    if not processo_id and not auditoria_id:
-        return jsonify({'success': False, 'error': 'processo_id ou auditoria_id é obrigatório'}), 400
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'processo_id é obrigatório'}), 400
     
     from database import engine
     from sqlalchemy import text
     
     # Configuração dos checklists
     CONFIG = {
-        'governanca': {'tabela': 'checklist_governanca_respostas', 'total': 13},
-        'riscos': {'tabela': 'checklist_riscos_respostas', 'total': 12},
-        'controles': {'tabela': 'checklist_controles_respostas', 'total': 12}
+        'governanca': {'total': 13},
+        'riscos': {'total': 12},
+        'controles': {'total': 12}
     }
     
     resultado = {}
@@ -5854,49 +5850,46 @@ def api_checklist_progresso():
     try:
         with engine.connect() as conn:
             for tipo, config in CONFIG.items():
-                tabela = config['tabela']
                 total = config['total']
                 
-                # Buscar registro
-                if processo_id:
-                    query = text(f"""
-                        SELECT id, status, 
-                               {', '.join([f'p{i}_resposta' for i in range(1, total + 1)])}
-                        FROM {tabela}
-                        WHERE processo_id = :processo_id
-                        ORDER BY id DESC LIMIT 1
-                    """)
-                    registro = conn.execute(query, {'processo_id': processo_id}).fetchone()
-                else:
-                    query = text(f"""
-                        SELECT id, status, 
-                               {', '.join([f'p{i}_resposta' for i in range(1, total + 1)])}
-                        FROM {tabela}
-                        WHERE auditoria_id = :auditoria_id
-                        ORDER BY id DESC LIMIT 1
-                    """)
-                    registro = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+                # ⭐ BUSCAR O CHECKLIST NA NOVA TABELA
+                query_checklist = text("""
+                    SELECT id, status
+                    FROM checklists
+                    WHERE processo_id = :processo_id AND tipo = :tipo
+                """)
                 
-                if not registro:
+                checklist = conn.execute(query_checklist, {
+                    'processo_id': processo_id,
+                    'tipo': tipo
+                }).fetchone()
+                
+                if not checklist:
                     resultado[tipo] = {
-                        'id': None,
                         'total': total,
                         'respondidas': 0,
                         'status': 'Não iniciado'
                     }
                 else:
-                    # Contar quantas perguntas têm resposta
-                    respondidas = 0
-                    for i in range(2, 2 + total):
-                        if registro[i] and registro[i] != '':
-                            respondidas += 1
+                    checklist_id = checklist[0]
+                    status = checklist[1] or 'Em andamento'
                     
-                    status = registro[1] or 'Em andamento'
-                    if respondidas == total and status != 'Concluído':
-                        status = 'Em andamento'
+                    # ⭐ CONTAR RESPOSTAS PREENCHIDAS
+                    query_respondidas = text("""
+                        SELECT COUNT(*) 
+                        FROM checklist_respostas 
+                        WHERE checklist_id = :checklist_id 
+                        AND resposta IS NOT NULL 
+                        AND resposta != ''
+                    """)
+                    
+                    result = conn.execute(query_respondidas, {
+                        'checklist_id': checklist_id
+                    })
+                    
+                    respondidas = result.fetchone()[0]
                     
                     resultado[tipo] = {
-                        'id': registro[0],
                         'total': total,
                         'respondidas': respondidas,
                         'status': status
@@ -5909,6 +5902,8 @@ def api_checklist_progresso():
             
     except Exception as e:
         print(f"❌ Erro ao buscar progresso: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -6176,11 +6171,6 @@ def salvar_evidencia_checklist():
     
     from database import engine
     from sqlalchemy import text
-    import base64
-    import uuid
-    from datetime import datetime
-    import os
-    from dotenv import load_dotenv
     
     try:
         data = request.json
@@ -6189,12 +6179,11 @@ def salvar_evidencia_checklist():
         evidencia_nome = data.get('evidencia_nome')
         
         print(f"📎 Recebendo evidência: resposta_id={resposta_id}, nome={evidencia_nome}")
-        print(f"📎 Base64 length: {len(evidencia_base64) if evidencia_base64 else 0}")
         
         if not resposta_id or not evidencia_base64 or not evidencia_nome:
             return jsonify({'success': False, 'error': 'Dados incompletos'}), 400
         
-        # Validar tipo do arquivo (apenas PDF)
+        # Validar tipo do arquivo
         if not evidencia_nome.lower().endswith('.pdf'):
             return jsonify({'success': False, 'error': 'Apenas arquivos PDF são permitidos'}), 400
         
@@ -6215,80 +6204,37 @@ def salvar_evidencia_checklist():
             
             print(f"📎 Checklist ID: {checklist_id}, Pergunta: {pergunta_ordem}")
             
-            # 2. REMOVER PREFIXO DO BASE64
-            if ',' in evidencia_base64:
-                evidencia_base64 = evidencia_base64.split(',')[1]
+            # 2. UPLOAD PARA O STORAGE
+            from app import upload_evidencia_checklist
             
-            # 3. DECODIFICAR BASE64
-            try:
-                file_bytes = base64.b64decode(evidencia_base64)
-                print(f"📎 Tamanho do arquivo decodificado: {len(file_bytes)} bytes")
-            except Exception as e:
-                print(f"❌ Erro ao decodificar base64: {e}")
-                return jsonify({'success': False, 'error': 'Erro ao decodificar arquivo'}), 400
+            caminho = upload_evidencia_checklist(
+                checklist_id=checklist_id,
+                pergunta_ordem=pergunta_ordem,
+                evidencia_base64=evidencia_base64,
+                evidencia_nome=evidencia_nome,
+                bucket_name="matriz_eficacia"
+            )
             
-            # 4. GERAR NOME ÚNICO
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_id = str(uuid.uuid4())[:8]
-            storage_filename = f"checklists/{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{evidencia_nome}"
+            if not caminho:
+                return jsonify({'success': False, 'error': 'Erro ao fazer upload da evidência'}), 500
             
-            # 5. FAZER UPLOAD PARA O STORAGE
-            load_dotenv()
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            print(f"📎 Upload realizado: {caminho}")
             
-            if not supabase_key:
-                supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-            if not supabase_key:
-                supabase_key = os.getenv('SUPABASE_KEY')
-            if not supabase_key:
-                supabase_key = os.getenv('SUPABASE_ANON_KEY')
-            
-            if not supabase_url or not supabase_key:
-                print("❌ Credenciais do Supabase não configuradas")
-                return jsonify({'success': False, 'error': 'Storage não configurado'}), 500
-            
-            from supabase import create_client
-            supabase = create_client(supabase_url, supabase_key)
-            bucket = "matriz_eficacia"
-            
-            print(f"📎 Upload: bucket={bucket}, path={storage_filename}")
-            
-            try:
-                response = supabase.storage.from_(bucket).upload(
-                    storage_filename,
-                    file_bytes,
-                    file_options={"content-type": "application/pdf"}
-                )
-                
-                if not response:
-                    print("❌ Upload falhou - resposta vazia")
-                    return jsonify({'success': False, 'error': 'Erro ao fazer upload'}), 500
-                
-                print("✅ Upload realizado com sucesso!")
-                
-                # Gerar URL assinada
-                signed_url = supabase.storage.from_(bucket).create_signed_url(
-                    storage_filename, 31536000
-                )
-                caminho = signed_url.get('signedURL') if signed_url else storage_filename
-                
-            except Exception as e:
-                print(f"❌ Erro no upload: {e}")
-                return jsonify({'success': False, 'error': f'Erro no upload: {str(e)}'}), 500
-            
-            # 6. SALVAR NO BANCO
+            # 3. SALVAR NO BANCO
             query_insert = text("""
                 INSERT INTO checklist_evidencias (resposta_id, nome_arquivo, caminho_arquivo, tamanho_bytes, content_type)
                 VALUES (:resposta_id, :nome_arquivo, :caminho_arquivo, :tamanho_bytes, :content_type)
                 RETURNING id
             """)
             
+            # Calcular tamanho aproximado
+            tamanho_aproximado = int(len(evidencia_base64) * 0.75)
+            
             result = conn.execute(query_insert, {
                 'resposta_id': resposta_id,
                 'nome_arquivo': evidencia_nome,
                 'caminho_arquivo': caminho,
-                'tamanho_bytes': len(file_bytes),
+                'tamanho_bytes': tamanho_aproximado,
                 'content_type': 'application/pdf'
             })
             conn.commit()
@@ -6303,7 +6249,7 @@ def salvar_evidencia_checklist():
                     'id': evidencia_id,
                     'nome': evidencia_nome,
                     'caminho': caminho,
-                    'tamanho': len(file_bytes)
+                    'tamanho': tamanho_aproximado
                 }
             })
             

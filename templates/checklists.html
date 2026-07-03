@@ -2836,6 +2836,15 @@
                 });
             }
             
+            // ⭐⭐⭐ EXTRAIR IDs DAS RESPOSTAS ANTES DE CARREGAR EVIDÊNCIAS ⭐⭐⭐
+            currentRespostaIds = {};
+            for (const [ordem, resposta] of Object.entries(respostasMap)) {
+                if (resposta.id) {
+                    currentRespostaIds[ordem] = resposta.id;
+                }
+            }
+            console.log('📊 IDs das respostas extraídas:', currentRespostaIds);
+            
             // ⭐ CARREGAR EVIDÊNCIAS PARA CADA RESPOSTA
             const evidenciasMap = {};
             for (const [ordem, resposta] of Object.entries(respostasMap)) {
@@ -2845,7 +2854,6 @@
                         const evData = await evResponse.json();
                         if (evData.success) {
                             evidenciasMap[ordem] = evData.evidencias || [];
-                            currentRespostaIds[ordem] = resposta.id;
                         }
                     } catch (err) {
                         console.error(`❌ Erro ao carregar evidências da ordem ${ordem}:`, err);
@@ -2855,7 +2863,7 @@
             }
             
             console.log(`📊 Total de respostas: ${respostas.length}`);
-            console.log('📊 IDs das respostas:', currentRespostaIds);
+            console.log('📊 IDs das respostas FINAL:', currentRespostaIds);
             
             let html = `<div class="perguntas-container">`;
             
@@ -3602,6 +3610,8 @@
         try {
             const response = await fetch(`/api/checklist/progresso?processo_id=${processoIdAtual}`);
             const data = await response.json();
+            console.log('📊 Progresso recebido:', data);
+            
             if (data.success && data.progresso) {
                 for (const [tipo, info] of Object.entries(data.progresso)) {
                     const statusEl = document.getElementById(`status-${tipo}`);
@@ -3612,7 +3622,9 @@
                     if (fillEl) fillEl.style.width = `${(info.respondidas / info.total) * 100}%`;
                 }
             }
-        } catch (error) { console.error(error); }
+        } catch (error) { 
+            console.error('❌ Erro ao carregar progresso:', error); 
+        }
     }
 
     // ============================================================
