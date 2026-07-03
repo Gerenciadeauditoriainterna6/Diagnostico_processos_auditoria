@@ -6165,7 +6165,6 @@ def remover_evidencia_checklist(evidencia_id):
 
 @app.route('/api/checklist/evidencia/salvar', methods=['POST'])
 def salvar_evidencia_checklist():
-    """Salva uma evidência para uma resposta do checklist"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -6221,6 +6220,8 @@ def salvar_evidencia_checklist():
             print(f"📎 Upload realizado: {caminho}")
             
             # 3. SALVAR NO BANCO
+            print("🔍 Inserindo no banco...")
+            
             query_insert = text("""
                 INSERT INTO checklist_evidencias (resposta_id, nome_arquivo, caminho_arquivo, tamanho_bytes, content_type)
                 VALUES (:resposta_id, :nome_arquivo, :caminho_arquivo, :tamanho_bytes, :content_type)
@@ -6228,7 +6229,16 @@ def salvar_evidencia_checklist():
             """)
             
             # Calcular tamanho aproximado
-            tamanho_aproximado = int(len(evidencia_base64) * 0.75)
+            import base64
+            tamanho_aproximado = 0
+            if evidencia_base64:
+                # Remover prefixo se existir
+                base64_data = evidencia_base64
+                if ',' in base64_data:
+                    base64_data = base64_data.split(',')[1]
+                tamanho_aproximado = int(len(base64_data) * 0.75)
+            
+            print(f"📎 Tamanho aproximado: {tamanho_aproximado} bytes")
             
             result = conn.execute(query_insert, {
                 'resposta_id': resposta_id,
