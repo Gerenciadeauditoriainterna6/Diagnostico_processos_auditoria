@@ -5546,7 +5546,7 @@ def api_checklist_carregar():
 
 @app.route('/api/checklist/salvar', methods=['POST'])
 def api_checklist_salvar():
-    """Salva as respostas de um checklist"""
+    """Salva as respostas de um checklist (UPSERT)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -5592,6 +5592,7 @@ def api_checklist_salvar():
             else:
                 checklist_id = checklist[0]
                 print(f"📝 Checklist encontrado: id={checklist_id}")
+                # Atualizar observações gerais
                 query_update = text("""
                     UPDATE checklists SET observacoes_gerais = :observacoes_gerais
                     WHERE id = :checklist_id
@@ -5602,14 +5603,7 @@ def api_checklist_salvar():
                 })
                 conn.commit()
             
-            # 2. REMOVER RESPOSTAS ANTIGAS
-            query_delete = text("""
-                DELETE FROM checklist_respostas WHERE checklist_id = :checklist_id
-            """)
-            conn.execute(query_delete, {'checklist_id': checklist_id})
-            conn.commit()
-            
-            # 3. INSERIR NOVAS RESPOSTAS E GUARDAR IDs
+            # ⭐ 2. UPSERT - INSERIR OU ATUALIZAR RESPOSTAS (SEM DELETAR)
             respostas_ids = {}
             
             for resp in respostas:
@@ -5617,14 +5611,21 @@ def api_checklist_salvar():
                 resposta_valor = resp.get('resposta', '')
                 comentario_valor = resp.get('comentario', '')
                 
-                print(f"📝 Inserindo resposta: pergunta={pergunta_ordem}, resposta='{resposta_valor}'")
+                print(f"📝 Upsert resposta: pergunta={pergunta_ordem}, resposta='{resposta_valor}'")
                 
-                query_insert = text("""
+                # ⭐⭐ USAR ON CONFLICT PARA ATUALIZAR EM VEZ DE DELETAR ⭐⭐
+                query_upsert = text("""
                     INSERT INTO checklist_respostas (checklist_id, pergunta_ordem, resposta, comentario)
                     VALUES (:checklist_id, :pergunta_ordem, :resposta, :comentario)
+                    ON CONFLICT (checklist_id, pergunta_ordem) 
+                    DO UPDATE SET 
+                        resposta = EXCLUDED.resposta,
+                        comentario = EXCLUDED.comentario,
+                        updated_at = NOW()
                     RETURNING id
                 """)
-                result = conn.execute(query_insert, {
+                
+                result = conn.execute(query_upsert, {
                     'checklist_id': checklist_id,
                     'pergunta_ordem': pergunta_ordem,
                     'resposta': resposta_valor,
@@ -5633,9 +5634,8 @@ def api_checklist_salvar():
                 conn.commit()
                 
                 resposta_id = result.fetchone()[0]
-                # ⭐⭐⭐ CONVERTER PARA STRING ⭐⭐⭐
                 respostas_ids[str(pergunta_ordem)] = resposta_id
-                print(f"✅ Resposta salva: pergunta {pergunta_ordem} → id {resposta_id}")
+                print(f"✅ Resposta salva: pergunta {pergunta_ordem} → id {resposta_id} (mantido)")
             
             # 4. ATUALIZAR STATUS DO CHECKLIST
             novo_status = 'Concluído' if concluir else 'Em andamento'
@@ -5654,7 +5654,7 @@ def api_checklist_salvar():
             return jsonify({
                 'success': True,
                 'id': checklist_id,
-                'respostas_ids': respostas_ids,  # ← TODAS AS CHAVES SÃO STRINGS
+                'respostas_ids': respostas_ids,
                 'message': 'Respostas salvas com sucesso'
             })
             
@@ -5692,7 +5692,7 @@ def api_checklist_progresso():
             for tipo, config in CONFIG.items():
                 total = config['total']
                 
-                # ⭐ BUSCAR O CHECKLIST NA NOVA TABELA
+                # Buscar o checklist
                 query_checklist = text("""
                     SELECT id, status
                     FROM checklists
@@ -5714,14 +5714,29 @@ def api_checklist_progresso():
                     checklist_id = checklist[0]
                     status = checklist[1] or 'Em andamento'
                     
-                    # ⭐ CONTAR RESPOSTAS PREENCHIDAS
-                    query_respondidas = text("""
-                        SELECT COUNT(*) 
-                        FROM checklist_respostas 
-                        WHERE checklist_id = :checklist_id 
-                        AND resposta IS NOT NULL 
-                        AND resposta != ''
-                    """)
+                    # ⭐⭐⭐ CONTAR APENAS PERGUNTAS PRINCIPAIS ⭐⭐⭐
+                    # Para governança: contar perguntas 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+                    # Ignorar 1.1 e 1.2
+                    
+                    if tipo == 'governanca':
+                        # ⭐ Lista das perguntas principais (excluindo subitens)
+                        query_respondidas = text("""
+                            SELECT COUNT(*) 
+                            FROM checklist_respostas 
+                            WHERE checklist_id = :checklist_id 
+                            AND resposta IS NOT NULL 
+                            AND resposta != ''
+                            AND pergunta_ordem IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13')
+                        """)
+                    else:
+                        # Para riscos e controles, todas as perguntas são principais
+                        query_respondidas = text("""
+                            SELECT COUNT(*) 
+                            FROM checklist_respostas 
+                            WHERE checklist_id = :checklist_id 
+                            AND resposta IS NOT NULL 
+                            AND resposta != ''
+                        """)
                     
                     result = conn.execute(query_respondidas, {
                         'checklist_id': checklist_id
