@@ -9921,6 +9921,32 @@ def api_controles_total():
 # FIM API - DASHBOARD
 # ============================================================
 
+@app.route('/diagnostico-rapido')
+def diagnostico_rapido():
+    import time
+    import psutil
+    from flask import render_template_string
+    
+    resultados = {
+        'memoria': psutil.virtual_memory().percent,
+        'cpu': psutil.cpu_percent(interval=1),
+    }
+    
+    # Teste de banco de dados
+    start = time.time()
+    from database import engine
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1")).fetchone()
+    resultados['db_tempo'] = f"{(time.time() - start)*1000:.0f}ms"
+    
+    # Teste de renderização
+    start = time.time()
+    render_template_string('<h1>Teste</h1>')
+    resultados['template_tempo'] = f"{(time.time() - start)*1000:.0f}ms"
+    
+    return jsonify(resultados)
+
 # ============================================================
 # PONTO DE ENTRADA
 # ============================================================
