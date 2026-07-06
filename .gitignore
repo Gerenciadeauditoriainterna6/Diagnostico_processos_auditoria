@@ -1,38 +1,115 @@
-# --- Segredos e Variáveis de Ambiente ---
+# ============================================
+# 🔒 SEGREDOS E VARIÁVEIS DE AMBIENTE
+# ============================================
 .env
+.env.local
+.env.*.local
 .streamlit/secrets.toml
+secrets.toml
 
-# --- Pastas de Ambiente e Cache ---
+# ============================================
+# 🐍 PYTHON
+# ============================================
 venv/
+env/
+ENV/
+.venv/
 __pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
 
-# --- Arquivos de Banco de Dados e Dados ---
+# ============================================
+# 🗄️ BANCO DE DADOS E DADOS
+# ============================================
 *.db
 *.sqlite
+*.sqlite3
 *.xlsx
+*.xls
 *.csv
+*.parquet
+*.feather
 
-# --- Arquivos de Sistema (macOS/Windows) ---
+# ============================================
+# 📦 BACKUPS SUPABASE
+# ============================================
+# Pasta principal de backup
+backup_supabase/
+/backup_supabase/
+backup_supabase.py
+
+# Qualquer pasta de backup
+**/backup_supabase*/
+**/Backup_*/
+**/Backups_*/
+**/backup_*/
+
+# Manifestos e metadados
+tables_manifest.json
+storage_manifest.json
+storage_progress.json
+backup_*.json
+
+# ============================================
+# 💻 SISTEMA OPERACIONAL
+# ============================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# --- Arquivos específicos do seu projeto ---
+# ============================================
+# 📝 LOGS E HISTÓRICOS
+# ============================================
+*.log
+historico_*.csv
+⚠️_*.txt
+*.tmp
+*.temp
+
+# ============================================
+# 📦 ARQUIVOS COMPACTADOS
+# ============================================
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+*.dump
+*.sql
+
+# ============================================
+# 🛠️ FERRAMENTAS E IDE
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================
+# 📁 ARQUIVOS ESPECÍFICOS DO PROJETO
+# ============================================
 Acessos Auditoria Interna 6.txt
-
-# --- Backup do banco de dados ---
 backup_banco.py
 executar_backup_agendado.bat
 backup_agendado.py
-backup_supabase.py
+backup_supabase.py  # Ignorar o script (se não quiser versionar)
 
-# --- Pastas de backup (qualquer local) ---
-**/Backups_Supabase/
-**/backup_supabase_*/
-**/Backups_Supabase*/
-**/Backup_database*/
-
-# --- Logs e históricos ---
-*.log
-historico_*.csv
-⚠️_VERIFICAR_BACKUP.txt
-⚠️_ERRO_CONEXAO.txt
+# ============================================
+# 📊 STREAMLIT
+# ============================================
+.streamlit/
+*.streamlit/
