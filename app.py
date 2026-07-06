@@ -47,56 +47,37 @@ from logic import validar_login_no_banco, gerar_relatorio_gerencial_area
 
 def upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome, bucket_name=None):
     """Salva evidência no bucket privado do Supabase Storage"""
-    from supabase import create_client
     import base64
     import uuid
     from datetime import datetime
-    import os
-    from dotenv import load_dotenv
-    
-    load_dotenv()
     
     if not evidencia_base64 or not evidencia_nome:
         return None
     
     try:
-        # Remover prefixo
+        # Remover prefixo do base64
         if ',' in evidencia_base64:
             evidencia_base64 = evidencia_base64.split(',')[1]
         
-        # Decodificar
+        # Decodificar base64
         try:
             file_bytes = base64.b64decode(evidencia_base64)
         except Exception as e:
             print(f"❌ Erro ao decodificar base64: {e}")
             return None
         
-        # Nome do arquivo
+        # Gerar nome único para o arquivo
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_id = str(uuid.uuid4())[:8]
         storage_filename = f"analises_auditor/{analise_id}/evidencia_{analise_id}_{unique_id}.pdf"
         
-        # ⭐ CREDENCIAIS
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # Nome correto do seu .env
-        
-        # Fallback
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return None
+        # ⭐ USAR O SINGLETON - UMA ÚNICA CONEXÃO!
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         bucket = bucket_name or "evidencia_analises_auditor"
         
         print(f"📎 Upload: bucket={bucket}, path={storage_filename}")
-        
-        supabase = create_client(supabase_url, supabase_key)
         
         # Upload
         response = supabase.storage.from_(bucket).upload(
@@ -106,7 +87,7 @@ def upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome, bucke
         )
         
         if response:
-            # Gerar URL assinada
+            # Gerar URL assinada (válida por 1 ano)
             signed_url = supabase.storage.from_(bucket).create_signed_url(
                 storage_filename, 31536000
             )
@@ -122,7 +103,6 @@ def upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome, bucke
 
 def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, evidencia_nome, bucket_name=None):
     """Salva evidência do checklist no bucket privado do Supabase Storage"""
-    from supabase import create_client
     import base64
     import uuid
     from datetime import datetime
@@ -152,26 +132,13 @@ def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, e
         unique_id = str(uuid.uuid4())[:8]
         storage_filename = f"checklists/{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{evidencia_nome}"
         
-        # Credenciais
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return None
-        
+        # SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
+
         bucket = bucket_name or "matriz_eficacia"
         
         print(f"📎 Upload: bucket={bucket}, path={storage_filename}")
-        
-        supabase = create_client(supabase_url, supabase_key)
         
         # Upload
         response = supabase.storage.from_(bucket).upload(
@@ -197,26 +164,15 @@ def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, e
 
 def remover_evidencia_checklist(caminho_arquivo, bucket_name=None):
     """Remove uma evidência do bucket"""
-    from supabase import create_client
-    import os
-    from dotenv import load_dotenv
-    
-    load_dotenv()
-    
     if not caminho_arquivo:
         return False
     
     try:
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return False
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         bucket = bucket_name or "matriz_eficacia"
-        
-        supabase = create_client(supabase_url, supabase_key)
         
         # Remover o arquivo
         response = supabase.storage.from_(bucket).remove([caminho_arquivo])
@@ -230,26 +186,15 @@ def remover_evidencia_checklist(caminho_arquivo, bucket_name=None):
 
 def baixar_evidencia_checklist(caminho_arquivo, bucket_name=None):
     """Baixa uma evidência do bucket"""
-    from supabase import create_client
-    import os
-    from dotenv import load_dotenv
-    
-    load_dotenv()
-    
     if not caminho_arquivo:
         return None
     
     try:
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return None
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         bucket = bucket_name or "matriz_eficacia"
-        
-        supabase = create_client(supabase_url, supabase_key)
         
         # Baixar o arquivo
         response = supabase.storage.from_(bucket).download(caminho_arquivo)
@@ -264,12 +209,7 @@ def excluir_arquivo_storage(arquivo_url, bucket_name=None):
     """
     Exclui um arquivo do Supabase Storage a partir da URL
     """
-    from supabase import create_client
-    import os
-    from dotenv import load_dotenv
     from urllib.parse import urlparse, unquote
-    
-    load_dotenv()
     
     if not arquivo_url or arquivo_url.strip() == '':
         print("⚠️ URL vazia, nada para excluir")
@@ -278,20 +218,9 @@ def excluir_arquivo_storage(arquivo_url, bucket_name=None):
     print(f"📎 Excluindo arquivo: {arquivo_url}")
     
     try:
-        # ⭐ CREDENCIAIS
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return False
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         # Extrair o caminho do arquivo da URL
         parsed_url = urlparse(arquivo_url)
@@ -309,8 +238,6 @@ def excluir_arquivo_storage(arquivo_url, bucket_name=None):
                 
                 print(f"📎 Bucket: {bucket_name}")
                 print(f"📎 File path: {file_path}")
-                
-                supabase = create_client(supabase_url, supabase_key)
                 
                 # Excluir do storage
                 response = supabase.storage.from_(bucket_name).remove([file_path])
@@ -335,13 +262,8 @@ def upload_para_bucket_detalhamento(arquivo, nome_unico, tipo, etapa_id):
     """
     Salva arquivo no bucket detalhamento_etapas do Supabase Storage
     """
-    from supabase import create_client
     import uuid
     from datetime import datetime
-    import os
-    from dotenv import load_dotenv
-    
-    load_dotenv()
     
     if not arquivo:
         return None
@@ -367,30 +289,15 @@ def upload_para_bucket_detalhamento(arquivo, nome_unico, tipo, etapa_id):
             pasta = 'outros'
         
         # Caminho: detalhamento_etapas/{pasta}/{etapa_id}/{timestamp}_{unique_id}_{nome_original}
-        # ou apenas com ID único
         storage_filename = f"{pasta}/{etapa_id}/{timestamp}_{unique_id}.pdf"
         
-        # ⭐ CREDENCIAIS
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        # Fallback
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return None
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         bucket_name = "detalhamento_etapas"
         
         print(f"📎 Upload para bucket: {bucket_name}, path: {storage_filename}")
-        
-        supabase = create_client(supabase_url, supabase_key)
         
         # Upload para o bucket
         response = supabase.storage.from_(bucket_name).upload(
@@ -2067,7 +1974,6 @@ def api_auditoria_responsavel(auditoria_id):
 @app.route('/api/auditoria/<int:auditoria_id>/upload-evidencia', methods=['POST'])
 def api_upload_evidencia(auditoria_id):
     """Faz upload de uma evidência para o Supabase Storage"""
-    # from supabase import create_client
     import os
     from datetime import datetime
     import json
@@ -2093,14 +1999,9 @@ def api_upload_evidencia(auditoria_id):
                 return jsonify({'success': False, 'error': 'Auditoria não encontrada'}), 404
             codigo_auditoria = row.codigo_auditoria
         
-        # ⭐ USAR A MESMA CONFIGURAÇÃO DA SUA FUNÇÃO EXISTENTE
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # ⭐ Usar SERVICE_KEY
-        
-        if not supabase_url or not supabase_key:
-            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
-        
-        supabase = create_client(supabase_url, supabase_key)
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         # Gerar nome único
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -2111,10 +2012,10 @@ def api_upload_evidencia(auditoria_id):
         # Caminho no Storage
         caminho_storage = f"auditorias/emergenciais/{codigo_auditoria}/{nome_arquivo}"
         
-        # ⭐ Ler o arquivo (mesmo método da sua função)
+        # Ler o arquivo
         arquivo_bytes = arquivo.read()
         
-        # ⭐ Upload usando o bucket 'evidencias_auditorias'
+        # Upload usando o bucket 'evidencias_auditorias'
         bucket_name = 'evidencias_auditorias'
         supabase.storage.from_(bucket_name).upload(
             path=caminho_storage,
@@ -2122,7 +2023,7 @@ def api_upload_evidencia(auditoria_id):
             file_options={"content-type": arquivo.content_type}
         )
         
-        # ⭐ Gerar URL assinada (mesmo método da sua função)
+        # Gerar URL assinada
         url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
             path=caminho_storage,
             expires_in=604800  # 7 dias
@@ -2188,7 +2089,6 @@ def api_remover_evidencia(auditoria_id):
     from database import engine
     from sqlalchemy import text
     import json
-    # from supabase import create_client
     import os
     
     try:
@@ -2198,14 +2098,10 @@ def api_remover_evidencia(auditoria_id):
         if not caminho:
             return jsonify({'success': False, 'error': 'Caminho do arquivo é obrigatório'}), 400
         
-        # ⭐ USAR A MESMA CONFIGURAÇÃO
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
-        if not supabase_url or not supabase_key:
-            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
-        
-        supabase = create_client(supabase_url, supabase_key)
         bucket_name = 'evidencias_auditorias'
         
         # Buscar evidências existentes
@@ -2224,7 +2120,7 @@ def api_remover_evidencia(auditoria_id):
         # Remover a evidência da lista
         evidencias = [e for e in evidencias if e.get('url') != caminho]
         
-        # ⭐ Remover do Storage
+        # Remover do Storage
         supabase.storage.from_(bucket_name).remove([caminho])
         
         # Salvar no banco
@@ -2262,8 +2158,6 @@ def api_get_evidencias(auditoria_id):
     from database import engine
     from sqlalchemy import text
     import json
-    # from supabase import create_client
-    import os
     
     try:
         query = text("""
@@ -2286,26 +2180,23 @@ def api_get_evidencias(auditoria_id):
         
         # ⭐ RENOVAR URLS ASSINADAS (se necessário)
         if evidencias:
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
+            bucket_name = 'evidencias_auditorias'
             
-            if supabase_url and supabase_key:
-                supabase = create_client(supabase_url, supabase_key)
-                bucket_name = 'evidencias_auditorias'
-                
-                for ev in evidencias:
-                    if ev.get('url'):
-                        try:
-                            url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
-                                ev['url'],
-                                expires_in=604800  # 7 dias
-                            )
-                            if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
-                                ev['url_signed'] = url_assinada['signedURL']
-                            else:
-                                ev['url_signed'] = url_assinada
-                        except:
-                            pass
+            for ev in evidencias:
+                if ev.get('url'):
+                    try:
+                        url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
+                            ev['url'],
+                            expires_in=604800  # 7 dias
+                        )
+                        if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
+                            ev['url_signed'] = url_assinada['signedURL']
+                        else:
+                            ev['url_signed'] = url_assinada
+                    except:
+                        pass
         
         return jsonify({
             'success': True,
@@ -2334,8 +2225,6 @@ def api_get_achados(auditoria_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
-    import os
     import json
     
     try:
@@ -2357,9 +2246,10 @@ def api_get_achados(auditoria_id):
             result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchall()
             
             achados = []
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
             
             for row in result:
                 # Parse dos anexos (JSON)
@@ -2371,7 +2261,7 @@ def api_get_achados(auditoria_id):
                         anexos = row[4] or []
                 
                 # Gerar URLs assinadas para cada anexo
-                if supabase and anexos:
+                if anexos:
                     for anexo in anexos:
                         try:
                             caminho = anexo.get('caminho')
@@ -2413,7 +2303,6 @@ def api_adicionar_achado(auditoria_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
     import os
     import base64
     import json
@@ -2436,7 +2325,7 @@ def api_adicionar_achado(auditoria_id):
             return jsonify({'success': False, 'error': 'Máximo de 5 anexos por achado'}), 400
         
         with engine.connect() as conn:
-            # ⭐ 1. INSERIR ACHADO (SEM ANEXOS PRIMEIRO)
+            # 1. INSERIR ACHADO
             query = text("""
                 INSERT INTO matriz_achados (auditoria_id, usuario_id, texto, data_criacao, anexos)
                 VALUES (:auditoria_id, :usuario_id, :texto, NOW(), '[]'::jsonb)
@@ -2449,10 +2338,10 @@ def api_adicionar_achado(auditoria_id):
             })
             achado_id = result.fetchone()[0]
             
-            # ⭐ 2. PROCESSAR ANEXOS (UPLOAD PARA STORAGE)
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            # 2. PROCESSAR ANEXOS (UPLOAD PARA STORAGE)
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
             
             anexos_salvos = []
             
@@ -2479,26 +2368,25 @@ def api_adicionar_achado(auditoria_id):
                 caminho_storage = f"matriz_achados_auditoria/{auditoria_id}/{achado_id}/{timestamp}_{nome_arquivo}"
                 
                 # Upload para o Storage
-                if supabase:
-                    try:
-                        supabase.storage.from_('matriz_achados_anexos').upload(
-                            path=caminho_storage,
-                            file=arquivo_bytes,
-                            file_options={"content-type": tipo_arquivo}
-                        )
-                        
-                        anexos_salvos.append({
-                            'nome': nome_arquivo,
-                            'caminho': caminho_storage,
-                            'tipo': tipo_arquivo,
-                            'tamanho': tamanho,
-                            'data_upload': datetime.now().isoformat()
-                        })
-                        
-                    except Exception as e:
-                        print(f"⚠️ Erro no upload do anexo {nome_arquivo}: {e}")
+                try:
+                    supabase.storage.from_('matriz_achados_anexos').upload(
+                        path=caminho_storage,
+                        file=arquivo_bytes,
+                        file_options={"content-type": tipo_arquivo}
+                    )
+                    
+                    anexos_salvos.append({
+                        'nome': nome_arquivo,
+                        'caminho': caminho_storage,
+                        'tipo': tipo_arquivo,
+                        'tamanho': tamanho,
+                        'data_upload': datetime.now().isoformat()
+                    })
+                    
+                except Exception as e:
+                    print(f"⚠️ Erro no upload do anexo {nome_arquivo}: {e}")
             
-            # ⭐ 3. ATUALIZAR O CAMPO ANEXOS COM OS DADOS SALVOS
+            # 3. ATUALIZAR O CAMPO ANEXOS COM OS DADOS SALVOS
             if anexos_salvos:
                 anexos_json = json.dumps(anexos_salvos)
                 query_update = text("""
@@ -2534,7 +2422,6 @@ def api_editar_achado(achado_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
     import os
     import base64
     import json
@@ -2552,7 +2439,7 @@ def api_editar_achado(achado_id):
         is_admin = session.get('usuario_perfil') in ['administrador', 'admin']
         
         with engine.connect() as conn:
-            # ⭐ 1. VERIFICAR PERMISSÃO
+            # 1. VERIFICAR PERMISSÃO
             query_check = text("""
                 SELECT usuario_id, anexos
                 FROM matriz_achados
@@ -2575,7 +2462,7 @@ def api_editar_achado(achado_id):
             if autor_id != usuario_id and not is_admin:
                 return jsonify({'success': False, 'error': 'Sem permissão para editar este achado'}), 403
             
-            # ⭐ 2. ATUALIZAR TEXTO
+            # 2. ATUALIZAR TEXTO
             query_update = text("""
                 UPDATE matriz_achados 
                 SET texto = :texto,
@@ -2588,12 +2475,12 @@ def api_editar_achado(achado_id):
                 'id': achado_id
             })
             
-            # ⭐ 3. PROCESSAR NOVOS ANEXOS
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            # 3. PROCESSAR NOVOS ANEXOS
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
             
-            anexos_salvos = anexos_existentes.copy()  # Mantém os anexos existentes
+            anexos_salvos = anexos_existentes.copy()
             
             for anexo in novos_anexos:
                 nome_arquivo = anexo.get('nome')
@@ -2618,26 +2505,25 @@ def api_editar_achado(achado_id):
                 caminho_storage = f"matriz_achados_auditoria/{achado_id}/{timestamp}_{nome_arquivo}"
                 
                 # Upload para o Storage
-                if supabase:
-                    try:
-                        supabase.storage.from_('matriz_achados_anexos').upload(
-                            path=caminho_storage,
-                            file=arquivo_bytes,
-                            file_options={"content-type": tipo_arquivo}
-                        )
-                        
-                        anexos_salvos.append({
-                            'nome': nome_arquivo,
-                            'caminho': caminho_storage,
-                            'tipo': tipo_arquivo,
-                            'tamanho': tamanho,
-                            'data_upload': datetime.now().isoformat()
-                        })
-                        
-                    except Exception as e:
-                        print(f"⚠️ Erro no upload do anexo {nome_arquivo}: {e}")
+                try:
+                    supabase.storage.from_('matriz_achados_anexos').upload(
+                        path=caminho_storage,
+                        file=arquivo_bytes,
+                        file_options={"content-type": tipo_arquivo}
+                    )
+                    
+                    anexos_salvos.append({
+                        'nome': nome_arquivo,
+                        'caminho': caminho_storage,
+                        'tipo': tipo_arquivo,
+                        'tamanho': tamanho,
+                        'data_upload': datetime.now().isoformat()
+                    })
+                    
+                except Exception as e:
+                    print(f"⚠️ Erro no upload do anexo {nome_arquivo}: {e}")
             
-            # ⭐ 4. ATUALIZAR CAMPO ANEXOS
+            # 4. ATUALIZAR CAMPO ANEXOS
             if anexos_salvos:
                 anexos_json = json.dumps(anexos_salvos)
                 query_update_anexos = text("""
@@ -2671,7 +2557,6 @@ def api_excluir_achado(achado_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
     import os
     import json
     
@@ -2681,7 +2566,7 @@ def api_excluir_achado(achado_id):
         is_admin = usuario_perfil in ['administrador', 'admin']
         
         with engine.connect() as conn:
-            # ⭐ 1. VERIFICAR PERMISSÃO
+            # 1. VERIFICAR PERMISSÃO
             query_check = text("""
                 SELECT usuario_id, anexos
                 FROM matriz_achados
@@ -2699,7 +2584,7 @@ def api_excluir_achado(achado_id):
             if autor_id != usuario_id and not is_admin:
                 return jsonify({'success': False, 'error': 'Sem permissão para excluir este achado'}), 403
             
-            # ⭐ 2. REMOVER ANEXOS DO STORAGE
+            # 2. REMOVER ANEXOS DO STORAGE
             anexos = []
             if anexos_json:
                 if isinstance(anexos_json, str):
@@ -2707,11 +2592,11 @@ def api_excluir_achado(achado_id):
                 else:
                     anexos = anexos_json or []
             
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-            supabase = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
             
-            if supabase and anexos:
+            if anexos:
                 try:
                     caminhos = [a.get('caminho') for a in anexos if a.get('caminho')]
                     if caminhos:
@@ -2720,7 +2605,7 @@ def api_excluir_achado(achado_id):
                 except Exception as e:
                     print(f"⚠️ Erro ao remover arquivos do Storage: {e}")
             
-            # ⭐ 3. REMOVER DO BANCO
+            # 3. REMOVER DO BANCO
             query_delete = text("DELETE FROM matriz_achados WHERE id = :achado_id")
             conn.execute(query_delete, {'achado_id': achado_id})
             conn.commit()
@@ -2742,7 +2627,6 @@ def api_remover_anexo(achado_id, anexo_index):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
     import os
     import json
     
@@ -2751,7 +2635,7 @@ def api_remover_anexo(achado_id, anexo_index):
         is_admin = session.get('usuario_perfil') in ['administrador', 'admin']
         
         with engine.connect() as conn:
-            # ⭐ 1. VERIFICAR PERMISSÃO
+            # 1. VERIFICAR PERMISSÃO
             query_check = text("""
                 SELECT usuario_id, anexos
                 FROM matriz_achados
@@ -2768,7 +2652,7 @@ def api_remover_anexo(achado_id, anexo_index):
             if autor_id != usuario_id and not is_admin:
                 return jsonify({'success': False, 'error': 'Sem permissão'}), 403
             
-            # ⭐ 2. BUSCAR ANEXOS
+            # 2. BUSCAR ANEXOS
             anexos = []
             if result_check[1]:
                 if isinstance(result_check[1], str):
@@ -2782,11 +2666,11 @@ def api_remover_anexo(achado_id, anexo_index):
             anexo_removido = anexos[anexo_index]
             caminho_storage = anexo_removido.get('caminho')
             
-            # ⭐ 3. REMOVER DO STORAGE
+            # 3. REMOVER DO STORAGE
             if caminho_storage:
-                supabase_url = os.getenv('SUPABASE_URL')
-                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-                supabase = create_client(supabase_url, supabase_key)
+                # ⭐ USAR O SINGLETON
+                from supabase_client import SupabaseClient
+                supabase = SupabaseClient.get_instance()
                 
                 try:
                     supabase.storage.from_('matriz_achados_anexos').remove([caminho_storage])
@@ -2794,7 +2678,7 @@ def api_remover_anexo(achado_id, anexo_index):
                 except Exception as e:
                     print(f"⚠️ Erro ao remover do Storage: {e}")
             
-            # ⭐ 4. REMOVER DO JSON
+            # 4. REMOVER DO JSON
             anexos.pop(anexo_index)
             anexos_json = json.dumps(anexos)
             
@@ -2827,8 +2711,6 @@ def api_download_anexo_achado(achado_id, anexo_index):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
-    import os
     import json
     
     try:
@@ -2860,10 +2742,9 @@ def api_download_anexo_achado(achado_id, anexo_index):
             if not caminho_storage:
                 return jsonify({'success': False, 'error': 'Caminho do arquivo não encontrado'}), 404
             
-            # ⭐ GERAR URL ASSINADA
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-            supabase = create_client(supabase_url, supabase_key)
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
             
             url_assinada = supabase.storage.from_('matriz_achados_anexos').create_signed_url(
                 path=caminho_storage,
@@ -2893,28 +2774,20 @@ def api_download_anexo_achado(achado_id, anexo_index):
 @app.route('/api/evidencia/<path:caminho>')
 def api_baixar_evidencia(caminho):
     """Baixa uma evidência do Supabase Storage"""
-    # from supabase import create_client
-    import os
-    
     try:
-        # ⭐ USAR A MESMA CONFIGURAÇÃO
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # ⭐ Usar SERVICE_KEY
-        
-        if not supabase_url or not supabase_key:
-            return jsonify({'success': False, 'error': 'Configuração do Supabase não encontrada'}), 500
-        
-        supabase = create_client(supabase_url, supabase_key)
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         bucket_name = 'evidencias_auditorias'
         
-        # ⭐ Gerar URL assinada (mesmo método da sua função)
+        # Gerar URL assinada (1 hora)
         url_assinada = supabase.storage.from_(bucket_name).create_signed_url(
             path=caminho,
-            expires_in=3600  # 1 hora
+            expires_in=3600
         )
         
-        # ⭐ Extrair a URL do dicionário (como sua função faz)
+        # Extrair a URL do dicionário
         if isinstance(url_assinada, dict) and 'signedURL' in url_assinada:
             url = url_assinada['signedURL']
         else:
@@ -3002,20 +2875,12 @@ def api_area_funcionarios_para_select(area_id):
 @app.route('/api/area/<int:area_id>/upload-organograma', methods=['POST'])
 def api_upload_organograma(area_id):
     """Faz upload do organograma para o Supabase Storage - qualquer usuário autenticado"""
-    # ⭐ MANTER: verificação de autenticação
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    # ⭐ REMOVER: verificação de perfil de administrador
-    # perfil = session.get('usuario_perfil')
-    # if perfil not in ['administrador', 'admin']:
-    #     return jsonify({'success': False, 'error': 'Permissão negada'}), 403
-    
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
     import base64
-    import os
     
     data = request.json
     arquivo_base64 = data.get('arquivo_base64')
@@ -3035,16 +2900,9 @@ def api_upload_organograma(area_id):
         if len(arquivo_bytes) > 5 * 1024 * 1024:
             return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 5MB'}), 400
         
-        # 3. Conectar ao Supabase
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        # ⭐ VALIDAÇÃO DAS CREDENCIAIS
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return jsonify({'success': False, 'error': 'Erro interno: credenciais não configuradas'}), 500
-        
-        supabase = create_client(supabase_url, supabase_key)
+        # 3. Conectar ao Supabase - USAR SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         # 4. Gerar caminho único
         extensao = nome_arquivo.split('.')[-1].lower()
@@ -3129,14 +2987,11 @@ def api_buscar_organograma(area_id):
 @app.route('/api/area/<int:area_id>/organograma', methods=['DELETE'])
 def api_remover_organograma(area_id):
     """Remove o organograma da área - qualquer usuário autenticado"""
-
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
-    import os
     
     try:
         with engine.connect() as conn:
@@ -3145,16 +3000,9 @@ def api_remover_organograma(area_id):
             result = conn.execute(query, {'area_id': area_id}).fetchone()
             
             if result and result[0]:
-                # Remover do Storage
-                supabase_url = os.getenv('SUPABASE_URL')
-                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-                
-                # ⭐ VALIDAÇÃO DAS CREDENCIAIS
-                if not supabase_url or not supabase_key:
-                    print("❌ Credenciais do Supabase não configuradas")
-                    return jsonify({'success': False, 'error': 'Erro interno: credenciais não configuradas'}), 500
-                
-                supabase = create_client(supabase_url, supabase_key)
+                # ⭐ USAR O SINGLETON
+                from supabase_client import SupabaseClient
+                supabase = SupabaseClient.get_instance()
                 
                 # Extrair caminho da URL
                 if '/organogramas/' in result[0]:
@@ -4004,12 +3852,9 @@ def api_organograma_url(area_id):
     
     from database import engine
     from sqlalchemy import text
-    # from supabase import create_client
-    import os
     
     try:
         with engine.connect() as conn:
-            # ⭐ CORRIGIDO: usar organograma_url (não organograma_caminho)
             query = text("""
                 SELECT organograma_url, organograma_nome
                 FROM informacoes_area
@@ -4020,14 +3865,10 @@ def api_organograma_url(area_id):
             if not result or not result[0]:
                 return jsonify({'success': False, 'error': 'Organograma não encontrado'}), 404
             
-            # ⭐ O organograma_url já é o caminho completo
-            # Precisamos extrair apenas o caminho para gerar a URL assinada
             url_completa = result[0]
             nome = result[1] or 'organograma'
             
             # Extrair o caminho da URL pública
-            # Exemplo: https://xxx.supabase.co/storage/v1/object/public/organogramas/area_4/organograma.png
-            # Caminho: area_4/organograma.png
             if '/organogramas/' in url_completa:
                 caminho = url_completa.split('/organogramas/')[-1]
             else:
@@ -4035,10 +3876,9 @@ def api_organograma_url(area_id):
             
             print(f"📎 Caminho extraído: {caminho}")
             
-            # Conectar ao Supabase Storage
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-            supabase = create_client(supabase_url, supabase_key)
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
+            supabase = SupabaseClient.get_instance()
             
             # Gerar URL assinada (expira em 300 segundos = 5 minutos)
             url_assinada = supabase.storage.from_('organogramas').create_signed_url(
@@ -5915,18 +5755,13 @@ def baixar_evidencia_checklist(evidencia_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
-    import os
-    from dotenv import load_dotenv
     from flask import send_file
     import io
     import re
     from urllib.parse import unquote
     
     try:
-        load_dotenv()
-        
-        # 1. BUSCAR EVIDÊNCIA NO BANCO (SQL PURO)
+        # 1. BUSCAR EVIDÊNCIA NO BANCO
         with engine.connect() as conn:
             query = text("""
                 SELECT id, nome_arquivo, caminho_arquivo, tamanho_bytes, content_type
@@ -5950,7 +5785,7 @@ def baixar_evidencia_checklist(evidencia_id):
         
         # 2. VERIFICAR SE O CAMINHO É UMA URL OU UM PATH
         if caminho_arquivo.startswith('https://'):
-            # Já é uma URL - pode redirecionar ou baixar
+            # Já é uma URL - baixar diretamente
             import requests
             try:
                 response = requests.get(caminho_arquivo)
@@ -5967,26 +5802,14 @@ def baixar_evidencia_checklist(evidencia_id):
                 return jsonify({'success': False, 'error': f'Erro ao baixar: {str(e)}'}), 500
         
         # 3. É UM PATH - GERAR URL ASSINADA
-        # Carregar credenciais
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')
-        
-        if not supabase_url or not supabase_key:
-            print("❌ Credenciais do Supabase não configuradas")
-            return jsonify({'success': False, 'error': 'Storage não configurado'}), 500
-        
-        supabase = create_client(supabase_url, supabase_key)
         bucket = "matriz_eficacia"
         
         try:
-            # Extrair o caminho do arquivo (remover possível prefixo)
+            # Extrair o caminho do arquivo
             file_path = caminho_arquivo
             
             # Se for URL com /sign/, extrair o caminho
@@ -6060,16 +5883,11 @@ def remover_evidencia_checklist(evidencia_id):
     
     from database import engine
     from sqlalchemy import text
-    from supabase import create_client
-    import os
-    from dotenv import load_dotenv
     import re
     from urllib.parse import unquote
     
     try:
-        load_dotenv()
-        
-        # 1. BUSCAR EVIDÊNCIA NO BANCO (SQL PURO)
+        # 1. BUSCAR EVIDÊNCIA NO BANCO
         with engine.connect() as conn:
             query = text("""
                 SELECT id, nome_arquivo, caminho_arquivo
@@ -6090,56 +5908,38 @@ def remover_evidencia_checklist(evidencia_id):
             print(f"🗑️ Caminho: {caminho_arquivo}")
             
             # 2. REMOVER DO STORAGE
-            # Carregar credenciais
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+            # ⭐ USAR O SINGLETON
+            from supabase_client import SupabaseClient
             
-            if not supabase_key:
-                supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-            if not supabase_key:
-                supabase_key = os.getenv('SUPABASE_KEY')
-            if not supabase_key:
-                supabase_key = os.getenv('SUPABASE_ANON_KEY')
-            
-            if supabase_url and supabase_key:
-                try:
-                    supabase = create_client(supabase_url, supabase_key)
-                    bucket = "matriz_eficacia"
-                    
-                    # Extrair o caminho do arquivo do storage
-                    file_path = caminho_arquivo
-                    
-                    # Se for URL com /sign/, extrair o caminho
-                    if '/sign/' in file_path:
-                        match = re.search(r'/sign/[^/]+/(.+)', file_path)
-                        if match:
-                            file_path = match.group(1).split('?')[0]
-                            file_path = unquote(file_path)
-                    # Se for URL completa do storage, extrair o path
-                    elif 'supabase.co/storage/v1/object/' in file_path:
-                        # Extrair após o bucket
-                        parts = file_path.split('/object/')
-                        if len(parts) > 1:
-                            # Depois de 'object/' vem o bucket e o path
-                            # Formato: /object/sign/matriz_eficacia/path ou /object/public/matriz_eficacia/path
-                            path_parts = parts[1].split('/', 2)
-                            if len(path_parts) >= 3:
-                                # path_parts[0] = 'sign' ou 'public'
-                                # path_parts[1] = 'matriz_eficacia'
-                                # path_parts[2] = caminho real
-                                file_path = path_parts[2]
-                    
-                    print(f"🗑️ File path para remover: {file_path}")
-                    
-                    # Remover do storage
-                    response = supabase.storage.from_(bucket).remove([file_path])
-                    print(f"🗑️ Resposta do storage: {response}")
-                    
-                except Exception as e:
-                    print(f"⚠️ Erro ao remover do storage: {e}")
-                    # Continuar mesmo se falhar no storage - vamos remover do banco
-            else:
-                print("⚠️ Credenciais não configuradas, pulando remoção do storage")
+            try:
+                supabase = SupabaseClient.get_instance()
+                bucket = "matriz_eficacia"
+                
+                # Extrair o caminho do arquivo do storage
+                file_path = caminho_arquivo
+                
+                # Se for URL com /sign/, extrair o caminho
+                if '/sign/' in file_path:
+                    match = re.search(r'/sign/[^/]+/(.+)', file_path)
+                    if match:
+                        file_path = match.group(1).split('?')[0]
+                        file_path = unquote(file_path)
+                # Se for URL completa do storage, extrair o path
+                elif 'supabase.co/storage/v1/object/' in file_path:
+                    parts = file_path.split('/object/')
+                    if len(parts) > 1:
+                        path_parts = parts[1].split('/', 2)
+                        if len(path_parts) >= 3:
+                            file_path = path_parts[2]
+                
+                print(f"🗑️ File path para remover: {file_path}")
+                
+                # Remover do storage
+                response = supabase.storage.from_(bucket).remove([file_path])
+                print(f"🗑️ Resposta do storage: {response}")
+                
+            except Exception as e:
+                print(f"⚠️ Erro ao remover do storage: {e}")
             
             # 3. REMOVER DO BANCO
             query_delete = text("""
@@ -6204,7 +6004,6 @@ def salvar_evidencia_checklist():
             print(f"📎 Checklist ID: {checklist_id}, Pergunta: {pergunta_ordem}")
             
             # 2. UPLOAD PARA O STORAGE
-            from app import upload_evidencia_checklist
             
             caminho = upload_evidencia_checklist(
                 checklist_id=checklist_id,
@@ -7141,16 +6940,10 @@ def baixar_evidencia_analise_auditor(evidencia_id):
     if not session.get('autenticado'):
         return jsonify({'error': 'Não autenticado'}), 401
     
-    from supabase import create_client
-    import os
     import io
     from flask import send_file
     import re
     from urllib.parse import unquote
-    from dotenv import load_dotenv
-    
-    # Carregar .env
-    load_dotenv()
     
     try:
         print(f"🔍 DEBUG: Iniciando download da evidência ID: {evidencia_id}")
@@ -7177,25 +6970,6 @@ def baixar_evidencia_analise_auditor(evidencia_id):
             if not evidencia_url:
                 return jsonify({'error': 'Evidência não possui URL'}), 404
         
-        # ⭐ CARREGAR CREDENCIAIS - USANDO O NOME CORRETO
-        supabase_url = os.getenv('SUPABASE_URL')
-        # ⭐ ATENÇÃO: Use SUPABASE_SERVICE_KEY (seu nome no .env)
-        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
-        
-        # Fallback para outros nomes comuns
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_KEY')
-        if not supabase_key:
-            supabase_key = os.getenv('SUPABASE_ANON_KEY')  # Último recurso
-        
-        print(f"🔍 SUPABASE_URL: {supabase_url}")
-        print(f"🔍 SUPABASE_KEY: {'✅ Carregada' if supabase_key else '❌ NÃO CARREGADA'}")
-        
-        if not supabase_url or not supabase_key:
-            return jsonify({'error': 'Credenciais do Supabase não configuradas'}), 500
-        
         # ⭐ EXTRAIR O CAMINHO
         match = re.search(r'/sign/[^/]+/(.+)', evidencia_url)
         if not match:
@@ -7210,8 +6984,9 @@ def baixar_evidencia_analise_auditor(evidencia_id):
         print(f"📄 DEBUG: Bucket: {bucket}")
         print(f"📄 DEBUG: File path: {file_path}")
         
-        # ⭐ INICIALIZAR SUPABASE
-        supabase = create_client(supabase_url, supabase_key)
+        # ⭐ USAR O SINGLETON
+        from supabase_client import SupabaseClient
+        supabase = SupabaseClient.get_instance()
         
         # ⭐ BAIXAR O ARQUIVO
         try:
@@ -8166,7 +7941,7 @@ def api_analise_salvar():
     necessidade_implantacao = data.get('necessidade_implantacao', '')
     ganho_previsto = data.get('ganho_previsto', '')
     
-    # ⭐ NOVO: Campos de evidência
+    # Campos de evidência
     evidencia_base64 = data.get('evidencia_base64')
     evidencia_nome = data.get('evidencia_nome')
     remover_evidencia = data.get('remover_evidencia', False)
@@ -8178,7 +7953,6 @@ def api_analise_salvar():
     from sqlalchemy import text
     import base64
     import os
-    # from supabase import create_client
     from datetime import datetime
     
     try:
@@ -8192,12 +7966,11 @@ def api_analise_salvar():
             
             print(f"🔍 Etapa {etapa_id} pertence ao processo {processo_id}")
             
-            # ⭐ Processar evidência (se houver)
+            # Processar evidência (se houver)
             evidencia_url_final = None
             evidencia_nome_final = None
             
             if remover_evidencia:
-                # Remover evidência existente
                 print(f"🗑️ Removendo evidência da análise {analise_id or 'nova'}")
                 evidencia_url_final = None
                 evidencia_nome_final = None
@@ -8212,61 +7985,50 @@ def api_analise_salvar():
                     if len(evidencia_bytes) > 10 * 1024 * 1024:
                         return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 10MB'}), 400
                     
-                    # Conectar ao Supabase
-                    supabase_url = os.getenv('SUPABASE_URL')
-                    supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                    # ⭐ USAR O SINGLETON - NÃO MAIS create_client!
+                    from supabase_client import SupabaseClient
+                    supabase = SupabaseClient.get_instance()
                     
-                    if not supabase_url or not supabase_key:
-                        print("⚠️ Configuração do Supabase não encontrada")
-                        # Se não tiver Supabase, salvar no banco como fallback
-                        # (opcional: pode retornar erro também)
-                    else:
-                        supabase = create_client(supabase_url, supabase_key)
-                        
-                        # Se for edição, buscar ID da análise para criar o caminho
-                        if analise_id:
-                            query_analise = text("""
-                                SELECT id FROM analises_criticas WHERE id = :id
-                            """)
-                            result_analise = conn.execute(query_analise, {'id': analise_id}).fetchone()
-                            if result_analise:
-                                analise_id_para_path = analise_id
-                            else:
-                                # Se não encontrou, usar um ID temporário (será atualizado depois)
-                                analise_id_para_path = int(datetime.now().timestamp())
+                    # Se for edição, buscar ID da análise para criar o caminho
+                    if analise_id:
+                        query_analise = text("""
+                            SELECT id FROM analises_criticas WHERE id = :id
+                        """)
+                        result_analise = conn.execute(query_analise, {'id': analise_id}).fetchone()
+                        if result_analise:
+                            analise_id_para_path = analise_id
                         else:
-                            # Nova análise, usar timestamp
                             analise_id_para_path = int(datetime.now().timestamp())
-                        
-                        # Gerar caminho único
-                        extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
-                        timestamp = int(datetime.now().timestamp())
-                        caminho = f"analises_auditado/{analise_id_para_path}/evidencia_{analise_id_para_path}_{timestamp}.{extensao}"
-                        
-                        # Fazer upload
-                        supabase.storage.from_('evidencia_analises_auditado').upload(
-                            path=caminho,
-                            file=evidencia_bytes,
-                            file_options={"content-type": "application/pdf"}
-                        )
-                        
-                        # Gerar URL assinada
-                        url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
-                            path=caminho,
-                            expires_in=604800  # 7 dias
-                        )
-                        
-                        evidencia_url_final = url_assinada['signedURL']
-                        evidencia_nome_final = evidencia_nome
-                        
-                        print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
-                        
+                    else:
+                        analise_id_para_path = int(datetime.now().timestamp())
+                    
+                    # Gerar caminho único
+                    extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
+                    timestamp = int(datetime.now().timestamp())
+                    caminho = f"analises_auditado/{analise_id_para_path}/evidencia_{analise_id_para_path}_{timestamp}.{extensao}"
+                    
+                    # Fazer upload
+                    supabase.storage.from_('evidencia_analises_auditado').upload(
+                        path=caminho,
+                        file=evidencia_bytes,
+                        file_options={"content-type": "application/pdf"}
+                    )
+                    
+                    # Gerar URL assinada
+                    url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
+                        path=caminho,
+                        expires_in=604800  # 7 dias
+                    )
+                    
+                    evidencia_url_final = url_assinada['signedURL']
+                    evidencia_nome_final = evidencia_nome
+                    
+                    print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
+                    
                 except Exception as e:
                     print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
-                    # Não falha o salvamento da análise, apenas loga o erro
-                    # Se falhar, mantém a evidência existente (se houver)
             
-            # ⭐ Buscar evidência existente se não houver nova e não for remoção
+            # Buscar evidência existente se não houver nova e não for remoção
             if not evidencia_base64 and not remover_evidencia and analise_id:
                 query_existente = text("""
                     SELECT evidencia_url, evidencia_nome 
@@ -8305,10 +8067,6 @@ def api_analise_salvar():
                     'evidencia_nome': evidencia_nome_final
                 })
                 print(f"✏️ Análise {analise_id} atualizada")
-                
-                # Se a evidência foi salva com ID temporário, mas a análise já tinha ID,
-                # o caminho já está correto
-                
             else:
                 # Inserir nova
                 query = text("""
@@ -8337,18 +8095,6 @@ def api_analise_salvar():
                 })
                 analise_id = result.fetchone()[0]
                 print(f"✅ Nova análise criada! ID: {analise_id}, processo_id: {processo_id}")
-                
-                # ⭐ Se a evidência foi salva com ID temporário, precisamos atualizar o caminho
-                if evidencia_url_final and 'analises_auditado/' in evidencia_url_final:
-                    try:
-                        # Extrair o caminho atual e renomear/mover para o novo ID
-                        # Como o Supabase não tem rename, podemos apenas ignorar e
-                        # manter o caminho com o ID temporário, ou refazer o upload
-                        # Para simplificar, vamos manter o caminho com o timestamp
-                        # (não afeta a funcionalidade)
-                        print(f"📎 Evidência salva com caminho contendo ID temporário (ok)")
-                    except Exception as e:
-                        print(f"⚠️ Erro ao atualizar caminho da evidência: {e}")
             
             conn.commit()
             
@@ -8546,8 +8292,6 @@ def api_analise_auditado_evidencia(analise_id):
     from database import engine
     from sqlalchemy import text
     from flask import redirect
-    import os
-    # from supabase import create_client
     from urllib.parse import urlparse
     
     try:
@@ -8579,31 +8323,29 @@ def api_analise_auditado_evidencia(analise_id):
                     break
             
             if caminho:
-                # Regenerar URL assinada
-                supabase_url = os.getenv('SUPABASE_URL')
-                supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                # ⭐ USAR O SINGLETON
+                from supabase_client import SupabaseClient
+                supabase = SupabaseClient.get_instance()
                 
-                if supabase_url and supabase_key:
-                    supabase = create_client(supabase_url, supabase_key)
-                    url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
-                        path=caminho,
-                        expires_in=604800  # 7 dias
-                    )
-                    
-                    # Atualizar a URL no banco
-                    update_query = text("""
-                        UPDATE analises_criticas 
-                        SET evidencia_url = :evidencia_url,
-                            updated_at = NOW()
-                        WHERE id = :id
-                    """)
-                    conn.execute(update_query, {
-                        'evidencia_url': url_assinada['signedURL'],
-                        'id': analise_id
-                    })
-                    conn.commit()
-                    
-                    return redirect(url_assinada['signedURL'])
+                url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
+                    path=caminho,
+                    expires_in=604800  # 7 dias
+                )
+                
+                # Atualizar a URL no banco
+                update_query = text("""
+                    UPDATE analises_criticas 
+                    SET evidencia_url = :evidencia_url,
+                        updated_at = NOW()
+                    WHERE id = :id
+                """)
+                conn.execute(update_query, {
+                    'evidencia_url': url_assinada['signedURL'],
+                    'id': analise_id
+                })
+                conn.commit()
+                
+                return redirect(url_assinada['signedURL'])
             
             # Fallback: redirecionar para a URL atual
             return redirect(evidencia_url)
@@ -8626,8 +8368,6 @@ def api_analise_auditado_atualizar(analise_id):
     from sqlalchemy import text
     import base64
     from psycopg2 import Binary
-    import os
-    # from supabase import create_client
     from datetime import datetime
     
     # Anexo do plano de ação (se veio)
@@ -8635,7 +8375,7 @@ def api_analise_auditado_atualizar(analise_id):
     anexo_base64 = data.get('anexo_base64')
     anexo_nome = data.get('anexo_nome')
     
-    # ⭐ NOVO: Evidência da análise
+    # Evidência da análise
     evidencia_base64 = data.get('evidencia_base64')
     evidencia_nome = data.get('evidencia_nome')
     remover_evidencia = data.get('remover_evidencia', False)
@@ -8669,7 +8409,7 @@ def api_analise_auditado_atualizar(analise_id):
             
             anexo_param = Binary(anexo_bytes) if anexo_bytes else None
             
-            # ⭐ Processar evidência (Storage)
+            # ⭐ PROCESSAR EVIDÊNCIA COM SINGLETON
             evidencia_url_final = current[2] if current else None
             evidencia_nome_final = current[3] if current else None
             
@@ -8688,44 +8428,40 @@ def api_analise_auditado_atualizar(analise_id):
                     if len(evidencia_bytes) > 10 * 1024 * 1024:
                         return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 10MB'}), 400
                     
-                    # Conectar ao Supabase
-                    supabase_url = os.getenv('SUPABASE_URL')
-                    supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+                    # ⭐ USAR O SINGLETON
+                    from supabase_client import SupabaseClient
+                    supabase = SupabaseClient.get_instance()
                     
-                    if not supabase_url or not supabase_key:
-                        print("⚠️ Configuração do Supabase não encontrada")
-                    else:
-                        supabase = create_client(supabase_url, supabase_key)
-                        
-                        # Gerar caminho único
-                        extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
-                        timestamp = int(datetime.now().timestamp())
-                        caminho = f"analises_auditado/{analise_id}/evidencia_{analise_id}_{timestamp}.{extensao}"
-                        
-                        # Fazer upload
-                        supabase.storage.from_('evidencia_analises_auditado').upload(
-                            path=caminho,
-                            file=evidencia_bytes,
-                            file_options={"content-type": "application/pdf"}
-                        )
-                        
-                        # Gerar URL assinada
-                        url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
-                            path=caminho,
-                            expires_in=604800  # 7 dias
-                        )
-                        
-                        evidencia_url_final = url_assinada['signedURL']
-                        evidencia_nome_final = evidencia_nome
-                        
-                        print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
-                        
+                    # Gerar caminho único
+                    extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
+                    timestamp = int(datetime.now().timestamp())
+                    caminho = f"analises_auditado/{analise_id}/evidencia_{analise_id}_{timestamp}.{extensao}"
+                    
+                    # Fazer upload
+                    supabase.storage.from_('evidencia_analises_auditado').upload(
+                        path=caminho,
+                        file=evidencia_bytes,
+                        file_options={"content-type": "application/pdf"}
+                    )
+                    
+                    # Gerar URL assinada
+                    url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
+                        path=caminho,
+                        expires_in=604800  # 7 dias
+                    )
+                    
+                    evidencia_url_final = url_assinada['signedURL']
+                    evidencia_nome_final = evidencia_nome
+                    
+                    print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
+                    
                 except Exception as e:
                     print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
                     # Mantém a evidência existente em caso de erro
                     evidencia_url_final = current[2] if current else None
                     evidencia_nome_final = current[3] if current else None
             
+            # Atualizar a análise
             query = text("""
                 UPDATE analises_criticas 
                 SET analise_critica = :analise_critica,
