@@ -235,6 +235,17 @@
             <div id="info-basicas-section" class="form-section" style="display: none;">
                 <input type="hidden" id="id_area_selecionado" name="id_area_selecionado">
                 <h3>2. Informações do Processo</h3>
+
+                 <div class="form-group">
+                    <label for="entrevistado_processo">
+                        <i class="fas fa-user"></i> Nome do Entrevistado
+                        <span class="help-icon" data-tooltip="Nome da pessoa que foi entrevistada para o levantamento das informações do processo.">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <input type="text" id="entrevistado_processo" name="entrevistado" class="form-control" 
+                        placeholder="Ex: João da Silva">
+                </div>
                 
                 <div class="form-group">
                     <label for="nome_processo">
@@ -470,6 +481,10 @@
                         </div>
                         <div class="resumo-card-body">
                             <div class="resumo-grid">
+                                <div class="resumo-item full-width">
+                                    <label><i class="fas fa-user"></i> Entrevistado</label>
+                                    <span id="resumo-entrevistado">-</span>
+                                </div>
                                 <div class=resumo-item>
                                     <label>Código do Processo</label>
                                     <span id="resumo-codigo">-</span>
@@ -2979,6 +2994,9 @@
             }
             const totalSpan = document.getElementById('total-funcionarios');
             if (totalSpan) totalSpan.textContent = '0';
+            
+            const entrevistadoInput = document.getElementById('entrevistado_processo');
+            if (entrevistadoInput) entrevistadoInput.value = '';
             
             // Ir para etapa 1
             etapaWizard = 1;
@@ -5787,6 +5805,7 @@
         
         const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
         const executores = executoresSelecionados;
+        const entrevistado = document.getElementById('entrevistado_processo')?.value.trim() || '';
         
         if (!nomeProcesso || executores.length === 0) return;
         
@@ -5806,8 +5825,8 @@
                     id_area: parseInt(areaId),
                     nome_area: nomeArea,
                     executores_ids: executores.map(e => e.id),
-                    auditoria_id: parseInt(auditoriaId)
-                    // 🔧 NÃO ENVIA processo_id para NUNCA criar na edição
+                    auditoria_id: parseInt(auditoriaId),
+                    entrevistado: entrevistado
                 })
             });
             
@@ -6218,6 +6237,11 @@
                         codigoProcessoInput.value = data.codigo_processo || '';
                     }
 
+                    const entrevistadoInput = document.getElementById('entrevistado_processo');
+                    if (entrevistadoInput && data.entrevistado) {
+                        entrevistadoInput.value = data.entrevistado;
+                    }
+
                     // ===== 4. CARREGAR EXECUTORES =====
                     if (data.executores && data.executores.length > 0) {
                         executoresSelecionados = data.executores.map(exec => ({
@@ -6319,6 +6343,8 @@
         const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
         if (!nomeProcesso || executoresSelecionados.length === 0) return;
 
+        const entrevistado = document.getElementById('entrevistado_processo')?.value.trim() || '';
+
         // 🔍 LOG
         console.log('🔍 [DEBUG] salvarInfoBasicasAntesDeAvancar chamada');
         console.log('  modo_edicao:', sessionStorage.getItem('modo_edicao'));
@@ -6346,7 +6372,8 @@
             id_area: parseInt(areaId),
             nome_area: nomeArea,
             executores_ids: executoresSelecionados.map(e => e.id),
-            auditoria_id: parseInt(auditoriaId)
+            auditoria_id: parseInt(auditoriaId),
+            entrevistado: entrevistado
         };
         
         // Só adiciona processo_id se existir e NÃO for edição
@@ -6429,6 +6456,11 @@
                 // Informações Básicas
                 document.getElementById('resumo-codigo').textContent = data.codigo_processo || '-';
                 document.getElementById('resumo-nome').textContent = data.nome_processo || '-';
+
+                const entrevistadoSpan = document.getElementById('resumo-entrevistado');
+                if (entrevistadoSpan) {
+                    entrevistadoSpan.textContent = data.entrevistado || '-';
+                }
                 
                 const executoresNomes = data.executores.map(e => e.nome).join(', ');
                 document.getElementById('resumo-executores').textContent = executoresNomes || '-';

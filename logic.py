@@ -1290,61 +1290,96 @@ def buscar_responsaveis_auditoria(auditoria_id):
             return result[0]  # Já retorna como lista
         return []
 
+# ============================================================
+# TEXTOS DE VALIDAÇÃO POR TIPO DE RELATÓRIO
+# ============================================================
+
+TEXTOS_VALIDACAO = {
+    'panorama': {
+        'titulo': "VALIDACÃO - MATRIZ DE PANORAMA",
+        'texto': (
+            "Declaro que tomei ciência das informações registradas neste relatório, "
+            "as quais refletem fielmente os processos, riscos, controles, fluxos e dados reportados pela equipe da área auditada durante as entrevistas de levantamento da Matriz de Panorama. "
+            "Valido a integridade do panorama apresentado e a identificação dos processos correlatos."
+        )
+    },
+    'detalhamento': {
+        'titulo': "VALIDACÃO - MATRIZ DE DETALHAMENTO",
+        'texto': (
+            "Declaro que tomei ciência das informações registradas neste relatório, as quais refletem fielmente os processos, "
+            "riscos, controles, fluxos e dados reportados pela equipe da área auditada durante as entrevistas de "
+            "levantamento da Matriz de Detalhamento. "
+            "Valido a integridade do detalhamento apresentado e a identificação dos processos correlatos."
+        )
+    },
+    'padrao': {
+        'titulo': "VALIDACÃO",
+        'texto': (
+            "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
+            "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido."
+        )
+    }
+}
+
 # ====== FUNÇÃO PARA CRIAR A PÁGINA DE VALIDAÇÃO ======
-def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=None):
-    """Adiciona a página de validação do gestor ao story com todos os campos de assinatura"""
+def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=None, 
+                           tipo_relatorio='padrao', entrevistado=None):
+    """
+    Adiciona a página de validação do gestor ao story com todos os campos de assinatura
+    """
     
-    # ⭐ ESTILO PARA O TÍTULO DE CADA SEÇÃO
+    # ⭐ BUSCAR O TEXTO CORRETO PARA O TIPO DE RELATÓRIO
+    config = TEXTOS_VALIDACAO.get(tipo_relatorio, TEXTOS_VALIDACAO['padrao'])
+    titulo_validacao = config['titulo']
+    texto_declaracao = config['texto']
+    
+    # ⭐ ESTILOS REDUZIDOS
     campo_titulo_style = ParagraphStyle(
         'CampoTitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=1
+    )
+    
+    nome_style = ParagraphStyle(
+        'NomeStyle',
         parent=normal_style,
         fontSize=10,
         fontName='Helvetica-Bold',
         textColor=colors.HexColor('#184145'),
-        spaceAfter=2
+        spaceAfter=1
     )
     
-    # ⭐ ESTILO PARA O NOME (MAIOR E EM NEGRITO)
-    nome_style = ParagraphStyle(
-        'NomeStyle',
-        parent=normal_style,
-        fontSize=11,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor('#184145'),
-        spaceAfter=2
-    )
-    
-    # ⭐ ESTILO PARA OS RÓTULOS (Data, etc)
     rotulo_style = ParagraphStyle(
         'RotuloStyle',
         parent=normal_style,
-        fontSize=9,
+        fontSize=8,
         textColor=colors.HexColor('#666666')
     )
     
-    # ⭐ ESTILO PARA A LINHA DE ASSINATURA
-    assinatura_style = ParagraphStyle(
-        'AssinaturaStyle',
-        parent=normal_style,
-        fontSize=9,
-        alignment=1,  # CENTER
-        textColor=colors.HexColor('#666666'),
-        spaceAfter=2
-    )
-    
-    # ⭐ ESTILO PARA A LINHA DE ASSINATURA (COM BORDA INFERIOR)
     linha_assinatura_style = ParagraphStyle(
         'LinhaAssinatura',
         parent=normal_style,
-        fontSize=9,
+        fontSize=8,
         alignment=1,
         textColor=colors.HexColor('#999999'),
-        spaceAfter=2
+        spaceAfter=1
+    )
+
+    texto_declaracao_style = ParagraphStyle(
+        'TextoDeclaracao',
+        parent=normal_style,
+        fontSize=9,
+        leading=12,
+        alignment=4,
+        spaceAfter=10
     )
     
-    # ⭐ Função auxiliar para criar um bloco de assinatura (SEM QUADRADINHO)
+    # ⭐ Função auxiliar para criar um bloco de assinatura (VERSÃO COMPACTA)
     def criar_bloco_assinatura(titulo, nome_padrao=None):
-        """Cria um bloco com Nome, Data e Assinatura (sem bordas)"""
+        """Cria um bloco com Nome, Data e Assinatura (sem bordas) - VERSÃO COMPACTA"""
         dados = []
         
         # Nome (com ou sem valor padrão)
@@ -1362,7 +1397,7 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
             Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
         ])
         
-        # Assinatura (linha com borda inferior apenas)
+        # Assinatura
         dados.append([
             Paragraph("___________________________________________", linha_assinatura_style)
         ])
@@ -1370,20 +1405,18 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
             Paragraph("<i>Assinatura</i>", ParagraphStyle(
                 'AssinaturaLabel',
                 parent=normal_style,
-                fontSize=8,
+                fontSize=7,
                 alignment=1,
                 textColor=colors.HexColor('#999999')
             ))
         ])
         
-        # ⭐ TABELA SEM BORDAS (apenas com espaçamento)
         tabela = Table(dados, colWidths=[14*cm])
         tabela.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            # ⭐ SEM BOX e SEM BACKGROUND para remover o quadradinho
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ]))
         
         return tabela
@@ -1397,75 +1430,76 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     story.append(PageBreak())
     
     # Título principal
-    story.append(Paragraph("VALIDAÇÃO", styles['titulo']))
-    story.append(Spacer(1, 10))
+    story.append(Paragraph(titulo_validacao, styles['titulo']))
+    story.append(Spacer(1, 5))
     
     # Texto de declaração
-    story.append(Paragraph(
-        "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
-        "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido.",
-        normal_style
-    ))
-    story.append(Spacer(1, 20))
+    story.append(Paragraph(texto_declaracao, texto_declaracao_style))
+    story.append(Spacer(1, 10))
     
     # ⭐ ============================================================
-    # 1. GESTOR DA ÁREA
+    # GESTOR DA ÁREA
     # ⭐ ============================================================
     story.append(Paragraph("GESTOR DA ÁREA", campo_titulo_style))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 2))
     story.append(criar_bloco_assinatura("Gestor", gestor))
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 8))
+
+    # ⭐ ============================================================
+    # ENTREVISTADO (REUTILIZANDO A FUNÇÃO)
+    # ⭐ ============================================================
+    story.append(Paragraph("ENTREVISTADO", campo_titulo_style))
+    story.append(Spacer(1, 2))
+    
+    if entrevistado and entrevistado.strip():
+        # ⭐ REUTILIZA A MESMA FUNÇÃO!
+        story.append(criar_bloco_assinatura("Entrevistado", entrevistado))
+    else:
+        # ⭐ TAMBÉM REUTILIZA, MAS COM NOME VAZIO
+        story.append(criar_bloco_assinatura("Entrevistado"))
+    
+    story.append(Spacer(1, 8))
     
     # ⭐ ============================================================
-    # 2. RESPONSÁVEIS PELA AUDITORIA (BUSCADOS DO BANCO)
+    # RESPONSÁVEIS PELA AUDITORIA
     # ⭐ ============================================================
     story.append(Paragraph("AUDITORES RESPONSÁVEIS PELA AUDITORIA", campo_titulo_style))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 2))
     
     if responsaveis and len(responsaveis) > 0:
-        # Exibir os responsáveis da auditoria
         for idx, responsavel in enumerate(responsaveis, 1):
             story.append(criar_bloco_assinatura(f"Auditor", responsavel))
-            story.append(Spacer(1, 8))
+            story.append(Spacer(1, 4))
     else:
-        # Se não houver responsáveis cadastrados, exibir campos em branco
         story.append(criar_bloco_assinatura("Auditor 1"))
-        story.append(Spacer(1, 8))
+        story.append(Spacer(1, 4))
         story.append(criar_bloco_assinatura("Auditor 2"))
     
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 8))
     
     # ⭐ ============================================================
-    # 3. AUDITOR REVISOR
+    # AUDITOR REVISOR
     # ⭐ ============================================================
     story.append(Paragraph("AUDITOR REVISOR", campo_titulo_style))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 2))
     story.append(criar_bloco_assinatura("Revisor"))
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 8))
     
     # ⭐ ============================================================
-    # 4. GERENTE DE AUDITORIA INTERNA (EM KEEPTOGETHER)
+    # GERENTE DE AUDITORIA INTERNA
     # ⭐ ============================================================
-    # ⭐ Usar um KeepTogether para manter Gerente + Data + Assinatura na mesma página
     gerente_content = []
     
     gerente_content.append(Paragraph("GERENTE DE AUDITORIA INTERNA", campo_titulo_style))
-    gerente_content.append(Spacer(1, 5))
+    gerente_content.append(Spacer(1, 2))
     
-    # Criar o bloco do gerente
     gerente_dados = []
-    
-    # Nome (fixo)
     gerente_dados.append([
         Paragraph("<b>Gerente:</b> Teófilo Gaio Boto", nome_style)
     ])
-    
-    # Data
     gerente_dados.append([
         Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
     ])
-    
-    # Assinatura
     gerente_dados.append([
         Paragraph("___________________________________________", linha_assinatura_style)
     ])
@@ -1473,7 +1507,7 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
         Paragraph("<i>Assinatura</i>", ParagraphStyle(
             'AssinaturaLabel',
             parent=normal_style,
-            fontSize=8,
+            fontSize=7,
             alignment=1,
             textColor=colors.HexColor('#999999')
         ))
@@ -1483,27 +1517,14 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     tabela_gerente.setStyle(TableStyle([
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ]))
     
     gerente_content.append(tabela_gerente)
-    gerente_content.append(Spacer(1, 10))
     
-    # ⭐ Aplicar KeepTogether para manter o conteúdo do gerente junto
     from reportlab.platypus import KeepTogether
     story.append(KeepTogether(gerente_content))
-    
-    # ⭐ ============================================================
-    # OBSERVAÇÃO FINAL (opcional)
-    # ⭐ ============================================================
-    obs_style = ParagraphStyle(
-        'ObsStyle',
-        parent=normal_style,
-        fontSize=8,
-        textColor=colors.HexColor('#999999'),
-        alignment=1
-    )
 
 def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMargin, rightMargin, 
                                 rodape_func, cabecalho_func=None):
@@ -2436,7 +2457,28 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     print(f"📄 Após processos e riscos: {len(story)} elementos")
 
     # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
-    criar_pagina_validacao(story, area_gestor, styles, normal_style, auditoria_id)
+    entrevistado = None
+    if processo_id:
+        try:
+            with engine.connect() as conn:
+                query_entrevistado = text("""
+                    SELECT entrevistado FROM processos WHERE id = :processo_id
+                """)
+                result = conn.execute(query_entrevistado, {"processo_id": processo_id}).fetchone()
+                if result and result[0]:
+                    entrevistado = result[0]
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar entrevistado: {e}")
+
+    criar_pagina_validacao(
+        story=story,
+        gestor=area_gestor,
+        styles=styles,
+        normal_style=normal_style,
+        auditoria_id=auditoria_id,
+        tipo_relatorio='panorama',
+        entrevistado=entrevistado  # ⭐ PASSA O ENTREVISTADO
+    )
     print(f"📄 Após validação: {len(story)} elementos")
     
     # ⭐ VERIFICAR SE O STORY TEM CONTEÚDO ANTES DE GERAR O PDF
@@ -3305,7 +3347,30 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         story.append(Spacer(1, 10))
     
     # ===== 4g. PÁGINA DE VALIDAÇÃO DO GESTOR =====
-    criar_pagina_validacao(story, area_gestor, styles, normal_style, auditoria_id)
+    entrevistado = None
+    if processo_id:
+        try:
+            from database import engine
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                query_entrevistado = text("""
+                    SELECT entrevistado FROM processos WHERE id = :processo_id
+                """)
+                result = conn.execute(query_entrevistado, {"processo_id": processo_id}).fetchone()
+                if result and result[0]:
+                    entrevistado = result[0]
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar entrevistado: {e}")
+
+    criar_pagina_validacao(
+        story=story,
+        gestor=gestor,
+        styles=styles,
+        normal_style=normal_style,
+        auditoria_id=auditoria_id,
+        tipo_relatorio='detalhamento',
+        entrevistado=entrevistado  # ⭐ PASSA O ENTREVISTADO
+    )
 
     # ===== BUSCAR DADOS DA GERÊNCIA DE AUDITORIA INTERNA (FIXOS) =====
     dados_gai = buscar_dados_gerencia_auditoria()

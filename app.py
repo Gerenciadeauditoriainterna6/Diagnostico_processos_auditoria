@@ -3051,6 +3051,7 @@ def api_salvar_processo_basico():
     nome_area = data.get('nome_area')
     executores_ids = data.get('executores_ids', [])
     auditoria_id = data.get('auditoria_id')
+    entrevistado = data.get('entrevistado', '')
     
     # ===== VALIDAÇÕES BÁSICAS =====
     if not nome_processo or not id_area:
@@ -3075,6 +3076,7 @@ def api_salvar_processo_basico():
                         codigo_processo = :codigo,
                         area = :area,
                         auditoria_id = :auditoria_id,
+                        entrevistado = :entrevistado,
                         updated_at = NOW()
                     WHERE id = :id
                     RETURNING id
@@ -3084,6 +3086,7 @@ def api_salvar_processo_basico():
                     'codigo': codigo_processo,
                     'area': nome_area,
                     'auditoria_id': auditoria_id,
+                    'entrevistado': entrevistado,
                     'id': processo_id
                 })
                 processo_id = result.fetchone()[0]
@@ -3118,6 +3121,7 @@ def api_salvar_processo_basico():
                             codigo_processo = :codigo,
                             area = :area,
                             auditoria_id = :auditoria_id,
+                            entrevistado = :entrevistado,
                             updated_at = NOW()
                         WHERE id = :id
                     """)
@@ -3126,6 +3130,7 @@ def api_salvar_processo_basico():
                         'codigo': codigo_processo,
                         'area': nome_area,
                         'auditoria_id': auditoria_id,
+                        'entrevistado': entrevistado,
                         'id': processo_id
                     })
                 else:
@@ -3136,7 +3141,7 @@ def api_salvar_processo_basico():
                     insert_query = text("""
                         INSERT INTO processos (
                             nome_processo, codigo_processo, id_area, area, 
-                            auditoria_id, created_at, updated_at
+                            auditoria_id, entrevistado, created_at, updated_at
                         )
                         VALUES (
                             :nome, :codigo, :id_area, :area, 
@@ -3149,7 +3154,8 @@ def api_salvar_processo_basico():
                         'codigo': codigo_processo,
                         'id_area': id_area,
                         'area': nome_area,
-                        'auditoria_id': auditoria_id
+                        'auditoria_id': auditoria_id,
+                        'entrevistado': entrevistado
                     })
                     processo_id = result.fetchone()[0]
                     print(f"✅ Novo processo criado com ID: {processo_id}")
