@@ -32,6 +32,298 @@ class _DummyStreamlit:
 st = _DummyStreamlit()
 # ===== FIM DA MIGRAÇÃO =====
 
+
+def adicionar_informacoes_relatorio(story, styles, normal_style, pagesize, leftMargin, rightMargin,
+                                   auditoria_id=None, processo_id=None, area_id=None, area_nome=None,
+                                   gestor=None, cargo=None):
+    """
+    Adiciona as informações padronizadas para todos os relatórios.
+    """
+    from database import engine
+    from sqlalchemy import text
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.lib.styles import ParagraphStyle
+    
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    
+    # ⭐ ESTILOS
+    info_label_style = ParagraphStyle(
+        'InfoLabel',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_valor_style = ParagraphStyle(
+        'InfoValor',
+        parent=normal_style,
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    info_valor_style_2 = ParagraphStyle(
+        'InfoValor2',
+        parent=normal_style,
+        fontSize=9,
+        leading=11,
+        textColor=colors.HexColor('#333333'),
+        wordWrap='CJK'
+    )
+    
+    # ⭐ CALCULAR LARGURAS
+    largura_label = 4.5 * cm
+    largura_valor = pagesize[0] - leftMargin - rightMargin - largura_label - 1*cm
+    
+    # ============================================================
+    # 1. BUSCAR DADOS DA AUDITORIA
+    # ============================================================
+    codigo_auditoria = ""
+    titulo_auditoria = ""
+    data_inicio_auditoria = ""
+    data_fim_auditoria = ""
+    status_auditoria = ""
+    
+    if auditoria_id:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT codigo_auditoria, titulo, data_inicio, data_fim, status
+                FROM auditorias WHERE id = :auditoria_id
+            """)
+            result = conn.execute(query, {'auditoria_id': auditoria_id}).fetchone()
+            if result:
+                codigo_auditoria = result[0] or ''
+                titulo_auditoria = result[1] or ''
+                data_inicio_auditoria = result[2]
+                data_fim_auditoria = result[3]
+                status_auditoria = result[4] or 'Não informado'
+    
+    # Formatar datas
+    if data_inicio_auditoria:
+        if hasattr(data_inicio_auditoria, 'strftime'):
+            data_inicio_auditoria = data_inicio_auditoria.strftime('%d/%m/%Y')
+        else:
+            data_inicio_auditoria = str(data_inicio_auditoria)
+    else:
+        data_inicio_auditoria = 'Não informado'
+    
+    if data_fim_auditoria:
+        if hasattr(data_fim_auditoria, 'strftime'):
+            data_fim_auditoria = data_fim_auditoria.strftime('%d/%m/%Y')
+        else:
+            data_fim_auditoria = str(data_fim_auditoria)
+    else:
+        data_fim_auditoria = 'Não informado'
+    
+    cronograma = f"{data_inicio_auditoria} a {data_fim_auditoria}"
+    
+    # ⭐ COR DO STATUS
+    status_text = status_auditoria or 'Não informado'
+    status_colors = {
+        'Em Execução': '#17a2b8',
+        'Eficácia Validada': '#28a745',
+        'Follow-up': '#ffc107',
+        'Em Atraso': '#dc3545',
+        'Inconclusiva': '#dc3545'
+    }
+    cor_status = status_colors.get(status_text, '#666666')
+    status_html = f'<font color="{cor_status}"><b>{status_text}</b></font>'
+    
+    # ============================================================
+    # 2. BUSCAR PROCESSO
+    # ============================================================
+    proc_codigo = ""
+    proc_nome = ""
+    if processo_id:
+        try:
+            with engine.connect() as conn:
+                query = text("""
+                    SELECT codigo_processo, nome_processo FROM processos WHERE id = :processo_id
+                """)
+                result = conn.execute(query, {'processo_id': processo_id}).fetchone()
+                if result:
+                    proc_codigo = result[0] or ''
+                    proc_nome = result[1] or ''
+        except Exception:
+            pass
+    
+    # ============================================================
+    # 3. BUSCAR ENTREVISTADO
+    # ============================================================
+    entrevistado = ""
+    if processo_id:
+        try:
+            with engine.connect() as conn:
+                query = text("SELECT entrevistado FROM processos WHERE id = :processo_id")
+                result = conn.execute(query, {'processo_id': processo_id}).fetchone()
+                if result and result[0]:
+                    entrevistado = result[0]
+        except Exception:
+            pass
+    
+    # ============================================================
+    # 4. BUSCAR DADOS DA ÁREA (se não veio)
+    # ============================================================
+    area_codigo = str(area_id) if area_id else ""
+    area_nome_exibicao = area_nome or ""
+    area_unidade = ""
+    area_objetivo = ""
+    area_superintendente = ""
+    area_diretor = ""
+    area_email = ""
+    area_telefone = ""
+    
+    if area_id:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT nome_area, loc_unidade, objetivo_area, superintendente, diretor, email, telefone
+                FROM informacoes_area WHERE id_area = :area_id
+            """)
+            result = conn.execute(query, {'area_id': area_id}).fetchone()
+            if result:
+                area_nome_exibicao = result[0] or area_nome_exibicao
+                area_unidade = result[1] or ''
+                area_objetivo = result[2] or ''
+                area_superintendente = result[3] or ''
+                area_diretor = result[4] or ''
+                area_email = result[5] or ''
+                area_telefone = result[6] or ''
+    
+    # ============================================================
+    # 5. DATA/HORA DE EMISSÃO
+    # ============================================================
+    data_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    
+    # ============================================================
+    # 6. MONTAR TABELA COMPLETA
+    # ============================================================
+    dados = []
+    
+    # --- SEÇÃO 1: DADOS DA AUDITORIA ---
+
+    # --- PROCESSO AUDITADO (se houver) ---
+    if processo_id and proc_codigo and proc_nome:
+        dados.append([
+            Paragraph("<b>Processo Auditado:</b>", info_label_style),
+            Paragraph(f"{proc_codigo} - {proc_nome}", info_valor_style_2)
+        ])
+        
+    dados.append([
+        Paragraph("<b>Código da Auditoria:</b>", info_label_style),
+        Paragraph(codigo_auditoria or 'N/A', info_valor_style)
+    ])
+    
+    dados.append([
+        Paragraph("<b>Título:</b>", info_label_style),
+        Paragraph(titulo_auditoria or 'N/A', info_valor_style_2)
+    ])
+
+    dados.append([
+        Paragraph("<b>Código da Área:</b>", info_label_style),
+        Paragraph(area_codigo or 'N/A', info_valor_style)
+    ])
+    
+    dados.append([
+        Paragraph("<b>Área:</b>", info_label_style),
+        Paragraph(area_nome_exibicao or 'N/A', info_valor_style_2)
+    ])
+    
+    dados.append([
+        Paragraph("<b>Gestor:</b>", info_label_style),
+        Paragraph(gestor or 'Não informado', info_valor_style)
+    ])
+    
+    dados.append([
+        Paragraph("<b>Cargo:</b>", info_label_style),
+        Paragraph(cargo or 'Não informado', info_valor_style)
+    ])
+    
+    
+    if area_unidade:
+        dados.append([
+            Paragraph("<b>Unidade:</b>", info_label_style),
+            Paragraph(area_unidade, info_valor_style)
+        ])
+    
+    if area_email:
+        dados.append([
+            Paragraph("<b>E-mail:</b>", info_label_style),
+            Paragraph(area_email, info_valor_style)
+        ])
+    
+    if area_telefone:
+        dados.append([
+            Paragraph("<b>Telefone:</b>", info_label_style),
+            Paragraph(area_telefone or 'Não informado', info_valor_style)
+        ])
+    
+    if area_objetivo:
+        dados.append([
+            Paragraph("<b>Objetivo da Área:</b>", info_label_style),
+            Paragraph(area_objetivo, info_valor_style_2)
+        ])
+    
+    if area_superintendente:
+        dados.append([
+            Paragraph("<b>Superintendente:</b>", info_label_style),
+            Paragraph(area_superintendente, info_valor_style)
+        ])
+    
+    if area_diretor:
+        dados.append([
+            Paragraph("<b>Diretor:</b>", info_label_style),
+            Paragraph(area_diretor, info_valor_style)
+        ])
+
+    
+    # --- SEÇÃO 2: CRONOGRAMA E STATUS ---
+    dados.append([
+        Paragraph("<b>Cronograma Previsto:</b>", info_label_style),
+        Paragraph(cronograma, info_valor_style)
+    ])
+    
+    dados.append([
+        Paragraph("<b>Status da Auditoria:</b>", info_label_style),
+        Paragraph(status_html, info_valor_style)
+    ])
+    
+    
+    # --- ENTREVISTADO (se houver) ---
+    if entrevistado:
+        dados.append([
+            Paragraph("<b>Entrevistado:</b>", info_label_style),
+            Paragraph(entrevistado, info_valor_style)
+        ])
+    
+    # --- DATA/HORA EMISSÃO ---
+    dados.append([
+        Paragraph("<b>Data/Hora Emissão:</b>", info_label_style),
+        Paragraph(data_emissao, info_valor_style)
+    ])
+    
+    # ============================================================
+    # 7. CRIAR TABELA
+    # ============================================================
+    tabela = Table(dados, colWidths=[largura_label, largura_valor])
+    tabela.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
+    ]))
+    
+    story.append(tabela)
+    story.append(Spacer(1, 15))
+
 # ⭐ FUNÇÃO PARA LIMITAR TEXTO (MESMA DO PANORAMA)
 def limitar_texto(texto, limite=80):
     """Limita o texto a um número máximo de caracteres e força quebra de linha"""
@@ -1862,6 +2154,15 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     # Estilos
     styles = get_estilos_padrao()
     normal_style = styles['normal']
+
+    paragraph_style = ParagraphStyle(
+    'CustomParagraph',
+    parent=normal_style,
+    fontSize=10,
+    alignment=1,  # CENTRO
+    spaceAfter=10,
+    textColor=colors.HexColor('#0b5b99')
+)
     
     # ===== CONSTRUIR O STORY =====
     story = []
@@ -1916,138 +2217,35 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     # ===== 4b. TÍTULO =====
     titulo_style = styles['titulo']
     titulo_style2 = styles['titulo2']
+
+    # ⭐ CABEÇALHO MAPA
+    story.append(Paragraph("MAPA", titulo_style))
+    story.append(Spacer(0, 0))
+    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
+    story.append(Spacer(1, 2))
+
+    # ⭐ TÍTULO PRINCIPAL
     story.append(Paragraph("Relatório de Validação", titulo_style))
-    story.append(Paragraph("Matriz de Panorama", titulo_style2))
+    story.append(Paragraph("Matriz de Detalhamento", titulo_style2))
     story.append(Spacer(1, 5))
 
     print(f"📄 Após título: {len(story)} elementos")
     
-    # ===== 4c. INFORMAÇÕES DA AUDITORIA E ÁREA =====
-    # Buscar código da auditoria
-    codigo_auditoria = ""
-    data_inicio_auditoria = ""
-    if auditoria_id:
-        from database import engine
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            query_auditoria = text("SELECT codigo_auditoria, data_inicio FROM auditorias WHERE id = :auditoria_id")
-            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
-            if result_aud:
-                codigo_auditoria = result_aud[0]
-                data_inicio_auditoria = result_aud[1]
-    
-    # Formatar data de início se existir
-    if data_inicio_auditoria:
-        if isinstance(data_inicio_auditoria, str):
-            try:
-                data_inicio_auditoria = datetime.strptime(data_inicio_auditoria, '%Y-%m-%d')
-            except ValueError:
-                pass
-        if hasattr(data_inicio_auditoria, 'strftime'):
-            data_inicio_auditoria = data_inicio_auditoria.strftime('%d/%m/%Y')
-        else:
-            data_inicio_auditoria = str(data_inicio_auditoria)
-    else:
-        data_inicio_auditoria = 'Não informado'
-    
-    # ⭐ ESTILO PARA AS INFORMAÇÕES
-    info_label_style = ParagraphStyle(
-        'InfoLabel',
-        parent=normal_style,
-        fontSize=9,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor('#184145')
+    # Substitua as seções 4c e 4d por:
+    adicionar_informacoes_relatorio(
+        story=story,
+        styles=styles,
+        normal_style=normal_style,
+        pagesize=pagesize,
+        leftMargin=leftMargin,
+        rightMargin=rightMargin,
+        auditoria_id=auditoria_id,
+        processo_id=processo_id,
+        area_id=area_id,
+        area_nome=area_nome,
+        gestor=area_gestor,
+        cargo=area_cargo
     )
-    
-    info_valor_style = ParagraphStyle(
-        'InfoValor',
-        parent=normal_style,
-        fontSize=9,
-        textColor=colors.HexColor('#333333')
-    )
-    
-    data_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
-    
-    info_data = [
-        [Paragraph("<b>Auditoria:</b>", info_label_style), Paragraph(codigo_auditoria or 'N/A', info_valor_style)],
-        [Paragraph("<b>Data de Início da Auditoria:</b>", info_label_style), Paragraph(data_inicio_auditoria, info_valor_style)],
-        [Paragraph("<b>Data/Hora de Emissão:</b>", info_label_style), Paragraph(data_emissao, info_valor_style)],
-    ]
-    
-    # ⭐ CALCULAR LARGURAS
-    largura_label_info = 4.5 * cm
-    largura_valor_info = pagesize[0] - leftMargin - rightMargin - largura_label_info - 2*cm
-    
-    info_table = Table(info_data, colWidths=[largura_label_info, largura_valor_info])
-    info_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 15))
-
-    print(f"📄 Após informações: {len(story)} elementos")
-
-    # ===== 4d. INFORMAÇÕES COMPLETAS DA ÁREA =====
-    story.append(Paragraph("Informações da Área", styles['subtitulo']))
-    story.append(Spacer(1, 5))
-    
-    # ⭐ ESTILO COM QUEBRA DE LINHA PARA OS TEXTOS DA ÁREA
-    texto_area_style = ParagraphStyle(
-        'TextoArea',
-        parent=normal_style,
-        fontSize=9,
-        leading=11,
-        wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
-    )
-    
-    label_area_style = ParagraphStyle(
-        'LabelArea',
-        parent=normal_style,
-        fontSize=9,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor('#184145')
-    )
-    
-    info_area_data = [
-        [Paragraph("Código da Área:", label_area_style), Paragraph(str(area_id), texto_area_style)],
-        [Paragraph("Nome da Área:", label_area_style), Paragraph(area_nome, texto_area_style)],
-        [Paragraph("Gestor Responsável:", info_label_style), Paragraph(f"{area_gestor} - {area_cargo}", info_valor_style)],
-        [Paragraph("E-mail:", label_area_style), Paragraph(area_email, texto_area_style)],  # ⭐ NOVO
-        [Paragraph("Telefone:", label_area_style), Paragraph(area_telefone or 'Não informado', texto_area_style)],
-        [Paragraph("Unidade:", label_area_style), Paragraph(area_unidade or 'Não informado', texto_area_style)],
-        [Paragraph("Objetivo da Área:", label_area_style), Paragraph(area_objetivo or 'Não informado', texto_area_style)],
-        [Paragraph("Superintendente:", label_area_style), Paragraph(area_superintendente or 'Não informado', texto_area_style)],
-        [Paragraph("Diretor:", label_area_style), Paragraph(area_diretor or 'Não informado', texto_area_style)],
-    ]
-    
-    # ⭐ CALCULAR LARGURAS DINÂMICAS
-    largura_label_area = 4.5 * cm
-    largura_valor_area = pagesize[0] - leftMargin - rightMargin - largura_label_area - 2*cm
-    
-    info_area_table = Table(info_area_data, colWidths=[largura_label_area, largura_valor_area])
-    info_area_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
-    ]))
-    story.append(info_area_table)
-    story.append(Spacer(1, 15))
-
-    print(f"📄 Após informações da área: {len(story)} elementos")
 
     # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
     story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
@@ -2573,6 +2771,15 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     # ⭐ 1. PRIMEIRO: DEFINIR normal_style
     styles = get_estilos_padrao()
     normal_style = styles['normal']
+
+    paragraph_style = ParagraphStyle(
+        'CustomParagraph',
+        parent=normal_style,
+        fontSize=10,
+        alignment=1,  # CENTRO
+        spaceAfter=10,
+        textColor=colors.HexColor('#0b5b99')
+    )
     
     # ⭐ 2. DEPOIS: DEFINIR OS ESTILOS QUE DEPENDEM DE normal_style
     
@@ -2669,125 +2876,32 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     # ===== 4b. TÍTULO =====
     titulo_style = styles['titulo']
     titulo_style2 = styles['titulo2']
+
+    # ⭐ CABEÇALHO MAPA
+    story.append(Paragraph("MAPA", titulo_style))
+    story.append(Spacer(0, 0))
+    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
+    story.append(Spacer(1, 2))
+
+    # ⭐ TÍTULO PRINCIPAL
     story.append(Paragraph("Relatório de Validação", titulo_style))
     story.append(Paragraph("Matriz de Detalhamento", titulo_style2))
     story.append(Spacer(1, 5))
     
-    # ===== 4c. INFORMAÇÕES DA AUDITORIA E ÁREA =====
-    codigo_auditoria = ""
-    data_inicio_auditoria = ""
-    if auditoria_id:
-        from database import engine
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            query_auditoria = text("SELECT codigo_auditoria, data_inicio FROM auditorias WHERE id = :auditoria_id")
-            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
-            if result_aud:
-                codigo_auditoria = result_aud[0]
-                data_inicio_auditoria = result_aud[1]
-    
-    if data_inicio_auditoria:
-        try:
-            if isinstance(data_inicio_auditoria, str):
-                from datetime import datetime
-                data_inicio_auditoria = datetime.strptime(data_inicio_auditoria, '%Y-%m-%d').strftime('%d/%m/%Y')
-            elif hasattr(data_inicio_auditoria, 'strftime'):
-                data_inicio_auditoria = data_inicio_auditoria.strftime('%d/%m/%Y')
-            else:
-                data_inicio_auditoria = str(data_inicio_auditoria)
-        except:
-            data_inicio_auditoria = str(data_inicio_auditoria)
-    else:
-        data_inicio_auditoria = 'Não informado'
-    
-    info_label_style = ParagraphStyle(
-        'InfoLabel',
-        parent=normal_style,
-        fontSize=9,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor('#184145')
+    adicionar_informacoes_relatorio(
+        story=story,
+        styles=styles,
+        normal_style=normal_style,
+        pagesize=pagesize,
+        leftMargin=leftMargin,
+        rightMargin=rightMargin,
+        auditoria_id=auditoria_id,
+        processo_id=processo_id,
+        area_id=area_id,
+        area_nome=area_nome,
+        gestor=gestor,
+        cargo=cargo
     )
-    
-    info_valor_style = ParagraphStyle(
-        'InfoValor',
-        parent=normal_style,
-        fontSize=9,
-        textColor=colors.HexColor('#333333')
-    )
-    
-    info_data = [
-        [Paragraph("<b>Auditoria:</b>", info_label_style), Paragraph(codigo_auditoria or 'N/A', info_valor_style)],
-        [Paragraph("<b>Data de Início da Auditoria:</b>", info_label_style), Paragraph(data_inicio_auditoria, info_valor_style)],
-        [Paragraph("<b>Data/Hora de Emissão:</b>", info_label_style), Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), info_valor_style)],
-    ]
-    
-    largura_label_info = 4.5 * cm
-    largura_valor_info = pagesize[0] - leftMargin - rightMargin - largura_label_info - 2*cm
-    
-    info_table = Table(info_data, colWidths=[largura_label_info, largura_valor_info])
-    info_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#DDDDDD')),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 15))
-    
-    # ===== 4d. INFORMAÇÕES COMPLETAS DA ÁREA =====
-    story.append(Paragraph("Informações da Área", styles['subtitulo']))
-    story.append(Spacer(1, 5))
-    
-    texto_area_style = ParagraphStyle(
-        'TextoArea',
-        parent=normal_style,
-        fontSize=9,
-        leading=11,
-        wordWrap='CJK'
-    )
-    
-    label_area_style = ParagraphStyle(
-        'LabelArea',
-        parent=normal_style,
-        fontSize=9,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor('#184145')
-    )
-    
-    info_area_data = [
-        [Paragraph("Código da Área:", label_area_style), Paragraph(str(area_id), texto_area_style)],
-        [Paragraph("Nome da Área:", label_area_style), Paragraph(area_nome, texto_area_style)],
-        [Paragraph("Gestor Responsável:", info_label_style), Paragraph(f"{area_gestor} - {area_cargo}", texto_area_style)],
-        [Paragraph("E-mail:", label_area_style), Paragraph(area_email, texto_area_style)],
-        [Paragraph("Telefone:", label_area_style), Paragraph(area_telefone or 'Não informado', texto_area_style)],
-        [Paragraph("Unidade:", label_area_style), Paragraph(area_unidade or 'Não informado', texto_area_style)],
-        [Paragraph("Objetivo da Área:", label_area_style), Paragraph(area_objetivo or 'Não informado', texto_area_style)],
-        [Paragraph("Superintendente:", label_area_style), Paragraph(area_superintendente or 'Não informado', texto_area_style)],
-        [Paragraph("Diretor:", label_area_style), Paragraph(area_diretor or 'Não informado', texto_area_style)],
-    ]
-    
-    largura_label_area = 4.5 * cm
-    largura_valor_area = pagesize[0] - leftMargin - rightMargin - largura_label_area - 2*cm
-    
-    info_area_table = Table(info_area_data, colWidths=[largura_label_area, largura_valor_area])
-    info_area_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
-    ]))
-    story.append(info_area_table)
-    story.append(Spacer(1, 15))
     
     # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
     story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
@@ -4379,48 +4493,95 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     from zoneinfo import ZoneInfo
     
     buffer = io.BytesIO()
-
     TZ_BRASILIA = ZoneInfo('America/Sao_Paulo')
     
     # Definir orientação
     if orientacao.upper() == "PAISAGEM":
         pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
     else:
         pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
     
-    doc = SimpleDocTemplate(buffer, pagesize=pagesize,
-                           topMargin=1.5*cm, bottomMargin=2*cm,
-                           leftMargin=2*cm, rightMargin=2*cm)
-    
+    # ⭐ 1. PRIMEIRO: DEFINIR OS ESTILOS BÁSICOS
     styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    normal_style.fontSize = 9
     
-    # Estilos
+    # ⭐ 2. DEPOIS: DEFINIR OS ESTILOS QUE DEPENDEM DO normal_style
+    info_label_style = ParagraphStyle(
+        'InfoLabel',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145')
+    )
+    
+    info_valor_style = ParagraphStyle(
+        'InfoValor',
+        parent=normal_style,
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
     titulo_style = ParagraphStyle(
-        'CustomTitle', parent=styles['Heading1'],
-        fontSize=16, alignment=1, spaceAfter=20,
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=20,
         textColor=colors.HexColor('#0b5b99')
     )
-
+    
     paragraph_style = ParagraphStyle(
-        'CustomParagraph', parent=styles['Normal'],
-        fontSize=10, alignment=1, spaceAfter=10,
+        'CustomParagraph',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=1,
+        spaceAfter=10,
         textColor=colors.HexColor('#0b5b99')
     )
     
     secao_style = ParagraphStyle(
-        'SecaoStyle', parent=styles['Heading2'],
-        fontSize=14, spaceAfter=10, spaceBefore=15,
+        'SecaoStyle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=10,
+        spaceBefore=15,
         textColor=colors.HexColor('#184145')
     )
     
     subsecao_style = ParagraphStyle(
-        'SubSecaoStyle', parent=styles['Heading3'],
-        fontSize=12, spaceAfter=8, spaceBefore=10,
+        'SubSecaoStyle',
+        parent=styles['Heading3'],
+        fontSize=12,
+        spaceAfter=8,
+        spaceBefore=10,
         textColor=colors.HexColor('#0b5b99')
     )
     
-    normal_style = styles['Normal']
-    normal_style.fontSize = 9
+    # ⭐ 3. ESTILOS PARA A TABELA DE CÉLULAS
+    cell_style = ParagraphStyle(
+        'CellStyle',
+        parent=normal_style,
+        fontSize=9,
+        leading=12,
+        wordWrap='CJK'
+    )
+    
+    cell_style_2 = ParagraphStyle(
+        'CellStyle2',
+        parent=normal_style,
+        fontSize=9,
+        leading=12,
+        wordWrap='CJK'
+    )
     
     story = []
     
@@ -4499,7 +4660,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         
         # ===== 1. BUSCAR ETAPAS E ANÁLISES DO AUDITADO =====
         query_etapas = text("""
-            SELECT id, nome_etapa, codigo_etapa, descricao_etapa
+            SELECT id, nome_etapa, codigo_etapa, descricao_etapa, objetivo_etapa
             FROM etapas_processo 
             WHERE processo_id = :processo_id 
             ORDER BY codigo_etapa
@@ -4512,6 +4673,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             etapa_nome = etapa[1]
             etapa_codigo = etapa[2] or ''
             etapa_desc = etapa[3] or ''
+            etapa_obj = etapa[4] or ''
             
             # Buscar análises do auditado
             query_analises_auditado = text("""
@@ -4593,6 +4755,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 'nome': etapa_nome,
                 'codigo': etapa_codigo,
                 'descricao': etapa_desc,
+                'objetivo': etapa_obj,
                 'analises_auditado': analises_auditado_list,
             })
         
@@ -4834,36 +4997,40 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     elif total_followups_em_andamento > 0:
         alerta_followup = f'<font color="#28a745"><b>{total_followups_em_andamento} follow-up(s) já registrados</b></font>'
     
-    info_data = [
-        ["Código:", Paragraph(codigo_auditoria or '', cell_style)],
-        ["Título:", Paragraph(titulo_auditoria or '', cell_style)],
-        ["Área:", Paragraph(area_nome or '', cell_style)],
-        ["Gestor:", Paragraph(gestor or '', cell_style)],
-        ["Cargo:", Paragraph(cargo or '', cell_style)],
-        ["Cronograma Previsto:", Paragraph(f"{data_inicio.strftime('%d/%m/%Y') if data_inicio else '-'} a {data_fim.strftime('%d/%m/%Y') if data_fim else '-'}", cell_style)],
-        ["Status da Auditoria:", Paragraph(f"{status_text}{status_atraso_html}", cell_style_2)],
-    ]
-    
-    # ⭐ ADICIONAR ALERTA DE FOLLOW-UP ⭐
+    # ===== INFORMAÇÕES DO RELATÓRIO =====
+    # ⭐ Usar a função padronizada
+    adicionar_informacoes_relatorio(
+        story=story,
+        styles=styles,
+        normal_style=normal_style,
+        pagesize=pagesize,
+        leftMargin=2*cm,
+        rightMargin=2*cm,
+        auditoria_id=auditoria_id,
+        processo_id=processo_id,
+        area_id=area_id,
+        area_nome=area_nome,
+        gestor=gestor,
+        cargo=cargo
+    )
+
+    # ⭐ ADICIONAR ALERTA DE FOLLOW-UP (se houver)
     if alerta_followup:
-        info_data.append(["", ""])
-        info_data.append(["Status dos Follow-ups:", Paragraph(alerta_followup, cell_style_2)])
-    
-    info_data.append(["", ""])
-    info_data.append(["Processo Auditado:", Paragraph(f"{proc_codigo} - {proc_nome}", cell_style)])
-    info_data.append(["Data/Hora Emissão:", Paragraph(datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M'), cell_style)])
-    
-    info_table = Table(info_data, colWidths=[4*cm, 12*cm])
-    info_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    story.append(info_table)
-    story.append(Spacer(1, 20))
+        # Criar uma tabela separada para o alerta
+        alerta_data = [
+            ["Status dos Follow-ups:", Paragraph(alerta_followup, cell_style_2)]
+        ]
+        alerta_table = Table(alerta_data, colWidths=[4*cm, 12*cm])
+        alerta_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FFF3CD')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#FFC107')),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(alerta_table)
+        story.append(Spacer(1, 20))
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR PLANO DE AÇÃO =====
     def adicionar_plano_acao(analise):
@@ -4991,7 +5158,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         "Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?",
         "A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?",
         "A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?",
-                "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
+        "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
         "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?",
         "O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?"
     ]
@@ -5013,8 +5180,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
     def adicionar_analise(analise, titulo):
-        story.append(Paragraph(titulo or 'Sem título', subsecao_style))  # ⭐ Adicionar or ''
-        story.append(Spacer(1, 5))
         
         # Análise Crítica
         if analise.get('analise_critica'):
@@ -5154,7 +5319,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         story.append(Spacer(1, 10))
     
     # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
-    story.append(Paragraph("1. ANÁLISES DO AUDITADO", secao_style))
+    story.append(Paragraph("1. ANÁLISE CRÍTICAS DO AUDITADO", secao_style))
     story.append(Paragraph("Análises realizadas pelo auditado durante o detalhamento das etapas", normal_style))
     story.append(Spacer(1, 10))
     
@@ -5166,7 +5331,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(Spacer(1, 3))
             
             if etapa['descricao']:
-                story.append(Paragraph(f"<i>{etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}</i>", normal_style))
+                story.append(Paragraph(f"Descrição da etapa: <i>{etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}</i>", normal_style))
+                story.append(Spacer(1, 5))
+            
+            if etapa['objetivo']:
+                story.append(Paragraph(f"Objetivo da etapa: <i>{etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}</i>", normal_style))
                 story.append(Spacer(1, 5))
             
             if etapa['analises_auditado']:
@@ -5209,7 +5378,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
     story.append(PageBreak())
     story.append(Paragraph("2. ANÁLISES DO AUDITOR", secao_style))
-    story.append(Paragraph("Análises realizadas pelo auditor durante a Matriz de Eficácia", normal_style))
+    story.append(Paragraph("Conceito: Análises realizadas pelo auditor durante a Matriz de Eficácia", normal_style))
     story.append(Spacer(1, 10))
     
     if not analises_auditor_list:
