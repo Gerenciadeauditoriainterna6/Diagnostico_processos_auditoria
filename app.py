@@ -462,7 +462,13 @@ def calcular_tempo(data_inicio):
 # CRIAÇÃO DA APLICAÇÃO FLASK
 # ============================================================
 
+from dashboard_api import dashboard_api
+from dashboard_novo.endpoints import novo_dashboard_api
+
 app = Flask(__name__, static_folder='static')
+
+app.register_blueprint(dashboard_api)
+app.register_blueprint(novo_dashboard_api)
 
 # Configurações da sessão
 app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
@@ -1230,6 +1236,13 @@ def dashboard():
     
     # 3. Se for admin, mostra a página
     return render_template('dashboard.html')
+
+# ⭐ NOVO ENDPOINT: /dashboardteste
+@app.route('/dashboardteste')
+def dashboard_teste():
+    # Pode passar um parâmetro para o template
+    modo_teste = request.args.get('modo', 'completo')
+    return render_template('dashboard_teste.html', modo_teste=modo_teste)
 
 @app.route('/auditorias')
 def auditorias():
