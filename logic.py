@@ -4519,6 +4519,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
     normal_style.fontSize = 9
+    normal_style.fontName = 'Helvetica'
     
     # ⭐ 2. DEPOIS: DEFINIR OS ESTILOS QUE DEPENDEM DO normal_style
     info_label_style = ParagraphStyle(
@@ -4933,7 +4934,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             
             if checklist_cabecalho:
                 checklist_id = checklist_cabecalho[0]
-                status = checklist_cabecalho[1] or 'Não iniciado'
+                checklist_status = checklist_cabecalho[1] or 'Não iniciado'
                 observacoes = checklist_cabecalho[2] or ''
                 
                 # ⭐ BUSCAR AS RESPOSTAS NA ORDEM CORRETA
@@ -5008,9 +5009,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 
                 checklist_data[tipo] = {
                     'id': checklist_id,
-                    'status': status,
+                    'status': checklist_status,
                     'observacoes_gerais': observacoes,
-                    'respostas': respostas_ordenadas  # ⭐ Lista na mesma ordem das perguntas
+                    'respostas': respostas_ordenadas
                 }
             else:
                 checklist_data[tipo] = None
@@ -5020,6 +5021,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     def cabecalho_com_tarja(canvas, doc):
         canvas.saveState()
         
+        # Limpa espaços e quebras de linha
+        status_limpo = status.strip() if status else ''
+        
         status_config = {
             'Inconclusiva': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA INCONCLUSIVA'},
             'Em Atraso': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA EM ATRASO'},
@@ -5028,13 +5032,17 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             'Em Execução': {'cor': (0.09, 0.63, 0.76), 'texto': 'AUDITORIA EM EXECUÇÃO'}
         }
         
-        if status in status_config:
-            config = status_config[status]
-            canvas.setFillColorRGB(config['cor'][0], config['cor'][1], config['cor'][2], 1)
-            canvas.rect(0, pagesize[1] - 1.2*cm, pagesize[0], 0.8*cm, fill=1, stroke=0)
-            canvas.setFont('Helvetica-Bold', 12)
-            canvas.setFillColorRGB(1, 1, 1)
-            canvas.drawCentredString(pagesize[0] / 2, pagesize[1] - 0.9*cm, config['texto'])
+        # Usa o status limpo para buscar a configuração; se não existir, usa uma tarja cinza genérica
+        config = status_config.get(status_limpo, {
+            'cor': (0.5, 0.5, 0.5),
+            'texto': f'AUDITORIA - {status_limpo.upper()}'
+        })
+        
+        canvas.setFillColorRGB(config['cor'][0], config['cor'][1], config['cor'][2], 1)
+        canvas.rect(0, pagesize[1] - 1.2*cm, pagesize[0], 0.8*cm, fill=1, stroke=0)
+        canvas.setFont('Helvetica-Bold', 12)
+        canvas.setFillColorRGB(1, 1, 1)
+        canvas.drawCentredString(pagesize[0] / 2, pagesize[1] - 0.9*cm, config['texto'])
         
         canvas.restoreState()
     
@@ -5522,11 +5530,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(Spacer(1, 3))
             
             if etapa['descricao']:
-                story.append(Paragraph(f"Descrição da etapa: <i>{etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}</i>", normal_style))
+                story.append(Paragraph(f"Descrição da etapa: {etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}", normal_style))
                 story.append(Spacer(1, 5))
             
             if etapa['objetivo']:
-                story.append(Paragraph(f"Objetivo da etapa: <i>{etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}</i>", normal_style))
+                story.append(Paragraph(f"Objetivo da etapa: {etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}", normal_style))
                 story.append(Spacer(1, 5))
             
             if etapa['analises_auditado']:
@@ -5775,6 +5783,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     doc = SimpleDocTemplate(buffer, pagesize=pagesize,
                            topMargin=1.5*cm, bottomMargin=2*cm,
                            leftMargin=2*cm, rightMargin=2*cm)
+    
     
     doc.build(story, 
           onFirstPage=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)],
