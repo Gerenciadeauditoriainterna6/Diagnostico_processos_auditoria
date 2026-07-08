@@ -43,7 +43,7 @@
         
         <!-- SEÇÃO 1: CARDS DOS CHECKLISTS -->
         <div class="form-section">
-            <h3><i class="fas fa-clipboard-list"></i> Checklists de Eficácia</h3>
+            <h3><i class="fas fa-clipboard-list"></i> Matrizes de Eficácia</h3>
             <p class="text-muted" style="margin-bottom: 20px;">Responda os questionários para fundamentar sua análise</p>
             
             <div class="cards-checklists">
@@ -262,8 +262,8 @@
                     
                     <!-- 7. Observações -->
                     <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Observações</label>
-                        <textarea id="analise-auditado-observacoes" class="form-control" rows="2" placeholder="Observações adicionais..."></textarea>
+                        <label><i class="fas fa-comment"></i> Recomendações GRC</label>
+                        <textarea id="analise-auditado-observacoes" class="form-control" rows="2" placeholder="Recomendações adicionais..."></textarea>
                     </div>
 
                     <!-- ⭐ NOVO: 8. Evidências da Análise do Auditado -->
@@ -400,8 +400,8 @@
                     
                     <!-- 7. Observações -->
                     <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Observações</label>
-                        <textarea id="analise-auditor-observacoes" class="form-control" rows="2" placeholder="Observações adicionais..."></textarea>
+                        <label><i class="fas fa-comment"></i> Recomendações GRC</label>
+                        <textarea id="analise-auditor-observacoes" class="form-control" rows="2" placeholder="Recomendações adicionais..."></textarea>
                     </div>
 
                     <!-- ⭐ NOVO: 8. Evidências -->
@@ -3734,7 +3734,7 @@
                                     <!-- Observações -->
                                     ${analise.observacoes ? `
                                     <div class="analise-card-section">
-                                        <h4><i class="fas fa-comment"></i> Observações</h4>
+                                        <h4><i class="fas fa-comment"></i> Recomendações GRC/h4>
                                         <div class="analise-texto">${escapeHtml(analise.observacoes)}</div>
                                     </div>
                                     ` : ''}
@@ -4248,7 +4248,7 @@
                         <div class="analise-card-section"><h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
                         <div class="analise-card-section"><h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
                     </div>
-                    ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Observações</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
+                    ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
                     
                     <!-- ⭐ BOTÃO DE CONFIRMAÇÃO DE IMPLANTAÇÃO -->
                     ${analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada ? `
