@@ -1473,9 +1473,9 @@
 
                 
 
-                <!-- SEÇÃO 2: EXECUÇÃO -->
+                <!-- SEÇÃO 2.1: EXECUÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title nav-section-execucao">EXECUÇÃO</div>
+                    <div class="nav-section-title nav-section-execucao">EXECUÇÃO - LEVANTAMENTO</div>
 
                     <!-- Diagnóstico dos Processos com Submenu -->
                     <div class="nav-item-parent">
@@ -1512,17 +1512,22 @@
                             
                         </div>
                     </div>
+                </div>
 
-                    <!-- Matriz de Eficácia (SEM submenu) -->
-                    <a href="{{ url_for('checklists') }}" class="nav-item" id="checklistsItem">
-                        <i class="fas fa-table-cells-large"></i>
-                        <span>Matriz de Eficácia</span>
-                    </a>
-                    
-                    <a href="{{ url_for('matriz_achados') }}" class="submenu-item submenu-matriz-achados">
-                        <i class="fa-solid fa-box-archive"></i>
-                        <span>Matriz de Achados</span>
-                    </a>
+                <!-- SEÇÃO 2.2: EXECUÇÃO -->
+                <div class="nav-section">
+                        <div class="nav-section-ti tle nav-section-execucao">EXECUÇÃO - AUDITORIA INTERNA</div>
+
+                        <!-- Matriz de Eficácia (SEM submenu) -->
+                        <a href="{{ url_for('checklists') }}" class="nav-item" id="checklistsItem">
+                            <i class="fas fa-table-cells-large"></i>
+                            <span>Matriz de Eficácia</span>
+                        </a>
+                        
+                        <a href="{{ url_for('matriz_achados') }}" class="submenu-item submenu-matriz-achados">
+                            <i class="fa-solid fa-box-archive"></i>
+                            <span>Matriz de Achados</span>
+                        </a>
                 </div>
 
 
