@@ -1604,6 +1604,11 @@ TEXTOS_VALIDACAO = {
             "Valido a integridade do detalhamento apresentado e a identificação dos processos correlatos."
         )
     },
+    'parecer': {
+        'titulo': "",
+        'texto': ""
+    },
+
     'padrao': {
         'titulo': "VALIDACÃO",
         'texto': (
@@ -4471,8 +4476,8 @@ def limpar_binario(dados):
     )
     return texto
 
-def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id, 
-                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False):  # ⭐ ADICIONAR AQUI
+def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id,
+                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
     Inclui análises do auditado (etapas) e análises do auditor (checklists)
@@ -4481,10 +4486,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     - incluir_abr: Se True, inclui a seção ABR - Auditoria Baseada em Risco (apenas admin)
     """
     from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
     import io
     import os
     from database import engine
@@ -4552,7 +4558,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         'SecaoStyle',
         parent=styles['Heading2'],
         fontSize=14,
-        spaceAfter=10,
+        spaceAfter=5,
+        alignment=TA_CENTER,
         spaceBefore=15,
         textColor=colors.HexColor('#184145')
     )
@@ -4582,6 +4589,55 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         leading=12,
         wordWrap='CJK'
     )
+
+    # ===== PERGUNTAS DOS CHECKLISTS =====
+    perguntas_governanca = [
+        "1. O fluxo das etapas e seus objetivos são de fato realizados?",
+        "1.1 Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento?",
+        "1.2 Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
+        "2. O fluxo das etapas e seus objetivos são de fato realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?",
+        "3. Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?",
+        "4. Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?",
+        "5. As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?",
+        "6. A gestão da área realiza monitoramento contínuo dos processos?",
+        "7. Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?",
+        "8. Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?",
+        "9. Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?",
+        "10. A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?",
+        "11. Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?",
+        "12. A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?",
+        "13. O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?"
+    ]
+
+    perguntas_riscos = [
+        "1. Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.",
+        "2. Verificar se os riscos estão atualizados e sendo monitorados pelo gestor de primeira linha.",
+        "3. A área realiza mapeamento de riscos dos seus processos operacionais regularmente (ex: anualmente ou após mudanças significativas)?",
+        "4. Os riscos chave (ex: erro humano, falha de sistema, fraude) estão claramente identificados e documentados pela própria área?",
+        "5. A análise de riscos inclui a avaliação da probabilidade de ocorrência e do impacto financeiro/reputacional/operacional?",
+        "6. Existe um plano de ação formalizado para mitigar os riscos classificados como Alto ou Crítico?",
+        "7. Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?",
+        "8. A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?",
+        "9. A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?",
+        "10. Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
+        "11. O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?",
+        "12. O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?"
+    ]
+
+    perguntas_controles = [
+        "1. Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
+        "2. Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?",
+        "3. Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?",
+        "4. Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?",
+        "5. Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?",
+        "6. O passo do controle (ex: revisão, aprovação, conciliação) é realizado na frequência exigida e sem exceções não autorizadas?",
+        "7. O responsável pelo controle deixa evidência clara (assinatura, log do sistema, captura de tela) de que o controle foi executado e revisado?",
+        "8. Os controles-chave são executados por pessoas com o conhecimento e a autoridade necessários para tal?",
+        "9. As falhas ou exceções encontradas nos controles são escaladas imediatamente para tratamento e correção?",
+        "10. A área rastreia e monitora as ações corretivas implementadas para remediar as deficiências de controle identificadas?",
+        "11. As reconciliações (ex: contábeis, estoques) são realizadas, e os itens pendentes são investigados e resolvidos prontamente?",
+        "12. O Auditado validou por email se existe mapeamento de CONTROLE feito pela área Gerência de riscos e Compliance?"
+    ]
     
     story = []
     
@@ -4688,7 +4744,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     ac.data_inicio_prevista,
                     ac.data_conclusao_prevista,
                     ac.efetivamente_implantada,
-                    ac.data_implantacao_efetiva
+                    ac.data_implantacao_efetiva,
+                    ac.necessidade_implantacao,
+                    ac.ganho_previsto                  
                 FROM analises_criticas ac
                 WHERE ac.etapa_id = :etapa_id AND ac.tipo = 'auditado'
                 ORDER BY ac.categoria
@@ -4746,6 +4804,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     'data_conclusao_prevista': a[8].strftime('%d/%m/%Y') if a[8] else None,
                     'efetivamente_implantada': a[9] if a[9] is not None else None,
                     'data_implantacao_efetiva': a[10].strftime('%d/%m/%Y') if a[10] else None,
+                    'necessidade_implantacao': a[11] or '',
+                    'ganho_previsto': a[12] or '',
                     'historico': historico_list,
                     'followups': followups_list
                 })
@@ -4772,7 +4832,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ac.data_conclusao_prevista,
                 ac.efetivamente_implantada,
                 ac.data_implantacao_efetiva,
-                ac.created_at
+                ac.created_at,
+                ac.necessidade_implantacao,
+                ac.ganho_previsto
             FROM analises_criticas ac
             WHERE ac.processo_id = :processo_id 
             AND ac.tipo = 'auditor'
@@ -4833,6 +4895,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 'efetivamente_implantada': a[8] if a[8] is not None else None,
                 'data_implantacao_efetiva': a[9].strftime('%d/%m/%Y') if a[9] else None,
                 'data_criacao': a[10].strftime('%d/%m/%Y') if a[10] else '',
+                'necessidade_implantacao': a[11] or '', 
+                'ganho_previsto': a[12] or '',           
                 'historico': historico_list,
                 'followups': followups_list
             })
@@ -4840,66 +4904,117 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         # ===== 3. BUSCAR MATRIZES DE CHECKLIST (GOVERNANÇA, RISCOS, CONTROLES) =====
         checklist_tipos = ['governanca', 'riscos', 'controles']
         checklist_data = {}
-        
-        # ⭐ DEFINIR O NÚMERO DE PERGUNTAS PARA CADA TIPO
+
+        # ⭐ Mapeamento das perguntas por tipo
         perguntas_por_tipo = {
-            'governanca': 13,
-            'riscos': 12,
-            'controles': 12
+            'governanca': perguntas_governanca,
+            'riscos': perguntas_riscos,
+            'controles': perguntas_controles
         }
-        
+
         for tipo in checklist_tipos:
-            tabela = f'checklist_{tipo}_respostas'
-            num_perguntas = perguntas_por_tipo.get(tipo, 12)
-            
-            # ⭐ CONSTRUIR A LISTA DE COLUNAS DINAMICAMENTE
-            colunas_respostas = ', '.join([f'p{i}_resposta' for i in range(1, num_perguntas + 1)])
-            colunas_comentarios = ', '.join([f'p{i}_comentario' for i in range(1, num_perguntas + 1)])
-            
-            query_checklist = text(f"""
+            # ⭐ BUSCAR O CABEÇALHO DO CHECKLIST
+            query_checklist_cabecalho = text("""
                 SELECT 
                     id,
                     status,
-                    observacoes_gerais,
-                    {colunas_respostas},
-                    {colunas_comentarios}
-                FROM {tabela}
-                WHERE processo_id = :processo_id
+                    observacoes_gerais
+                FROM checklists
+                WHERE processo_id = :processo_id 
+                AND tipo = :tipo
                 ORDER BY id DESC
                 LIMIT 1
             """)
             
-            try:
-                checklist_result = conn.execute(query_checklist, {"processo_id": proc_id}).fetchone()
+            checklist_cabecalho = conn.execute(query_checklist_cabecalho, {
+                "processo_id": proc_id,
+                "tipo": tipo
+            }).fetchone()
+            
+            if checklist_cabecalho:
+                checklist_id = checklist_cabecalho[0]
+                status = checklist_cabecalho[1] or 'Não iniciado'
+                observacoes = checklist_cabecalho[2] or ''
                 
-                if checklist_result:
-                    respostas = []
-                    for i in range(1, num_perguntas + 1):
-                        # Índices: 0=id, 1=status, 2=observacoes
-                        # Depois vêm as respostas (num_perguntas colunas)
-                        # Depois os comentários (num_perguntas colunas)
-                        idx_resposta = 3 + (i - 1)
-                        idx_comentario = 3 + num_perguntas + (i - 1)
-                        
-                        resposta_valor = checklist_result[idx_resposta] if idx_resposta < len(checklist_result) else ''
-                        comentario_valor = checklist_result[idx_comentario] if idx_comentario < len(checklist_result) else ''
-                        
-                        respostas.append({
-                            'resposta': resposta_valor or '',
-                            'comentario': comentario_valor or ''
-                        })
-                    
-                    checklist_data[tipo] = {
-                        'id': checklist_result[0],
-                        'status': checklist_result[1] or 'Não iniciado',
-                        'observacoes_gerais': checklist_result[2] or '',
-                        'respostas': respostas
+                # ⭐ BUSCAR AS RESPOSTAS NA ORDEM CORRETA
+                # Para governança, as respostas podem ter ordens: "1", "1.1", "1.2", "2", "3", ...
+                query_respostas = text("""
+                    SELECT 
+                        pergunta_ordem,
+                        resposta,
+                        comentario
+                    FROM checklist_respostas
+                    WHERE checklist_id = :checklist_id
+                    ORDER BY 
+                        -- Ordenar: primeiro o número principal, depois o subitem
+                        CAST(SPLIT_PART(pergunta_ordem, '.', 1) AS INTEGER),
+                        CASE 
+                            WHEN SPLIT_PART(pergunta_ordem, '.', 2) = '' THEN 0
+                            ELSE CAST(SPLIT_PART(pergunta_ordem, '.', 2) AS INTEGER)
+                        END
+                """)
+                
+                respostas_raw = conn.execute(query_respostas, {
+                    "checklist_id": checklist_id
+                }).fetchall()
+                
+                # ⭐ CONSTRUIR DICIONÁRIO DE RESPOSTAS POR ORDEM
+                respostas_dict = {}
+                for row in respostas_raw:
+                    ordem = row[0]  # "1", "1.1", "1.2", "2", etc.
+                    resposta = row[1] or ''
+                    comentario = row[2] or ''
+                    respostas_dict[ordem] = {
+                        'resposta': resposta,
+                        'comentario': comentario
                     }
-                else:
-                    checklist_data[tipo] = None
-            except Exception as e:
-                print(f"Erro ao buscar checklist {tipo}: {e}")
+                
+                # ⭐ CRIAR LISTA DE RESPOSTAS NA MESMA ORDEM DAS PERGUNTAS
+                perguntas = perguntas_por_tipo.get(tipo, [])
+                respostas_ordenadas = []
+                
+                for pergunta in perguntas:
+                    # Extrair o número da pergunta (se houver)
+                    # Ex: "1.1 Verificando..." -> "1.1"
+                    # Ex: "O fluxo das etapas..." -> "1" (primeira pergunta)
+                    ordem = None
+                    
+                    # Verificar se a pergunta começa com número (ex: "1.1", "2", etc.)
+                    import re
+                    match = re.match(r'^(\d+(?:\.\d+)?)', pergunta)
+                    if match:
+                        ordem = match.group(1)  # "1", "1.1", etc.
+                    else:
+                        # Se não tem número, é uma pergunta principal sequencial
+                        # Vamos contar quantas perguntas principais já foram processadas
+                        pass
+                    
+                    # Buscar a resposta correspondente
+                    if ordem and ordem in respostas_dict:
+                        respostas_ordenadas.append(respostas_dict[ordem])
+                    else:
+                        # Se não encontrou por ordem, tentar encontrar pela posição
+                        # Para perguntas sem numeração (ex: "O fluxo das etapas...")
+                        # Elas correspondem à ordem "1", "2", "3"...
+                        posicao = len([p for p in perguntas[:perguntas.index(pergunta)] if not re.match(r'^\d', p)]) + 1
+                        if str(posicao) in respostas_dict:
+                            respostas_ordenadas.append(respostas_dict[str(posicao)])
+                        else:
+                            # Se não encontrou, adiciona vazio
+                            respostas_ordenadas.append({
+                                'resposta': '',
+                                'comentario': ''
+                            })
+                
+                checklist_data[tipo] = {
+                    'id': checklist_id,
+                    'status': status,
+                    'observacoes_gerais': observacoes,
+                    'respostas': respostas_ordenadas  # ⭐ Lista na mesma ordem das perguntas
+                }
+            else:
                 checklist_data[tipo] = None
+       
     
     # ===== FUNÇÃO PARA DESENHAR TARJA =====
     def cabecalho_com_tarja(canvas, doc):
@@ -5131,52 +5246,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             ]))
             story.append(tabela_fu)
 
-    # ===== PERGUNTAS DOS CHECKLISTS =====
-    perguntas_governanca = [
-        "O fluxo das etapas e seus objetivos são de fato realizados? Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
-        "O fluxo das etapas e seus objetivos são de fato realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?",
-        "Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?",
-        "Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?",
-        "As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?",
-        "A gestão da área realiza monitoramento contínuo dos processos?",
-        "Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?",
-        "Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?",
-        "Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?",
-        "A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?",
-        "Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?",
-        "A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?",
-        "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?"
-    ]
-
-    perguntas_riscos = [
-        "Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.",
-        "Verificar se os riscos estão atualizados e sendo monitorados pelo gestor de primeira linha.",
-        "A área realiza mapeamento de riscos dos seus processos operacionais regularmente (ex: anualmente ou após mudanças significativas)?",
-        "Os riscos chave (ex: erro humano, falha de sistema, fraude) estão claramente identificados e documentados pela própria área?",
-        "A análise de riscos inclui a avaliação da probabilidade de ocorrência e do impacto financeiro/reputacional/operacional?",
-        "Existe um plano de ação formalizado para mitigar os riscos classificados como Alto ou Crítico?",
-        "Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?",
-        "A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?",
-        "A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?",
-        "Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
-        "O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?",
-        "O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?"
-    ]
-
-    perguntas_controles = [
-        "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
-        "Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?",
-        "Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?",
-        "Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?",
-        "Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?",
-        "O passo do controle (ex: revisão, aprovação, conciliação) é realizado na frequência exigida e sem exceções não autorizadas?",
-        "O responsável pelo controle deixa evidência clara (assinatura, log do sistema, captura de tela) de que o controle foi executado e revisado?",
-        "Os controles-chave são executados por pessoas com o conhecimento e a autoridade necessários para tal?",
-        "As falhas ou exceções encontradas nos controles são escaladas imediatamente para tratamento e correção?",
-        "A área rastreia e monitora as ações corretivas implementadas para remediar as deficiências de controle identificadas?",
-        "As reconciliações (ex: contábeis, estoques) são realizadas, e os itens pendentes são investigados e resolvidos prontamente?",
-        "O Auditado validou por email se existe mapeamento de CONTROLE feito pela área Gerência de riscos e Compliance?"
-    ]
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
     def adicionar_analise(analise, titulo):
@@ -5191,6 +5260,18 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         if analise.get('sugestao_melhoria'):
             story.append(Paragraph("<b>Sugestão de Melhoria:</b>", normal_style))
             story.append(Paragraph(analise['sugestao_melhoria'] or '', normal_style))  # ⭐ Adicionar or ''
+            story.append(Spacer(1, 5))
+
+        # Necessidade para implantacao
+        if analise.get('necessidade_implantacao'):
+            story.append(Paragraph("<b>Necessidade para Implantação:</b>", normal_style))
+            story.append(Paragraph(analise['necessidade_implantacao'] or '', normal_style))
+            story.append(Spacer(1, 5))
+
+        # Ganho Previso
+        if analise.get('ganho_previsto'):
+            story.append(Paragraph("<b>Ganho Previsto:</b>", normal_style))
+            story.append(Paragraph(analise['ganho_previsto'] or '', normal_style))
             story.append(Spacer(1, 5))
 
         # Decisão sobre implantação
@@ -5221,7 +5302,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     # ===== FUNÇÃO PARA EXIBIR CHECKLIST (FORMATO LISTA) =====
     def adicionar_checklist_simples(checklist, titulo, perguntas):
         """Adiciona as respostas do checklist ao relatório em formato de lista"""
-        story.append(PageBreak())
         story.append(Paragraph(titulo, secao_style))
         story.append(Spacer(1, 5))
         
@@ -5235,20 +5315,47 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         
         # Status
         status_text = checklist.get('status', 'Não iniciado')
-        story.append(Paragraph(f"<b>Status:</b> {status_text}", normal_style))
+        status_color = {
+            'Não iniciado': '#6c757d',
+            'Em andamento': '#17a2b8',
+            'Concluído': '#28a745'
+        }.get(status_text, '#000000')
+        
+        story.append(Paragraph(
+            f"<b>Status:</b> <font color='{status_color}'>{status_text}</font>", 
+            normal_style
+        ))
         story.append(Spacer(1, 8))
+        
+        # Observações gerais (se houver)
+        if checklist.get('observacoes_gerais'):
+            story.append(Paragraph("<b>Observações Gerais:</b>", normal_style))
+            story.append(Paragraph(checklist['observacoes_gerais'], normal_style))
+            story.append(Spacer(1, 10))
         
         # ⭐ EXIBIR PERGUNTAS E RESPOSTAS EM LISTA
         respostas = checklist.get('respostas', [])
         
-        # Criar estilo para perguntas com indentação
+        # Criar estilos com diferentes níveis de indentação
         pergunta_style = ParagraphStyle(
             'PerguntaStyle',
             parent=normal_style,
             fontSize=9,
             leading=12,
-            leftIndent=10,
-            spaceAfter=4
+            leftIndent=5,
+            spaceAfter=3,
+            fontName='Helvetica-Bold',
+            alignment=TA_JUSTIFY
+        )
+        
+        subpergunta_style = ParagraphStyle(
+            'SubPerguntaStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            leftIndent=20,
+            spaceAfter=3,
+            alignment=TA_JUSTIFY
         )
         
         resposta_style = ParagraphStyle(
@@ -5256,32 +5363,116 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             parent=normal_style,
             fontSize=9,
             leading=12,
-            leftIndent=30,
-            spaceAfter=10,
-            textColor=colors.HexColor('#0b5b99')
+            leftIndent=15,
+            spaceAfter=3,
+            textColor=colors.HexColor('#0b5b99'),
+            alignment=TA_JUSTIFY
         )
         
-        contador = 0
-        for idx, r in enumerate(respostas, 1):
-            if r.get('resposta'):
-                contador += 1
-                pergunta_texto = perguntas[idx - 1] if idx - 1 < len(perguntas) else f"Pergunta {idx}"
+        subresposta_style = ParagraphStyle(
+            'SubRespostaStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            leftIndent=35,
+            spaceAfter=3,
+            textColor=colors.HexColor('#0b5b99'),
+            alignment=TA_JUSTIFY
+        )
+        
+        comentario_style = ParagraphStyle(
+            'ComentarioStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            leftIndent=15,
+            spaceAfter=8,
+            textColor=colors.HexColor("#6c757d"),
+            alignment=TA_JUSTIFY
+        )
+        
+        subcomentario_style = ParagraphStyle(
+            'SubComentarioStyle',
+            parent=normal_style,
+            fontSize=9,
+            leading=12,
+            leftIndent=35,
+            spaceAfter=8,
+            textColor=colors.HexColor('#6c757d'),
+            alignment=TA_JUSTIFY
+
+        )
+        
+        # ⭐ PERCORRER TODAS AS PERGUNTAS (não apenas as com resposta)
+        import re
+        
+        for idx, pergunta_texto in enumerate(perguntas):
+            if idx >= len(respostas):
+                break
                 
-                # Número da pergunta
+            resposta = respostas[idx]
+            resposta_texto = resposta.get('resposta', '')
+            comentario_texto = resposta.get('comentario', '')
+            
+            # Determinar se é subpergunta (começa com número e ponto: "1.1", "1.2", etc.)
+            is_subpergunta = bool(re.match(r'^\d+\.\d+', pergunta_texto))
+            
+            # ⭐ Separador entre perguntas principais
+            if not is_subpergunta and idx > 0:
+                story.append(Spacer(1, 5))
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#E0E0E0"), spaceBefore=5, spaceAfter=5))
+                story.append(Spacer(1, 5))
+            
+            if is_subpergunta:
+                # ⭐ SUBPERGUNTA
                 story.append(Paragraph(
-                    f"<b>{contador}.</b> {pergunta_texto}", 
+                    pergunta_texto,
+                    subpergunta_style
+                ))
+                
+                if resposta_texto:
+                    # Formatar resposta com cores
+                    story.append(Paragraph(
+                        f"<b>Resposta:</b> {resposta_texto}",
+                        subresposta_style
+                    ))
+                else:
+                    story.append(Paragraph(
+                        "<i>Sem resposta</i>",
+                        subresposta_style
+                    ))
+                
+                if comentario_texto:
+                    story.append(Paragraph(
+                        f"<b>Comentário:</b> {comentario_texto}",
+                        subcomentario_style
+                    ))
+                
+                story.append(Spacer(1, 5))
+            else:
+                # ⭐ PERGUNTA PRINCIPAL
+                story.append(Paragraph(
+                    pergunta_texto,
                     pergunta_style
                 ))
                 
-                # Resposta com destaque
-                resposta = str(r.get('resposta'))
-                story.append(Paragraph(
-                    f"<b>Resposta:</b> {resposta}", 
-                    resposta_style
-                ))
-        
-        if contador == 0:
-            story.append(Paragraph("<i>Nenhuma resposta registrada.</i>", normal_style))
+                if resposta_texto:
+                    # Formatar resposta com cores
+                    story.append(Paragraph(
+                        f"<b>Resposta:</b> {resposta_texto}",
+                        resposta_style
+                    ))
+                else:
+                    story.append(Paragraph(
+                        "<i>Sem resposta</i>",
+                        resposta_style
+                    ))
+                
+                if comentario_texto:
+                    story.append(Paragraph(
+                        f"<b>Comentário:</b> {comentario_texto}",
+                        comentario_style
+                    ))
         
         story.append(Spacer(1, 10))
     
@@ -5296,9 +5487,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             parent=normal_style,
             fontSize=9,
             leading=12,
-            alignment=0,
             spaceAfter=8,
-            leftIndent=10
+            leftIndent=10,
+            alignment=TA_JUSTIFY
         )
         
         for idx, fund in enumerate(fundamentos, 1):
@@ -5319,7 +5510,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         story.append(Spacer(1, 10))
     
     # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
-    story.append(Paragraph("1. ANÁLISE CRÍTICAS DO AUDITADO", secao_style))
+    story.append(Paragraph("1. ANÁLISE DO AUDITADO", secao_style))
     story.append(Paragraph("Análises realizadas pelo auditado durante o detalhamento das etapas", normal_style))
     story.append(Spacer(1, 10))
     
@@ -5339,7 +5530,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 story.append(Spacer(1, 5))
             
             if etapa['analises_auditado']:
-                for a in etapa['analises_auditado']:
+                num_analises = len(etapa['analises_auditado'])
+                for i, a in enumerate(etapa['analises_auditado']):
                     nome_categoria = {
                         'governanca': 'Governança',
                         'riscos': 'Riscos',
@@ -5347,27 +5539,38 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     }.get(a['categoria'], a['categoria'].upper())
                     
                     adicionar_analise(a, f"{nome_categoria}")
+                    
+                    # ⭐ ADICIONAR SEPARADOR ENTRE ANÁLISES DO AUDITADO (exceto após a última)
+                    if i < num_analises - 1:
+                        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#CCCCCC"), spaceBefore=5, spaceAfter=5))
+                       
             else:
                 story.append(Paragraph("<i>Nenhuma análise cadastrada para esta etapa.</i>", normal_style))
             
             # ⭐ Separador entre etapas (com linha cinza)
             if etapa_idx < len(etapas) - 1:
-                story.append(Spacer(1, 5))
-                story.append(Paragraph("<hr color='#CCCCCC'/>", normal_style))
-                story.append(Spacer(1, 5))
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#CCCCCC"), spaceBefore=5, spaceAfter=5))
 
-    # ===== SEÇÃO 1.5: MATRIZES DE CHECKLIST =====
+    # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
+    story.append(PageBreak())
+    story.append(Paragraph("2. MATRIZES DE EFICÁCIA", secao_style))
+    story.append(Spacer(1, 2))
+
+    # ===== SEÇÃO 2.1: MATRIZES DE CHECKLIST =====
     adicionar_checklist_simples(
         checklist_data.get('governanca'), 
         "Matriz de Governança - Respostas",
         perguntas_governanca
     )
+    story.append(PageBreak())
     
     adicionar_checklist_simples(
         checklist_data.get('riscos'), 
         "Matriz de Riscos - Respostas",
         perguntas_riscos
     )
+    story.append(PageBreak())
+    
     
     adicionar_checklist_simples(
         checklist_data.get('controles'), 
@@ -5375,9 +5578,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         perguntas_controles
     )
     
-    # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
+
+    # ====== SEÇÃO 3 ANÁLISES DO AUDITOR ======
+
     story.append(PageBreak())
-    story.append(Paragraph("2. ANÁLISES DO AUDITOR", secao_style))
+    story.append(Paragraph("3. ANÁLISES DO AUDITOR", secao_style))
     story.append(Paragraph("Conceito: Análises realizadas pelo auditor durante a Matriz de Eficácia", normal_style))
     story.append(Spacer(1, 10))
     
@@ -5387,13 +5592,13 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         for idx, analise in enumerate(analises_auditor_list, 1):
             adicionar_analise(analise, f"2.{idx} Análise do Auditor - {analise.get('data_criacao', '')}")
             
-            # ⭐ Separador entre análises (com linha cinza e mais espaçamento)
+            # ⭐ Separador entre análises do auditor (com linha cinza e mais espaçamento)
             if idx < len(analises_auditor_list):
-                story.append(Spacer(1, 10))
-                story.append(Paragraph("<hr color='#CCCCCC'/>", normal_style))
+                story.append(Spacer(1, 10))   # mantenha um espaço extra se desejar
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#CCCCCC"), spaceBefore=0, spaceAfter=0))
                 story.append(Spacer(1, 10))
     
-    # ===== SEÇÃO 2.5: RESUMO DAS MELHORIAS E FOLLOW-UPS =====
+    # ===== SEÇÃO 3.5: RESUMO DAS MELHORIAS E FOLLOW-UPS =====
     if total_melhorias_em_implantacao > 0 or total_followups_pendentes > 0:
         story.append(PageBreak())
         story.append(Paragraph("2.5. RESUMO DO ACOMPANHAMENTO", secao_style))
@@ -5434,37 +5639,19 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(resumo_table)
             story.append(Spacer(1, 15))
     
-    story.append(PageBreak())
     
+    styles.add(ParagraphStyle('titulo', parent=titulo_style))
     
     # ===== ASSINATURAS =====
-    assinatura_data = [
-        ["Auditor Responsável pela emissão:", usuario_nome or 'Auditor'],
-        ["Data:", datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y')],
-        ["Assinatura:", "_________________________"],
-        ["", ""],
-        ["Auditor Revisor:", "_________________________"],
-        ["Data:", "___/___/_______"],
-        ["Assinatura:", "_________________________"],
-        ["", ""],
-        ["Responsável pelas informações:", "_________________________"],
-        ["Data:", "___/___/_______"],
-        ["Assinatura:", "_________________________"],
-        ["", ""],
-        ["Ciência do Gestor:", ""],
-        ["Gestor:", gestor or 'Não informado'],
-        ["Data:", "___/___/_______"],
-        ["Assinatura:", "_________________________"],
-    ]
-    
-    tabela_assinaturas = Table(assinatura_data, colWidths=[5.5*cm, 10*cm])
-    tabela_assinaturas.setStyle(TableStyle([
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#E0E0E0')),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-    ]))
-    story.append(tabela_assinaturas)
+    criar_pagina_validacao(
+        story=story,
+        gestor=gestor,
+        styles=styles,                # já obtido via getSampleStyleSheet()
+        normal_style=normal_style,
+        auditoria_id=auditoria_id,
+        tipo_relatorio='parecer',     # ou o nome que você usa para o parecer
+        entrevistado=None             # ajuste se houver um entrevistado específico
+    )
 
     # ============================================================
     # ⭐ RODAPÉ COM TOTAL DE PÁGINAS (USANDO PyPDF2)
