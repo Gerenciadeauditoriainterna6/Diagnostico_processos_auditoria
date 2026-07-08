@@ -2894,13 +2894,13 @@
                             </div>
                             <div class="pergunta-opcoes">
                                 <label class="radio-label">
-                                    <input type="radio" name="resp_${i}" value="Sim" ${pergunta1.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim
+                                    <input type="radio" name="resp_${i}" value="SIM" ${pergunta1.resposta === 'SIM' ? 'checked' : ''}> ✅ Sim
                                 </label>
                                 <label class="radio-label">
-                                    <input type="radio" name="resp_${i}" value="Não" ${pergunta1.resposta === 'Não' ? 'checked' : ''}> ❌ Não
+                                    <input type="radio" name="resp_${i}" value="NÃO" ${pergunta1.resposta === 'NÃO' ? 'checked' : ''}> ❌ Não
                                 </label>
                                 <label class="radio-label">
-                                    <input type="radio" name="resp_${i}" value="Não se aplica" ${pergunta1.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica
+                                    <input type="radio" name="resp_${i}" value="NÃO SE APLICA" ${pergunta1.resposta === 'NÃO SE APLICA' ? 'checked' : ''}> ➖ Não se aplica
                                 </label>
                             </div>
                             
@@ -2927,17 +2927,17 @@
                                 </div>
                                 <div class="pergunta-opcoes" style="padding-left: 0;">
                                     <label class="radio-label">
-                                        <input type="radio" name="subresp_${i}_${subIndex}" value="Sim" ${subResposta.resposta === 'Sim' ? 'checked' : ''}> 
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="SIM" ${subResposta.resposta === 'Sim' ? 'checked' : ''}> 
                                         ✅ Sim
                                     </label>
                                     <label class="radio-label">
-                                        <input type="radio" name="subresp_${i}_${subIndex}" value="Não" ${subResposta.resposta === 'Não' ? 'checked' : ''}> 
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="NÃO" ${subResposta.resposta === 'NÃO' ? 'checked' : ''}> 
                                         ❌ Não
                                     </label>
                                     <label class="radio-label">
-                                        <input type="radio" name="subresp_${i}_${subIndex}" value="Não se aplica" ${subResposta.resposta === 'Não se aplica' ? 'checked' : ''}> 
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="NÃO SE APLICA" ${subResposta.resposta === 'NÃO SE APLICA' ? 'checked' : ''}> 
                                         ➖ Não se aplica
-                                    </label>
+                                    </label>    
                                 </div>
                             </div>
                         `;
@@ -3011,15 +3011,15 @@
                                 <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
                             </div>
                             <div class="pergunta-opcoes">
-                                <label class="radio-label"><input type="radio" name="resp_${i}" value="Sim" ${r.resposta === 'Sim' ? 'checked' : ''}> ✅ Sim</label>
-                                <label class="radio-label"><input type="radio" name="resp_${i}" value="Não" ${r.resposta === 'Não' ? 'checked' : ''}> ❌ Não</label>
-                                <label class="radio-label"><input type="radio" name="resp_${i}" value="Não se aplica" ${r.resposta === 'Não se aplica' ? 'checked' : ''}> ➖ Não se aplica</label>
+                                <label class="radio-label"><input type="radio" name="resp_${i}" value="SIM" ${r.resposta === 'SIM' ? 'checked' : ''}> ✅ Sim</label>
+                                <label class="radio-label"><input type="radio" name="resp_${i}" value="NÃO" ${r.resposta === 'NÃO' ? 'checked' : ''}> ❌ Não</label>
+                                <label class="radio-label"><input type="radio" name="resp_${i}" value="NÃO SE APLICA" ${r.resposta === 'NÃO SE APLICA' ? 'checked' : ''}> ➖ Não se aplica</label>
                             </div>
                             <div class="pergunta-comentario">
                                 <textarea class="comentario-textarea" data-index="${i}" placeholder="Comentários..." rows="2">${escapeHtml(r.comentario || '')}</textarea>
                             </div>
                     `;
-                    
+                     
                     if (p.precisaEvidencia) {
                         html += `
                             <div class="evidencias-container">
@@ -3356,7 +3356,7 @@
                     // ⭐ Subitens NÃO têm comentário próprio (usam o compartilhado)
                     respostas.push({
                         ordem: sub.id,  // ex: '1.1', '1.2'
-                        resposta: radioSub ? radioSub.value : '',
+                        resposta: radioSub ? radioSub.value.toUpperCase() : '',
                         comentario: ''  // comentário vazio (usam o compartilhado)
                     });
                 });
@@ -3368,7 +3368,7 @@
                 
                 respostas.push({
                     ordem: p.ordem,
-                    resposta: radio ? radio.value : '',
+                    resposta: radio ? radio.value.toUpperCase() : '',
                     comentario: comentario ? comentario.value : ''
                 });
             }

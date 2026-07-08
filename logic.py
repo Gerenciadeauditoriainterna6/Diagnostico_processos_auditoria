@@ -1357,6 +1357,15 @@ def get_estilos_padrao():
         spaceAfter=30,
         textColor=colors.HexColor(COR_PRIMARIA)
     )
+
+    titulo_style0 = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=5,
+        textColor=colors.HexColor('#000000')
+    )
     
     subtitulo_style = ParagraphStyle(
         'CustomSubtitle',
@@ -1396,6 +1405,7 @@ def get_estilos_padrao():
     return {
         'titulo': titulo_style,
         'titulo2': titulo_style2,
+        'titulo0': titulo_style0,
         'subtitulo': subtitulo_style,
         'normal': normal_style,
         'label': label_style,
@@ -2222,6 +2232,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     # ===== 4b. TÍTULO =====
     titulo_style = styles['titulo']
     titulo_style2 = styles['titulo2']
+    titulo_style0 = styles['titulo0']
 
     # ⭐ CABEÇALHO MAPA
     story.append(Paragraph("MAPA", titulo_style))
@@ -2231,7 +2242,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
 
     # ⭐ TÍTULO PRINCIPAL
     story.append(Paragraph("Relatório de Validação", titulo_style))
-    story.append(Paragraph("Matriz de Detalhamento", titulo_style2))
+    story.append(Paragraph("Matriz de Panorama", titulo_style0))
     story.append(Spacer(1, 5))
 
     print(f"📄 Após título: {len(story)} elementos")
@@ -2881,6 +2892,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     # ===== 4b. TÍTULO =====
     titulo_style = styles['titulo']
     titulo_style2 = styles['titulo2']
+    titulo_style0 = styles['titulo0']
 
     # ⭐ CABEÇALHO MAPA
     story.append(Paragraph("MAPA", titulo_style))
@@ -2890,7 +2902,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
 
     # ⭐ TÍTULO PRINCIPAL
     story.append(Paragraph("Relatório de Validação", titulo_style))
-    story.append(Paragraph("Matriz de Detalhamento", titulo_style2))
+    story.append(Paragraph("Matriz de Detalhamento", titulo_style0))
     story.append(Spacer(1, 5))
     
     adicionar_informacoes_relatorio(
@@ -3165,25 +3177,25 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
 
                 if etapa.get('analise_critica'):
                     info_etapa.append([
-                        Paragraph("<b>Análise Crítica:</b>", card_texto_style),
+                        Paragraph("<b>ANÁLISE CRÍTICA:</b>", card_texto_style),
                         Paragraph(limitar_texto(etapa['analise_critica'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('sugestao_melhoria'):
                     info_etapa.append([
-                        Paragraph("<b>Sugestão de Melhoria:</b>", card_texto_style),
+                        Paragraph("<b>SUGESTÃO DE MELHORIA:</b>", card_texto_style),
                         Paragraph(limitar_texto(etapa['sugestao_melhoria'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('necessidade_implantacao'):
                     info_etapa.append([
-                        Paragraph("<b>Necessidade para Implantação:</b>", card_texto_style),
+                        Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO:</b>", card_texto_style),
                         Paragraph(limitar_texto(etapa['necessidade_implantacao'], 400), texto_etapa_style)
                     ])
 
                 if etapa.get('ganho_previsto'):
                     info_etapa.append([
-                        Paragraph("<b>Ganho Previsto:</b>", card_texto_style),
+                        Paragraph("<b>GANHO PREVISTO:</b>", card_texto_style),
                         Paragraph(limitar_texto(etapa['ganho_previsto'], 400), texto_etapa_style)
                     ])
                 
@@ -4543,6 +4555,15 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         fontSize=16,
         alignment=1,
         spaceAfter=20,
+        textColor=colors.HexColor('#000000')
+    )
+
+    titulo_style0 = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,
+        spaceAfter=20,
         textColor=colors.HexColor('#0b5b99')
     )
     
@@ -4663,7 +4684,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         story.append(header_table)
         story.append(Spacer(1, 10))
     
-    story.append(Paragraph("MAPA", titulo_style))
+    story.append(Paragraph("MAPA", titulo_style0))
     story.append(Spacer(0, -20))
     story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
     story.append(Spacer(1, 2))
@@ -5260,25 +5281,25 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         
         # Análise Crítica
         if analise.get('analise_critica'):
-            story.append(Paragraph("<b>Análise Crítica:</b>", normal_style))
+            story.append(Paragraph("<b>ANÁLISE CRÍTICA:</b>", normal_style))
             story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
             story.append(Spacer(1, 5))
         
         # Sugestão de Melhoria
         if analise.get('sugestao_melhoria'):
-            story.append(Paragraph("<b>Sugestão de Melhoria:</b>", normal_style))
+            story.append(Paragraph("<b>SUGESTÃO DE MELHORIA:</b>", normal_style))
             story.append(Paragraph(analise['sugestao_melhoria'] or '', normal_style))  # ⭐ Adicionar or ''
             story.append(Spacer(1, 5))
 
         # Necessidade para implantacao
         if analise.get('necessidade_implantacao'):
-            story.append(Paragraph("<b>Necessidade para Implantação:</b>", normal_style))
+            story.append(Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO:</b>", normal_style))
             story.append(Paragraph(analise['necessidade_implantacao'] or '', normal_style))
             story.append(Spacer(1, 5))
 
         # Ganho Previso
         if analise.get('ganho_previsto'):
-            story.append(Paragraph("<b>Ganho Previsto:</b>", normal_style))
+            story.append(Paragraph("<b>GANHO PREVISTO:</b>", normal_style))
             story.append(Paragraph(analise['ganho_previsto'] or '', normal_style))
             story.append(Spacer(1, 5))
 
@@ -5301,9 +5322,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 adicionar_followups(analise['followups'])
                 
         elif analise.get('sugestao_sera_implantada') == False:
-            story.append(Paragraph("<b>Esta melhoria não será implantada</b>", normal_style))
+            story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b>Aguardando decisão sobre implantação</b>", normal_style))
+            story.append(Paragraph("<b>Aguardando decisão sobre implantação da sugestão de melhoria</b>", normal_style))
         
         story.append(Spacer(1, 8))
     
@@ -5530,11 +5551,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(Spacer(1, 3))
             
             if etapa['descricao']:
-                story.append(Paragraph(f"Descrição da etapa: {etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}", normal_style))
+                story.append(Paragraph(f"<b>DESCRIÇÃO DA ETAPA</b>: {etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}", normal_style))
                 story.append(Spacer(1, 5))
-            
+      ffds      
             if etapa['objetivo']:
-                story.append(Paragraph(f"Objetivo da etapa: {etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}", normal_style))
+                story.append(Paragraph(f"<b>OBJETIVO DA ETAPA</b>: {etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}", normal_style))
                 story.append(Spacer(1, 5))
             
             if etapa['analises_auditado']:
@@ -5591,7 +5612,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
     story.append(PageBreak())
     story.append(Paragraph("3. ANÁLISES DO AUDITOR", secao_style))
-    story.append(Paragraph("Conceito: Análises realizadas pelo auditor durante a Matriz de Eficácia", normal_style))
+    story.append(Paragraph("CONCEITO: ANÁLISES REALIZADAS PELO AUDITOR DURANTE A MATRIZ DE EFICÁCIA", normal_style))
     story.append(Spacer(1, 10))
     
     if not analises_auditor_list:
