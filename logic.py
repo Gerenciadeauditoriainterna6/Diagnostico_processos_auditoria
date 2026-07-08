@@ -5553,7 +5553,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             if etapa['descricao']:
                 story.append(Paragraph(f"<b>DESCRIÇÃO DA ETAPA</b>: {etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}", normal_style))
                 story.append(Spacer(1, 5))
-      ffds      
+      
             if etapa['objetivo']:
                 story.append(Paragraph(f"<b>OBJETIVO DA ETAPA</b>: {etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}", normal_style))
                 story.append(Spacer(1, 5))
