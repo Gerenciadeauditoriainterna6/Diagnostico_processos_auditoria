@@ -210,7 +210,7 @@ class NovoDashboardKPIs:
             sql_processos = """
                 SELECT COUNT(*) 
                 FROM processos p
-                WHERE p.status = 'Ativo'
+                WHERE p.status = 'ATIVO'
             """
             params_processos = {}
             
@@ -225,6 +225,35 @@ class NovoDashboardKPIs:
                 params_processos['auditoria_id'] = auditoria_id
             
             processos_mapeados = conn.execute(text(sql_processos), params_processos).fetchone()[0] or 0
+            
+            # ==========================================
+            # 7. Total de Controles (com status preenchido)
+            # ==========================================
+            sql_controles = """
+                SELECT COUNT(DISTINCT ce.id)
+                FROM controles_etapa ce
+                JOIN riscos_etapa re ON ce.risco_id = re.id
+                JOIN etapas_processo ep ON re.etapa_id = ep.id
+                JOIN processos p ON ep.processo_id = p.id
+                JOIN auditorias a ON p.auditoria_id = a.id
+                WHERE ce.status_controle IS NOT NULL 
+                AND ce.status_controle != ''
+            """
+            params_controles = {}
+            
+            if ano is not None:
+                sql_controles += " AND a.ano = :ano"
+                params_controles['ano'] = ano
+            
+            if area_id is not None:
+                sql_controles += " AND p.id_area = :area_id"
+                params_controles['area_id'] = area_id
+            
+            if auditoria_id is not None:
+                sql_controles += " AND p.auditoria_id = :auditoria_id"
+                params_controles['auditoria_id'] = auditoria_id
+            
+            total_controles = conn.execute(text(sql_controles), params_controles).fetchone()[0] or 0
         
         return {
             "total_auditorias": total_auditorias,
@@ -232,8 +261,11 @@ class NovoDashboardKPIs:
             "auditorias_concluidas": concluidas,
             "auditorias_inconclusivas": inconclusivas,
             "riscos_identificados": riscos_identificados,
-            "processos_mapeados": processos_mapeados
+            "processos_mapeados": processos_mapeados,
+            "total_controles": total_controles
         }
+    
+            
 
     @staticmethod
     def gerar_situacao_auditorias(

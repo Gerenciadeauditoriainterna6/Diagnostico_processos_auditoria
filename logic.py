@@ -5403,7 +5403,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff0000>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
         
         story.append(Spacer(1, 8))
 
@@ -5456,7 +5456,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff0000>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
         
         story.append(Spacer(1, 8))
     
@@ -5471,16 +5471,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             'MATRIZ DE CONTROLES': '#17a2b8'
         }
         
-        # ⭐ DEFINIR ÍCONES POR TIPO DE MATRIZ
-        icones_por_titulo = {
-            'MATRIZ DE GOVERNANÇA': '🏛️',
-            'MATRIZ DE RISCOS': '⚠️',
-            'MATRIZ DE CONTROLES': '🛡️'
-        }
-        
         # ⭐ Buscar a cor e ícone correspondentes (case-insensitive)
         cor_titulo = '#184145'  # cor padrão
-        icone_titulo = '📋'      # ícone padrão
         
         for chave, cor in cores_por_titulo.items():
             if chave.upper() in titulo.upper():
