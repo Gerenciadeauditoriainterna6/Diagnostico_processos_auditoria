@@ -39,60 +39,6 @@
     </div>
 </div>
 
-<!-- ===== MATRIZ DE ACHADOS (usando os mesmos filtros) ===== -->
-<div class="form-section achados-section">
-    <div class="tabela-header">
-        <h3><i class="fas fa-comments"></i> Matriz de Achados</h3>
-        <span id="achados-auditoria-info" style="font-size: 13px; color: #666; font-weight: normal;">
-            Selecione uma auditoria para visualizar os achados
-        </span>
-    </div>
-
-    <!-- Área de achados - visível apenas quando auditoria selecionada -->
-    <div id="achados-area" style="display: none;">
-        <!-- Formulário de novo achado -->
-        <div class="achado-form">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label for="achado_texto"><i class="fas fa-pencil-alt"></i> Novo Achado:</label>
-                <textarea id="achado_texto" class="form-control" rows="3" placeholder="Digite seu achado sobre esta auditoria..."></textarea>
-            </div>
-
-            <div class="achado-actions">
-                <div class="anexo-wrapper">
-                    <label for="achado_anexo" class="btn-anexo">
-                        <i class="fas fa-paperclip"></i> Anexar arquivo
-                        <span style="font-size: 11px; color: #999; font-weight: normal;">(máx. 10MB)</span>
-                    </label>
-                    <input type="file" id="achado_anexo" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
-                    <span id="anexo-nome" class="anexo-nome"></span>
-                </div>
-                <button id="btn-enviar-achado" class="btn-primary">
-                    <i class="fas fa-paper-plane"></i> Registrar Achado
-                </button>
-            </div>
-        </div>
-
-        <!-- Lista de achados -->
-        <div id="lista-achados" style="margin-top: 20px;">
-            <div class="achados-loading" style="text-align: center; padding: 20px;">
-                <div class="dot-spinner">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando achados...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mensagem quando nenhuma auditoria selecionada -->
-    <div id="achados-placeholder">
-        <div class="alert-info" style="text-align: center; padding: 40px;">
-            <i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar e adicionar achados.
-        </div>
-    </div>
-</div>
-
 <!-- MODAL PARA ADICIONAR/EDITAR CONTROLE -->
 <div id="modal-controle" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
@@ -151,26 +97,26 @@
                     <label><i class="fas fa-calendar-alt"></i> Qual a frequência da ação de controle?</label>
                     <select id="controle_periodicidade" class="form-control">
                         <option value="">Selecione...</option>
-                        <option value="Diário">Diário</option>
-                        <option value="Semanal">Semanal</option>
-                        <option value="Mensal">Mensal</option>
-                        <option value="Bimestral">Bimestral</option>
-                        <option value="Trimestral">Trimestral</option>
-                        <option value="Semestral">Semestral</option>
-                        <option value="Por Evento">Por Evento</option>
+                        <option value="DIÁRIO">DIÁRIO</option>
+                        <option value="SEMANAL">SEMANAL</option>
+                        <option value="MENSAL">MENSAL</option>
+                        <option value="BIMESTRAL">BIMESTRAL</option>
+                        <option value="TRIMESTRAL">TRIMESTRAL</option>
+                        <option value="SEMESTRAL">SEMESTRAL</option>
+                        <option value="POR EVENTO">POR EVENTO</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-calendar-check"></i> Frequência da evidência</label>
                     <select id="controle_frequencia_evidencia" class="form-control">
                         <option value="">Selecione...</option>
-                        <option value="Diário">Diário</option>
-                        <option value="Semanal">Semanal</option>
-                        <option value="Mensal">Mensal</option>
-                        <option value="Bimestral">Bimestral</option>
-                        <option value="Trimestral">Trimestral</option>
-                        <option value="Semestral">Semestral</option>
-                        <option value="Por Evento">Por Evento</option>
+                        <option value="DIÁRIO">DIÁRIO</option>
+                        <option value="SEMANAL">SEMANAL</option>
+                        <option value="MENSAL">MENSAL</option>
+                        <option value="BIMESTRAL">BIMESTRAL</option>
+                        <option value="TRIMESTRAL">TRIMESTRAL</option>
+                        <option value="SEMESTRAL">SEMESTRAL</option>
+                        <option value="POR EVENTO">POR EVENTO</option>
                     </select>
                 </div>
             </div>
@@ -193,18 +139,18 @@
                     <label><i class="fas fa-play-circle"></i> Forma de Execução</label>
                     <select id="controle_forma_execucao" class="form-control">
                         <option value="">Selecione...</option>
-                        <option value="Manual">Manual</option>
-                        <option value="Automático">Automático</option>
-                        <option value="Semiautomático">Semiautomático</option>
+                        <option value="MANUAL">MANUAL</option>
+                        <option value="AUTOMÁTICO">AUTOMÁTICO</option>
+                        <option value="SEMIAUTOMÁTICO">SEMIAUTOMÁTICO</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-chart-line"></i> Natureza do Controle</label>
                     <select id="controle_natureza" class="form-control">
                         <option value="">Selecione...</option>
-                        <option value="Preventivo">Preventivo</option>
-                        <option value="Detectivo">Detectivo</option>
-                        <option value="Corretivo">Corretivo</option>
+                        <option value="PREVENTIVO">PREVENTIVO</option>
+                        <option value="DETECTIVO">DETECTIVO</option>
+                        <option value="CORRETIVO">CORRETIVO</option>
                     </select>
                 </div>
             </div>
@@ -220,8 +166,8 @@
                 <label><i class="fas fa-circle"></i> Status da Ação de Controle</label>
                 <select id="controle_status" class="form-control">
                     <option value="">Selecione...</option>
-                    <option value="Ativado">Ativo</option>
-                    <option value="Desativado">Desativado</option>
+                    <option value="ATIVADO">ATIVADO</option>
+                    <option value="DESATIVADO">DESATIVADO</option>
                 </select>
             </div>
 
@@ -933,14 +879,6 @@
         z-index: 100001;
     }
 
-    /* Achados da Matriz */
-    .achados-section .tabela-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
 
     .achados-section .tabela-header h3 {
         color: #184145;
@@ -1392,8 +1330,7 @@
                 </div>
             `;
 
-            // Limpar achados também
-            atualizarUI(null);
+
         });
     }
 
@@ -1401,13 +1338,6 @@
     if (filtroAuditoriaSelect) {
         filtroAuditoriaSelect.addEventListener('change', async () => {
             const auditoriaId = filtroAuditoriaSelect.value;
-
-            // Atualizar a Matriz de Achados com a auditoria selecionada
-            if (auditoriaId) {
-                atualizarUI(auditoriaId);
-            } else {
-                atualizarUI(null);
-            }
 
             if (!auditoriaId) {
                 etapasContainer.innerHTML = `
@@ -1610,7 +1540,7 @@
         }
     }
 
-    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA ======
+    // ====== FUNÇÃO PARA CARREGAR RISCOS DE UMA ETAPA (CORRIGIDO) ======
     async function carregarRiscosDaEtapa(etapaId) {
         console.log(`🔍 Buscando riscos da etapa ${etapaId}...`);
 
@@ -1655,6 +1585,10 @@
             for (const risco of data.riscos) {
                 const totalControles = mapaContagens[risco.id] || 0;
                 
+                // ⭐ Garantir que os valores estejam em maiúsculas
+                const impacto = (risco.impacto || 'MÉDIO').toUpperCase();
+                const probabilidade = (risco.probabilidade || 'MÉDIO').toUpperCase();
+                
                 let badgeClass = '';
                 let badgeIcon = '';
 
@@ -1678,10 +1612,14 @@
                     </span>
                 `;
 
+                // ⭐ Garantir que fator_risco e consequencia estejam em maiúsculas
+                const fatorRisco = (risco.fator_risco || '').toUpperCase();
+                const consequencia = (risco.consequencia || '').toUpperCase();
+
                 riscosHtml += `
                     <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}" data-risco-nome="${escapeHtml(risco.nome_risco)}" onclick="toggleRisco(this, event)" style="position: relative;">
                         <div class="risco-header">
-                             <div class="risco-info">
+                            <div class="risco-info">
                                 <span class="risco-icon">${badgeIcon}</span>
                                 <strong class="risco-nome">${limitarTexto(escapeHtml(risco.nome_risco), 60)}</strong>
                                 <span class="risco-score">Magnitude: ${risco.magnitude}</span>
@@ -1692,7 +1630,7 @@
                                     <i class="fas fa-chevron-down"></i> Controles
                                 </span>
                                 <button class="btn-add-controle" 
-                                    onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId}, '${escapeHtml(risco.fator_risco || '')}')" 
+                                    onclick="event.stopPropagation(); abrirModalControle(${risco.id}, '${escapeHtml(risco.nome_risco)}', ${etapaId}, '${escapeHtml(fatorRisco)}')" 
                                     title="Adicionar Controle">
                                     <i class="fas fa-plus"></i>
                                 </button>
@@ -1701,26 +1639,26 @@
                         <div class="risco-detalhes">
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Nome do Risco:</span>
-                                <span class="detalhe-valor">${risco.nome_risco}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.nome_risco)}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Impacto:</span>
-                                <span class="detalhe-valor">${risco.impacto || 'Médio'}</span>
+                                <span class="detalhe-valor">${impacto}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Probabilidade:</span>
-                                <span class="detalhe-valor">${risco.probabilidade || 'Médio'}</span>
+                                <span class="detalhe-valor">${probabilidade}</span>
                             </div>
-                            ${risco.fator_risco ? `
+                            ${fatorRisco ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Fator de Risco:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.fator_risco)}</span>
+                                <span class="detalhe-valor">${escapeHtml(fatorRisco)}</span>
                             </div>
                             ` : ''}
-                            ${risco.consequencia ? `
+                            ${consequencia ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Consequência:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.consequencia)}</span>
+                                <span class="detalhe-valor">${escapeHtml(consequencia)}</span>
                             </div>
                             ` : ''}
                             
@@ -1749,7 +1687,7 @@
         }
     }
 
-    // ====== FUNÇÃO PARA CARREGAR CONTROLES DE UM RISCO ======
+    // ====== FUNÇÃO PARA CARREGAR CONTROLES DE UM RISCO (CORRIGIDO) ======
     async function carregarControlesDoRisco(riscoId, etapaId) {
         const container = document.getElementById(`controles-risco-${riscoId}`);
         if (!container) return;
@@ -1770,82 +1708,97 @@
             let controlesHtml = '';
 
             for (const controle of data.controles) {
+                // ⭐ Garantir que todos os campos de texto estejam em maiúsculas
+                const nomeControle = (controle.nome_controle || '').toUpperCase();
+                const causaMotivo = (controle.causa_motivo || '').toUpperCase();
+                const comoExecutado = (controle.como_executado || '').toUpperCase();
+                const objetivoControle = (controle.objetivo_controle || '').toUpperCase();
+                const periodicidade = (controle.periodicidade_execucao || '').toUpperCase();
+                const evidencia = (controle.evidencia_realizacao || '').toUpperCase();
+                const localEvidencia = (controle.local_evidencia || '').toUpperCase();
+                const formaExecucao = (controle.forma_execucao || '').toUpperCase();
+                const natureza = (controle.natureza || '').toUpperCase();
+                const lgpd = (controle.lgpd || '').toUpperCase();
+                const statusControle = (controle.status_controle || '').toUpperCase();
+                const frequenciaEvidencia = (controle.frequencia_evidencia || '').toUpperCase();
+                const responsaveis = (controle.responsaveis_tratamento || '').toUpperCase();
+
                 controlesHtml += `
                     <div class="controle-card">
                         <div class="controle-header">
                             <div class="controle-info">
                                 <i class="fas fa-shield-alt"></i>
-                                <strong>${escapeHtml(controle.nome_controle)}</strong>
+                                <strong>${escapeHtml(nomeControle)}</strong>
                             </div>
                             <div class="controle-actions">
                                 <button class="btn-edit-icon" onclick="event.stopPropagation(); editarControle(${controle.id}, ${riscoId})" title="Editar Controle">
                                     <i class="fas fa-pencil-alt"></i>
                                 </button>
-                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirControle(${controle.id}, '${escapeHtml(controle.nome_controle)}', ${riscoId}, ${etapaId})" title="Excluir Controle">
+                                <button class="btn-delete-icon" onclick="event.stopPropagation(); excluirControle(${controle.id}, '${escapeHtml(nomeControle)}', ${riscoId}, ${etapaId})" title="Excluir Controle">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="controle-detalhes">
-                            ${controle.causa_motivo ? `
+                            ${causaMotivo ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Fator de Risco:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.causa_motivo)}</span>
+                                <span class="detalhe-valor">${escapeHtml(causaMotivo)}</span>
                             </div>` : ''}
-                            ${controle.como_executado ? `
+                            ${comoExecutado ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Como é executado:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.como_executado)}</span>
+                                <span class="detalhe-valor">${escapeHtml(comoExecutado)}</span>
                             </div>` : ''}
-                            ${controle.objetivo_controle ? `
+                            ${objetivoControle ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Objetivo:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.objetivo_controle)}</span>
+                                <span class="detalhe-valor">${escapeHtml(objetivoControle)}</span>
                             </div>` : ''}
-                            ${controle.periodicidade_execucao ? `
+                            ${periodicidade ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Frequência da execução:</span>
-                                <span class="detalhe-valor">${controle.periodicidade_execucao}</span>
+                                <span class="detalhe-valor">${periodicidade}</span>
                             </div>` : ''}
-                            ${controle.evidencia_realizacao ? `
+                            ${evidencia ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Evidência:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.evidencia_realizacao)}</span>
+                                <span class="detalhe-valor">${escapeHtml(evidencia)}</span>
                             </div>` : ''}
-                            ${controle.local_evidencia ? `
+                            ${localEvidencia ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Local da Evidência:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.local_evidencia)}</span>
+                                <span class="detalhe-valor">${escapeHtml(localEvidencia)}</span>
                             </div>` : ''}
-                            ${controle.forma_execucao ? `
+                            ${formaExecucao ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Forma de Execução:</span>
-                                <span class="detalhe-valor">${controle.forma_execucao}</span>
+                                <span class="detalhe-valor">${formaExecucao}</span>
                             </div>` : ''}
-                            ${controle.natureza ? `
+                            ${natureza ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Natureza:</span>
-                                <span class="detalhe-valor">${controle.natureza}</span>
+                                <span class="detalhe-valor">${natureza}</span>
                             </div>` : ''}
-                            ${controle.lgpd ? `
+                            ${lgpd ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">LGPD:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.lgpd)}</span>
+                                <span class="detalhe-valor">${escapeHtml(lgpd)}</span>
                             </div>` : ''}
-                            ${controle.status_controle ? `
+                            ${statusControle ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Status:</span>
-                                <span class="detalhe-valor">${controle.status_controle}</span>
+                                <span class="detalhe-valor">${statusControle}</span>
                             </div>` : ''}
-                            ${controle.frequencia_evidencia ? `
+                            ${frequenciaEvidencia ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Frequência da Evidência:</span>
-                                <span class="detalhe-valor">${controle.frequencia_evidencia}</span>
+                                <span class="detalhe-valor">${frequenciaEvidencia}</span>
                             </div>` : ''}
-                            ${controle.responsaveis_tratamento ? `
+                            ${responsaveis ? `
                             <div class="controle-detalhe">
                                 <span class="detalhe-label">Responsável:</span>
-                                <span class="detalhe-valor">${escapeHtml(controle.responsaveis_tratamento)}</span>
+                                <span class="detalhe-valor">${escapeHtml(responsaveis)}</span>
                             </div>` : ''}
                         </div>
                     </div>
@@ -1887,129 +1840,10 @@
         }
     }
 
-    // ====== FUNÇÕES DO MODAL DE CONTROLE ======
-    function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
-        etapaIdAtualControle = etapaId;
-        riscoIdAtual = riscoId;
-        controleIdEditando = null;
-        
-        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome}`);
-        
-        const modalTitle = document.getElementById('modal-controle-title');
-        if (modalTitle) {
-            modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Novo Controle - ${riscoNome}`;
-        }
-        
-        limparFormularioControle();
+    
 
-        if (fatorRisco) {
-            document.getElementById('controle_causa_motivo').value = fatorRisco;
-        }
-        
-        const modal = document.getElementById('modal-controle');
-        if (modal) {
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
-    }
+    
 
-    function limparFormularioControle() {
-        document.getElementById('controle_id').value = '';
-        document.getElementById('controle_nome').value = '';
-        document.getElementById('controle_como_executado').value = '';
-        document.getElementById('controle_objetivo').value = '';
-        document.getElementById('controle_evidencia').value = '';
-        document.getElementById('controle_local_evidencia').value = '';
-        document.getElementById('controle_lgpd').value = '';
-        document.getElementById('controle_responsaveis').value = '';
-        document.getElementById('controle_causa_motivo').value = '';
-        document.getElementById('controle_periodicidade').value = '';
-        document.getElementById('controle_natureza').value = '';
-        document.getElementById('controle_forma_execucao').value = '';
-        document.getElementById('controle_status').value = '';
-        document.getElementById('controle_frequencia_evidencia').value = '';
-        controleIdEditando = null;
-    }
-
-    function fecharModalControle() {
-        const modal = document.getElementById('modal-controle');
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    async function salvarControle() {
-        console.log('💾 Iniciando salvamento do controle...');
-        
-        const nomeControle = document.getElementById('controle_nome').value.trim();
-        if (!nomeControle) {
-            mostrarToast('❌ O nome do controle é obrigatório!', 'error');
-            return;
-        }
-        
-        const dados = {
-            id: controleIdEditando,
-            risco_id: riscoIdAtual,
-            nome_controle: nomeControle,
-            causa_motivo: document.getElementById('controle_causa_motivo').value,
-            como_executado: document.getElementById('controle_como_executado').value,
-            objetivo_controle: document.getElementById('controle_objetivo').value,
-            periodicidade_execucao: document.getElementById('controle_periodicidade').value,
-            evidencia_realizacao: document.getElementById('controle_evidencia').value,
-            local_evidencia: document.getElementById('controle_local_evidencia').value,
-            forma_execucao: document.getElementById('controle_forma_execucao').value,
-            natureza: document.getElementById('controle_natureza').value,
-            lgpd: document.getElementById('controle_lgpd').value,
-            status_controle: document.getElementById('controle_status').value,
-            frequencia_evidencia: document.getElementById('controle_frequencia_evidencia').value,
-            responsaveis_tratamento: document.getElementById('controle_responsaveis').value,
-            auditoria_id: filtroAuditoriaSelect.value || null
-        };
-        
-        try {
-            const btnSalvar = document.getElementById('btn-salvar-modal-controle');
-            const textoOriginal = btnSalvar.innerHTML;
-            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-            btnSalvar.disabled = true;
-            
-            const response = await fetch('/api/controle-etapa/salvar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dados)
-            });
-            
-            const resultado = await response.json();
-            
-            if (resultado.success) {
-                mostrarToast('✅ Controle salvo com sucesso!', 'success');
-                fecharModalControle();
-                
-                await carregarControlesDoRisco(riscoIdAtual, etapaIdAtualControle);
-                await atualizarBadgeControles(riscoIdAtual);
-                
-                if (etapaIdAtualControle) {
-                    await atualizarBadgeEtapaControles(etapaIdAtualControle);
-                }
-                
-            } else {
-                mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
-            }
-            
-            btnSalvar.innerHTML = textoOriginal;
-            btnSalvar.disabled = false;
-            
-        } catch (error) {
-            console.error('❌ Erro na requisição:', error);
-            mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
-            
-            const btnSalvar = document.getElementById('btn-salvar-modal-controle');
-            if (btnSalvar) {
-                btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Controle';
-                btnSalvar.disabled = false;
-            }
-        }
-    }
 
     async function excluirControle(controleId, nomeControle, riscoId, etapaId) {
         if (!confirm(`Tem certeza que deseja excluir o controle "${nomeControle}"?`)) return;
@@ -2038,54 +1872,7 @@
         }
     }
 
-    async function editarControle(controleId, riscoId) {
-        try {
-            const response = await fetch(`/api/controle-etapa/${controleId}`);
-            const data = await response.json();
-            
-            if (!data.success) {
-                mostrarToast('❌ Erro ao carregar dados do controle', 'error');
-                return;
-            }
-            
-            const controle = data.controle;
-            
-            controleIdEditando = controleId;
-            riscoIdAtual = riscoId;
-            
-            document.getElementById('controle_nome').value = controle.nome_controle || '';
-            document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
-            document.getElementById('controle_como_executado').value = controle.como_executado || '';
-            document.getElementById('controle_objetivo').value = controle.objetivo_controle || '';
-            document.getElementById('controle_periodicidade').value = controle.periodicidade_execucao || '';
-            document.getElementById('controle_evidencia').value = controle.evidencia_realizacao || '';
-            document.getElementById('controle_local_evidencia').value = controle.local_evidencia || '';
-            document.getElementById('controle_forma_execucao').value = controle.forma_execucao || '';
-            document.getElementById('controle_natureza').value = controle.natureza || '';
-            document.getElementById('controle_lgpd').value = controle.lgpd || '';
-            document.getElementById('controle_status').value = controle.status_controle || '';
-            document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
-            document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
-            
-            const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
-            const riscoNome = riscoCard ? riscoCard.getAttribute('data-risco-nome') : 'Controle';
-            
-            const modalTitle = document.getElementById('modal-controle-title');
-            if (modalTitle) {
-                modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Editar Controle - ${riscoNome}`;
-            }
-            
-            const modal = document.getElementById('modal-controle');
-            if (modal) {
-                modal.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-            }
-            
-        } catch (error) {
-            console.error('❌ Erro ao carregar controle:', error);
-            mostrarToast('❌ Erro ao carregar dados do controle', 'error');
-        }
-    }
+    
 
     // ====== FUNÇÕES PARA ATUALIZAR BADGES ======
     async function atualizarBadgeControles(riscoId) {
@@ -2150,493 +1937,352 @@
         } catch (error) {
             console.error('Erro ao atualizar badge da etapa:', error);
         }
-    }
+    }    
 
-    // ====== FUNÇÕES DA MATRIZ DE ACHADOS ======
+    // ============================================================
+    // INICIALIZAÇÃO DA PÁGINA
+    // ============================================================
 
-    // CARREGAR ACHADOS
-    async function carregarAchados(auditoriaId) {
-        const listaContainer = document.getElementById('lista-achados');
-        if (!listaContainer) return;
-
-        achadoAuditoriaAtual = auditoriaId;
-
-        listaContainer.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <div class="dot-spinner">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando achados...</p>
-            </div>
-        `;
-
-        try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/achados`);
-            const data = await response.json();
-
-            if (data.success && data.achados && data.achados.length > 0) {
-                let html = '';
-
-                for (const achado of data.achados) {
-                    const dataObj = new Date(achado.data_criacao);
-                    const options = {
-                        timeZone: 'America/Sao_Paulo',
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    };
-                    const dataFormatada = dataObj.toLocaleString('pt-BR', options);
-
-                    const iniciais = achado.usuario_nome
-                        ? achado.usuario_nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
-                        : '?';
-
-                    html += `
-                        <div class="achado-item" id="achado-${achado.id}">
-                            <div class="achado-header">
-                                <div class="achado-autor">
-                                    <div class="avatar">${escapeHtml(iniciais)}</div>
-                                    <span class="nome">${escapeHtml(achado.usuario_nome || 'Usuário')}</span>
-                                    <span class="data-hora">${dataFormatada}</span>
-                                </div>
-                            </div>
-                            <div class="achado-texto">${escapeHtml(achado.texto)}</div>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Página de Controles de Etapas carregada');
+        
+        // ====== CONFIGURAR MODAL DE CONTROLE ======
+        setupModalControle();
+        
+        // ====== CONFIGURAR FILTROS ======
+        if (filtroAreaSelect) {
+            // Se já tiver um valor selecionado, carregar auditorias
+            if (filtroAreaSelect.value) {
+                carregarAuditorias(filtroAreaSelect.value);
+            }
+        }
+        
+        // ====== CONFIGURAR EVENTO DE MUDANÇA DA ÁREA ======
+        if (filtroAreaSelect) {
+            filtroAreaSelect.addEventListener('change', function() {
+                const areaId = this.value;
+                carregarAuditorias(areaId);
+                
+                etapasContainer.innerHTML = `
+                    <div class="alert-info" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar as etapas.
+                    </div>
+                `;
+            });
+        }
+        
+        // ====== CONFIGURAR EVENTO DE MUDANÇA DA AUDITORIA ======
+        if (filtroAuditoriaSelect) {
+            filtroAuditoriaSelect.addEventListener('change', async function() {
+                const auditoriaId = this.value;
+                
+                if (!auditoriaId) {
+                    etapasContainer.innerHTML = `
+                        <div class="alert-info" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar as etapas.
+                        </div>
                     `;
-
-                    if (achado.anexos && achado.anexos.length > 0) {
-                        html += `<div class="achado-anexos">`;
-                        for (let idx = 0; idx < achado.anexos.length; idx++) {
-                            const anexo = achado.anexos[idx];
-                            const icone = getIconeArquivo(anexo.nome);
-                            html += `
-                                <span class="anexo-badge" onclick="baixarAnexo(${achado.id}, ${idx})">
-                                    <i class="fas ${icone}"></i>
-                                    ${escapeHtml(anexo.nome)}
-                                    <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
-                                </span>
-                            `;
-                        }
-                        html += `</div>`;
-                    }
-
-                    if (achado.pode_editar) {
-                        html += `
-                            <div class="achado-acoes">
-                                <button class="btn-outline" onclick="abrirEdicaoAchado(${achado.id})">
-                                    <i class="fas fa-pencil-alt"></i> Editar
-                                </button>
-                                <button class="btn-danger-outline" onclick="excluirAchado(${achado.id})">
-                                    <i class="fas fa-trash"></i> Excluir
-                                </button>
+                    return;
+                }
+                
+                etapasContainer.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px;">
+                        <div class="dot-spinner">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        <p style="margin-top: 25px; color: #666; font-size: 14px;">Verificando permissão...</p>
+                    </div>
+                `;
+                
+                try {
+                    const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                    const data = await response.json();
+                    
+                    if (data.autorizado) {
+                        console.log('✅ Usuário autorizado:', data.usuario);
+                        await carregarEtapas(auditoriaId);
+                    } else {
+                        console.log('❌ Usuário NÃO autorizado:', data.usuario);
+                        etapasContainer.innerHTML = `
+                            <div class="alert-error" style="text-align: center; padding: 40px;">
+                                <i class="fas fa-lock"></i> Você não tem permissão para visualizar etapas dos processos desta auditoria.
                             </div>
                         `;
                     }
-
-                    html += `</div>`;
+                } catch (error) {
+                    console.error('Erro ao verificar permissão:', error);
+                    etapasContainer.innerHTML = `
+                        <div class="alert-error" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-triangle"></i> Erro ao verificar permissão. Tente novamente.
+                        </div>
+                    `;
                 }
+            });
+        }
+        
+        console.log('✅ Todos os eventos configurados!');
+    });
 
-                listaContainer.innerHTML = html;
-            } else {
-                listaContainer.innerHTML = `
-                    <div class="achado-vazio">
-                        <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
-                        Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
-                    </div>
-                `;
-            }
-        } catch (error) {
-            console.error('Erro ao carregar achados:', error);
-            listaContainer.innerHTML = `
-                <div class="alert-error" style="text-align: center; padding: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar achados. Tente novamente.
-                </div>
-            `;
+    // ============================================================
+    // FUNÇÃO PARA FECHAR MODAL DE CONTROLE
+    // ============================================================
+
+    function fecharModalControle() {
+        const modal = document.getElementById('modal-controle');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
     }
 
-    // ENVIAR ACHADO
-    async function enviarAchado() {
-        const texto = document.getElementById('achado_texto');
-        const btnEnviar = document.getElementById('btn-enviar-achado');
+    // ============================================================
+    // FUNÇÃO PARA HANDLE DA TECLA ESC
+    // ============================================================
 
-        if (!texto || !btnEnviar) return;
-
-        const textoValue = texto.value.trim();
-        if (!textoValue) {
-            mostrarToast('⚠️ Digite um achado antes de enviar.', 'warning');
-            texto.focus();
-            return;
-        }
-
-        if (!achadoAuditoriaAtual) {
-            mostrarToast('⚠️ Selecione uma auditoria para registrar achados.', 'warning');
-            return;
-        }
-
-        btnEnviar.disabled = true;
-        btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-
-        try {
-            const anexos = [];
-            const inputFile = document.getElementById('achado_anexo');
-            const files = inputFile.files;
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
-                    btnEnviar.disabled = false;
-                    btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Registrar Achado';
-                    return;
-                }
-
-                const base64 = await converterParaBase64(file);
-                anexos.push({
-                    nome: file.name,
-                    tipo: file.type,
-                    tamanho: file.size,
-                    base64: base64
-                });
+    function handleEscKey(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modal-controle');
+            if (modal && modal.style.display === 'flex') {
+                fecharModalControle();
             }
+        }
+    }
 
-            const response = await fetch(`/api/auditoria/${achadoAuditoriaAtual}/achados`, {
+    // ============================================================
+    // CONFIGURAR MODAL DE CONTROLE (CORRIGIDO)
+    // ============================================================
+
+    function setupModalControle() {
+        const modal = document.getElementById('modal-controle');
+        const btnFechar = document.getElementById('btn-fechar-modal-controle');
+        const btnCancelar = document.getElementById('btn-cancelar-modal-controle');
+        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+        
+        console.log('🔧 Configurando modal de controle...');
+        
+        // 1. Botão X (fechar) - Usando onclick diretamente
+        if (btnFechar) {
+            btnFechar.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('❌ Fechando modal pelo X');
+                fecharModalControle();
+            };
+        }
+        
+        // 2. Botão Cancelar - Usando onclick diretamente
+        if (btnCancelar) {
+            btnCancelar.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('❌ Fechando modal pelo Cancelar');
+                fecharModalControle();
+            };
+        }
+        
+        
+        // 4. Tecla ESC (global) - Remover listener antigo e adicionar novo
+        document.removeEventListener('keydown', handleEscKey);
+        document.addEventListener('keydown', handleEscKey);
+        
+        // 5. Botão Salvar - Usando onclick diretamente
+        if (btnSalvar) {
+            btnSalvar.onclick = function(e) {
+                e.preventDefault();
+                console.log('💾 Salvando controle...');
+                salvarControle();
+            };
+        }
+        
+        console.log('✅ Modal de controle configurado!');
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA ABRIR MODAL DE CONTROLE
+    // ============================================================
+
+    function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
+        etapaIdAtualControle = etapaId;
+        riscoIdAtual = riscoId;
+        controleIdEditando = null;
+        
+        console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome}`);
+        
+        const modalTitle = document.getElementById('modal-controle-title');
+        if (modalTitle) {
+            modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Novo Controle - ${riscoNome}`;
+        }
+        
+        limparFormularioControle();
+        
+        if (fatorRisco) {
+            document.getElementById('controle_causa_motivo').value = fatorRisco;
+        }
+        
+        const modal = document.getElementById('modal-controle');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA EDITAR CONTROLE (CORRIGIDA)
+    // ============================================================
+
+    async function editarControle(controleId, riscoId) {
+        try {
+            const response = await fetch(`/api/controle-etapa/${controleId}`);
+            const data = await response.json();
+            
+            if (!data.success) {
+                mostrarToast('❌ Erro ao carregar dados do controle', 'error');
+                return;
+            }
+            
+            const controle = data.controle;
+            
+            controleIdEditando = controleId;
+            riscoIdAtual = riscoId;
+            
+            document.getElementById('controle_nome').value = controle.nome_controle || '';
+            document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
+            document.getElementById('controle_como_executado').value = controle.como_executado || '';
+            document.getElementById('controle_objetivo').value = controle.objetivo_controle || '';
+            document.getElementById('controle_periodicidade').value = controle.periodicidade_execucao || '';
+            document.getElementById('controle_evidencia').value = controle.evidencia_realizacao || '';
+            document.getElementById('controle_local_evidencia').value = controle.local_evidencia || '';
+            document.getElementById('controle_forma_execucao').value = controle.forma_execucao || '';
+            document.getElementById('controle_natureza').value = controle.natureza || '';
+            document.getElementById('controle_lgpd').value = controle.lgpd || '';
+            document.getElementById('controle_status').value = controle.status_controle || '';
+            document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
+            document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
+            
+            const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
+            const riscoNome = riscoCard ? riscoCard.getAttribute('data-risco-nome') : 'Controle';
+            
+            const modalTitle = document.getElementById('modal-controle-title');
+            if (modalTitle) {
+                modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Editar Controle - ${riscoNome}`;
+            }
+            
+            const modal = document.getElementById('modal-controle');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar controle:', error);
+            mostrarToast('❌ Erro ao carregar dados do controle', 'error');
+        }
+    }
+
+    // ============================================================
+    // LIMPAR FORMULÁRIO DE CONTROLE
+    // ============================================================
+
+    function limparFormularioControle() {
+        document.getElementById('controle_id').value = '';
+        document.getElementById('controle_nome').value = '';
+        document.getElementById('controle_como_executado').value = '';
+        document.getElementById('controle_objetivo').value = '';
+        document.getElementById('controle_evidencia').value = '';
+        document.getElementById('controle_local_evidencia').value = '';
+        document.getElementById('controle_lgpd').value = '';
+        document.getElementById('controle_responsaveis').value = '';
+        document.getElementById('controle_causa_motivo').value = '';
+        document.getElementById('controle_periodicidade').value = '';
+        document.getElementById('controle_natureza').value = '';
+        document.getElementById('controle_forma_execucao').value = '';
+        document.getElementById('controle_status').value = '';
+        document.getElementById('controle_frequencia_evidencia').value = '';
+        controleIdEditando = null;
+    }
+
+    // ============================================================
+    // FUNÇÃO PARA SALVAR CONTROLE (CORRIGIDA)
+    // ============================================================
+
+    async function salvarControle() {
+        console.log('💾 Iniciando salvamento do controle...');
+        
+        const nomeControle = document.getElementById('controle_nome').value.trim().toUpperCase();
+        if (!nomeControle) {
+            mostrarToast('❌ O nome do controle é obrigatório!', 'error');
+            return;
+        }
+        
+        const dados = {
+            id: controleIdEditando,
+            risco_id: riscoIdAtual,
+            nome_controle: nomeControle,
+            causa_motivo: document.getElementById('controle_causa_motivo').value.trim().toUpperCase(),
+            como_executado: document.getElementById('controle_como_executado').value.trim().toUpperCase(),
+            objetivo_controle: document.getElementById('controle_objetivo').value.trim().toUpperCase(),
+            periodicidade_execucao: document.getElementById('controle_periodicidade').value.toUpperCase(),
+            evidencia_realizacao: document.getElementById('controle_evidencia').value.trim().toUpperCase(),
+            local_evidencia: document.getElementById('controle_local_evidencia').value.trim().toUpperCase(),
+            forma_execucao: document.getElementById('controle_forma_execucao').value.toUpperCase(),
+            natureza: document.getElementById('controle_natureza').value.toUpperCase(),
+            lgpd: document.getElementById('controle_lgpd').value.trim().toUpperCase(),
+            status_controle: document.getElementById('controle_status').value.toUpperCase(),
+            frequencia_evidencia: document.getElementById('controle_frequencia_evidencia').value.toUpperCase(),
+            responsaveis_tratamento: document.getElementById('controle_responsaveis').value.trim().toUpperCase(),
+            auditoria_id: filtroAuditoriaSelect.value || null
+        };
+        
+        try {
+            const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+            const textoOriginal = btnSalvar.innerHTML;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSalvar.disabled = true;
+            
+            const response = await fetch('/api/controle-etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    texto: textoValue,
-                    anexos: anexos
-                })
+                body: JSON.stringify(dados)
             });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Achado registrado com sucesso!', 'success');
-
-                texto.value = '';
-                document.getElementById('achado_anexo').value = '';
-                document.getElementById('anexo-nome').textContent = '';
-
-                await carregarAchados(achadoAuditoriaAtual);
-            } else {
-                mostrarToast('❌ Erro ao registrar achado: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao enviar achado:', error);
-            mostrarToast('❌ Erro ao enviar achado. Tente novamente.', 'error');
-        } finally {
-            btnEnviar.disabled = false;
-            btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Registrar Achado';
-        }
-    }
-
-    // BAIXAR ANEXO
-    async function baixarAnexo(achadoId, anexoIndex) {
-        try {
-            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
-            const data = await response.json();
-
-            if (data.success && data.url) {
-                window.open(data.url, '_blank');
-            } else {
-                mostrarToast('❌ Erro ao baixar anexo: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao baixar anexo:', error);
-            mostrarToast('❌ Erro ao baixar anexo.', 'error');
-        }
-    }
-
-    // EXCLUIR ACHADO
-    async function excluirAchado(achadoId) {
-        if (!confirm('Tem certeza que deseja excluir este achado?')) return;
-
-        try {
-            const response = await fetch(`/api/achado/${achadoId}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Achado excluído.', 'success');
-
-                const elemento = document.getElementById(`achado-${achadoId}`);
-                if (elemento) {
-                    elemento.style.transition = 'all 0.3s';
-                    elemento.style.opacity = '0';
-                    elemento.style.transform = 'translateX(-20px)';
-                    setTimeout(() => {
-                        elemento.remove();
-
-                        const lista = document.getElementById('lista-achados');
-                        if (lista && lista.children.length === 0) {
-                            lista.innerHTML = `
-                                <div class="achado-vazio">
-                                    <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
-                                    Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
-                                </div>
-                            `;
-                        }
-                    }, 300);
+            
+            const resultado = await response.json();
+            
+            if (resultado.success) {
+                mostrarToast('✅ Controle salvo com sucesso!', 'success');
+                fecharModalControle();
+                
+                await carregarControlesDoRisco(riscoIdAtual, etapaIdAtualControle);
+                await atualizarBadgeControles(riscoIdAtual);
+                
+                if (etapaIdAtualControle) {
+                    await atualizarBadgeEtapaControles(etapaIdAtualControle);
                 }
+                
             } else {
-                mostrarToast('❌ Erro ao excluir achado: ' + (data.error || 'Tente novamente'), 'error');
+                mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
             }
+            
+            btnSalvar.innerHTML = textoOriginal;
+            btnSalvar.disabled = false;
+            
         } catch (error) {
-            console.error('Erro ao excluir achado:', error);
-            mostrarToast('❌ Erro ao excluir achado.', 'error');
-        }
-    }
-
-    // ABRIR EDIÇÃO DE ACHADO
-    function abrirEdicaoAchado(achadoId) {
-        const elemento = document.getElementById(`achado-${achadoId}`);
-        if (!elemento) return;
-
-        const textoElemento = elemento.querySelector('.achado-texto');
-        const textoAtual = textoElemento ? textoElemento.textContent : '';
-
-        const anexosExistentes = [];
-        const anexosContainer = elemento.querySelector('.achado-anexos');
-        if (anexosContainer) {
-            const badges = anexosContainer.querySelectorAll('.anexo-badge');
-            badges.forEach(badge => {
-                const texto = badge.textContent.replace(/\(\d+\.\d+ [KM]B\)/, '').trim();
-                anexosExistentes.push({ nome: texto });
-            });
-        }
-
-        let anexosHtml = '';
-        if (anexosExistentes.length > 0) {
-            anexosHtml = `<div class="achado-anexos" style="margin-top: 10px;">`;
-            for (let idx = 0; idx < anexosExistentes.length; idx++) {
-                const anexo = anexosExistentes[idx];
-                const icone = getIconeArquivo(anexo.nome);
-                anexosHtml += `
-                    <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
-                        <i class="fas ${icone}"></i>
-                        ${escapeHtml(anexo.nome)}
-                        <button onclick="removerAnexo(${achadoId}, ${idx})" 
-                                style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </span>
-                `;
-            }
-            anexosHtml += `</div>`;
-        }
-
-        const headerHtml = elemento.querySelector('.achado-header').outerHTML;
-
-        elemento.innerHTML = `
-            ${headerHtml}
-            <div class="achado-form" style="margin-top: 10px;">
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="editar_achado_texto_${achadoId}"><i class="fas fa-pencil-alt"></i> Editar Achado:</label>
-                    <textarea id="editar_achado_texto_${achadoId}" class="form-control" rows="3">${escapeHtml(textoAtual)}</textarea>
-                </div>
-
-                ${anexosHtml}
-
-                <div class="achado-actions" style="margin-top: 10px;">
-                    <div class="anexo-wrapper">
-                        <label for="editar_achado_anexo_${achadoId}" class="btn-anexo">
-                            <i class="fas fa-paperclip"></i> Adicionar anexo
-                        </label>
-                        <input type="file" id="editar_achado_anexo_${achadoId}" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
-                        <span id="editar_anexo-nome_${achadoId}" class="anexo-nome"></span>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-outline" onclick="cancelarEdicaoAchado(${achadoId})">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                        <button class="btn-primary" onclick="salvarEdicaoAchado(${achadoId})">
-                            <i class="fas fa-save"></i> Salvar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
-        if (inputAnexo) {
-            inputAnexo.addEventListener('change', function(e) {
-                const nomeSpan = document.getElementById(`editar_anexo-nome_${achadoId}`);
-                const files = e.target.files;
-                if (files.length > 0) {
-                    const nomes = Array.from(files).map(f => f.name);
-                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
-                } else {
-                    nomeSpan.textContent = '';
-                }
-            });
-        }
-    }
-
-    function cancelarEdicaoAchado(achadoId) {
-        carregarAchados(achadoAuditoriaAtual);
-    }
-
-    async function salvarEdicaoAchado(achadoId) {
-        const textarea = document.getElementById(`editar_achado_texto_${achadoId}`);
-        if (!textarea) return;
-
-        const texto = textarea.value.trim();
-        if (!texto) {
-            mostrarToast('⚠️ O texto do achado não pode ficar vazio.', 'warning');
-            return;
-        }
-
-        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
-        const anexos = [];
-
-        if (inputAnexo) {
-            const files = inputAnexo.files;
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
-                    return;
-                }
-                const base64 = await converterParaBase64(file);
-                anexos.push({
-                    nome: file.name,
-                    tipo: file.type,
-                    tamanho: file.size,
-                    base64: base64
-                });
+            console.error('❌ Erro na requisição:', error);
+            mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
+            
+            const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+            if (btnSalvar) {
+                btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Controle';
+                btnSalvar.disabled = false;
             }
         }
-
-        try {
-            const response = await fetch(`/api/achado/${achadoId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    texto: texto,
-                    anexos: anexos
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Achado atualizado com sucesso!', 'success');
-                await carregarAchados(achadoAuditoriaAtual);
-            } else {
-                mostrarToast('❌ Erro ao atualizar achado: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao salvar edição:', error);
-            mostrarToast('❌ Erro ao salvar edição.', 'error');
-        }
     }
 
-    // REMOVER ANEXO
-    async function removerAnexo(achadoId, anexoIndex) {
-        if (!confirm('Tem certeza que deseja remover este anexo?')) return;
+    
 
-        try {
-            const response = await fetch(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
-                method: 'DELETE'
-            });
 
-            const data = await response.json();
 
-            if (data.success) {
-                mostrarToast('✅ Anexo removido com sucesso!', 'success');
-                await carregarAchados(achadoAuditoriaAtual);
-            } else {
-                mostrarToast('❌ Erro ao remover anexo: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao remover anexo:', error);
-            mostrarToast('❌ Erro ao remover anexo.', 'error');
-        }
-    }
-
-    // ATUALIZAR UI DA MATRIZ DE ACHADOS
-    function atualizarUI(auditoriaId) {
-        const area = document.getElementById('achados-area');
-        const placeholder = document.getElementById('achados-placeholder');
-        const info = document.getElementById('achados-auditoria-info');
-
-        if (auditoriaId) {
-            area.style.display = 'block';
-            placeholder.style.display = 'none';
-            info.textContent = 'Achados da auditoria selecionada';
-            carregarAchados(auditoriaId);
-        } else {
-            area.style.display = 'none';
-            placeholder.style.display = 'block';
-            info.textContent = 'Selecione uma auditoria para visualizar os achados';
-            const lista = document.getElementById('lista-achados');
-            if (lista) lista.innerHTML = '';
-        }
-    }
-
-    // ====== CONFIGURAR EVENTOS DO MODAL DE CONTROLE ======
-    function setupModalControle() {
-        const btnFechar = document.getElementById('btn-fechar-modal-controle');
-        if (btnFechar) {
-            btnFechar.addEventListener('click', fecharModalControle);
-        }
-
-        const btnCancelar = document.getElementById('btn-cancelar-modal-controle');
-        if (btnCancelar) {
-            btnCancelar.addEventListener('click', fecharModalControle);
-        }
-
-        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
-        if (btnSalvar) {
-            btnSalvar.addEventListener('click', salvarControle);
-        }
-    }
-
-    // ====== EVENTOS DA MATRIZ DE ACHADOS ======
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Página de Controles carregada');
-
-        // Evento: anexo - mostrar nome do arquivo
-        const inputAnexo = document.getElementById('achado_anexo');
-        if (inputAnexo) {
-            inputAnexo.addEventListener('change', function(e) {
-                const nomeSpan = document.getElementById('anexo-nome');
-                const files = e.target.files;
-                if (files.length > 0) {
-                    const nomes = Array.from(files).map(f => f.name);
-                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
-                } else {
-                    nomeSpan.textContent = '';
-                }
-            });
-        }
-
-        // Evento: botão enviar achado
-        const btnEnviar = document.getElementById('btn-enviar-achado');
-        if (btnEnviar) {
-            btnEnviar.addEventListener('click', enviarAchado);
-        }
-
-        // Ctrl+Enter para enviar
-        const textarea = document.getElementById('achado_texto');
-        if (textarea) {
-            textarea.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault();
-                    enviarAchado();
-                }
-            });
-        }
-
-        setupModalControle();
-    });
 </script>
 
 {% endblock %}

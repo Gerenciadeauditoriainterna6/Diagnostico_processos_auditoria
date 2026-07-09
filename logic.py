@@ -124,11 +124,10 @@ def adicionar_informacoes_relatorio(story, styles, normal_style, pagesize, leftM
     # ⭐ COR DO STATUS
     status_text = status_auditoria or 'Não informado'
     status_colors = {
-        'Em Execução': '#17a2b8',
-        'Eficácia Validada': '#28a745',
-        'Follow-up': '#ffc107',
-        'Em Atraso': '#dc3545',
-        'Inconclusiva': '#dc3545'
+        'EM EXECUÇÃO': '#17a2b8',
+        'EFICÁCIA VALIDADA': '#28a745',
+        'FOLLOW-UP': '#ffc107',
+        'INCONCLUSIVA': '#dc3545'
     }
     cor_status = status_colors.get(status_text, '#666666')
     status_html = f'<font color="{cor_status}"><b>{status_text}</b></font>'
@@ -4614,51 +4613,51 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
     # ===== PERGUNTAS DOS CHECKLISTS =====
     perguntas_governanca = [
-        "1. O fluxo das etapas e seus objetivos são de fato realizados?",
-        "1.1 Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento?",
-        "1.2 Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
-        "2. O fluxo das etapas e seus objetivos são de fato realizados? Fazendo simulações, compare com o mapeamento. Está cumprindo o que diz fazer?",
-        "3. Existem procedimentos operacionais padronizados (POPs) documentados e atualizados para os processos-chave da área?",
-        "4. Os proprietários dos processos e as responsabilidades por resultados e riscos são claramente definidos, conhecidos e aceitos na área?",
-        "5. As decisões operacionais são tomadas no nível hierárquico correto (evitando escalonamentos desnecessários ou decisões tomadas por pessoas sem alçada)?",
-        "6. A gestão da área realiza monitoramento contínuo dos processos?",
-        "7. Os dados e relatórios operacionais reportados à gestão são confiáveis, precisos e utilizados para a tomada de decisão?",
-        "8. Os indicadores de desempenho (KPIs) da área estão alinhados com os objetivos estratégicos da empresa?",
-        "9. Os problemas operacionais e as não conformidades são comunicados à gestão superior no tempo adequado?",
-        "10. A área realiza revisões periódicas do seu próprio desempenho, identificando e implementando melhorias nos processos?",
-        "11. Os recursos (pessoas, tecnologia) alocados para a área são suficientes e adequados para o cumprimento dos objetivos operacionais?",
-        "12. A área demonstra comprometimento ético no dia a dia, aderindo a políticas e reportando desvios sem medo de retaliação?",
-        "13. O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?"
+        "1. O FLUXO DAS ETAPAS E SEUS OBJETIVOS SÃO DE FATO REALIZADOS?",
+        "1.1 VERIFICANDO SE O QUE FOI FEITO ATÉ AGORA, SEGUE O PADRÃO RELATADO NO MAPEAMENTO?",
+        "1.2 SOLICITE EXECUÇÕES FEITAS E COMPARE COM O MAPEAMENTO. ESTÁ CUMPRINDO O QUE DIZ FAZER?",
+        "2. O FLUXO DAS ETAPAS E SEUS OBJETIVOS SÃO DE FATO REALIZADOS? FAZENDO SIMULAÇÕES, COMPARE COM O MAPEAMENTO. ESTÁ CUMPRINDO O QUE DIZ FAZER?",
+        "3. EXISTEM PROCEDIMENTOS OPERACIONAIS PADRONIZADOS (POPS) DOCUMENTADOS E ATUALIZADOS PARA OS PROCESSOS-CHAVE DA ÁREA?",
+        "4. OS PROPRIETÁRIOS DOS PROCESSOS E AS RESPONSABILIDADES POR RESULTADOS E RISCOS SÃO CLARAMENTE DEFINIDOS, CONHECIDOS E ACEITOS NA ÁREA?",
+        "5. AS DECISÕES OPERACIONAIS SÃO TOMADAS NO NÍVEL HIERÁRQUICO CORRETO (EVITANDO ESCALONAMENTOS DESNECESSÁRIOS OU DECISÕES TOMADAS POR PESSOAS SEM ALÇADA)?",
+        "6. A GESTÃO DA ÁREA REALIZA MONITORAMENTO CONTÍNUO DOS PROCESSOS?",
+        "7. OS DADOS E RELATÓRIOS OPERACIONAIS REPORTADOS À GESTÃO SÃO CONFIÁVEIS, PRECISOS E UTILIZADOS PARA A TOMADA DE DECISÃO?",
+        "8. OS INDICADORES DE DESEMPENHO (KPIS) DA ÁREA ESTÃO ALINHADOS COM OS OBJETIVOS ESTRATÉGICOS DA EMPRESA?",
+        "9. OS PROBLEMAS OPERACIONAIS E AS NÃO CONFORMIDADES SÃO COMUNICADOS À GESTÃO SUPERIOR NO TEMPO ADEQUADO?",
+        "10. A ÁREA REALIZA REVISÕES PERIÓDICAS DO SEU PRÓPRIO DESEMPENHO, IDENTIFICANDO E IMPLEMENTANDO MELHORIAS NOS PROCESSOS?",
+        "11. OS RECURSOS (PESSOAS, TECNOLOGIA) ALOCADOS PARA A ÁREA SÃO SUFICIENTES E ADEQUADOS PARA O CUMPRIMENTO DOS OBJETIVOS OPERACIONAIS?",
+        "12. A ÁREA DEMONSTRA COMPROMETIMENTO ÉTICO NO DIA A DIA, ADERINDO A POLÍTICAS E REPORTANDO DESVIOS SEM MEDO DE RETALIAÇÃO?",
+        "13. O AUDITADO VALIDOU POR EMAIL SE EXISTE MAPEAMENTO DE PROCESSOS FEITO PELA ÁREA ESCRITÓRIO DE PROCESSOS?"
     ]
 
     perguntas_riscos = [
-        "1. Validar se os Riscos e Fator de Riscos estão coerentes com o Objetivo da etapa.",
-        "2. Verificar se os riscos estão atualizados e sendo monitorados pelo gestor de primeira linha.",
-        "3. A área realiza mapeamento de riscos dos seus processos operacionais regularmente (ex: anualmente ou após mudanças significativas)?",
-        "4. Os riscos chave (ex: erro humano, falha de sistema, fraude) estão claramente identificados e documentados pela própria área?",
-        "5. A análise de riscos inclui a avaliação da probabilidade de ocorrência e do impacto financeiro/reputacional/operacional?",
-        "6. Existe um plano de ação formalizado para mitigar os riscos classificados como Alto ou Crítico?",
-        "7. Os controles internos da área foram especificamente desenhados para reduzir os riscos identificados (e não apenas herdados de outros processos)?",
-        "8. A área possui e testa planos de contingência/continuidade de negócios (plano B) para a não interrupção de processos que possuem maiores riscos?",
-        "9. A área monitora indicadores-chave de risco (KRIs) que sinalizam o aumento da exposição aos riscos operacionais?",
-        "10. Os eventos de perda ou incidentes operacionais são registrados, analisados e utilizados para ajustar a avaliação de risco da área?",
-        "11. O Gerente da Área (Primeira Linha de Defesa) revisa e confirma o status dos principais riscos operacionais da sua área periodicamente?",
-        "12. O Auditado validou por email se existe mapeamento de RISCO feito pela área Gerência de riscos e Compliance?"
+        "1. VALIDAR SE OS RISCOS E FATOR DE RISCOS ESTÃO COERENTES COM O OBJETIVO DA ETAPA.",
+        "2. VERIFICAR SE OS RISCOS ESTÃO ATUALIZADOS E SENDO MONITORADOS PELO GESTOR DE PRIMEIRA LINHA.",
+        "3. A ÁREA REALIZA MAPEAMENTO DE RISCOS DOS SEUS PROCESSOS OPERACIONAIS REGULARMENTE (EX: ANUALMENTE OU APÓS MUDANÇAS SIGNIFICATIVAS)?",
+        "4. OS RISCOS CHAVE (EX: ERRO HUMANO, FALHA DE SISTEMA, FRAUDE) ESTÃO CLARAMENTE IDENTIFICADOS E DOCUMENTADOS PELA PRÓPRIA ÁREA?",
+        "5. A ANÁLISE DE RISCOS INCLUI A AVALIAÇÃO DA PROBABILIDADE DE OCORRÊNCIA E DO IMPACTO FINANCEIRO/REPUTACIONAL/OPERACIONAL?",
+        "6. EXISTE UM PLANO DE AÇÃO FORMALIZADO PARA MITIGAR OS RISCOS CLASSIFICADOS COMO ALTO OU CRÍTICO?",
+        "7. OS CONTROLES INTERNOS DA ÁREA FORAM ESPECIFICAMENTE DESENHADOS PARA REDUZIR OS RISCOS IDENTIFICADOS (E NÃO APENAS HERDADOS DE OUTROS PROCESSOS)?",
+        "8. A ÁREA POSSUI E TESTA PLANOS DE CONTINGÊNCIA/CONTINUIDADE DE NEGÓCIOS (PLANO B) PARA A NÃO INTERRUPÇÃO DE PROCESSOS QUE POSSUEM MAIORES RISCOS?",
+        "9. A ÁREA MONITORA INDICADORES-CHAVE DE RISCO (KRIS) QUE SINALIZAM O AUMENTO DA EXPOSIÇÃO AOS RISCOS OPERACIONAIS?",
+        "10. OS EVENTOS DE PERDA OU INCIDENTES OPERACIONAIS SÃO REGISTRADOS, ANALISADOS E UTILIZADOS PARA AJUSTAR A AVALIAÇÃO DE RISCO DA ÁREA?",
+        "11. O GERENTE DA ÁREA (PRIMEIRA LINHA DE DEFESA) REVISA E CONFIRMA O STATUS DOS PRINCIPAIS RISCOS OPERACIONAIS DA SUA ÁREA PERIODICAMENTE?",
+        "12. O AUDITADO VALIDOU POR EMAIL SE EXISTE MAPEAMENTO DE RISCO FEITO PELA ÁREA GERÊNCIA DE RISCOS E COMPLIANCE?"
     ]
 
     perguntas_controles = [
-        "1. Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Verificando se o que foi feito até agora, segue o padrão relatado no mapeamento? Solicite execuções feitas e compare com o mapeamento. Está cumprindo o que diz fazer?",
-        "2. Testar se a Ação dos Controles de fato mitigam os Fatores de Riscos informados na matriz de riscos. Fazendo simulações, comparando com o mapeamento. Está cumprindo o que diz fazer?",
-        "3. Os controles são preventivos (impedem o erro) sempre que possível, ao invés de apenas detectivos (identificam o erro após a ocorrência)?",
-        "4. Existe segregação de funções adequada dentro dos processos operacionais (ex: quem aprova não é quem executa, quem registra não é quem concilia)?",
-        "5. Os controles automáticos (configurações do sistema) são revisados e testados após atualizações ou mudanças no sistema?",
-        "6. O passo do controle (ex: revisão, aprovação, conciliação) é realizado na frequência exigida e sem exceções não autorizadas?",
-        "7. O responsável pelo controle deixa evidência clara (assinatura, log do sistema, captura de tela) de que o controle foi executado e revisado?",
-        "8. Os controles-chave são executados por pessoas com o conhecimento e a autoridade necessários para tal?",
-        "9. As falhas ou exceções encontradas nos controles são escaladas imediatamente para tratamento e correção?",
-        "10. A área rastreia e monitora as ações corretivas implementadas para remediar as deficiências de controle identificadas?",
-        "11. As reconciliações (ex: contábeis, estoques) são realizadas, e os itens pendentes são investigados e resolvidos prontamente?",
-        "12. O Auditado validou por email se existe mapeamento de CONTROLE feito pela área Gerência de riscos e Compliance?"
+        "1. TESTAR SE A AÇÃO DOS CONTROLES DE FATO MITIGAM OS FATORES DE RISCOS INFORMADOS NA MATRIZ DE RISCOS. VERIFICANDO SE O QUE FOI FEITO ATÉ AGORA, SEGUE O PADRÃO RELATADO NO MAPEAMENTO? SOLICITE EXECUÇÕES FEITAS E COMPARE COM O MAPEAMENTO. ESTÁ CUMPRINDO O QUE DIZ FAZER?",
+        "2. TESTAR SE A AÇÃO DOS CONTROLES DE FATO MITIGAM OS FATORES DE RISCOS INFORMADOS NA MATRIZ DE RISCOS. FAZENDO SIMULAÇÕES, COMPARANDO COM O MAPEAMENTO. ESTÁ CUMPRINDO O QUE DIZ FAZER?",
+        "3. OS CONTROLES SÃO PREVENTIVOS (IMPEDEM O ERRO) SEMPRE QUE POSSÍVEL, AO INVÉS DE APENAS DETECTIVOS (IDENTIFICAM O ERRO APÓS A OCORRÊNCIA)?",
+        "4. EXISTE SEGREGAÇÃO DE FUNÇÕES ADEQUADA DENTRO DOS PROCESSOS OPERACIONAIS (EX: QUEM APROVA NÃO É QUEM EXECUTA, QUEM REGISTRA NÃO É QUEM CONCILIA)?",
+        "5. OS CONTROLES AUTOMÁTICOS (CONFIGURAÇÕES DO SISTEMA) SÃO REVISADOS E TESTADOS APÓS ATUALIZAÇÕES OU MUDANÇAS NO SISTEMA?",
+        "6. O PASSO DO CONTROLE (EX: REVISÃO, APROVAÇÃO, CONCILIAÇÃO) É REALIZADO NA FREQUÊNCIA EXIGIDA E SEM EXCEÇÕES NÃO AUTORIZADAS?",
+        "7. O RESPONSÁVEL PELO CONTROLE DEIXA EVIDÊNCIA CLARA (ASSINATURA, LOG DO SISTEMA, CAPTURA DE TELA) DE QUE O CONTROLE FOI EXECUTADO E REVISADO?",
+        "8. OS CONTROLES-CHAVE SÃO EXECUTADOS POR PESSOAS COM O CONHECIMENTO E A AUTORIDADE NECESSÁRIOS PARA TAL?",
+        "9. AS FALHAS OU EXCEÇÕES ENCONTRADAS NOS CONTROLES SÃO ESCALADAS IMEDIATAMENTE PARA TRATAMENTO E CORREÇÃO?",
+        "10. A ÁREA RASTREIA E MONITORA AS AÇÕES CORRETIVAS IMPLEMENTADAS PARA REMEDIAR AS DEFICIÊNCIAS DE CONTROLE IDENTIFICADAS?",
+        "11. AS RECONCILIAÇÕES (EX: CONTÁBEIS, ESTOQUES) SÃO REALIZADAS, E OS ITENS PENDENTES SÃO INVESTIGADOS E RESOLVIDOS PRONTAMENTE?",
+        "12. O AUDITADO VALIDOU POR EMAIL SE EXISTE MAPEAMENTO DE CONTROLE FEITO PELA ÁREA GERÊNCIA DE RISCOS E COMPLIANCE?"
     ]
     
     story = []
@@ -5046,11 +5045,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         status_limpo = status.strip() if status else ''
         
         status_config = {
-            'Inconclusiva': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA INCONCLUSIVA'},
-            'Em Atraso': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA EM ATRASO'},
-            'Follow-up': {'cor': (0.99, 0.49, 0.08), 'texto': 'AUDITORIA EM FOLLOW-UP'},
-            'Eficácia Validada': {'cor': (0.16, 0.63, 0.27), 'texto': 'AUDITORIA COM EFICÁCIA VALIDADA'},
-            'Em Execução': {'cor': (0.09, 0.63, 0.76), 'texto': 'AUDITORIA EM EXECUÇÃO'}
+            'INCONCLUSIVA': {'cor': (0.86, 0.08, 0.24), 'texto': 'AUDITORIA INCONCLUSIVA'},
+            'FOLLOW-UP': {'cor': (0.99, 0.49, 0.08), 'texto': 'AUDITORIA EM FOLLOW-UP'},
+            'EFICÁCIA VALIDADA': {'cor': (0.16, 0.63, 0.27), 'texto': 'AUDITORIA COM EFICÁCIA VALIDADA'},
+            'EM EXECUÇÃO': {'cor': (0.09, 0.63, 0.76), 'texto': 'AUDITORIA EM EXECUÇÃO'}
         }
         
         # Usa o status limpo para buscar a configuração; se não existir, usa uma tarja cinza genérica
@@ -5068,11 +5066,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         canvas.restoreState()
     
     status_colors = {
-        'Em Execução': colors.HexColor('#17a2b8'),      
-        'Eficácia Validada': colors.HexColor('#28a745'), 
-        'Follow-up': colors.HexColor("#fded14"),         
-        'Em Atraso': colors.HexColor("#dc7235"),         
-        'Inconclusiva': colors.HexColor("#ff0000")       
+        'EM EXECUÇÃO': colors.HexColor('#17a2b8'),      
+        'EFICÁCIA VALIDADA': colors.HexColor('#28a745'), 
+        'FOLLOW-UP': colors.HexColor("#fded14"),                  
+        'INCONCLUSIVA': colors.HexColor("#ff0000")       
     }
     
     status_color = status_colors.get(status, colors.black)
@@ -5324,7 +5321,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b>Aguardando decisão sobre implantação da sugestão de melhoria</b>", normal_style))
+            story.append(Paragraph("<b>AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
         
         story.append(Spacer(1, 8))
     
@@ -5462,18 +5459,18 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 if resposta_texto:
                     # Formatar resposta com cores
                     story.append(Paragraph(
-                        f"<b>Resposta:</b> {resposta_texto}",
+                        f"<b>RESPOSTA:</b> {resposta_texto}",
                         subresposta_style
                     ))
                 else:
                     story.append(Paragraph(
-                        "<i>Sem resposta</i>",
+                        "<i>SEM RESPOSTA</i>",
                         subresposta_style
                     ))
                 
                 if comentario_texto:
                     story.append(Paragraph(
-                        f"<b>Comentário:</b> {comentario_texto}",
+                        f"<b>COMENTÁRIO:</b> {comentario_texto}",
                         subcomentario_style
                     ))
                 
@@ -5488,18 +5485,18 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 if resposta_texto:
                     # Formatar resposta com cores
                     story.append(Paragraph(
-                        f"<b>Resposta:</b> {resposta_texto}",
+                        f"<b>RESPOSTA:</b> {resposta_texto}",
                         resposta_style
                     ))
                 else:
                     story.append(Paragraph(
-                        "<i>Sem resposta</i>",
+                        "<i>SEM RESPOSTA</i>",
                         resposta_style
                     ))
                 
                 if comentario_texto:
                     story.append(Paragraph(
-                        f"<b>Comentário:</b> {comentario_texto}",
+                        f"<b>COMENTÁRIO:</b> {comentario_texto}",
                         comentario_style
                     ))
         

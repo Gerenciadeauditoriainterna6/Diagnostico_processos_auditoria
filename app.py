@@ -529,17 +529,7 @@ def configurar_auditoria():
     except Exception as e:
         print(f"⚠️ [AUDITORIA] Erro: {e}")
 
-@app.route('/api/verificar-perfil')
-def verificar_perfil():
-    """Endpoint para verificar o perfil do usuário atual"""
-    try:
-        if 'usuario_id' not in session:
-            return jsonify({'error': 'Não autenticado'}), 401
-        
-        perfil = session.get('usuario_perfil', 'usuario')
-        return jsonify({'perfil': perfil})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 50
+
 
 @app.route('/api/obrigacao/upload', methods=['POST'])
 def api_upload_obrigacao():
@@ -2826,15 +2816,16 @@ def api_baixar_evidencia(caminho):
 @app.route('/api/processo/verificar')
 def api_verificar_processo():
     """Verifica se um processo com o mesmo nome já existe na área E auditoria"""
-    nome_processo = request.args.get('nome')
+    # 👇 CONVERTER PARA MAIÚSCULAS
+    nome_processo = request.args.get('nome', '').upper().strip()
     id_area = request.args.get('id_area')
-    auditoria_id = request.args.get('auditoria_id')  # ← NOVO
+    auditoria_id = request.args.get('auditoria_id')
 
     if not nome_processo or not id_area or not auditoria_id:
         return jsonify({'existe': False})
     
     from logic import buscar_processo_por_nome_e_area
-    processo = buscar_processo_por_nome_e_area(nome_processo, id_area, auditoria_id)  # ← MODIFICAR
+    processo = buscar_processo_por_nome_e_area(nome_processo, id_area, auditoria_id)
 
     if processo:
         return jsonify({
@@ -3044,7 +3035,6 @@ def api_remover_organograma(area_id):
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# ====== API - SALVAR INFORMAÇÕES BÁSICAS DO PROCESSO ======
 @app.route('/api/processo/salvar-basico', methods=['POST'])
 def api_salvar_processo_basico():
     """Salva ou atualiza as informações básicas do processo"""
@@ -3058,13 +3048,16 @@ def api_salvar_processo_basico():
     
     # ===== DADOS RECEBIDOS DO FRONTEND =====
     processo_id = data.get('processo_id')
-    nome_processo = data.get('nome_processo')
-    codigo_processo = data.get('codigo_processo')
+    
+    # 👇 CONVERTER PARA MAIÚSCULAS
+    nome_processo = data.get('nome_processo', '').upper().strip()
+    codigo_processo = data.get('codigo_processo', '').upper().strip()
+    nome_area = data.get('nome_area', '').upper().strip()
+    entrevistado = data.get('entrevistado', '').upper().strip()
+    
     id_area = data.get('id_area')
-    nome_area = data.get('nome_area')
     executores_ids = data.get('executores_ids', [])
     auditoria_id = data.get('auditoria_id')
-    entrevistado = data.get('entrevistado', '')
     
     # ===== VALIDAÇÕES BÁSICAS =====
     if not nome_processo or not id_area:
@@ -3074,7 +3067,7 @@ def api_salvar_processo_basico():
         with engine.connect() as conn:
             # ===== BUSCAR NOME DA ÁREA SE NÃO VEIO =====
             if not nome_area:
-                busca_area = text("SELECT nome_area FROM informacoes_area WHERE id_area = :id_area")
+                busca_area = text("SELECT UPPER(nome_area) FROM informacoes_area WHERE id_area = :id_area")
                 result_area = conn.execute(busca_area, {'id_area': id_area}).fetchone()
                 nome_area = result_area[0] if result_area else ''
             
@@ -3085,11 +3078,11 @@ def api_salvar_processo_basico():
                 
                 update_query = text("""
                     UPDATE processos 
-                    SET nome_processo = :nome, 
-                        codigo_processo = :codigo,
-                        area = :area,
+                    SET nome_processo = UPPER(:nome), 
+                        codigo_processo = UPPER(:codigo),
+                        area = UPPER(:area),
                         auditoria_id = :auditoria_id,
-                        entrevistado = :entrevistado,
+                        entrevistado = UPPER(:entrevistado),
                         updated_at = NOW()
                     WHERE id = :id
                     RETURNING id
@@ -3112,7 +3105,7 @@ def api_salvar_processo_basico():
                 # Verificar se já existe outro com mesmo nome na área E MESMA AUDITORIA
                 check_query = text("""
                     SELECT id FROM processos 
-                    WHERE nome_processo = :nome 
+                    WHERE UPPER(nome_processo) = UPPER(:nome) 
                     AND id_area = :id_area 
                     AND auditoria_id = :auditoria_id
                 """)
@@ -3130,11 +3123,11 @@ def api_salvar_processo_basico():
                     # Atualizar mesmo assim
                     update_query = text("""
                         UPDATE processos 
-                        SET nome_processo = :nome, 
-                            codigo_processo = :codigo,
-                            area = :area,
+                        SET nome_processo = UPPER(:nome), 
+                            codigo_processo = UPPER(:codigo),
+                            area = UPPER(:area),
                             auditoria_id = :auditoria_id,
-                            entrevistado = :entrevistado,
+                            entrevistado = UPPER(:entrevistado),
                             updated_at = NOW()
                         WHERE id = :id
                     """)
@@ -3149,7 +3142,7 @@ def api_salvar_processo_basico():
                 else:
                     # Realmente novo: gerar código e inserir
                     if not codigo_processo:
-                        codigo_processo = gerar_codigo_processo(id_area, auditoria_id)  # ← PASSAR AUDITORIA_ID
+                        codigo_processo = gerar_codigo_processo(id_area, auditoria_id)
                     
                     insert_query = text("""
                         INSERT INTO processos (
@@ -3157,8 +3150,8 @@ def api_salvar_processo_basico():
                             auditoria_id, entrevistado, created_at, updated_at
                         )
                         VALUES (
-                            :nome, :codigo, :id_area, :area, 
-                            :auditoria_id, NOW(), NOW()
+                            UPPER(:nome), UPPER(:codigo), :id_area, UPPER(:area), 
+                            :auditoria_id, UPPER(:entrevistado), NOW(), NOW()
                         )
                         RETURNING id
                     """)
@@ -3173,15 +3166,13 @@ def api_salvar_processo_basico():
                     processo_id = result.fetchone()[0]
                     print(f"✅ Novo processo criado com ID: {processo_id}")
             
-            # ===== SALVAR EXECUTORES (funcionários que executam o processo) =====
+            # ===== SALVAR EXECUTORES =====
             if executores_ids:
                 print(f"👥 Salvando {len(executores_ids)} executores para o processo {processo_id}")
                 
-                # Remover executores antigos (para não duplicar)
                 delete_executors = text("DELETE FROM processo_executores WHERE processo_id = :processo_id")
                 conn.execute(delete_executors, {'processo_id': processo_id})
                 
-                # Inserir os novos executores
                 insert_executor = text("""
                     INSERT INTO processo_executores (processo_id, funcionario_id, created_at, updated_at)
                     VALUES (:processo_id, :funcionario_id, NOW(), NOW())
@@ -3195,13 +3186,8 @@ def api_salvar_processo_basico():
             else:
                 print(f"⚠️ Nenhum executor para salvar no processo {processo_id}")
             
-            # ⭐ REMOVIDO: Bloco de vinculação à auditoria (não é mais necessário)
-            # O auditoria_id já está na tabela processos!
-            
-            # ===== CONFIRMAR TRANSAÇÃO =====
             conn.commit()
             
-            # ===== RETORNAR SUCESSO =====
             return jsonify({
                 'success': True,
                 'processo_id': processo_id,
@@ -3221,11 +3207,13 @@ def api_salvar_processo_detalhes():
     
     data = request.json
     processo_id = data.get('processo_id')
-    descricao = data.get('descricao', '')
-    etapa_ini = data.get('etapa_ini', '')
-    etapa_fim = data.get('etapa_fim', '')
-    produto = data.get('produto', '')
-    objetivo = data.get('objetivo', '')
+    
+    # 👇 CONVERTER PARA MAIÚSCULAS
+    descricao = data.get('descricao', '').upper().strip()
+    etapa_ini = data.get('etapa_ini', '').upper().strip()
+    etapa_fim = data.get('etapa_fim', '').upper().strip()
+    produto = data.get('produto', '').upper().strip()
+    objetivo = data.get('objetivo', '').upper().strip()
     
     if not processo_id:
         return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
@@ -3234,11 +3222,11 @@ def api_salvar_processo_detalhes():
         with engine.connect() as conn:
             query = text("""
                 UPDATE processos 
-                SET descricao = :descricao,
-                    etapa_ini = :etapa_ini,
-                    etapa_fim = :etapa_fim,
-                    produto = :produto,
-                    objetivo = :objetivo
+                SET descricao = UPPER(:descricao),
+                    etapa_ini = UPPER(:etapa_ini),
+                    etapa_fim = UPPER(:etapa_fim),
+                    produto = UPPER(:produto),
+                    objetivo = UPPER(:objetivo)
                 WHERE id = :processo_id
             """)
             
@@ -3355,8 +3343,6 @@ def api_processo_dados(processo_id):
     
     try:
         with engine.connect() as conn:
-            # ===== 1. BUSCAR DADOS BÁSICOS DO PROCESSO =====
-            # ⭐ AGORA COM auditoria_id DIRETO NO SELECT
             query = text("""
                 SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area, p.auditoria_id,
                        p.descricao, p.etapa_ini, p.etapa_fim, p.produto, p.objetivo,
@@ -3371,10 +3357,7 @@ def api_processo_dados(processo_id):
             if not processo:
                 return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404
             
-            # ⭐ REMOVIDO: A busca separada da auditoria (já não é mais necessária)
-            # O auditoria_id já está no SELECT acima no índice 4
-            
-            # ===== 2. BUSCAR EXECUTORES =====
+            # ===== BUSCAR EXECUTORES =====
             query_exec = text("""
                 SELECT f.id, f.nome_funcionario, f.cargo
                 FROM processo_executores pe
@@ -3383,7 +3366,7 @@ def api_processo_dados(processo_id):
             """)
             executores = conn.execute(query_exec, {'processo_id': processo_id}).fetchall()
             
-            # ===== 3. BUSCAR RISCOS =====
+            # ===== BUSCAR RISCOS =====
             query_riscos = text("""
                 SELECT id, nome_risco, fator_risco, melhoria,
                        impacto, probabilidade, motivo_risco, categoria, causas,
@@ -3395,12 +3378,11 @@ def api_processo_dados(processo_id):
             riscos_result = conn.execute(query_riscos, {'processo_id': processo_id}).fetchall()
             
             riscos = []
-            for r in riscos_result:                
+            for r in riscos_result:
+                # Os dados já estão em maiúsculas (salvos assim)
+                # Mas se quiser garantir:
                 categorias = r[7].split(',') if r[7] else []
                 categoria_causa = r[8].split(',') if r[8] else []
-                
-                # Converter data
-                prazo = r[11] if r[11] else ''
                 
                 riscos.append({
                     'id': r[0],
@@ -3414,20 +3396,18 @@ def api_processo_dados(processo_id):
                     'categoria_causa': [c.strip() for c in categoria_causa if c.strip()],
                     'como_tratar': r[9] or '',
                     'desc_tratamento': r[10] or '',
-                    'prazo_implantacao': prazo,
+                    'prazo_implantacao': r[11] or '',
                     'apetite_impacto': r[12] or 'Médio',
                     'apetite_probabilidade': r[13] or 'Médio'
                 })
             
-            # ===== 4. RETORNAR TODOS OS DADOS =====
-            # ⭐ NOVO: p.auditoria_id está no índice 4
             return jsonify({
                 'success': True,
-                'nome_processo': processo[1],
-                'codigo_processo': processo[2],
+                'nome_processo': processo[1] or '',
+                'codigo_processo': processo[2] or '',
                 'id_area': processo[3],
-                'auditoria_id': processo[4],  # ← AGORA VEM DIRETO DO SELECT
-                'nome_area': processo[12],    # ← Índice ajustado (12 em vez de 11)
+                'auditoria_id': processo[4],
+                'nome_area': processo[12] or '',
                 'descricao': processo[5] or '',
                 'etapa_ini': processo[6] or '',
                 'etapa_fim': processo[7] or '',
@@ -3565,18 +3545,18 @@ def api_salvar_processo_riscos():
     
     # Mapa de risco para calcular score
     MAPA_RISCO = {
-        ("Muito Alto", "Muito Alto"): 15, ("Alto", "Muito Alto"): 14,
-        ("Médio", "Muito Alto"): 13, ("Baixo", "Muito Alto"): 12,
-        ("Muito Alto", "Alto"): 11, ("Alto", "Alto"): 10,
-        ("Médio", "Alto"): 9, ("Baixo", "Alto"): 8,
-        ("Muito Alto", "Médio"): 7, ("Alto", "Médio"): 6,
-        ("Médio", "Médio"): 5, ("Baixo", "Médio"): 4,
-        ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2,
-        ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
+        ("MUITO ALTO", "MUITO ALTO"): 15, ("ALTO", "MUITO ALTO"): 14,
+        ("MÉDIO", "MUITO ALTO"): 13, ("BAIXO", "MUITO ALTO"): 12,
+        ("MUITO ALTO", "ALTO"): 11, ("ALTO", "ALTO"): 10,
+        ("MÉDIO", "ALTO"): 9, ("BAIXO", "ALTO"): 8,
+        ("MUITO ALTO", "MÉDIO"): 7, ("ALTO", "MÉDIO"): 6,
+        ("MÉDIO", "MÉDIO"): 5, ("BAIXO", "MÉDIO"): 4,
+        ("MUITO ALTO", "BAIXO"): 3, ("ALTO", "BAIXO"): 2,
+        ("MÉDIO", "BAIXO"): 1, ("BAIXO", "BAIXO"): 0
     }
     
     def calcular_score(impacto, probabilidade):
-        return MAPA_RISCO.get((impacto, probabilidade), 0)
+        return MAPA_RISCO.get((impacto.upper().strip(), probabilidade.upper().strip()), 0)
     
     try:
         with engine.connect() as conn:
@@ -3594,43 +3574,43 @@ def api_salvar_processo_riscos():
                     apetite_impacto, apetite_probabilidade
                 )
                 VALUES (
-                    :processo_id, :nome_risco, :fator_risco, :melhoria, 
-                    :impacto, :probabilidade, :motivo_risco, 
-                    :categoria, :causas, :score_risco,
-                    :tratamento_risco, :descricao_tratamento, :prazo_implantacao,
-                    :apetite_impacto, :apetite_probabilidade
+                    :processo_id, UPPER(:nome_risco), UPPER(:fator_risco), UPPER(:melhoria), 
+                    UPPER(:impacto), UPPER(:probabilidade), UPPER(:motivo_risco), 
+                    UPPER(:categoria), UPPER(:causas), :score_risco,
+                    UPPER(:tratamento_risco), UPPER(:descricao_tratamento), UPPER(:prazo_implantacao),
+                    UPPER(:apetite_impacto), UPPER(:apetite_probabilidade)
                 )
             """)
             
             for risco in riscos:
-                impacto = risco.get('impacto', 'Médio')
-                probabilidade = risco.get('probabilidade', 'Médio')
+                # 👇 CONVERTER PARA MAIÚSCULAS
+                impacto = risco.get('impacto', 'Médio').upper().strip()
+                probabilidade = risco.get('probabilidade', 'Médio').upper().strip()
                 score = calcular_score(impacto, probabilidade)
                 
-                # Converter arrays para strings separadas por vírgula
+                # Converter arrays para strings separadas por vírgula (em maiúsculas)
                 categorias = risco.get('categorias', [])
-                categoria_str = ', '.join(categorias) if categorias else None
+                categoria_str = ', '.join([c.upper().strip() for c in categorias if c]) if categorias else None
                 
-                # IMPORTANTE: frontend envia "categoria_causa", banco chama "causas"
                 causas = risco.get('categoria_causa', [])
-                causas_str = ', '.join([c.strip() for c in causas]) if causas else None
+                causas_str = ', '.join([c.upper().strip() for c in causas if c]) if causas else None
                 
                 conn.execute(insert_query, {
                     'processo_id': processo_id,
-                    'nome_risco': risco.get('nome_risco', ''),
-                    'fator_risco': risco.get('fator_risco', ''),
-                    'melhoria': risco.get('melhoria', ''),
+                    'nome_risco': risco.get('nome_risco', '').upper().strip(),
+                    'fator_risco': risco.get('fator_risco', '').upper().strip(),
+                    'melhoria': risco.get('melhoria', '').upper().strip(),
                     'impacto': impacto,
                     'probabilidade': probabilidade,
-                    'motivo_risco': risco.get('motivo_risco', ''),
+                    'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
                     'categoria': categoria_str,
-                    'causas': causas_str,                              # ← corrigido
+                    'causas': causas_str,
                     'score_risco': score,
-                    'tratamento_risco': risco.get('como_tratar', ''),   # ← frontend → banco
-                    'descricao_tratamento': risco.get('desc_tratamento', ''),
-                    'prazo_implantacao': risco.get('prazo_implantacao') or None,
-                    'apetite_impacto': risco.get('apetite_impacto', 'Médio'),
-                    'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio')
+                    'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
+                    'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
+                    'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
+                    'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
+                    'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
                 })
             
             conn.commit()
@@ -4691,8 +4671,8 @@ def api_gerar_codigo_etapa():
     
     try:
         with engine.connect() as conn:
-            # Buscar o código do processo
-            query_processo = text("SELECT codigo_processo FROM processos WHERE id = :processo_id")
+            # Buscar o código do processo (já em maiúsculas)
+            query_processo = text("SELECT UPPER(codigo_processo) FROM processos WHERE id = :processo_id")
             processo = conn.execute(query_processo, {'processo_id': processo_id}).fetchone()
             
             if not processo:
@@ -4700,7 +4680,7 @@ def api_gerar_codigo_etapa():
             
             codigo_processo = processo[0]
             
-            # Buscar o maior número de etapa para este processo
+            # Buscar o maior número de etapa
             query_etapas = text("""
                 SELECT MAX(CAST(COALESCE(REGEXP_REPLACE(codigo_etapa, '^.*\\.', ''), '0') AS INTEGER))
                 FROM etapas_processo
