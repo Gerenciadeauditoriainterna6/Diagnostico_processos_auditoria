@@ -120,7 +120,7 @@
                 <i class="fas fa-project-diagram"></i>
             </div>
             <div class="stat-content">
-                <span class="stat-label">Processos Mapeados</span>
+                <span class="stat-label">Processos Identificados</span>
                 <span class="stat-number" id="card-processos-mapeados">0</span>
             </div>
         </div>
@@ -719,10 +719,6 @@
 
     .stat-card-riscos::before {
         background: linear-gradient(135deg, #dc3545, #e74c3c);
-    }
-
-    .stat-card-riscos .stat-number {
-        color: #dc3545;
     }
 
     .stat-card-processos::before {
@@ -1494,7 +1490,7 @@
                     data: {
                         labels: data.dados.labels,
                         datasets: [{
-                            label: 'Processos Mapeados',
+                            label: 'Processos Identificados',
                             data: data.dados.valores,
                             backgroundColor: data.dados.cores,
                             borderRadius: 8,
