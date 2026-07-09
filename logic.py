@@ -2181,6 +2181,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
     print(f"🔍 Iniciando geração do relatório Panorama...")
     print(f"   area_id: {area_id}")
@@ -2361,7 +2362,8 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
         parent=normal_style,
         fontSize=8,
         leading=10,
-        leftIndent=10
+        leftIndent=10,
+        alignment=TA_JUSTIFY
     )
 
     card_texto_style = ParagraphStyle(
@@ -4640,7 +4642,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         spaceAfter=5,
         alignment=TA_CENTER,
         spaceBefore=15,
-        textColor=colors.HexColor('#184145')
+        textColor=colors.HexColor('#184145'),
+        underline=True,
+        underlineColor=colors.HexColor('#184145'),
+        underlineWidth=1.5,  # ⭐ Mais fino para ficar elegante
+        underlineOffset=2
     )
     
     subsecao_style = ParagraphStyle(
@@ -4650,6 +4656,15 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         spaceAfter=8,
         spaceBefore=10,
         textColor=colors.HexColor('#0b5b99')
+    )
+
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=0,
+        alignment=TA_JUSTIFY
     )
 
     card_texto_style_secao3 = ParagraphStyle(
@@ -5339,6 +5354,58 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             story.append(tabela_fu)
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
+    def adicionar_analise_auditado(analise, titulo):
+        
+        # Análise Crítica
+        if analise.get('analise_critica'):
+            story.append(Paragraph("<b>ANÁLISE CRÍTICA</b>", card_texto_style))
+            story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
+            story.append(Spacer(1, 10))
+        
+        # Sugestão de Melhoria
+        if analise.get('sugestao_melhoria'):
+            story.append(Paragraph("<b>SUGESTÃO DE MELHORIA</b>", card_texto_style))
+            story.append(Paragraph(analise['sugestao_melhoria'] or '', normal_style))  # ⭐ Adicionar or ''
+            story.append(Spacer(1, 10))
+
+        # Necessidade para implantacao
+        if analise.get('necessidade_implantacao'):
+            story.append(Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO</b>", card_texto_style))
+            story.append(Paragraph(analise['necessidade_implantacao'] or '', normal_style))
+            story.append(Spacer(1, 10))
+
+        # Ganho Previso
+        if analise.get('ganho_previsto'):
+            story.append(Paragraph("<b>GANHO PREVISTO</b>", card_texto_style))
+            story.append(Paragraph(analise['ganho_previsto'] or '', normal_style))
+            story.append(Spacer(1, 10))
+
+        # Decisão sobre implantação
+        if analise.get('sugestao_sera_implantada') == True:
+            story.append(Paragraph("<b>Esta melhoria será implantada</b>", normal_style))
+            story.append(Spacer(1, 3))
+            
+            # Plano de Ação
+            adicionar_plano_acao(analise)
+            story.append(Spacer(1, 5))
+            
+            # Histórico de Andamento
+            if analise.get('historico') and len(analise['historico']) > 0:
+                adicionar_historico(analise['historico'])
+                story.append(Spacer(1, 5))
+            
+            # Follow-ups (apenas se já implantada)
+            if analise.get('efetivamente_implantada') == True and analise.get('followups') and len(analise['followups']) > 0:
+                adicionar_followups(analise['followups'])
+                
+        elif analise.get('sugestao_sera_implantada') == False:
+            story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
+        else:
+            story.append(Paragraph("<b>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
+        
+        story.append(Spacer(1, 8))
 
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
@@ -5684,7 +5751,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                         'controles': 'Controles'
                     }.get(a['categoria'], a['categoria'].upper())
                     
-                    adicionar_analise(a, f"{nome_categoria}")
+                    adicionar_analise_auditado(a, f"{nome_categoria}")
                     
                     # ⭐ ADICIONAR SEPARADOR ENTRE ANÁLISES DO AUDITADO (exceto após a última)
                     if i < num_analises - 1:
