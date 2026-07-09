@@ -122,11 +122,10 @@
                 <div class="form-group">
                     <label><i class="fas fa-flag"></i> Status:</label>
                     <select id="status_auditoria" class="form-control">
-                        <option value="Em Execução">Em Execução</option>
-                        <option value="Eficácia Validada">Eficácia Validada</option>
-                        <option value="Follow-up">Follow-up</option>
-                        <!-- <option value="Em Atraso">Em Atraso</option> -->
-                        <option value="Inconclusiva">Inconclusiva</option>
+                        <option value="EM EXECUÇÃO">EM EXECUÇÃO</option>
+                        <option value="EFICÁCIA VALIDADA">EFICÁCIA VALIDADA</option>
+                        <option value="FOLLOW-UP">FOLLOW-UP</option>
+                        <option value="INCONCLUSIVA">INCONCLUSIVA</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -650,7 +649,7 @@
             selectResponsaveis.innerHTML = '';
             usuarios.forEach(usuario => {
                 const option = document.createElement('option');
-                option.value = usuario.nome;
+                option.value = usuario.nome.trim().toUpperCase();
                 option.textContent = `${usuario.nome} (${usuario.perfil || 'Usuário'})`;
                 selectResponsaveis.appendChild(option);
             });
@@ -701,15 +700,11 @@
                 let statusClass = '';
                 const status = aud.status || '';
 
-                if (status === 'Planejamento') statusClass = 'status-planejamento';
-                else if (status === 'Em Execução') statusClass = 'status-execucao';
-                else if (status === 'Eficácia Validada') statusClass = 'status-eficacia';      // ⭐ NOVO
-                else if (status === 'Follow-up') statusClass = 'status-followup';              // ⭐ NOVO
-                else if (status === 'Concluída') statusClass = 'status-concluida';
-                else if (status === 'Em Atraso') statusClass = 'status-atraso';
-                else if (status === 'Inconclusiva') statusClass = 'status-inconclusiva';       // ⭐ NOVO
-                else if (status === 'Cancelada') statusClass = 'status-cancelada';
-                else statusClass = 'status-planejamento';
+                if (status === 'EM EXECUÇÃO') statusClass = 'status-execucao';
+                else if (status === 'EFICÁCIA VALIDADA') statusClass = 'status-eficacia';
+                else if (status === 'FOLLOW-UP') statusClass = 'status-followup';
+                else if (status === 'INCONCLUSIVA') statusClass = 'status-inconclusiva';
+                else statusClass = 'status-execucao';  // padrão
                 
                 const tituloTruncado = aud.titulo && aud.titulo.length > 40 
                     ? aud.titulo.substring(0, 40) + '...' 
@@ -780,7 +775,7 @@
                 document.getElementById('trimestre_auditoria').value = aud.trimestre;
                 document.getElementById('data_inicio').value = aud.data_inicio || '';
                 document.getElementById('data_fim').value = aud.data_fim || '';
-                document.getElementById('status_auditoria').value = aud.status || 'Planejamento';
+                document.getElementById('status_auditoria').value = aud.status || 'EX EXECUÇÃO';
                 document.getElementById('unidade_auditoria').value = aud.unidade || '';
                 
                 // ⭐ CARREGAR O VALOR DO CAMPO EMERGENCIAL (COM LOG PARA DEBUG)
@@ -854,7 +849,7 @@
         document.getElementById('trimestre_auditoria').value = '';
         document.getElementById('data_inicio').value = '';
         document.getElementById('data_fim').value = '';
-        document.getElementById('status_auditoria').value = 'Em Execução';
+        document.getElementById('status_auditoria').value = 'EM EXECUÇÃO';
         document.getElementById('unidade_auditoria').value = '';
         document.getElementById('tipo_auditoria').value = 'false';
 
@@ -878,19 +873,19 @@
 
     async function salvarAuditoria() {
         const areaId = document.getElementById('area_auditoria').value;
-        const codigo = document.getElementById('codigo_auditoria').value;
-        const titulo = document.getElementById('titulo_auditoria').value;
+        const codigo = document.getElementById('codigo_auditoria').value.trim().toUpperCase();
+        const titulo = document.getElementById('titulo_auditoria').value.trim().toUpperCase();
         const ano = document.getElementById('ano_auditoria').value;
         const trimestre = document.getElementById('trimestre_auditoria').value;
         const dataInicio = document.getElementById('data_inicio').value;
         const dataFim = document.getElementById('data_fim').value;
-        const status = document.getElementById('status_auditoria').value;
-        const unidade = document.getElementById('unidade_auditoria').value;
+        const status = document.getElementById('status_auditoria').value.trim().toUpperCase();
+        const unidade = document.getElementById('unidade_auditoria').value.trim().toUpperCase();
         const emergencial = document.getElementById('tipo_auditoria').value === 'true';
         const auditoriaId = document.getElementById('auditoria_id').value;
         
         const selectResponsaveis = document.getElementById('responsaveis_equipe');
-        const responsaveis = Array.from(selectResponsaveis.selectedOptions).map(opt => opt.value);
+        const responsaveis = Array.from(selectResponsaveis.selectedOptions).map(opt => opt.value.trim().toUpperCase());
 
         if (!areaId || !codigo || !titulo || !ano || !trimestre) {
             mostrarMensagemModal('Preencha todos os campos obrigatórios!', 'error');

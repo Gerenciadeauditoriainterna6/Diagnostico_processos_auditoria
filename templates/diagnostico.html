@@ -739,19 +739,19 @@
                                 <div class="form-group">
                                     <label><i class="fas fa-sack-dollar"></i> Impacto *</label>
                                     <select id="modal-impacto" class="form-control">
-                                        <option value="Baixo">Baixo</option>
-                                        <option value="Médio">Médio</option>
-                                        <option value="Alto">Alto</option>
-                                        <option value="Muito Alto">Muito Alto</option>
+                                        <option value="BAIXO">BAIXO</option>
+                                        <option value="MÉDIO">MÉDIO</option>
+                                        <option value="ALTO">ALTO</option>
+                                        <option value="MUITO ALTO">MUITO ALTO</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label><i class="fas fa-chart-simple"></i> Probabilidade *</label>
                                     <select id="modal-probabilidade" class="form-control">
-                                        <option value="Baixo">Baixo</option>
-                                        <option value="Médio">Médio</option>
-                                        <option value="Alto">Alto</option>
-                                        <option value="Muito Alto">Muito Alto</option>
+                                        <option value="BAIXO">BAIXO</option>
+                                        <option value="MÉDIO">MÉDIO</option>
+                                        <option value="ALTO">ALTO</option>
+                                        <option value="MUITO ALTO">MUITO ALTO</option>
                                     </select>
                                 </div>
                             </div>
@@ -783,19 +783,19 @@
                                     <div class="form-group">
                                         <label><i class="fas fa-sack-dollar"></i> Impacto Aceitável</label>
                                         <select id="apetite_impacto" class="form-control">
-                                            <option value="Baixo">Baixo</option>
-                                            <option value="Médio" selected>Médio</option>
-                                            <option value="Alto">Alto</option>
-                                            <option value="Muito Alto">Muito Alto</option>
+                                            <option value="BAIXO">BAIXO</option>
+                                            <option value="MÉDIO" selected>MÉDIO</option>
+                                            <option value="ALTO">ALTO</option>
+                                            <option value="MUITO ALTO">MUITO ALTO</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável</label>
                                         <select id="apetite_probabilidade" class="form-control">
-                                            <option value="Baixo">Baixo</option>
-                                            <option value="Médio" selected>Médio</option>
-                                            <option value="Alto">Alto</option>
-                                            <option value="Muito Alto">Muito Alto</option>
+                                            <option value="BAIXO">BAIXO</option>
+                                            <option value="MÉDIO" selected>MÉDIO</option>
+                                            <option value="ALTO">ALTO</option>
+                                            <option value="MUITO ALTO">MUITO ALTO</option>
                                         </select>
                                     </div>
                                 </div>
@@ -3055,21 +3055,19 @@
                     // ⭐ CORREÇÃO: Mapear TODOS os campos, incluindo os de tratamento ⭐
                     const riscosFormatados = riscosArray.map(risco => ({
                         id: risco.id,
-                        nome_risco: risco.nome_risco || risco.nome || 'Risco sem nome',
-                        impacto: risco.impacto || risco.impact || 'Médio',
-                        probabilidade: risco.probabilidade || risco.probability || 'Médio',
-                        fator_risco: risco.fator_risco || '',
-                        melhoria: risco.melhoria || '',
-                        // ⭐ REMOVER: apetite_risco (não existe mais)
-                        // ⭐ ADICIONAR: apetite_impacto e apetite_probabilidade
-                        apetite_impacto: risco.apetite_impacto || 'Médio',
-                        apetite_probabilidade: risco.apetite_probabilidade || 'Médio',
-                        motivo_risco: risco.motivo_risco || '',
-                        categorias: risco.categorias || (risco.categoria ? risco.categoria.split(',') : []),
-                        categoria_causa: risco.categoria_causa || [],
-                        como_tratar: risco.como_tratar || '',
-                        desc_tratamento: risco.desc_tratamento || '',
-                        prazo_implantacao: risco.prazo_implantacao || '',
+                        nome_risco: (risco.nome_risco || risco.nome || 'Risco sem nome').toUpperCase(),
+                        impacto: (risco.impacto || risco.impact || 'Médio').toUpperCase(),
+                        probabilidade: (risco.probabilidade || risco.probability || 'Médio').toUpperCase(),
+                        fator_risco: (risco.fator_risco || '').toUpperCase(),
+                        melhoria: (risco.melhoria || '').toUpperCase(),
+                        apetite_impacto: (risco.apetite_impacto || 'Médio').toUpperCase(),
+                        apetite_probabilidade: (risco.apetite_probabilidade || 'Médio').toUpperCase(),
+                        motivo_risco: (risco.motivo_risco || '').toUpperCase(),
+                        categorias: risco.categorias ? risco.categorias.map(c => c.toUpperCase()) : (risco.categoria ? risco.categoria.split(',').map(c => c.trim().toUpperCase()) : []),
+                        categoria_causa: risco.categoria_causa ? risco.categoria_causa.map(c => c.toUpperCase()) : [],
+                        como_tratar: (risco.como_tratar || '').toUpperCase(),
+                        desc_tratamento: (risco.desc_tratamento || '').toUpperCase(),
+                        prazo_implantacao: (risco.prazo_implantacao || '').toUpperCase(),
                         score_risco: risco.score_risco || 0
                     }));
                     
@@ -3262,15 +3260,15 @@
                         <div class="kanban-card-title">${escapeHtml(risco.nome_risco)}</div>
                         <div class="kanban-card-score">
                             <span style="font-size: 11px; color: #666;">Magnitude do risco:</span>
-                            <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
-                            <span class="kanban-card-badge prob">Prob: ${risco.probabilidade || 'Médio'}</span>
+                            <span class="kanban-card-badge impact">Impacto: ${(risco.impacto || 'Médio').toUpperCase()}</span>
+                            <span class="kanban-card-badge prob">Prob: ${ (risco.probabilidade || 'Médio').toUpperCase()}</span>
                             <span><strong>Score do risco (magnitude): ${risco.score}</strong> (${risco.nivelTexto})</span>
                         </div>
                         <!-- ⭐ NOVO: Score do Apetite -->
                         <div class="kanban-card-score" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eee;">
                             <span style="font-size: 11px; color: #666;">Apetite:</span>
-                            <span class="kanban-card-badge impact" style="background: #e8f4f8;">Impacto: ${risco.apetite_impacto || 'Médio'}</span>
-                            <span class="kanban-card-badge prob" style="background: #e8f4f8;">Prob: ${risco.apetite_probabilidade || 'Médio'}</span>
+                            <span class="kanban-card-badge impact" style="background: #e8f4f8;">Impacto: ${ (risco.apetite_impacto || 'Médio').toUpperCase()}</span>
+                            <span class="kanban-card-badge prob" style="background: #e8f4f8;">Prob: ${ (risco.apetite_probabilidade || 'Médio').toUpperCase()}</span>
                             <span><strong>Score do apetite (risco residual): ${risco.apetiteScore}</strong> ${apetiteIcon} (${risco.apetiteNivelTexto})</span>
                         </div>
                         <div class="kanban-card-categorias">
@@ -3334,11 +3332,8 @@
 
     // Função global para visualizar risco - VERSÃO EXTREMA
     window.visualizarRiscoVisualizacao = function(idx) {
-        console.log('🟢 FUNÇÃO CHAMADA com índice:', idx);
-        
         try {
             const risco = window.riscosVisualizacao ? window.riscosVisualizacao[idx] : null;
-            console.log('🔍 Risco encontrado:', risco);
             
             if (!risco) {
                 mostrarToast('Erro: Risco não encontrado', 'error');
@@ -3351,22 +3346,23 @@
             document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
             document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
             document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
-            document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
-            document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
+            
+            // ⭐ Garantir que os valores sejam exibidos em maiúsculas
+            document.getElementById('vis-impacto').textContent = (risco.impacto || 'MÉDIO').toUpperCase();
+            document.getElementById('vis-probabilidade').textContent = (risco.probabilidade || 'MÉDIO').toUpperCase();
+            document.getElementById('vis-apetite-impacto').textContent = (risco.apetite_impacto || 'MÉDIO').toUpperCase();
+            document.getElementById('vis-apetite-probabilidade').textContent = (risco.apetite_probabilidade || 'MÉDIO').toUpperCase();
+            
             document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
             document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
             document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
             document.getElementById('vis-prazo-implantacao').textContent = risco.prazo_implantacao || '-';
             
-            // ⭐ NOVOS CAMPOS
-            document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || 'Médio';
-            document.getElementById('vis-apetite-probabilidade').textContent = risco.apetite_probabilidade || 'Médio';
-            
-            // Calcular scores
-            const score = risco.score || calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
+            // Calcular scores (usando os valores em maiúsculas)
+            const score = risco.score || calcularScoreRisco(risco.impacto || 'MÉDIO', risco.probabilidade || 'MÉDIO');
             const apetiteScore = calcularScoreRisco(
-                risco.apetite_impacto || 'Médio', 
-                risco.apetite_probabilidade || 'Médio'
+                risco.apetite_impacto || 'MÉDIO', 
+                risco.apetite_probabilidade || 'MÉDIO'
             );
             
             let nivelTexto = '';
@@ -4199,7 +4195,7 @@
             console.log('✏️ Modo edição ativo - pulando verificação de duplicidade');
             return;
         }
-        const nomeProcesso = nomeProcessoInput?.value.trim();
+        const nomeProcesso = nomeProcessoInput?.value.trim().toUpperCase();
         const areaId = idAreaSelecionado?.value || areaSelect?.value;
 
         // Buscar o auditoriaId do elemento select
@@ -5121,33 +5117,38 @@
     // ===== MAPA DE RISCO - Versão correta para JavaScript =====
     const MAPA_RISCO = {
         // Impacto Muito Alto
-        "Muito Alto_Muito Alto": 15,
-        "Alto_Muito Alto": 14,
-        "Médio_Muito Alto": 13,
-        "Baixo_Muito Alto": 12,
+        "MUITO ALTO_MUITO ALTO": 15,
+        "ALTO_MUITO ALTO": 14,
+        "MÉDIO_MUITO ALTO": 13,
+        "BAIXO_MUITO ALTO": 12,
         // Impacto Alto
-        "Muito Alto_Alto": 11,
-        "Alto_Alto": 10,
-        "Médio_Alto": 9,
-        "Baixo_Alto": 8,
+        "MUITO ALTO_ALTO": 11,
+        "ALTO_ALTO": 10,
+        "MÉDIO_ALTO": 9,
+        "BAIXO_ALTO": 8,
         // Impacto Médio
-        "Muito Alto_Médio": 7,
-        "Alto_Médio": 6,
-        "Médio_Médio": 5,
-        "Baixo_Médio": 4,
+        "MUITO ALTO_MÉDIO": 7,
+        "ALTO_MÉDIO": 6,
+        "MÉDIO_MÉDIO": 5,
+        "BAIXO_MÉDIO": 4,
         // Impacto Baixo
-        "Muito Alto_Baixo": 3,
-        "Alto_Baixo": 2,
-        "Médio_Baixo": 1,
-        "Baixo_Baixo": 0
+        "MUITO ALTO_BAIXO": 3,
+        "ALTO_BAIXO": 2,
+        "MÉDIO_BAIXO": 1,
+        "BAIXO_BAIXO": 0
     };
 
     function calcularScoreRisco(impacto, probabilidade) {
-        const chave = `${impacto}_${probabilidade}`;
+        // 🔧 Garantir que ambos estejam em maiúsculas para a chave
+        const impactoUpper = impacto.toUpperCase().trim();
+        const probabilidadeUpper = probabilidade.toUpperCase().trim();
+        const chave = `${impactoUpper}_${probabilidadeUpper}`;
+        
         const score = MAPA_RISCO[chave];
         
         if (score === undefined) {
-            console.warn(`⚠️ Combinação não encontrada no mapa: ${impacto} x ${probabilidade}`);
+            console.warn(`⚠️ Combinação não encontrada no mapa: "${chave}"`);
+            console.warn(`   Impacto: "${impactoUpper}", Probabilidade: "${probabilidadeUpper}"`);
             return 0;
         }
         
@@ -5347,20 +5348,19 @@
         limparCheckboxes('categorias-checkboxes');
         limparCheckboxes('causa-checkboxes');
         
-        // ⭐ RISCO BRUTO
-        document.getElementById('modal-impacto').value = 'Médio';
-        document.getElementById('modal-probabilidade').value = 'Médio';
+        // ⭐ RISCO BRUTO - Valores em MAIÚSCULAS
+        document.getElementById('modal-impacto').value = 'MÉDIO';
+        document.getElementById('modal-probabilidade').value = 'MÉDIO';
         document.getElementById('modal-motivo_risco').value = '';
         
         // ⭐ APETITE (RISCO RESIDUAL)
-        document.getElementById('apetite_impacto').value = 'Médio';
-        document.getElementById('apetite_probabilidade').value = 'Médio';
+        document.getElementById('apetite_impacto').value = 'MÉDIO';
+        document.getElementById('apetite_probabilidade').value = 'MÉDIO';
         
         document.getElementById('modal-como-tratar').value = '';
         document.getElementById('modal-desc-tratamento').value = '';
         document.getElementById('modal-prazo-implantacao').value = '';
         
-        // ⭐ ATUALIZAR OS SCORES
         atualizarPreviewScore();
         atualizarPreviewApetite();
     }
@@ -5373,23 +5373,39 @@
         // Categorias
         const categoriasSelecionadas = risco.categorias || [];
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => {
-            cb.checked = categoriasSelecionadas.includes(cb.value);
+            cb.checked = categoriasSelecionadas.includes(cb.value.toUpperCase());
         });
 
         // Causas
         const causasSelecionadas = risco.categoria_causa || [];
         document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => {
-            cb.checked = causasSelecionadas.includes(cb.value);
+            cb.checked = causasSelecionadas.includes(cb.value.toUpperCase());
         });
 
-        // ⭐ RISCO BRUTO
-        document.getElementById('modal-impacto').value = risco.impacto || 'Médio';
-        document.getElementById('modal-probabilidade').value = risco.probabilidade || 'Médio';
+        // Verificar se tem "OUTRA" categoria selecionada
+        const temOutra = categoriasSelecionadas.some(cat => 
+            !['RISCO FINANCEIRO', 'RISCO LEGAL', 'RISCO INERENTE', 'RISCO DE TI', 'RISCO REPUTACIONAL', 'RISCO DE INTEGRIDADE', 'RISCO AMBIENTAL'].includes(cat.toUpperCase())
+        );
+        if (temOutra) {
+            const checkOutra = document.getElementById('check-outra-categoria');
+            if (checkOutra) {
+                checkOutra.checked = true;
+                document.getElementById('outra-categoria-container').style.display = 'block';
+                const outras = categoriasSelecionadas.filter(cat => 
+                    !['RISCO FINANCEIRO', 'RISCO LEGAL', 'RISCO INERENTE', 'RISCO DE TI', 'RISCO REPUTACIONAL', 'RISCO DE INTEGRIDADE', 'RISCO AMBIENTAL'].includes(cat.toUpperCase())
+                );
+                document.getElementById('outra-categoria-texto').value = outras.join(', ');
+            }
+        }
+
+        // ⭐ RISCO BRUTO - Garantir que os selects sejam preenchidos corretamente
+        document.getElementById('modal-impacto').value = (risco.impacto || 'MÉDIO').toUpperCase();
+        document.getElementById('modal-probabilidade').value = (risco.probabilidade || 'MÉDIO').toUpperCase();
         document.getElementById('modal-motivo_risco').value = risco.motivo_risco || '';
         
-        // ⭐ APETITE (RISCO RESIDUAL) - NOVOS CAMPOS
-        document.getElementById('apetite_impacto').value = risco.apetite_impacto || 'Médio';
-        document.getElementById('apetite_probabilidade').value = risco.apetite_probabilidade || 'Médio';
+        // ⭐ APETITE (RISCO RESIDUAL)
+        document.getElementById('apetite_impacto').value = (risco.apetite_impacto || 'MÉDIO').toUpperCase();
+        document.getElementById('apetite_probabilidade').value = (risco.apetite_probabilidade || 'MÉDIO').toUpperCase();
 
         document.getElementById('modal-como-tratar').value = risco.como_tratar || '';
         document.getElementById('modal-desc-tratamento').value = risco.desc_tratamento || '';
@@ -5401,16 +5417,16 @@
     }
 
     function salvarDoModal() {
-        const nome = document.getElementById('modal-nome_risco').value.trim();
+        const nome = document.getElementById('modal-nome_risco').value.trim().toUpperCase();
         if (!nome) {
             mostrarToast('⚠️ Nome do risco é obrigatório', 'warning');
             return;
         }
 
-        // RISCO BRUTO
+        // RISCO BRUTO - Os valores já vêm em maiúsculas dos selects
         const impacto = document.getElementById('modal-impacto').value;
         const probabilidade = document.getElementById('modal-probabilidade').value;
-        const motivo = document.getElementById('modal-motivo_risco').value;
+        const motivo = document.getElementById('modal-motivo_risco').value.trim().toUpperCase();
 
         // RISCO RESIDUAL (APETITE AO RISCO)
         const apetiteImpacto = document.getElementById('apetite_impacto').value;
@@ -5420,33 +5436,33 @@
         const categorias = [];
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]:checked').forEach(cb => {
             if (cb.value === 'OUTRA') {
-                const texto = document.getElementById('outra-categoria-texto').value.trim();
+                const texto = document.getElementById('outra-categoria-texto').value.trim().toUpperCase();
                 if (texto) categorias.push(texto);
             } else {
-                categorias.push(cb.value);
+                categorias.push(cb.value.toUpperCase());
             }
         });
 
         // Coletar causas marcadas
         const categoriaCausa = [];
         document.querySelectorAll('#causa-checkboxes input[type="checkbox"]:checked').forEach(cb => {
-            categoriaCausa.push(cb.value);
+            categoriaCausa.push(cb.value.toUpperCase());
         });
 
         const novoRisco = {
             nome_risco: nome,
-            fator_risco: document.getElementById('modal-fator_risco').value,
-            melhoria: document.getElementById('modal-melhoria').value,
+            fator_risco: document.getElementById('modal-fator_risco').value.trim().toUpperCase(),
+            melhoria: document.getElementById('modal-melhoria').value.trim().toUpperCase(),
             categorias: categorias,
             categoria_causa: categoriaCausa,
-            impacto: impacto,
-            probabilidade: probabilidade,
+            impacto: impacto, // Já em maiúsculas
+            probabilidade: probabilidade, // Já em maiúsculas
             motivo_risco: motivo,
-            apetite_impacto: apetiteImpacto,
-            apetite_probabilidade: apetiteProbabilidade,
-            como_tratar: document.getElementById('modal-como-tratar').value,
-            desc_tratamento: document.getElementById('modal-desc-tratamento').value,
-            prazo_implantacao: document.getElementById('modal-prazo-implantacao').value
+            apetite_impacto: apetiteImpacto, // Já em maiúsculas
+            apetite_probabilidade: apetiteProbabilidade, // Já em maiúsculas
+            como_tratar: document.getElementById('modal-como-tratar').value.trim().toUpperCase(),
+            desc_tratamento: document.getElementById('modal-desc-tratamento').value.trim().toUpperCase(),
+            prazo_implantacao: document.getElementById('modal-prazo-implantacao').value.trim().toUpperCase()
         };
 
         if (modalModo === 'novo') {
@@ -5608,46 +5624,86 @@
         console.log('🔵 FUNÇÃO visualizarRisco CHAMADA');
         
         const risco = riscosLista[idx];
-        if (!risco) return;
+        if (!risco) {
+            mostrarToast('Risco não encontrado', 'error');
+            return;
+        }
         
-        // Preencher os campos existentes
+        // ===== 1. PREENCHER CAMPOS DE TEXTO =====
         document.getElementById('vis-nome_risco').textContent = risco.nome_risco || '-';
         document.getElementById('vis-fator_risco').textContent = risco.fator_risco || '-';
         document.getElementById('vis-melhoria').textContent = risco.melhoria || '-';
         document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
         document.getElementById('vis-categoria-causa').textContent = (risco.categoria_causa || []).join(', ') || '-';
-        document.getElementById('vis-impacto').textContent = risco.impacto || 'Médio';
-        document.getElementById('vis-probabilidade').textContent = risco.probabilidade || 'Médio';
         document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
         document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
         document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
-        document.getElementById('vis-prazo-implantacao').textContent = risco.prazo_implatacao || '-';
+        document.getElementById('vis-prazo-implantacao').textContent = risco.prazo_implantacao || '-';
         
-        // ⭐ NOVOS CAMPOS: Apetite
-        document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || 'Médio';
-        document.getElementById('vis-apetite-probabilidade').textContent = risco.apetite_probabilidade || 'Médio';
+        // ===== 2. PREENCHER CAMPOS DE IMPACTO E PROBABILIDADE (em maiúsculas) =====
+        // IMPORTANTE: Os valores no banco estão em MAIÚSCULAS (BAIXO, MÉDIO, ALTO, MUITO ALTO)
+        const impacto = (risco.impacto || 'MÉDIO').toUpperCase();
+        const probabilidade = (risco.probabilidade || 'MÉDIO').toUpperCase();
+        const apetiteImpacto = (risco.apetite_impacto || 'MÉDIO').toUpperCase();
+        const apetiteProbabilidade = (risco.apetite_probabilidade || 'MÉDIO').toUpperCase();
         
-        // Calcular score do apetite
-        const apetiteScore = calcularScoreRisco(
-            risco.apetite_impacto || 'Médio', 
-            risco.apetite_probabilidade || 'Médio'
-        );
+        document.getElementById('vis-impacto').textContent = impacto;
+        document.getElementById('vis-probabilidade').textContent = probabilidade;
+        document.getElementById('vis-apetite-impacto').textContent = apetiteImpacto;
+        document.getElementById('vis-apetite-probabilidade').textContent = apetiteProbabilidade;
+        
+        // ===== 3. CALCULAR SCORES (usando os valores em maiúsculas) =====
+        const score = calcularScoreRisco(impacto, probabilidade);
+        const apetiteScore = calcularScoreRisco(apetiteImpacto, apetiteProbabilidade);
+        
+        // ===== 4. DETERMINAR NÍVEL E COR DO SCORE =====
+        let nivelTexto = '';
+        let corScore = '';
+        let emoji = '';
+        
+        if (score <= 3) {
+            nivelTexto = 'BAIXA EXPOSIÇÃO';
+            corScore = '#28a745';  // Verde
+            emoji = '🟢';
+        } else if (score <= 7) {
+            nivelTexto = 'SOB OBSERVAÇÃO';
+            corScore = '#ffc107';  // Amarelo
+            emoji = '🟡';
+        } else if (score <= 11) {
+            nivelTexto = 'ATENÇÃO';
+            corScore = '#fd7e14';  // Laranja
+            emoji = '🟠';
+        } else {
+            nivelTexto = 'CRÍTICO';
+            corScore = '#dc3545';  // Vermelho
+            emoji = '🔴';
+        }
+        
+        // ===== 5. DETERMINAR NÍVEL DO APETITE =====
         const apetiteLevel = getScoreLevelText(apetiteScore);
+        
+        // ===== 6. EXIBIR SCORES =====
+        // Score do risco bruto (com emoji e cor)
+        document.getElementById('vis-score').innerHTML = `
+            <span style="font-weight: bold; color: ${corScore};">${emoji} ${score}</span> 
+            (${nivelTexto})
+        `;
+        
+        // Score do apetite
         document.getElementById('vis-score-apetite').textContent = `${apetiteScore} (${apetiteLevel})`;
         
-        // Calcular score do risco bruto
-        const score = calcularScoreRisco(risco.impacto || 'Médio', risco.probabilidade || 'Médio');
-        const levelText = getScoreLevelText(score);
-        let corScore = '';
-        if (score <= 3) corScore = '';
-        else if (score <= 7) corScore = '';
-        else if (score <= 11) corScore = '';
-        else corScore = '';
-        
-        document.getElementById('vis-score').innerHTML = `${corScore} ${score} (${levelText})`;
-        
-        // Mostrar modal
-        document.getElementById('modal-visualizar-risco').style.display = 'flex';
+        // ===== 7. ABRIR MODAL =====
+        const modal = document.getElementById('modal-visualizar-risco');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modal.classList.add('visible');
+            console.log('✅ Modal de visualização aberto');
+        } else {
+            console.error('❌ Modal não encontrado!');
+            mostrarToast('Erro: Modal não encontrado', 'error');
+        }
     }
 
     function editarRisco(idx) {
@@ -5803,9 +5859,9 @@
             return;
         }
         
-        const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+        const nomeProcesso = document.getElementById('nome_processo')?.value.trim().toUpperCase();
         const executores = executoresSelecionados;
-        const entrevistado = document.getElementById('entrevistado_processo')?.value.trim() || '';
+        const entrevistado = document.getElementById('entrevistado_processo')?.value.trim().toUpperCase() || '';
         
         if (!nomeProcesso || executores.length === 0) return;
         
@@ -5863,11 +5919,11 @@
         const processoId = sessionStorage.getItem('processo_id');
         if (!processoId) return;
         
-        const descricao = document.getElementById('descricao_processo')?.value || '';
-        const etapaIni = document.getElementById('etapa_ini_processo')?.value || '';
-        const produto = document.getElementById('produto_processo')?.value || '';
-        const etapaFim = document.getElementById('etapa_fim_processo')?.value || '';
-        const objetivo = document.getElementById('objetivo_processo')?.value || '';
+        const descricao = document.getElementById('descricao_processo')?.value.trim().toUpperCase() || '';
+        const etapaIni = document.getElementById('etapa_ini_processo')?.value.trim().toUpperCase() || '';
+        const produto = document.getElementById('produto_processo')?.value.trim().toUpperCase() || '';
+        const etapaFim = document.getElementById('etapa_fim_processo')?.value.trim().toUpperCase() || '';
+        const objetivo = document.getElementById('objetivo_processo')?.value.trim().toUpperCase() || '';
         
         try {
             const response = await fetch('/api/processo/salvar-detalhes', {
@@ -6340,10 +6396,10 @@
     // Função para salvar informações básicas antes de avançar
  
     async function salvarInfoBasicasAntesDeAvancar() {
-        const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+        const nomeProcesso = document.getElementById('nome_processo')?.value.trim().toUpperCase();
         if (!nomeProcesso || executoresSelecionados.length === 0) return;
 
-        const entrevistado = document.getElementById('entrevistado_processo')?.value.trim() || '';
+        const entrevistado = document.getElementById('entrevistado_processo')?.value.trim().toUpperCase() || '';
 
         // 🔍 LOG
         console.log('🔍 [DEBUG] salvarInfoBasicasAntesDeAvancar chamada');
@@ -6364,7 +6420,7 @@
         const codigoProcesso = document.getElementById('codigo_processo')?.value;
         const auditoriaId = auditoriaSelect.value;
         const areaSelectElement = document.getElementById('area_select');
-        const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
+        const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text?.toUpperCase() || '';
         
         const payload = {
             nome_processo: nomeProcesso,
@@ -6411,11 +6467,11 @@
         const processoId = sessionStorage.getItem('processo_id');
         if (!processoId) return;
         
-        const descricao = document.getElementById('descricao_processo')?.value || '';
-        const etapaIni = document.getElementById('etapa_ini_processo')?.value || '';
-        const produto = document.getElementById('produto_processo')?.value || '';
-        const etapaFim = document.getElementById('etapa_fim_processo')?.value || '';
-        const objetivo = document.getElementById('objetivo_processo')?.value || '';
+        const descricao = document.getElementById('descricao_processo')?.value.trim().toUpperCase() || '';
+        const etapaIni = document.getElementById('etapa_ini_processo')?.value.trim().toUpperCase() || '';
+        const produto = document.getElementById('produto_processo')?.value.trim().toUpperCase() || '';
+        const etapaFim = document.getElementById('etapa_fim_processo')?.value.trim().toUpperCase() || '';
+        const objetivo = document.getElementById('objetivo_processo')?.value.trim().toUpperCase() || '';
         
         try {
             const response = await fetch('/api/processo/salvar-detalhes', {
@@ -6499,7 +6555,7 @@
                         return `
                             <div class="resumo-risco-card ${nivel}">
                                 <div class="resumo-risco-header">
-                                    <span class="resumo-risco-nome">${escapeHtml(risco.nome_risco)}</span>
+                                    <span class="resumo-risco-nome">${escapeHtml(risco.nome_risco).toUpperCase()}</span>
                                     <span class="resumo-risco-score">${corScore} ${score} (${nivelTexto})</span>
                                 </div>
                                 <div class="resumo-risco-detalhes">

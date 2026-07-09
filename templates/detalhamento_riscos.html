@@ -38,72 +38,6 @@
         </div>
     </div>
 
-    <!-- MATRIZ DE ACHADOS -->
-    <div class="form-section achados-section">
-        <div class="tabela-header">
-            <h3><i class="fas fa-comments"></i> Matriz de Achados</h3>
-            <span id="achados-auditoria-info" style="font-size: 13px; color: #666; font-weight: normal;">
-                Selecione uma auditoria para visualizar os achados
-            </span>
-        </div>
-
-        <!-- Área de achados - visível apenas quando auditoria selecionada -->
-        <div id="achados-area" style="display: none;">
-            <!-- Formulário de novo achado -->
-            <div class="achado-form">
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="achado_texto"><i class="fas fa-pencil-alt"></i> Novo Achado:</label>
-                    <textarea id="achado_texto" class="form-control" rows="3" placeholder="Digite seu achado sobre esta auditoria..."></textarea>
-                </div>
-
-                <div class="achado-actions">
-                    <div class="anexo-wrapper">
-                        <label for="achado_anexo" class="btn-anexo">
-                            <i class="fas fa-paperclip"></i> Anexar arquivo
-                            <span style="font-size: 11px; color: #999; font-weight: normal;">(máx. 10MB)</span>
-                        </label>
-                        <input type="file" id="achado_anexo" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
-                        <span id="anexo-nome" class="anexo-nome"></span>
-                    </div>
-                    <button id="btn-enviar-achado" class="btn-primary">
-                        <i class="fas fa-paper-plane"></i> Registrar Achado
-                    </button>
-                </div>
-            </div>
-
-            <!-- Lista de achados -->
-            <div id="lista-achados" style="margin-top: 20px;">
-                <div class="achados-loading" style="text-align: center; padding: 20px;">
-                    <div class="dot-spinner">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                    </div>
-                    <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando achados...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mensagem quando nenhuma auditoria selecionada -->
-        <div id="achados-placeholder">
-            <div class="alert-info" style="text-align: center; padding: 40px;">
-                <i class="fas fa-info-circle"></i> Selecione uma auditoria para visualizar e adicionar achados.
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE EDIÇÃO DE ACHADO -->
-    <div id="modal-editar-achado" class="modal-checklist" style="display: none;">
-        <div class="modal-checklist-content" style="max-width: 700px;">
-            <div class="modal-checklist-header">
-                <h2><i class="fas fa-edit"></i> Editar Achado</h2>
-                <button class="modal-fechar" onclick="fecharModalEditarAchado()">&times;</button>
-            </div>
-            <div class="modal-checklist-body" id="modal-editar-achado-body">
-                <!-- Conteúdo dinâmico -->
-            </div>
-        </div>
-    </div>
 
     <!-- MODAL PARA RISCOS DE ETAPA -->
     <div id="modal-risco-etapa" class="modal" style="display: none;">
@@ -306,19 +240,19 @@
                         <div class="form-group">
                             <label><i class="fas fa-chart-line"></i> Impacto *</label>
                             <select id="risco_impacto" class="form-control">
-                                <option value="Baixo">Baixo</option>
-                                <option value="Médio" selected>Médio</option>
-                                <option value="Alto">Alto</option>
-                                <option value="Muito Alto">Muito Alto</option>
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MÉDIO" selected>MÉDIO</option>
+                                <option value="ALTO">ALTO</option>
+                                <option value="MUITO ALTO">MUITO ALTO</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-chart-simple"></i> Probabilidade *</label>
                             <select id="risco_probabilidade" class="form-control">
-                                <option value="Baixo">Baixo</option>
-                                <option value="Médio" selected>Médio</option>
-                                <option value="Alto">Alto</option>
-                                <option value="Muito Alto">Muito Alto</option>
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MÉDIO" selected>MÉDIO</option>
+                                <option value="ALTO">ALTO</option>
+                                <option value="MUITO ALTO">MUITO ALTO</option>
                             </select>
                         </div>
                     </div>
@@ -348,19 +282,19 @@
                             <div class="form-group">
                                 <label>Impacto Aceitável para o Apetite ao Risco</label>
                                 <select id="apetite_impacto" class="form-control">
-                                    <option value="Baixo">Baixo</option>
-                                    <option value="Médio" selected>Médio</option>
-                                    <option value="Alto">Alto</option>
-                                    <option value="Muito Alto">Muito Alto</option>
+                                    <option value="BAIXO">BAIXO</option>
+                                    <option value="MÉDIO" selected>MÉDIO</option>
+                                    <option value="ALTO">ALTO</option>
+                                    <option value="MUITO ALTO">MUITO ALTO</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Probabilidade Aceitável para o Apetite ao Risco</label>
                                 <select id="apetite_probabilidade" class="form-control">
-                                    <option value="Baixo">Baixo</option>
-                                    <option value="Médio" selected>Médio</option>
-                                    <option value="Alto">Alto</option>
-                                    <option value="Muito Alto">Muito Alto</option>
+                                    <option value="BAIXO">BAIXO</option>
+                                    <option value="MÉDIO" selected>MÉDIO</option>
+                                    <option value="ALTO">ALTO</option>
+                                    <option value="MUITO ALTO">MUITO ALTO</option>
                                 </select>
                             </div>
                         </div>
@@ -386,10 +320,10 @@
                         </label>
                         <select id="risco_tratamento" class="form-control">
                             <option value="">Selecione uma opção...</option>
-                            <option value="Aceitar">Aceitar</option>
-                            <option value="Mitigar">Mitigar</option>
-                            <option value="Compartilhar">Compartilhar</option>
-                            <option value="Evitar">Evitar</option>
+                            <option value="ACEITAR">ACEITAR</option>
+                            <option value="MITIGAR">MITIGAR</option>
+                            <option value="COMPARTILHAR">COMPARTILHAR</option>
+                            <option value="EVITAR">EVITAR</option>
                         </select>
                     </div>
 
@@ -1573,30 +1507,41 @@
         return (bytes / 1024 / 1024).toFixed(1) + ' MB';
     }
 
-    // ====== MAPA PARA CÁLCULO DE SCORE ======
+    // ====== MAPA PARA CÁLCULO DE SCORE (COM CHAVES EM MAIÚSCULAS) ======
     const MAPA_RISCO = {
-        "Muito Alto_Muito Alto": 15,
-        "Alto_Muito Alto": 14,
-        "Médio_Muito Alto": 13,
-        "Baixo_Muito Alto": 12,
-        "Muito Alto_Alto": 11,
-        "Alto_Alto": 10,
-        "Médio_Alto": 9,
-        "Baixo_Alto": 8,
-        "Muito Alto_Médio": 7,
-        "Alto_Médio": 6,
-        "Médio_Médio": 5,
-        "Baixo_Médio": 4,
-        "Muito Alto_Baixo": 3,
-        "Alto_Baixo": 2,
-        "Médio_Baixo": 1,
-        "Baixo_Baixo": 0
+        "MUITO ALTO_MUITO ALTO": 15,
+        "ALTO_MUITO ALTO": 14,
+        "MÉDIO_MUITO ALTO": 13,
+        "BAIXO_MUITO ALTO": 12,
+        "MUITO ALTO_ALTO": 11,
+        "ALTO_ALTO": 10,
+        "MÉDIO_ALTO": 9,
+        "BAIXO_ALTO": 8,
+        "MUITO ALTO_MÉDIO": 7,
+        "ALTO_MÉDIO": 6,
+        "MÉDIO_MÉDIO": 5,
+        "BAIXO_MÉDIO": 4,
+        "MUITO ALTO_BAIXO": 3,
+        "ALTO_BAIXO": 2,
+        "MÉDIO_BAIXO": 1,
+        "BAIXO_BAIXO": 0
     };
 
     function calcularScoreRisco(impacto, probabilidade) {
-        const chave = `${impacto}_${probabilidade}`;
+        // 🔥 Garantir que ambos estejam em maiúsculas e sem espaços extras
+        const impactoUpper = impacto.toUpperCase().trim();
+        const probabilidadeUpper = probabilidade.toUpperCase().trim();
+        const chave = `${impactoUpper}_${probabilidadeUpper}`;
+        
         const score = MAPA_RISCO[chave];
-        return score !== undefined ? score : 0;
+        
+        if (score === undefined) {
+            console.warn(`⚠️ Combinação não encontrada no mapa: "${chave}"`);
+            console.warn(`   Impacto: "${impactoUpper}", Probabilidade: "${probabilidadeUpper}"`);
+            return 0;
+        }
+        
+        return score;
     }
 
     // Elementos do DOM
@@ -1604,541 +1549,7 @@
     const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
     const etapasContainer = document.getElementById('etapas-container');
 
-    // ============================================================
-    // MATRIZ DE ACHADOS - VARIÁVEIS GLOBAIS
-    // ============================================================
-    let achadoAuditoriaAtual = null;
-    let arquivosAnexados = [];
 
-    // ============================================================
-    // CARREGAR ÁREAS PARA A MATRIZ DE ACHADOS
-    // ============================================================
-    async function carregarAreasMatriz() {
-        const selectArea = document.getElementById('matriz_area_select');
-        if (!selectArea) return;
-
-        selectArea.innerHTML = '<option value="">Carregando áreas...</option>';
-
-        try {
-            const response = await fetch('/api/areas');
-            const areas = await response.json();
-
-            if (areas && areas.length > 0) {
-                selectArea.innerHTML = '<option value="">Selecione uma área...</option>';
-                areas.forEach(area => {
-                    const option = document.createElement('option');
-                    option.value = area.id_area;
-
-                    let nomeCompleto = area.nome_area;
-                    if (area.loc_unidade && area.loc_unidade.trim()) {
-                        nomeCompleto = `${area.nome_area} - ${area.loc_unidade}`;
-                    } else if (area.nome_area_original && area.loc_unidade) {
-                        nomeCompleto = `${area.nome_area_original} - ${area.loc_unidade}`;
-                    }
-
-                    option.textContent = nomeCompleto;
-                    selectArea.appendChild(option);
-                });
-                selectArea.disabled = false;
-            } else {
-                selectArea.innerHTML = '<option value="">Nenhuma área encontrada</option>';
-                selectArea.disabled = true;
-            }
-        } catch (error) {
-            console.error('Erro ao carregar áreas:', error);
-            selectArea.innerHTML = '<option value="">Erro ao carregar áreas</option>';
-            selectArea.disabled = true;
-        }
-    }
-
-    // ============================================================
-    // CARREGAR AUDITORIAS PARA A MATRIZ DE ACHADOS
-    // ============================================================
-    async function carregarAuditoriasMatriz(areaId) {
-        const selectAuditoria = document.getElementById('matriz_auditoria_select');
-
-        if (!areaId) {
-            if (selectAuditoria) {
-                selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
-                selectAuditoria.disabled = true;
-            }
-            return;
-        }
-
-        if (selectAuditoria) {
-            selectAuditoria.innerHTML = '<option value="">Carregando auditorias...</option>';
-            selectAuditoria.disabled = true;
-        }
-
-        try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
-            const data = await response.json();
-
-            if (selectAuditoria) {
-                if (data.auditorias && data.auditorias.length > 0) {
-                    selectAuditoria.innerHTML = '<option value="">Selecione uma auditoria...</option>';
-                    data.auditorias.forEach(aud => {
-                        const option = document.createElement('option');
-                        option.value = aud.id;
-                        option.textContent = `${aud.codigo_auditoria} - ${aud.titulo} (${aud.ano}) ${aud.trimestre || ''}º trim) - ${aud.unidade || ''}`;
-                        selectAuditoria.appendChild(option);
-                    });
-                    selectAuditoria.disabled = false;
-                } else {
-                    selectAuditoria.innerHTML = '<option value="">Nenhuma auditoria encontrada</option>';
-                    selectAuditoria.disabled = true;
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao carregar auditorias:', error);
-            if (selectAuditoria) {
-                selectAuditoria.innerHTML = '<option value="">Erro ao carregar</option>';
-                selectAuditoria.disabled = true;
-            }
-        }
-    }
-
-    // ============================================================
-    // CARREGAR ACHADOS
-    // ============================================================
-    async function carregarAchados(auditoriaId) {
-        const listaContainer = document.getElementById('lista-achados');
-        if (!listaContainer) return;
-
-        achadoAuditoriaAtual = auditoriaId;
-
-        listaContainer.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <div class="dot-spinner">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <p style="margin-top: 10px; color: #666; font-size: 13px;">Carregando achados...</p>
-            </div>
-        `;
-
-        try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/achados`);
-            const data = await response.json();
-
-            if (data.success && data.achados && data.achados.length > 0) {
-                let html = '';
-
-                for (const achado of data.achados) {
-                    const dataObj = new Date(achado.data_criacao);
-                    const options = {
-                        timeZone: 'America/Sao_Paulo',
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    };
-                    const dataFormatada = dataObj.toLocaleString('pt-BR', options);
-
-                    const iniciais = achado.usuario_nome
-                        ? achado.usuario_nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
-                        : '?';
-
-                    html += `
-                        <div class="achado-item" id="achado-${achado.id}">
-                            <div class="achado-header">
-                                <div class="achado-autor">
-                                    <div class="avatar">${escapeHtml(iniciais)}</div>
-                                    <span class="nome">${escapeHtml(achado.usuario_nome || 'Usuário')}</span>
-                                    <span class="data-hora">${dataFormatada}</span>
-                                </div>
-                            </div>
-                            <div class="achado-texto">${escapeHtml(achado.texto)}</div>
-                    `;
-
-                    if (achado.anexos && achado.anexos.length > 0) {
-                        html += `<div class="achado-anexos">`;
-                        for (let idx = 0; idx < achado.anexos.length; idx++) {
-                            const anexo = achado.anexos[idx];
-                            const icone = getIconeArquivo(anexo.nome);
-                            html += `
-                                <span class="anexo-badge" onclick="baixarAnexo(${achado.id}, ${idx})">
-                                    <i class="fas ${icone}"></i>
-                                    ${escapeHtml(anexo.nome)}
-                                    <span style="font-size: 10px; color: #999;">(${formatarTamanho(anexo.tamanho)})</span>
-                                </span>
-                            `;
-                        }
-                        html += `</div>`;
-                    }
-
-                    if (achado.pode_editar) {
-                        html += `
-                            <div class="achado-acoes">
-                                <button class="btn-outline" onclick="abrirEdicaoAchado(${achado.id})">
-                                    <i class="fas fa-pencil-alt"></i> Editar
-                                </button>
-                                <button class="btn-danger-outline" onclick="excluirAchado(${achado.id})">
-                                    <i class="fas fa-trash"></i> Excluir
-                                </button>
-                            </div>
-                        `;
-                    }
-
-                    html += `</div>`;
-                }
-
-                listaContainer.innerHTML = html;
-            } else {
-                listaContainer.innerHTML = `
-                    <div class="achado-vazio">
-                        <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
-                        Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
-                    </div>
-                `;
-            }
-        } catch (error) {
-            console.error('Erro ao carregar achados:', error);
-            listaContainer.innerHTML = `
-                <div class="alert-error" style="text-align: center; padding: 20px;">
-                    <i class="fas fa-exclamation-triangle"></i> Erro ao carregar achados. Tente novamente.
-                </div>
-            `;
-        }
-    }
-
-    // ============================================================
-    // ENVIAR ACHADO
-    // ============================================================
-    async function enviarAchado() {
-        const texto = document.getElementById('achado_texto');
-        const btnEnviar = document.getElementById('btn-enviar-achado');
-
-        if (!texto || !btnEnviar) return;
-
-        const textoValue = texto.value.trim();
-        if (!textoValue) {
-            mostrarToast('⚠️ Digite um achado antes de enviar.', 'warning');
-            texto.focus();
-            return;
-        }
-
-        if (!achadoAuditoriaAtual) {
-            mostrarToast('⚠️ Selecione uma auditoria para registrar achados.', 'warning');
-            return;
-        }
-
-        btnEnviar.disabled = true;
-        btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-
-        try {
-            const anexos = [];
-            const inputFile = document.getElementById('achado_anexo');
-            const files = inputFile.files;
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
-                    btnEnviar.disabled = false;
-                    btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Registrar Achado';
-                    return;
-                }
-
-                const base64 = await converterParaBase64(file);
-                anexos.push({
-                    nome: file.name,
-                    tipo: file.type || 'application/octet-stream',
-                    tamanho: file.size,
-                    base64: base64
-                });
-            }
-
-            const response = await fetch(`/api/auditoria/${achadoAuditoriaAtual}/achados`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    texto: textoValue,
-                    anexos: anexos
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Achado registrado com sucesso!', 'success');
-
-                texto.value = '';
-                document.getElementById('achado_anexo').value = '';
-                document.getElementById('anexo-nome').textContent = '';
-                arquivosAnexados = [];
-
-                await carregarAchados(achadoAuditoriaAtual);
-            } else {
-                mostrarToast('❌ Erro ao registrar achado: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao enviar achado:', error);
-            mostrarToast('❌ Erro ao enviar achado. Tente novamente.', 'error');
-        } finally {
-            btnEnviar.disabled = false;
-            btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Registrar Achado';
-        }
-    }
-
-    // ============================================================
-    // BAIXAR ANEXO
-    // ============================================================
-    async function baixarAnexo(achadoId, anexoIndex) {
-        try {
-            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
-            const data = await response.json();
-
-            if (data.success && data.url) {
-                window.open(data.url, '_blank');
-            } else {
-                mostrarToast('❌ Erro ao baixar anexo: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao baixar anexo:', error);
-            mostrarToast('❌ Erro ao baixar anexo.', 'error');
-        }
-    }
-
-    // ============================================================
-    // EXCLUIR ACHADO
-    // ============================================================
-    async function excluirAchado(achadoId) {
-        if (!confirm('Tem certeza que deseja excluir este achado?')) return;
-
-        try {
-            const response = await fetch(`/api/achado/${achadoId}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Achado excluído.', 'success');
-
-                const elemento = document.getElementById(`achado-${achadoId}`);
-                if (elemento) {
-                    elemento.style.transition = 'all 0.3s';
-                    elemento.style.opacity = '0';
-                    elemento.style.transform = 'translateX(-20px)';
-                    setTimeout(() => {
-                        elemento.remove();
-
-                        const lista = document.getElementById('lista-achados');
-                        if (lista && lista.children.length === 0) {
-                            lista.innerHTML = `
-                                <div class="achado-vazio">
-                                    <i class="fas fa-comment" style="font-size: 24px; display: block; margin-bottom: 10px; color: #ccc;"></i>
-                                    Nenhum achado registrado ainda. Seja o primeiro a registrar um achado!
-                                </div>
-                            `;
-                        }
-                    }, 300);
-                }
-            } else {
-                mostrarToast('❌ Erro ao excluir achado: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao excluir achado:', error);
-            mostrarToast('❌ Erro ao excluir achado.', 'error');
-        }
-    }
-
-    // ============================================================
-    // EDIÇÃO DE ACHADO
-    // ============================================================
-    function abrirEdicaoAchado(achadoId) {
-        const elemento = document.getElementById(`achado-${achadoId}`);
-        if (!elemento) return;
-
-        const textoElemento = elemento.querySelector('.achado-texto');
-        const textoAtual = textoElemento ? textoElemento.textContent : '';
-
-        const anexosExistentes = [];
-        const anexosContainer = elemento.querySelector('.achado-anexos');
-        if (anexosContainer) {
-            const badges = anexosContainer.querySelectorAll('.anexo-badge');
-            badges.forEach(badge => {
-                const texto = badge.textContent.replace(/\(\d+\.\d+ [KM]B\)/, '').trim();
-                anexosExistentes.push({ nome: texto });
-            });
-        }
-
-        let anexosHtml = '';
-        if (anexosExistentes.length > 0) {
-            anexosHtml = `<div class="achado-anexos" style="margin-top: 10px;">`;
-            for (let idx = 0; idx < anexosExistentes.length; idx++) {
-                const anexo = anexosExistentes[idx];
-                const icone = getIconeArquivo(anexo.nome);
-                anexosHtml += `
-                    <span class="anexo-badge" style="display: inline-flex; align-items: center; gap: 6px;">
-                        <i class="fas ${icone}"></i>
-                        ${escapeHtml(anexo.nome)}
-                        <button onclick="removerAnexo(${achadoId}, ${idx})" 
-                                style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 0 4px;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </span>
-                `;
-            }
-            anexosHtml += `</div>`;
-        }
-
-        const headerHtml = elemento.querySelector('.achado-header').outerHTML;
-
-        elemento.innerHTML = `
-            ${headerHtml}
-            <div class="achado-form" style="margin-top: 10px;">
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label for="editar_achado_texto_${achadoId}"><i class="fas fa-pencil-alt"></i> Editar Achado:</label>
-                    <textarea id="editar_achado_texto_${achadoId}" class="form-control" rows="3">${escapeHtml(textoAtual)}</textarea>
-                </div>
-
-                ${anexosHtml}
-
-                <div class="achado-actions" style="margin-top: 10px;">
-                    <div class="anexo-wrapper">
-                        <label for="editar_achado_anexo_${achadoId}" class="btn-anexo">
-                            <i class="fas fa-paperclip"></i> Adicionar anexo
-                        </label>
-                        <input type="file" id="editar_achado_anexo_${achadoId}" class="anexo-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.zip,.rar" multiple>
-                        <span id="editar_anexo-nome_${achadoId}" class="anexo-nome"></span>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-outline" onclick="cancelarEdicaoAchado(${achadoId})">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                        <button class="btn-primary" onclick="salvarEdicaoAchado(${achadoId})">
-                            <i class="fas fa-save"></i> Salvar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
-        if (inputAnexo) {
-            inputAnexo.addEventListener('change', function(e) {
-                const nomeSpan = document.getElementById(`editar_anexo-nome_${achadoId}`);
-                const files = e.target.files;
-                if (files.length > 0) {
-                    const nomes = Array.from(files).map(f => f.name);
-                    nomeSpan.textContent = nomes.length === 1 ? nomes[0] : `${nomes.length} arquivos selecionados`;
-                } else {
-                    nomeSpan.textContent = '';
-                }
-            });
-        }
-    }
-
-    function cancelarEdicaoAchado(achadoId) {
-        carregarAchados(achadoAuditoriaAtual);
-    }
-
-    async function salvarEdicaoAchado(achadoId) {
-        const textarea = document.getElementById(`editar_achado_texto_${achadoId}`);
-        if (!textarea) return;
-
-        const texto = textarea.value.trim();
-        if (!texto) {
-            mostrarToast('⚠️ O texto do achado não pode ficar vazio.', 'warning');
-            return;
-        }
-
-        const inputAnexo = document.getElementById(`editar_achado_anexo_${achadoId}`);
-        const anexos = [];
-
-        if (inputAnexo) {
-            const files = inputAnexo.files;
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                if (file.size > 10 * 1024 * 1024) {
-                    mostrarToast(`❌ O arquivo "${file.name}" excede o limite de 10MB.`, 'error');
-                    return;
-                }
-                const base64 = await converterParaBase64(file);
-                anexos.push({
-                    nome: file.name,
-                    tipo: file.type || 'application/octet-stream',
-                    tamanho: file.size,
-                    base64: base64
-                });
-            }
-        }
-
-        try {
-            const response = await fetch(`/api/achado/${achadoId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    texto: texto,
-                    anexos: anexos
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Achado atualizado com sucesso!', 'success');
-                await carregarAchados(achadoAuditoriaAtual);
-            } else {
-                mostrarToast('❌ Erro ao atualizar achado: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao salvar edição:', error);
-            mostrarToast('❌ Erro ao salvar edição.', 'error');
-        }
-    }
-
-    // ============================================================
-    // REMOVER ANEXO
-    // ============================================================
-    async function removerAnexo(achadoId, anexoIndex) {
-        if (!confirm('Tem certeza que deseja remover este anexo?')) return;
-
-        try {
-            const response = await fetch(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarToast('✅ Anexo removido com sucesso!', 'success');
-                await carregarAchados(achadoAuditoriaAtual);
-            } else {
-                mostrarToast('❌ Erro ao remover anexo: ' + (data.error || 'Tente novamente'), 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao remover anexo:', error);
-            mostrarToast('❌ Erro ao remover anexo.', 'error');
-        }
-    }
-
-    // ============================================================
-    // ATUALIZAR UI DA MATRIZ DE ACHADOS
-    // ============================================================
-    function atualizarUI(auditoriaId) {
-        const area = document.getElementById('achados-area');
-        const placeholder = document.getElementById('achados-placeholder');
-        const info = document.getElementById('achados-auditoria-info');
-
-        if (auditoriaId) {
-            area.style.display = 'block';
-            placeholder.style.display = 'none';
-            info.textContent = 'Achados da auditoria selecionada';
-            carregarAchados(auditoriaId);
-        } else {
-            area.style.display = 'none';
-            placeholder.style.display = 'block';
-            info.textContent = 'Selecione uma auditoria para visualizar os achados';
-            const lista = document.getElementById('lista-achados');
-            if (lista) lista.innerHTML = '';
-        }
-    }
 
     // ============================================================
     // CARREGAR AUDITORIAS POR ÁREA (para os filtros principais)
@@ -2381,6 +1792,11 @@
             let riscosHtml = '';
 
             for (const risco of data.riscos) {
+                // ⭐ Garantir que os valores estejam em maiúsculas para exibição
+                const impacto = (risco.impacto || 'MÉDIO').toUpperCase();
+                const probabilidade = (risco.probabilidade || 'MÉDIO').toUpperCase();
+                const tratamento = (risco.tratamento || '').toUpperCase();
+                
                 let badgeClass = '';
                 let badgeIcon = '';
 
@@ -2401,17 +1817,18 @@
                 const isAtivo = risco.ativo !== false;
                 const statusBadge = isAtivo ?
                     `<span class="status-badge status-ativo" title="Risco Ativo">
-                        <i class="fas fa-circle"></i> Ativo
+                        <i class="fas fa-circle"></i> ATIVO
                     </span>` :
                     `<span class="status-badge status-inativo" title="Risco Inativo">
-                        <i class="fas fa-circle"></i> Inativo
+                        <i class="fas fa-circle"></i> INATIVO
                     </span>`;
 
-                const categoriasLista = risco.categoria ? risco.categoria.split(', ') : [];
+                // ⭐ Garantir que categorias estejam em maiúsculas
+                const categoriasLista = risco.categoria ? risco.categoria.split(', ').map(c => c.toUpperCase()) : [];
                 const causasLista = risco.causas || [];
 
                 const categoriasHtml = categoriasLista.map(cat =>
-                    `<span class="risco-categoria-tag">Risco ${escapeHtml(cat)}</span>`
+                    `<span class="risco-categoria-tag">${escapeHtml(cat)}</span>`
                 ).join('');
 
                 const causasHtml = causasLista.map(causa =>
@@ -2420,6 +1837,11 @@
 
                 const toggleIcon = isAtivo ? 'fa-pause-circle' : 'fa-play-circle';
                 const toggleTitle = isAtivo ? 'Desativar Risco' : 'Ativar Risco';
+
+                // ⭐ Garantir que a origem esteja em maiúsculas
+                const origem = (risco.origem || '').toUpperCase();
+                const fatorRisco = (risco.fator_risco || '').toUpperCase();
+                const consequencia = (risco.consequencia || '').toUpperCase();
 
                 riscosHtml += `
                     <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}">
@@ -2457,70 +1879,64 @@
                             ` : ''}
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Fator de Risco:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.fator_risco) || '-'}</span>
+                                <span class="detalhe-valor">${escapeHtml(fatorRisco) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Consequência:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.consequencia) || '-'}</span>
+                                <span class="detalhe-valor">${escapeHtml(consequencia) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Origem:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.origem) || '-'}</span>
+                                <span class="detalhe-valor">${escapeHtml(origem) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Impacto:</span>
-                                <span class="detalhe-valor">${risco.impacto || 'Médio'}</span>
+                                <span class="detalhe-valor">${impacto}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Probabilidade:</span>
-                                <span class="detalhe-valor">${risco.probabilidade || 'Médio'}</span>
+                                <span class="detalhe-valor">${probabilidade}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Motivo da Classificação:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao) || '-'}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao || '').toUpperCase() || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Impacto Aceitável:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel) || '-'}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel || '').toUpperCase() || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Probabilidade Aceitável:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel) || '-'}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel || '').toUpperCase() || '-'}</span>
                             </div>
-                            ${risco.apetite ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Apetite ao Risco:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.apetite)}</span>
-                            </div>
-                            ` : ''}
                             ${risco.tratamento ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Tratamento:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.tratamento)}</span>
+                                <span class="detalhe-valor">${tratamento}</span>
                             </div>
                             ` : ''}
                             ${risco.desc_tratamento ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Descrição do Tratamento:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.desc_tratamento)}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.desc_tratamento || '').toUpperCase() || '-'}</span>
                             </div>
                             ` : ''}
                             ${risco.info_adicional ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Informações Adicionais:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.info_adicional)}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.info_adicional || '').toUpperCase() || '-'}</span>
                             </div>
                             ` : ''}
                             ${risco.financeiro !== null ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Impacta Financeiramente:</span>
-                                <span class="detalhe-valor">${risco.financeiro ? 'Sim' : 'Não'}</span>
+                                <span class="detalhe-valor">${risco.financeiro ? 'SIM' : 'NÃO'}</span>
                             </div>
                             ` : ''}
                             ${risco.prazo_implantacao ? `
                             <div class="risco-detalhe">
                                 <span class="detalhe-label">Prazo para Implantação:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.prazo_implantacao)}</span>
+                                <span class="detalhe-valor">${escapeHtml(risco.prazo_implantacao || '').toUpperCase() || '-'}</span>
                             </div>
                             ` : ''}
                         </div>
@@ -2541,7 +1957,7 @@
     }
 
     // ============================================================
-    // ALTERNAR STATUS DO RISCO
+    // ALTERNAR STATUS DO RISCO (CORRIGIDO)
     // ============================================================
     async function alternarStatusRisco(riscoId, novoStatus, etapaId, codigoEtapa, nomeEtapa) {
         const statusTexto = novoStatus ? 'ATIVAR' : 'DESATIVAR';
@@ -2646,7 +2062,7 @@
     }
 
     // ============================================================
-    // EDITAR RISCO DE ETAPA
+    // EDITAR RISCO DE ETAPA (CORRIGIDO)
     // ============================================================
     async function editarRiscoEtapa(riscoId, etapaId, codigoEtapa, nomeEtapa) {
         etapaIdAtual = etapaId;
@@ -2665,32 +2081,37 @@
             const risco = data.risco;
             riscoIdEditando = riscoId;
 
-            document.getElementById('risco_nome').value = risco.nome_risco;
-            document.getElementById('risco_fator').value = risco.fator_risco;
-            document.getElementById('risco_consequencia').value = risco.consequencia;
-            document.getElementById('apetite_impacto').value = risco.impacto_aceitavel;
-            document.getElementById('apetite_probabilidade').value = risco.probabilidade_aceitavel;
-            document.getElementById('risco_origem').value = risco.origem;
-            document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento;
-            document.getElementById('risco_info_adicional').value = risco.info_adicional;
+            // ⭐ Preencher campos (já em maiúsculas do banco)
+            document.getElementById('risco_nome').value = risco.nome_risco || '';
+            document.getElementById('risco_fator').value = risco.fator_risco || '';
+            document.getElementById('risco_consequencia').value = risco.consequencia || '';
+            document.getElementById('apetite_impacto').value = (risco.impacto_aceitavel || 'MÉDIO').toUpperCase();
+            document.getElementById('apetite_probabilidade').value = (risco.probabilidade_aceitavel || 'MÉDIO').toUpperCase();
+            document.getElementById('risco_origem').value = risco.origem || '';
+            document.getElementById('risco_desc_tratamento').value = risco.desc_tratamento || '';
+            document.getElementById('risco_info_adicional').value = risco.info_adicional || '';
             document.getElementById('risco_motivo').value = risco.motivo_classificacao || '';
             document.getElementById('risco_prazo_implantacao').value = risco.prazo_implantacao || '';
 
-            const categorias = risco.categoria ? risco.categoria.split(', ') : [];
+            // ⭐ Categorias (comparação case-insensitive)
+            const categorias = risco.categoria ? risco.categoria.split(', ').map(c => c.trim().toUpperCase()) : [];
             document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => {
-                cb.checked = categorias.includes(cb.value);
+                cb.checked = categorias.includes(cb.value.toUpperCase());
             });
 
+            // ⭐ Causas (comparação case-insensitive)
             const causas = risco.causas || [];
             document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => {
-                cb.checked = causas.some(c => c.trim() === cb.value);
+                cb.checked = causas.some(c => c.trim().toUpperCase() === cb.value.toUpperCase());
             });
 
-            document.getElementById('risco_impacto').value = risco.impacto;
-            document.getElementById('risco_probabilidade').value = risco.probabilidade;
-            document.getElementById('risco_tratamento').value = risco.tratamento;
+            // ⭐ Impacto e Probabilidade (já em maiúsculas)
+            document.getElementById('risco_impacto').value = (risco.impacto || 'MÉDIO').toUpperCase();
+            document.getElementById('risco_probabilidade').value = (risco.probabilidade || 'MÉDIO').toUpperCase();
+            document.getElementById('risco_tratamento').value = (risco.tratamento || '').toUpperCase();
             document.getElementById('risco_financeiro').value = risco.financeiro ? 'true' : 'false';
 
+            // ⭐ Status ativo
             const ativoValue = risco.ativo !== null && risco.ativo !== undefined ? risco.ativo : true;
             const radioAtivo = document.querySelector(`input[name="risco_ativo"][value="${ativoValue}"]`);
             if (radioAtivo) {
@@ -2753,10 +2174,10 @@
     }
 
     // ============================================================
-    // SALVAR RISCO DE ETAPA
+    // SALVAR RISCO DE ETAPA (CORRIGIDO)
     // ============================================================
     async function salvarRiscoEtapa() {
-        const nomeRisco = document.getElementById('risco_nome').value.trim();
+        const nomeRisco = document.getElementById('risco_nome').value.trim().toUpperCase();
         if (!nomeRisco) {
             mostrarToast('❌ O nome do risco é obrigatório!', 'error');
             return;
@@ -2764,12 +2185,12 @@
 
         const categoriasSelecionadas = [];
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]:checked').forEach(cb => {
-            categoriasSelecionadas.push(cb.value);
+            categoriasSelecionadas.push(cb.value.toUpperCase());
         });
 
         const causasSelecionadas = [];
         document.querySelectorAll('#causa-checkboxes input[type="checkbox"]:checked').forEach(cb => {
-            causasSelecionadas.push(cb.value);
+            causasSelecionadas.push(cb.value.toUpperCase());
         });
 
         const dados = {
@@ -2778,24 +2199,24 @@
             auditoria_id: filtroAuditoriaSelect.value || null,
             nome_risco: nomeRisco,
             categoria: categoriasSelecionadas.join(', '),
-            fator_risco: document.getElementById('risco_fator').value,
-            consequencia: document.getElementById('risco_consequencia').value,
-            impacto: document.getElementById('risco_impacto').value,
-            probabilidade: document.getElementById('risco_probabilidade').value,
-            apetite_impacto: document.getElementById('apetite_impacto').value,
-            apetite_probabilidade: document.getElementById('apetite_probabilidade').value,
+            fator_risco: document.getElementById('risco_fator').value.trim().toUpperCase(),
+            consequencia: document.getElementById('risco_consequencia').value.trim().toUpperCase(),
+            impacto: document.getElementById('risco_impacto').value.toUpperCase(),
+            probabilidade: document.getElementById('risco_probabilidade').value.toUpperCase(),
+            apetite_impacto: document.getElementById('apetite_impacto').value.toUpperCase(),
+            apetite_probabilidade: document.getElementById('apetite_probabilidade').value.toUpperCase(),
             apetite_score: calcularScoreRisco(
-                document.getElementById('apetite_impacto').value,
-                document.getElementById('apetite_probabilidade').value
+                document.getElementById('apetite_impacto').value.toUpperCase(),
+                document.getElementById('apetite_probabilidade').value.toUpperCase()
             ),
-            tratamento: document.getElementById('risco_tratamento').value,
-            origem: document.getElementById('risco_origem').value,
-            desc_tratamento: document.getElementById('risco_desc_tratamento').value,
+            tratamento: document.getElementById('risco_tratamento').value.toUpperCase(),
+            origem: document.getElementById('risco_origem').value.trim().toUpperCase(),
+            desc_tratamento: document.getElementById('risco_desc_tratamento').value.trim().toUpperCase(),
             financeiro: document.getElementById('risco_financeiro').value === 'true',
-            info_adicional: document.getElementById('risco_info_adicional').value,
+            info_adicional: document.getElementById('risco_info_adicional').value.trim().toUpperCase(),
             causas: causasSelecionadas,
-            motivo: document.getElementById('risco_motivo').value,
-            prazo_implantacao: document.getElementById('risco_prazo_implantacao').value || null,
+            motivo: document.getElementById('risco_motivo').value.trim().toUpperCase(),
+            prazo_implantacao: document.getElementById('risco_prazo_implantacao').value.trim().toUpperCase() || null,
             ativo: document.querySelector('input[name="risco_ativo"]:checked')?.value === 'true'
         };
 
@@ -2913,8 +2334,8 @@
         document.getElementById('risco_nome').value = '';
         document.getElementById('risco_fator').value = '';
         document.getElementById('risco_consequencia').value = '';
-        document.getElementById('apetite_impacto').value = 'Médio';
-        document.getElementById('apetite_probabilidade').value = 'Médio';
+        document.getElementById('apetite_impacto').value = 'MÉDIO';
+        document.getElementById('apetite_probabilidade').value = 'MÉDIO';
         document.getElementById('risco_origem').value = '';
         document.getElementById('risco_desc_tratamento').value = '';
         document.getElementById('risco_info_adicional').value = '';
@@ -2924,8 +2345,8 @@
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
         document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
 
-        document.getElementById('risco_impacto').value = 'Médio';
-        document.getElementById('risco_probabilidade').value = 'Médio';
+        document.getElementById('risco_impacto').value = 'MÉDIO';
+        document.getElementById('risco_probabilidade').value = 'MÉDIO';
         document.getElementById('risco_tratamento').value = '';
         document.getElementById('risco_financeiro').value = 'false';
 

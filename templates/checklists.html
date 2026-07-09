@@ -2927,7 +2927,7 @@
                                 </div>
                                 <div class="pergunta-opcoes" style="padding-left: 0;">
                                     <label class="radio-label">
-                                        <input type="radio" name="subresp_${i}_${subIndex}" value="SIM" ${subResposta.resposta === 'Sim' ? 'checked' : ''}> 
+                                        <input type="radio" name="subresp_${i}_${subIndex}" value="SIM" ${subResposta.resposta === 'SIM' ? 'checked' : ''}> 
                                         ✅ Sim
                                     </label>
                                     <label class="radio-label">
@@ -2949,7 +2949,7 @@
                             <!-- COMENTÁRIO COMPARTILHADO -->
                             <div class="pergunta-comentario" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e0e0e0;">
                                 <label style="font-weight: 600; color: #184145; font-size: 13px;">
-                                    <i class="fas fa-comment"></i> Comentário Compartilhado
+                                    <i class="fas fa-comment"></i> Comentário
                                 </label>
                                 <textarea class="comentario-textarea" data-index="${i}" data-ordem="1" placeholder="Comentários gerais sobre esta pergunta..." rows="2" style="margin-top: 5px;">${escapeHtml(comentarioCompartilhado)}</textarea>
                             </div>
@@ -2960,7 +2960,7 @@
                         html += `
                             <div class="evidencias-container" style="margin-top: 10px;">
                                 <label style="font-weight: 600; color: #184145; font-size: 13px;">
-                                    <i class="fas fa-paperclip"></i> Evidência Compartilhada
+                                    <i class="fas fa-paperclip"></i> Evidência
                                 </label>
                                 <button type="button" class="btn-evidencias" onclick="abrirUploadEvidencia(${i})" style="margin-top: 5px;">
                                     <i class="fas fa-cloud-upload-alt"></i> Anexar Evidência (PDF)
