@@ -91,7 +91,7 @@ class NovoDashboardKPIs:
         area_id: Optional[int] = None,
         auditoria_id: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Gera os 4 cards estratégicos"""
+        """Gera os 4 cards estratégicos do dashboard"""
         
         with engine.connect() as conn:
             
@@ -105,7 +105,6 @@ class NovoDashboardKPIs:
             """
             params_total = {}
         
-            # ⭐ APENAS O ANO AFETA O TOTAL
             if ano is not None:
                 sql_total += " AND a.ano = :ano"
                 params_total['ano'] = ano
@@ -136,14 +135,60 @@ class NovoDashboardKPIs:
             em_andamento = conn.execute(text(sql_andamento), params_andamento).fetchone()[0] or 0
             
             # ==========================================
-            # 3. Riscos Críticos (score >= 12) - TABELA riscos
+            # 3. Auditorias Concluídas
+            # ==========================================
+            sql_concluidas = """
+                SELECT COUNT(*) 
+                FROM auditorias a
+                WHERE 1=1
+            """
+            params_concluidas = {}
+            
+            if ano is not None:
+                sql_concluidas += " AND a.ano = :ano"
+                params_concluidas['ano'] = ano
+            if area_id is not None:
+                sql_concluidas += " AND a.id_area = :area_id"
+                params_concluidas['area_id'] = area_id
+            if auditoria_id is not None:
+                sql_concluidas += " AND a.id = :auditoria_id"
+                params_concluidas['auditoria_id'] = auditoria_id
+            
+            sql_concluidas += " AND a.status = 'CONCLUÍDA'"
+            concluidas = conn.execute(text(sql_concluidas), params_concluidas).fetchone()[0] or 0
+            
+            # ==========================================
+            # 4. Auditorias Inconclusivas
+            # ==========================================
+            sql_inconclusivas = """
+                SELECT COUNT(*) 
+                FROM auditorias a
+                WHERE 1=1
+            """
+            params_inconclusivas = {}
+            
+            if ano is not None:
+                sql_inconclusivas += " AND a.ano = :ano"
+                params_inconclusivas['ano'] = ano
+            if area_id is not None:
+                sql_inconclusivas += " AND a.id_area = :area_id"
+                params_inconclusivas['area_id'] = area_id
+            if auditoria_id is not None:
+                sql_inconclusivas += " AND a.id = :auditoria_id"
+                params_inconclusivas['auditoria_id'] = auditoria_id
+            
+            sql_inconclusivas += " AND a.status = 'INCONCLUSIVA'"
+            inconclusivas = conn.execute(text(sql_inconclusivas), params_inconclusivas).fetchone()[0] or 0
+            
+            # ==========================================
+            # 5. Riscos Identificados (TODOS os riscos da tabela riscos)
             # ==========================================
             sql_riscos = """
                 SELECT COUNT(*) 
                 FROM riscos r
                 JOIN processos p ON r.processo_id = p.id
                 JOIN auditorias a ON p.auditoria_id = a.id
-                WHERE r.score_risco >= 12
+                WHERE 1=1
             """
             params_riscos = {}
             
@@ -157,10 +202,10 @@ class NovoDashboardKPIs:
                 sql_riscos += " AND a.id = :auditoria_id"
                 params_riscos['auditoria_id'] = auditoria_id
             
-            riscos_criticos = conn.execute(text(sql_riscos), params_riscos).fetchone()[0] or 0
+            riscos_identificados = conn.execute(text(sql_riscos), params_riscos).fetchone()[0] or 0
             
             # ==========================================
-            # 4. Processos Mapeados (Ativos)
+            # 6. Processos Mapeados (Ativos)
             # ==========================================
             sql_processos = """
                 SELECT COUNT(*) 
@@ -184,7 +229,9 @@ class NovoDashboardKPIs:
         return {
             "total_auditorias": total_auditorias,
             "auditorias_em_andamento": em_andamento,
-            "riscos_criticos": riscos_criticos,
+            "auditorias_concluidas": concluidas,
+            "auditorias_inconclusivas": inconclusivas,
+            "riscos_identificados": riscos_identificados,
             "processos_mapeados": processos_mapeados
         }
 
@@ -534,21 +581,12 @@ class NovoDashboardKPIs:
         
         # ⭐ Mapeamento de cores por categoria
         cores_categoria = {
-            "Operacional": "#dc3545",
-            "Financeiro": "#fd7e14",
-            "Compliance": "#ffc107",
-            "TI/Segurança": "#17a2b8",
-            "Reputacional": "#6f42c1",
-            "Estratégico": "#28a745",
-            "Legal": "#0b5b99",
-            "Ambiental": "#20c997",
-            "Risco Financeiro": "#fd7e14",
-            "Risco de TI": "#17a2b8",
-            "Risco Operacional": "#dc3545",
-            "Risco de Compliance": "#ffc107",
-            "Risco Estratégico": "#28a745",
-            "Risco Reputacional": "#6f42c1",
-            "Risco Legal": "#0b5b99"
+            "RISCO FINANCEIRO": "#fd7e14",
+            "RISCO DE TI": "#17a2b8",
+            "RISCO INERENTE": "#3546dc",
+            "Risco DE INTEGRIDADE": "#ffc107",
+            "RISCO AMBIENTAL": "#28a745",
+            "RISCO REPUTACIONAL": "#6f42c1",
         }
         
         # Se não houver categorias
@@ -714,9 +752,9 @@ class NovoDashboardKPIs:
         
         # ⭐ Mapeamento das naturezas
         natureza_map = {
-            "Preditivo": "preditivo",
-            "Preventivo": "preventivo",
-            "Corretivo": "corretivo",
+            "PREDITIVO": "preditivo",
+            "PREVENTIVO": "preventivo",
+            "CORRETIVO": "corretivo",
             # Variações comuns
             "Preditiva": "preditivo",
             "Preventiva": "preventivo",
