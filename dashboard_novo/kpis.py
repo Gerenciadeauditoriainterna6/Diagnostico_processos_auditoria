@@ -132,7 +132,7 @@ class NovoDashboardKPIs:
                 sql_andamento += " AND a.id = :auditoria_id"
                 params_andamento['auditoria_id'] = auditoria_id
             
-            sql_andamento += " AND a.status = 'Em Execução'"
+            sql_andamento += " AND a.status = 'EM EXECUÇÃO'"
             em_andamento = conn.execute(text(sql_andamento), params_andamento).fetchone()[0] or 0
             
             # ==========================================
@@ -187,8 +187,6 @@ class NovoDashboardKPIs:
             "riscos_criticos": riscos_criticos,
             "processos_mapeados": processos_mapeados
         }
-    
-    # dashboard_novo/kpis.py
 
     @staticmethod
     def gerar_situacao_auditorias(
@@ -222,22 +220,18 @@ class NovoDashboardKPIs:
         
         # ⭐ Mapeamento dos status reais
         status_map = {
-            "Em Execução": "em_execucao",
-            "Inconclusiva": "inconclusiva",
-            "Concluída": "concluida",
-            "Planejamento": "planejada",
-            "Em Atraso": "em_atraso",
-            "Cancelada": "cancelada"
+            "EM EXECUÇÃO": "em_execucao",
+            "INCONCLUSIVA": "inconclusiva",
+            "EFICÁCIA VALIDADA": "eficacia_validada",
+            "FOLLOW-UP": "follow_up"
         }
         
         # Inicializar todos os contadores
         dados = {
             "em_execucao": 0,
             "inconclusiva": 0,
-            "concluida": 0,
-            "planejada": 0,
-            "em_atraso": 0,
-            "cancelada": 0
+            "eficacia_validada": 0,
+            "follow_up": 0
         }
         
         for row in result:
@@ -257,22 +251,19 @@ class NovoDashboardKPIs:
         
         # Mapeamento de cores por status
         cores_status = {
-            "em_execucao": "#ffc107",    # Amarelo
-            "inconclusiva": "#dc3545",   # Vermelho
-            "concluida": "#28a745",      # Verde
-            "planejada": "#0b5b99",      # Azul
-            "em_atraso": "#fd7e14",      # Laranja
-            "cancelada": "#6c757d"       # Cinza
+            "em_execucao": "#17a2b8",         # Azul claro
+            "inconclusiva": "#dc3545",        # Vermelho
+            "eficacia_validada": "#28a745",   # Verde
+            "follow_up": "#fd7e14"            # Laranja
         }
+
         
         # Nomes amigáveis para exibição
         nomes_status = {
             "em_execucao": "Em Execução",
             "inconclusiva": "Inconclusiva",
-            "concluida": "Concluída",
-            "planejada": "Planejada",
-            "em_atraso": "Em Atraso",
-            "cancelada": "Cancelada"
+            "eficacia_validada": "Eficácia Validada",
+            "follow_up": "Follow-up"
         }
         
         # Adicionar apenas status que têm dados > 0

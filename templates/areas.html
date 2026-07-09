@@ -2098,14 +2098,14 @@
                 btnSubmit.innerHTML = '<i class="fas fa-spinner"></i> Salvando...';
 
                 const dados = {
-                    nome: document.getElementById('nome_area').value,
-                    loc_unidade: document.getElementById('unidade_area').value,
-                    email: document.getElementById('email').value,
+                    nome: document.getElementById('nome_area').value.trim().toUpperCase(),
+                    loc_unidade: document.getElementById('unidade_area').value.trim().toUpperCase(),
+                    email: document.getElementById('email').value.trim().toLowerCase(),  // email em minúsculas
                     telefone: limparMascaraTelefone(document.getElementById('telefone').value),
-                    gestor: document.getElementById('gestor').value,
-                    superintendente: document.getElementById('superintendente').value,
-                    diretor: document.getElementById('diretor').value,
-                    objetivo: document.getElementById('objetivo').value,
+                    gestor: document.getElementById('gestor').value.trim().toUpperCase(),
+                    superintendente: document.getElementById('superintendente').value.trim().toUpperCase(),
+                    diretor: document.getElementById('diretor').value.trim().toUpperCase(),
+                    objetivo: document.getElementById('objetivo').value.trim().toUpperCase(),
                     status: 'Ativo'
                 };
 
@@ -2232,8 +2232,8 @@
                 
                 const dados = {
                     id_area: document.getElementById('func_area_id').value,
-                    nome: document.getElementById('func_nome').value,
-                    cargo: document.getElementById('func_cargo').value,
+                    nome: document.getElementById('func_nome').value.trim().toUpperCase(),
+                    cargo: document.getElementById('func_cargo').value.trim().toUpperCase(),
                     data_inicio_funcao: document.getElementById('func_data_funcao').value || null,
                     data_inicio_empresa: document.getElementById('func_data_empresa').value || null
                 };
@@ -2403,14 +2403,14 @@
 
             const areaId = document.getElementById('edit_area_id').value;
             const dados = {
-                nome: document.getElementById('edit_nome_area').value,
-                loc_unidade: document.getElementById('edit_unidade').value,
-                email: document.getElementById('edit_email').value,
+                nome: document.getElementById('edit_nome_area').value.trim().toUpperCase(),
+                loc_unidade: document.getElementById('edit_unidade').value.trim().toUpperCase(),
+                email: document.getElementById('edit_email').value.trim().toLowerCase(),
                 telefone: limparMascaraTelefone(document.getElementById('edit_telefone').value),
-                gestor: document.getElementById('edit_gestor').value,
-                superintendente: document.getElementById('edit_superintendente').value,
-                diretor: document.getElementById('edit_diretor').value,
-                objetivo: document.getElementById('edit_objetivo').value,
+                gestor: document.getElementById('edit_gestor').value.trim().toUpperCase(),
+                superintendente: document.getElementById('edit_superintendente').value.trim().toUpperCase(),
+                diretor: document.getElementById('edit_diretor').value.trim().toUpperCase(),
+                objetivo: document.getElementById('edit_objetivo').value.trim().toUpperCase(),
                 status: 'Ativo'
             };
 
@@ -2516,8 +2516,8 @@
             const funcionarioId = document.getElementById('edit_func_id').value;
             const areaId = document.getElementById('edit_func_area_id').value;
             const dados = {
-                nome: document.getElementById('edit_func_nome').value,
-                cargo: document.getElementById('edit_func_cargo').value,
+                nome: document.getElementById('edit_func_nome').value.trim().toUpperCase(),
+                cargo: document.getElementById('edit_func_cargo').value.trim().toUpperCase(),
                 data_inicio_funcao: document.getElementById('edit_func_data_funcao').value || null,
                 data_inicio_empresa: document.getElementById('edit_func_data_empresa').value || null
             };
