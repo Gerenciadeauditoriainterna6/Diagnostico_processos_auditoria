@@ -63,18 +63,8 @@
 
     <!-- ====== CARDS ESTRATÉGICOS ====== -->
     <div class="cards-grid">
-        <!-- Card 1: Total de Auditorias -->
-        <div class="stat-card stat-card-total-auditorias">
-            <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #184145, #0b5b99);">
-                <i class="fas fa-clipboard-list"></i>
-            </div>
-            <div class="stat-content">
-                <span class="stat-label">Total de Auditorias</span>
-                <span class="stat-number" id="card-total-auditorias">0</span>
-            </div>
-        </div>
 
-        <!-- Card 2: Auditorias (unificado - com status em linha separada) -->
+        <!-- Card 1: Auditorias (unificado - com status em linha separada) -->
         <div class="stat-card stat-card-auditorias">
             <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #ffc107, #ffb300);">
                 <i class="fas fa-clipboard-check"></i>
@@ -103,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Card 3: Riscos Identificados -->
+        <!-- Card 2: Riscos Identificados -->
         <div class="stat-card stat-card-riscos">
             <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #dc3545, #e74c3c);">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -114,7 +104,7 @@
             </div>
         </div>
 
-        <!-- Card 4: Processos Mapeados -->
+        <!-- Card 3: Processos Mapeados -->
         <div class="stat-card stat-card-processos">
             <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #28a745, #20c997);">
                 <i class="fas fa-project-diagram"></i>
@@ -122,6 +112,17 @@
             <div class="stat-content">
                 <span class="stat-label">Processos Identificados</span>
                 <span class="stat-number" id="card-processos-mapeados">0</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Controles Identificados -->
+        <div class="stat-card stat-card-total-controles">
+            <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #184145, #17a2b8);">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Controles Identificados</span>
+                <span class="stat-number" id="card-total-auditorias">0</span>
             </div>
         </div>
     </div>
@@ -709,8 +710,8 @@
     }
 
     /* ====== CORES DOS CARDS ====== */
-    .stat-card-total-auditorias::before {
-        background: linear-gradient(135deg, #184145, #0b5b99);
+    .stat-card-total-controles::before {
+        background: linear-gradient(135deg, rgb(24, 68, 69), #17a2b8);
     }
 
     .stat-card-auditorias::before {
@@ -1009,22 +1010,20 @@
             const data = await response.json();
             
             if (data.success) {
-                // Card 1: Total de Auditorias
-                document.getElementById('card-total-auditorias').textContent = data.dados.total_auditorias;
-                
-                // Card 2: Auditorias (detalhado)
+                // Card 1: Auditorias
                 document.getElementById('card-em-andamento').textContent = data.dados.auditorias_em_andamento;
                 document.getElementById('card-concluidas').textContent = data.dados.auditorias_concluidas || 0;
                 document.getElementById('card-inconclusivas').textContent = data.dados.auditorias_inconclusivas || 0;
                 document.getElementById('card-total-auditorias-card').textContent = data.dados.total_auditorias;
                 
-                // Card 3: Riscos Identificados (da tabela riscos)
+                // Card 2: Riscos Identificados
                 document.getElementById('card-riscos-identificados').textContent = data.dados.riscos_identificados || 0;
-                const detalheRiscos = document.getElementById('card-riscos-detalhe');
                 
+                // Card 3: Processos Identificados
+                document.getElementById('card-processos-mapeados').textContent = data.dados.processos_mapeados || 0;
                 
-                // Card 4: Processos Mapeados
-                document.getElementById('card-processos-mapeados').textContent = data.dados.processos_mapeados;
+                // Card 4: Controles Identificados
+                document.getElementById('card-total-auditorias').textContent = data.dados.total_controles || 0;  // ⭐ CORRIGIDO
                 
                 console.log('✅ Cards atualizados:', data.dados);
             }
