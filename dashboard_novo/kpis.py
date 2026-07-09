@@ -210,7 +210,7 @@ class NovoDashboardKPIs:
             sql_processos = """
                 SELECT COUNT(*) 
                 FROM processos p
-                WHERE p.status = 'ATIVO'
+                WHERE p.status = 'Ativo'
             """
             params_processos = {}
             
