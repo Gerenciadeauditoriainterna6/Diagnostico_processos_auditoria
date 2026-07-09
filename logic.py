@@ -1325,14 +1325,54 @@ MAPA_RISCO = {
     ("Muito Alto", "Baixo"): 3, ("Alto", "Baixo"): 2, ("Médio", "Baixo"): 1, ("Baixo", "Baixo"): 0
 }
 
-def calcular_risco_residual(apetite_impacto, apetite_probabilidade):
+def calcular_risco_residual(impacto_aceitavel, probabilidade_aceitavel):
     """
-    Calcula o risco residual baseado no apetite ao risco
-    Retorna o score ou None se não houver dados
+    Calcula o risco residual baseado no impacto aceitável e probabilidade aceitável
     """
-    if not apetite_impacto or not apetite_probabilidade:
+    # ⭐ Mapa de risco para calcular o score residual
+    MAPA_RISCO_RESIDUAL = {
+        ("MUITO ALTO", "MUITO ALTO"): 15,
+        ("ALTO", "MUITO ALTO"): 14,
+        ("MÉDIO", "MUITO ALTO"): 13,
+        ("BAIXO", "MUITO ALTO"): 12,
+        ("MUITO ALTO", "ALTO"): 11,
+        ("ALTO", "ALTO"): 10,
+        ("MÉDIO", "ALTO"): 9,
+        ("BAIXO", "ALTO"): 8,
+        ("MUITO ALTO", "MÉDIO"): 7,
+        ("ALTO", "MÉDIO"): 6,
+        ("MÉDIO", "MÉDIO"): 5,
+        ("BAIXO", "MÉDIO"): 4,
+        ("MUITO ALTO", "BAIXO"): 3,
+        ("ALTO", "BAIXO"): 2,
+        ("MÉDIO", "BAIXO"): 1,
+        ("BAIXO", "BAIXO"): 0
+    }
+    
+    # ⭐ Se ambos forem None, retorna None
+    if impacto_aceitavel is None and probabilidade_aceitavel is None:
         return None
-    return MAPA_RISCO.get((apetite_impacto, apetite_probabilidade), None)
+    
+    # ⭐ Se um for None, usa "Médio" como padrão
+    if impacto_aceitavel is None:
+        impacto_aceitavel = "MÉDIO"
+    if probabilidade_aceitavel is None:
+        probabilidade_aceitavel = "MÉDIO"
+    
+    # ⭐ Converter para maiúsculas e remover espaços extras
+    impacto_upper = impacto_aceitavel.strip().upper()
+    probabilidade_upper = probabilidade_aceitavel.strip().upper()
+    
+    # ⭐ Buscar no mapa
+    chave = (impacto_upper, probabilidade_upper)
+    score = MAPA_RISCO_RESIDUAL.get(chave)
+    
+    # ⭐ Se não encontrar, retorna None
+    if score is None:
+        print(f"⚠️ Combinação não encontrada para risco residual: {impacto_upper} x {probabilidade_upper}")
+        return None
+    
+    return score
 
 # ====== ESTILOS PADRÃO ======
 def get_estilos_padrao():
@@ -2141,6 +2181,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 
     print(f"🔍 Iniciando geração do relatório Panorama...")
     print(f"   area_id: {area_id}")
@@ -2264,7 +2305,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
 
     # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
     story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 2))
     
     if not funcionarios_df.empty:
         # Converter DataFrame para lista de dicionários
@@ -2321,7 +2362,8 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
         parent=normal_style,
         fontSize=8,
         leading=10,
-        leftIndent=10
+        leftIndent=10,
+        alignment=TA_JUSTIFY
     )
 
     card_texto_style = ParagraphStyle(
@@ -2752,6 +2794,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
     import io
     import os
     from database import engine
@@ -2921,7 +2964,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     
     # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
     story.append(Paragraph("Funcionários da Área", styles['subtitulo']))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 2))
     
     if not funcionarios_df.empty:
         funcionarios = funcionarios_df.to_dict('records')
@@ -2969,7 +3012,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         parent=normal_style,
         fontSize=8,
         leading=10,
-        leftIndent=10
+        leftIndent=10,
+        alignment=TA_JUSTIFY
     )
     
     texto_risco_style = ParagraphStyle(
@@ -2985,7 +3029,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         parent=normal_style,
         fontSize=7.5,
         leading=9,
-        wordWrap='CJK'
+        wordWrap='CJK',
+        alignment=TA_JUSTIFY
     )
     
     texto_etapa_style = ParagraphStyle(
@@ -2994,6 +3039,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         fontSize=8,
         leading=10,
         wordWrap='CJK',
+        alignment=TA_JUSTIFY,
         leftIndent=10
     )
     
@@ -3002,7 +3048,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         parent=normal_style,
         fontSize=8,
         leading=10,
-        wordWrap='CJK'
+        wordWrap='CJK',
+        alignment= TA_JUSTIFY
     )
     
     # Função para limitar texto
@@ -3022,27 +3069,32 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         if magnitude is None:
             return ""
         elif magnitude >= 12:
-            return "🔴"
+            return ""
         elif magnitude >= 8:
-            return "🟠"
+            return ""
         elif magnitude >= 4:
-            return "🟡"
+            return ""
         else:
-            return "🟢"
+            return ""
     
     # Para cada processo
+    
     for proc_idx, proc in enumerate(processos):
         if proc_idx > 0:
             story.append(PageBreak())
         
+        # ⭐ CORREÇÃO: Acessar os campos corretamente (agora são dicionários, não objetos)
         codigo = proc.get('codigo_processo', '-')
         nome = proc.get('nome_processo', '-')
         etapas = proc.get('etapas', [])
         
+        print(f"📋 Processo: {codigo} - {nome}")
+        print(f"   Etapas encontradas: {len(etapas)}")
+        
         # ============================================================
         # CABEÇALHO DO PROCESSO
         # ============================================================
-        story.append(Paragraph(f"<b>📋 PROCESSO {codigo}: {nome}</b>", card_titulo_style))
+        story.append(Paragraph(f"<b>PROCESSO {codigo}: {nome}</b>", card_titulo_style))
         story.append(Spacer(1, 3))
         
         # Informações do processo
@@ -3109,10 +3161,14 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         # ============================================================
         if not etapas:
             story.append(Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style))
+            print(f"Nenhuma etapa para o processo {codigo}")
         else:
             for etapa_idx, etapa in enumerate(etapas):
-                if etapa_idx > 0 and etapa_idx % 3 == 0:
-                    story.append(PageBreak())
+                # ⭐ CORREÇÃO: Acessar os campos do dicionário
+                etapa_codigo = etapa.get('codigo_etapa', '')
+                etapa_nome = etapa.get('nome_etapa', 'Etapa sem nome')
+                
+                print(f"   Etapa {etapa_codigo}: {etapa_nome}")
                 
                 # ⭐ SEPARADOR ENTRE ETAPAS
                 if etapa_idx > 0:
@@ -3123,7 +3179,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 etapa_codigo = etapa.get('codigo_etapa', '')
                 etapa_nome = etapa.get('nome_etapa', 'Etapa sem nome')
                 
-                story.append(Paragraph(f"<b>📌 Etapa {etapa_codigo}: {etapa_nome}</b>", card_subtitulo_style))
+                story.append(Paragraph(f"<b>Etapa {etapa_codigo}: {etapa_nome}</b>", card_subtitulo_style))
                 story.append(Spacer(1, 2))
                 
                 # Informações da etapa
@@ -3203,11 +3259,11 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 manual_nome = etapa.get('manual_nome', '')
                 
                 if manual_em_andamento:
-                    status_manual = "📝 Em andamento (aguardando finalização)"
+                    status_manual = "Em andamento (aguardando finalização)"
                 elif manual_nome:
-                    status_manual = f"✅ Concluído - {manual_nome}"
+                    status_manual = f"Concluído - {manual_nome}"
                 else:
-                    status_manual = "❌ Não anexado"
+                    status_manual = "Não anexado"
                 
                 info_etapa.append([
                     Paragraph("<b>Manual:</b>", card_texto_style),
@@ -3243,15 +3299,18 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 # RISCOS DA ETAPA
                 # ============================================================
                 riscos = etapa.get('riscos', [])
+                print(f"      Riscos encontrados: {len(riscos)}")
+                
                 if riscos:
-                    story.append(Paragraph("<b>⚠️ Riscos Identificados</b>", secao_titulo_style))
+                    story.append(Paragraph("<b>Riscos Identificados</b>", secao_titulo_style))
                     story.append(Spacer(1, 3))
                     
                     for risco_idx, risco in enumerate(riscos):
-                        # ⭐ SEPARADOR ENTRE RISCOS
-                        if risco_idx > 0:
-                            story.append(Paragraph("•" * 70, linha_divisoria_style))
-                            story.append(Spacer(1, 3))
+                        # ⭐ CORREÇÃO: Acessar os campos do dicionário
+                        magnitude = risco.get('magnitude')
+                        nome_risco = risco.get('nome_risco', 'Risco não nomeado')
+                        
+                        print(f"         Risco {risco_idx + 1}: {nome_risco}")
                         
                         magnitude = risco.get('magnitude')
                         emoji = get_emoji_risco(magnitude)
@@ -3410,15 +3469,16 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         # CONTROLES DO RISCO
                         # ============================================================
                         controles = risco.get('controles', [])
+                        print(f"            Controles encontrados: {len(controles)}")
+                        
                         if controles:
-                            # ⭐ TÍTULO DOS CONTROLES
-                            story.append(Paragraph("<b>📋 Controles para este risco</b>", subsecao_titulo_style))
+                            story.append(Paragraph("<b>Controles para este risco</b>", subsecao_titulo_style))
                             story.append(Spacer(1, 2))
                             
                             for controle_idx, controle in enumerate(controles):
-                                # ⭐ DESTAQUE PARA CADA CONTROLE
-                                if controle_idx > 0:
-                                    story.append(Spacer(1, 2))
+                                # ⭐ CORREÇÃO: Acessar os campos do dicionário
+                                nome_controle = controle.get('nome_controle', 'Controle não nomeado')
+                                print(f"               Controle {controle_idx + 1}: {nome_controle}")
                                 
                                 texto_controle = []
                                 texto_controle.append(f"<b>Controle {controle_idx + 1}:</b> {controle.get('nome_controle', 'Controle não nomeado')}")
@@ -3456,11 +3516,11 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                                 if controle.get('status_controle'):
                                     status_texto = controle['status_controle']
                                     if 'Ativo' in status_texto or 'ativo' in status_texto:
-                                        status_texto = f"✅ {status_texto}"
+                                        status_texto = f"{status_texto}"
                                     elif 'Inativo' in status_texto or 'inativo' in status_texto:
-                                        status_texto = f"❌ {status_texto}"
+                                        status_texto = f"{status_texto}"
                                     elif 'Em andamento' in status_texto or 'em andamento' in status_texto:
-                                        status_texto = f"🔄 {status_texto}"
+                                        status_texto = f"{status_texto}"
                                     texto_controle.append(f"  • <b>Status:</b> {status_texto}")
                                 
                                 if controle.get('responsaveis_tratamento'):
@@ -3490,7 +3550,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 if result and result[0]:
                     entrevistado = result[0]
         except Exception as e:
-            print(f"⚠️ Erro ao buscar entrevistado: {e}")
+            print(f"Erro ao buscar entrevistado: {e}")
 
     criar_pagina_validacao(
         story=story,
@@ -3637,7 +3697,7 @@ def buscar_processos_detalhamento(area_id, auditoria_id=None, processo_id=None):
                 e.arquivo_mapeamento_nome
             FROM etapas_processo e
             WHERE e.processo_id = :processo_id
-                AND (e.status_etapa = 'Ativa' OR e.status_etapa IS NULL)
+                AND (e.status_etapa = 'ATIVA' OR e.status_etapa IS NULL)
             ORDER BY e.codigo_etapa
         """)
         
@@ -4582,7 +4642,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         spaceAfter=5,
         alignment=TA_CENTER,
         spaceBefore=15,
-        textColor=colors.HexColor('#184145')
+        textColor=colors.HexColor('#184145'),
+        underline=True,
+        underlineColor=colors.HexColor('#184145'),
+        underlineWidth=1.5,  # ⭐ Mais fino para ficar elegante
+        underlineOffset=2
     )
     
     subsecao_style = ParagraphStyle(
@@ -4592,6 +4656,25 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         spaceAfter=8,
         spaceBefore=10,
         textColor=colors.HexColor('#0b5b99')
+    )
+
+    card_texto_style = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=8,
+        leading=10,
+        leftIndent=0,
+        alignment=TA_JUSTIFY
+    )
+
+    card_texto_style_secao3 = ParagraphStyle(
+        'CardTexto',
+        parent=normal_style,
+        fontSize=10,
+        leading=10,
+        leftIndent=10,
+        alignment=TA_CENTER,
+        spaceAfter=12
     )
     
     # ⭐ 3. ESTILOS PARA A TABELA DE CÉLULAS
@@ -5271,34 +5354,33 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             story.append(tabela_fu)
-
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
-    def adicionar_analise(analise, titulo):
+    def adicionar_analise_auditado(analise, titulo):
         
         # Análise Crítica
         if analise.get('analise_critica'):
-            story.append(Paragraph("<b>ANÁLISE CRÍTICA:</b>", normal_style))
+            story.append(Paragraph("<b>ANÁLISE CRÍTICA</b>", card_texto_style))
             story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
-            story.append(Spacer(1, 5))
+            story.append(Spacer(1, 10))
         
         # Sugestão de Melhoria
         if analise.get('sugestao_melhoria'):
-            story.append(Paragraph("<b>SUGESTÃO DE MELHORIA:</b>", normal_style))
+            story.append(Paragraph("<b>SUGESTÃO DE MELHORIA</b>", card_texto_style))
             story.append(Paragraph(analise['sugestao_melhoria'] or '', normal_style))  # ⭐ Adicionar or ''
-            story.append(Spacer(1, 5))
+            story.append(Spacer(1, 10))
 
         # Necessidade para implantacao
         if analise.get('necessidade_implantacao'):
-            story.append(Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO:</b>", normal_style))
+            story.append(Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO</b>", card_texto_style))
             story.append(Paragraph(analise['necessidade_implantacao'] or '', normal_style))
-            story.append(Spacer(1, 5))
+            story.append(Spacer(1, 10))
 
         # Ganho Previso
         if analise.get('ganho_previsto'):
-            story.append(Paragraph("<b>GANHO PREVISTO:</b>", normal_style))
+            story.append(Paragraph("<b>GANHO PREVISTO</b>", card_texto_style))
             story.append(Paragraph(analise['ganho_previsto'] or '', normal_style))
-            story.append(Spacer(1, 5))
+            story.append(Spacer(1, 10))
 
         # Decisão sobre implantação
         if analise.get('sugestao_sera_implantada') == True:
@@ -5321,15 +5403,117 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b>AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
+            story.append(Paragraph("<b>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
+        
+        story.append(Spacer(1, 8))
+
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
+    def adicionar_analise(analise, titulo):
+        
+        # Análise Crítica
+        if analise.get('analise_critica'):
+            story.append(Paragraph("<b>ANÁLISE CRÍTICA</b>", card_texto_style_secao3))
+            story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
+            story.append(Spacer(1, 10))
+        
+        # Sugestão de Melhoria
+        if analise.get('sugestao_melhoria'):
+            story.append(Paragraph("<b>SUGESTÃO DE MELHORIA</b>", card_texto_style_secao3))
+            story.append(Paragraph(analise['sugestao_melhoria'] or '', normal_style))  # ⭐ Adicionar or ''
+            story.append(Spacer(1, 10))
+
+        # Necessidade para implantacao
+        if analise.get('necessidade_implantacao'):
+            story.append(Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO</b>", card_texto_style_secao3))
+            story.append(Paragraph(analise['necessidade_implantacao'] or '', normal_style))
+            story.append(Spacer(1, 10))
+
+        # Ganho Previso
+        if analise.get('ganho_previsto'):
+            story.append(Paragraph("<b>GANHO PREVISTO</b>", card_texto_style_secao3))
+            story.append(Paragraph(analise['ganho_previsto'] or '', normal_style))
+            story.append(Spacer(1, 10))
+
+        # Decisão sobre implantação
+        if analise.get('sugestao_sera_implantada') == True:
+            story.append(Paragraph("<b>Esta melhoria será implantada</b>", normal_style))
+            story.append(Spacer(1, 3))
+            
+            # Plano de Ação
+            adicionar_plano_acao(analise)
+            story.append(Spacer(1, 5))
+            
+            # Histórico de Andamento
+            if analise.get('historico') and len(analise['historico']) > 0:
+                adicionar_historico(analise['historico'])
+                story.append(Spacer(1, 5))
+            
+            # Follow-ups (apenas se já implantada)
+            if analise.get('efetivamente_implantada') == True and analise.get('followups') and len(analise['followups']) > 0:
+                adicionar_followups(analise['followups'])
+                
+        elif analise.get('sugestao_sera_implantada') == False:
+            story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
+        else:
+            story.append(Paragraph("<b>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</b>", normal_style))
         
         story.append(Spacer(1, 8))
     
     # ===== FUNÇÃO PARA EXIBIR CHECKLIST (FORMATO LISTA) =====
     def adicionar_checklist_simples(checklist, titulo, perguntas):
         """Adiciona as respostas do checklist ao relatório em formato de lista"""
-        story.append(Paragraph(titulo, secao_style))
-        story.append(Spacer(1, 5))
+        
+        # ⭐ DEFINIR CORES POR TIPO DE MATRIZ
+        cores_por_titulo = {
+            'MATRIZ DE GOVERNANÇA': '#0b5b99',
+            'MATRIZ DE RISCOS': '#fd6a14',
+            'MATRIZ DE CONTROLES': '#17a2b8'
+        }
+        
+        # ⭐ DEFINIR ÍCONES POR TIPO DE MATRIZ
+        icones_por_titulo = {
+            'MATRIZ DE GOVERNANÇA': '🏛️',
+            'MATRIZ DE RISCOS': '⚠️',
+            'MATRIZ DE CONTROLES': '🛡️'
+        }
+        
+        # ⭐ Buscar a cor e ícone correspondentes (case-insensitive)
+        cor_titulo = '#184145'  # cor padrão
+        icone_titulo = '📋'      # ícone padrão
+        
+        for chave, cor in cores_por_titulo.items():
+            if chave.upper() in titulo.upper():
+                cor_titulo = cor
+                break
+        
+        # ⭐ ESTILO DO TÍTULO COM A COR CORRESPONDENTE
+        titulo_checklist_style = ParagraphStyle(
+            'TituloChecklistStyle',
+            parent=normal_style,
+            fontSize=11,
+            fontName='Helvetica-Bold',
+            textColor=colors.HexColor(cor_titulo),
+            spaceAfter=8,
+            spaceBefore=8,
+            alignment=TA_CENTER
+        )
+        
+        # ⭐ TÍTULO COM ÍCONE E COR
+        story.append(Paragraph(
+            f"{titulo}",
+            titulo_checklist_style
+        ))
+        story.append(Spacer(1, 3))
+        
+        # ⭐ LINHA DIVISÓRIA COM A COR DO TÍTULO
+        story.append(HRFlowable(
+            width="100%", 
+            thickness=1.5, 
+            color=colors.HexColor(cor_titulo), 
+            spaceBefore=3, 
+            spaceAfter=8
+        ))
         
         if not checklist:
             story.append(Paragraph(
@@ -5391,7 +5575,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             leading=12,
             leftIndent=15,
             spaceAfter=3,
-            textColor=colors.HexColor('#0b5b99'),
+            textColor=colors.HexColor(cor_titulo),  # ⭐ USA A COR DO TÍTULO
             alignment=TA_JUSTIFY
         )
         
@@ -5402,7 +5586,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             leading=12,
             leftIndent=35,
             spaceAfter=3,
-            textColor=colors.HexColor('#0b5b99'),
+            textColor=colors.HexColor(cor_titulo),  # ⭐ USA A COR DO TÍTULO
             alignment=TA_JUSTIFY
         )
         
@@ -5426,10 +5610,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             spaceAfter=8,
             textColor=colors.HexColor('#6c757d'),
             alignment=TA_JUSTIFY
-
         )
         
-        # ⭐ PERCORRER TODAS AS PERGUNTAS (não apenas as com resposta)
+        # ⭐ PERCORRER TODAS AS PERGUNTAS
         import re
         
         for idx, pergunta_texto in enumerate(perguntas):
@@ -5446,7 +5629,13 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             # ⭐ Separador entre perguntas principais
             if not is_subpergunta and idx > 0:
                 story.append(Spacer(1, 5))
-                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#E0E0E0"), spaceBefore=5, spaceAfter=5))
+                story.append(HRFlowable(
+                    width="100%", 
+                    thickness=0.5, 
+                    color=colors.HexColor("#E0E0E0"), 
+                    spaceBefore=5, 
+                    spaceAfter=5
+                ))
                 story.append(Spacer(1, 5))
             
             if is_subpergunta:
@@ -5457,7 +5646,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ))
                 
                 if resposta_texto:
-                    # Formatar resposta com cores
                     story.append(Paragraph(
                         f"<b>RESPOSTA:</b> {resposta_texto}",
                         subresposta_style
@@ -5483,7 +5671,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ))
                 
                 if resposta_texto:
-                    # Formatar resposta com cores
                     story.append(Paragraph(
                         f"<b>RESPOSTA:</b> {resposta_texto}",
                         resposta_style
@@ -5564,7 +5751,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                         'controles': 'Controles'
                     }.get(a['categoria'], a['categoria'].upper())
                     
-                    adicionar_analise(a, f"{nome_categoria}")
+                    adicionar_analise_auditado(a, f"{nome_categoria}")
                     
                     # ⭐ ADICIONAR SEPARADOR ENTRE ANÁLISES DO AUDITADO (exceto após a última)
                     if i < num_analises - 1:
@@ -5585,14 +5772,14 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     # ===== SEÇÃO 2.1: MATRIZES DE CHECKLIST =====
     adicionar_checklist_simples(
         checklist_data.get('governanca'), 
-        "Matriz de Governança - Respostas",
+        "MATRIZ DE GOVERNANÇA - RESPOSTAS",
         perguntas_governanca
     )
     story.append(PageBreak())
     
     adicionar_checklist_simples(
         checklist_data.get('riscos'), 
-        "Matriz de Riscos - Respostas",
+        "MATRIZ DE RISCOS - RESPOSTAS",
         perguntas_riscos
     )
     story.append(PageBreak())
@@ -5600,7 +5787,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     
     adicionar_checklist_simples(
         checklist_data.get('controles'), 
-        "Matriz de Controles - Respostas",
+        "MATRIZ DE CONTROLES - RESPOSTAS",
         perguntas_controles
     )
     
@@ -5609,7 +5796,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
     story.append(PageBreak())
     story.append(Paragraph("3. ANÁLISES DO AUDITOR", secao_style))
-    story.append(Paragraph("CONCEITO: ANÁLISES REALIZADAS PELO AUDITOR DURANTE A MATRIZ DE EFICÁCIA", normal_style))
     story.append(Spacer(1, 10))
     
     if not analises_auditor_list:
