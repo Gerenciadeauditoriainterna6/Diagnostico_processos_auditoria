@@ -175,9 +175,22 @@
                     </div>
                     
                     <!-- 2. Sugestão de Melhoria -->
+                
                     <div class="form-group">
                         <label><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</label>
+                        
+                        <!-- Checkbox para indicar que não há sugestão -->
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 12px; background: #fff3cd; border-radius: 8px; border-left: 3px solid #ffc107;">
+                            <input type="checkbox" id="sem_sugestao_melhoria" style="width: 16px; height: 16px; cursor: pointer;">
+                            <label for="sem_sugestao_melhoria" style="margin: 0; cursor: pointer; font-weight: 500; color: #856404;">
+                                <i class="fas fa-times-circle"></i> Não há sugestão de melhoria para esta análise
+                            </label>
+                        </div>
+                        
                         <textarea id="analise-auditado-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria identificadas..."></textarea>
+                        <small class="text-muted" style="display: block; margin-top: 5px;">
+                            <i class="fas fa-info-circle"></i> Descreva as sugestões de melhoria. Se não houver, marque a opção acima.
+                        </small>
                     </div>
                     
                     <!-- 3. Status da Sugestão de Melhoria - AGORA COM RADIO BUTTONS -->
@@ -315,7 +328,19 @@
                     <!-- 2. Sugestão de Melhoria -->
                     <div class="form-group">
                         <label><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</label>
-                        <textarea id="analise-auditor-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria..."></textarea>
+                        
+                        <!-- ⭐ Checkbox para indicar que não há sugestão -->
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 12px; background: #fff3cd; border-radius: 8px; border-left: 3px solid #ffc107;">
+                            <input type="checkbox" id="sem_sugestao_melhoria_auditor" style="width: 16px; height: 16px; cursor: pointer;">
+                            <label for="sem_sugestao_melhoria_auditor" style="margin: 0; cursor: pointer; font-weight: 500; color: #856404;">
+                                <i class="fas fa-times-circle"></i> Não há sugestão de melhoria para esta análise
+                            </label>
+                        </div>
+                        
+                        <textarea id="analise-auditor-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria identificadas..."></textarea>
+                        <small class="text-muted" style="display: block; margin-top: 5px;">
+                            <i class="fas fa-info-circle"></i> Descreva as sugestões de melhoria. Se não houver, marque a opção acima.
+                        </small>
                     </div>
                     
                     <!-- 3. Status da Sugestão de Melhoria -->
@@ -2099,6 +2124,8 @@
         ]
     };
 
+    
+
     // ============================================================
     // FUNÇÕES AUXILIARES
     // ============================================================
@@ -2310,6 +2337,17 @@
         document.getElementById('analise-auditor-necessidade').value = '';
         document.getElementById('analise-auditor-ganho').value = '';
         document.getElementById('analise-auditor-observacoes').value = '';
+
+        // ⭐ Resetar checkbox "Sem sugestão"
+        const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
+        const textarea = document.getElementById('analise-auditor-sugestao');
+        if (checkbox) checkbox.checked = false;
+        if (textarea) {
+            textarea.disabled = false;
+            textarea.style.backgroundColor = '';
+            textarea.style.color = '';
+            textarea.value = '';
+        }
         
         limparCamposPlanoAcaoAuditor();
 
@@ -2329,8 +2367,11 @@
         const analiseIdInput = document.getElementById('analise-auditor-id');
         if (analiseIdInput) analiseIdInput.removeAttribute('data-evidencia-id');
         
+        // ⭐⭐⭐ CORREÇÃO: Desmarcar TODOS os radios ⭐⭐⭐
         const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
-        radios.forEach(radio => radio.checked = (radio.value === ''));
+        radios.forEach(radio => {
+            radio.checked = false;  // ⭐ NENHUM radio marcado
+        });
         
         togglePlanoAcaoAuditor(false);
         setupImplementacaoListenerAuditor();
@@ -2353,6 +2394,26 @@
         document.getElementById('analise-auditor-necessidade').value = analise.necessidade_implantacao || '';
         document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
         document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
+
+        // ⭐⭐⭐ NOVO: Verificar se o valor é "INEXISTENTE" para marcar o checkbox ⭐⭐⭐
+        const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
+        const textarea = document.getElementById('analise-auditor-sugestao');
+        
+        if (checkbox && textarea) {
+            const sugestaoValue = analise.sugestao_melhoria || '';
+            if (sugestaoValue.trim().toUpperCase() === 'INEXISTENTE') {
+                checkbox.checked = true;
+                textarea.disabled = true;
+                textarea.style.backgroundColor = '#f5f5f5';
+                textarea.style.color = '#999';
+            } else {
+                checkbox.checked = false;
+                textarea.disabled = false;
+                textarea.style.backgroundColor = '';
+                textarea.style.color = '';
+            }
+        }
+        // ⭐⭐⭐ FIM DO NOVO CÓDIGO ⭐⭐⭐
 
         // Limpar estado anterior
         arquivoSelecionadoAuditor = null;
@@ -3680,15 +3741,30 @@
                         const categoriaClass = analise.categoria === 'governanca' ? 'categoria-governanca' : (analise.categoria === 'riscos' ? 'categoria-riscos' : 'categoria-controles')
                         const categoriaNome = analise.categoria === 'governanca' ? 'Governança' : (analise.categoria === 'riscos' ? 'Riscos' : 'Controles');
                         const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
+
+                        // Se for "INEXISTENTE", considerar que não há sugestão
+                        const temSugestaoMelhoria = analise.sugestao_melhoria && 
+                                                typeof analise.sugestao_melhoria === 'string' && 
+                                                analise.sugestao_melhoria.trim() !== '' && 
+                                                analise.sugestao_melhoria !== 'null' &&
+                                                analise.sugestao_melhoria !== 'undefined' &&
+                                                analise.sugestao_melhoria.toUpperCase() !== 'INEXISTENTE';
                         
-                        // ⭐ BADGE - EXATAMENTE IGUAL AO DO AUDITOR ⭐
+                        console.log(`🔍 Analise ID ${analise.id}: sugestao_melhoria = "${analise.sugestao_melhoria}"`);
+                        console.log(`🔍 Tipo: ${typeof analise.sugestao_melhoria}`);
+                        console.log(`🔍 Tem sugestão? ${temSugestaoMelhoria}`);
+                        
+                        // ⭐ BADGE - APENAS SE HOUVER SUGESTÃO DE MELHORIA
                         let badgeHtml = '';
-                        if (analise.sugestao_sera_implantada === true) {
-                            badgeHtml = '<span class="analise-auditado-badge badge-implantada"><i class="fas fa-check-circle"></i> Sugestão de melhoria será implantada</span>';
-                        } else if (analise.sugestao_sera_implantada === false) {
-                            badgeHtml = '<span class="analise-auditado-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
-                        } else {
-                            badgeHtml = '<span class="analise-auditado-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhoria aguardando avaliação</span>';
+                        if (temSugestaoMelhoria) {
+                            if (analise.sugestao_sera_implantada === true) {
+                                badgeHtml = '<span class="analise-auditado-badge badge-implantada"><i class="fas fa-check-circle"></i> Sugestão de melhoria será implantada</span>';
+                            } else if (analise.sugestao_sera_implantada === false) {
+                                badgeHtml = '<span class="analise-auditado-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
+                            } else {
+                                // Só mostra "aguardando avaliação" se tiver sugestão
+                                badgeHtml = '<span class="analise-auditado-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhoria aguardando avaliação</span>';
+                            }
                         }
                         
                         html += `
@@ -3859,6 +3935,26 @@
                     document.getElementById('analise-auditado-necessidade').value = analise.necessidade_implantacao || '';
                     document.getElementById('analise-auditado-ganho').value = analise.ganho_previsto || '';
                     document.getElementById('analise-auditado-observacoes').value = analise.observacoes || '';
+                    
+                    // ⭐⭐⭐ NOVO: Verificar se o valor é "INEXISTENTE" para marcar o checkbox ⭐⭐⭐
+                    const checkbox = document.getElementById('sem_sugestao_melhoria');
+                    const textarea = document.getElementById('analise-auditado-sugestao');
+                    
+                    if (checkbox && textarea) {
+                        const sugestaoValue = analise.sugestao_melhoria || '';
+                        if (sugestaoValue.trim().toUpperCase() === 'INEXISTENTE') {
+                            checkbox.checked = true;
+                            textarea.disabled = true;
+                            textarea.style.backgroundColor = '#f5f5f5';
+                            textarea.style.color = '#999';
+                        } else {
+                            checkbox.checked = false;
+                            textarea.disabled = false;
+                            textarea.style.backgroundColor = '';
+                            textarea.style.color = '';
+                        }
+                    }
+                    // ⭐⭐⭐ FIM DO NOVO CÓDIGO ⭐⭐⭐
                     
                     // ⭐⭐⭐ CARREGAR EVIDÊNCIA EXISTENTE ⭐⭐⭐
                     arquivoSelecionadoAuditadoEvidencia = null;
@@ -4221,10 +4317,25 @@
             // ⭐ NOVO: Verificar se tem evidências
             const temEvidencia = analise.evidencias && analise.evidencias.length > 0;
             
+            // ⭐⭐⭐ MELHORIA: Verificar se TEM sugestão de melhoria ⭐⭐⭐
+            const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
+            const temSugestaoMelhoria = analise.sugestao_melhoria && 
+                                    typeof analise.sugestao_melhoria === 'string' && 
+                                    !valoresSemSugestao.includes(analise.sugestao_melhoria.trim().toLowerCase());
+            
+            // ⭐ BADGE - APENAS SE HOUVER SUGESTÃO DE MELHORIA
             let badgeHtml = '';
-            if (analise.sugestao_sera_implantada === true) badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i>Sugestão de melhoria será implantada</span>';
-            else if (analise.sugestao_sera_implantada === false) badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
-            else badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhorias aguardando avaliação</span>';
+            if (temSugestaoMelhoria) {
+                if (analise.sugestao_sera_implantada === true) {
+                    badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i>Sugestão de melhoria será implantada</span>';
+                } else if (analise.sugestao_sera_implantada === false) {
+                    badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
+                } else {
+                    // Só mostra "aguardando avaliação" se tiver sugestão
+                    badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhorias aguardando avaliação</span>';
+                }
+            }
+            // Se não tiver sugestão ou for "INEXISTENTE", badgeHtml permanece vazio
             
             html += `<div class="analise-auditor-card" data-analise-id="${analise.id}">
                 <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
@@ -4799,6 +4910,70 @@
         }
     }
 
+    function setupSemSugestaoCheckbox() {
+        const checkbox = document.getElementById('sem_sugestao_melhoria');
+        const textarea = document.getElementById('analise-auditado-sugestao');
+        
+        if (!checkbox || !textarea) return;
+        
+        // Quando o checkbox for marcado, preencher o textarea com "INEXISTENTE" e desabilitar
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                textarea.value = 'INEXISTENTE';
+                textarea.disabled = true;
+                textarea.style.backgroundColor = '#f5f5f5';
+                textarea.style.color = '#999';
+            } else {
+                textarea.value = '';
+                textarea.disabled = false;
+                textarea.style.backgroundColor = '';
+                textarea.style.color = '';
+                textarea.focus();
+            }
+        });
+        
+        // Se o usuário digitar algo no textarea, desmarcar o checkbox
+        textarea.addEventListener('input', function() {
+            if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
+                checkbox.checked = false;
+            }
+        });
+    }
+
+    // ============================================================
+    // CONTROLE DO CHECKBOX "SEM SUGESTÃO DE MELHORIA" - AUDITOR
+    // ============================================================
+
+    function setupSemSugestaoCheckboxAuditor() {
+        const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
+        const textarea = document.getElementById('analise-auditor-sugestao');
+        
+        if (!checkbox || !textarea) return;
+        
+        // Quando o checkbox for marcado, preencher o textarea com "INEXISTENTE" e desabilitar
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                textarea.value = 'INEXISTENTE';
+                textarea.disabled = true;
+                textarea.style.backgroundColor = '#f5f5f5';
+                textarea.style.color = '#999';
+            } else {
+                textarea.value = '';
+                textarea.disabled = false;
+                textarea.style.backgroundColor = '';
+                textarea.style.color = '';
+                textarea.focus();
+            }
+        });
+        
+        // Se o usuário digitar algo no textarea, desmarcar o checkbox
+        textarea.addEventListener('input', function() {
+            if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
+                checkbox.checked = false;
+            }
+        });
+    }
+
     // ============================================================
     // INICIALIZAÇÃO
     // ============================================================
@@ -4847,7 +5022,10 @@
         document.getElementById('btn-salvar-followup')?.addEventListener('click', salvarFollowUp);
         document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
         
-        
+        setupSemSugestaoCheckbox();
+
+        setupSemSugestaoCheckboxAuditor();
+
         setupFileUploadEvidenciaAuditor();
         setupFileUploadEvidenciaAuditado();
 

@@ -4143,6 +4143,21 @@
                                     const tipoLabel = analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado';
                                     const icon = analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user';
                                     const tipoClass = analise.tipo_analise === 'auditor' ? 'auditor' : 'entrevistado';
+                                    
+                                    // ⭐⭐⭐ MELHORIA: Verificar se TEM sugestão de melhoria ⭐⭐⭐
+                                    const temSugestaoMelhoria = analise.sugestao_melhoria && analise.sugestao_melhoria.trim() !== '';
+                                    
+                                    // ⭐ BADGE - APENAS SE HOUVER SUGESTÃO ⭐
+                                    let statusBadge = '';
+                                    if (temSugestaoMelhoria && analise.sugestao_sera_implantada === true) {
+                                        statusBadge = '<span style="display: inline-block; background: #d4edda; color: #155724; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-check-circle"></i> Será implantada</span>';
+                                    } else if (temSugestaoMelhoria && analise.sugestao_sera_implantada === false) {
+                                        statusBadge = '<span style="display: inline-block; background: #f8d7da; color: #721c24; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-times-circle"></i> Não será implantada</span>';
+                                    } else if (temSugestaoMelhoria && analise.sugestao_sera_implantada === null) {
+                                        statusBadge = '<span style="display: inline-block; background: #fff3cd; color: #856404; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;"><i class="fas fa-clock"></i> Aguardando avaliação</span>';
+                                    }
+                                    // Se não tiver sugestão, statusBadge permanece vazio
+                                    
                                     return `
                                         <div class="analise-card">
                                             <div class="analise-card-info">
@@ -4150,6 +4165,7 @@
                                                     <span class="analise-card-tipo ${tipoClass}">
                                                         <i class="fas ${icon}"></i>
                                                         ${tipoLabel}
+                                                        ${statusBadge}
                                                     </span>
                                                     <span class="analise-card-categoria">
                                                         ${analise.categoria.charAt(0).toUpperCase() + analise.categoria.slice(1)}
@@ -4157,7 +4173,7 @@
                                                 </div>
                                                 <div class="analise-card-detalhes">
                                                     ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise Crítica:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
-                                                    ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
+                                                    ${temSugestaoMelhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
                                                     ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                                                     ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
                                                 </div>
