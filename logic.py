@@ -3364,7 +3364,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                             valor_ativo = risco['ativo']
                             # Converte booleano para "Sim" ou "Não"
                             if isinstance(valor_ativo, bool):
-                                valor_ativo = "Sim" if valor_ativo else "Não"
+                                valor_ativo = "SIM" if valor_ativo else "NÃO"
                             info_risco.append([
                                 Paragraph("<b>Risco está ativo?:</b>", card_texto_style),
                                 Paragraph(str(valor_ativo), texto_risco_style)
