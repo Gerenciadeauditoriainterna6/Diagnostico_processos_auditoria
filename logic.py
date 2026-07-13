@@ -1163,53 +1163,107 @@ def atualizar_area(area_id, dados):
         return False
 
 def atualizar_funcionario(funcionario_id, dados):
-    """Atualiza um funcionário existente"""
+    """Atualiza um funcionário e sincroniza com o cargo do gestor se for o caso"""
     from database import engine
     from sqlalchemy import text
     
     try:
-        # 1. Bscar dados ANTES da alteração
-        dados_anteriores = buscar_funcionario_por_id(funcionario_id)
-
-        if not dados_anteriores:
-            print(f"❌ Funcionário ID {funcionario_id} não encontrado")
-            return False
-        
-        # 2. Executar o UPDATE
-        query = text("""
-            UPDATE funcionarios_area
-            SET nome_funcionario = :nome,
-                cargo = :cargo,
-                data_inicio_funcao = :data_inicio_funcao,
-                data_inicio_empresa = :data_inicio_empresa
+        # 1. Buscar dados ANTES da alteração
+        query_busca = text("""
+            SELECT id, nome_funcionario, cargo, id_area 
+            FROM funcionarios_area 
             WHERE id = :id
         """)
-
+        
         with engine.connect() as conn:
-            result = conn.execute(query, {
-                "id": funcionario_id,
-                "nome": dados['nome'],
-                "cargo": dados.get('cargo', ''),
-                "data_inicio_funcao": dados.get('data_inicio_funcao'),
-                "data_inicio_empresa": dados.get('data_inicio_empresa')
+            funcionario_atual = conn.execute(query_busca, {'id': funcionario_id}).fetchone()
+            
+            if not funcionario_atual:
+                print(f"❌ Funcionário ID {funcionario_id} não encontrado")
+                return False
+            
+            nome_antigo = funcionario_atual[1]
+            cargo_antigo = funcionario_atual[2]
+            area_id = funcionario_atual[3]
+            
+            # ⭐ 2. Verificar se o funcionário é o GESTOR da área
+            query_verificar_gestor = text("""
+                SELECT id_area, gestor, cargo 
+                FROM informacoes_area 
+                WHERE id_area = :area_id 
+                AND UPPER(gestor) = UPPER(:nome_gestor)
+            """)
+            
+            gestor_area = conn.execute(query_verificar_gestor, {
+                'area_id': area_id,
+                'nome_gestor': nome_antigo
+            }).fetchone()
+            
+            # 3. Atualizar o funcionário
+            novo_nome = dados.get('nome', nome_antigo).upper().strip()
+            novo_cargo = dados.get('cargo', cargo_antigo).upper().strip()
+            
+            query_update_func = text("""
+                UPDATE funcionarios_area 
+                SET nome_funcionario = :nome,
+                    cargo = :cargo,
+                    data_inicio_funcao = :data_inicio_funcao,
+                    data_inicio_empresa = :data_inicio_empresa
+                WHERE id = :id
+            """)
+            
+            conn.execute(query_update_func, {
+                'id': funcionario_id,
+                'nome': novo_nome,
+                'cargo': novo_cargo,
+                'data_inicio_funcao': dados.get('data_inicio_funcao', None),
+                'data_inicio_empresa': dados.get('data_inicio_empresa', None)
             })
-
+            
+            # ⭐ 4. Se o funcionário é o GESTOR, atualizar o cargo na tabela informacoes_area
+            if gestor_area:
+                query_update_gestor = text("""
+                    UPDATE informacoes_area 
+                    SET cargo = :cargo
+                    WHERE id_area = :area_id 
+                    AND UPPER(gestor) = UPPER(:gestor)
+                """)
+                
+                conn.execute(query_update_gestor, {
+                    'area_id': area_id,
+                    'gestor': nome_antigo,
+                    'cargo': novo_cargo
+                })
+                
+                print(f"✅ Cargo do gestor '{nome_antigo}' atualizado para '{novo_cargo}' na tabela informacoes_area")
+            
             conn.commit()
-
-            # 3. Registrar log se a atualização foi bem-sucedida
-            if result.rowcount > 0:
-                registrar_log(
-                    tabela='funcionarios_area',
-                    registro_id=funcionario_id,
-                    operacao='UPDATE',
-                    dados_anteriores=dados_anteriores,
-                    dados_novos=dados,
-                    query_sql="UPDATE funcionarios_area SET nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa"
-                )
-
-            return result.rowcount > 0 
+            
+            # 5. Registrar log
+            from logic import registrar_log
+            registrar_log(
+                tabela='funcionarios_area',
+                registro_id=funcionario_id,
+                operacao='UPDATE',
+                dados_anteriores={
+                    'nome': nome_antigo,
+                    'cargo': cargo_antigo,
+                    'id_area': area_id
+                },
+                dados_novos={
+                    'nome': novo_nome,
+                    'cargo': novo_cargo,
+                    'id_area': area_id
+                },
+                query_sql="UPDATE funcionarios_area SET nome_funcionario, cargo, data_inicio_funcao, data_inicio_empresa"
+            )
+            
+            return True
+            
     except Exception as e:
-        print(f"Erro ao atualizar funcionário: {e}")
+        print(f"❌ Erro ao atualizar funcionário: {e}")
+        import traceback
+        traceback.print_exc()
         return False
     
 def reativar_area(area_id):
@@ -1533,6 +1587,11 @@ def formatar_telefone(telefone):
 def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None,
                  email_auditoria=None, telefone_auditoria=None):
     """Cria o rodapé padronizado com logos, email e telefone"""
+    
+    # ⭐ SE FOR A PRIMEIRA PÁGINA (CAPA), NÃO DESENHA NADA
+    if doc.page == 1:
+        return  # ⭐ NÃO DESENHA RODAPÉ NA CAPA
+    
     canvas.saveState()
     
     altura_rodape = 1.8 * cm
@@ -1541,16 +1600,21 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
     canvas.setFillColor(colors.HexColor(COR_RODAPE))
     canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
     
-    # ⭐ LINHA 1: Título e página
+    # ⭐ LINHA 1: Título e página (AJUSTADO PARA PULAR A CAPA)
     canvas.setFont('Helvetica', 8)
     canvas.setFillColor(colors.HexColor('#666666'))
+    
+    # ⭐ doc.page - 1 porque a página 1 é a capa
+    numero_pagina = doc.page - 1
+    total_paginas_sem_capa = total_paginas - 1
+    
     canvas.drawCentredString(
         pagesize[0]/2, 
         2*cm, 
-        f"{titulo_rodape} - Página {doc.page}/{total_paginas}"
+        f"{titulo_rodape} - Página {numero_pagina}/{total_paginas_sem_capa}"
     )
     
-    # ⭐ LINHA 2: Email e Telefone (COM FORMATAÇÃO)
+    # ⭐ LINHA 2: Email e Telefone
     if email_auditoria or telefone_auditoria:
         texto_contato = ""
         if email_auditoria and email_auditoria != 'Não informado':
@@ -1558,7 +1622,6 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
         if telefone_auditoria and telefone_auditoria != 'Não informado':
             if texto_contato:
                 texto_contato += " | "
-            # ⭐ APLICAR FORMATAÇÃO AO TELEFONE
             telefone_formatado = formatar_telefone(telefone_auditoria)
             texto_contato += f"Tel: {telefone_formatado}"
         
@@ -1571,7 +1634,7 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
                 texto_contato
             )
     
-    # ⭐ DESENHAR OS LOGOS
+    # ⭐ DESENHAR OS LOGOS (APENAS NAS PÁGINAS QUE NÃO SÃO A CAPA)
     desenhar_logos(canvas, pagesize, root_dir)
     
     canvas.restoreState()
@@ -2161,6 +2224,107 @@ def buscar_dados_gerencia_auditoria():
             'telefone': '(21) 99999-9999'
         }
 
+def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=None, area_nome=None, data_emissao=None):
+    """
+    Cria uma página de capa para o relatório.
+    """
+    # ⭐ TODAS AS IMPORTAÇÕES NO INÍCIO
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from reportlab.platypus import Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    import os
+    
+    # ⭐ DEPOIS USAR AS IMPORTAÇÕES
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    
+    # ⭐ USAR getSampleStyleSheet() para obter estilos padrão
+    styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    
+    # Estilos para a capa
+    titulo_capa_style = ParagraphStyle(
+        'TituloCapa',
+        parent=normal_style,
+        fontSize=24,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=10
+    )
+    
+    subtitulo_capa_style = ParagraphStyle(
+        'SubtituloCapa',
+        parent=normal_style,
+        fontSize=16,
+        fontName='Helvetica',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=20
+    )
+    
+    info_capa_style = ParagraphStyle(
+        'InfoCapa',
+        parent=normal_style,
+        fontSize=11,
+        fontName='Helvetica',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=6
+    )
+
+    info_capa_style2 = ParagraphStyle(
+        'InfoCapa',
+        parent=normal_style,
+        fontSize=11,
+        fontName='Helvetica',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=6
+    )
+    
+    # Logo (centralizado)
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    
+    if os.path.exists(logo_auditoria_path):
+        img = Image(logo_auditoria_path, width=4*cm, height=4*cm)
+        img.hAlign = 'CENTER'
+        story.append(img)
+        story.append(Spacer(1, 20))
+    
+    # Título
+    story.append(Paragraph("MAPA", titulo_capa_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", 
+                           ParagraphStyle('CustomParagraph', parent=info_capa_style, fontSize=10)))
+    story.append(Spacer(1, 30))
+    
+    # Título principal
+    story.append(Paragraph(titulo_relatorio, titulo_capa_style))
+    story.append(Spacer(1, 10))
+    
+    if subtitulo_relatorio:
+        story.append(Paragraph(subtitulo_relatorio, subtitulo_capa_style))
+    
+    story.append(Spacer(1, 60))
+    
+    # Informações adicionais
+    if area_nome:
+        story.append(Paragraph(f"{area_nome}", info_capa_style2))
+    
+    if data_emissao is None:
+        data_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    
+    story.append(Paragraph(f"Emissão: {data_emissao}", info_capa_style2))
+
+    
+    # Quebra de página após a capa
+    story.append(PageBreak())
+
 # ============================================================
 # ====== FIM FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
 # ============================================================
@@ -2211,16 +2375,27 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     normal_style = styles['normal']
 
     paragraph_style = ParagraphStyle(
-    'CustomParagraph',
-    parent=normal_style,
-    fontSize=10,
-    alignment=1,  # CENTRO
-    spaceAfter=10,
-    textColor=colors.HexColor('#0b5b99')
-)
+        'CustomParagraph',
+        parent=normal_style,
+        fontSize=10,
+        alignment=1,  # CENTRO
+        spaceAfter=10,
+        textColor=colors.HexColor('#0b5b99')
+    )
+
+    
     
     # ===== CONSTRUIR O STORY =====
     story = []
+
+    criar_pagina_capa(
+        story=story,
+        pagesize=pagesize,
+        titulo_relatorio='Relatorio de Validação',
+        subtitulo_relatorio='Matriz de Panorama',
+        area_nome=area_nome,
+        data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    )
     
     # ===== 1. BUSCAR DADOS DA ÁREA =====
     dados_area = buscar_area_por_id(area_id)
@@ -2255,17 +2430,17 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     header_data = []
     tem_logo = os.path.exists(logo_auditoria_path)
 
-    if tem_logo:
-        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
-        header_data = [[img_central]]
-        header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
-        header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
-        ]))
-        story.append(header_table)
-        story.append(Spacer(1, 10))
+    # if tem_logo:
+    #     img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+    #     header_data = [[img_central]]
+    #     header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+    #     header_table.setStyle(TableStyle([
+    #         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #         ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+    #     ]))
+    #     story.append(header_table)
+    #     story.append(Spacer(1, 10))
     
     print(f"📄 Após cabeçalho: {len(story)} elementos")
 
@@ -2274,14 +2449,14 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     titulo_style2 = styles['titulo2']
     titulo_style0 = styles['titulo0']
 
-    # ⭐ CABEÇALHO MAPA
-    story.append(Paragraph("MAPA", titulo_style))
-    story.append(Spacer(0, 0))
-    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
-    story.append(Spacer(1, 2))
+    # # ⭐ CABEÇALHO MAPA
+    # story.append(Paragraph("MAPA", titulo_style))
+    # story.append(Spacer(0, 0))
+    # story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
+    # story.append(Spacer(1, 2))
 
     # ⭐ TÍTULO PRINCIPAL
-    story.append(Paragraph("Relatório de Validação", titulo_style))
+    story.append(Paragraph("Relatório de Validação", titulo_style0))
     story.append(Paragraph("Matriz de Panorama", titulo_style0))
     story.append(Spacer(1, 5))
 
@@ -2322,7 +2497,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     else:
         story.append(Paragraph("<i>Nenhum funcionário cadastrado para esta área.</i>", normal_style))
     
-    story.append(Spacer(1, 15))
+    story.append(PageBreak())
 
     print(f"📄 Após funcionários: {len(story)} elementos")
 
@@ -2443,45 +2618,44 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
             leading=10,
             wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
         )
-        
-        if proc.get('objetivo'):
-            info_processo.append([
-                Paragraph("<b>Objetivo do Processo:</b>", card_texto_style),
-                Paragraph(proc['objetivo'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
-            ])
-        
-        if proc.get('descricao'):
-            info_processo.append([
-                Paragraph("<b>Descrição do Processo:</b>", card_texto_style),
-                Paragraph(proc['descricao'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
-            ])
-        
+
         # ⭐ EXECUTOR - SEMPRE MOSTRAR, MESMO SE VAZIO
         executor_valor = proc.get('executor') or 'Não informado'
         info_processo.append([
-            Paragraph("<b>Executor(es):</b>", card_texto_style),
+            Paragraph("<b>Quem executa o Processo?</b>", card_texto_style),
             Paragraph(executor_valor, texto_processo_style)
         ])
-        
+
+        if proc.get('descricao'):
+            info_processo.append([
+                Paragraph("<b>O que é o Processo?</b>", card_texto_style),
+                Paragraph(proc['descricao'], texto_processo_style)  # ⭐ SEM TRUNCAMENTO
+            ])
+
         if proc.get('etapa_ini'):
             info_processo.append([
-                Paragraph("<b>Onde Inicia?:</b>", card_texto_style),
+                Paragraph("<b>Onde  começa o Processo?</b>", card_texto_style),
                 Paragraph(proc['etapa_ini'], texto_processo_style)
             ])
 
         if proc.get('produto'):
             info_processo.append([
-                Paragraph("<b>Qual o Produto Gerado?:</b>", card_texto_style),
+                Paragraph("<b>Qual o produto final desse Processo?</b>", card_texto_style),
                 Paragraph(proc['produto'], texto_processo_style)
             ])
-        
+
         if proc.get('etapa_fim'):
             info_processo.append([
-                Paragraph("<b>Onde Termina?:</b>", card_texto_style),
+                Paragraph("<b>Depois de acabado, para onde envia?</b>", card_texto_style),
                 Paragraph(proc['etapa_fim'], texto_processo_style)
             ])
         
-        
+        if proc.get('objetivo'):
+            info_processo.append([
+                Paragraph("<b>Qual o objetivo do Processo? E por que faz?:</b>", card_texto_style),
+                Paragraph(proc['objetivo'], texto_processo_style)  
+            ])
+      
         if info_processo:
             # ⭐ LARGURA AJUSTADA PARA O CARD
             largura_label = 3.0 * cm
@@ -2533,19 +2707,20 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
                     leading=10,
                     wordWrap='CJK'  # ⭐ FORÇA QUEBRA DE LINHA
                 )
+
+                if risco.get('categoria'):
+                    info_risco.append([
+                        Paragraph("<b>Categoria do Risco:</b>", risco_item_style),
+                        Paragraph(risco['categoria'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
+                    ])
                 
-                # Coluna 1: Fator de Risco, Categoria, Causas
+                # Coluna: Fator de Risco, Categoria, Causas
                 if risco.get('fator_risco'):
                     info_risco.append([
                         Paragraph("<b>Fator de Risco:</b>", risco_item_style),
                         Paragraph(risco['fator_risco'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
                     ])
                 
-                if risco.get('categoria'):
-                    info_risco.append([
-                        Paragraph("<b>Categoria do Risco:</b>", risco_item_style),
-                        Paragraph(risco['categoria'], texto_risco_style)  # ⭐ SEM TRUNCAMENTO
-                    ])
                 
                 if risco.get('causas'):
                     info_risco.append([
@@ -2885,6 +3060,15 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     
     # ===== CONSTRUIR O STORY =====
     story = []
+
+    criar_pagina_capa(
+        story=story,
+        pagesize=pagesize,
+        titulo_relatorio="Relatório de Validação",
+        subtitulo_relatorio="Matriz de Detalhamento",
+        area_nome=area_nome,
+        data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    )
     
     # ===== 1. BUSCAR DADOS DA ÁREA =====
     dados_area = buscar_area_por_id(area_id)
@@ -2919,31 +3103,31 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     header_data = []
     tem_logo = os.path.exists(logo_auditoria_path)
 
-    if tem_logo:
-        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
-        header_data = [[img_central]]
-        header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
-        header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
-        ]))
-        story.append(header_table)
-        story.append(Spacer(1, 10))
+    # if tem_logo:
+    #     img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+    #     header_data = [[img_central]]
+    #     header_table = Table(header_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
+    #     header_table.setStyle(TableStyle([
+    #         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #         ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+    #     ]))
+    #     story.append(header_table)
+    #     story.append(Spacer(1, 10))
     
     # ===== 4b. TÍTULO =====
     titulo_style = styles['titulo']
     titulo_style2 = styles['titulo2']
     titulo_style0 = styles['titulo0']
 
-    # ⭐ CABEÇALHO MAPA
-    story.append(Paragraph("MAPA", titulo_style))
-    story.append(Spacer(0, 0))
-    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
-    story.append(Spacer(1, 2))
+    # # ⭐ CABEÇALHO MAPA
+    # story.append(Paragraph("MAPA", titulo_style))
+    # story.append(Spacer(0, 0))
+    # story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
+    # story.append(Spacer(1, 2))
 
     # ⭐ TÍTULO PRINCIPAL
-    story.append(Paragraph("Relatório de Validação", titulo_style))
+    story.append(Paragraph("Relatório de Validação", titulo_style0))
     story.append(Paragraph("Matriz de Detalhamento", titulo_style0))
     story.append(Spacer(1, 5))
     
@@ -2980,7 +3164,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     else:
         story.append(Paragraph("<i>Nenhum funcionário cadastrado para esta área.</i>", normal_style))
     
-    story.append(Spacer(1, 15))
+    story.append(PageBreak())
     
     # ===== 4f. PROCESSOS COM DETALHAMENTO =====
     story.append(Paragraph("Detalhamento dos Processos", styles['subtitulo']))
@@ -3364,7 +3548,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                             valor_ativo = risco['ativo']
                             # Converte booleano para "Sim" ou "Não"
                             if isinstance(valor_ativo, bool):
-                                valor_ativo = "Sim" if valor_ativo else "Não"
+                                valor_ativo = "SIM" if valor_ativo else "NÃO"
                             info_risco.append([
                                 Paragraph("<b>Risco está ativo?:</b>", card_texto_style),
                                 Paragraph(str(valor_ativo), texto_risco_style)
@@ -3853,618 +4037,6 @@ def buscar_processos_detalhamento(area_id, auditoria_id=None, processo_id=None):
     return resultados
 
 
-def gerar_relatorio_gerencial_area(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
-    """Gera relatório gerencial da área (para validação do gestor)"""
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib import colors
-    from reportlab.lib.units import cm
-    import io
-    import os
-    import math
-    import pandas as pd
-    from database import engine
-    from sqlalchemy import text
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-    from logic import get_estilo_risco
-    from PyPDF2 import PdfReader
-    from PIL import Image as PILImage
-    from reportlab.lib.utils import ImageReader
-    import copy
-    
-    buffer = io.BytesIO()
-
-    TZ_BRASILIA = ZoneInfo('America/Sao_Paulo')
-    
-    # Definir orientação da página
-    if orientacao.upper() == "PAISAGEM":
-        pagesize = landscape(A4)
-        topMargin = 1.5*cm
-        bottomMargin = 2*cm
-        leftMargin = 1.0*cm
-        rightMargin = 1.0*cm
-        col_widths = [3.0*cm, 8*cm, 12*cm, 3.0*cm]
-    else:
-        pagesize = A4
-        topMargin = 1.5*cm
-        bottomMargin = 2*cm
-        leftMargin = 3*cm
-        rightMargin = 2*cm
-        col_widths = [2.2*cm, 4.5*cm, 7.5*cm, 2.2*cm]
-    
-    styles = getSampleStyleSheet()
-    
-    titulo_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=16,
-        alignment=1,
-        spaceAfter=30,
-        textColor=colors.HexColor('#0b5b99')
-    )
-    
-    normal_style = styles['Normal']
-    
-    # ===== CONSTRUIR O STORY (conteúdo do relatório) =====
-    story = []
-    
-    # ===== CABEÇALHO COM LOGOS =====
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
-
-    header_data = []
-    tem_logo = os.path.exists(logo_auditoria_path)
-
-    if tem_logo:
-        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
-        header_data = [[img_central]]
-        header_table = Table(header_data, colWidths=[16*cm])
-        header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
-        ]))
-        story.append(header_table)
-        story.append(Spacer(1, 10))
-
-    # ===== TÍTULO =====
-    if processo_id:
-        titulo = f"Relatório de Validação - Processo {processo_id}"
-    else:
-        titulo = "Relatório de Validação (Matrizes Panorama e Detalhamento)"
-    story.append(Paragraph(titulo, titulo_style))
-    
-    # Buscar código da auditoria
-    codigo_auditoria = ""
-    if auditoria_id:
-        with engine.connect() as conn:
-            query_auditoria = text("SELECT codigo_auditoria FROM auditorias WHERE id = :auditoria_id")
-            result_aud = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
-            if result_aud:
-                codigo_auditoria = result_aud[0]
-    
-    # Informações
-    story.append(Paragraph(f"Auditoria: {codigo_auditoria}", normal_style))
-    story.append(Paragraph(f"Área: {area_nome}", normal_style))
-    story.append(Paragraph(f"Gestor Responsável e Cargo: {gestor} - {cargo}", normal_style))
-    story.append(Paragraph(f"Data/Hora de Emissão: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", normal_style))
-    story.append(Spacer(1, 20))
-    
-    # ===== BUSCAR PROCESSOS =====
-    if processo_id:
-        query = text("""
-            SELECT 
-                p.id,
-                p.codigo_processo,
-                p.nome_processo,
-                r.id as risco_id,
-                r.nome_risco,
-                r.score_risco,
-                r.impacto,
-                r.probabilidade
-            FROM processos p
-            LEFT JOIN riscos r ON p.id = r.processo_id
-            WHERE p.auditoria_id = :auditoria_id 
-              AND p.id_area = :area_id 
-              AND p.status = 'Ativo'
-              AND p.id = :processo_id
-            ORDER BY 
-                string_to_array(p.codigo_processo, '.')::int[],
-                r.score_risco DESC NULLS LAST
-        """)
-        params = {"area_id": area_id, "auditoria_id": auditoria_id, "processo_id": processo_id}
-    else:
-        query = text("""
-            SELECT 
-                p.id,
-                p.codigo_processo,
-                p.nome_processo,
-                r.id as risco_id,
-                r.nome_risco,
-                r.score_risco,
-                r.impacto,
-                r.probabilidade
-            FROM processos p
-            LEFT JOIN riscos r ON p.id = r.processo_id
-            WHERE p.auditoria_id = :auditoria_id 
-              AND p.id_area = :area_id 
-              AND p.status = 'Ativo'
-            ORDER BY 
-                string_to_array(p.codigo_processo, '.')::int[],
-                r.score_risco DESC NULLS LAST
-        """)
-        params = {"area_id": area_id, "auditoria_id": auditoria_id}
-    
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn, params=params)
-    
-    if df.empty:
-        raise Exception("Nenhum processo encontrado para os critérios selecionados.")
-    
-    total_riscos = df['risco_id'].notna().sum()
-    
-    if processo_id:
-        story.append(Paragraph(f"Processo selecionado: {df.iloc[0]['codigo_processo']} - {df.iloc[0]['nome_processo']}", normal_style))
-        story.append(Spacer(1, 10))
-    
-    story.append(Paragraph(f"Quantidade de Riscos identificados: {total_riscos}", normal_style))
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("Processos e Riscos Identificados", styles['Heading2']))
-    story.append(Spacer(1, 10))
-    
-    data = [[
-        Paragraph("Código", normal_style),
-        Paragraph("Processo", normal_style),
-        Paragraph("Risco Identificado", normal_style),
-        Paragraph("Risco Bruto", normal_style)
-    ]]
-    
-    for _, row in df.iterrows():
-        codigo = Paragraph(str(row['codigo_processo']) if row['codigo_processo'] else "N/A", normal_style)
-        nome_processo = Paragraph(str(row['nome_processo']) if row['nome_processo'] else "Não informado", normal_style)
-        
-        if row['risco_id']:
-            nome_risco = str(row['nome_risco']) if row['nome_risco'] else "Risco não nomeado"
-            risco_nome = Paragraph(nome_risco, normal_style)
-            
-            score = row['score_risco']
-            if isinstance(score, float) and math.isnan(score):
-                score = None
-            
-            cor_risco, _ = get_estilo_risco(score)
-            texto_score = str(int(score)) if score is not None else "-"
-            risco_bruto = Paragraph(f'<font color="{cor_risco}">{texto_score}</font>', normal_style)
-        else:
-            risco_nome = Paragraph("<i>Nenhum risco cadastrado</i>", normal_style)
-            risco_bruto = Paragraph("0", normal_style)
-        
-        data.append([codigo, nome_processo, risco_nome, risco_bruto])
-    
-    tabela = Table(data, colWidths=col_widths, repeatRows=1)
-    
-    tabela_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-        ('TOPPADDING', (0, 0), (-1, 0), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
-        ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
-        ('VALIGN', (3, 1), (3, -1), 'MIDDLE'),
-        ('VALIGN', (1, 1), (2, -1), 'TOP'),
-        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-        ('ALIGN', (3, 1), (3, -1), 'CENTER'),
-        ('ALIGN', (1, 1), (2, -1), 'LEFT'),
-    ])
-    
-    for i in range(1, len(data)):
-        if i % 2 == 1:
-            tabela_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#e8f4f8'))
-    
-    tabela.setStyle(tabela_style)
-    story.append(tabela)
-
-    # ===== SEÇÃO 2: DETALHAMENTO POR PROCESSO =====
-    story.append(PageBreak())
-    story.append(Paragraph("Detalhamento dos Processos", styles['Heading1']))
-    story.append(Spacer(1, 15))
-    
-    etapa_header_style = ParagraphStyle(
-        'EtapaHeader',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.HexColor('#184145'),
-        fontName='Helvetica-Bold',
-        spaceBefore=10,
-        spaceAfter=5,
-    )
-    
-    sub_header_style = ParagraphStyle(
-        'SubHeader',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.HexColor('#0b5b99'),
-        fontName='Helvetica-Bold',
-        spaceBefore=8,
-        spaceAfter=4,
-    )
-    
-    def add_separador(cor=colors.HexColor('#cccccc'), espaco_antes=5, espaco_depois=5):
-        story.append(Spacer(1, espaco_antes))
-        sep_data = [['']]
-        sep_table = Table(sep_data, colWidths=[pagesize[0] - leftMargin - rightMargin])
-        sep_table.setStyle(TableStyle([
-            ('LINEBELOW', (0, 0), (-1, 0), 0.5, cor),
-        ]))
-        story.append(sep_table)
-        story.append(Spacer(1, espaco_depois))
-    
-    if processo_id:
-        query_processos = text("""
-            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo,
-                p.descricao, p.etapa_ini, p.etapa_fim, p.produto
-            FROM processos p
-            WHERE p.auditoria_id = :auditoria_id 
-            AND p.id_area = :area_id 
-            AND p.status = 'Ativo'
-            AND p.id = :processo_id
-            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo,
-                    p.descricao, p.etapa_ini, p.etapa_fim, p.produto
-            ORDER BY string_to_array(p.codigo_processo, '.')::int[]
-        """)
-        params_processos = {"area_id": area_id, "auditoria_id": auditoria_id, "processo_id": processo_id}
-    else:
-        query_processos = text("""
-            SELECT p.id, p.codigo_processo, p.nome_processo, p.objetivo,
-                p.descricao, p.etapa_ini, p.etapa_fim, p.produto
-            FROM processos p
-            WHERE p.auditoria_id = :auditoria_id 
-            AND p.id_area = :area_id 
-            AND p.status = 'Ativo'
-            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo,
-                    p.descricao, p.etapa_ini, p.etapa_fim, p.produto
-            ORDER BY string_to_array(p.codigo_processo, '.')::int[]
-        """)
-        params_processos = {"area_id": area_id, "auditoria_id": auditoria_id}
-    
-    with engine.connect() as conn:
-        processos = conn.execute(query_processos, params_processos).fetchall()
-    
-    for idx, proc in enumerate(processos):
-        proc_id = proc[0]
-        proc_codigo = proc[1]
-        proc_nome = proc[2]
-        proc_objetivo = proc[3] or 'Não informado'
-        proc_descricao = proc[4] or ''
-        proc_etapa_ini = proc[5] or ''
-        proc_etapa_fim = proc[6] or ''
-        proc_produto = proc[7] or ''
-        
-        if idx > 0:
-            story.append(PageBreak())
-        
-        story.append(Paragraph(
-            f"Processo: {proc_codigo} - {proc_nome}",
-            styles['Heading2']
-        ))
-        story.append(Spacer(1, 5))
-
-        # Buscar executores
-        query_executores = text("""
-            SELECT f.nome_funcionario, f.cargo
-            FROM processo_executores pe
-            JOIN funcionarios_area f ON pe.funcionario_id = f.id
-            WHERE pe.processo_id = :processo_id
-            ORDER BY f.nome_funcionario
-        """)
-
-        with engine.connect() as conn:
-            executores = conn.execute(query_executores, {"processo_id": proc_id}).fetchall()
-        executores_text = ', '.join([f"{e[0]} ({e[1]})" if e[1] else e[0] for e in executores]) if executores else 'Não informado'
-        
-        info_data = [
-            [Paragraph("Objetivo:", normal_style), Paragraph(proc_objetivo, normal_style)],
-            [Paragraph("O que é o processo?:", normal_style), Paragraph(proc_descricao or 'Não informado', normal_style)],
-            [Paragraph("Onde começa?:", normal_style), Paragraph(proc_etapa_ini or 'Não informado', normal_style)],
-            [Paragraph("Produto final:", normal_style), Paragraph(proc_produto or 'Não informado', normal_style)],
-            [Paragraph("Para onde envia?:", normal_style), Paragraph(proc_etapa_fim or 'Não informado', normal_style)],
-            [Paragraph("Executores:", normal_style), Paragraph(executores_text, normal_style)]
-        ]
-
-        info_table_style = TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-        ])
-
-        info_table = Table(info_data, colWidths=[4*cm, 12*cm])
-        info_table.setStyle(info_table_style)
-        story.append(info_table)
-        story.append(Spacer(1, 10))
-        
-        # Buscar etapas
-        query_etapas = text("""
-            SELECT ep.id, ep.nome_etapa, ep.descricao_etapa, ep.codigo_etapa
-            FROM etapas_processo ep
-            WHERE ep.processo_id = :processo_id
-            ORDER BY ep.id
-        """)
-        
-        with engine.connect() as conn:
-            etapas = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
-        
-        if not etapas:
-            story.append(Paragraph("<i>Nenhuma etapa cadastrada para este processo.</i>", normal_style))
-            continue
-        
-        story.append(Paragraph("Etapas do Processo:", styles['Heading3']))
-        story.append(Spacer(1, 5))
-        
-        for etapa_idx, etapa in enumerate(etapas):
-            etapa_id = etapa[0]
-            etapa_nome = etapa[1] or 'Etapa sem nome'
-            etapa_desc = etapa[2] or ''
-            etapa_codigo = etapa[3] or ''
-            
-            bg_cor = colors.HexColor('#f8f9fa') if etapa_idx % 2 == 0 else colors.white
-            
-            etapa_header = Paragraph(
-                f"Etapa {etapa_codigo}: {etapa_nome}", 
-                etapa_header_style
-            )
-            
-            etapa_conteudo = []
-            
-            if etapa_desc:
-                etapa_conteudo.append([
-                    Paragraph(f"{etapa_desc[:300]}{'...' if len(etapa_desc) > 300 else ''}", normal_style)
-                ])
-            
-            # Riscos da etapa
-            query_riscos_etapa = text("""
-                SELECT re.nome_risco, re.impacto, re.probabilidade, re.fator_risco
-                FROM riscos_etapa re
-                WHERE re.etapa_id = :etapa_id
-                ORDER BY re.id
-            """)
-            
-            with engine.connect() as conn:
-                riscos_etapa = conn.execute(query_riscos_etapa, {"etapa_id": etapa_id}).fetchall()
-            
-            if riscos_etapa:
-                riscos_todas = [[
-                    Paragraph("Risco", normal_style),
-                    Paragraph("Impacto", normal_style),
-                    Paragraph("Prob.", normal_style),
-                    Paragraph("Score", normal_style),
-                ]]
-                
-                for r in riscos_etapa:
-                    impacto = r[1] or 'Médio'
-                    probabilidade = r[2] or 'Médio'
-                    score = calcular_score_risco_etapa(impacto, probabilidade)
-                    cor_risco, _ = get_estilo_risco(score)
-                    
-                    riscos_todas.append([
-                        Paragraph(str(r[0]) if r[0] else "-", normal_style),
-                        Paragraph(impacto, normal_style),
-                        Paragraph(probabilidade, normal_style),
-                        Paragraph(f'<font color="{cor_risco}">{score}</font>', normal_style),
-                    ])
-                
-                tabela_riscos = Table(riscos_todas, colWidths=[6*cm, 3*cm, 3*cm, 3*cm])
-                tabela_riscos.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fd6a14')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dddddd')),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ('TOPPADDING', (0, 0), (-1, -1), 5),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                
-                etapa_conteudo.append([Paragraph("Riscos:", sub_header_style)])
-                etapa_conteudo.append([tabela_riscos])
-            else:
-                etapa_conteudo.append([Paragraph("<i>Nenhum risco cadastrado.</i>", normal_style)])
-            
-            # Controles da etapa
-            query_controles_etapa = text("""
-                SELECT ce.nome_controle, ce.como_executado, ce.natureza
-                FROM controles_etapa ce
-                WHERE ce.risco_id IN (
-                    SELECT id FROM riscos_etapa WHERE etapa_id = :etapa_id
-                )
-                ORDER BY ce.id
-            """)
-            
-            with engine.connect() as conn:
-                controles_etapa = conn.execute(query_controles_etapa, {"etapa_id": etapa_id}).fetchall()
-            
-            if controles_etapa:
-                controles_todas = [[
-                    Paragraph("Controle", normal_style),
-                    Paragraph("Como Executado", normal_style),
-                    Paragraph("Natureza", normal_style),
-                ]]
-                
-                for c in controles_etapa:
-                    controles_todas.append([
-                        Paragraph(str(c[0]) if c[0] else "-", normal_style),
-                        Paragraph(str(c[1])[:120] if c[1] else "-", normal_style),
-                        Paragraph(str(c[2]) if c[2] else "-", normal_style),
-                    ])
-                
-                tabela_controles = Table(controles_todas, colWidths=[4.5*cm, 7*cm, 3.5*cm])
-                tabela_controles.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#17a2b8')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dddddd')),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ('TOPPADDING', (0, 0), (-1, -1), 5),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                
-                etapa_conteudo.append([Paragraph("Controles:", sub_header_style)])
-                etapa_conteudo.append([tabela_controles])
-            
-            # Montar tabela da etapa
-            etapa_table = Table(etapa_conteudo, colWidths=[pagesize[0] - leftMargin - rightMargin - 20])
-            etapa_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), bg_cor),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('ROUNDEDCORNERS', [4, 4, 4, 4]),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ]))
-            
-            story.append(etapa_header)
-            story.append(etapa_table)
-            story.append(Spacer(1, 8))
-        
-        if idx < len(processos) - 1:
-            add_separador(colors.HexColor('#184145'), 10, 5)
-    
-    story.append(PageBreak())
-    
-    # ===== PÁGINA DE VALIDAÇÃO DO GESTOR =====
-    story.append(Paragraph("Validação do Gestor", styles['Heading1']))
-    story.append(Spacer(1, 30))
-    story.append(Paragraph(
-        "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
-        "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido.",
-        normal_style
-    ))
-    story.append(Spacer(1, 50))
-    story.append(Paragraph(f"Gestor: {gestor}", normal_style))
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("Data: ___/___/_______", normal_style))
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("Assinatura: ________________________________", normal_style))
-
-    # ============================================================
-    # ⭐ AQUI ESTÁ A SOLUÇÃO DEFINITIVA ⭐
-    # ============================================================
-    
-    # ⭐ FUNÇÃO PARA DESENHAR LOGOS
-    def desenhar_logos(canvas):
-        root_dir = os.path.dirname(os.path.abspath(__file__))
-        logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
-        logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
-        logo3_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
-        
-        y_logo = 0.8 * cm
-        altura_max_logo = 5 * cm
-        
-        def desenhar_png(caminho, x, y, largura_max, altura_max):
-            if not os.path.exists(caminho):
-                return False
-            try:
-                pil_img = PILImage.open(caminho)
-                if pil_img.mode != 'RGBA':
-                    pil_img = pil_img.convert('RGBA')
-                img_width, img_height = pil_img.size
-                proporcao = img_width / img_height
-                largura = min(largura_max, 5*cm)
-                altura = largura / proporcao
-                if altura > altura_max:
-                    altura = altura_max
-                    largura = altura * proporcao
-                buffer_temp = io.BytesIO()
-                pil_img.save(buffer_temp, format='PNG')
-                buffer_temp.seek(0)
-                img = ImageReader(buffer_temp)
-                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
-                return True
-            except Exception as e:
-                print(f"Erro ao desenhar logo: {e}")
-                return False
-        
-        espacamento = pagesize[0] / 4
-        x1 = espacamento
-        x2 = pagesize[0] / 2
-        x3 = pagesize[0] - espacamento
-        largura_max = 2.5 * cm
-        
-        desenhar_png(logo1_path, x2, y_logo, largura_max, altura_max_logo)
-        desenhar_png(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
-        desenhar_png(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
-
-    # ⭐ PASSO 1: FAZER UMA CÓPIA DO STORY
-    story_copy = copy.deepcopy(story)
-    
-    # ⭐ PASSO 2: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS (USANDO A CÓPIA)
-    def rodape_contador(canvas, doc):
-        canvas.saveState()
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        if processo_id and 'proc_codigo' in locals():
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Processo {proc_codigo} - Página {doc.page}")
-        else:
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}")
-        desenhar_logos(canvas)
-        canvas.restoreState()
-
-    buffer_temp = io.BytesIO()
-    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
-                                topMargin=topMargin, bottomMargin=bottomMargin,
-                                leftMargin=leftMargin, rightMargin=rightMargin)
-    
-    doc_temp.build(story_copy, onFirstPage=rodape_contador, onLaterPages=rodape_contador)
-    
-    # ⭐ PASSO 3: CONTAR AS PÁGINAS
-    buffer_temp.seek(0)
-    pdf_reader = PdfReader(buffer_temp)
-    total_paginas = len(pdf_reader.pages)
-    
-    # ⭐ PASSO 4: GERAR O PDF FINAL COM O TOTAL (USANDO O STORY ORIGINAL)
-    def rodape_final(canvas, doc):
-        canvas.saveState()
-        
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        
-        if processo_id and 'proc_codigo' in locals():
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, 
-                f"Relatório Gerencial - Processo {proc_codigo} - Página {doc.page}/{total_paginas}")
-        else:
-            canvas.drawCentredString(pagesize[0]/2, 2*cm, 
-                f"Relatório Gerencial - Área: {area_nome[:50]} - Página {doc.page}/{total_paginas}")
-        
-        desenhar_logos(canvas)
-        canvas.restoreState()
-    
-    # ⭐ CONSTRUIR O DOCUMENTO FINAL
-    doc = SimpleDocTemplate(buffer, pagesize=pagesize, 
-                           topMargin=topMargin, bottomMargin=bottomMargin,
-                           leftMargin=leftMargin, rightMargin=rightMargin)
-    
-    doc.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
-    buffer.seek(0)
-    return buffer.getvalue()
-
 def carregar_areas_banco():
     """ Busca áreas no Banco de Dados e retorna um dicionário {nome: id}."""
     query = text("""
@@ -4744,6 +4316,15 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     ]
     
     story = []
+
+    criar_pagina_capa(
+        story=story,
+        pagesize=pagesize,
+        titulo_relatorio="Parecer da Auditoria Interna",
+        subtitulo_relatorio=f"Processo {proc_codigo} - {proc_nome}" if 'proc_codigo' in locals() else "",
+        area_nome=area_nome,
+        data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    )
     
     # ===== CABEÇALHO COM LOGO CENTRALIZADO =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -4752,24 +4333,24 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     header_data = []
     tem_logo = os.path.exists(logo_auditoria_path)
 
-    if tem_logo:
-        img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
+    # if tem_logo:
+    #     img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
         
-        header_data = [[img_central]]
+    #     header_data = [[img_central]]
         
-        header_table = Table(header_data, colWidths=[16*cm])
-        header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
-        ]))
-        story.append(header_table)
-        story.append(Spacer(1, 10))
+    #     header_table = Table(header_data, colWidths=[16*cm])
+    #     header_table.setStyle(TableStyle([
+    #         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #         ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
+    #     ]))
+    #     story.append(header_table)
+    #     story.append(Spacer(1, 10))
     
-    story.append(Paragraph("MAPA", titulo_style0))
-    story.append(Spacer(0, -20))
-    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
-    story.append(Spacer(1, 2))
+    # story.append(Paragraph("MAPA", titulo_style0))
+    # story.append(Spacer(0, -20))
+    # story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
+    # story.append(Spacer(1, 2))
     # ===== TÍTULO =====
     story.append(Paragraph("PARECER DA AUDITORIA INTERNA", titulo_style))
     story.append(Spacer(1, 5))

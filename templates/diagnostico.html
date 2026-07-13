@@ -5112,6 +5112,7 @@
     // ===== FUNÇÃO PARA SALVAR RISCOS NO STORAGE =====
     function salvarRiscosNoStorage() {
         sessionStorage.setItem('riscos_temp', JSON.stringify(riscosLista));
+        sessionStorage.setItem('riscos_temp_timestamp', Date.now().toString());
     }
 
     // ===== MAPA DE RISCO - Versão correta para JavaScript =====
@@ -5477,7 +5478,7 @@
         }
 
         salvarRiscosNoStorage();
-        autoSaveRiscosDebounced();
+    
         renderizarKanban();
         fecharModal();
     }
@@ -5756,26 +5757,146 @@
         }
     }
 
-    // Recuperar riscos salvos ao carregar a seção 4
     function carregarRiscosProcesso() {
         const processoId = sessionStorage.getItem('processo_id');
         if (!processoId) return;
         
-        // Verificar se já temos riscos carregados
-        if (riscosLista.length > 0) {
-            renderizarKanban();
-            return;
+        // ⭐ PRIORIDADE: BUSCAR DO BANCO DE DADOS
+        fetch(`/api/processo/${processoId}/riscos`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.riscos && data.riscos.length > 0) {
+                    // Converter riscos do banco para o formato usado no frontend
+                    riscosLista = data.riscos.map(risco => ({
+                        id: risco.id,
+                        nome_risco: risco.nome_risco || '',
+                        fator_risco: risco.fator_risco || '',
+                        melhoria: risco.melhoria || '',
+                        impacto: risco.impacto || 'MÉDIO',
+                        probabilidade: risco.probabilidade || 'MÉDIO',
+                        motivo_risco: risco.motivo_risco || '',
+                        apetite_impacto: risco.apetite_impacto || 'MÉDIO',
+                        apetite_probabilidade: risco.apetite_probabilidade || 'MÉDIO',
+                        categorias: risco.categoria ? risco.categoria.split(',').map(c => c.trim()) : [],
+                        categoria_causa: risco.causas ? risco.causas.split(',').map(c => c.trim()) : [],
+                        como_tratar: risco.tratamento_risco || '',
+                        desc_tratamento: risco.descricao_tratamento || '',
+                        prazo_implantacao: risco.prazo_implantacao || '',
+                        score_risco: risco.score_risco || 0
+                    }));
+                    
+                    // Salvar no storage local
+                    salvarRiscosNoStorage();
+                    renderizarKanban();
+                } else {
+                    // Se não tem riscos no banco, verificar storage local
+                    const riscosTemp = sessionStorage.getItem('riscos_temp');
+                    if (riscosTemp) {
+                        riscosLista = JSON.parse(riscosTemp);
+                        renderizarKanban();
+                    } else {
+                        riscosLista = [];
+                        renderizarKanban();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar riscos:', error);
+                // Fallback: tentar do storage local
+                const riscosTemp = sessionStorage.getItem('riscos_temp');
+                if (riscosTemp) {
+                    riscosLista = JSON.parse(riscosTemp);
+                    renderizarKanban();
+                }
+            });
+    }
+
+    // ⭐ FUNÇÃO PARA SALVAR RISCOS NO BACKEND (APENAS QUANDO O USUÁRIO CLICAR)
+    async function salvarRiscosNoBackend() {
+        const processoId = sessionStorage.getItem('processo_id');
+        if (!processoId) {
+            mostrarToast('❌ Nenhum processo em andamento', 'error');
+            return false;
         }
         
-        // Verificar se há riscos temporários no storage
-        const riscosTemp = sessionStorage.getItem('riscos_temp');
-        if (riscosTemp) {
-            riscosLista = JSON.parse(riscosTemp);
-            renderizarKanban();
-            return;
+        if (riscosLista.length === 0) {
+            mostrarToast('ℹ️ Nenhum risco para salvar', 'info');
+            return false;
         }
         
-        renderizarKanban();
+        // Validar campos obrigatórios
+        let temErro = false;
+        let riscosComErro = [];
+        riscosLista.forEach((risco, idx) => {
+            if (!risco.nome_risco?.trim()) {
+                riscosComErro.push(idx + 1);
+                temErro = true;
+            }
+        });
+        
+        if (temErro) {
+            mostrarToast(`⚠️ Risco(s) ${riscosComErro.join(', ')}: Nome é obrigatório`, 'warning');
+            return false;
+        }
+        
+        // ⭐ MOSTRAR INDICADOR DE CARREGAMENTO
+        const btnSalvar = document.getElementById('btn-salvar-riscos');
+        if (btnSalvar) {
+            btnSalvar.disabled = true;
+            btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        }
+        
+        try {
+            const response = await fetch('/api/processo/salvar-riscos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    processo_id: parseInt(processoId),
+                    riscos: riscosLista
+                    // ⭐ REMOVEMOS o sobrescrever: true porque não é mais necessário
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log(`✅ ${riscosLista.length} riscos salvos com sucesso!`);
+                mostrarToast(`✅ ${riscosLista.length} riscos salvos com sucesso!`, 'success');
+                
+                // ⭐ ATUALIZAR IDs DOS RISCOS (se a API retornar)
+                if (data.riscos) {
+                    // Se a API retornou a lista completa com IDs atualizados
+                    riscosLista = data.riscos;
+                    salvarRiscosNoStorage();
+                } else if (data.riscos_salvos) {
+                    // Se a API retornou apenas os IDs salvos (formato antigo)
+                    data.riscos_salvos.forEach((riscoSalvo, idx) => {
+                        if (idx < riscosLista.length) {
+                            riscosLista[idx].id = riscoSalvo.id;
+                        }
+                    });
+                    salvarRiscosNoStorage();
+                }
+                
+                // ⭐ RECARREGAR OS RISCOS DO BANCO PARA GARANTIR DADOS ATUALIZADOS
+                await carregarRiscosProcesso();
+                
+                return true;
+            } else {
+                mostrarToast('❌ Erro ao salvar riscos: ' + (data.error || 'Tente novamente'), 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao salvar riscos:', error);
+            mostrarToast('❌ Erro ao salvar riscos. Tente novamente.', 'error');
+            return false;
+        } finally {
+            // ⭐ RESTAURAR BOTÃO
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = 'Salvar Riscos';
+            }
+        }
     }
 
     // Event listeners
@@ -5815,7 +5936,7 @@
             
             // Validar campos obrigatórios
             let temErro = false;
-            let riscosComErro = []
+            let riscosComErro = [];
             riscosLista.forEach((risco, idx) => {
                 if (!risco.nome_risco?.trim()) {
                     riscosComErro.push(idx + 1);
@@ -5823,17 +5944,17 @@
                 }
             });
             
-           if (temErro) {
+            if (temErro) {
                 mostrarToast(`⚠️ Risco(s) ${riscosComErro.join(', ')}: Nome é obrigatório`, 'warning');
                 return;
             }
             
-            // Salvar os riscos antes de avançar
-            await autoSaveEtapa4();
-
+            // ⭐ SALVAR UMA ÚNICA VEZ
+            await salvarRiscosNoBackend();
+            
             // Avançar para a etapa 5 (visualização)
             irParaEtapa(5);
-            mostrarToast('✅ Riscos salvos!', 'success');
+            mostrarToast('✅ Riscos salvos com sucesso!', 'success');
         });
     }
 
@@ -5841,7 +5962,7 @@
         if (confirm(`Tem certeza que deseja remover este risco?`)) {
             riscosLista.splice(idx, 1);
             salvarRiscosNoStorage();
-            autoSaveRiscosDebounced();
+            
             renderizarKanban();
             mostrarToast('Risco removido', 'info');
         }
@@ -6007,14 +6128,6 @@
             salvarRiscosNoStorage();
         }
     }
-
-    function autoSaveRiscosDebounced() {
-        if (autoSaveRiscosTimeout) clearTimeout(autoSaveRiscosTimeout);
-        autoSaveRiscosTimeout = setTimeout(autoSaveEtapa4, 1000);
-    }
-
-    // Chamar auto-save quando riscos forem alterados (dentro de salvarDoModal e removerRisco)
-    // Adicione autoSaveRiscosDebounced() dentro de salvarDoModal e removerRisco
 
     // ===== VERIFICAR RESPONSÁVEL PELA AUDITORIA (para o filtro) =====
     async function verificarResponsavelEAcao(auditoriaId, onAutorizado, onNaoAutorizado) {

@@ -571,23 +571,31 @@
         }
     }
 
-    // Adicione esta função para verificar o perfil do usuário
+    // ============================================================
+    // VERIFICAR PERFIL DO USUÁRIO (usando variável do Flask)
+    // ============================================================
+
+    // ⭐ Usar a variável que o Flask já injetou no template
+    // O perfil vem do base.html ou da sessão
+    const usuarioPerfil = '{{ usuario_perfil }}';
+    const usuarioNome = '{{ usuario_nome }}';
+
+    // ⭐ Variável global
     let usuarioPodeABR = false;
 
-    async function verificarPermissaoABR() {
-        try {
-            const response = await fetch('/api/verificar-perfil');
-            const data = await response.json();
-
-            usuarioPodeABR =
-                data.perfil === 'administrador' ||
-                data.perfil === 'admin';
-
-            atualizarVisibilidadeABR();
-
-        } catch (error) {
-            console.error('Erro ao verificar perfil:', error);
-        }
+    function verificarPermissaoABR() {
+        // ⭐ Verificar usando a variável do Flask (sem chamar API)
+        const isAdmin = usuarioPerfil === 'administrador' || 
+                        usuarioPerfil === 'admin' || 
+                        usuarioPerfil === 'Administrador';
+        
+        usuarioPodeABR = isAdmin;
+        
+        console.log('👤 Perfil do usuário:', usuarioPerfil);
+        console.log('👑 É administrador?', isAdmin);
+        console.log('📋 Pode ver ABR?', usuarioPodeABR);
+        
+        atualizarVisibilidadeABR();
     }
 
     function atualizarVisibilidadeABR() {
@@ -595,13 +603,17 @@
         const tipoRelatorio = document.getElementById('tipo_relatorio');
         const checkbox = document.getElementById('incluir_abr');
 
-        if (usuarioPodeABR && tipoRelatorio.value === 'parecer') {
+        if (usuarioPodeABR && tipoRelatorio && tipoRelatorio.value === 'parecer') {
             checkboxContainer.style.display = 'block';
         } else {
             checkboxContainer.style.display = 'none';
-            checkbox.checked = false;
+            if (checkbox) checkbox.checked = false;
         }
     }
+
+    // ============================================================
+    // INICIALIZAÇÃO
+    // ============================================================
 
     document.addEventListener('DOMContentLoaded', () => {
         verificarPermissaoABR();
