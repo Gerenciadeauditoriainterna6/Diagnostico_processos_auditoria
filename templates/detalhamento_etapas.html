@@ -3559,6 +3559,7 @@
                 }
             }
         } else {
+            // ⭐ NOVA ANÁLISE: Limpar todos os campos
             document.getElementById('analise-id').value = '';
             document.getElementById('analise-temp-id').value = '';
             document.getElementById('analise-categoria').value = 'governanca';
@@ -3566,6 +3567,30 @@
             document.getElementById('analise-sugestao').value = '';
             document.getElementById('analise-necessidade').value = '';
             document.getElementById('analise-ganho').value = '';
+            
+            // ⭐⭐⭐ IMPORTANTE: NÃO MARCAR NENHUM RADIO PARA ANÁLISE DO AUDITADO ⭐⭐⭐
+            // Desmarcar TODOS os radios de sugestão de melhoria (se existirem)
+            const radiosSugestao = document.querySelectorAll('#form-analise input[name="sugestao-status-auditado-radio"]');
+            radiosSugestao.forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // ⭐ Esconder a seção de plano de ação (se existir)
+            const secaoPlano = document.getElementById('secao-plano-acao-auditado');
+            if (secaoPlano) {
+                secaoPlano.style.display = 'none';
+            }
+            
+            // Limpar campos do plano de ação
+            const planoAcao = document.getElementById('plano-acao-auditado');
+            const responsavel = document.getElementById('responsavel-implantacao-auditado');
+            const dataInicio = document.getElementById('data-inicio-implantacao-auditado');
+            const dataConclusao = document.getElementById('data-conclusao-prevista-auditado');
+            
+            if (planoAcao) planoAcao.value = '';
+            if (responsavel) responsavel.value = '';
+            if (dataInicio) dataInicio.value = '';
+            if (dataConclusao) dataConclusao.value = '';
         }
         
         // ⭐ Configurar upload da evidência
@@ -3594,9 +3619,89 @@
 
         const tipoAnalise = 'auditado';
         
+        // ⭐⭐ VERIFICAR SE ALGUM RADIO FOI MARCADO ⭐⭐
+        const radioSelecionado = document.querySelector('#form-analise input[name="sugestao-status-auditado-radio"]:checked');
+        let sugestaoSeraImplantada = null;
+        
+        if (radioSelecionado) {
+            if (radioSelecionado.value === 'true') {
+                sugestaoSeraImplantada = true;
+            } else if (radioSelecionado.value === 'false') {
+                sugestaoSeraImplantada = false;
+            }
+            // Se value for vazio/vazio, permanece null
+            console.log('📊 Radio selecionado:', radioSelecionado.value, '->', sugestaoSeraImplantada);
+        } else {
+            console.log('📊 Nenhum radio selecionado - sugestao_sera_implantada será null');
+        }
+        
         // ⭐ VERIFICAR SE TEM EVIDÊNCIA
         const temEvidencia = analiseEvidenciaArquivo !== null;
         const removerEvidencia = document.getElementById('remover_analise_evidencia')?.value === 'true';
+        
+        // ⭐ Função auxiliar para continuar o salvamento
+        function continuarSalvar(analiseData) {
+            // Adicionar a sugestão_sera_implantada
+            analiseData.sugestao_sera_implantada = sugestaoSeraImplantada;
+            
+            console.log('📤 AnaliseData final:', analiseData);
+            
+            const analiseId = document.getElementById('analise-id').value;
+            const tempId = document.getElementById('analise-temp-id').value;
+            const etapaId = document.getElementById('modal-etapa-id').value;
+            
+            console.log('📋 analiseId:', analiseId || '❌ Vazio');
+            console.log('📋 tempId:', tempId || '❌ Vazio');
+            console.log('📋 etapaId:', etapaId || '❌ Vazio');
+            
+            // Caso 1: Editando análise existente no banco
+            if (analiseId && analiseId !== '') {
+                console.log('📌 Caso 1: Editando análise existente ID:', analiseId);
+                salvarAnaliseNoBanco(analiseId, analiseData, etapaId);
+                return;
+            }
+            
+            // Caso 2: Editando análise temporária
+            if (tempId && tempId !== '') {
+                const tempIndex = parseInt(tempId);
+                console.log('📌 Caso 2: Editando análise temporária index:', tempIndex);
+                if (tempIndex >= 0 && tempIndex < analisesTemporarias.length) {
+                    // Atualizar a análise temporária com todos os dados
+                    analisesTemporarias[tempIndex] = { 
+                        ...analisesTemporarias[tempIndex], 
+                        ...analiseData,
+                        _temporaria: true 
+                    };
+                    console.log('✅ Análise temporária atualizada:', analisesTemporarias[tempIndex]);
+                    mostrarToast('✅ Análise atualizada (será salva ao finalizar a etapa)!', 'success');
+                    esconderFormAnalise();
+                    renderizarAnalises();
+                    resetarEvidenciaAnalise();
+                }
+                return;
+            }
+            
+            // Caso 3: Nova análise
+            if (!etapaId || etapaId === '') {
+                console.log('📌 Caso 3: Nova análise (etapa não salva)');
+                const novaAnalise = {
+                    ...analiseData,
+                    _temporaria: true,
+                    _id: Date.now()
+                };
+                analisesTemporarias.push(novaAnalise);
+                console.log('✅ Análise temporária adicionada:', novaAnalise);
+                mostrarToast('✅ Análise adicionada (será salva ao finalizar a etapa)!', 'success');
+                esconderFormAnalise();
+                renderizarAnalises();
+                resetarEvidenciaAnalise();
+                return;
+            }
+            
+            // Caso 4: Nova análise (etapa já salva)
+            console.log('📌 Caso 4: Nova análise (etapa já salva) - ID:', etapaId);
+            salvarAnaliseNoBanco(null, analiseData, etapaId);
+        }
         
         // ⭐ Se tem evidência, converter para Base64 e salvar
         if (temEvidencia) {
@@ -3612,8 +3717,7 @@
                         evidencia_base64: base64,
                         evidencia_nome: analiseEvidenciaArquivo.name
                     };
-                    
-                    continuarSalvarAnalise(analiseData);
+                    continuarSalvar(analiseData);
                 })
                 .catch(error => {
                     console.error('Erro ao converter evidência:', error);
@@ -3637,7 +3741,7 @@
             analiseData.remover_evidencia = true;
         }
         
-        continuarSalvarAnalise(analiseData);
+        continuarSalvar(analiseData);
     }
 
     // ⭐ NOVA FUNÇÃO: Continuar o salvamento

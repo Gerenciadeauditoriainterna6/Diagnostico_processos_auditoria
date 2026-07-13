@@ -2139,7 +2139,7 @@
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
+            reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
             reader.readAsDataURL(file);
         });
     }
@@ -3860,15 +3860,13 @@
                     document.getElementById('analise-auditado-ganho').value = analise.ganho_previsto || '';
                     document.getElementById('analise-auditado-observacoes').value = analise.observacoes || '';
                     
-                    // ⭐⭐⭐ NOVO: Carregar evidência existente ⭐⭐⭐
-                    // Limpar estado anterior
+                    // ⭐⭐⭐ CARREGAR EVIDÊNCIA EXISTENTE ⭐⭐⭐
                     arquivoSelecionadoAuditadoEvidencia = null;
                     anexoExistenteAuditadoEvidencia = null;
                     
                     const evidenciaDiv = document.getElementById('evidencia-nome-auditado');
                     const evidenciaTexto = document.getElementById('evidencia-nome-texto-auditado');
                     
-                    // Verificar se a análise tem evidência
                     if (analise.evidencia_url && analise.evidencia_nome) {
                         anexoExistenteAuditadoEvidencia = analise.evidencia_nome;
                         
@@ -3886,8 +3884,15 @@
                     
                     // 2. DEPOIS, configurar os radios e plano de ação
                     const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
-                    let valorParaMarcar = '';
                     
+                    // ⭐⭐⭐ CORREÇÃO: Desmarcar todos os radios primeiro ⭐⭐⭐
+                    radios.forEach(radio => {
+                        radio.checked = false;
+                    });
+                    
+                    let valorParaMarcar = null;
+                    
+                    // ⭐⭐⭐ Só marcar se o valor for true ou false (não marcar se for null) ⭐⭐⭐
                     if (analise.sugestao_sera_implantada === true) {
                         valorParaMarcar = 'true';
                         // Preencher campos do plano de ação
@@ -3905,26 +3910,35 @@
                                 anexoDiv.style.display = 'flex';
                             }
                         }
+                        
+                        // Mostrar seção do plano de ação
+                        togglePlanoAcaoAuditado(true);
+                        
                     } else if (analise.sugestao_sera_implantada === false) {
                         valorParaMarcar = 'false';
+                        // Esconder seção do plano de ação
+                        togglePlanoAcaoAuditado(false);
+                        limparCamposPlanoAcaoAuditado();
+                        
                     } else {
-                        valorParaMarcar = '';
-                    }
-                    
-                    // 3. Marcar o radio (ANTES de limpar ou mostrar/esconder)
-                    radios.forEach(radio => {
-                        radio.checked = (radio.value === valorParaMarcar);
-                    });
-                    
-                    // 4. AGORA SIM, mostrar/esconder e limpar se necessário
-                    const mostrarPlano = (valorParaMarcar === 'true');
-                    togglePlanoAcaoAuditado(mostrarPlano);
-                    
-                    if (!mostrarPlano) {
+                        // ⭐⭐⭐ CASO NULL: NENHUM radio deve ser marcado ⭐⭐⭐
+                        valorParaMarcar = null;
+                        // Esconder seção do plano de ação
+                        togglePlanoAcaoAuditado(false);
                         limparCamposPlanoAcaoAuditado();
                     }
                     
-                    console.log('🎯 Radio marcado com valor:', valorParaMarcar);
+                    // ⭐⭐⭐ Marcar o radio correspondente (se houver) ⭐⭐⭐
+                    if (valorParaMarcar !== null) {
+                        radios.forEach(radio => {
+                            if (radio.value === valorParaMarcar) {
+                                radio.checked = true;
+                            }
+                        });
+                    }
+                    // Se for null, todos os radios permanecem desmarcados
+                    
+                    console.log('🎯 Radio selecionado:', valorParaMarcar);
                     console.log('🎯 Radio checked após marcação:', document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked')?.value);
                     
                     document.getElementById('modal-analise-auditado-titulo').innerHTML = 
@@ -3975,50 +3989,61 @@
             return;
         }
         
-        // CRIAR FormData
-        const formData = new FormData();
-        formData.append('processo_id', parseInt(processoIdAtual));
-        formData.append('etapa_id', parseInt(etapaId));
-        formData.append('categoria', categoria);
-        formData.append('analise_critica', analiseCritica);
-        formData.append('sugestao_melhoria', document.getElementById('analise-auditado-sugestao').value || '');
-        formData.append('necessidade_implantacao', document.getElementById('analise-auditado-necessidade').value || '');
-        formData.append('ganho_previsto', document.getElementById('analise-auditado-ganho').value || '');
-        formData.append('observacoes', document.getElementById('analise-auditado-observacoes').value || '');
-        formData.append('sugestao_sera_implantada', seraImplantada === true ? 'true' : (seraImplantada === false ? 'false' : ''));
+        // ⭐ CRIAR PAYLOAD COMO OBJETO (em vez de FormData)
+        const payload = {
+            processo_id: parseInt(processoIdAtual),
+            etapa_id: parseInt(etapaId),
+            categoria: categoria,
+            analise_critica: analiseCritica,
+            sugestao_melhoria: document.getElementById('analise-auditado-sugestao').value || '',
+            necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value || '',
+            ganho_previsto: document.getElementById('analise-auditado-ganho').value || '',
+            observacoes: document.getElementById('analise-auditado-observacoes').value || '',
+            sugestao_sera_implantada: seraImplantada
+        };
         
-        // Processar evidência do auditado
+        // ⭐ Processar evidência do auditado (converter para Base64)
         const removerEvidencia = document.getElementById('remover-evidencia-auditado-hidden')?.value === 'true';
         
         if (arquivoSelecionadoAuditadoEvidencia) {
-            formData.append('evidencia', arquivoSelecionadoAuditadoEvidencia);
-            formData.append('evidencia_nome', arquivoSelecionadoAuditadoEvidencia.name);
-            console.log('📎 Enviando evidência do auditado:', arquivoSelecionadoAuditadoEvidencia.name);
-        } else if (removerEvidencia && anexoExistenteAuditadoEvidencia) {
-            formData.append('remover_evidencia', 'true');
+            try {
+                const base64 = await converterParaBase64(arquivoSelecionadoAuditadoEvidencia);
+                payload.evidencia_base64 = base64;
+                payload.evidencia_nome = arquivoSelecionadoAuditadoEvidencia.name;
+                console.log('📎 Enviando evidência do auditado:', arquivoSelecionadoAuditadoEvidencia.name);
+            } catch (error) {
+                console.error('Erro ao converter evidência:', error);
+                mostrarToast('❌ Erro ao processar evidência', 'error');
+                return;
+            }
+        } else if (removerEvidencia) {
+            payload.remover_evidencia = true;
             console.log('🗑️ Removendo evidência do auditado');
         }
         
-        // Só incluir plano de ação se for true
+        // ⭐ Só incluir plano de ação se for true
         if (seraImplantada === true) {
-            formData.append('plano_acao', document.getElementById('plano-acao-auditado').value || '');
-            formData.append('responsavel_implantacao', document.getElementById('responsavel-implantacao-auditado').value || '');
-            formData.append('data_inicio_implantacao', document.getElementById('data-inicio-implantacao-auditado').value || '');
-            formData.append('data_conclusao_prevista', document.getElementById('data-conclusao-prevista-auditado').value || '');
+            payload.plano_acao = document.getElementById('plano-acao-auditado').value || '';
+            payload.responsavel_implantacao = document.getElementById('responsavel-implantacao-auditado').value || '';
+            payload.data_inicio_implantacao = document.getElementById('data-inicio-implantacao-auditado').value || '';
+            payload.data_conclusao_prevista = document.getElementById('data-conclusao-prevista-auditado').value || '';
             
             if (arquivoSelecionadoAuditado) {
-                formData.append('anexo', arquivoSelecionadoAuditado);
-                formData.append('anexo_nome', arquivoSelecionadoAuditado.name);
+                try {
+                    const base64 = await converterParaBase64(arquivoSelecionadoAuditado);
+                    payload.anexo_base64 = base64;
+                    payload.anexo_nome = arquivoSelecionadoAuditado.name;
+                } catch (error) {
+                    console.error('Erro ao converter anexo:', error);
+                    mostrarToast('❌ Erro ao processar anexo', 'error');
+                    return;
+                }
             }
         } else {
-            if (anexoExistenteNomeAuditado || arquivoSelecionadoAuditado) {
-                formData.append('remover_anexo', 'true');
+            const removerAnexo = document.getElementById('remover-anexo-hidden-auditado')?.value === 'true';
+            if (removerAnexo || anexoExistenteNomeAuditado) {
+                payload.remover_anexo = true;
             }
-        }
-        
-        const removerAnexo = document.getElementById('remover-anexo-hidden-auditado')?.value === 'true';
-        if (removerAnexo) {
-            formData.append('remover_anexo', 'true');
         }
         
         const btnSalvar = document.getElementById('btn-salvar-analise-auditado');
@@ -4030,9 +4055,13 @@
             const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
             const method = analiseId ? 'PUT' : 'POST';
             
+            // ⭐ ENVIAR COMO JSON
             const response = await fetch(url, { 
                 method: method,
-                body: formData  // FormData
+                headers: {
+                    'Content-Type': 'application/json'  // ⭐ HEADER CORRETO
+                },
+                body: JSON.stringify(payload)  // ⭐ ENVIA COMO JSON
             });
             
             let data;
