@@ -23,7 +23,7 @@ from database import (
 )
 
 
-from logic import (validar_login_no_banco, gerar_relatorio_gerencial_area, gerar_relatorio_parecer_auditoria, listar_areas,
+from logic import (validar_login_no_banco, gerar_relatorio_parecer_auditoria, listar_areas,
                    listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
 
 # ============================================================
@@ -39,7 +39,7 @@ if not os.environ.get('RENDER'):
 # IMPORTAR FUNÇÕES AUXILIARES
 # ============================================================
 
-from logic import validar_login_no_banco, gerar_relatorio_gerencial_area
+from logic import validar_login_no_banco
 
 # ============================================================
 # FUNÇÕES DE UTILIDADE
@@ -3560,62 +3560,130 @@ def api_salvar_processo_riscos():
     
     try:
         with engine.connect() as conn:
-            # Remover riscos existentes
-            delete_query = text("DELETE FROM riscos WHERE processo_id = :processo_id")
-            conn.execute(delete_query, {'processo_id': processo_id})
+            # ⭐ PEGAR TODOS OS IDs DOS RISCOS EXISTENTES NO BANCO
+            select_existing = text("SELECT id FROM riscos WHERE processo_id = :processo_id")
+            existing_ids = [row[0] for row in conn.execute(select_existing, {'processo_id': processo_id}).fetchall()]
             
-            # Inserir novos riscos
-            insert_query = text("""
-                INSERT INTO riscos (
-                    processo_id, nome_risco, fator_risco, melhoria, 
-                    impacto, probabilidade, motivo_risco, 
-                    categoria, causas, score_risco,
-                    tratamento_risco, descricao_tratamento, prazo_implantacao,
-                    apetite_impacto, apetite_probabilidade
-                )
-                VALUES (
-                    :processo_id, UPPER(:nome_risco), UPPER(:fator_risco), UPPER(:melhoria), 
-                    UPPER(:impacto), UPPER(:probabilidade), UPPER(:motivo_risco), 
-                    UPPER(:categoria), UPPER(:causas), :score_risco,
-                    UPPER(:tratamento_risco), UPPER(:descricao_tratamento), UPPER(:prazo_implantacao),
-                    UPPER(:apetite_impacto), UPPER(:apetite_probabilidade)
-                )
-            """)
+            # ⭐ IDs QUE VIERAM DO FRONTEND (para saber quais manter)
+            received_ids = [r.get('id') for r in riscos if r.get('id')]
             
+            # ⭐ RISCOS QUE FORAM REMOVIDOS (estão no banco mas não vieram no frontend)
+            ids_to_delete = [id for id in existing_ids if id not in received_ids]
+            
+            # ⭐ DELETAR RISCOS REMOVIDOS PELO USUÁRIO
+            if ids_to_delete:
+                delete_query = text("DELETE FROM riscos WHERE id = ANY(:ids)")
+                conn.execute(delete_query, {'ids': ids_to_delete})
+                print(f"🗑️ {len(ids_to_delete)} riscos removidos: {ids_to_delete}")
+            
+            # ⭐ UPSERT: ATUALIZAR OU INSERIR CADA RISCO
             for risco in riscos:
-                # 👇 CONVERTER PARA MAIÚSCULAS
                 impacto = risco.get('impacto', 'Médio').upper().strip()
                 probabilidade = risco.get('probabilidade', 'Médio').upper().strip()
                 score = calcular_score(impacto, probabilidade)
                 
-                # Converter arrays para strings separadas por vírgula (em maiúsculas)
+                # Converter arrays para strings separadas por vírgula
                 categorias = risco.get('categorias', [])
                 categoria_str = ', '.join([c.upper().strip() for c in categorias if c]) if categorias else None
                 
                 causas = risco.get('categoria_causa', [])
                 causas_str = ', '.join([c.upper().strip() for c in causas if c]) if causas else None
                 
-                conn.execute(insert_query, {
-                    'processo_id': processo_id,
-                    'nome_risco': risco.get('nome_risco', '').upper().strip(),
-                    'fator_risco': risco.get('fator_risco', '').upper().strip(),
-                    'melhoria': risco.get('melhoria', '').upper().strip(),
-                    'impacto': impacto,
-                    'probabilidade': probabilidade,
-                    'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
-                    'categoria': categoria_str,
-                    'causas': causas_str,
-                    'score_risco': score,
-                    'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
-                    'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
-                    'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
-                    'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
-                    'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
-                })
+                risco_id = risco.get('id')
+                
+                if risco_id and risco_id in existing_ids:
+                    # ⭐ UPDATE: Atualizar risco existente (preserva created_at, validações, etc.)
+                    update_query = text("""
+                        UPDATE riscos SET
+                            nome_risco = UPPER(:nome_risco),
+                            fator_risco = UPPER(:fator_risco),
+                            melhoria = UPPER(:melhoria),
+                            impacto = UPPER(:impacto),
+                            probabilidade = UPPER(:probabilidade),
+                            motivo_risco = UPPER(:motivo_risco),
+                            categoria = UPPER(:categoria),
+                            causas = UPPER(:causas),
+                            score_risco = :score_risco,
+                            tratamento_risco = UPPER(:tratamento_risco),
+                            descricao_tratamento = UPPER(:descricao_tratamento),
+                            prazo_implantacao = UPPER(:prazo_implantacao),
+                            apetite_impacto = UPPER(:apetite_impacto),
+                            apetite_probabilidade = UPPER(:apetite_probabilidade)
+                        WHERE id = :risco_id AND processo_id = :processo_id
+                    """)
+                    
+                    conn.execute(update_query, {
+                        'risco_id': risco_id,
+                        'processo_id': processo_id,
+                        'nome_risco': risco.get('nome_risco', '').upper().strip(),
+                        'fator_risco': risco.get('fator_risco', '').upper().strip(),
+                        'melhoria': risco.get('melhoria', '').upper().strip(),
+                        'impacto': impacto,
+                        'probabilidade': probabilidade,
+                        'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
+                        'categoria': categoria_str,
+                        'causas': causas_str,
+                        'score_risco': score,
+                        'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
+                        'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
+                        'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
+                        'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
+                        'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
+                    })
+                    print(f"✏️ Risco {risco_id} atualizado")
+                    
+                else:
+                    # ⭐ INSERT: Criar novo risco
+                    insert_query = text("""
+                        INSERT INTO riscos (
+                            processo_id, nome_risco, fator_risco, melhoria, 
+                            impacto, probabilidade, motivo_risco, 
+                            categoria, causas, score_risco,
+                            tratamento_risco, descricao_tratamento, prazo_implantacao,
+                            apetite_impacto, apetite_probabilidade
+                        )
+                        VALUES (
+                            :processo_id, UPPER(:nome_risco), UPPER(:fator_risco), UPPER(:melhoria), 
+                            UPPER(:impacto), UPPER(:probabilidade), UPPER(:motivo_risco), 
+                            UPPER(:categoria), UPPER(:causas), :score_risco,
+                            UPPER(:tratamento_risco), UPPER(:descricao_tratamento), UPPER(:prazo_implantacao),
+                            UPPER(:apetite_impacto), UPPER(:apetite_probabilidade)
+                        )
+                        RETURNING id
+                    """)
+                    
+                    result = conn.execute(insert_query, {
+                        'processo_id': processo_id,
+                        'nome_risco': risco.get('nome_risco', '').upper().strip(),
+                        'fator_risco': risco.get('fator_risco', '').upper().strip(),
+                        'melhoria': risco.get('melhoria', '').upper().strip(),
+                        'impacto': impacto,
+                        'probabilidade': probabilidade,
+                        'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
+                        'categoria': categoria_str,
+                        'causas': causas_str,
+                        'score_risco': score,
+                        'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
+                        'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
+                        'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
+                        'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
+                        'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
+                    })
+                    
+                    new_id = result.fetchone()[0]
+                    print(f"➕ Novo risco {new_id} inserido")
+                    
+                    # ⭐ ATUALIZAR O ID NO OBJETO RISCO (para o frontend)
+                    risco['id'] = new_id
             
             conn.commit()
-            print(f"✅ {len(riscos)} riscos salvos para o processo {processo_id}")
-            return jsonify({'success': True, 'message': f'{len(riscos)} riscos salvos'})
+            
+            # ⭐ RETORNAR OS RISCOS COM OS IDs ATUALIZADOS
+            return jsonify({
+                'success': True, 
+                'message': f'{len(riscos)} riscos salvos',
+                'riscos': riscos
+            })
             
     except Exception as e:
         print(f"❌ Erro ao salvar riscos: {e}")
@@ -6364,71 +6432,6 @@ def api_gerar_relatorio_detalhamento():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/relatorios/gerar-gerencial', methods=['POST'])
-def api_relatorios_gerar_gerencial():
-    """Gera o relatório gerencial em PDF e retorna diretamente"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    data = request.json
-    area_id = data.get('area_id')
-    auditoria_id = data.get('auditoria_id')
-    orientacao = data.get('orientacao', 'RETRATO')
-    processo_id = data.get('processo_id')  # ⭐ NOVO: PODE SER NONE
-    
-    if not area_id or not auditoria_id:
-        return jsonify({'success': False, 'error': 'area_id e auditoria_id são obrigatórios'}), 400
-    
-    from database import engine
-    from sqlalchemy import text
-    from logic import gerar_relatorio_gerencial_area
-    
-    try:
-        # Buscar nome da área e gestor
-        with engine.connect() as conn:
-            query_area = text("""
-                SELECT nome_area, gestor, cargo FROM informacoes_area WHERE id_area = :area_id
-            """)
-            area_info = conn.execute(query_area, {'area_id': area_id}).fetchone()
-            
-            if not area_info:
-                return jsonify({'success': False, 'error': 'Área não encontrada'}), 404
-            
-            area_nome = area_info[0] or 'Área sem nome'
-            gestor = area_info[1] or 'Gestor não informado'
-            cargo = area_info[2] or 'Cargo não informado'
-        
-        # ⭐ GERAR O PDF - PASSANDO O processo_id
-        pdf_bytes = gerar_relatorio_gerencial_area(
-            area_id=area_id,
-            area_nome=area_nome,
-            gestor=gestor,
-            cargo=cargo,
-            orientacao=orientacao,
-            auditoria_id=auditoria_id,
-            processo_id=processo_id  # ⭐ ADICIONADO
-        )
-        
-        # Criar nome do arquivo (incluir processo se selecionado)
-        if processo_id:
-            nome_arquivo = f"relatorio_gerencial_processo_{processo_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        else:
-            nome_arquivo = f"relatorio_gerencial_{area_nome}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        
-        # Retornar o PDF diretamente
-        return send_file(
-            io.BytesIO(pdf_bytes),
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=nome_arquivo
-        )
-        
-    except Exception as e:
-        print(f"❌ Erro ao gerar relatório: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/relatorios/gerar-parecer', methods=['POST'])
 def gerar_parecer():
