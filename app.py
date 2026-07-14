@@ -463,12 +463,17 @@ def calcular_tempo(data_inicio):
 # ============================================================
 
 from dashboard_api import dashboard_api
-from dashboard_novo.endpoints import novo_dashboard_api
+from routes.dashboard_novo.endpoints import novo_dashboard_api
+from routes import register_blueprints
 
 app = Flask(__name__, static_folder='static')
 
 app.register_blueprint(dashboard_api)
 app.register_blueprint(novo_dashboard_api)
+
+register_blueprints(app)
+
+
 
 # Configurações da sessão
 app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
