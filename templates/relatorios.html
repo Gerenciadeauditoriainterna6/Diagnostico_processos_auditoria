@@ -41,6 +41,7 @@
                     <option value="panorama">Validação - Matriz de Panorama</option>
                     <option value="detalhamento">Validação - Matriz de Detalhamento</option>
                     <option value="parecer">Parecer da Auditoria Interna</option>
+                    <option value="conclusao">Conclusão</option>
                 </select>
             </div>
         </div>
@@ -115,6 +116,53 @@
             <div class="alert-success">
                 <i class="fas fa-check-circle"></i> Relatório gerado com sucesso!
                 <span class="close-alert" onclick="this.parentElement.style.display='none'">&times;</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE CONCLUSÃO ===== -->
+    <div id="modal-conclusao" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-pen-fancy"></i> Relatório de Conclusão</h2>
+                <button class="modal-close" id="btn-fechar-modal-conclusao">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- ⭐ INFO -->
+                <div class="info-box" style="margin-bottom: 20px; background: #e8f4f8; border-left: 4px solid #0b5b99; padding: 12px 16px; border-radius: 10px;">
+                    <i class="fas fa-info-circle" style="color: #0b5b99;"></i>
+                    <span style="color: #184145;">Escreva sua conclusão sobre a auditoria. Este texto será incluído no relatório final.</span>
+                </div>
+                
+                <!-- ⭐ CAMPO DE TEXTO -->
+                <div class="form-group">
+                    <label><i class="fas fa-edit"></i> Conclusão:</label>
+                    <textarea id="conclusao_texto" class="form-control" rows="10" 
+                        placeholder="Digite sua conclusão sobre a auditoria..."
+                        style="min-height: 200px; resize: vertical; width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 14px;"></textarea>
+                    <small class="text-muted" style="display: block; margin-top: 5px; color: #6c757d;">
+                        <i class="fas fa-info-circle"></i> Esta conclusão será salva e pode ser editada posteriormente.
+                    </small>
+                </div>
+                
+                <!-- ⭐ HISTÓRICO DE CONCLUSÕES ANTERIORES -->
+                <div id="historico-conclusoes" style="margin-top: 20px; display: none;">
+                    <hr style="border: 0; border-top: 2px solid #e0e0e0;">
+                    <h4 style="color: #184145; margin-bottom: 10px;">
+                        <i class="fas fa-history"></i> Conclusões Anteriores
+                    </h4>
+                    <div id="lista-historico-conclusoes" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 15px 25px; border-top: 1px solid #e0e0e0; background: #f8f9fa; border-radius: 0 0 20px 20px;">
+                <button type="button" class="btn-cancelar" id="btn-cancelar-conclusao" 
+                        style="background: #f5f5f5; color: #666; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-primary" id="btn-salvar-conclusao"
+                        style="background: linear-gradient(135deg, #184145 0%, #0d3a3f 100%); color: white; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-save"></i> Salvar e Gerar Relatório
+                </button>
             </div>
         </div>
     </div>
@@ -477,9 +525,142 @@
         color: #0b5b99;
     }
 
+    /* ===== MODAL DE CONCLUSÃO ===== */
+    #modal-conclusao {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+        backdrop-filter: blur(4px);
+    }
+
+    #modal-conclusao .modal-content {
+        background: white;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 700px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        animation: modalSlideIn 0.3s ease;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    #modal-conclusao .modal-header {
+        padding: 20px 25px;
+        border-bottom: 2px solid #e8f4f8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #modal-conclusao .modal-header h2 {
+        margin: 0;
+        color: #184145;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #modal-conclusao .modal-header h2 i {
+        color: #0b5b99;
+    }
+
+    #modal-conclusao .modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s;
+        padding: 0 5px;
+    }
+
+    #modal-conclusao .modal-close:hover {
+        color: #dc3545;
+    }
+
+    #modal-conclusao .modal-body {
+        padding: 25px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    #modal-conclusao .modal-footer {
+        padding: 15px 25px;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        background: #f8f9fa;
+        border-radius: 0 0 20px 20px;
+    }
+
+    .btn-cancelar:hover {
+        background: #e0e0e0;
+    }
+
+    /* Histórico de conclusões */
+    .conclusao-historico-item {
+        background: #f8f9fa;
+        border-left: 3px solid #0b5b99;
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+    }
+
+    .conclusao-historico-item .usuario {
+        font-weight: 600;
+        color: #184145;
+        font-size: 13px;
+    }
+
+    .conclusao-historico-item .data {
+        color: #888;
+        font-size: 11px;
+        margin-left: 10px;
+    }
+
+    .conclusao-historico-item .texto {
+        color: #333;
+        font-size: 13px;
+        margin-top: 4px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
 </style>
 
 <script>
+    // ===== FUNÇÃO PARA ESCAPAR HTML =====
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+    
     function mostrarToast(mensagem, tipo = 'info') {
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
@@ -636,7 +817,7 @@
         const orientacao = orientacaoSelecionada?.value || 'RETRATO';
         const tipoRelatorio = selectTipo?.value;
 
-        // ⭐ Validações
+        // ⭐ Validações básicas
         if (!areaId || !auditoriaId) {
             mostrarToast('⚠️ Selecione a área e a auditoria primeiro', 'warning');
             return;
@@ -644,6 +825,12 @@
 
         if (!tipoRelatorio) {
             mostrarToast('⚠️ Selecione o tipo de relatório', 'warning');
+            return;
+        }
+
+        // ⭐ PARA CONCLUSÃO: ABRIR MODAL (NÃO EXIGE PROCESSO)
+        if (tipoRelatorio === 'conclusao') {
+            abrirModalConclusao();
             return;
         }
 
@@ -660,6 +847,9 @@
             return;
         }
 
+        // ⭐ PARA PANORAMA E DETALHAMENTO: processo é opcional
+        // (se não tiver, gera todos os processos da auditoria)
+
         const btnGerar = document.getElementById('btn-gerar-relatorio');
         const btnLoading = btnGerar?.querySelector('.btn-loading');
 
@@ -669,7 +859,7 @@
             if (btnLoading) btnLoading.style.display = 'inline-flex';
         }
 
-        // ⭐ Definir URL e payload baseado no tipo
+        // Definir URL e payload baseado no tipo
         let url = '';
         let nomeBase = '';
         let bodyData = {
@@ -678,7 +868,6 @@
             orientacao: orientacao
         };
 
-        // ⭐ PARÂMETRO ABR (apenas para parecer)
         const incluirABR = document.getElementById('incluir_abr')?.checked || false;
 
         switch (tipoRelatorio) {
@@ -697,7 +886,7 @@
             case 'parecer':
                 url = '/api/relatorios/gerar-parecer';
                 nomeBase = `parecer_auditoria_processo_${processoId}`;
-                bodyData.processo_id = processoId;  // ⭐ Obrigatório
+                bodyData.processo_id = processoId;
                 if (incluirABR) bodyData.incluir_abr = true;
                 break;
 
@@ -837,7 +1026,6 @@
                     selectAuditoria.innerHTML = '<option value="">Selecione uma área primeiro...</option>';
                     selectAuditoria.disabled = true;
                     if (btnGerar) btnGerar.disabled = true;
-                    // ⭐ ESCONDER PROCESSO QUANDO ÁREA FOR DESMARCADA
                     if (rowProcesso) rowProcesso.style.display = 'none';
                 }
             });
@@ -858,11 +1046,13 @@
                     return;
                 }
                 
-                // ⭐ AGORA MOSTRA PARA AMBOS OS TIPOS
-                if (tipoRelatorio === 'parecer' || tipoRelatorio === 'gerencial') {
+                // ⭐ MOSTRA PROCESSO APENAS PARA: parecer, panorama, detalhamento
+                // ⭐ NÃO mostra para: conclusao
+                if (tipoRelatorio === 'parecer' || tipoRelatorio === 'panorama' || tipoRelatorio === 'detalhamento') {
                     if (rowProcesso) rowProcesso.style.display = 'flex';
                     await carregarProcessosPorAuditoria(auditoriaId);
                 } else {
+                    // ⭐ Para conclusao, esconde o campo de processo
                     if (rowProcesso) rowProcesso.style.display = 'none';
                 }
                 
@@ -900,7 +1090,7 @@
                 const checkboxAbr = document.getElementById('checkbox-abr-container');
                 const checkboxIncluirAbr = document.getElementById('incluir_abr');
                 
-                // ⭐ Mostrar/esconder checkbox ABR (apenas para parecer)
+                // Mostrar/esconder checkbox ABR (apenas para parecer)
                 if (tipoSelecionado === 'parecer') {
                     checkboxAbr.style.display = 'block';
                 } else {
@@ -908,14 +1098,24 @@
                     if (checkboxIncluirAbr) checkboxIncluirAbr.checked = false;
                 }
                 
-                // ⭐ Mostrar select de processo para todos os tipos
+                // ⭐ MOSTRA PROCESSO APENAS PARA: parecer, panorama, detalhamento
+                // ⭐ NÃO mostra para: conclusao
                 if (tipoSelecionado && auditoriaId) {
-                    rowProcesso.style.display = 'flex';
-                    await carregarProcessosPorAuditoria(auditoriaId);
-                    
-                    // ⭐ Se for parecer, forçar seleção
-                    if (tipoSelecionado === 'parecer' && selectProcesso) {
-                        selectProcesso.style.borderColor = '#184145';
+                    if (tipoSelecionado === 'parecer' || tipoSelecionado === 'panorama' || tipoSelecionado === 'detalhamento') {
+                        rowProcesso.style.display = 'flex';
+                        await carregarProcessosPorAuditoria(auditoriaId);
+                        
+                        // Se for parecer, forçar seleção
+                        if (tipoSelecionado === 'parecer' && selectProcesso) {
+                            selectProcesso.style.borderColor = '#184145';
+                        }
+                    } else {
+                        // ⭐ Para conclusao (e outros), NÃO mostra processo
+                        rowProcesso.style.display = 'none';
+                        if (selectProcesso) {
+                            selectProcesso.value = '';
+                            selectProcesso.disabled = true;
+                        }
                     }
                 } else {
                     rowProcesso.style.display = 'none';
@@ -931,10 +1131,51 @@
         // Se já houver uma área e auditoria selecionadas, mostrar o campo de processo
         if (selectAuditoria?.value && selectTipo?.value) {
             const tipoAtual = selectTipo.value;
-            if (tipoAtual === 'gerencial' || tipoAtual === 'parecer') {
+            // ⭐ MOSTRA PROCESSO APENAS PARA: parecer, panorama, detalhamento
+            // ⭐ NÃO mostra para: conclusao
+            if (tipoAtual === 'panorama' || tipoAtual === 'detalhamento' || tipoAtual === 'parecer') {
                 rowProcesso.style.display = 'flex';
                 await carregarProcessosPorAuditoria(selectAuditoria.value);
+            } else {
+                // ⭐ Para conclusao, esconde o campo de processo
+                rowProcesso.style.display = 'none';
             }
+        }
+
+        // =============================================
+        // ⭐ NOVO: EVENTOS DO MODAL DE CONCLUSÃO
+        // =============================================
+        const btnFecharModalConclusao = document.getElementById('btn-fechar-modal-conclusao');
+        const btnCancelarConclusao = document.getElementById('btn-cancelar-conclusao');
+        const btnSalvarConclusao = document.getElementById('btn-salvar-conclusao');
+        
+        if (btnFecharModalConclusao) {
+            btnFecharModalConclusao.addEventListener('click', fecharModalConclusao);
+        }
+        
+        if (btnCancelarConclusao) {
+            btnCancelarConclusao.addEventListener('click', fecharModalConclusao);
+        }
+        
+        if (btnSalvarConclusao) {
+            btnSalvarConclusao.addEventListener('click', async () => {
+                const salvou = await salvarConclusao();
+                if (salvou) {
+                    fecharModalConclusao();
+                    // Agora gerar o relatório de conclusão
+                    await gerarRelatorioConclusao();
+                }
+            });
+        }
+        
+        // Fechar modal clicando fora
+        const modalConclusao = document.getElementById('modal-conclusao');
+        if (modalConclusao) {
+            modalConclusao.addEventListener('click', (e) => {
+                if (e.target === modalConclusao) {
+                    fecharModalConclusao();
+                }
+            });
         }
     });
 
@@ -982,6 +1223,205 @@
             console.error('Erro ao carregar processos:', error);
             selectProcesso.innerHTML = '<option value="">Erro ao carregar</option>';
             selectProcesso.disabled = true;
+        }
+    }
+
+    // ============================================================
+    // FUNÇÕES DE CONCLUSÃO
+    // ============================================================
+
+    let conclusaoAtual = null;
+
+    async function buscarConclusaoExistente() {
+        const areaId = document.getElementById('area_relatorio').value;
+        const auditoriaId = document.getElementById('auditoria_relatorio').value;
+        
+        if (!areaId || !auditoriaId) return;
+        
+        try {
+            const response = await fetch(`/api/conclusoes/buscar?auditoria_id=${auditoriaId}&area_id=${areaId}`);
+            const data = await response.json();
+            
+            if (data.success && data.conclusao) {
+                conclusaoAtual = data.conclusao;
+                document.getElementById('conclusao_texto').value = data.conclusao.texto || '';
+                
+                // Mostrar histórico
+                await carregarHistoricoConclusoes(auditoriaId, areaId);
+            } else {
+                document.getElementById('conclusao_texto').value = '';
+                document.getElementById('historico-conclusoes').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar conclusão:', error);
+        }
+    }
+
+    async function carregarHistoricoConclusoes(auditoriaId, areaId) {
+        try {
+            const response = await fetch(`/api/conclusoes/historico?auditoria_id=${auditoriaId}&area_id=${areaId}`);
+            const data = await response.json();
+            
+            if (data.success && data.conclusoes && data.conclusoes.length > 0) {
+                const container = document.getElementById('lista-historico-conclusoes');
+                const historicoDiv = document.getElementById('historico-conclusoes');
+                
+                container.innerHTML = data.conclusoes.map(item => `
+                    <div class="conclusao-historico-item">
+                        <div>
+                            <span class="usuario">${escapeHtml(item.usuario_nome)}</span>
+                            <span class="data">${item.created_at}</span>
+                        </div>
+                        <div class="texto">${escapeHtml(item.conclusao)}</div>
+                    </div>
+                `).join('');
+                
+                historicoDiv.style.display = 'block';
+            } else {
+                document.getElementById('historico-conclusoes').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+        }
+    }
+
+    async function salvarConclusao() {
+        const texto = document.getElementById('conclusao_texto').value.trim();
+        const areaId = document.getElementById('area_relatorio').value;
+        const auditoriaId = document.getElementById('auditoria_relatorio').value;
+        
+        if (!texto) {
+            mostrarToast('⚠️ Por favor, escreva uma conclusão antes de gerar o relatório', 'warning');
+            return false;
+        }
+        
+        if (!areaId || !auditoriaId) {
+            mostrarToast('⚠️ Selecione a área e auditoria primeiro', 'warning');
+            return false;
+        }
+        
+        try {
+            const response = await fetch('/api/conclusoes/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    auditoria_id: parseInt(auditoriaId),
+                    area_id: parseInt(areaId),
+                    conclusao: texto
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ ' + data.message, 'success');
+                return true;
+            } else {
+                mostrarToast('❌ ' + (data.error || 'Erro ao salvar conclusão'), 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Erro ao salvar conclusão:', error);
+            mostrarToast('❌ Erro ao salvar conclusão', 'error');
+            return false;
+        }
+    }
+
+    function abrirModalConclusao() {
+        const modal = document.getElementById('modal-conclusao');
+        if (!modal) return;
+        
+        // Buscar conclusão existente
+        buscarConclusaoExistente();
+        
+        modal.style.display = 'flex';
+        // Forçar reflow para animação
+        void modal.offsetWidth;
+        modal.style.opacity = '1';
+    }
+
+    function fecharModalConclusao() {
+        const modal = document.getElementById('modal-conclusao');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.opacity = '0';
+        }
+    }
+
+    async function gerarRelatorioConclusao() {
+        const areaId = document.getElementById('area_relatorio').value;
+        const auditoriaId = document.getElementById('auditoria_relatorio').value;
+        const orientacao = document.querySelector('input[name="orientacao"]:checked')?.value || 'RETRATO';
+        const textoConclusao = document.getElementById('conclusao_texto').value.trim();
+        
+        if (!textoConclusao) {
+            mostrarToast('⚠️ Conclusão não pode estar vazia', 'warning');
+            return;
+        }
+        
+        const btnGerar = document.getElementById('btn-gerar-relatorio');
+        const btnLoading = btnGerar?.querySelector('.btn-loading');
+        
+        if (btnGerar) {
+            btnGerar.disabled = true;
+            btnGerar.querySelector('i')?.classList.add('d-none');
+            if (btnLoading) btnLoading.style.display = 'inline-flex';
+        }
+        
+        try {
+            const response = await fetch('/api/relatorios/gerar-conclusao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    area_id: areaId,
+                    auditoria_id: auditoriaId,
+                    orientacao: orientacao,
+                    conclusao: textoConclusao
+                })
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let nomeArquivo = `relatorio_conclusao.pdf`;
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match && match[1]) {
+                        nomeArquivo = match[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                a.download = nomeArquivo;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                const resultadoDiv = document.getElementById('resultado-relatorio');
+                if (resultadoDiv) {
+                    resultadoDiv.style.display = 'block';
+                    setTimeout(() => {
+                        resultadoDiv.style.opacity = '1';
+                    }, 10);
+                }
+                mostrarToast('✅ Relatório de Conclusão gerado e baixado com sucesso!', 'success');
+            } else {
+                const error = await response.json();
+                mostrarToast('❌ Erro: ' + (error.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+        } finally {
+            if (btnGerar) {
+                btnGerar.disabled = false;
+                btnGerar.querySelector('i')?.classList.remove('d-none');
+                if (btnLoading) btnLoading.style.display = 'none';
+            }
         }
     }
 </script>
