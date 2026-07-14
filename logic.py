@@ -1904,7 +1904,7 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     
     gerente_dados = []
     gerente_dados.append([
-        Paragraph("<b>Gerente:</b> Teófilo Gaio Boto", nome_style)
+        Paragraph("<b>Gerente:</b> TEÓFILO GAIO BOTO", nome_style)
     ])
     gerente_dados.append([
         Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
@@ -2391,7 +2391,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio='Relatorio de Validação',
+        titulo_relatorio='Relatório de Validação',
         subtitulo_relatorio='Matriz de Panorama',
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
@@ -3287,13 +3287,13 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         if proc.get('objetivo'):
             info_processo.append([
                 Paragraph("<b>Objetivo:</b>", card_texto_style),
-                Paragraph(limitar_texto(proc['objetivo'], 1000), texto_processo_style)
+                Paragraph(limitar_texto(proc['objetivo'], 10000), texto_processo_style)
             ])
         
         if proc.get('descricao'):
             info_processo.append([
                 Paragraph("<b>Descrição:</b>", card_texto_style),
-                Paragraph(limitar_texto(proc['descricao'], 1000), texto_processo_style)
+                Paragraph(limitar_texto(proc['descricao'], 10000), texto_processo_style)
             ])
         
         executor_valor = proc.get('executor') or 'Não informado'
@@ -3372,25 +3372,25 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 if etapa.get('descricao_etapa'):
                     info_etapa.append([
                         Paragraph("<b>Descrição:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['descricao_etapa'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['descricao_etapa'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('como_e_feito'):
                     info_etapa.append([
                         Paragraph("<b>Como é feito:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['como_e_feito'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['como_e_feito'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('objetivo_etapa'):
                     info_etapa.append([
                         Paragraph("<b>Objetivo da Etapa:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['objetivo_etapa'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['objetivo_etapa'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('politica_interna'):
                     info_etapa.append([
                         Paragraph("<b>Política Interna:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['politica_interna'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['politica_interna'], 10000), texto_etapa_style)
                     ])
 
                 # Dentro do loop de etapas, modifique:
@@ -3417,25 +3417,25 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 if etapa.get('analise_critica'):
                     info_etapa.append([
                         Paragraph("<b>ANÁLISE CRÍTICA:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['analise_critica'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['analise_critica'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('sugestao_melhoria'):
                     info_etapa.append([
                         Paragraph("<b>SUGESTÃO DE MELHORIA:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['sugestao_melhoria'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['sugestao_melhoria'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('necessidade_implantacao'):
                     info_etapa.append([
                         Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['necessidade_implantacao'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['necessidade_implantacao'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('ganho_previsto'):
                     info_etapa.append([
                         Paragraph("<b>GANHO PREVISTO:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['ganho_previsto'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['ganho_previsto'], 10000), texto_etapa_style)
                     ])
                 
                 # Manual da etapa
@@ -3512,26 +3512,26 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         if risco.get('categoria'):
                             info_risco.append([
                                 Paragraph("<b>Categoria:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['categoria'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['categoria'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('fator_risco'):
                             info_risco.append([
                                 Paragraph("<b>Fator de Risco:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['fator_risco'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['fator_risco'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('consequencia'):
                             info_risco.append([
                                 Paragraph("<b>Consequência:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['consequencia'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['consequencia'], 10000), texto_risco_style)
                             ])
                         
                         # ⭐ NOVOS CAMPOS AQUI (entre consequencia e desc_tratamento)
                         if risco.get('info_adicional'):
                             info_risco.append([
                                 Paragraph("<b>Informações Adicionais:</b>", card_texto_style),
-                                Paragraph(limitar_texto(str(risco['info_adicional']), 1000), texto_risco_style)
+                                Paragraph(limitar_texto(str(risco['info_adicional']), 10000), texto_risco_style)
                             ])
 
                         if risco.get('financeiro') is not None:  # Verifica se não é None
@@ -3563,7 +3563,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         if risco.get('causas'):
                             info_risco.append([
                                 Paragraph("<b>Categoria de Causa:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['causas'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['causas'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('impacto'):
@@ -3603,19 +3603,19 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         if risco.get('motivo_classificacao'):
                             info_risco.append([
                                 Paragraph("<b>Motivo da Classificação:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['motivo_classificacao'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['motivo_classificacao'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('tratamento'):
                             info_risco.append([
                                 Paragraph("<b>Tratamento:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['tratamento'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['tratamento'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('desc_tratamento'):
                             info_risco.append([
                                 Paragraph("<b>Descrição do Tratamento:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['desc_tratamento'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['desc_tratamento'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('prazo_implantacao'):
@@ -3668,16 +3668,16 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                                 texto_controle.append(f"<b>Controle {controle_idx + 1}:</b> {controle.get('nome_controle', 'Controle não nomeado')}")
                                 
                                 if risco.get('fator_risco'):
-                                    texto_controle.append(f"  • <b>Fator de Risco:</b> {limitar_texto(risco['fator_risco'], 1000)}")
+                                    texto_controle.append(f"  • <b>Fator de Risco:</b> {limitar_texto(risco['fator_risco'], 10000)}")
                                 
                                 if controle.get('objetivo_controle'):
-                                    texto_controle.append(f"  • <b>Objetivo:</b> {limitar_texto(controle['objetivo_controle'], 1000)}")
+                                    texto_controle.append(f"  • <b>Objetivo:</b> {limitar_texto(controle['objetivo_controle'], 10000)}")
                                 
                                 if controle.get('forma_execucao'):
                                     texto_controle.append(f"  • <b>Forma de Execução:</b> {controle['forma_execucao']}")
                                 
                                 if controle.get('como_executado'):
-                                    texto_controle.append(f"  • <b>Como Executado:</b> {limitar_texto(controle['como_executado'], 1000)}")
+                                    texto_controle.append(f"  • <b>Como Executado:</b> {limitar_texto(controle['como_executado'], 10000)}")
                                 
                                 if controle.get('natureza'):
                                     texto_controle.append(f"  • <b>Natureza:</b> {controle['natureza']}")
@@ -3686,7 +3686,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                                     texto_controle.append(f"  • <b>Periodicidade:</b> {controle['periodicidade_execucao']}")
                                 
                                 if controle.get('evidencia_realizacao'):
-                                    texto_controle.append(f"  • <b>Evidência:</b> {limitar_texto(controle['evidencia_realizacao'], 1000)}")
+                                    texto_controle.append(f"  • <b>Evidência:</b> {limitar_texto(controle['evidencia_realizacao'], 10000)}")
                                 
                                 if controle.get('frequencia_evidencia'):
                                     texto_controle.append(f"  • <b>Frequência da Evidência:</b> {controle['frequencia_evidencia']}")
