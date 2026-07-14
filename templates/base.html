@@ -11,6 +11,11 @@
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
+    <!-- ⭐ NOVO: BLOCO PARA CSS PERSONALIZADO DE CADA PÁGINA -->
+    {% block styles %}
+        <!-- CSS padrão do base será carregado aqui -->
+    {% endblock %}
+
     <style>
         /* ====== RESET E CONFIGURAÇÕES GLOBAIS ======*/
         * {
@@ -1401,6 +1406,7 @@
 
     </style>
 </head>
+
 <body>
     <!-- Overlay para fechar o menu no mobile -->
 
@@ -1564,53 +1570,58 @@
             {% endblock %}
         </main>
         <!-- BOTÃO FLUTUANTE DE ANOTAÇÕES -->
-    <button class="btn-anotacoes-flutuante" id="btn-anotacoes" title="Minhas Anotações">
-        <i class="fas fa-sticky-note"></i>
-    </button>
+        <button class="btn-anotacoes-flutuante" id="btn-anotacoes" title="Minhas Anotações">
+            <i class="fas fa-sticky-note"></i>
+        </button>
 
-    <!-- MODAL DE ANOTAÇÕES -->
-    <div id="modal-anotacoes" class="modal-anotacoes" style="display: none;">
-        <div class="modal-anotacoes-content">
-            <div class="modal-anotacoes-header">
-                <h3><i class="fas fa-sticky-note"></i> Minhas Anotações</h3>
-                <button class="modal-anotacoes-fechar" onclick="fecharModalAnotacoes()">&times;</button>
-            </div>
-            <div class="modal-anotacoes-body">
-                <!-- Botão nova anotação -->
-                <button class="btn-nova-anotacao" id="btn-nova-anotacao">
-                    <i class="fas fa-plus"></i> Nova Anotação
-                </button>
-                
-                <!-- Lista de anotações -->
-                <div id="anotacoes-lista" style="margin-top: 15px;">
-                    <div style="text-align: center; padding: 20px; color: #999;">
-                        <i class="fas fa-spinner fa-spin"></i> Carregando...
-                    </div>
+        <!-- MODAL DE ANOTAÇÕES -->
+        <div id="modal-anotacoes" class="modal-anotacoes" style="display: none;">
+            <div class="modal-anotacoes-content">
+                <div class="modal-anotacoes-header">
+                    <h3><i class="fas fa-sticky-note"></i> Minhas Anotações</h3>
+                    <button class="modal-anotacoes-fechar" onclick="fecharModalAnotacoes()">&times;</button>
                 </div>
-                
-                <!-- Formulário (escondido) -->
-                <div id="anotacao-form" style="display: none; margin-top: 15px;">
-                    <input type="hidden" id="anotacao-id">
-                    <div class="form-group" style="margin-bottom: 10px;">
-                        <label>Título</label>
-                        <input type="text" id="anotacao-titulo" class="form-control" placeholder="Título da anotação...">
+                <div class="modal-anotacoes-body">
+                    <!-- Botão nova anotação -->
+                    <button class="btn-nova-anotacao" id="btn-nova-anotacao">
+                        <i class="fas fa-plus"></i> Nova Anotação
+                    </button>
+                    
+                    <!-- Lista de anotações -->
+                    <div id="anotacoes-lista" style="margin-top: 15px;">
+                        <div style="text-align: center; padding: 20px; color: #999;">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando...
+                        </div>
                     </div>
-                    <div class="form-group" style="margin-bottom: 10px;">
-                        <label>Conteúdo</label>
-                        <textarea id="anotacao-conteudo" class="form-control" rows="5" placeholder="Escreva sua anotação..."></textarea>
-                    </div>
-                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                        <button class="btn-cancelar-anotacao" id="btn-cancelar-anotacao">Cancelar</button>
-                        <button class="btn-salvar-anotacao" id="btn-salvar-anotacao">
-                            <i class="fas fa-save"></i> Salvar
-                        </button>
+                    
+                    <!-- Formulário (escondido) -->
+                    <div id="anotacao-form" style="display: none; margin-top: 15px;">
+                        <input type="hidden" id="anotacao-id">
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label>Título</label>
+                            <input type="text" id="anotacao-titulo" class="form-control" placeholder="Título da anotação...">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label>Conteúdo</label>
+                            <textarea id="anotacao-conteudo" class="form-control" rows="5" placeholder="Escreva sua anotação..."></textarea>
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn-cancelar-anotacao" id="btn-cancelar-anotacao">Cancelar</button>
+                            <button class="btn-salvar-anotacao" id="btn-salvar-anotacao">
+                                <i class="fas fa-save"></i> Salvar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
     <div id ="toastContainer" class="toast-container"></div>
+
+    <!-- ⭐ NOVO: BLOCO PARA JAVASCRIPT PERSONALIZADO -->
+    {% block scripts %}
+        <!-- JavaScript padrão do base (se houver) -->
+    {% endblock %}
 
     <script>
         // ====== CONTROLE DO MENU HAMBURGUER ====== 
