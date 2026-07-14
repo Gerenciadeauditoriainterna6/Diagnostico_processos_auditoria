@@ -4071,13 +4071,14 @@
             return;
         }
 
-        // ⭐ VALIDAÇÃO: Verificar se há sugestão de melhoria
-        const temSugestaoMelhoria = sugestaoMelhoria.length > 0;
+        // ⭐ VALIDAÇÃO: Verificar se há sugestão de melhoria (ignorar "INEXISTENTE")
+        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
+        const temSugestaoMelhoria = sugestaoMelhoria.length > 0 && !valoresSemSugestao.includes(sugestaoMelhoria.trim().toLowerCase());
         
         let seraImplantada = null;
         
         if (temSugestaoMelhoria) {
-            // ⭐ Se TEM sugestão, obriga selecionar um status
+            // ⭐ Se TEM sugestão (válida), obriga selecionar um status
             const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
             
             if (!radioSelecionado) {
@@ -4104,7 +4105,7 @@
                 seraImplantada = null; // Aguardando avaliação
             }
         } else {
-            // ⭐ Se NÃO TEM sugestão, não obriga selecionar status
+            // ⭐ Se NÃO TEM sugestão (ou é "INEXISTENTE"), não obriga selecionar status
             // Mas verifica se o usuário selecionou algum status mesmo assim
             const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
             if (radioSelecionado) {
@@ -4126,7 +4127,7 @@
             etapa_id: parseInt(etapaId),
             categoria: categoria,
             analise_critica: analiseCritica,
-            sugestao_melhoria: sugestaoMelhoria,
+            sugestao_melhoria: sugestaoMelhoria,  // Pode ser "INEXISTENTE" ou vazio
             necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value || '',
             ganho_previsto: document.getElementById('analise-auditado-ganho').value || '',
             observacoes: document.getElementById('analise-auditado-observacoes').value || '',

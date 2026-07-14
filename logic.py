@@ -2255,7 +2255,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     titulo_capa_style = ParagraphStyle(
         'TituloCapa',
         parent=normal_style,
-        fontSize=24,
+        fontSize=20,
         fontName='Helvetica-Bold',
         alignment=TA_CENTER,
         textColor=colors.HexColor('#0b5b99'),
@@ -2276,8 +2276,8 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     info_capa_style = ParagraphStyle(
         'InfoCapa',
         parent=normal_style,
-        fontSize=11,
-        fontName='Helvetica',
+        fontSize=14,
+        fontName='Helvetica-Bold',
         alignment=TA_CENTER,
         textColor=colors.HexColor('#0b5b99'),
         spaceAfter=6
@@ -2304,10 +2304,10 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         story.append(Spacer(1, 20))
     
     # Título
-    story.append(Paragraph("MAPA", titulo_capa_style))
+    story.append(Paragraph("GERÊNCIA DE AUDITORIA INTERNA", titulo_capa_style))
     story.append(Spacer(1, 10))
-    story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", 
-                           ParagraphStyle('CustomParagraph', parent=info_capa_style, fontSize=10)))
+    story.append(Paragraph("FUSVE", 
+                           ParagraphStyle('CustomParagraph', parent=info_capa_style)))
     story.append(Spacer(1, 30))
     
     # Título principal
