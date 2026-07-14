@@ -1700,7 +1700,7 @@ def buscar_responsaveis_auditoria(auditoria_id):
 
 TEXTOS_VALIDACAO = {
     'panorama': {
-        'titulo': "VALIDACÃO - MATRIZ DE PANORAMA",
+        'titulo': "VALIDAÇÃO - MATRIZ DE PANORAMA",
         'texto': (
             "Declaro que tomei ciência das informações registradas neste relatório, "
             "as quais refletem fielmente os processos, riscos, controles, fluxos e dados reportados pela equipe da área auditada durante as entrevistas de levantamento da Matriz de Panorama. "
@@ -1708,7 +1708,7 @@ TEXTOS_VALIDACAO = {
         )
     },
     'detalhamento': {
-        'titulo': "VALIDACÃO - MATRIZ DE DETALHAMENTO",
+        'titulo': "VALIDAÇÃO - MATRIZ DE DETALHAMENTO",
         'texto': (
             "Declaro que tomei ciência das informações registradas neste relatório, as quais refletem fielmente os processos, "
             "riscos, controles, fluxos e dados reportados pela equipe da área auditada durante as entrevistas de "
@@ -1722,7 +1722,7 @@ TEXTOS_VALIDACAO = {
     },
 
     'padrao': {
-        'titulo': "VALIDACÃO",
+        'titulo': "VALIDAÇÃO",
         'texto': (
             "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
             "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido."
