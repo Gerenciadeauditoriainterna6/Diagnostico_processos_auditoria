@@ -4991,7 +4991,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b><font color=#ff0000>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
         
         story.append(Spacer(1, 8))
 
@@ -5044,7 +5044,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
         else:
-            story.append(Paragraph("<b><font color=#ff0000>*AGUARDANDO DECISÃO SOBRE IMPLANTACAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
         
         story.append(Spacer(1, 8))
     
