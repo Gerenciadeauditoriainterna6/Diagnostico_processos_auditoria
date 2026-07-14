@@ -463,7 +463,7 @@ def calcular_tempo(data_inicio):
 # ============================================================
 
 from dashboard_api import dashboard_api
-from dashboard_novo.endpoints import novo_dashboard_api
+from routes.dashboard_novo.endpoints import novo_dashboard_api
 from routes import register_blueprints
 
 app = Flask(__name__, static_folder='static')

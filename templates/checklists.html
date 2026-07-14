@@ -170,8 +170,8 @@
                     
                     <!-- 1. Análise Crítica -->
                     <div class="form-group">
-                        <label><i class="fas fa-clipboard-list"></i> Análise Crítica *</label>
-                        <textarea id="analise-auditado-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica (informações coletadas do auditado)..."></textarea>
+                        <label><i class="fas fa-clipboard-list"></i> Ponto de Auditoria *</label>
+                        <textarea id="analise-auditado-texto" class="form-control" rows="3" placeholder="Descreva o Ponto de Auditoria..."></textarea>
                     </div>
                     
                     <!-- 2. Sugestão de Melhoria -->
@@ -321,8 +321,8 @@
                     
                     <!-- 1. Análise Crítica -->
                     <div class="form-group">
-                        <label><i class="fas fa-clipboard-list"></i> Análise Crítica *</label>
-                        <textarea id="analise-auditor-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica do auditor..."></textarea>
+                        <label><i class="fas fa-clipboard-list"></i> Ponto de Auditoria *</label>
+                        <textarea id="analise-auditor-texto" class="form-control" rows="3" placeholder="Descreva o Ponto de Auditoria do auditor..."></textarea>
                     </div>
                     
                     <!-- 2. Sugestão de Melhoria -->
@@ -2489,7 +2489,7 @@
         
         const analiseCritica = document.getElementById('analise-auditor-texto').value;
         if (!analiseCritica.trim()) {
-            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
+            mostrarToast('⚠️ O Ponto de Auditoria é obrigatório', 'warning');
             return;
         }
         
@@ -3786,7 +3786,7 @@
                                     <!-- Análise Crítica e Sugestão de Melhoria -->
                                     <div class="analise-grid">
                                         <div class="analise-card-section">
-                                            <h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4>
+                                            <h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4>
                                             <div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div>
                                         </div>
                                         <div class="analise-card-section">
@@ -4063,67 +4063,125 @@
         const etapaId = document.getElementById('analise-auditado-etapa-id').value;
         const categoria = document.getElementById('analise-auditado-categoria').value;
         const analiseCritica = document.getElementById('analise-auditado-texto').value;
+        const sugestaoMelhoria = document.getElementById('analise-auditado-sugestao').value.trim();
         
+        // ⭐ VALIDAÇÃO: Ponto de Auditoria é obrigatório
         if (!analiseCritica.trim()) {
-            mostrarToast('A Análise Crítica é obrigatória', 'warning');
+            mostrarToast('O Ponto de Auditoria é obrigatório', 'warning');
             return;
         }
 
-        const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
+        // ⭐ VALIDAÇÃO: Verificar se há sugestão de melhoria
+        const temSugestaoMelhoria = sugestaoMelhoria.length > 0;
         
         let seraImplantada = null;
-        if (radioSelecionado) {
+        
+        if (temSugestaoMelhoria) {
+            // ⭐ Se TEM sugestão, obriga selecionar um status
+            const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
+            
+            if (!radioSelecionado) {
+                mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
+                // ⭐ Destacar o campo de status
+                const statusGroup = document.querySelector('.status-radio-group');
+                if (statusGroup) {
+                    statusGroup.style.border = '2px solid #dc3545';
+                    statusGroup.style.borderRadius = '8px';
+                    statusGroup.style.padding = '10px';
+                    setTimeout(() => {
+                        statusGroup.style.border = '';
+                        statusGroup.style.padding = '';
+                    }, 3000);
+                }
+                return;
+            }
+            
             if (radioSelecionado.value === 'true') {
                 seraImplantada = true;
             } else if (radioSelecionado.value === 'false') {
                 seraImplantada = false;
             } else {
-                seraImplantada = null;
+                seraImplantada = null; // Aguardando avaliação
             }
         } else {
-            mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
-            return;
+            // ⭐ Se NÃO TEM sugestão, não obriga selecionar status
+            // Mas verifica se o usuário selecionou algum status mesmo assim
+            const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
+            if (radioSelecionado) {
+                // Usuário selecionou, então usa o valor
+                if (radioSelecionado.value === 'true') {
+                    seraImplantada = true;
+                } else if (radioSelecionado.value === 'false') {
+                    seraImplantada = false;
+                } else {
+                    seraImplantada = null;
+                }
+            }
+            // Se não selecionou, seraImplantada continua null
         }
         
-        // ⭐ CRIAR PAYLOAD COMO OBJETO (em vez de FormData)
+        // ⭐ CRIAR PAYLOAD COMO OBJETO
         const payload = {
             processo_id: parseInt(processoIdAtual),
             etapa_id: parseInt(etapaId),
             categoria: categoria,
             analise_critica: analiseCritica,
-            sugestao_melhoria: document.getElementById('analise-auditado-sugestao').value || '',
+            sugestao_melhoria: sugestaoMelhoria,
             necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value || '',
             ganho_previsto: document.getElementById('analise-auditado-ganho').value || '',
             observacoes: document.getElementById('analise-auditado-observacoes').value || '',
             sugestao_sera_implantada: seraImplantada
         };
         
-        // ⭐ Processar evidência do auditado (converter para Base64)
-        const removerEvidencia = document.getElementById('remover-evidencia-auditado-hidden')?.value === 'true';
-        
-        if (arquivoSelecionadoAuditadoEvidencia) {
-            try {
-                const base64 = await converterParaBase64(arquivoSelecionadoAuditadoEvidencia);
-                payload.evidencia_base64 = base64;
-                payload.evidencia_nome = arquivoSelecionadoAuditadoEvidencia.name;
-                console.log('📎 Enviando evidência do auditado:', arquivoSelecionadoAuditadoEvidencia.name);
-            } catch (error) {
-                console.error('Erro ao converter evidência:', error);
-                mostrarToast('❌ Erro ao processar evidência', 'error');
+        // ⭐ VALIDAÇÃO: Se vai implantar, obriga preencher plano de ação
+        if (seraImplantada === true) {
+            const planoAcao = document.getElementById('plano-acao-auditado').value.trim();
+            const responsavel = document.getElementById('responsavel-implantacao-auditado').value.trim();
+            const dataInicio = document.getElementById('data-inicio-implantacao-auditado').value;
+            const dataConclusao = document.getElementById('data-conclusao-prevista-auditado').value;
+            
+            if (!planoAcao) {
+                mostrarToast('⚠️ Plano de Ação é obrigatório quando a sugestão será implantada', 'warning');
+                document.getElementById('plano-acao-auditado').style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    document.getElementById('plano-acao-auditado').style.borderColor = '';
+                }, 3000);
                 return;
             }
-        } else if (removerEvidencia) {
-            payload.remover_evidencia = true;
-            console.log('🗑️ Removendo evidência do auditado');
-        }
-        
-        // ⭐ Só incluir plano de ação se for true
-        if (seraImplantada === true) {
-            payload.plano_acao = document.getElementById('plano-acao-auditado').value || '';
-            payload.responsavel_implantacao = document.getElementById('responsavel-implantacao-auditado').value || '';
-            payload.data_inicio_implantacao = document.getElementById('data-inicio-implantacao-auditado').value || '';
-            payload.data_conclusao_prevista = document.getElementById('data-conclusao-prevista-auditado').value || '';
             
+            if (!responsavel) {
+                mostrarToast('⚠️ Responsável pela implantação é obrigatório', 'warning');
+                document.getElementById('responsavel-implantacao-auditado').style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    document.getElementById('responsavel-implantacao-auditado').style.borderColor = '';
+                }, 3000);
+                return;
+            }
+            
+            if (!dataInicio) {
+                mostrarToast('⚠️ Data de início da implantação é obrigatória', 'warning');
+                document.getElementById('data-inicio-implantacao-auditado').style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    document.getElementById('data-inicio-implantacao-auditado').style.borderColor = '';
+                }, 3000);
+                return;
+            }
+            
+            if (!dataConclusao) {
+                mostrarToast('⚠️ Data de conclusão prevista é obrigatória', 'warning');
+                document.getElementById('data-conclusao-prevista-auditado').style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    document.getElementById('data-conclusao-prevista-auditado').style.borderColor = '';
+                }, 3000);
+                return;
+            }
+            
+            payload.plano_acao = planoAcao;
+            payload.responsavel_implantacao = responsavel;
+            payload.data_inicio_implantacao = dataInicio;
+            payload.data_conclusao_prevista = dataConclusao;
+            
+            // Processar anexo
             if (arquivoSelecionadoAuditado) {
                 try {
                     const base64 = await converterParaBase64(arquivoSelecionadoAuditado);
@@ -4142,6 +4200,25 @@
             }
         }
         
+        // ⭐ Processar evidência do auditado
+        const removerEvidencia = document.getElementById('remover-evidencia-auditado-hidden')?.value === 'true';
+        
+        if (arquivoSelecionadoAuditadoEvidencia) {
+            try {
+                const base64 = await converterParaBase64(arquivoSelecionadoAuditadoEvidencia);
+                payload.evidencia_base64 = base64;
+                payload.evidencia_nome = arquivoSelecionadoAuditadoEvidencia.name;
+                console.log('📎 Enviando evidência do auditado:', arquivoSelecionadoAuditadoEvidencia.name);
+            } catch (error) {
+                console.error('Erro ao converter evidência:', error);
+                mostrarToast('❌ Erro ao processar evidência', 'error');
+                return;
+            }
+        } else if (removerEvidencia) {
+            payload.remover_evidencia = true;
+            console.log('🗑️ Removendo evidência do auditado');
+        }
+        
         const btnSalvar = document.getElementById('btn-salvar-analise-auditado');
         const textoOriginal = btnSalvar.innerHTML;
         btnSalvar.disabled = true;
@@ -4151,13 +4228,12 @@
             const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
             const method = analiseId ? 'PUT' : 'POST';
             
-            // ⭐ ENVIAR COMO JSON
             const response = await fetch(url, { 
                 method: method,
                 headers: {
-                    'Content-Type': 'application/json'  // ⭐ HEADER CORRETO
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)  // ⭐ ENVIA COMO JSON
+                body: JSON.stringify(payload)
             });
             
             let data;
@@ -4353,7 +4429,7 @@
                 </div>
                 <div class="analise-auditor-body">
                     <div class="analise-grid">
-                        <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
+                        <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
                         <div class="analise-card-section"><h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
                     </div>
                     
