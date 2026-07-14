@@ -2265,11 +2265,12 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     subtitulo_capa_style = ParagraphStyle(
         'SubtituloCapa',
         parent=normal_style,
-        fontSize=16,
+        fontSize=14,
         fontName='Helvetica',
         alignment=TA_CENTER,
         textColor=colors.HexColor('#0b5b99'),
-        spaceAfter=20
+        spaceAfter=20,
+        leading=15
     )
     
     info_capa_style = ParagraphStyle(
@@ -5537,40 +5538,79 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     total_paginas = len(pdf_reader.pages)
     
     # ⭐ SEGUNDA PASSADA: GERAR O PDF FINAL COM O TOTAL
+
+    # ===== BUSCAR DADOS DA GERÊNCIA DE AUDITORIA INTERNA (FIXOS) =====
+    dados_gai = buscar_dados_gerencia_auditoria()
+    email_gai = dados_gai['email']
+    telefone_gai = dados_gai['telefone']
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # ============================================================
+    # ⭐ RODAPÉ USANDO A FUNÇÃO PADRONIZADA
+    # ============================================================
+    def rodape_parecer(canvas, doc, total_paginas):
+        """Rodapé específico do relatório Parecer"""
+        titulo_rodape = f"Parecer do Processo {proc_codigo} - {area_nome[:50]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape,
+                     root_dir=root_dir,
+                     email_auditoria=email_gai,
+                     telefone_auditoria=telefone_gai)
+    
+    # ============================================================
+    # ⭐ FUNÇÃO PARA CONTAR PÁGINAS E GERAR O PDF
+    # ============================================================
+    
+    # ⭐ 1. FAZER UMA CÓPIA DO STORY PARA A PRIMEIRA PASSADA
+    story_copy = copy.deepcopy(story)
+    
+    # ⭐ 2. PRIMEIRA PASSADA: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                topMargin=topMargin, bottomMargin=bottomMargin,
+                                leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_temp(canvas, doc):
+        # ⭐ NÃO DESENHA RODAPÉ NA CAPA (página 1)
+        if doc.page == 1:
+            return
+        # ⭐ PARA AS DEMAIS PÁGINAS, USA O RODAPÉ NORMAL (SEM CONTAGEM)
+        criar_rodape(canvas, doc, pagesize, 0, f"Parecer do Processo {proc_codigo} - {area_nome[:50]}",
+                     root_dir=root_dir,
+                     email_auditoria=email_gai,
+                     telefone_auditoria=telefone_gai)
+    
+    def cabecalho_temp(canvas, doc):
+        if doc.page > 1:  # ⭐ PULA O CABEÇALHO NA CAPA
+            cabecalho_com_tarja(canvas, doc)
+    
+    doc_temp.build(story_copy, 
+                   onFirstPage=lambda c, d: [cabecalho_temp(c, d), rodape_temp(c, d)],
+                   onLaterPages=lambda c, d: [cabecalho_temp(c, d), rodape_temp(c, d)])
+    
+    # ⭐ 3. CONTAR AS PÁGINAS
+    buffer_temp.seek(0)
+    pdf_reader = PdfReader(buffer_temp)
+    total_paginas = len(pdf_reader.pages)
+    
+    # ⭐ 4. SEGUNDA PASSADA: GERAR O PDF FINAL COM O TOTAL
+    doc_final = SimpleDocTemplate(buffer, pagesize=pagesize,
+                                 topMargin=topMargin, bottomMargin=bottomMargin,
+                                 leftMargin=leftMargin, rightMargin=rightMargin)
+    
     def rodape_final(canvas, doc):
-        canvas.saveState()
-        
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        
-        # ⭐ LINHA 1: Título e página
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        canvas.drawCentredString(pagesize[0]/2, 2*cm, 
-            f"Parecer do Processo {proc_codigo} - {area_nome} - Página {doc.page}/{total_paginas}")
-        
-        # ⭐ LINHA 2: Email e Telefone da GAI
-        texto_contato = f"E-mail: {email_gai} | Tel: {telefone_gai}"
-        canvas.setFont('Helvetica', 7)
-        canvas.setFillColor(colors.HexColor('#888888'))
-        canvas.drawCentredString(pagesize[0]/2, 1.5*cm, texto_contato)
-        
-        # ⭐ DESENHAR OS LOGOS
-        desenhar_logos_parecer(canvas)
-        canvas.restoreState()
+        if doc.page == 1:  # ⭐ PULA A CAPA
+            return
+        # ⭐ PASSA O TOTAL DE PÁGINAS PARA O RODAPÉ
+        rodape_parecer(canvas, doc, total_paginas)
     
-    # ⭐ CONSTRUIR O DOCUMENTO FINAL
-    doc = SimpleDocTemplate(buffer, pagesize=pagesize,
-                           topMargin=1.5*cm, bottomMargin=2*cm,
-                           leftMargin=2*cm, rightMargin=2*cm)
+    def cabecalho_final(canvas, doc):
+        if doc.page > 1:  # ⭐ PULA O CABEÇALHO NA CAPA
+            cabecalho_com_tarja(canvas, doc)
     
+    doc_final.build(story, 
+                    onFirstPage=lambda c, d: [cabecalho_final(c, d), rodape_final(c, d)],
+                    onLaterPages=lambda c, d: [cabecalho_final(c, d), rodape_final(c, d)])
     
-    doc.build(story, 
-          onFirstPage=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)],
-          onLaterPages=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)])
     buffer.seek(0)
     return buffer.getvalue()
 
@@ -5597,6 +5637,12 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     
     buffer = io.BytesIO()
     TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # ⭐ BUSCAR DADOS DA GAI PARA O RODAPÉ
+    dados_gai = buscar_dados_gerencia_auditoria()
+    email_gai = dados_gai['email']
+    telefone_gai = dados_gai['telefone']
     
     # Definir orientação
     if orientacao.upper() == "PAISAGEM":
@@ -5619,7 +5665,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story=story,
         pagesize=pagesize,
         titulo_relatorio="Relatório de Conclusão",
-        subtitulo_relatorio=f"Auditoria: {codigo_auditoria} - {titulo_auditoria}",
+        subtitulo_relatorio=f"{codigo_auditoria}<br/><br/>{titulo_auditoria}",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -5668,7 +5714,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story.append(Paragraph(f"<b>Unidade:</b> {unidade}", info_style))
     story.append(Paragraph(f"<b>Gestor:</b> {gestor} - {cargo}", info_style))
     story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
-    story.append(Paragraph(f"<b>Data:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
+    story.append(Paragraph(f"<b>Data de Emissão:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
     story.append(Spacer(1, 20))
     
     # Linha divisória
@@ -5696,64 +5742,62 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     story.append(Paragraph(f"{usuario_nome}", assinatura_style))
     story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
     
-    # ⭐ RODAPÉ
+    # ============================================================
+    # ⭐ RODAPÉ USANDO A FUNÇÃO PADRONIZADA
+    # ============================================================
     def rodape_conclusao(canvas, doc, total_paginas):
         """Rodapé específico do relatório de conclusão"""
-        canvas.saveState()
-        
-        altura_rodape = 1.8 * cm
-        y_fundo = 0
-        
-        canvas.setFillColor(colors.HexColor('#F0F0F0'))
-        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
-        
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        canvas.drawCentredString(
-            pagesize[0]/2, 
-            2*cm, 
-            f"Relatório de Conclusão - {area_nome[:50]} - Página {doc.page}/{total_paginas}"
-        )
-        
-        # Desenhar logos
-        desenhar_logos(canvas, pagesize, None)
-        
-        canvas.restoreState()
+        titulo_rodape = f"Relatório de Conclusão - {area_nome[:50]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape,
+                     root_dir=root_dir,
+                     email_auditoria=email_gai,
+                     telefone_auditoria=telefone_gai)
     
-    # ⭐ GERAR O PDF - FAZER UMA CÓPIA DO STORY PARA CONTAGEM
+    # ============================================================
+    # ⭐ GERAR O PDF COM CONTAGEM DE PÁGINAS
+    # ============================================================
+    
+    # ⭐ 1. FAZER UMA CÓPIA DO STORY PARA A PRIMEIRA PASSADA
     story_copy = copy.deepcopy(story)
     
-    # Primeira passada: contar páginas
+    # ⭐ 2. PRIMEIRA PASSADA: GERAR PDF TEMPORÁRIO PARA CONTAR PÁGINAS
     buffer_temp = io.BytesIO()
     doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
                                 topMargin=topMargin, bottomMargin=bottomMargin,
                                 leftMargin=leftMargin, rightMargin=rightMargin)
     
     def rodape_temp(canvas, doc):
-        canvas.saveState()
-        canvas.setFont('Helvetica', 8)
-        canvas.setFillColor(colors.HexColor('#666666'))
-        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Página {doc.page}")
-        canvas.restoreState()
+        # ⭐ NÃO DESENHA RODAPÉ NA CAPA (página 1)
+        if doc.page == 1:
+            return
+        # ⭐ PARA AS DEMAIS PÁGINAS, USA O RODAPÉ NORMAL (SEM CONTAGEM)
+        criar_rodape(canvas, doc, pagesize, 0, f"Relatório de Conclusão - {area_nome[:50]}",
+                     root_dir=root_dir,
+                     email_auditoria=email_gai,
+                     telefone_auditoria=telefone_gai)
     
     doc_temp.build(story_copy, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
     
+    # ⭐ 3. CONTAR AS PÁGINAS
     buffer_temp.seek(0)
     pdf_reader = PdfReader(buffer_temp)
     total_paginas = len(pdf_reader.pages)
     
-    # Segunda passada: gerar PDF final com rodapé completo
+    # ⭐ 4. SEGUNDA PASSADA: GERAR O PDF FINAL COM O TOTAL
     doc_final = SimpleDocTemplate(buffer, pagesize=pagesize,
                                  topMargin=topMargin, bottomMargin=bottomMargin,
                                  leftMargin=leftMargin, rightMargin=rightMargin)
     
     def rodape_final(canvas, doc):
+        if doc.page == 1:  # ⭐ PULA A CAPA
+            return
+        # ⭐ PASSA O TOTAL DE PÁGINAS PARA O RODAPÉ
         rodape_conclusao(canvas, doc, total_paginas)
     
     doc_final.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
     
     # ⭐ PEGAR O CONTEÚDO DO BUFFER
     buffer.seek(0)
-    pdf_bytes = buffer.getvalue()  # ⭐ AQUI DEFINIMOS A VARIÁVEL
+    pdf_bytes = buffer.getvalue()
     
     return pdf_bytes
