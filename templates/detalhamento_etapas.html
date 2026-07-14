@@ -320,7 +320,7 @@
                 
                 <!-- Botão para adicionar nova análise -->
                 <button type="button" class="btn-outline" id="btn-nova-analise" style="width: 100%;">
-                    <i class="fas fa-plus"></i> Adicionar Análise Crítica
+                    <i class="fas fa-plus"></i> Adicionar Ponto de Auditoria
                 </button>
                 
                 <!-- Formulário de análise (escondido por padrão) -->
@@ -336,19 +336,19 @@
                                 <option value="riscos">Riscos</option>
                                 <option value="controles">Controles</option>
                             </select>
-                            <small class="text-muted">Selecione a categoria da análise crítica</small>
+                            <small class="text-muted">Selecione a categoria do Ponto de Auditoria</small>
                         </div>
                     </div>
                  
 
                     <div class="form-group">
                         <label>
-                            <i class="fas fa-check-circle"></i> Análise Crítica
+                            <i class="fas fa-check-circle"></i> Ponto de Auditoria
                             <span class="help-icon" style="position: relative; display: inline-block;" data-tooltip="1- O que falta na etapa do processo?&#10; 2-O que essa falta provoca no processo?&#10;&#10;Conclusão: Essa falta são as dores do processo">
                                 <i class="fas fa-question-circle"></i>
                             </span>
                         </label>
-                        <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica..."></textarea>
+                        <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva o ponto de auditoria..."></textarea>
                     </div>
 
                     <div class="form-group">
@@ -3449,7 +3449,7 @@
         const todasAnalises = [...analisesExistentes, ...analisesTemporarias];
         
         if (todasAnalises.length === 0) {
-            container.innerHTML = '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhuma análise crítica cadastrada.</div>';
+            container.innerHTML = '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhum ponto de auditoria cadastrado.</div>';
             return;
         }
         
@@ -3475,7 +3475,7 @@
                             ${temEvidencia ? '<span style="background: #0b5b99; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                         </div>
                         <div class="analise-card-detalhes">
-                            ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise Crítica:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                            ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Ponto de Auditoria:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
                             ${analise.sugestao_melhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
                             ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                             ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
@@ -4138,7 +4138,7 @@
                         <div class="vis-secao">
                             <h4><i class="fas fa-clipboard-list"></i> Análises Críticas do Auditado</h4>
                             ${analises.length === 0 ? 
-                                '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhuma análise crítica cadastrada.</div>' :
+                                '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhum ponto de auditoria cadastrado.</div>' :
                                 analises.map((analise) => {
                                     const tipoLabel = analise.tipo_analise === 'auditor' ? 'Auditor' : 'Auditado';
                                     const icon = analise.tipo_analise === 'auditor' ? 'fa-user-check' : 'fa-user';
@@ -4172,7 +4172,7 @@
                                                     </span>
                                                 </div>
                                                 <div class="analise-card-detalhes">
-                                                    ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Análise Crítica:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
+                                                    ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Ponto de Auditoria:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
                                                     ${temSugestaoMelhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
                                                     ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                                                     ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}

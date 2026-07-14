@@ -170,8 +170,8 @@
                     
                     <!-- 1. Análise Crítica -->
                     <div class="form-group">
-                        <label><i class="fas fa-clipboard-list"></i> Análise Crítica *</label>
-                        <textarea id="analise-auditado-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica (informações coletadas do auditado)..."></textarea>
+                        <label><i class="fas fa-clipboard-list"></i> Ponto de Auditoria *</label>
+                        <textarea id="analise-auditado-texto" class="form-control" rows="3" placeholder="Descreva o Ponto de Auditoria..."></textarea>
                     </div>
                     
                     <!-- 2. Sugestão de Melhoria -->
@@ -321,8 +321,8 @@
                     
                     <!-- 1. Análise Crítica -->
                     <div class="form-group">
-                        <label><i class="fas fa-clipboard-list"></i> Análise Crítica *</label>
-                        <textarea id="analise-auditor-texto" class="form-control" rows="3" placeholder="Descreva a análise crítica do auditor..."></textarea>
+                        <label><i class="fas fa-clipboard-list"></i> Ponto de Auditoria *</label>
+                        <textarea id="analise-auditor-texto" class="form-control" rows="3" placeholder="Descreva o Ponto de Auditoria do auditor..."></textarea>
                     </div>
                     
                     <!-- 2. Sugestão de Melhoria -->
@@ -2489,7 +2489,7 @@
         
         const analiseCritica = document.getElementById('analise-auditor-texto').value;
         if (!analiseCritica.trim()) {
-            mostrarToast('⚠️ A Análise Crítica é obrigatória', 'warning');
+            mostrarToast('⚠️ O Ponto de Auditoria é obrigatório', 'warning');
             return;
         }
         
@@ -3786,7 +3786,7 @@
                                     <!-- Análise Crítica e Sugestão de Melhoria -->
                                     <div class="analise-grid">
                                         <div class="analise-card-section">
-                                            <h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4>
+                                            <h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4>
                                             <div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div>
                                         </div>
                                         <div class="analise-card-section">
@@ -4065,7 +4065,7 @@
         const analiseCritica = document.getElementById('analise-auditado-texto').value;
         
         if (!analiseCritica.trim()) {
-            mostrarToast('A Análise Crítica é obrigatória', 'warning');
+            mostrarToast('O Ponto de Auditoria é obrigatório', 'warning');
             return;
         }
 
@@ -4353,7 +4353,7 @@
                 </div>
                 <div class="analise-auditor-body">
                     <div class="analise-grid">
-                        <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Análise Crítica</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
+                        <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
                         <div class="analise-card-section"><h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
                     </div>
                     
