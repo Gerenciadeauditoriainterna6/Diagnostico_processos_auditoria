@@ -1587,6 +1587,10 @@ def formatar_telefone(telefone):
 def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None,
                  email_auditoria=None, telefone_auditoria=None):
     """Cria o rodapé padronizado com logos, email e telefone"""
+
+    from zoneinfo import ZoneInfo
+
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
     
     # ⭐ SE FOR A PRIMEIRA PÁGINA (CAPA), NÃO DESENHA NADA
     if doc.page == 1:
@@ -1607,11 +1611,13 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
     # ⭐ doc.page - 1 porque a página 1 é a capa
     numero_pagina = doc.page - 1
     total_paginas_sem_capa = total_paginas - 1
+
+    data_hora_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     
     canvas.drawCentredString(
         pagesize[0]/2, 
         2*cm, 
-        f"{titulo_rodape} - Página {numero_pagina}/{total_paginas_sem_capa}"
+        f"{titulo_rodape} - Página {numero_pagina}/{total_paginas_sem_capa} - Emissão: {data_hora_emissao}"
     )
     
     # ⭐ LINHA 2: Email e Telefone
@@ -5567,3 +5573,187 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
           onLaterPages=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)])
     buffer.seek(0)
     return buffer.getvalue()
+
+# logic.py - Adicione no final do arquivo
+
+def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade, 
+                        codigo_auditoria, titulo_auditoria, conclusao, 
+                        orientacao="RETRATO", usuario_nome="Usuário"):
+    """
+    Gera o relatório de conclusão em PDF
+    """
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+    import io
+    import os
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from PyPDF2 import PdfReader
+    import copy
+    
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    
+    # Definir orientação
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    story = []
+    
+    # ⭐ CAPA
+    criar_pagina_capa(
+        story=story,
+        pagesize=pagesize,
+        titulo_relatorio="Relatório de Conclusão",
+        subtitulo_relatorio=f"Auditoria: {codigo_auditoria} - {titulo_auditoria}",
+        area_nome=area_nome,
+        data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    )
+    
+    # ⭐ PÁGINA DE CONCLUSÃO
+    styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    
+    # Estilos
+    titulo_secao_style = ParagraphStyle(
+        'TituloSecao',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=TA_CENTER,
+        spaceAfter=20,
+        textColor=colors.HexColor('#0b5b99')
+    )
+    
+    conclusao_style = ParagraphStyle(
+        'ConclusaoStyle',
+        parent=normal_style,
+        fontSize=11,
+        leading=16,
+        alignment=TA_JUSTIFY,
+        spaceAfter=15,
+        leftIndent=20,
+        rightIndent=20
+    )
+    
+    info_style = ParagraphStyle(
+        'InfoStyle',
+        parent=normal_style,
+        fontSize=10,
+        alignment=TA_LEFT,
+        spaceAfter=8
+    )
+    
+    # Título
+    story.append(Paragraph("CONCLUSÃO DA AUDITORIA", titulo_secao_style))
+    story.append(Spacer(1, 10))
+    
+    # Informações
+    story.append(Paragraph(f"<b>Auditoria:</b> {codigo_auditoria} - {titulo_auditoria}", info_style))
+    story.append(Paragraph(f"<b>Área:</b> {area_nome}", info_style))
+    if unidade:
+        story.append(Paragraph(f"<b>Unidade:</b> {unidade}", info_style))
+    story.append(Paragraph(f"<b>Gestor:</b> {gestor} - {cargo}", info_style))
+    story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    story.append(Paragraph(f"<b>Data:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
+    story.append(Spacer(1, 20))
+    
+    # Linha divisória
+    story.append(Paragraph("<hr/>", normal_style))
+    story.append(Spacer(1, 15))
+    
+    # Conclusão
+    story.append(Paragraph("<b>CONCLUSÃO:</b>", info_style))
+    story.append(Spacer(1, 5))
+    story.append(Paragraph(conclusao, conclusao_style))
+    
+    story.append(Spacer(1, 30))
+    
+    # ⭐ ASSINATURA
+    assinatura_style = ParagraphStyle(
+        'AssinaturaStyle',
+        parent=normal_style,
+        fontSize=10,
+        alignment=TA_CENTER,
+        spaceAfter=5
+    )
+    
+    story.append(Spacer(1, 40))
+    story.append(Paragraph("_________________________________________", assinatura_style))
+    story.append(Paragraph(f"{usuario_nome}", assinatura_style))
+    story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+    
+    # ⭐ RODAPÉ
+    def rodape_conclusao(canvas, doc, total_paginas):
+        """Rodapé específico do relatório de conclusão"""
+        canvas.saveState()
+        
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(
+            pagesize[0]/2, 
+            2*cm, 
+            f"Relatório de Conclusão - {area_nome[:50]} - Página {doc.page}/{total_paginas}"
+        )
+        
+        # Desenhar logos
+        desenhar_logos(canvas, pagesize, None)
+        
+        canvas.restoreState()
+    
+    # ⭐ GERAR O PDF - FAZER UMA CÓPIA DO STORY PARA CONTAGEM
+    story_copy = copy.deepcopy(story)
+    
+    # Primeira passada: contar páginas
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                topMargin=topMargin, bottomMargin=bottomMargin,
+                                leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_temp(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Página {doc.page}")
+        canvas.restoreState()
+    
+    doc_temp.build(story_copy, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
+    
+    buffer_temp.seek(0)
+    pdf_reader = PdfReader(buffer_temp)
+    total_paginas = len(pdf_reader.pages)
+    
+    # Segunda passada: gerar PDF final com rodapé completo
+    doc_final = SimpleDocTemplate(buffer, pagesize=pagesize,
+                                 topMargin=topMargin, bottomMargin=bottomMargin,
+                                 leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_final(canvas, doc):
+        rodape_conclusao(canvas, doc, total_paginas)
+    
+    doc_final.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
+    
+    # ⭐ PEGAR O CONTEÚDO DO BUFFER
+    buffer.seek(0)
+    pdf_bytes = buffer.getvalue()  # ⭐ AQUI DEFINIMOS A VARIÁVEL
+    
+    return pdf_bytes
