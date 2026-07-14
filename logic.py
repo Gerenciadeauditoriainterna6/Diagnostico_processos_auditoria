@@ -1587,6 +1587,10 @@ def formatar_telefone(telefone):
 def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=None,
                  email_auditoria=None, telefone_auditoria=None):
     """Cria o rodapé padronizado com logos, email e telefone"""
+
+    from zoneinfo import ZoneInfo
+
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
     
     # ⭐ SE FOR A PRIMEIRA PÁGINA (CAPA), NÃO DESENHA NADA
     if doc.page == 1:
@@ -1607,11 +1611,13 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
     # ⭐ doc.page - 1 porque a página 1 é a capa
     numero_pagina = doc.page - 1
     total_paginas_sem_capa = total_paginas - 1
+
+    data_hora_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     
     canvas.drawCentredString(
         pagesize[0]/2, 
         2*cm, 
-        f"{titulo_rodape} - Página {numero_pagina}/{total_paginas_sem_capa}"
+        f"{titulo_rodape} - Página {numero_pagina}/{total_paginas_sem_capa} - Emissão: {data_hora_emissao}"
     )
     
     # ⭐ LINHA 2: Email e Telefone
@@ -1700,7 +1706,7 @@ def buscar_responsaveis_auditoria(auditoria_id):
 
 TEXTOS_VALIDACAO = {
     'panorama': {
-        'titulo': "VALIDACÃO - MATRIZ DE PANORAMA",
+        'titulo': "VALIDAÇÃO - MATRIZ DE PANORAMA",
         'texto': (
             "Declaro que tomei ciência das informações registradas neste relatório, "
             "as quais refletem fielmente os processos, riscos, controles, fluxos e dados reportados pela equipe da área auditada durante as entrevistas de levantamento da Matriz de Panorama. "
@@ -1708,7 +1714,7 @@ TEXTOS_VALIDACAO = {
         )
     },
     'detalhamento': {
-        'titulo': "VALIDACÃO - MATRIZ DE DETALHAMENTO",
+        'titulo': "VALIDAÇÃO - MATRIZ DE DETALHAMENTO",
         'texto': (
             "Declaro que tomei ciência das informações registradas neste relatório, as quais refletem fielmente os processos, "
             "riscos, controles, fluxos e dados reportados pela equipe da área auditada durante as entrevistas de "
@@ -1722,7 +1728,7 @@ TEXTOS_VALIDACAO = {
     },
 
     'padrao': {
-        'titulo': "VALIDACÃO",
+        'titulo': "VALIDAÇÃO",
         'texto': (
             "Declaro que tomei ciência dos riscos identificados nos processos da minha área "
             "e comprometo-me a tratar as não conformidades apontadas, conforme plano de ação a ser desenvolvido."
@@ -1904,7 +1910,7 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     
     gerente_dados = []
     gerente_dados.append([
-        Paragraph("<b>Gerente:</b> Teófilo Gaio Boto", nome_style)
+        Paragraph("<b>Gerente:</b> TEÓFILO GAIO BOTO", nome_style)
     ])
     gerente_dados.append([
         Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
@@ -2391,7 +2397,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio='Relatorio de Validação',
+        titulo_relatorio='Relatório de Validação',
         subtitulo_relatorio='Matriz de Panorama',
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
@@ -3287,13 +3293,13 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         if proc.get('objetivo'):
             info_processo.append([
                 Paragraph("<b>Objetivo:</b>", card_texto_style),
-                Paragraph(limitar_texto(proc['objetivo'], 1000), texto_processo_style)
+                Paragraph(limitar_texto(proc['objetivo'], 10000), texto_processo_style)
             ])
         
         if proc.get('descricao'):
             info_processo.append([
                 Paragraph("<b>Descrição:</b>", card_texto_style),
-                Paragraph(limitar_texto(proc['descricao'], 1000), texto_processo_style)
+                Paragraph(limitar_texto(proc['descricao'], 10000), texto_processo_style)
             ])
         
         executor_valor = proc.get('executor') or 'Não informado'
@@ -3372,25 +3378,25 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 if etapa.get('descricao_etapa'):
                     info_etapa.append([
                         Paragraph("<b>Descrição:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['descricao_etapa'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['descricao_etapa'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('como_e_feito'):
                     info_etapa.append([
                         Paragraph("<b>Como é feito:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['como_e_feito'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['como_e_feito'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('objetivo_etapa'):
                     info_etapa.append([
                         Paragraph("<b>Objetivo da Etapa:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['objetivo_etapa'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['objetivo_etapa'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('politica_interna'):
                     info_etapa.append([
                         Paragraph("<b>Política Interna:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['politica_interna'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['politica_interna'], 10000), texto_etapa_style)
                     ])
 
                 # Dentro do loop de etapas, modifique:
@@ -3417,25 +3423,25 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                 if etapa.get('analise_critica'):
                     info_etapa.append([
                         Paragraph("<b>ANÁLISE CRÍTICA:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['analise_critica'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['analise_critica'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('sugestao_melhoria'):
                     info_etapa.append([
                         Paragraph("<b>SUGESTÃO DE MELHORIA:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['sugestao_melhoria'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['sugestao_melhoria'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('necessidade_implantacao'):
                     info_etapa.append([
                         Paragraph("<b>NECESSIDADE PARA IMPLANTAÇÃO:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['necessidade_implantacao'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['necessidade_implantacao'], 10000), texto_etapa_style)
                     ])
 
                 if etapa.get('ganho_previsto'):
                     info_etapa.append([
                         Paragraph("<b>GANHO PREVISTO:</b>", card_texto_style),
-                        Paragraph(limitar_texto(etapa['ganho_previsto'], 1000), texto_etapa_style)
+                        Paragraph(limitar_texto(etapa['ganho_previsto'], 10000), texto_etapa_style)
                     ])
                 
                 # Manual da etapa
@@ -3512,26 +3518,26 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         if risco.get('categoria'):
                             info_risco.append([
                                 Paragraph("<b>Categoria:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['categoria'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['categoria'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('fator_risco'):
                             info_risco.append([
                                 Paragraph("<b>Fator de Risco:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['fator_risco'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['fator_risco'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('consequencia'):
                             info_risco.append([
                                 Paragraph("<b>Consequência:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['consequencia'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['consequencia'], 10000), texto_risco_style)
                             ])
                         
                         # ⭐ NOVOS CAMPOS AQUI (entre consequencia e desc_tratamento)
                         if risco.get('info_adicional'):
                             info_risco.append([
                                 Paragraph("<b>Informações Adicionais:</b>", card_texto_style),
-                                Paragraph(limitar_texto(str(risco['info_adicional']), 1000), texto_risco_style)
+                                Paragraph(limitar_texto(str(risco['info_adicional']), 10000), texto_risco_style)
                             ])
 
                         if risco.get('financeiro') is not None:  # Verifica se não é None
@@ -3563,7 +3569,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         if risco.get('causas'):
                             info_risco.append([
                                 Paragraph("<b>Categoria de Causa:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['causas'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['causas'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('impacto'):
@@ -3603,19 +3609,19 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                         if risco.get('motivo_classificacao'):
                             info_risco.append([
                                 Paragraph("<b>Motivo da Classificação:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['motivo_classificacao'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['motivo_classificacao'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('tratamento'):
                             info_risco.append([
                                 Paragraph("<b>Tratamento:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['tratamento'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['tratamento'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('desc_tratamento'):
                             info_risco.append([
                                 Paragraph("<b>Descrição do Tratamento:</b>", card_texto_style),
-                                Paragraph(limitar_texto(risco['desc_tratamento'], 1000), texto_risco_style)
+                                Paragraph(limitar_texto(risco['desc_tratamento'], 10000), texto_risco_style)
                             ])
 
                         if risco.get('prazo_implantacao'):
@@ -3668,16 +3674,16 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                                 texto_controle.append(f"<b>Controle {controle_idx + 1}:</b> {controle.get('nome_controle', 'Controle não nomeado')}")
                                 
                                 if risco.get('fator_risco'):
-                                    texto_controle.append(f"  • <b>Fator de Risco:</b> {limitar_texto(risco['fator_risco'], 1000)}")
+                                    texto_controle.append(f"  • <b>Fator de Risco:</b> {limitar_texto(risco['fator_risco'], 10000)}")
                                 
                                 if controle.get('objetivo_controle'):
-                                    texto_controle.append(f"  • <b>Objetivo:</b> {limitar_texto(controle['objetivo_controle'], 1000)}")
+                                    texto_controle.append(f"  • <b>Objetivo:</b> {limitar_texto(controle['objetivo_controle'], 10000)}")
                                 
                                 if controle.get('forma_execucao'):
                                     texto_controle.append(f"  • <b>Forma de Execução:</b> {controle['forma_execucao']}")
                                 
                                 if controle.get('como_executado'):
-                                    texto_controle.append(f"  • <b>Como Executado:</b> {limitar_texto(controle['como_executado'], 1000)}")
+                                    texto_controle.append(f"  • <b>Como Executado:</b> {limitar_texto(controle['como_executado'], 10000)}")
                                 
                                 if controle.get('natureza'):
                                     texto_controle.append(f"  • <b>Natureza:</b> {controle['natureza']}")
@@ -3686,7 +3692,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
                                     texto_controle.append(f"  • <b>Periodicidade:</b> {controle['periodicidade_execucao']}")
                                 
                                 if controle.get('evidencia_realizacao'):
-                                    texto_controle.append(f"  • <b>Evidência:</b> {limitar_texto(controle['evidencia_realizacao'], 1000)}")
+                                    texto_controle.append(f"  • <b>Evidência:</b> {limitar_texto(controle['evidencia_realizacao'], 10000)}")
                                 
                                 if controle.get('frequencia_evidencia'):
                                     texto_controle.append(f"  • <b>Frequência da Evidência:</b> {controle['frequencia_evidencia']}")
@@ -5567,3 +5573,187 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
           onLaterPages=lambda c, d: [cabecalho_com_tarja(c, d), rodape_final(c, d)])
     buffer.seek(0)
     return buffer.getvalue()
+
+# logic.py - Adicione no final do arquivo
+
+def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade, 
+                        codigo_auditoria, titulo_auditoria, conclusao, 
+                        orientacao="RETRATO", usuario_nome="Usuário"):
+    """
+    Gera o relatório de conclusão em PDF
+    """
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+    import io
+    import os
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from PyPDF2 import PdfReader
+    import copy
+    
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
+    
+    # Definir orientação
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    story = []
+    
+    # ⭐ CAPA
+    criar_pagina_capa(
+        story=story,
+        pagesize=pagesize,
+        titulo_relatorio="Relatório de Conclusão",
+        subtitulo_relatorio=f"Auditoria: {codigo_auditoria} - {titulo_auditoria}",
+        area_nome=area_nome,
+        data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    )
+    
+    # ⭐ PÁGINA DE CONCLUSÃO
+    styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    
+    # Estilos
+    titulo_secao_style = ParagraphStyle(
+        'TituloSecao',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=TA_CENTER,
+        spaceAfter=20,
+        textColor=colors.HexColor('#0b5b99')
+    )
+    
+    conclusao_style = ParagraphStyle(
+        'ConclusaoStyle',
+        parent=normal_style,
+        fontSize=11,
+        leading=16,
+        alignment=TA_JUSTIFY,
+        spaceAfter=15,
+        leftIndent=20,
+        rightIndent=20
+    )
+    
+    info_style = ParagraphStyle(
+        'InfoStyle',
+        parent=normal_style,
+        fontSize=10,
+        alignment=TA_LEFT,
+        spaceAfter=8
+    )
+    
+    # Título
+    story.append(Paragraph("CONCLUSÃO DA AUDITORIA", titulo_secao_style))
+    story.append(Spacer(1, 10))
+    
+    # Informações
+    story.append(Paragraph(f"<b>Auditoria:</b> {codigo_auditoria} - {titulo_auditoria}", info_style))
+    story.append(Paragraph(f"<b>Área:</b> {area_nome}", info_style))
+    if unidade:
+        story.append(Paragraph(f"<b>Unidade:</b> {unidade}", info_style))
+    story.append(Paragraph(f"<b>Gestor:</b> {gestor} - {cargo}", info_style))
+    story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    story.append(Paragraph(f"<b>Data:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
+    story.append(Spacer(1, 20))
+    
+    # Linha divisória
+    story.append(Paragraph("<hr/>", normal_style))
+    story.append(Spacer(1, 15))
+    
+    # Conclusão
+    story.append(Paragraph("<b>CONCLUSÃO:</b>", info_style))
+    story.append(Spacer(1, 5))
+    story.append(Paragraph(conclusao, conclusao_style))
+    
+    story.append(Spacer(1, 30))
+    
+    # ⭐ ASSINATURA
+    assinatura_style = ParagraphStyle(
+        'AssinaturaStyle',
+        parent=normal_style,
+        fontSize=10,
+        alignment=TA_CENTER,
+        spaceAfter=5
+    )
+    
+    story.append(Spacer(1, 40))
+    story.append(Paragraph("_________________________________________", assinatura_style))
+    story.append(Paragraph(f"{usuario_nome}", assinatura_style))
+    story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+    
+    # ⭐ RODAPÉ
+    def rodape_conclusao(canvas, doc, total_paginas):
+        """Rodapé específico do relatório de conclusão"""
+        canvas.saveState()
+        
+        altura_rodape = 1.8 * cm
+        y_fundo = 0
+        
+        canvas.setFillColor(colors.HexColor('#F0F0F0'))
+        canvas.rect(0, y_fundo, pagesize[0], altura_rodape, fill=1, stroke=0)
+        
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(
+            pagesize[0]/2, 
+            2*cm, 
+            f"Relatório de Conclusão - {area_nome[:50]} - Página {doc.page}/{total_paginas}"
+        )
+        
+        # Desenhar logos
+        desenhar_logos(canvas, pagesize, None)
+        
+        canvas.restoreState()
+    
+    # ⭐ GERAR O PDF - FAZER UMA CÓPIA DO STORY PARA CONTAGEM
+    story_copy = copy.deepcopy(story)
+    
+    # Primeira passada: contar páginas
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                topMargin=topMargin, bottomMargin=bottomMargin,
+                                leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_temp(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#666666'))
+        canvas.drawCentredString(pagesize[0]/2, 2*cm, f"Página {doc.page}")
+        canvas.restoreState()
+    
+    doc_temp.build(story_copy, onFirstPage=rodape_temp, onLaterPages=rodape_temp)
+    
+    buffer_temp.seek(0)
+    pdf_reader = PdfReader(buffer_temp)
+    total_paginas = len(pdf_reader.pages)
+    
+    # Segunda passada: gerar PDF final com rodapé completo
+    doc_final = SimpleDocTemplate(buffer, pagesize=pagesize,
+                                 topMargin=topMargin, bottomMargin=bottomMargin,
+                                 leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_final(canvas, doc):
+        rodape_conclusao(canvas, doc, total_paginas)
+    
+    doc_final.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
+    
+    # ⭐ PEGAR O CONTEÚDO DO BUFFER
+    buffer.seek(0)
+    pdf_bytes = buffer.getvalue()  # ⭐ AQUI DEFINIMOS A VARIÁVEL
+    
+    return pdf_bytes
