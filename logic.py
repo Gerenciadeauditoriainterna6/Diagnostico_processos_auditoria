@@ -1622,7 +1622,7 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
     
     # ⭐ LINHA 2: Email e Telefone
     if email_auditoria or telefone_auditoria:
-        texto_contato = ""
+        texto_contato = "Gerência de Auditoria Interna - "
         if email_auditoria and email_auditoria != 'Não informado':
             texto_contato += f"E-mail: {email_auditoria}"
         if telefone_auditoria and telefone_auditoria != 'Não informado':
@@ -2307,7 +2307,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     story.append(Paragraph("GERÊNCIA DE AUDITORIA INTERNA", titulo_capa_style))
     story.append(Spacer(1, 10))
     story.append(Paragraph("FUSVE", 
-                           ParagraphStyle('CustomParagraph', parent=info_capa_style)))
+                           ParagraphStyle('CustomParagraph', parent=info_capa_style, fontSize=20)))
     story.append(Spacer(1, 30))
     
     # Título principal
@@ -4431,14 +4431,12 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     ac.analise_critica,
                     ac.sugestao_melhoria,
                     ac.sugestao_sera_implantada,
-                    ac.plano_acao,
-                    ac.responsavel_implantacao,
-                    ac.data_inicio_prevista,
-                    ac.data_conclusao_prevista,
                     ac.efetivamente_implantada,
                     ac.data_implantacao_efetiva,
                     ac.necessidade_implantacao,
-                    ac.ganho_previsto                  
+                    ac.ganho_previsto,
+                    ac.evidencia_nome,
+                    ac.evidencia_url
                 FROM analises_criticas ac
                 WHERE ac.etapa_id = :etapa_id AND ac.tipo = 'auditado'
                 ORDER BY ac.categoria
@@ -4447,6 +4445,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             
             analises_auditado_list = []
             for a in analises_auditado_raw:
+
                 # Buscar histórico de andamento
                 query_historico = text("""
                     SELECT status, comentario, created_by, created_at
@@ -4459,10 +4458,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 historico_list = []
                 for h in historico_raw:
                     historico_list.append({
-                        'data': h[3].strftime('%d/%m/%Y') if h[3] else '',
-                        'status': h[0] or '',
-                        'comentario': h[1] or '',
-                        'created_by': h[2] or ''
+                        'data': h._mapping['created_at'].strftime('%d/%m/%Y') if h._mapping['created_at'] else '',
+                        'status': h._mapping['status'] or '',
+                        'comentario': h._mapping['comentario'] or '',
+                        'created_by': h._mapping['created_by'] or ''
                     })
                 
                 # Buscar follow-ups
@@ -4477,27 +4476,26 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 followups_list = []
                 for f in followups_raw:
                     followups_list.append({
-                        'etapa': f[0] or '',
-                        'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '',
-                        'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '',
-                        'status': f[3] or 'Pendente',
-                        'comentario': f[4] or ''
+                        'etapa': f._mapping['etapa'] or '',
+                        'data_prevista': f._mapping['data_prevista'].strftime('%d/%m/%Y') if f._mapping['data_prevista'] else '',
+                        'data_realizada': f._mapping['data_realizada'].strftime('%d/%m/%Y') if f._mapping['data_realizada'] else '',
+                        'status': f._mapping['status'] or 'Pendente',
+                        'comentario': f._mapping['comentario'] or ''
                     })
                 
+                # ✅ USANDO row._mapping - NUNCA MAIS ÍNDICES!
                 analises_auditado_list.append({
-                    'id': a[0],
-                    'categoria': a[1],
-                    'analise_critica': a[2] or '',
-                    'sugestao_melhoria': a[3] or '',
-                    'sugestao_sera_implantada': a[4],
-                    'plano_acao': a[5] or '',
-                    'responsavel_implantacao': a[6] or '',
-                    'data_inicio_prevista': a[7].strftime('%d/%m/%Y') if a[7] else None,
-                    'data_conclusao_prevista': a[8].strftime('%d/%m/%Y') if a[8] else None,
-                    'efetivamente_implantada': a[9] if a[9] is not None else None,
-                    'data_implantacao_efetiva': a[10].strftime('%d/%m/%Y') if a[10] else None,
-                    'necessidade_implantacao': a[11] or '',
-                    'ganho_previsto': a[12] or '',
+                    'id': a._mapping['id'],
+                    'categoria': a._mapping['categoria'],
+                    'analise_critica': a._mapping['analise_critica'] or '',
+                    'sugestao_melhoria': a._mapping['sugestao_melhoria'] or '',
+                    'sugestao_sera_implantada': a._mapping['sugestao_sera_implantada'],
+                    'efetivamente_implantada': a._mapping['efetivamente_implantada'],
+                    'data_implantacao_efetiva': a._mapping['data_implantacao_efetiva'].strftime('%d/%m/%Y') if a._mapping['data_implantacao_efetiva'] else None,
+                    'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
+                    'ganho_previsto': a._mapping['ganho_previsto'] or '',
+                    'evidencia_nome': a._mapping['evidencia_nome'] or '',
+                    'evidencia_url': a._mapping['evidencia_url'] or '',
                     'historico': historico_list,
                     'followups': followups_list
                 })
@@ -4518,77 +4516,71 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ac.analise_critica,
                 ac.sugestao_melhoria,
                 ac.sugestao_sera_implantada,
-                ac.plano_acao,
-                ac.responsavel_implantacao,
-                ac.data_inicio_prevista,
-                ac.data_conclusao_prevista,
                 ac.efetivamente_implantada,
                 ac.data_implantacao_efetiva,
                 ac.created_at,
                 ac.necessidade_implantacao,
-                ac.ganho_previsto
+                ac.ganho_previsto,
+                ac.evidencia_nome,
+                ac.evidencia_url
             FROM analises_criticas ac
             WHERE ac.processo_id = :processo_id 
             AND ac.tipo = 'auditor'
             ORDER BY ac.created_at ASC
         """)
         analises_auditor_raw = conn.execute(query_analises_auditor, {"processo_id": proc_id}).fetchall()
-        
+
         analises_auditor_list = []
         for a in analises_auditor_raw:
-            analise_id = a[0]
-            
-            # Buscar histórico de andamento
+            # Buscar histórico e follow-ups (usando _mapping também)
             query_historico = text("""
                 SELECT status, comentario, created_by, created_at
                 FROM analises_historico_andamento
                 WHERE analise_id = :analise_id
                 ORDER BY created_at ASC
             """)
-            historico_raw = conn.execute(query_historico, {"analise_id": analise_id}).fetchall()
+            historico_raw = conn.execute(query_historico, {"analise_id": a._mapping['id']}).fetchall()
             
             historico_list = []
             for h in historico_raw:
                 historico_list.append({
-                    'data': h[3].strftime('%d/%m/%Y') if h[3] else '',
-                    'status': h[0] or '',
-                    'comentario': h[1] or '',
-                    'created_by': h[2] or ''
+                    'data': h._mapping['created_at'].strftime('%d/%m/%Y') if h._mapping['created_at'] else '',
+                    'status': h._mapping['status'] or '',
+                    'comentario': h._mapping['comentario'] or '',
+                    'created_by': h._mapping['created_by'] or ''
                 })
             
-            # Buscar follow-ups
             query_followups = text("""
                 SELECT etapa, data_prevista, data_realizada, status, comentario
                 FROM analises_follow_up
                 WHERE analise_id = :analise_id
                 ORDER BY data_prevista ASC
             """)
-            followups_raw = conn.execute(query_followups, {"analise_id": analise_id}).fetchall()
+            followups_raw = conn.execute(query_followups, {"analise_id": a._mapping['id']}).fetchall()
             
             followups_list = []
             for f in followups_raw:
                 followups_list.append({
-                    'etapa': f[0] or '',
-                    'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '',
-                    'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '',
-                    'status': f[3] or 'Pendente',
-                    'comentario': f[4] or ''
+                    'etapa': f._mapping['etapa'] or '',
+                    'data_prevista': f._mapping['data_prevista'].strftime('%d/%m/%Y') if f._mapping['data_prevista'] else '',
+                    'data_realizada': f._mapping['data_realizada'].strftime('%d/%m/%Y') if f._mapping['data_realizada'] else '',
+                    'status': f._mapping['status'] or 'Pendente',
+                    'comentario': f._mapping['comentario'] or ''
                 })
             
+            # ✅ USANDO row._mapping - NUNCA MAIS ÍNDICES!
             analises_auditor_list.append({
-                'id': analise_id,
-                'analise_critica': a[1] or '',
-                'sugestao_melhoria': a[2] or '',
-                'sugestao_sera_implantada': a[3],
-                'plano_acao': a[4] or '',
-                'responsavel_implantacao': a[5] or '',
-                'data_inicio_prevista': a[6].strftime('%d/%m/%Y') if a[6] else None,
-                'data_conclusao_prevista': a[7].strftime('%d/%m/%Y') if a[7] else None,
-                'efetivamente_implantada': a[8] if a[8] is not None else None,
-                'data_implantacao_efetiva': a[9].strftime('%d/%m/%Y') if a[9] else None,
-                'data_criacao': a[10].strftime('%d/%m/%Y') if a[10] else '',
-                'necessidade_implantacao': a[11] or '', 
-                'ganho_previsto': a[12] or '',           
+                'id': a._mapping['id'],
+                'analise_critica': a._mapping['analise_critica'] or '',
+                'sugestao_melhoria': a._mapping['sugestao_melhoria'] or '',
+                'sugestao_sera_implantada': a._mapping['sugestao_sera_implantada'],
+                'efetivamente_implantada': a._mapping['efetivamente_implantada'],
+                'data_implantacao_efetiva': a._mapping['data_implantacao_efetiva'].strftime('%d/%m/%Y') if a._mapping['data_implantacao_efetiva'] else None,
+                'data_criacao': a._mapping['created_at'].strftime('%d/%m/%Y') if a._mapping['created_at'] else '',
+                'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
+                'ganho_previsto': a._mapping['ganho_previsto'] or '',
+                'evidencia_nome': a._mapping['evidencia_nome'] or '',
+                'evidencia_url': a._mapping['evidencia_url'] or '',
                 'historico': historico_list,
                 'followups': followups_list
             })
