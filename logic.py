@@ -1622,7 +1622,7 @@ def criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape, root_dir=N
     
     # ⭐ LINHA 2: Email e Telefone
     if email_auditoria or telefone_auditoria:
-        texto_contato = ""
+        texto_contato = "Gerência de Auditoria Interna - "
         if email_auditoria and email_auditoria != 'Não informado':
             texto_contato += f"E-mail: {email_auditoria}"
         if telefone_auditoria and telefone_auditoria != 'Não informado':
@@ -2232,33 +2232,39 @@ def buscar_dados_gerencia_auditoria():
 
 def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=None, area_nome=None, data_emissao=None):
     """
-    Cria uma página de capa para o relatório.
+    Cria uma página de capa para o relatório com centralização vertical.
     """
-    # ⭐ TODAS AS IMPORTAÇÕES NO INÍCIO
     from datetime import datetime
     from zoneinfo import ZoneInfo
-    from reportlab.platypus import Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+    from reportlab.platypus import Paragraph, Spacer, Image, PageBreak
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     import os
     
-    # ⭐ DEPOIS USAR AS IMPORTAÇÕES
     TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
-    
-    # ⭐ USAR getSampleStyleSheet() para obter estilos padrão
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
     
-    # Estilos para a capa
+    # Estilos para a capa (seus estilos existentes)
     titulo_capa_style = ParagraphStyle(
+        'TituloCapa',
+        parent=normal_style,
+        fontSize=14,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=10
+    )
+
+    titulo_capa_style2 = ParagraphStyle(
         'TituloCapa',
         parent=normal_style,
         fontSize=20,
         fontName='Helvetica-Bold',
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#0b5b99'),
+        textColor=colors.HexColor('#000000'),
         spaceAfter=10
     )
     
@@ -2268,7 +2274,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         fontSize=14,
         fontName='Helvetica',
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#0b5b99'),
+        textColor=colors.HexColor('#000000'),
         spaceAfter=20,
         leading=15
     )
@@ -2293,12 +2299,52 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         spaceAfter=6
     )
     
-    # Logo (centralizado)
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    # ⭐⭐⭐ NOVO: CALCULAR ESPAÇO PARA CENTRALIZAR ⭐⭐⭐
+    # Altura disponível na página (descontando margens)
+    altura_disponivel = pagesize[1] - 2*cm - 2*cm  # top e bottom margins
     
-    if os.path.exists(logo_auditoria_path):
-        img = Image(logo_auditoria_path, width=4*cm, height=4*cm)
+    # Estimar altura do conteúdo (em pontos)
+    # Cada item tem uma altura aproximada
+    altura_estimada = 0
+    
+    # Logo (4cm + espaçamento)
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    if os.path.exists(logo_path):
+        altura_estimada += 4*cm + 20  # logo + spacer
+    else:
+        altura_estimada += 20
+    
+    # Títulos
+    altura_estimada += 30  # "GERÊNCIA DE AUDITORIA INTERNA"
+    altura_estimada += 20  # spacer
+    altura_estimada += 30  # "FUSVE"
+    altura_estimada += 40  # spacer
+    altura_estimada += 40  # título principal
+    altura_estimada += 20  # spacer
+    
+    if subtitulo_relatorio:
+        altura_estimada += 30  # subtítulo
+        altura_estimada += 20  # spacer
+    
+    # Informações adicionais
+    if area_nome:
+        altura_estimada += 20
+    altura_estimada += 20  # "Emissão: ..."
+    
+    # ⭐ Calcular espaço extra para centralizar
+    espaco_extra = (altura_disponivel - altura_estimada) / 2
+    
+    # Se o espaço extra for negativo (conteúdo maior que a página), usar um valor mínimo
+    if espaco_extra < 0:
+        espaco_extra = 1*cm
+    
+    # ⭐⭐⭐ ADICIONAR ESPAÇO ANTES DO CONTEÚDO ⭐⭐⭐
+    story.append(Spacer(1, espaco_extra))
+    
+    # Logo (centralizado)
+    if os.path.exists(logo_path):
+        img = Image(logo_path, width=4*cm, height=4*cm)
         img.hAlign = 'CENTER'
         story.append(img)
         story.append(Spacer(1, 20))
@@ -2307,11 +2353,11 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     story.append(Paragraph("GERÊNCIA DE AUDITORIA INTERNA", titulo_capa_style))
     story.append(Spacer(1, 10))
     story.append(Paragraph("FUSVE", 
-                           ParagraphStyle('CustomParagraph', parent=info_capa_style)))
-    story.append(Spacer(1, 30))
+                           ParagraphStyle('CustomParagraph', parent=info_capa_style, fontSize=14)))
+    story.append(Spacer(1, 40))
     
     # Título principal
-    story.append(Paragraph(titulo_relatorio, titulo_capa_style))
+    story.append(Paragraph(titulo_relatorio, titulo_capa_style2))
     story.append(Spacer(1, 10))
     
     if subtitulo_relatorio:
@@ -2327,7 +2373,9 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         data_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     
     story.append(Paragraph(f"Emissão: {data_emissao}", info_capa_style2))
-
+    
+    # ⭐⭐⭐ ADICIONAR ESPAÇO DEPOIS DO CONTEÚDO ⭐⭐⭐
+    story.append(Spacer(1, espaco_extra))
     
     # Quebra de página após a capa
     story.append(PageBreak())
@@ -2398,8 +2446,8 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio='Relatório de Validação',
-        subtitulo_relatorio='Matriz de Panorama',
+        titulo_relatorio='RELATÓRIO DE VALIDAÇÃO',
+        subtitulo_relatorio='MATRIZ DE PANORAMA',
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -3071,8 +3119,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="Relatório de Validação",
-        subtitulo_relatorio="Matriz de Detalhamento",
+        titulo_relatorio="RELATÓRIO DE VALIDAÇÃO",
+        subtitulo_relatorio="MATRIZ DE DETALHAMENTO",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -4327,7 +4375,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="Parecer da Auditoria Interna",
+        titulo_relatorio="PARECER DA AUDITORIA INTERNA",
         subtitulo_relatorio=f"Processo {proc_codigo} - {proc_nome}" if 'proc_codigo' in locals() else "",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
@@ -4431,14 +4479,12 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     ac.analise_critica,
                     ac.sugestao_melhoria,
                     ac.sugestao_sera_implantada,
-                    ac.plano_acao,
-                    ac.responsavel_implantacao,
-                    ac.data_inicio_prevista,
-                    ac.data_conclusao_prevista,
                     ac.efetivamente_implantada,
                     ac.data_implantacao_efetiva,
                     ac.necessidade_implantacao,
-                    ac.ganho_previsto                  
+                    ac.ganho_previsto,
+                    ac.evidencia_nome,
+                    ac.evidencia_url
                 FROM analises_criticas ac
                 WHERE ac.etapa_id = :etapa_id AND ac.tipo = 'auditado'
                 ORDER BY ac.categoria
@@ -4447,6 +4493,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             
             analises_auditado_list = []
             for a in analises_auditado_raw:
+
                 # Buscar histórico de andamento
                 query_historico = text("""
                     SELECT status, comentario, created_by, created_at
@@ -4459,10 +4506,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 historico_list = []
                 for h in historico_raw:
                     historico_list.append({
-                        'data': h[3].strftime('%d/%m/%Y') if h[3] else '',
-                        'status': h[0] or '',
-                        'comentario': h[1] or '',
-                        'created_by': h[2] or ''
+                        'data': h._mapping['created_at'].strftime('%d/%m/%Y') if h._mapping['created_at'] else '',
+                        'status': h._mapping['status'] or '',
+                        'comentario': h._mapping['comentario'] or '',
+                        'created_by': h._mapping['created_by'] or ''
                     })
                 
                 # Buscar follow-ups
@@ -4477,27 +4524,26 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 followups_list = []
                 for f in followups_raw:
                     followups_list.append({
-                        'etapa': f[0] or '',
-                        'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '',
-                        'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '',
-                        'status': f[3] or 'Pendente',
-                        'comentario': f[4] or ''
+                        'etapa': f._mapping['etapa'] or '',
+                        'data_prevista': f._mapping['data_prevista'].strftime('%d/%m/%Y') if f._mapping['data_prevista'] else '',
+                        'data_realizada': f._mapping['data_realizada'].strftime('%d/%m/%Y') if f._mapping['data_realizada'] else '',
+                        'status': f._mapping['status'] or 'Pendente',
+                        'comentario': f._mapping['comentario'] or ''
                     })
                 
+                # ✅ USANDO row._mapping - NUNCA MAIS ÍNDICES!
                 analises_auditado_list.append({
-                    'id': a[0],
-                    'categoria': a[1],
-                    'analise_critica': a[2] or '',
-                    'sugestao_melhoria': a[3] or '',
-                    'sugestao_sera_implantada': a[4],
-                    'plano_acao': a[5] or '',
-                    'responsavel_implantacao': a[6] or '',
-                    'data_inicio_prevista': a[7].strftime('%d/%m/%Y') if a[7] else None,
-                    'data_conclusao_prevista': a[8].strftime('%d/%m/%Y') if a[8] else None,
-                    'efetivamente_implantada': a[9] if a[9] is not None else None,
-                    'data_implantacao_efetiva': a[10].strftime('%d/%m/%Y') if a[10] else None,
-                    'necessidade_implantacao': a[11] or '',
-                    'ganho_previsto': a[12] or '',
+                    'id': a._mapping['id'],
+                    'categoria': a._mapping['categoria'],
+                    'analise_critica': a._mapping['analise_critica'] or '',
+                    'sugestao_melhoria': a._mapping['sugestao_melhoria'] or '',
+                    'sugestao_sera_implantada': a._mapping['sugestao_sera_implantada'],
+                    'efetivamente_implantada': a._mapping['efetivamente_implantada'],
+                    'data_implantacao_efetiva': a._mapping['data_implantacao_efetiva'].strftime('%d/%m/%Y') if a._mapping['data_implantacao_efetiva'] else None,
+                    'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
+                    'ganho_previsto': a._mapping['ganho_previsto'] or '',
+                    'evidencia_nome': a._mapping['evidencia_nome'] or '',
+                    'evidencia_url': a._mapping['evidencia_url'] or '',
                     'historico': historico_list,
                     'followups': followups_list
                 })
@@ -4518,77 +4564,71 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ac.analise_critica,
                 ac.sugestao_melhoria,
                 ac.sugestao_sera_implantada,
-                ac.plano_acao,
-                ac.responsavel_implantacao,
-                ac.data_inicio_prevista,
-                ac.data_conclusao_prevista,
                 ac.efetivamente_implantada,
                 ac.data_implantacao_efetiva,
                 ac.created_at,
                 ac.necessidade_implantacao,
-                ac.ganho_previsto
+                ac.ganho_previsto,
+                ac.evidencia_nome,
+                ac.evidencia_url
             FROM analises_criticas ac
             WHERE ac.processo_id = :processo_id 
             AND ac.tipo = 'auditor'
             ORDER BY ac.created_at ASC
         """)
         analises_auditor_raw = conn.execute(query_analises_auditor, {"processo_id": proc_id}).fetchall()
-        
+
         analises_auditor_list = []
         for a in analises_auditor_raw:
-            analise_id = a[0]
-            
-            # Buscar histórico de andamento
+            # Buscar histórico e follow-ups (usando _mapping também)
             query_historico = text("""
                 SELECT status, comentario, created_by, created_at
                 FROM analises_historico_andamento
                 WHERE analise_id = :analise_id
                 ORDER BY created_at ASC
             """)
-            historico_raw = conn.execute(query_historico, {"analise_id": analise_id}).fetchall()
+            historico_raw = conn.execute(query_historico, {"analise_id": a._mapping['id']}).fetchall()
             
             historico_list = []
             for h in historico_raw:
                 historico_list.append({
-                    'data': h[3].strftime('%d/%m/%Y') if h[3] else '',
-                    'status': h[0] or '',
-                    'comentario': h[1] or '',
-                    'created_by': h[2] or ''
+                    'data': h._mapping['created_at'].strftime('%d/%m/%Y') if h._mapping['created_at'] else '',
+                    'status': h._mapping['status'] or '',
+                    'comentario': h._mapping['comentario'] or '',
+                    'created_by': h._mapping['created_by'] or ''
                 })
             
-            # Buscar follow-ups
             query_followups = text("""
                 SELECT etapa, data_prevista, data_realizada, status, comentario
                 FROM analises_follow_up
                 WHERE analise_id = :analise_id
                 ORDER BY data_prevista ASC
             """)
-            followups_raw = conn.execute(query_followups, {"analise_id": analise_id}).fetchall()
+            followups_raw = conn.execute(query_followups, {"analise_id": a._mapping['id']}).fetchall()
             
             followups_list = []
             for f in followups_raw:
                 followups_list.append({
-                    'etapa': f[0] or '',
-                    'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '',
-                    'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '',
-                    'status': f[3] or 'Pendente',
-                    'comentario': f[4] or ''
+                    'etapa': f._mapping['etapa'] or '',
+                    'data_prevista': f._mapping['data_prevista'].strftime('%d/%m/%Y') if f._mapping['data_prevista'] else '',
+                    'data_realizada': f._mapping['data_realizada'].strftime('%d/%m/%Y') if f._mapping['data_realizada'] else '',
+                    'status': f._mapping['status'] or 'Pendente',
+                    'comentario': f._mapping['comentario'] or ''
                 })
             
+            # ✅ USANDO row._mapping - NUNCA MAIS ÍNDICES!
             analises_auditor_list.append({
-                'id': analise_id,
-                'analise_critica': a[1] or '',
-                'sugestao_melhoria': a[2] or '',
-                'sugestao_sera_implantada': a[3],
-                'plano_acao': a[4] or '',
-                'responsavel_implantacao': a[5] or '',
-                'data_inicio_prevista': a[6].strftime('%d/%m/%Y') if a[6] else None,
-                'data_conclusao_prevista': a[7].strftime('%d/%m/%Y') if a[7] else None,
-                'efetivamente_implantada': a[8] if a[8] is not None else None,
-                'data_implantacao_efetiva': a[9].strftime('%d/%m/%Y') if a[9] else None,
-                'data_criacao': a[10].strftime('%d/%m/%Y') if a[10] else '',
-                'necessidade_implantacao': a[11] or '', 
-                'ganho_previsto': a[12] or '',           
+                'id': a._mapping['id'],
+                'analise_critica': a._mapping['analise_critica'] or '',
+                'sugestao_melhoria': a._mapping['sugestao_melhoria'] or '',
+                'sugestao_sera_implantada': a._mapping['sugestao_sera_implantada'],
+                'efetivamente_implantada': a._mapping['efetivamente_implantada'],
+                'data_implantacao_efetiva': a._mapping['data_implantacao_efetiva'].strftime('%d/%m/%Y') if a._mapping['data_implantacao_efetiva'] else None,
+                'data_criacao': a._mapping['created_at'].strftime('%d/%m/%Y') if a._mapping['created_at'] else '',
+                'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
+                'ganho_previsto': a._mapping['ganho_previsto'] or '',
+                'evidencia_nome': a._mapping['evidencia_nome'] or '',
+                'evidencia_url': a._mapping['evidencia_url'] or '',
                 'historico': historico_list,
                 'followups': followups_list
             })
@@ -5664,7 +5704,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="Relatório de Conclusão",
+        titulo_relatorio="RELATÓRIO DE CONCLUSÃO DA AUDITORIA",
         subtitulo_relatorio=f"{codigo_auditoria}<br/><br/>{titulo_auditoria}",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
