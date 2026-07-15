@@ -4268,60 +4268,47 @@
         const analiseCritica = document.getElementById('analise-auditado-texto').value;
         const sugestaoMelhoria = document.getElementById('analise-auditado-sugestao').value.trim();
         
-        // ⭐ VALIDAÇÃO: Ponto de Auditoria é obrigatório
         if (!analiseCritica.trim()) {
             mostrarToast('O Ponto de Auditoria é obrigatório', 'warning');
             return;
         }
-
-        // ⭐ VALIDAÇÃO: Verificar se há sugestão de melhoria (ignorar "INEXISTENTE")
+        
+        // ⭐ VERIFICA SE TEM SUGESTÃO DE MELHORIA
         const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
         const temSugestaoMelhoria = sugestaoMelhoria.length > 0 && !valoresSemSugestao.includes(sugestaoMelhoria.trim().toLowerCase());
         
-        let seraImplantada = null;
+        // ⭐ BUSCAR O RADIO SELECIONADO
+        const radioSelecionado = document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked');
         
-        if (temSugestaoMelhoria) {
-            // ⭐ Se TEM sugestão (válida), obriga selecionar um status
-            const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
+        // ⭐⭐⭐ CORREÇÃO: Enviar como STRING para a API ⭐⭐⭐
+        let sugestao_sera_implantada = null;
+        
+        if (radioSelecionado) {
+            const valorRadio = radioSelecionado.value;
+            console.log('📻 Valor do radio:', valorRadio);
             
-            if (!radioSelecionado) {
-                mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
-                const statusGroup = document.querySelector('.status-radio-group');
-                if (statusGroup) {
-                    statusGroup.style.border = '2px solid #dc3545';
-                    statusGroup.style.borderRadius = '8px';
-                    statusGroup.style.padding = '10px';
-                    setTimeout(() => {
-                        statusGroup.style.border = '';
-                        statusGroup.style.padding = '';
-                    }, 3000);
-                }
-                return;
-            }
-            
-            if (radioSelecionado.value === 'true') {
-                seraImplantada = true;
-            } else if (radioSelecionado.value === 'false') {
-                seraImplantada = false;
-            } else {
-                seraImplantada = null; // Aguardando avaliação
+            if (valorRadio === 'true') {
+                sugestao_sera_implantada = 'true';  // ⭐ String
+                console.log('✅ Será implantada (string "true")');
+            } else if (valorRadio === 'false') {
+                sugestao_sera_implantada = 'false';  // ⭐ String
+                console.log('❌ Não será implantada (string "false")');
+            } else if (valorRadio === '') {
+                sugestao_sera_implantada = null;  // ⭐ Null
+                console.log('⏳ Aguardando avaliação (null)');
             }
         } else {
-            // ⭐ Se NÃO TEM sugestão (ou é "INEXISTENTE"), não obriga selecionar status
-            const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
-            if (radioSelecionado) {
-                if (radioSelecionado.value === 'true') {
-                    seraImplantada = true;
-                } else if (radioSelecionado.value === 'false') {
-                    seraImplantada = false;
-                } else {
-                    seraImplantada = null;
-                }
+            console.warn('⚠️ NENHUM radio selecionado!');
+            if (temSugestaoMelhoria) {
+                mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
+                return;
             }
-            // Se não selecionou, seraImplantada continua null
         }
         
-        // ⭐ CRIAR PAYLOAD COMO OBJETO
+        console.log('🎯 sugestao_sera_implantada enviado:', sugestao_sera_implantada);
+        console.log('🎯 Tipo:', typeof sugestao_sera_implantada);
+        
+        // ⭐ CRIAR PAYLOAD
         const payload = {
             processo_id: parseInt(processoIdAtual),
             etapa_id: parseInt(etapaId),
@@ -4331,30 +4318,23 @@
             necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value || '',
             ganho_previsto: document.getElementById('analise-auditado-ganho').value || '',
             observacoes: document.getElementById('analise-auditado-observacoes').value || '',
-            sugestao_sera_implantada: seraImplantada
+            sugestao_sera_implantada: sugestao_sera_implantada  // ⭐ Envia 'true', 'false' ou null
         };
         
+        console.log('📦 Payload FINAL:');
+        console.log(JSON.stringify(payload, null, 2));
+        
         // ⭐ VALIDAÇÃO: Se vai implantar, verifica se tem plano de ação 5W2H
-        if (seraImplantada === true) {
-            // Verificar se o plano de ação foi salvo
+        if (sugestao_sera_implantada === 'true') {
             if (!planoAcaoAtual) {
                 mostrarToast('⚠️ É necessário cadastrar um Plano de Ação 5W2H antes de confirmar a implantação', 'warning');
-                // Abrir o modal do plano de ação automaticamente
                 abrirModalPlanoAcao();
                 return;
             }
-            
-            // O plano já existe, prosseguir com o salvamento
             payload.plano_acao_id = planoAcaoAtual.id;
-        } else {
-            // Se não for implantada, não precisa de plano de ação
-            // Mas se tiver um plano salvo, mantém (não remove)
-            if (planoAcaoAtual) {
-                payload.plano_acao_id = planoAcaoAtual.id;
-            }
         }
         
-        // ⭐ Processar evidência do auditado
+        // ⭐ Processar evidência
         const removerEvidencia = document.getElementById('remover-evidencia-auditado-hidden')?.value === 'true';
         
         if (arquivoSelecionadoAuditadoEvidencia) {
@@ -4362,15 +4342,13 @@
                 const base64 = await converterParaBase64(arquivoSelecionadoAuditadoEvidencia);
                 payload.evidencia_base64 = base64;
                 payload.evidencia_nome = arquivoSelecionadoAuditadoEvidencia.name;
-                console.log('📎 Enviando evidência do auditado:', arquivoSelecionadoAuditadoEvidencia.name);
             } catch (error) {
                 console.error('Erro ao converter evidência:', error);
                 mostrarToast('❌ Erro ao processar evidência', 'error');
                 return;
             }
         } else if (removerEvidencia) {
-            payload.remover_evidencia = true;
-            console.log('🗑️ Removendo evidência do auditado');
+            payload.remover_evidencia = 'true';
         }
         
         const btnSalvar = document.getElementById('btn-salvar-analise-auditado');
@@ -4409,7 +4387,7 @@
                 fecharModalAnaliseAuditado();
                 await carregarAnalisesAuditado();
             } else {
-                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecito'), 'error');
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
             }
         } catch (error) {
             console.error('Erro:', error);
