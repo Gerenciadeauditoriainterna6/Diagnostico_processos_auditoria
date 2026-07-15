@@ -2232,33 +2232,39 @@ def buscar_dados_gerencia_auditoria():
 
 def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=None, area_nome=None, data_emissao=None):
     """
-    Cria uma página de capa para o relatório.
+    Cria uma página de capa para o relatório com centralização vertical.
     """
-    # ⭐ TODAS AS IMPORTAÇÕES NO INÍCIO
     from datetime import datetime
     from zoneinfo import ZoneInfo
-    from reportlab.platypus import Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+    from reportlab.platypus import Paragraph, Spacer, Image, PageBreak
     from reportlab.lib import colors
     from reportlab.lib.units import cm
     from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     import os
     
-    # ⭐ DEPOIS USAR AS IMPORTAÇÕES
     TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
-    
-    # ⭐ USAR getSampleStyleSheet() para obter estilos padrão
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
     
-    # Estilos para a capa
+    # Estilos para a capa (seus estilos existentes)
     titulo_capa_style = ParagraphStyle(
+        'TituloCapa',
+        parent=normal_style,
+        fontSize=14,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#0b5b99'),
+        spaceAfter=10
+    )
+
+    titulo_capa_style2 = ParagraphStyle(
         'TituloCapa',
         parent=normal_style,
         fontSize=20,
         fontName='Helvetica-Bold',
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#0b5b99'),
+        textColor=colors.HexColor('#000000'),
         spaceAfter=10
     )
     
@@ -2268,7 +2274,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         fontSize=14,
         fontName='Helvetica',
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#0b5b99'),
+        textColor=colors.HexColor('#000000'),
         spaceAfter=20,
         leading=15
     )
@@ -2293,12 +2299,52 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         spaceAfter=6
     )
     
-    # Logo (centralizado)
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    # ⭐⭐⭐ NOVO: CALCULAR ESPAÇO PARA CENTRALIZAR ⭐⭐⭐
+    # Altura disponível na página (descontando margens)
+    altura_disponivel = pagesize[1] - 2*cm - 2*cm  # top e bottom margins
     
-    if os.path.exists(logo_auditoria_path):
-        img = Image(logo_auditoria_path, width=4*cm, height=4*cm)
+    # Estimar altura do conteúdo (em pontos)
+    # Cada item tem uma altura aproximada
+    altura_estimada = 0
+    
+    # Logo (4cm + espaçamento)
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    if os.path.exists(logo_path):
+        altura_estimada += 4*cm + 20  # logo + spacer
+    else:
+        altura_estimada += 20
+    
+    # Títulos
+    altura_estimada += 30  # "GERÊNCIA DE AUDITORIA INTERNA"
+    altura_estimada += 20  # spacer
+    altura_estimada += 30  # "FUSVE"
+    altura_estimada += 40  # spacer
+    altura_estimada += 40  # título principal
+    altura_estimada += 20  # spacer
+    
+    if subtitulo_relatorio:
+        altura_estimada += 30  # subtítulo
+        altura_estimada += 20  # spacer
+    
+    # Informações adicionais
+    if area_nome:
+        altura_estimada += 20
+    altura_estimada += 20  # "Emissão: ..."
+    
+    # ⭐ Calcular espaço extra para centralizar
+    espaco_extra = (altura_disponivel - altura_estimada) / 2
+    
+    # Se o espaço extra for negativo (conteúdo maior que a página), usar um valor mínimo
+    if espaco_extra < 0:
+        espaco_extra = 1*cm
+    
+    # ⭐⭐⭐ ADICIONAR ESPAÇO ANTES DO CONTEÚDO ⭐⭐⭐
+    story.append(Spacer(1, espaco_extra))
+    
+    # Logo (centralizado)
+    if os.path.exists(logo_path):
+        img = Image(logo_path, width=4*cm, height=4*cm)
         img.hAlign = 'CENTER'
         story.append(img)
         story.append(Spacer(1, 20))
@@ -2307,11 +2353,11 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     story.append(Paragraph("GERÊNCIA DE AUDITORIA INTERNA", titulo_capa_style))
     story.append(Spacer(1, 10))
     story.append(Paragraph("FUSVE", 
-                           ParagraphStyle('CustomParagraph', parent=info_capa_style, fontSize=20)))
-    story.append(Spacer(1, 30))
+                           ParagraphStyle('CustomParagraph', parent=info_capa_style, fontSize=14)))
+    story.append(Spacer(1, 40))
     
     # Título principal
-    story.append(Paragraph(titulo_relatorio, titulo_capa_style))
+    story.append(Paragraph(titulo_relatorio, titulo_capa_style2))
     story.append(Spacer(1, 10))
     
     if subtitulo_relatorio:
@@ -2327,7 +2373,9 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         data_emissao = datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     
     story.append(Paragraph(f"Emissão: {data_emissao}", info_capa_style2))
-
+    
+    # ⭐⭐⭐ ADICIONAR ESPAÇO DEPOIS DO CONTEÚDO ⭐⭐⭐
+    story.append(Spacer(1, espaco_extra))
     
     # Quebra de página após a capa
     story.append(PageBreak())
@@ -2398,8 +2446,8 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio='Relatório de Validação',
-        subtitulo_relatorio='Matriz de Panorama',
+        titulo_relatorio='RELATÓRIO DE VALIDAÇÃO',
+        subtitulo_relatorio='MATRIZ DE PANORAMA',
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -3071,8 +3119,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="Relatório de Validação",
-        subtitulo_relatorio="Matriz de Detalhamento",
+        titulo_relatorio="RELATÓRIO DE VALIDAÇÃO",
+        subtitulo_relatorio="MATRIZ DE DETALHAMENTO",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -4327,7 +4375,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="Parecer da Auditoria Interna",
+        titulo_relatorio="PARECER DA AUDITORIA INTERNA",
         subtitulo_relatorio=f"Processo {proc_codigo} - {proc_nome}" if 'proc_codigo' in locals() else "",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
@@ -5656,7 +5704,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="Relatório de Conclusão",
+        titulo_relatorio="RELATÓRIO DE CONCLUSÃO DA AUDITORIA",
         subtitulo_relatorio=f"{codigo_auditoria}<br/><br/>{titulo_auditoria}",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
