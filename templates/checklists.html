@@ -212,52 +212,36 @@
                         </div>
                     </div>
                     
-                    <!-- 4. SEÇÃO DO PLANO DE AÇÃO (aparece se o checkbox acima for marcado) -->
+                    <!-- 4. SEÇÃO DO PLANO DE AÇÃO 5W2H (substitui a antiga) -->
                     <div id="secao-plano-acao-auditado" style="display: none; margin-top: 15px; padding: 15px; background: #f0f7f0; border-left: 4px solid #28a745; border-radius: 8px;">
-                        <h4 style="color: #184145; margin-bottom: 15px;">
-                            <i class="fas fa-clipboard-list"></i> Plano de Ação
-                        </h4>
-                        
-                        <div class="form-group">
-                            <label><i class="fas fa-file-alt"></i> Plano de Ação (detalhado)</label>
-                            <textarea id="plano-acao-auditado" class="form-control" rows="3" placeholder="Descreva o plano de ação para implantação da melhoria..."></textarea>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #184145; margin: 0;">
+                                <i class="fas fa-clipboard-list"></i> Plano de Ação 5W2H
+                            </h4>
+                            <button type="button" class="btn-primary" onclick="abrirModalPlanoAcao()" style="padding: 6px 12px; font-size: 12px;">
+                                <i class="fas fa-edit"></i> Editar Plano
+                            </button>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label><i class="fas fa-user"></i> Responsável pela Implantação</label>
-                                <input type="text" id="responsavel-implantacao-auditado" class="form-control" placeholder="Nome do responsável">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar-alt"></i> Data de Início</label>
-                                <input type="date" id="data-inicio-implantacao-auditado" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar-check"></i> Data de Conclusão Prevista</label>
-                                <input type="date" id="data-conclusao-prevista-auditado" class="form-control">
-                            </div>
-                        </div>
-                        
-                        <!-- Anexo -->
-                        <div class="form-group">
-                            <label><i class="fas fa-paperclip"></i> Anexar validação do auditado (PDF)</label>
-                            <div class="custom-file-upload">
-                                <input type="file" id="anexo-validacao-auditado" accept=".pdf" style="display: none;">
-                                <button type="button" id="btn-selecionar-arquivo-auditado" class="btn-file-upload">
-                                    <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
-                                </button>
-                                <div id="anexo-nome-auditado" class="file-name" style="display: none;">
-                                    <i class="fas fa-file-pdf"></i> 
-                                    <span id="anexo-nome-texto-auditado"></span>
-                                    <button type="button" id="btn-remover-arquivo-auditado" class="btn-remove-file">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                        <!-- ⭐ Resumo do plano de ação (será preenchido dinamicamente) -->
+                        <div id="resumo-plano-acao-auditado" style="display: none;">
+                            <div style="background: white; border-radius: 8px; padding: 12px; border: 1px solid #e0e0e0;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                    <div><strong>O que?</strong> <span id="resumo-oque">-</span></div>
+                                    <div><strong>Por que?</strong> <span id="resumo-porque">-</span></div>
+                                    <div><strong>Onde?</strong> <span id="resumo-onde">-</span></div>
+                                    <div><strong>Quando?</strong> <span id="resumo-quando">-</span></div>
+                                    <div><strong>Quem?</strong> <span id="resumo-quem">-</span></div>
+                                    <div><strong>Como?</strong> <span id="resumo-como">-</span></div>
+                                    <div style="grid-column: span 2;"><strong>Quanto custa?</strong> <span id="resumo-quanto">-</span></div>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+                                    <strong>Comentário:</strong> <span id="resumo-comentario">-</span>
                                 </div>
                             </div>
-                            <small class="text-muted">Envie o e-mail de validação do auditado (formato PDF)</small>
+                        </div>
+                        <div id="sem-plano-acao-auditado" style="color: #999; font-style: italic; padding: 10px;">
+                            Nenhum plano de ação cadastrado
                         </div>
                     </div>
                     
@@ -362,52 +346,36 @@
                         </div>
                     </div>
                     
-                    <!-- 4. SEÇÃO DO PLANO DE AÇÃO (aparece se o checkbox acima for marcado) -->
+                    <!-- 4. SEÇÃO DO PLANO DE AÇÃO 5W2H (aparece se o checkbox acima for marcado) -->
                     <div id="secao-plano-acao" style="display: none; margin-top: 15px; padding: 15px; background: #f0f7f0; border-left: 4px solid #28a745; border-radius: 8px;">
-                        <h4 style="color: #184145; margin-bottom: 15px;">
-                            <i class="fas fa-clipboard-list"></i> Plano de Ação
-                        </h4>
-                        
-                        <div class="form-group">
-                            <label><i class="fas fa-file-alt"></i> Plano de Ação (detalhado)</label>
-                            <textarea id="plano-acao" class="form-control" rows="3" placeholder="Descreva o plano de ação para implantação da melhoria..."></textarea>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="color: #184145; margin: 0;">
+                                <i class="fas fa-clipboard-list"></i> Plano de Ação 5W2H
+                            </h4>
+                            <button type="button" class="btn-primary" onclick="abrirModalPlanoAcaoAuditor()" style="padding: 6px 12px; font-size: 12px;">
+                                <i class="fas fa-edit"></i> Editar Plano
+                            </button>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label><i class="fas fa-user"></i> Responsável pela Implantação</label>
-                                <input type="text" id="responsavel-implantacao" class="form-control" placeholder="Nome do responsável">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar-alt"></i> Data de Início</label>
-                                <input type="date" id="data-inicio-implantacao" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar-check"></i> Data de Conclusão Prevista</label>
-                                <input type="date" id="data-conclusao-prevista" class="form-control">
-                            </div>
-                        </div>
-                        
-                        <!-- No MODAL PARA CADASTRO/EDIÇÃO DE ANÁLISE DO AUDITOR, substitua a seção do anexo -->
-                        <div class="form-group">
-                            <label><i class="fas fa-paperclip"></i> Anexar validação do auditado (PDF)</label>
-                            <div class="custom-file-upload">
-                                <input type="file" id="anexo-validacao" accept=".pdf" style="display: none;">
-                                <button type="button" id="btn-selecionar-arquivo" class="btn-file-upload">
-                                    <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
-                                </button>
-                                <div id="anexo-nome" class="file-name" style="display: none;">
-                                    <i class="fas fa-file-pdf"></i> 
-                                    <span id="anexo-nome-texto"></span>
-                                    <button type="button" id="btn-remover-arquivo" class="btn-remove-file">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                        <!-- ⭐ Resumo do plano de ação (será preenchido dinamicamente) -->
+                        <div id="resumo-plano-acao-auditor" style="display: none;">
+                            <div style="background: white; border-radius: 8px; padding: 12px; border: 1px solid #e0e0e0;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                    <div><strong>O que?</strong> <span id="resumo-oque-auditor">-</span></div>
+                                    <div><strong>Por que?</strong> <span id="resumo-porque-auditor">-</span></div>
+                                    <div><strong>Onde?</strong> <span id="resumo-onde-auditor">-</span></div>
+                                    <div><strong>Quando?</strong> <span id="resumo-quando-auditor">-</span></div>
+                                    <div><strong>Quem?</strong> <span id="resumo-quem-auditor">-</span></div>
+                                    <div><strong>Como?</strong> <span id="resumo-como-auditor">-</span></div>
+                                    <div style="grid-column: span 2;"><strong>Quanto custa?</strong> <span id="resumo-quanto-auditor">-</span></div>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+                                    <strong>Comentário:</strong> <span id="resumo-comentario-auditor">-</span>
                                 </div>
                             </div>
-                            <small class="text-muted">Envie o e-mail de validação do auditado (formato PDF)</small>
+                        </div>
+                        <div id="sem-plano-acao-auditor" style="color: #999; font-style: italic; padding: 10px;">
+                            Nenhum plano de ação cadastrado
                         </div>
                     </div>
                     
@@ -571,6 +539,130 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="fecharModalChecklist()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA PLANO DE AÇÃO 5W2H -->
+    <div id="modal-plano-acao" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-list"></i> Plano de Ação 5W2H</h3>
+                <button class="modal-fechar" onclick="fecharModalPlanoAcao()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="plano-acao-id">
+                <input type="hidden" id="plano-acao-analise-id">
+                
+                <div class="form-group">
+                    <label><i class="fas fa-question-circle"></i> O que será feito? *</label>
+                    <input type="text" id="plano-oque" class="form-control" placeholder="Descreva a ação...">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-question-circle"></i> Por que será feito? *</label>
+                    <textarea id="plano-porque" class="form-control" rows="2" placeholder="Justificativa..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Onde será feito? *</label>
+                        <input type="text" id="plano-onde" class="form-control" placeholder="Local...">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> Quando será feito? *</label>
+                        <input type="date" id="plano-quando" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Quem fará? *</label>
+                        <input type="text" id="plano-quem" class="form-control" placeholder="Responsável...">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-cogs"></i> Como será feito? *</label>
+                        <input type="text" id="plano-como" class="form-control" placeholder="Método...">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-dollar-sign"></i> Quanto custará?</label>
+                    <input type="number" id="plano-quanto" class="form-control" placeholder="0,00" step="0.01">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Comentário</label>
+                    <textarea id="plano-comentario" class="form-control" rows="2" placeholder="Observações adicionais..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalPlanoAcao()">Cancelar</button>
+                <button id="btn-salvar-plano-acao" class="btn-primary" onclick="salvarPlanoAcao()">
+                    <i class="fas fa-save"></i> Salvar Plano
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA PLANO DE AÇÃO 5W2H - AUDITOR -->
+    <div id="modal-plano-acao-auditor" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-list"></i> Plano de Ação 5W2H - Auditor</h3>
+                <button class="modal-fechar" onclick="fecharModalPlanoAcaoAuditor()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="plano-acao-auditor-id">
+                <input type="hidden" id="plano-acao-auditor-analise-id">
+                
+                <div class="form-group">
+                    <label><i class="fas fa-question-circle"></i> O que será feito? *</label>
+                    <input type="text" id="plano-oque-auditor" class="form-control" placeholder="Descreva a ação...">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-question-circle"></i> Por que será feito? *</label>
+                    <textarea id="plano-porque-auditor" class="form-control" rows="2" placeholder="Justificativa..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Onde será feito? *</label>
+                        <input type="text" id="plano-onde-auditor" class="form-control" placeholder="Local...">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> Quando será feito? *</label>
+                        <input type="date" id="plano-quando-auditor" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Quem fará? *</label>
+                        <input type="text" id="plano-quem-auditor" class="form-control" placeholder="Responsável...">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-cogs"></i> Como será feito? *</label>
+                        <input type="text" id="plano-como-auditor" class="form-control" placeholder="Método...">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-dollar-sign"></i> Quanto custará?</label>
+                    <input type="text" id="plano-quanto-auditor" class="form-control" placeholder="Digite o valor ou descrição...">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Comentário</label>
+                    <textarea id="plano-comentario-auditor" class="form-control" rows="2" placeholder="Observações adicionais..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModalPlanoAcaoAuditor()">Cancelar</button>
+                <button id="btn-salvar-plano-acao-auditor" class="btn-primary" onclick="salvarPlanoAcaoAuditor()">
+                    <i class="fas fa-save"></i> Salvar Plano
+                </button>
             </div>
         </div>
     </div>
@@ -2180,23 +2272,32 @@
         if (secao) {
             secao.style.display = mostrar ? 'block' : 'none';
             console.log('📊 togglePlanoAcaoAuditado:', mostrar ? 'block' : 'none');
-        } else {
-            console.error('❌ togglePlanoAcaoAuditado: elemento secao-plano-acao-auditado não encontrado');
         }
     }
 
     function limparCamposPlanoAcaoAuditado() {
         console.log('🧹 Limpando campos do plano de ação auditado');
-        document.getElementById('plano-acao-auditado').value = '';
-        document.getElementById('responsavel-implantacao-auditado').value = '';
-        document.getElementById('data-inicio-implantacao-auditado').value = '';
-        document.getElementById('data-conclusao-prevista-auditado').value = '';
+        
+        // ⭐ VERIFICAR SE OS ELEMENTOS EXISTEM ANTES DE ACESSAR
+        const planoAcao = document.getElementById('plano-acao-auditado');
+        if (planoAcao) planoAcao.value = '';
+        
+        const responsavel = document.getElementById('responsavel-implantacao-auditado');
+        if (responsavel) responsavel.value = '';
+        
+        const dataInicio = document.getElementById('data-inicio-implantacao-auditado');
+        if (dataInicio) dataInicio.value = '';
+        
+        const dataConclusao = document.getElementById('data-conclusao-prevista-auditado');
+        if (dataConclusao) dataConclusao.value = '';
         
         // Limpar anexo
         const inputFile = document.getElementById('anexo-validacao-auditado');
-        const anexoDiv = document.getElementById('anexo-nome-auditado');
         if (inputFile) inputFile.value = '';
+        
+        const anexoDiv = document.getElementById('anexo-nome-auditado');
         if (anexoDiv) anexoDiv.style.display = 'none';
+        
         arquivoSelecionadoAuditado = null;
         anexoExistenteNomeAuditado = null;
     }
@@ -2205,33 +2306,32 @@
         const radios = document.querySelectorAll('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]');
         const secaoPlano = document.getElementById('secao-plano-acao-auditado');
         
-        console.log('🔧 Configurando listener do auditado - radios encontrados:', radios.length);
-        
         function controlarVisibilidade() {
             const radioSelecionado = document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked');
             const isImplantada = radioSelecionado && radioSelecionado.value === 'true';
             
-            console.log('🔄 Radio alterado - valor:', radioSelecionado?.value, 'é implantada:', isImplantada);
-            
             if (secaoPlano) {
                 if (isImplantada) {
                     secaoPlano.style.display = 'block';
-                    console.log('📂 Plano de ação: MOSTRAR');
+                    // ⭐ Se já tiver um plano, mostrar resumo
+                    if (planoAcaoAtual) {
+                        document.getElementById('resumo-plano-acao-auditado').style.display = 'block';
+                        document.getElementById('sem-plano-acao-auditado').style.display = 'none';
+                    } else {
+                        document.getElementById('resumo-plano-acao-auditado').style.display = 'none';
+                        document.getElementById('sem-plano-acao-auditado').style.display = 'block';
+                    }
                 } else {
                     secaoPlano.style.display = 'none';
-                    console.log('📂 Plano de ação: ESCONDER');
                 }
             }
         }
         
-        // Remover listeners antigos e adicionar novos
         radios.forEach(radio => {
             radio.removeEventListener('change', controlarVisibilidade);
             radio.addEventListener('change', controlarVisibilidade);
-            console.log(`✅ Listener adicionado ao radio value="${radio.value}"`);
         });
         
-        // Executar uma vez para definir o estado inicial baseado no radio já marcado
         controlarVisibilidade();
     }
 
@@ -2245,31 +2345,99 @@
     }
 
     function limparCamposPlanoAcaoAuditor() {
-        document.getElementById('plano-acao').value = '';
-        document.getElementById('responsavel-implantacao').value = '';
-        document.getElementById('data-inicio-implantacao').value = '';
-        document.getElementById('data-conclusao-prevista').value = '';
+        console.log('🧹 Limpando campos do plano de ação auditor');
         
+        // ⭐ VERIFICAR SE OS ELEMENTOS EXISTEM ANTES DE ACESSAR
+        const planoAcao = document.getElementById('plano-acao');
+        if (planoAcao) planoAcao.value = '';
+        
+        const responsavel = document.getElementById('responsavel-implantacao');
+        if (responsavel) responsavel.value = '';
+        
+        const dataInicio = document.getElementById('data-inicio-implantacao');
+        if (dataInicio) dataInicio.value = '';
+        
+        const dataConclusao = document.getElementById('data-conclusao-prevista');
+        if (dataConclusao) dataConclusao.value = '';
+        
+        // Limpar anexo
         const inputFile = document.getElementById('anexo-validacao');
-        const anexoDiv = document.getElementById('anexo-nome');
         if (inputFile) inputFile.value = '';
+        
+        const anexoDiv = document.getElementById('anexo-nome');
         if (anexoDiv) anexoDiv.style.display = 'none';
+        
+        // ⭐ RESETAR VARIÁVEIS GLOBAIS DO AUDITOR
         arquivoSelecionado = null;
         anexoExistenteNome = null;
+        
+        // ⭐ LIMPAR PLANO DE AÇÃO 5W2H DO AUDITOR
+        planoAcaoAuditorAtual = null;
+        
+        const resumoPlano = document.getElementById('resumo-plano-acao-auditor');
+        if (resumoPlano) resumoPlano.style.display = 'none';
+        
+        const semPlano = document.getElementById('sem-plano-acao-auditor');
+        if (semPlano) semPlano.style.display = 'block';
     }
 
     function setupImplementacaoListenerAuditor() {
+        console.log('🔵 setupImplementacaoListenerAuditor() CHAMADO!');
+        
+        const secaoPlano = document.getElementById('secao-plano-acao');
         const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
+        
+        console.log('📻 Radios encontrados:', radios.length);
+        
+        // ⭐ REMOVER LISTENERS ANTIGOS (clone + replace)
         radios.forEach(radio => {
-            radio.removeEventListener('change', function() {});
-            radio.addEventListener('change', function() {
-                const isImplantada = this.value === 'true';
-                togglePlanoAcaoAuditor(isImplantada);
-                if (!isImplantada) limparCamposPlanoAcaoAuditor();
-            });
+            const newRadio = radio.cloneNode(true);
+            radio.parentNode.replaceChild(newRadio, radio);
         });
+        
+        // ⭐ BUSCAR OS RADIOS NOVAMENTE
+        const novosRadios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
+        
+        novosRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                console.log('🔄 Radio do auditor alterado! Valor:', this.value);
+                
+                const isImplantada = this.value === 'true';
+                console.log('   isImplantada:', isImplantada);
+                
+                if (secaoPlano) {
+                    if (isImplantada) {
+                        secaoPlano.style.display = 'block';
+                        if (planoAcaoAuditorAtual) {
+                            const resumoPlano = document.getElementById('resumo-plano-acao-auditor');
+                            const semPlano = document.getElementById('sem-plano-acao-auditor');
+                            if (resumoPlano) resumoPlano.style.display = 'block';
+                            if (semPlano) semPlano.style.display = 'none';
+                        } else {
+                            const resumoPlano = document.getElementById('resumo-plano-acao-auditor');
+                            const semPlano = document.getElementById('sem-plano-acao-auditor');
+                            if (resumoPlano) resumoPlano.style.display = 'none';
+                            if (semPlano) semPlano.style.display = 'block';
+                        }
+                    } else {
+                        secaoPlano.style.display = 'none';
+                    }
+                }
+            });
+            console.log(`✅ Listener adicionado ao radio value="${radio.value}"`);
+        });
+        
+        // ⭐ EXECUTAR UMA VEZ PARA DEFINIR O ESTADO INICIAL
         const radioSelecionado = document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked');
-        togglePlanoAcaoAuditor(radioSelecionado && radioSelecionado.value === 'true');
+        if (radioSelecionado && secaoPlano) {
+            console.log('📻 Radio inicial selecionado:', radioSelecionado.value);
+            const isImplantada = radioSelecionado.value === 'true';
+            if (isImplantada) {
+                secaoPlano.style.display = 'block';
+            } else {
+                secaoPlano.style.display = 'none';
+            }
+        }
     }
 
     // ============================================================
@@ -2349,6 +2517,7 @@
             textarea.value = '';
         }
         
+        // ⭐ Limpar campos do plano de ação (antigo)
         limparCamposPlanoAcaoAuditor();
 
         // ⭐ NOVO: Limpar evidência ao abrir nova análise
@@ -2367,10 +2536,19 @@
         const analiseIdInput = document.getElementById('analise-auditor-id');
         if (analiseIdInput) analiseIdInput.removeAttribute('data-evidencia-id');
         
-        // ⭐⭐⭐ CORREÇÃO: Desmarcar TODOS os radios ⭐⭐⭐
+        // ⭐ LIMPAR PLANO DE AÇÃO 5W2H DO AUDITOR
+        planoAcaoAuditorAtual = null;
+        const resumoPlano = document.getElementById('resumo-plano-acao-auditor');
+        if (resumoPlano) resumoPlano.style.display = 'none';
+        const semPlano = document.getElementById('sem-plano-acao-auditor');
+        if (semPlano) semPlano.style.display = 'block';
+        const secaoPlano = document.getElementById('secao-plano-acao');
+        if (secaoPlano) secaoPlano.style.display = 'none';
+        
+        // ⭐ Desmarcar TODOS os radios
         const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
         radios.forEach(radio => {
-            radio.checked = false;  // ⭐ NENHUM radio marcado
+            radio.checked = false;
         });
         
         togglePlanoAcaoAuditor(false);
@@ -2379,6 +2557,8 @@
     }
 
     async function editarAnaliseAuditor(id) {
+        console.log('✏️ editarAnaliseAuditor chamado para ID:', id);
+        
         const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         
@@ -2395,7 +2575,7 @@
         document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
         document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
 
-        // ⭐⭐⭐ NOVO: Verificar se o valor é "INEXISTENTE" para marcar o checkbox ⭐⭐⭐
+        // Verificar se o valor é "INEXISTENTE" para marcar o checkbox
         const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
         const textarea = document.getElementById('analise-auditor-sugestao');
         
@@ -2413,7 +2593,6 @@
                 textarea.style.color = '';
             }
         }
-        // ⭐⭐⭐ FIM DO NOVO CÓDIGO ⭐⭐⭐
 
         // Limpar estado anterior
         arquivoSelecionadoAuditor = null;
@@ -2422,7 +2601,6 @@
         const evidenciaTexto = document.getElementById('evidencia-nome-texto-auditor');
         
         if (analise.evidencias && analise.evidencias.length > 0) {
-            // Pega a primeira evidência (ou pode ser a última)
             const evidencia = analise.evidencias[0];
             anexoExistenteNomeAuditor = evidencia.nome_arquivo;
             
@@ -2431,7 +2609,6 @@
                 evidenciaDiv.style.display = 'flex';
             }
             
-            // Guardar o ID da evidência para referência
             document.getElementById('analise-auditor-id').setAttribute('data-evidencia-id', evidencia.id);
         } else {
             if (evidenciaDiv) evidenciaDiv.style.display = 'none';
@@ -2439,25 +2616,14 @@
             document.getElementById('analise-auditor-id').removeAttribute('data-evidencia-id');
         }
         
+        // ⭐⭐⭐ CORREÇÃO: RADIOS ⭐⭐⭐
         const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
         let valorParaMarcar = '';
         
+        console.log('📊 analise.sugestao_sera_implantada:', analise.sugestao_sera_implantada);
+        
         if (analise.sugestao_sera_implantada === true) {
             valorParaMarcar = 'true';
-            document.getElementById('plano-acao').value = analise.plano_acao || '';
-            document.getElementById('responsavel-implantacao').value = analise.responsavel_implantacao || '';
-            document.getElementById('data-inicio-implantacao').value = analise.data_inicio_implantacao || '';
-            document.getElementById('data-conclusao-prevista').value = analise.data_conclusao_prevista || '';
-            
-            if (analise.anexo_nome) {
-                anexoExistenteNome = analise.anexo_nome;
-                const anexoDiv = document.getElementById('anexo-nome');
-                const anexoTexto = document.getElementById('anexo-nome-texto');
-                if (anexoDiv && anexoTexto) {
-                    anexoTexto.textContent = analise.anexo_nome;
-                    anexoDiv.style.display = 'flex';
-                }
-            }
         } else if (analise.sugestao_sera_implantada === false) {
             valorParaMarcar = 'false';
             limparCamposPlanoAcaoAuditor();
@@ -2466,9 +2632,30 @@
             limparCamposPlanoAcaoAuditor();
         }
         
-        radios.forEach(radio => radio.checked = (radio.value === valorParaMarcar));
+        // Desmarcar todos
+        radios.forEach(radio => {
+            radio.checked = false;
+        });
+        
+        // Marcar o correto
+        radios.forEach(radio => {
+            if (radio.value === valorParaMarcar) {
+                radio.checked = true;
+            }
+        });
+        
+        console.log('🎯 valorParaMarcar:', valorParaMarcar);
+        console.log('🎯 Radio checked:', document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked')?.value);
+        
+        // ⭐ ABRIR MODAL
         togglePlanoAcaoAuditor(valorParaMarcar === 'true');
         document.getElementById('modal-analise-auditor').style.display = 'flex';
+        
+        // ⭐⭐⭐ ADICIONAR: CONFIGURAR LISTENER DOS RADIOS ⭐⭐⭐
+        setupImplementacaoListenerAuditor();
+        
+        // ⭐ CARREGAR PLANO DE AÇÃO 5W2H
+        await carregarPlanoAcaoAuditor(analise.id);
     }
 
     async function salvarAnaliseAuditor() {
@@ -2493,45 +2680,46 @@
             return;
         }
         
-        // CRIAR FormData EM VEZ DE JSON
-        const formData = new FormData();
-        formData.append('processo_id', parseInt(processoIdAtual));
-        formData.append('analise_critica', analiseCritica);
-        formData.append('sugestao_melhoria', document.getElementById('analise-auditor-sugestao').value || '');
-        formData.append('necessidade_implantacao', document.getElementById('analise-auditor-necessidade').value || '');
-        formData.append('ganho_previsto', document.getElementById('analise-auditor-ganho').value || '');
-        formData.append('observacoes', document.getElementById('analise-auditor-observacoes').value || '');
-        formData.append('sugestao_sera_implantada', seraImplantada === true ? 'true' : (seraImplantada === false ? 'false' : ''));
+        // ⭐⭐⭐ USAR JSON EM VEZ DE FormData ⭐⭐⭐
+        const payload = {
+            processo_id: parseInt(processoIdAtual),
+            analise_critica: analiseCritica,
+            sugestao_melhoria: document.getElementById('analise-auditor-sugestao').value || '',
+            necessidade_implantacao: document.getElementById('analise-auditor-necessidade').value || '',
+            ganho_previsto: document.getElementById('analise-auditor-ganho').value || '',
+            observacoes: document.getElementById('analise-auditor-observacoes').value || '',
+            sugestao_sera_implantada: seraImplantada  // ⭐ PODE SER true, false OU null
+        };
         
-        if (seraImplantada === true) {
-            formData.append('plano_acao', document.getElementById('plano-acao').value || '');
-            formData.append('responsavel_implantacao', document.getElementById('responsavel-implantacao').value || '');
-            formData.append('data_inicio_implantacao', document.getElementById('data-inicio-implantacao').value || '');
-            formData.append('data_conclusao_prevista', document.getElementById('data-conclusao-prevista').value || '');
-            
-            // Se tiver arquivo de anexo
-            if (arquivoSelecionado) {
-                formData.append('anexo', arquivoSelecionado);
-                formData.append('anexo_nome', arquivoSelecionado.name);
-            }
-        } else {
-            // Se não for implantada, indicar para remover anexo
-            if (anexoExistenteNome || arquivoSelecionado) {
-                formData.append('remover_anexo', 'true');
+        // ⭐ ADICIONAR plano_acao_id SE FOR IMPLANTADA
+        if (seraImplantada === true && planoAcaoAuditorAtual) {
+            payload.plano_acao_id = planoAcaoAuditorAtual.id;
+        }
+        
+        // ⭐⭐⭐ LOG PARA DEBUG ⭐⭐⭐
+        console.log('📦 Payload FINAL sendo enviado:');
+        console.log(JSON.stringify(payload, null, 2));
+        
+        // ⭐ REMOVER CAMPOS ANTIGOS (plano_acao, responsavel_implantacao, etc.)
+        // Eles não existem mais na tabela analises_criticas
+        
+        // ⭐ Processar evidência (se houver)
+        if (arquivoSelecionadoAuditor) {
+            try {
+                const base64 = await converterParaBase64(arquivoSelecionadoAuditor);
+                payload.evidencia_base64 = base64;
+                payload.evidencia_nome = arquivoSelecionadoAuditor.name;
+            } catch (error) {
+                console.error('Erro ao converter evidência:', error);
+                mostrarToast('❌ Erro ao processar evidência', 'error');
+                return;
             }
         }
         
-        // ⭐ NOVO: Adicionar evidência da análise
+        // ⭐ Remover evidência se solicitado
         const removerEvidencia = document.getElementById('remover-evidencia-hidden')?.value === 'true';
-        
-        if (arquivoSelecionadoAuditor) {
-            // Se tem um novo arquivo selecionado, adicionar ao FormData
-            formData.append('evidencia', arquivoSelecionadoAuditor);
-            formData.append('evidencia_nome', arquivoSelecionadoAuditor.name);
-            console.log('📎 Enviando nova evidência:', arquivoSelecionadoAuditor.name);
-        } else if (removerEvidencia && anexoExistenteNomeAuditor) {
-            formData.append('remover_evidencia', 'true');
-            console.log('🗑️ Removendo evidência existente');
+        if (removerEvidencia) {
+            payload.remover_evidencia = true;
         }
         
         const btnSalvar = document.getElementById('btn-salvar-analise-auditor');
@@ -2543,13 +2731,15 @@
             const url = analiseId ? `/api/analise-auditor/${analiseId}` : '/api/analise-auditor/salvar';
             const method = analiseId ? 'PUT' : 'POST';
             
-            // ⭐ NÃO USAR HEADERS - O FormData define o Content-Type automaticamente
+            // ⭐ USAR JSON EM VEZ DE FormData
             const response = await fetch(url, { 
                 method: method,
-                body: formData  // FormData em vez de JSON
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
             
-            // A resposta pode ser JSON ou texto
             let data;
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
@@ -3710,17 +3900,34 @@
                     etapas[chave].analises.push(a);
                 });
                 
-                // Carregar histórico e follow-ups
+                // Carregar histórico, follow-ups e plano de ação
                 for (const [codigo, etapa] of Object.entries(etapas)) {
                     for (let i = 0; i < etapa.analises.length; i++) {
                         const analise = etapa.analises[i];
                         const historico = await carregarHistoricoAndamento(analise.id);
                         const followUps = await carregarFollowUps(analise.id);
+                        
+                        // ⭐ CARREGAR PLANO DE AÇÃO SE HOUVER
+                        let plano = null;
+                        if (analise.sugestao_sera_implantada === true) {
+                            try {
+                                const planoResponse = await fetch(`/api/planos-acao/${analise.id}`);
+                                const planoData = await planoResponse.json();
+                                if (planoData.success && planoData.plano) {
+                                    plano = planoData.plano;
+                                }
+                            } catch (err) {
+                                console.warn(`⚠️ Erro ao carregar plano da análise ${analise.id}:`, err);
+                            }
+                        }
+                        
                         etapa.analises[i].historico = historico;
                         etapa.analises[i].followUps = followUps;
+                        etapa.analises[i].plano = plano;
                     }
                 }
                 
+                // Renderizar HTML com o novo formato
                 let html = '';
                 for (const [codigo, etapa] of Object.entries(etapas)) {
                     html += `
@@ -3735,26 +3942,17 @@
                             <div class="analise-etapa-body" style="display: none;">
                     `;
                     
-                    // Dentro de carregarAnalisesAuditado, onde você cria o badge para cada análise
                     for (const analise of etapa.analises) {
                         const categoriaIcon = analise.categoria === 'governanca' ? 'fa-briefcase' : (analise.categoria === 'riscos' ? 'fa-exclamation-triangle' : 'fa-shield-alt');
-                        const categoriaClass = analise.categoria === 'governanca' ? 'categoria-governanca' : (analise.categoria === 'riscos' ? 'categoria-riscos' : 'categoria-controles')
+                        const categoriaClass = analise.categoria === 'governanca' ? 'categoria-governanca' : (analise.categoria === 'riscos' ? 'categoria-riscos' : 'categoria-controles');
                         const categoriaNome = analise.categoria === 'governanca' ? 'Governança' : (analise.categoria === 'riscos' ? 'Riscos' : 'Controles');
-                        const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
-
-                        // Se for "INEXISTENTE", considerar que não há sugestão
+                        
+                        // Verificar se tem sugestão de melhoria
+                        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
                         const temSugestaoMelhoria = analise.sugestao_melhoria && 
                                                 typeof analise.sugestao_melhoria === 'string' && 
-                                                analise.sugestao_melhoria.trim() !== '' && 
-                                                analise.sugestao_melhoria !== 'null' &&
-                                                analise.sugestao_melhoria !== 'undefined' &&
-                                                analise.sugestao_melhoria.toUpperCase() !== 'INEXISTENTE';
+                                                !valoresSemSugestao.includes(analise.sugestao_melhoria.trim().toLowerCase());
                         
-                        console.log(`🔍 Analise ID ${analise.id}: sugestao_melhoria = "${analise.sugestao_melhoria}"`);
-                        console.log(`🔍 Tipo: ${typeof analise.sugestao_melhoria}`);
-                        console.log(`🔍 Tem sugestão? ${temSugestaoMelhoria}`);
-                        
-                        // ⭐ BADGE - APENAS SE HOUVER SUGESTÃO DE MELHORIA
                         let badgeHtml = '';
                         if (temSugestaoMelhoria) {
                             if (analise.sugestao_sera_implantada === true) {
@@ -3762,7 +3960,6 @@
                             } else if (analise.sugestao_sera_implantada === false) {
                                 badgeHtml = '<span class="analise-auditado-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
                             } else {
-                                // Só mostra "aguardando avaliação" se tiver sugestão
                                 badgeHtml = '<span class="analise-auditado-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhoria aguardando avaliação</span>';
                             }
                         }
@@ -3783,7 +3980,6 @@
                                     </div>
                                 </div>
                                 <div class="analise-auditado-body">
-                                    <!-- Análise Crítica e Sugestão de Melhoria -->
                                     <div class="analise-grid">
                                         <div class="analise-card-section">
                                             <h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4>
@@ -3795,7 +3991,6 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Necessidade e Ganho -->
                                     <div class="analise-grid">
                                         <div class="analise-card-section">
                                             <h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4>
@@ -3807,10 +4002,9 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Observações -->
                                     ${analise.observacoes ? `
                                     <div class="analise-card-section">
-                                        <h4><i class="fas fa-comment"></i> Recomendações GRC/h4>
+                                        <h4><i class="fas fa-comment"></i> Recomendações GRC</h4>
                                         <div class="analise-texto">${escapeHtml(analise.observacoes)}</div>
                                     </div>
                                     ` : ''}
@@ -3822,28 +4016,35 @@
                                             <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 20px;"></i>
                                             <span style="font-size: 13px; color: #333; flex: 1;">${escapeHtml(analise.evidencia_nome)}</span>
                                             <button onclick="event.stopPropagation(); baixarEvidenciaAuditadoChecklist(${analise.id}, '${escapeHtml(analise.evidencia_nome)}')" 
-                                                    class="btn-download-evidencia solid" style="padding: 6px 14px; font-size: 12px; background: #0b5b99; color: white; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                                    class="btn-download-evidencia solid">
                                                 <i class="fas fa-download"></i> Baixar
                                             </button>
                                         </div>
                                     </div>
                                     ` : ''}
                                     
-                                    <!-- Plano de Ação (se existir) -->
-                                    ${temPlanoAcao ? `
+                                    <!-- ⭐ PLANO DE AÇÃO 5W2H (NOVO) -->
+                                    ${analise.plano ? `
                                     <div class="analise-card-section plano-acao-card">
-                                        <h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4>
-                                        <div style="margin-bottom: 10px;">${escapeHtml(analise.plano_acao)}</div>
-                                        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
-                                            ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
-                                            ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início Previsto:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
-                                            ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
-                                            ${analise.anexo_nome ? `
-                                                <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexoAuditado(${analise.id});">
-                                                    <i class="fas fa-file-pdf"></i> ${escapeHtml(analise.anexo_nome)} <i class="fas fa-download"></i>
-                                                </button>
-                                            ` : ''}
+                                        <h4><i class="fas fa-clipboard-check"></i> Plano de Ação 5W2H</h4>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: white; padding: 12px; border-radius: 8px;">
+                                            <div><strong>O que?</strong> ${escapeHtml(analise.plano.oque || '-')}</div>
+                                            <div><strong>Por que?</strong> ${escapeHtml(analise.plano.por_que || '-')}</div>
+                                            <div><strong>Onde?</strong> ${escapeHtml(analise.plano.onde || '-')}</div>
+                                            <div><strong>Quando?</strong> ${analise.plano.data_prevista ? formatarData(analise.plano.data_prevista) : '-'}</div>
+                                            <div><strong>Quem?</strong> ${escapeHtml(analise.plano.quem || '-')}</div>
+                                            <div><strong>Como?</strong> ${escapeHtml(analise.plano.como || '-')}</div>
                                         </div>
+                                        ${analise.plano.comentario ? `
+                                            <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px; font-size: 12px; color: #666;">
+                                                <strong>Comentário:</strong> ${escapeHtml(analise.plano.comentario)}
+                                            </div>
+                                        ` : ''}
+                                        ${analise.plano.quanto_custa ? `
+                                            <div style="margin-top: 8px; font-size: 13px;">
+                                                <strong>Quanto custa?</strong> R$ ${parseFloat(analise.plano.quanto_custa).toFixed(2)}
+                                            </div>
+                                        ` : ''}
                                     </div>
                                     ` : ''}
                                     
@@ -3864,7 +4065,6 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Follow-ups (se implantada) -->
                                     ${analise.efetivamente_implantada === true ? `
                                     <div class="analise-card-section" style="margin-top: 20px;">
                                         <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
@@ -3883,8 +4083,6 @@
                                         </div>
                                     </div>
                                     ` : ''}
-
-                                    
                                 </div>
                             </div>
                         `;
@@ -4041,6 +4239,11 @@
                         '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + categoriaNome;
                     
                     document.getElementById('modal-analise-auditado').style.display = 'flex';
+                    
+                    // ============================================================
+                    // ⭐ NOVO: CARREGAR PLANO DE AÇÃO (DEPOIS DO MODAL ABERTO)
+                    // ============================================================
+                    await carregarPlanoAcao(analise.id);
                 }
             }
         } catch (error) {
@@ -4083,7 +4286,6 @@
             
             if (!radioSelecionado) {
                 mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
-                // ⭐ Destacar o campo de status
                 const statusGroup = document.querySelector('.status-radio-group');
                 if (statusGroup) {
                     statusGroup.style.border = '2px solid #dc3545';
@@ -4106,10 +4308,8 @@
             }
         } else {
             // ⭐ Se NÃO TEM sugestão (ou é "INEXISTENTE"), não obriga selecionar status
-            // Mas verifica se o usuário selecionou algum status mesmo assim
             const radioSelecionado = document.querySelector('input[name="sugestao-status-auditado-radio"]:checked');
             if (radioSelecionado) {
-                // Usuário selecionou, então usa o valor
                 if (radioSelecionado.value === 'true') {
                     seraImplantada = true;
                 } else if (radioSelecionado.value === 'false') {
@@ -4127,77 +4327,30 @@
             etapa_id: parseInt(etapaId),
             categoria: categoria,
             analise_critica: analiseCritica,
-            sugestao_melhoria: sugestaoMelhoria,  // Pode ser "INEXISTENTE" ou vazio
+            sugestao_melhoria: sugestaoMelhoria,
             necessidade_implantacao: document.getElementById('analise-auditado-necessidade').value || '',
             ganho_previsto: document.getElementById('analise-auditado-ganho').value || '',
             observacoes: document.getElementById('analise-auditado-observacoes').value || '',
             sugestao_sera_implantada: seraImplantada
         };
         
-        // ⭐ VALIDAÇÃO: Se vai implantar, obriga preencher plano de ação
+        // ⭐ VALIDAÇÃO: Se vai implantar, verifica se tem plano de ação 5W2H
         if (seraImplantada === true) {
-            const planoAcao = document.getElementById('plano-acao-auditado').value.trim();
-            const responsavel = document.getElementById('responsavel-implantacao-auditado').value.trim();
-            const dataInicio = document.getElementById('data-inicio-implantacao-auditado').value;
-            const dataConclusao = document.getElementById('data-conclusao-prevista-auditado').value;
-            
-            if (!planoAcao) {
-                mostrarToast('⚠️ Plano de Ação é obrigatório quando a sugestão será implantada', 'warning');
-                document.getElementById('plano-acao-auditado').style.borderColor = '#dc3545';
-                setTimeout(() => {
-                    document.getElementById('plano-acao-auditado').style.borderColor = '';
-                }, 3000);
+            // Verificar se o plano de ação foi salvo
+            if (!planoAcaoAtual) {
+                mostrarToast('⚠️ É necessário cadastrar um Plano de Ação 5W2H antes de confirmar a implantação', 'warning');
+                // Abrir o modal do plano de ação automaticamente
+                abrirModalPlanoAcao();
                 return;
             }
             
-            if (!responsavel) {
-                mostrarToast('⚠️ Responsável pela implantação é obrigatório', 'warning');
-                document.getElementById('responsavel-implantacao-auditado').style.borderColor = '#dc3545';
-                setTimeout(() => {
-                    document.getElementById('responsavel-implantacao-auditado').style.borderColor = '';
-                }, 3000);
-                return;
-            }
-            
-            if (!dataInicio) {
-                mostrarToast('⚠️ Data de início da implantação é obrigatória', 'warning');
-                document.getElementById('data-inicio-implantacao-auditado').style.borderColor = '#dc3545';
-                setTimeout(() => {
-                    document.getElementById('data-inicio-implantacao-auditado').style.borderColor = '';
-                }, 3000);
-                return;
-            }
-            
-            if (!dataConclusao) {
-                mostrarToast('⚠️ Data de conclusão prevista é obrigatória', 'warning');
-                document.getElementById('data-conclusao-prevista-auditado').style.borderColor = '#dc3545';
-                setTimeout(() => {
-                    document.getElementById('data-conclusao-prevista-auditado').style.borderColor = '';
-                }, 3000);
-                return;
-            }
-            
-            payload.plano_acao = planoAcao;
-            payload.responsavel_implantacao = responsavel;
-            payload.data_inicio_implantacao = dataInicio;
-            payload.data_conclusao_prevista = dataConclusao;
-            
-            // Processar anexo
-            if (arquivoSelecionadoAuditado) {
-                try {
-                    const base64 = await converterParaBase64(arquivoSelecionadoAuditado);
-                    payload.anexo_base64 = base64;
-                    payload.anexo_nome = arquivoSelecionadoAuditado.name;
-                } catch (error) {
-                    console.error('Erro ao converter anexo:', error);
-                    mostrarToast('❌ Erro ao processar anexo', 'error');
-                    return;
-                }
-            }
+            // O plano já existe, prosseguir com o salvamento
+            payload.plano_acao_id = planoAcaoAtual.id;
         } else {
-            const removerAnexo = document.getElementById('remover-anexo-hidden-auditado')?.value === 'true';
-            if (removerAnexo || anexoExistenteNomeAuditado) {
-                payload.remover_anexo = true;
+            // Se não for implantada, não precisa de plano de ação
+            // Mas se tiver um plano salvo, mantém (não remove)
+            if (planoAcaoAtual) {
+                payload.plano_acao_id = planoAcaoAtual.id;
             }
         }
         
@@ -4256,7 +4409,7 @@
                 fecharModalAnaliseAuditado();
                 await carregarAnalisesAuditado();
             } else {
-                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecito'), 'error');
             }
         } catch (error) {
             console.error('Erro:', error);
@@ -4452,14 +4605,29 @@
                     </div>
                     ` : ''}
                     
-                    ${temPlanoAcao ? `<div class="analise-card-section plano-acao-card"><h4><i class="fas fa-clipboard-check"></i> Plano de Ação</h4><div>${escapeHtml(analise.plano_acao)}</div>
-                        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
-                            ${analise.responsavel_implantacao ? `<span><i class="fas fa-user"></i> <strong>Responsável:</strong> ${escapeHtml(analise.responsavel_implantacao)}</span>` : ''}
-                            ${analise.data_inicio_implantacao ? `<span><i class="fas fa-calendar-alt"></i> <strong>Início:</strong> ${formatarData(analise.data_inicio_implantacao)}</span>` : ''}
-                            ${analise.data_conclusao_prevista ? `<span><i class="fas fa-calendar-check"></i> <strong>Conclusão Prevista:</strong> ${formatarData(analise.data_conclusao_prevista)}</span>` : ''}
-                            ${analise.anexo_nome ? `<button class="btn-download-anexo" onclick="event.stopPropagation(); baixarAnexo(${analise.id});"><i class="fas fa-file-pdf"></i> ${escapeHtml(analise.anexo_nome)} <i class="fas fa-download"></i></button>` : ''}
+                    ${analise.plano ? `
+                    <div class="analise-card-section plano-acao-card">
+                        <h4><i class="fas fa-clipboard-check"></i> Plano de Ação 5W2H</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: white; padding: 12px; border-radius: 8px;">
+                            <div><strong>O que?</strong> ${escapeHtml(analise.plano.oque || '-')}</div>
+                            <div><strong>Por que?</strong> ${escapeHtml(analise.plano.por_que || '-')}</div>
+                            <div><strong>Onde?</strong> ${escapeHtml(analise.plano.onde || '-')}</div>
+                            <div><strong>Quando?</strong> ${analise.plano.data_prevista ? formatarData(analise.plano.data_prevista) : '-'}</div>
+                            <div><strong>Quem?</strong> ${escapeHtml(analise.plano.quem || '-')}</div>
+                            <div><strong>Como?</strong> ${escapeHtml(analise.plano.como || '-')}</div>
                         </div>
-                    </div>` : ''}
+                        ${analise.plano.comentario ? `
+                            <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px; font-size: 12px; color: #666;">
+                                <strong>Comentário:</strong> ${escapeHtml(analise.plano.comentario)}
+                            </div>
+                        ` : ''}
+                        ${analise.plano.quanto_custa ? `
+                            <div style="margin-top: 8px; font-size: 13px;">
+                                <strong>Quanto custa?</strong> R$ ${parseFloat(analise.plano.quanto_custa).toFixed(2)}
+                            </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
                     
                     <div class="analise-grid">
                         <div class="analise-card-section"><h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
@@ -4975,6 +5143,21 @@
             const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
             const data = await response.json();
             if (data.success && data.analises && data.analises.length > 0) {
+                // ⭐ BUSCAR PLANO DE AÇÃO PARA CADA ANÁLISE
+                for (const analise of data.analises) {
+                    if (analise.sugestao_sera_implantada === true) {
+                        try {
+                            const planoResponse = await fetch(`/api/planos-acao/${analise.id}`);
+                            const planoData = await planoResponse.json();
+                            if (planoData.success && planoData.plano) {
+                                analise.plano = planoData.plano;
+                            }
+                        } catch (err) {
+                            console.warn(`⚠️ Erro ao carregar plano da análise ${analise.id}:`, err);
+                        }
+                    }
+                }
+                
                 analisesAuditorList = data.analises;
                 renderizarAnalisesAuditor();
             } else {
@@ -4984,6 +5167,146 @@
         } catch (error) {
             console.error('❌ Erro ao carregar análises do auditor:', error);
             container.innerHTML = `<div class="alert-error">❌ Erro ao carregar análises: ${error.message}</div>`;
+        }
+    }
+
+    async function salvarAnaliseAuditor() {
+        if (!processoIdAtual) {
+            mostrarToast('❌ Selecione um processo primeiro', 'warning');
+            return;
+        }
+        
+        const analiseId = document.getElementById('analise-auditor-id').value;
+        const radioSelecionado = document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked');
+        
+        // ⭐ LOG PARA DEBUG
+        console.log('📻 Radio selecionado:', radioSelecionado);
+        console.log('📻 Radio value:', radioSelecionado?.value);
+        
+        let seraImplantada = null;
+        if (radioSelecionado) {
+            if (radioSelecionado.value === 'true') seraImplantada = true;
+            else if (radioSelecionado.value === 'false') seraImplantada = false;
+            else seraImplantada = null;
+        } else {
+            mostrarToast('⚠️ Selecione uma opção em "Status da sugestão de melhoria"', 'warning');
+            const statusGroup = document.querySelector('#modal-analise-auditor .status-radio-group');
+            if (statusGroup) {
+                statusGroup.style.border = '2px solid #dc3545';
+                statusGroup.style.borderRadius = '8px';
+                statusGroup.style.padding = '10px';
+                setTimeout(() => {
+                    statusGroup.style.border = '';
+                    statusGroup.style.padding = '';
+                }, 3000);
+            }
+            return;
+        }
+        
+        const analiseCritica = document.getElementById('analise-auditor-texto').value;
+        if (!analiseCritica.trim()) {
+            mostrarToast('⚠️ O Ponto de Auditoria é obrigatório', 'warning');
+            return;
+        }
+        
+        // ⭐⭐⭐ CORREÇÃO: USAR JSON EM VEZ DE FormData ⭐⭐⭐
+        const payload = {
+            processo_id: parseInt(processoIdAtual),
+            analise_critica: analiseCritica,
+            sugestao_melhoria: document.getElementById('analise-auditor-sugestao').value || '',
+            necessidade_implantacao: document.getElementById('analise-auditor-necessidade').value || '',
+            ganho_previsto: document.getElementById('analise-auditor-ganho').value || '',
+            observacoes: document.getElementById('analise-auditor-observacoes').value || '',
+            sugestao_sera_implantada: seraImplantada
+        };
+        
+        // ⭐ ADICIONAR PLANO_ACAO_ID SE FOR IMPLANTADA
+        if (seraImplantada === true && planoAcaoAuditorAtual) {
+            payload.plano_acao_id = planoAcaoAuditorAtual.id;
+            console.log('📎 Plano de ação ID:', planoAcaoAuditorAtual.id);
+        }
+        
+        // ⭐ REMOVER CAMPOS ANTIGOS que não existem mais na tabela
+        // NÃO enviar: plano_acao, responsavel_implantacao, data_inicio_implantacao, data_conclusao_prevista
+        
+        // ⭐ Processar evidência (arquivo)
+        // Se tiver arquivo de evidência, processar separadamente
+        let evidenciaBase64 = null;
+        let evidenciaNome = null;
+        
+        if (arquivoSelecionadoAuditor) {
+            try {
+                const base64 = await converterParaBase64(arquivoSelecionadoAuditor);
+                evidenciaBase64 = base64;
+                evidenciaNome = arquivoSelecionadoAuditor.name;
+                payload.evidencia_base64 = evidenciaBase64;
+                payload.evidencia_nome = evidenciaNome;
+            } catch (error) {
+                console.error('Erro ao converter evidência:', error);
+                mostrarToast('❌ Erro ao processar evidência', 'error');
+                return;
+            }
+        }
+        
+        // ⭐ Remover evidência se solicitado
+        const removerEvidencia = document.getElementById('remover-evidencia-hidden')?.value === 'true';
+        if (removerEvidencia) {
+            payload.remover_evidencia = true;
+        }
+        
+        console.log('📦 Payload final:', payload);
+        
+        const btnSalvar = document.getElementById('btn-salvar-analise-auditor');
+        const textoOriginal = btnSalvar.innerHTML;
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        
+        try {
+            const url = analiseId ? `/api/analise-auditor/${analiseId}` : '/api/analise-auditor/salvar';
+            const method = analiseId ? 'PUT' : 'POST';
+            
+            // ⭐ USAR JSON EM VEZ DE FormData
+            const response = await fetch(url, { 
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Resposta não é JSON:', text);
+                    data = { success: false, error: 'Resposta inválida do servidor' };
+                }
+            }
+            
+            if (data.success) {
+                mostrarToast(analiseId ? '✅ Análise atualizada!' : '✅ Análise salva!', 'success');
+                fecharModalAnaliseAuditor();
+                
+                // Limpar estado da evidência
+                arquivoSelecionadoAuditor = null;
+                anexoExistenteNomeAuditor = null;
+                document.getElementById('remover-evidencia-hidden')?.remove();
+                
+                await carregarAnalisesAuditor();
+            } else {
+                mostrarToast('❌ Erro: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar: ' + error.message, 'error');
+        } finally {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
         }
     }
 
@@ -5113,6 +5436,375 @@
         document.getElementById('btn-salvar-analise-auditado')?.addEventListener('click', salvarAnaliseAuditado);
         setupImplementacaoListenerAuditor();
     });
+
+    // ============================================================
+    // FUNÇÕES DO PLANO DE AÇÃO 5W2H
+    // ============================================================
+
+    let planoAcaoAtual = null;
+
+    function abrirModalPlanoAcao() {
+        const modal = document.getElementById('modal-plano-acao');
+        const analiseId = document.getElementById('analise-auditado-id').value;
+        
+        if (!analiseId) {
+            mostrarToast('⚠️ Salve a análise antes de adicionar um plano de ação', 'warning');
+            return;
+        }
+        
+        document.getElementById('plano-acao-analise-id').value = analiseId;
+        
+        // Se já existe um plano, carregar os dados
+        if (planoAcaoAtual) {
+            document.getElementById('plano-acao-id').value = planoAcaoAtual.id || '';
+            document.getElementById('plano-oque').value = planoAcaoAtual.oque || '';
+            document.getElementById('plano-porque').value = planoAcaoAtual.por_que || '';
+            document.getElementById('plano-onde').value = planoAcaoAtual.onde || '';
+            document.getElementById('plano-quando').value = planoAcaoAtual.quando || '';
+            document.getElementById('plano-quem').value = planoAcaoAtual.quem || '';
+            document.getElementById('plano-como').value = planoAcaoAtual.como || '';
+            document.getElementById('plano-quanto').value = planoAcaoAtual.quanto_custa || '';
+            document.getElementById('plano-comentario').value = planoAcaoAtual.comentario || '';
+        } else {
+            // Limpar campos
+            document.getElementById('plano-acao-id').value = '';
+            document.getElementById('plano-oque').value = '';
+            document.getElementById('plano-porque').value = '';
+            document.getElementById('plano-onde').value = '';
+            document.getElementById('plano-quando').value = '';
+            document.getElementById('plano-quem').value = '';
+            document.getElementById('plano-como').value = '';
+            document.getElementById('plano-quanto').value = '';
+            document.getElementById('plano-comentario').value = '';
+        }
+        
+        modal.style.display = 'flex';
+    }
+
+    function fecharModalPlanoAcao() {
+        document.getElementById('modal-plano-acao').style.display = 'none';
+    }
+
+    async function salvarPlanoAcao() {
+        const analiseId = document.getElementById('plano-acao-analise-id').value;
+        const planoId = document.getElementById('plano-acao-id').value;
+        
+        // ⭐ ADICIONE ESTE LOG PARA VER O QUE ESTÁ SENDO ENVIADO
+        console.log('📤 Dados do plano de ação:');
+        console.log('  analiseId:', analiseId);
+        console.log('  planoId:', planoId);
+        
+        // Validar campos obrigatórios
+        const oque = document.getElementById('plano-oque').value.trim();
+        const porque = document.getElementById('plano-porque').value.trim();
+        const onde = document.getElementById('plano-onde').value.trim();
+        const quando = document.getElementById('plano-quando').value;
+        const quem = document.getElementById('plano-quem').value.trim();
+        const como = document.getElementById('plano-como').value.trim();
+        
+        console.log('  oque:', oque);
+        console.log('  porque:', porque);
+        console.log('  onde:', onde);
+        console.log('  quando:', quando);
+        console.log('  quem:', quem);
+        console.log('  como:', como);
+        
+        if (!oque) {
+            mostrarToast('⚠️ O campo "O que será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-oque').focus();
+            return;
+        }
+        
+        if (!porque) {
+            mostrarToast('⚠️ O campo "Por que será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-porque').focus();
+            return;
+        }
+        
+        if (!onde) {
+            mostrarToast('⚠️ O campo "Onde será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-onde').focus();
+            return;
+        }
+        
+        if (!quando) {
+            mostrarToast('⚠️ O campo "Quando será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-quando').focus();
+            return;
+        }
+        
+        if (!quem) {
+            mostrarToast('⚠️ O campo "Quem fará?" é obrigatório', 'warning');
+            document.getElementById('plano-quem').focus();
+            return;
+        }
+        
+        if (!como) {
+            mostrarToast('⚠️ O campo "Como será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-como').focus();
+            return;
+        }
+        
+        const payload = {
+            analise_id: parseInt(analiseId),
+            oque: oque,
+            por_que: porque,
+            onde: onde,
+            quando: quando,
+            quem: quem,
+            como: como,
+            quanto_custa: document.getElementById('plano-quanto').value.trim() || null,
+            comentario: document.getElementById('plano-comentario').value.trim() || null
+        };
+        
+        if (planoId) {
+            payload.id = parseInt(planoId);
+        }
+        
+        const btnSalvar = document.getElementById('btn-salvar-plano-acao');
+        const textoOriginal = btnSalvar.innerHTML;
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        
+        try {
+            const url = planoId ? `/api/planos-acao/${planoId}` : '/api/planos-acao';
+            const method = planoId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Plano de ação salvo com sucesso!', 'success');
+                fecharModalPlanoAcao();
+                
+                // Recarregar o plano para atualizar o resumo
+                await carregarPlanoAcao(analiseId);
+                
+                // Atualizar a análise para mostrar o plano
+                await carregarAnalisesAuditado();
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+        } finally {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
+        }
+    }
+
+    async function carregarPlanoAcao(analiseId) {
+        if (!analiseId) return;
+        
+        try {
+            const response = await fetch(`/api/planos-acao/${analiseId}`);
+            const data = await response.json();
+            
+            if (data.success && data.plano) {
+                planoAcaoAtual = data.plano;
+                
+                // Atualizar resumo no modal do auditado
+                document.getElementById('resumo-oque').textContent = planoAcaoAtual.oque || '-';
+                document.getElementById('resumo-porque').textContent = planoAcaoAtual.por_que || '-';
+                document.getElementById('resumo-onde').textContent = planoAcaoAtual.onde || '-';
+                document.getElementById('resumo-quando').textContent = planoAcaoAtual.quando ? formatarData(planoAcaoAtual.quando) : '-';
+                document.getElementById('resumo-quem').textContent = planoAcaoAtual.quem || '-';
+                document.getElementById('resumo-como').textContent = planoAcaoAtual.como || '-';
+                document.getElementById('resumo-quanto').textContent = planoAcaoAtual.quanto_custa || '-';
+                document.getElementById('resumo-comentario').textContent = planoAcaoAtual.comentario || '-';
+                
+                document.getElementById('resumo-plano-acao-auditado').style.display = 'block';
+                document.getElementById('sem-plano-acao-auditado').style.display = 'none';
+            } else {
+                planoAcaoAtual = null;
+                document.getElementById('resumo-plano-acao-auditado').style.display = 'none';
+                document.getElementById('sem-plano-acao-auditado').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar plano de ação:', error);
+            planoAcaoAtual = null;
+        }
+    }
+
+    // ============================================================
+    // FUNÇÕES DO PLANO DE AÇÃO 5W2H - AUDITOR
+    // ============================================================
+
+    let planoAcaoAuditorAtual = null;
+
+    function abrirModalPlanoAcaoAuditor() {
+        const modal = document.getElementById('modal-plano-acao-auditor');
+        const analiseId = document.getElementById('analise-auditor-id').value;
+        
+        if (!analiseId) {
+            mostrarToast('⚠️ Salve a análise antes de adicionar um plano de ação', 'warning');
+            return;
+        }
+        
+        document.getElementById('plano-acao-auditor-analise-id').value = analiseId;
+        
+        if (planoAcaoAuditorAtual) {
+            document.getElementById('plano-acao-auditor-id').value = planoAcaoAuditorAtual.id || '';
+            document.getElementById('plano-oque-auditor').value = planoAcaoAuditorAtual.oque || '';
+            document.getElementById('plano-porque-auditor').value = planoAcaoAuditorAtual.por_que || '';
+            document.getElementById('plano-onde-auditor').value = planoAcaoAuditorAtual.onde || '';
+            document.getElementById('plano-quando-auditor').value = planoAcaoAuditorAtual.quando || '';
+            document.getElementById('plano-quem-auditor').value = planoAcaoAuditorAtual.quem || '';
+            document.getElementById('plano-como-auditor').value = planoAcaoAuditorAtual.como || '';
+            document.getElementById('plano-quanto-auditor').value = planoAcaoAuditorAtual.quanto_custa || '';
+            document.getElementById('plano-comentario-auditor').value = planoAcaoAuditorAtual.comentario || '';
+        } else {
+            document.getElementById('plano-acao-auditor-id').value = '';
+            document.getElementById('plano-oque-auditor').value = '';
+            document.getElementById('plano-porque-auditor').value = '';
+            document.getElementById('plano-onde-auditor').value = '';
+            document.getElementById('plano-quando-auditor').value = '';
+            document.getElementById('plano-quem-auditor').value = '';
+            document.getElementById('plano-como-auditor').value = '';
+            document.getElementById('plano-quanto-auditor').value = '';
+            document.getElementById('plano-comentario-auditor').value = '';
+        }
+        
+        modal.style.display = 'flex';
+    }
+
+    function fecharModalPlanoAcaoAuditor() {
+        document.getElementById('modal-plano-acao-auditor').style.display = 'none';
+    }
+
+    async function salvarPlanoAcaoAuditor() {
+        const analiseId = document.getElementById('plano-acao-auditor-analise-id').value;
+        const planoId = document.getElementById('plano-acao-auditor-id').value;
+        
+        // Validar campos obrigatórios
+        const oque = document.getElementById('plano-oque-auditor').value.trim();
+        const porque = document.getElementById('plano-porque-auditor').value.trim();
+        const onde = document.getElementById('plano-onde-auditor').value.trim();
+        const quando = document.getElementById('plano-quando-auditor').value;
+        const quem = document.getElementById('plano-quem-auditor').value.trim();
+        const como = document.getElementById('plano-como-auditor').value.trim();
+        
+        if (!oque) {
+            mostrarToast('⚠️ O campo "O que será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-oque-auditor').focus();
+            return;
+        }
+        if (!porque) {
+            mostrarToast('⚠️ O campo "Por que será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-porque-auditor').focus();
+            return;
+        }
+        if (!onde) {
+            mostrarToast('⚠️ O campo "Onde será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-onde-auditor').focus();
+            return;
+        }
+        if (!quando) {
+            mostrarToast('⚠️ O campo "Quando será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-quando-auditor').focus();
+            return;
+        }
+        if (!quem) {
+            mostrarToast('⚠️ O campo "Quem fará?" é obrigatório', 'warning');
+            document.getElementById('plano-quem-auditor').focus();
+            return;
+        }
+        if (!como) {
+            mostrarToast('⚠️ O campo "Como será feito?" é obrigatório', 'warning');
+            document.getElementById('plano-como-auditor').focus();
+            return;
+        }
+        
+        const payload = {
+            analise_id: parseInt(analiseId),
+            oque: oque,
+            por_que: porque,
+            onde: onde,
+            quando: quando,
+            quem: quem,
+            como: como,
+            quanto_custa: document.getElementById('plano-quanto-auditor').value.trim() || null,
+            comentario: document.getElementById('plano-comentario-auditor').value.trim() || null
+        };
+        
+        if (planoId) {
+            payload.id = parseInt(planoId);
+        }
+        
+        const btnSalvar = document.getElementById('btn-salvar-plano-acao-auditor');
+        const textoOriginal = btnSalvar.innerHTML;
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        
+        try {
+            const url = planoId ? `/api/planos-acao/${planoId}` : '/api/planos-acao';
+            const method = planoId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Plano de ação salvo com sucesso!', 'success');
+                fecharModalPlanoAcaoAuditor();
+                await carregarPlanoAcaoAuditor(analiseId);
+                await carregarAnalisesAuditor();
+            } else {
+                mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+        } finally {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = textoOriginal;
+        }
+    }
+
+    async function carregarPlanoAcaoAuditor(analiseId) {
+        if (!analiseId) return;
+        
+        try {
+            const response = await fetch(`/api/planos-acao/${analiseId}`);
+            const data = await response.json();
+            
+            if (data.success && data.plano) {
+                planoAcaoAuditorAtual = data.plano;
+                
+                document.getElementById('resumo-oque-auditor').textContent = planoAcaoAuditorAtual.oque || '-';
+                document.getElementById('resumo-porque-auditor').textContent = planoAcaoAuditorAtual.por_que || '-';
+                document.getElementById('resumo-onde-auditor').textContent = planoAcaoAuditorAtual.onde || '-';
+                document.getElementById('resumo-quando-auditor').textContent = planoAcaoAuditorAtual.quando ? formatarData(planoAcaoAuditorAtual.quando) : '-';
+                document.getElementById('resumo-quem-auditor').textContent = planoAcaoAuditorAtual.quem || '-';
+                document.getElementById('resumo-como-auditor').textContent = planoAcaoAuditorAtual.como || '-';
+                document.getElementById('resumo-quanto-auditor').textContent = planoAcaoAuditorAtual.quanto_custa || '-';
+                document.getElementById('resumo-comentario-auditor').textContent = planoAcaoAuditorAtual.comentario || '-';
+                
+                document.getElementById('resumo-plano-acao-auditor').style.display = 'block';
+                document.getElementById('sem-plano-acao-auditor').style.display = 'none';
+                document.getElementById('secao-plano-acao').style.display = 'block';
+            } else {
+                planoAcaoAuditorAtual = null;
+                document.getElementById('resumo-plano-acao-auditor').style.display = 'none';
+                document.getElementById('sem-plano-acao-auditor').style.display = 'block';
+                document.getElementById('secao-plano-acao').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar plano de ação do auditor:', error);
+            planoAcaoAuditorAtual = null;
+        }
+    }
+
 
     
 </script>
