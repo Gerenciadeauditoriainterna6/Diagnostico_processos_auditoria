@@ -1,12 +1,19 @@
 # routes/__init__.py
 from flask import Blueprint
 
-# ⭐ CRIAR O BLUEPRINT PRIMEIRO
-conclusao_bp = Blueprint('conclusao', __name__)
+# ⭐ CRIA TODOS OS BLUEPRINTS
+conclusao_bp = Blueprint('conclusao', __name__, url_prefix='/api')
+plano_acao_bp = Blueprint('plano_acao', __name__, url_prefix='/api')
+analise_bp = Blueprint('analise', __name__, url_prefix='/api')  
 
-# ⭐ DEPOIS importar as rotas (que vão usar o blueprint)
-from . import conclusao_routes  
+# ⭐ IMPORTA TODAS AS ROTAS
+from . import conclusao_routes
+from . import plano_acao_routes
+from . import analise_routes  
 
 def register_blueprints(app):
-    app.register_blueprint(conclusao_bp, url_prefix='/api')
-    
+    print("🔵 Registrando blueprints...")
+    app.register_blueprint(conclusao_bp)
+    app.register_blueprint(plano_acao_bp)
+    app.register_blueprint(analise_bp)  
+    print("✅ Blueprints registrados!")
