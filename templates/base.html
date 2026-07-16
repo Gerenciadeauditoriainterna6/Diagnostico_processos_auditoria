@@ -1537,7 +1537,7 @@
                             <span>Matriz de Eficácia</span>
                         </a>
                         
-                        <a href="{{ url_for('matriz_achados') }}" class="submenu-item submenu-matriz-achados">
+                        <a href="{{ url_for('matriz_achados') }}" class="nav-item">
                             <i class="fa-solid fa-box-archive"></i>
                             <span>Matriz de Achados</span>
                         </a>
@@ -1744,7 +1744,7 @@
                 {
                     toggleId: 'toggleDetalhamentoSubmenu',
                     submenuId: 'detalhamentoSubmenu',
-                    relatedUrls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles', '/matriz_achados']
+                    relatedUrls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles']
                 }
             ];
             
@@ -1830,7 +1830,8 @@
                             { url: '/plano-anual', selector: 'a[href="/plano-anual"]' },
                             { url: '/auditorias-emergenciais', selector: 'a[href="/auditorias-emergenciais"]' },
                             { url: '/checklists', selector: 'a[href="/checklists"]' },
-                            { url: '/diagnostico', selector: 'a[href="/diagnostico"]' }
+                            { url: '/diagnostico', selector: 'a[href="/diagnostico"]' },
+                            { url: '/matriz_achados', selector: 'a[href="/matriz_achados"]'}
                         ],
 
                         // Itens com submenu
@@ -1839,12 +1840,11 @@
                                 name: 'detalhamento',
                                 parentId: 'toggleDetalhamentoSubmenu',
                                 submenuId: 'detalhamentoSubmenu',
-                                urls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles', '/matriz_achados'],
+                                urls: ['/detalhamento', '/detalhamento_riscos', '/detalhamento_controles'],
                                 submenuSelectors: {
                                     '/detalhamento': '#detalhamentoSubmenu .submenu-visao',
                                     '/detalhamento_riscos': '#detalhamentoSubmenu .submenu-riscos',
-                                    '/detalhamento_controles': '#detalhamentoSubmenu .submenu-controles',
-                                    '/matriz_achados': '#detalhamentoSubmenu .submenu-matriz-achados'
+                                    '/detalhamento_controles': '#detalhamentoSubmenu .submenu-controles'
                                 }
                             }
                         ]
