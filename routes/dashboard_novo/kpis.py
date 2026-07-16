@@ -5,6 +5,31 @@ from sqlalchemy import text
 from typing import Dict, Any, Optional, List
 import random
 
+CORES_TEMA = {
+    # Cores Principais
+    'primary_dark': '#184145',
+    'primary_blue': '#0b5b99',
+    'primary_light': '#2a6b6f',
+    'primary_lighter': '#3d8f94',
+    'primary_lightest': '#24B1B1',
+    
+    # Azuis
+    'blue_light': '#1a7fc4',
+    'blue_lighter': '#4a9fd4',
+    'blue_lightest': '#d4e8f5',
+    
+    # Status
+    'status_planejamento': '#ffc107',
+    'status_execucao': '#17a2b8',
+    'status_concluido': '#28a745',
+    'status_inconclusivo': '#dc3545',
+    'status_follow_up': '#fd7e14',
+    
+    # Auxiliares
+    'cinza_claro': '#f0f4f8',
+    'cinza_escuro': '#6c757d',
+}
+
 class NovoDashboardKPIs:
     """KPIs do novo dashboard usando SQL PURO"""
     
@@ -330,10 +355,10 @@ class NovoDashboardKPIs:
         
         # Mapeamento de cores por status
         cores_status = {
-            "em_execucao": "#17a2b8",         # Azul claro
-            "inconclusiva": "#dc3545",        # Vermelho
-            "eficacia_validada": "#28a745",   # Verde
-            "follow_up": "#fd7e14"            # Laranja
+            "em_execucao": CORES_TEMA['primary_lighter'],
+            "inconclusiva": CORES_TEMA['status_inconclusivo'],
+            "eficacia_validada": CORES_TEMA['primary_blue'],
+            "follow_up": CORES_TEMA['blue_light']
         }
 
         
@@ -613,12 +638,12 @@ class NovoDashboardKPIs:
         
         # ⭐ Mapeamento de cores por categoria
         cores_categoria = {
-            "RISCO FINANCEIRO": "#fd7e14",
-            "RISCO DE TI": "#17a2b8",
-            "RISCO INERENTE": "#3546dc",
-            "Risco DE INTEGRIDADE": "#ffc107",
-            "RISCO AMBIENTAL": "#28a745",
-            "RISCO REPUTACIONAL": "#6f42c1",
+            "RISCO FINANCEIRO": CORES_TEMA['primary_dark'],
+            "RISCO DE TI": CORES_TEMA['primary_blue'],
+            "RISCO INERENTE": CORES_TEMA['primary_lighter'],
+            "Risco DE INTEGRIDADE": CORES_TEMA['primary_lightest'],
+            "RISCO AMBIENTAL": CORES_TEMA['blue_light'],
+            "RISCO REPUTACIONAL": CORES_TEMA['blue_lighter'],
         }
         
         # Se não houver categorias
@@ -718,7 +743,7 @@ class NovoDashboardKPIs:
             return sigla[:6] if sigla else nome_completo[:10]  # Limitar a 6 caracteres
         
         # ⭐ Cores para as áreas
-        cores = ["#184145", "#0b5b99", "#28a745", "#17a2b8", "#6f42c1", "#fd7e14", "#dc3545", "#ffc107"]
+        cores = [CORES_TEMA['primary_dark'], CORES_TEMA['primary_blue'], CORES_TEMA['primary_light'], CORES_TEMA['primary_lighter'], CORES_TEMA['primary_lightest'], CORES_TEMA['blue_light'], CORES_TEMA['blue_lighter'], CORES_TEMA['blue_lightest']]
         
         labels = []
         valores = []

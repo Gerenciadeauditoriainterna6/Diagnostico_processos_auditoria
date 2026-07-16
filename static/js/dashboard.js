@@ -5,6 +5,13 @@ let filtros = {
     auditoria: ''
 };
 
+// ====== LER CORES DO CSS ======
+function getCssVar(varName) {
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(varName)
+        .trim();
+}
+
 // ====== CARREGAR FILTROS ======
 async function carregarFiltros() {
     try {
@@ -372,14 +379,15 @@ async function carregarGraficoEvolucao() {
             
             // ⭐ Definir tipo de gráfico e cores baseado no tipo
             let tipoGrafico = 'bar';
-            let cor = '#0b5b99';
-            
+            // ⭐ LER A COR DO TEMA
+            let cor = getCssVar('--primary-blue');  // Busca do CSS
+
             if (data.dados.tipo === 'mensal') {
                 tipoGrafico = 'line';
-                cor = '#0b5b99';
+                cor = getCssVar('--primary-blue');
             } else {
                 tipoGrafico = 'bar';
-                cor = '#0b5b99';
+                cor = getCssVar('--primary-blue');
             }
             
             chartEvolucao = new Chart(ctx, {
@@ -391,7 +399,7 @@ async function carregarGraficoEvolucao() {
                         data: valores,
                         borderColor: cor,
                         backgroundColor: tipoGrafico === 'line' 
-                            ? 'rgba(11, 91, 153, 0.1)' 
+                            ? getCssVar('--primary-lightest')  
                             : cor,
                         fill: tipoGrafico === 'line',
                         tension: 0.4,
@@ -711,4 +719,5 @@ async function carregarDashboard() {
         console.error('❌ Erro ao carregar dashboard:', error);
     }
 }
+
 
