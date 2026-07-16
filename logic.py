@@ -5704,9 +5704,14 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
 def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade, 
                         codigo_auditoria, titulo_auditoria, conclusao, 
-                        orientacao="RETRATO", usuario_nome="Usuário"):
+                        orientacao="RETRATO", usuario_nome="Usuário", 
+                        usuario_conclusao=None, is_owner=False):  # ⭐ NOVO PARÂMETRO
     """
     Gera o relatório de conclusão em PDF
+    
+    Parâmetros:
+    - usuario_conclusao: Nome do usuário que escreveu a conclusão
+    - is_owner: True se o usuário logado é o autor da conclusão (permite assinatura)
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
@@ -5725,7 +5730,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
     root_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # ⭐ BUSCAR DADOS DA GAI PARA O RODAPÉ
+    # Buscar dados da GAI
     dados_gai = buscar_dados_gerencia_auditoria()
     email_gai = dados_gai['email']
     telefone_gai = dados_gai['telefone']
@@ -5789,6 +5794,28 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         spaceAfter=8
     )
     
+    # ⭐ ESTILO PARA AVISO DE VALIDADE (apenas para não proprietários)
+    aviso_style = ParagraphStyle(
+        'AvisoStyle',
+        parent=normal_style,
+        fontSize=12,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#dc3545'),
+        spaceAfter=20,
+        spaceBefore=10,
+        backColor=colors.HexColor('#FFF3CD'),
+        borderPadding=10
+    )
+    
+    assinatura_style = ParagraphStyle(
+        'AssinaturaStyle',
+        parent=normal_style,
+        fontSize=10,
+        alignment=TA_CENTER,
+        spaceAfter=5
+    )
+    
     # Título
     story.append(Paragraph("CONCLUSÃO DA AUDITORIA", titulo_secao_style))
     story.append(Spacer(1, 10))
@@ -5799,13 +5826,35 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     if unidade:
         story.append(Paragraph(f"<b>Unidade:</b> {unidade}", info_style))
     story.append(Paragraph(f"<b>Gestor:</b> {gestor} - {cargo}", info_style))
-    story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    
+    # ⭐ Quem escreveu a conclusão
+    if usuario_conclusao:
+        story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_conclusao}", info_style))
+    else:
+        story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    
     story.append(Paragraph(f"<b>Data de Emissão:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
     story.append(Spacer(1, 20))
     
     # Linha divisória
     story.append(Paragraph("<hr/>", normal_style))
     story.append(Spacer(1, 15))
+    
+    # ⭐ AVISO DE VALIDADE (se NÃO for o proprietário)
+    if not is_owner:
+        story.append(Paragraph(
+            "<b>AVISO IMPORTANTE</b>",
+            aviso_style
+        ))
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(
+            "<b>Este documento foi baixado por um usuário que NÃO é o autor da conclusão.</b><br/>"
+            "Portanto, este relatório <b>É APENAS PARA VISUALIZAÇÃO</b> para fins de consulta.<br/><br/>"
+            "Para obter um documento com validade, solicite que o autor da conclusão "
+            "baixe o relatório diretamente de seu acesso.",
+            aviso_style
+        ))
+        story.append(Spacer(1, 15))
     
     # Conclusão
     story.append(Paragraph("<b>CONCLUSÃO:</b>", info_style))
@@ -5814,19 +5863,22 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     
     story.append(Spacer(1, 30))
     
-    # ⭐ ASSINATURA
-    assinatura_style = ParagraphStyle(
-        'AssinaturaStyle',
-        parent=normal_style,
-        fontSize=10,
-        alignment=TA_CENTER,
-        spaceAfter=5
-    )
+    # ⭐ ASSINATURA (apenas se for o proprietário)
+    if is_owner:
+        story.append(Spacer(1, 40))
+        story.append(Paragraph("_________________________________________", assinatura_style))
+        story.append(Paragraph(f"{usuario_conclusao or usuario_nome}", assinatura_style))
+        story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(
+            f"{datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
+            assinatura_style
+        ))
+    else:
+        # ⭐ SE NÃO FOR O PROPRIETÁRIO, MOSTRA UM SELO DE "SEM VALIDADE"
+        story.append(Spacer(1, 30))
     
-    story.append(Spacer(1, 40))
-    story.append(Paragraph("_________________________________________", assinatura_style))
-    story.append(Paragraph(f"{usuario_nome}", assinatura_style))
-    story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+        
     
     # ============================================================
     # ⭐ RODAPÉ USANDO A FUNÇÃO PADRONIZADA
@@ -5853,10 +5905,8 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
                                 leftMargin=leftMargin, rightMargin=rightMargin)
     
     def rodape_temp(canvas, doc):
-        # ⭐ NÃO DESENHA RODAPÉ NA CAPA (página 1)
         if doc.page == 1:
             return
-        # ⭐ PARA AS DEMAIS PÁGINAS, USA O RODAPÉ NORMAL (SEM CONTAGEM)
         criar_rodape(canvas, doc, pagesize, 0, f"Relatório de Conclusão - {area_nome[:50]}",
                      root_dir=root_dir,
                      email_auditoria=email_gai,
@@ -5875,15 +5925,11 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
                                  leftMargin=leftMargin, rightMargin=rightMargin)
     
     def rodape_final(canvas, doc):
-        if doc.page == 1:  # ⭐ PULA A CAPA
+        if doc.page == 1:
             return
-        # ⭐ PASSA O TOTAL DE PÁGINAS PARA O RODAPÉ
         rodape_conclusao(canvas, doc, total_paginas)
     
     doc_final.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
     
-    # ⭐ PEGAR O CONTEÚDO DO BUFFER
     buffer.seek(0)
-    pdf_bytes = buffer.getvalue()
-    
-    return pdf_bytes
+    return buffer.getvalue()
