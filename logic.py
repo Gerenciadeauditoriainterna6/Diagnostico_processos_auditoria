@@ -35,7 +35,7 @@ st = _DummyStreamlit()
 
 def adicionar_informacoes_relatorio(story, styles, normal_style, pagesize, leftMargin, rightMargin,
                                    auditoria_id=None, processo_id=None, area_id=None, area_nome=None,
-                                   gestor=None, cargo=None):
+                                   gestor=None, cargo=None, titulo_auditoria=None):
     """
     Adiciona as informações padronizadas para todos os relatórios.
     """
@@ -2247,7 +2247,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
     
-    # Estilos para a capa (seus estilos existentes)
+    # Estilos para a capa
     titulo_capa_style = ParagraphStyle(
         'TituloCapa',
         parent=normal_style,
@@ -2259,13 +2259,14 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     )
 
     titulo_capa_style2 = ParagraphStyle(
-        'TituloCapa',
+        'TituloCapa2',
         parent=normal_style,
-        fontSize=20,
+        fontSize=18,
         fontName='Helvetica-Bold',
         alignment=TA_CENTER,
         textColor=colors.HexColor('#000000'),
-        spaceAfter=10
+        spaceAfter=5,
+        leading=28
     )
     
     subtitulo_capa_style = ParagraphStyle(
@@ -2290,7 +2291,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     )
 
     info_capa_style2 = ParagraphStyle(
-        'InfoCapa',
+        'InfoCapa2',
         parent=normal_style,
         fontSize=11,
         fontName='Helvetica',
@@ -2299,23 +2300,18 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         spaceAfter=6
     )
     
-    # ⭐⭐⭐ NOVO: CALCULAR ESPAÇO PARA CENTRALIZAR ⭐⭐⭐
-    # Altura disponível na página (descontando margens)
-    altura_disponivel = pagesize[1] - 2*cm - 2*cm  # top e bottom margins
+    # ⭐ CALCULAR ESPAÇO PARA CENTRALIZAR
+    altura_disponivel = pagesize[1] - 2*cm - 2*cm
     
-    # Estimar altura do conteúdo (em pontos)
-    # Cada item tem uma altura aproximada
     altura_estimada = 0
     
-    # Logo (4cm + espaçamento)
     root_dir = os.path.dirname(os.path.abspath(__file__))
     logo_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
     if os.path.exists(logo_path):
-        altura_estimada += 4*cm + 20  # logo + spacer
+        altura_estimada += 4*cm + 20
     else:
         altura_estimada += 20
     
-    # Títulos
     altura_estimada += 30  # "GERÊNCIA DE AUDITORIA INTERNA"
     altura_estimada += 20  # spacer
     altura_estimada += 30  # "FUSVE"
@@ -2324,25 +2320,21 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     altura_estimada += 20  # spacer
     
     if subtitulo_relatorio:
-        altura_estimada += 30  # subtítulo
-        altura_estimada += 20  # spacer
+        altura_estimada += 30
+        altura_estimada += 20
     
-    # Informações adicionais
     if area_nome:
         altura_estimada += 20
-    altura_estimada += 20  # "Emissão: ..."
+    altura_estimada += 20
     
-    # ⭐ Calcular espaço extra para centralizar
     espaco_extra = (altura_disponivel - altura_estimada) / 2
-    
-    # Se o espaço extra for negativo (conteúdo maior que a página), usar um valor mínimo
     if espaco_extra < 0:
         espaco_extra = 1*cm
     
-    # ⭐⭐⭐ ADICIONAR ESPAÇO ANTES DO CONTEÚDO ⭐⭐⭐
+    # ⭐ SPACER INICIAL (centraliza o conteúdo na página)
     story.append(Spacer(1, espaco_extra))
     
-    # Logo (centralizado)
+    # Logo
     if os.path.exists(logo_path):
         img = Image(logo_path, width=4*cm, height=4*cm)
         img.hAlign = 'CENTER'
@@ -2358,12 +2350,12 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     
     # Título principal
     story.append(Paragraph(titulo_relatorio, titulo_capa_style2))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 5))
     
     if subtitulo_relatorio:
         story.append(Paragraph(subtitulo_relatorio, subtitulo_capa_style))
     
-    story.append(Spacer(1, 60))
+    story.append(Spacer(1, 45))
     
     # Informações adicionais
     if area_nome:
@@ -2374,17 +2366,15 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     
     story.append(Paragraph(f"Emissão: {data_emissao}", info_capa_style2))
     
-    # ⭐⭐⭐ ADICIONAR ESPAÇO DEPOIS DO CONTEÚDO ⭐⭐⭐
-    story.append(Spacer(1, espaco_extra))
-    
-    # Quebra de página após a capa
+    # ⭐⭐⭐ USAR PageBreak() PARA FORÇAR A PRÓXIMA PÁGINA ⭐⭐⭐
+    # O PageBreak é necessário para separar a capa do conteúdo
     story.append(PageBreak())
 
 # ============================================================
 # ====== FIM FUNÇÕES AUXILIARES PARA RELATÓRIOS ======
 # ============================================================
 
-def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None, titulo_auditoria=None):
 
     """
     Gera relatório de validação - Matriz Panorama
@@ -2438,7 +2428,25 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
         textColor=colors.HexColor('#0b5b99')
     )
 
+    titulo_final = titulo_auditoria  # Começa com o que veio como parâmetro
     
+    if titulo_final is None and auditoria_id:
+        # Se não veio como parâmetro, buscar do banco
+        try:
+            from database import engine
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                query_titulo = text("SELECT titulo FROM auditorias WHERE id = :auditoria_id")
+                result = conn.execute(query_titulo, {'auditoria_id': auditoria_id}).fetchone()
+                if result:
+                    titulo_final = result[0]
+                else:
+                    titulo_final = 'Auditoria'
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar título: {e}")
+            titulo_final = 'Auditoria'
+    elif titulo_final is None:
+        titulo_final = 'Auditoria'
     
     # ===== CONSTRUIR O STORY =====
     story = []
@@ -2446,8 +2454,8 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio='RELATÓRIO DE VALIDAÇÃO',
-        subtitulo_relatorio='MATRIZ DE PANORAMA',
+        titulo_relatorio='RELATÓRIO DE VALIDAÇÃO<br/>MATRIZ DE PANORAMA',
+        subtitulo_relatorio=f'{titulo_final}',
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -2530,7 +2538,8 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
         area_id=area_id,
         area_nome=area_nome,
         gestor=area_gestor,
-        cargo=area_cargo
+        cargo=area_cargo,
+        titulo_auditoria=titulo_final
     )
 
     # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
@@ -3014,7 +3023,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
 # ============================================================
 
 
-def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None):
+def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, orientacao="RETRATO", auditoria_id=None, processo_id=None, titulo_auditoria=None):
     """
     Gera relatório de validação - Matriz Detalhamento
     Contém: informações da área, funcionários, processos, etapas, riscos e controles
@@ -3112,6 +3121,27 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         leading=10,
         leftIndent=20
     )
+
+    titulo_final = titulo_auditoria  # Começa com o que veio como parâmetro
+    
+    if titulo_final is None and auditoria_id:
+        # Se não veio como parâmetro, buscar do banco
+        try:
+            from database import engine
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                query_titulo = text("SELECT titulo FROM auditorias WHERE id = :auditoria_id")
+                result = conn.execute(query_titulo, {'auditoria_id': auditoria_id}).fetchone()
+                if result:
+                    titulo_final = result[0]
+                else:
+                    titulo_final = 'Auditoria'
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar título: {e}")
+            titulo_final = 'Auditoria'
+    elif titulo_final is None:
+        titulo_final = 'Auditoria'
+
     
     # ===== CONSTRUIR O STORY =====
     story = []
@@ -3119,8 +3149,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
-        titulo_relatorio="RELATÓRIO DE VALIDAÇÃO",
-        subtitulo_relatorio="MATRIZ DE DETALHAMENTO",
+        titulo_relatorio="RELATÓRIO DE VALIDAÇÃO<br/>MATRIZ DE DETALHAMENTO",
+        subtitulo_relatorio=f"{titulo_final}",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -3198,7 +3228,8 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
         area_id=area_id,
         area_nome=area_nome,
         gestor=gestor,
-        cargo=cargo
+        cargo=cargo,
+        titulo_auditoria=titulo_final
     )
     
     # ===== 4e. FUNCIONÁRIOS DA ÁREA =====
@@ -4175,13 +4206,14 @@ def limpar_binario(dados):
     return texto
 
 def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id,
-                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False):
+                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False, titulo_auditoria=None):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
     Inclui análises do auditado (etapas) e análises do auditor (checklists)
     
     Parâmetros:
     - incluir_abr: Se True, inclui a seção ABR - Auditoria Baseada em Risco (apenas admin)
+    - titulo_auditoria: Título da auditoria
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether, HRFlowable
@@ -4372,11 +4404,27 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     
     story = []
 
+    titulo_final = titulo_auditoria
+
+    if titulo_final is None:
+        # Se não veio como parâmetro, buscar do banco
+        try:
+            with engine.connect() as conn:
+                query_titulo = text("SELECT titulo FROM auditorias WHERE id = :auditoria_id")
+                result = conn.execute(query_titulo, {'auditoria_id': auditoria_id}).fetchone()
+                if result:
+                    titulo_final = result[0]
+                else:
+                    titulo_final = 'Auditoria'
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar título: {e}")
+            titulo_final = 'Auditoria'
+
     criar_pagina_capa(
         story=story,
         pagesize=pagesize,
         titulo_relatorio="PARECER DA AUDITORIA INTERNA",
-        subtitulo_relatorio=f"Processo {proc_codigo} - {proc_nome}" if 'proc_codigo' in locals() else "",
+        subtitulo_relatorio=f"{titulo_final}",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -4423,7 +4471,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             raise Exception(f"Auditoria não encontrada")
         
         codigo_auditoria = auditoria_info[0]
-        titulo_auditoria = auditoria_info[1]
         data_inicio = auditoria_info[2]
         data_fim = auditoria_info[3]
         status = auditoria_info[4]
@@ -4863,7 +4910,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         area_id=area_id,
         area_nome=area_nome,
         gestor=gestor,
-        cargo=cargo
+        cargo=cargo,
+        titulo_auditoria=titulo_final
     )
 
     # ⭐ ADICIONAR ALERTA DE FOLLOW-UP (se houver)
@@ -5654,13 +5702,16 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     buffer.seek(0)
     return buffer.getvalue()
 
-# logic.py - Adicione no final do arquivo
-
 def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade, 
                         codigo_auditoria, titulo_auditoria, conclusao, 
-                        orientacao="RETRATO", usuario_nome="Usuário"):
+                        orientacao="RETRATO", usuario_nome="Usuário", 
+                        usuario_conclusao=None, is_owner=False):  # ⭐ NOVO PARÂMETRO
     """
     Gera o relatório de conclusão em PDF
+    
+    Parâmetros:
+    - usuario_conclusao: Nome do usuário que escreveu a conclusão
+    - is_owner: True se o usuário logado é o autor da conclusão (permite assinatura)
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
@@ -5679,7 +5730,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
     root_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # ⭐ BUSCAR DADOS DA GAI PARA O RODAPÉ
+    # Buscar dados da GAI
     dados_gai = buscar_dados_gerencia_auditoria()
     email_gai = dados_gai['email']
     telefone_gai = dados_gai['telefone']
@@ -5705,7 +5756,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story=story,
         pagesize=pagesize,
         titulo_relatorio="RELATÓRIO DE CONCLUSÃO DA AUDITORIA",
-        subtitulo_relatorio=f"{codigo_auditoria}<br/><br/>{titulo_auditoria}",
+        subtitulo_relatorio=f"{titulo_auditoria}",
         area_nome=area_nome,
         data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
     )
@@ -5743,6 +5794,28 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         spaceAfter=8
     )
     
+    # ⭐ ESTILO PARA AVISO DE VALIDADE (apenas para não proprietários)
+    aviso_style = ParagraphStyle(
+        'AvisoStyle',
+        parent=normal_style,
+        fontSize=12,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#dc3545'),
+        spaceAfter=20,
+        spaceBefore=10,
+        backColor=colors.HexColor('#FFF3CD'),
+        borderPadding=10
+    )
+    
+    assinatura_style = ParagraphStyle(
+        'AssinaturaStyle',
+        parent=normal_style,
+        fontSize=10,
+        alignment=TA_CENTER,
+        spaceAfter=5
+    )
+    
     # Título
     story.append(Paragraph("CONCLUSÃO DA AUDITORIA", titulo_secao_style))
     story.append(Spacer(1, 10))
@@ -5753,13 +5826,35 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     if unidade:
         story.append(Paragraph(f"<b>Unidade:</b> {unidade}", info_style))
     story.append(Paragraph(f"<b>Gestor:</b> {gestor} - {cargo}", info_style))
-    story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    
+    # ⭐ Quem escreveu a conclusão
+    if usuario_conclusao:
+        story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_conclusao}", info_style))
+    else:
+        story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    
     story.append(Paragraph(f"<b>Data de Emissão:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
     story.append(Spacer(1, 20))
     
     # Linha divisória
     story.append(Paragraph("<hr/>", normal_style))
     story.append(Spacer(1, 15))
+    
+    # ⭐ AVISO DE VALIDADE (se NÃO for o proprietário)
+    if not is_owner:
+        story.append(Paragraph(
+            "<b>AVISO IMPORTANTE</b>",
+            aviso_style
+        ))
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(
+            "<b>Este documento foi baixado por um usuário que NÃO é o autor da conclusão.</b><br/>"
+            "Portanto, este relatório <b>É APENAS PARA VISUALIZAÇÃO</b> para fins de consulta.<br/><br/>"
+            "Para obter um documento com validade, solicite que o autor da conclusão "
+            "baixe o relatório diretamente de seu acesso.",
+            aviso_style
+        ))
+        story.append(Spacer(1, 15))
     
     # Conclusão
     story.append(Paragraph("<b>CONCLUSÃO:</b>", info_style))
@@ -5768,19 +5863,22 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     
     story.append(Spacer(1, 30))
     
-    # ⭐ ASSINATURA
-    assinatura_style = ParagraphStyle(
-        'AssinaturaStyle',
-        parent=normal_style,
-        fontSize=10,
-        alignment=TA_CENTER,
-        spaceAfter=5
-    )
+    # ⭐ ASSINATURA (apenas se for o proprietário)
+    if is_owner:
+        story.append(Spacer(1, 40))
+        story.append(Paragraph("_________________________________________", assinatura_style))
+        story.append(Paragraph(f"{usuario_conclusao or usuario_nome}", assinatura_style))
+        story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(
+            f"{datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
+            assinatura_style
+        ))
+    else:
+        # ⭐ SE NÃO FOR O PROPRIETÁRIO, MOSTRA UM SELO DE "SEM VALIDADE"
+        story.append(Spacer(1, 30))
     
-    story.append(Spacer(1, 40))
-    story.append(Paragraph("_________________________________________", assinatura_style))
-    story.append(Paragraph(f"{usuario_nome}", assinatura_style))
-    story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+        
     
     # ============================================================
     # ⭐ RODAPÉ USANDO A FUNÇÃO PADRONIZADA
@@ -5807,10 +5905,8 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
                                 leftMargin=leftMargin, rightMargin=rightMargin)
     
     def rodape_temp(canvas, doc):
-        # ⭐ NÃO DESENHA RODAPÉ NA CAPA (página 1)
         if doc.page == 1:
             return
-        # ⭐ PARA AS DEMAIS PÁGINAS, USA O RODAPÉ NORMAL (SEM CONTAGEM)
         criar_rodape(canvas, doc, pagesize, 0, f"Relatório de Conclusão - {area_nome[:50]}",
                      root_dir=root_dir,
                      email_auditoria=email_gai,
@@ -5829,15 +5925,11 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
                                  leftMargin=leftMargin, rightMargin=rightMargin)
     
     def rodape_final(canvas, doc):
-        if doc.page == 1:  # ⭐ PULA A CAPA
+        if doc.page == 1:
             return
-        # ⭐ PASSA O TOTAL DE PÁGINAS PARA O RODAPÉ
         rodape_conclusao(canvas, doc, total_paginas)
     
     doc_final.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
     
-    # ⭐ PEGAR O CONTEÚDO DO BUFFER
     buffer.seek(0)
-    pdf_bytes = buffer.getvalue()
-    
-    return pdf_bytes
+    return buffer.getvalue()

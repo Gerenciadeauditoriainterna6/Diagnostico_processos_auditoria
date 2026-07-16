@@ -556,3 +556,19 @@
         grid-template-columns: repeat(4, 1fr);
     }
 }
+
+/* ====== CABEÇALHO FIXO COM MUDAÇA DE COR ====== */
+
+/* ⭐ FAZ O CABEÇALHO GRUDAR NO TOPO DA PÁGINA */
+.planejamento-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* ⭐ ESTILO NORMAL DO CABEÇALHO (CINZA) */
+.planejamento-table thead th {
+    background: linear-gradient(180deg, #f0f4f8 0%, #e8eef2 100%);
+    color: #184145;
+    transition: all 0.3s ease;
+}
