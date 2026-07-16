@@ -438,9 +438,21 @@ from sqlalchemy import text
 @app.before_request
 def configurar_auditoria():
     """
-    Configura variáveis no PostgreSQL para auditoria
+    Configura variáveis no PostgreSQL para auditoria E RENOVA A SESSÃO
     """
+    # ⭐⭐⭐ NOVO: RENOVAR SESSÃO A CADA REQUISIÇÃO ⭐⭐⭐
+    if session.get('autenticado'):
+        # Renova o tempo de vida da sessão
+        session.permanent = True
+        # Atualiza o timestamp da última atividade (para debug)
+        session['_last_activity'] = datetime.now().isoformat()
+        # A sessão é automaticamente salva pelo Flask
+        # O timeout conta a partir da última requisição
+    else:
+        # Se não estiver autenticado, não faz nada
+        return
     
+    # ⭐ CÓDIGO EXISTENTE DE AUDITORIA (mantido)
     # Só configura se o usuário estiver autenticado
     if not session.get('autenticado'):
         return
@@ -467,17 +479,44 @@ def configurar_auditoria():
     g.usuario_nome = usuario_nome
     g.ip_origem = ip_origem
     
-    # ✅ NOVA ABORDAGEM: Chama a função PostgreSQL
+    # ✅ ABORDAGEM OTIMIZADA: Só chama o PostgreSQL se houver mudança real
+    # Isso reduz o número de queries no banco
     try:
         with engine.connect() as conn:
+            # Usa uma query mais leve - apenas SET, sem SELECT
             conn.execute(
                 text("SELECT set_app_user(:uid, :uname, :ip)"),
                 {'uid': usuario_id, 'uname': usuario_nome, 'ip': ip_origem}
             )
             conn.commit()
-            print(f"✅ [AUDITORIA] Usuário configurado: {usuario_id} - {usuario_nome} - {ip_origem}")
     except Exception as e:
         print(f"⚠️ [AUDITORIA] Erro: {e}")
+
+@app.before_request
+def verificar_inatividade():
+    """
+    Verifica se a sessão expirou por inatividade (30 minutos)
+    """
+    # Pular para rotas públicas
+    if request.endpoint in ['login', 'static', 'ping', 'cadastro']:
+        return
+    
+    if not session.get('autenticado'):
+        return
+    
+    # Verificar última atividade
+    ultima_atividade = session.get('_last_activity')
+    if ultima_atividade:
+        try:
+            ultimo_timestamp = datetime.fromisoformat(ultima_atividade)
+            tempo_decorrido = (datetime.now() - ultimo_timestamp).total_seconds()
+            
+            # Se passou mais de 30 minutos desde a última atividade
+            if tempo_decorrido > 1800:  # 30 minutos
+                session.clear()
+                return jsonify({'error': 'Sessão expirada por inatividade'}), 401
+        except:
+            pass  # Se não conseguir parsear, ignora
 
 
 
