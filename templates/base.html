@@ -1411,6 +1411,16 @@
 
 
     </style>
+
+    <script>
+        // Dados do usuário (disponíveis em TODAS as páginas)
+        const USUARIO_NOME = '{{ session.get("usuario_nome", "") }}';
+        const USUARIO_PERFIL = '{{ session.get("usuario_perfil", "") }}';
+        const USUARIO_ID = '{{ session.get("usuario_id", "") }}';
+        const IS_ADMIN = (USUARIO_PERFIL === 'administrador' || USUARIO_PERFIL === 'admin');
+        const IS_AUDITOR = (USUARIO_PERFIL === 'auditor' || USUARIO_PERFIL === 'Auditor');
+        
+    </script>
 </head>
 
 <body>
