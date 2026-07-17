@@ -1,7 +1,3 @@
-# config/cores.py
-
-# config/cores.py
-
 CORES = {
     # ====== CORES PRINCIPAIS ======
     'primary_dark': '#184145',
