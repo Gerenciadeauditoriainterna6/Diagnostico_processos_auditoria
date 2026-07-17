@@ -156,11 +156,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ====== RENDERIZAR FUNDAMENTOS COM EDIÇÃO ======
     function renderizarFundamentos(auditorias) {
         if (!fundamentosContainer) return;
         
-        contadorAuditorias.textContent = auditorias.length;
+        // ⭐ MOSTRAR TODAS AS AUDITORIAS (não emergenciais)
+        const totalAuditorias = auditorias.length;
+        contadorAuditorias.textContent = totalAuditorias;
 
         if (auditorias.length === 0) {
             fundamentosContainer.innerHTML = `
@@ -171,15 +172,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Filtrar apenas auditorias que têm fundamentos OU permitir adicionar
-        const auditoriasComFundamentos = auditorias.filter(aud => 
-            aud.fundamentos && 
-            Array.isArray(aud.fundamentos) && 
-            aud.fundamentos.length > 0
-        );
-
-        // Se não tem nenhuma com fundamentos, mostrar todas com opção de adicionar
-        const auditoriasParaMostrar = auditoriasComFundamentos.length > 0 ? auditoriasComFundamentos : auditorias;
+        // ⭐ MOSTRAR TODAS, independente de ter fundamentos ou não
+        const auditoriasParaMostrar = auditorias;
 
         fundamentosContainer.innerHTML = auditoriasParaMostrar.map((aud, audIdx) => `
             <div class="auditoria-fundamento-card" data-auditoria-id="${aud.id}" data-auditoria-idx="${audIdx}">
@@ -194,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </h4>
                         <div style="font-size: 12px; color: #999; margin-top: 4px;">
                             ${aud.area_nome || 'Sem área'} • ${aud.ano}/${aud.trimestre}º trimestre
+                            ${aud.fundamentos && aud.fundamentos.length > 0 ? ' ✅' : ' ⚠️ Sem fundamentos'}
                         </div>
                     </div>
                     <div>
@@ -242,9 +237,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     `).join('') : `
                         <div class="empty-riscos">
                             <i class="fas fa-info-circle"></i> Nenhum risco cadastrado para esta auditoria.
-                            <button class="btn-adicionar-risco-inline" data-auditoria-id="${aud.id}" data-auditoria-idx="${audIdx}" style="margin-left: 10px;">
-                                <i class="fas fa-plus-circle"></i> Adicionar primeiro risco
-                            </button>
                         </div>
                     `}
                 </div>
