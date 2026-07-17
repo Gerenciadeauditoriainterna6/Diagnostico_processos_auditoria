@@ -4,31 +4,7 @@ from database import engine
 from sqlalchemy import text
 from typing import Dict, Any, Optional, List
 import random
-
-CORES_TEMA = {
-    # Cores Principais
-    'primary_dark': '#184145',
-    'primary_blue': '#0b5b99',
-    'primary_light': '#2a6b6f',
-    'primary_lighter': '#3d8f94',
-    'primary_lightest': '#24B1B1',
-    
-    # Azuis
-    'blue_light': '#1a7fc4',
-    'blue_lighter': '#4a9fd4',
-    'blue_lightest': '#d4e8f5',
-    
-    # Status
-    'status_planejamento': '#ffc107',
-    'status_execucao': '#17a2b8',
-    'status_concluido': '#28a745',
-    'status_inconclusivo': '#dc3545',
-    'status_follow_up': '#fd7e14',
-    
-    # Auxiliares
-    'cinza_claro': '#f0f4f8',
-    'cinza_escuro': '#6c757d',
-}
+from config.cores import CORES
 
 class NovoDashboardKPIs:
     """KPIs do novo dashboard usando SQL PURO"""
@@ -355,10 +331,10 @@ class NovoDashboardKPIs:
         
         # Mapeamento de cores por status
         cores_status = {
-            "em_execucao": CORES_TEMA['primary_lighter'],
-            "inconclusiva": CORES_TEMA['status_inconclusivo'],
-            "eficacia_validada": CORES_TEMA['primary_blue'],
-            "follow_up": CORES_TEMA['blue_light']
+            "em_execucao": CORES['status_execucao'],
+            "inconclusiva": CORES['status_inconclusivo'],
+            "eficacia_validada": CORES['status_eficacia_validada'],
+            "follow_up": CORES['status_followup']
         }
 
         
@@ -497,6 +473,7 @@ class NovoDashboardKPIs:
                     "dados": [],
                     "titulo": "Sem dados disponíveis",
                     "label_y": "Quantidade"
+                    
                 }
             
             # ⭐ PASSO 2: Decidir se mostra mensal ou anual
@@ -548,7 +525,9 @@ class NovoDashboardKPIs:
                     "dados": dados,
                     "titulo": f"Auditorias Iniciadas em {ano_para_mostrar}",
                     "label_x": "Mês",
-                    "label_y": "Quantidade de Auditorias"
+                    "label_y": "Quantidade de Auditorias",
+                    "cor_linha": CORES['primary_blue'],
+                    "cor_area": CORES['blue_lightest']
                 }
             
             # ⭐ PASSO 3: Mais de 1 ano → Mostrar por ANO
@@ -586,7 +565,9 @@ class NovoDashboardKPIs:
                     "dados": dados,
                     "titulo": "Evolução Anual de Auditorias",
                     "label_x": "Ano",
-                    "label_y": "Quantidade de Auditorias"
+                    "label_y": "Quantidade de Auditorias",
+                    "cor_linha": CORES['primary_blue'],
+                    "cor_area": CORES['blue_lightest']
                 }
             
 
@@ -638,12 +619,12 @@ class NovoDashboardKPIs:
         
         # ⭐ Mapeamento de cores por categoria
         cores_categoria = {
-            "RISCO FINANCEIRO": CORES_TEMA['primary_dark'],
-            "RISCO DE TI": CORES_TEMA['primary_blue'],
-            "RISCO INERENTE": CORES_TEMA['primary_lighter'],
-            "Risco DE INTEGRIDADE": CORES_TEMA['primary_lightest'],
-            "RISCO AMBIENTAL": CORES_TEMA['blue_light'],
-            "RISCO REPUTACIONAL": CORES_TEMA['blue_lighter'],
+            "RISCO FINANCEIRO": CORES['primary_dark'],
+            "RISCO DE TI": CORES['primary_blue'],
+            "RISCO INERENTE": CORES['primary_lighter'],
+            "Risco DE INTEGRIDADE": CORES['primary_lightest'],
+            "RISCO AMBIENTAL": CORES['blue_light'],
+            "RISCO REPUTACIONAL": CORES['blue_lighter'],
         }
         
         # Se não houver categorias
@@ -743,7 +724,7 @@ class NovoDashboardKPIs:
             return sigla[:6] if sigla else nome_completo[:10]  # Limitar a 6 caracteres
         
         # ⭐ Cores para as áreas
-        cores = [CORES_TEMA['primary_dark'], CORES_TEMA['primary_blue'], CORES_TEMA['primary_light'], CORES_TEMA['primary_lighter'], CORES_TEMA['primary_lightest'], CORES_TEMA['blue_light'], CORES_TEMA['blue_lighter'], CORES_TEMA['blue_lightest']]
+        cores = [CORES['primary_dark'], CORES['primary_blue'], CORES['primary_light'], CORES['primary_lighter'], CORES['primary_lightest'], CORES['blue_light'], CORES['blue_lighter'], CORES['blue_lightest']]
         
         labels = []
         valores = []
