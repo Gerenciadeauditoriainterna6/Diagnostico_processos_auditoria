@@ -8,6 +8,8 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    <link rel="stylesheet" href="{{ url_for('gerar_css_tema') }}">
+
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -729,7 +731,7 @@
 
         /* Botão Primário (Salvar, Confirmar, Próximo) - Verde */
         .btn-primary {
-            background: #28a745;
+            background: var(--primary-blue);
             color: white;
             border: none;
             padding: 10px 24px;
@@ -744,7 +746,7 @@
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: #218838;
+            background: var(--blue-lighter);
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
@@ -1409,6 +1411,16 @@
 
 
     </style>
+
+    <script>
+        // Dados do usuário (disponíveis em TODAS as páginas)
+        const USUARIO_NOME = '{{ session.get("usuario_nome", "") }}';
+        const USUARIO_PERFIL = '{{ session.get("usuario_perfil", "") }}';
+        const USUARIO_ID = '{{ session.get("usuario_id", "") }}';
+        const IS_ADMIN = (USUARIO_PERFIL === 'administrador' || USUARIO_PERFIL === 'admin');
+        const IS_AUDITOR = (USUARIO_PERFIL === 'auditor' || USUARIO_PERFIL === 'Auditor');
+        
+    </script>
 </head>
 
 <body>
@@ -1449,7 +1461,7 @@
 
                 <!-- SEÇÃO 0: PLANEJAMENTO -->
                 <div class="nav-section">
-                    <div class="nav-section-title nav-section-planejamento">PLANEJAMENTO</div>
+                    <div class="nav-section-title nav-section-planejamento">MÓDULO PLANEJAMENTO</div>
                     
                     <!-- Plano Anual (SEM SUBMENU) -->
                     <a href="{{ url_for('plano_anual') }}" class="nav-item">
@@ -1466,7 +1478,7 @@
 
                 <!-- SEÇÃO 1: ADMINISTRAÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title nav-section-administracao">ADMINISTRAÇÃO</div>
+                    <div class="nav-section-title nav-section-administracao">MÓDULO ADMINISTRAÇÃO</div>
                     <a href="{{ url_for('areas') }}" class="nav-item">
                         <i class="fas fa-building"></i>
                         <span>Cadastro de Áreas e Funcionários</span>
@@ -1488,7 +1500,7 @@
 
                 <!-- SEÇÃO 2.1: EXECUÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title nav-section-execucao">EXECUÇÃO - LEVANTAMENTO</div>
+                    <div class="nav-section-title nav-section-execucao">MÓDULO EXECUÇÃO - LEVANTAMENTO</div>
 
                     <!-- Diagnóstico dos Processos com Submenu -->
                     <div class="nav-item-parent">
@@ -1529,7 +1541,7 @@
 
                 <!-- SEÇÃO 2.2: EXECUÇÃO -->
                 <div class="nav-section">
-                        <div class="nav-section-title nav-section-execucao">EXECUÇÃO - AUDITORIA INTERNA</div>
+                        <div class="nav-section-title nav-section-execucao">MÓDULO EXECUÇÃO - AUDITORIA INTERNA</div>
 
                         <!-- Matriz de Eficácia (SEM submenu) -->
                         <a href="{{ url_for('checklists') }}" class="nav-item" id="checklistsItem">
@@ -1546,7 +1558,7 @@
 
                 <!-- SEÇÃO 3: COMUNICAÇÃO -->
                 <div class="nav-section">
-                    <div class="nav-section-title nav-section-comunicacao">COMUNICAÇÃO DOS RESULTADOS</div>
+                    <div class="nav-section-title nav-section-comunicacao">MÓDULO COMUNICAÇÃO DOS RESULTADOS</div>
                     <a href="{{ url_for('relatorios') }}" class="nav-item">
                         <i class="fas fa-file-alt"></i>
                         <span>Geração de Relatórios</span>
@@ -1557,6 +1569,15 @@
                             <span>Dashboard</span>
                         </a>
                     {% endif %}
+                </div>
+
+                <!-- SEÇÃO DE FOLLOW-UPS -->
+                <div class="nav-section">
+                    <div class="nav-section-title nav-section-followup">MÓDULO Acompanhamento de Melhorias</div>
+                    <a class="nav-item">
+                        <i class="fas fa-eye"></i>
+                        <span>Follow-ups</span>
+                    </a>
                 </div>
 
                 

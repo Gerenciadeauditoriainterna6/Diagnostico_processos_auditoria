@@ -16,35 +16,45 @@ print(f"🔵 Blueprint conclusao_bp registrado com prefixo: {conclusao_bp.url_pr
 @conclusao_bp.route('/conclusoes/salvar', methods=['POST'])
 def api_salvar_conclusao():
     """
-    Salva ou atualiza uma conclusão de auditoria
-    - Se já existe conclusão do mesmo usuário para esta auditoria/área, atualiza
-    - Senão, cria uma nova
+    Salva ou atualiza uma conclusão de auditoria com SWOT
     """
     from database import engine
     from sqlalchemy import text
     from flask import session
+    import json
     
     data = request.json
     auditoria_id = data.get('auditoria_id')
     area_id = data.get('area_id')
+    
     conclusao = data.get('conclusao', '').strip()
+    forca = data.get('forca', '').strip()
+    fraqueza = data.get('fraqueza', '').strip()
+    oportunidades = data.get('oportunidades', '').strip()
+    ameacas = data.get('ameacas', '').strip()
     
-    # ⭐ Validações
-    if not auditoria_id:
-        return jsonify({'success': False, 'error': 'Auditoria é obrigatória'}), 400
+    if not any([conclusao, forca, fraqueza, oportunidades, ameacas]):
+        return jsonify({
+            'success': False, 
+            'error': 'Preencha pelo menos um campo da conclusão'
+        }), 400
     
-    if not area_id:
-        return jsonify({'success': False, 'error': 'Área é obrigatória'}), 400
+    dados_conclusao = {
+        'conclusao': conclusao,
+        'forca': forca,
+        'fraqueza': fraqueza,
+        'oportunidades': oportunidades,
+        'ameacas': ameacas
+    }
     
-    if not conclusao:
-        return jsonify({'success': False, 'error': 'Conclusão não pode estar vazia'}), 400
-    
-    # ⭐ Pegar nome do usuário da sessão
     usuario_nome = session.get('usuario_nome', 'Usuário')
+    
+    # ⭐ CONVERTER PARA JSON STRING
+    conclusao_json = json.dumps(dados_conclusao, ensure_ascii=False)
     
     try:
         with engine.connect() as conn:
-            # ⭐ Verificar se já existe conclusão deste usuário
+            # ⭐ VERIFICAR SE JÁ EXISTE
             check_query = text("""
                 SELECT id FROM conclusoes_auditoria 
                 WHERE auditoria_id = :auditoria_id 
@@ -58,41 +68,58 @@ def api_salvar_conclusao():
                 'usuario_nome': usuario_nome
             }).fetchone()
             
+            # ⭐ ALTERNATIVA: Usar jsonb_build_object no SQL
             if existing:
-                # ⭐ Atualizar conclusão existente
                 update_query = text("""
                     UPDATE conclusoes_auditoria 
-                    SET conclusao = :conclusao, 
-                        updated_at = CURRENT_TIMESTAMP
+                    SET conclusao = jsonb_build_object(
+                        'conclusao', :conclusao,
+                        'forca', :forca,
+                        'fraqueza', :fraqueza,
+                        'oportunidades', :oportunidades,
+                        'ameacas', :ameacas
+                    ),
+                    updated_at = CURRENT_TIMESTAMP
                     WHERE id = :id
                 """)
                 conn.execute(update_query, {
                     'id': existing[0],
-                    'conclusao': conclusao
+                    'conclusao': conclusao,
+                    'forca': forca,
+                    'fraqueza': fraqueza,
+                    'oportunidades': oportunidades,
+                    'ameacas': ameacas
                 })
-                mensagem = 'Conclusão atualizada com sucesso!'
-                acao = 'atualizada'
             else:
-                # ⭐ Inserir nova conclusão
                 insert_query = text("""
                     INSERT INTO conclusoes_auditoria (
                         auditoria_id, area_id, usuario_nome, conclusao
                     ) VALUES (
-                        :auditoria_id, :area_id, :usuario_nome, :conclusao
+                        :auditoria_id, :area_id, :usuario_nome, 
+                        jsonb_build_object(
+                            'conclusao', :conclusao,
+                            'forca', :forca,
+                            'fraqueza', :fraqueza,
+                            'oportunidades', :oportunidades,
+                            'ameacas', :ameacas
+                        )
                     )
                 """)
                 conn.execute(insert_query, {
                     'auditoria_id': auditoria_id,
                     'area_id': area_id,
                     'usuario_nome': usuario_nome,
-                    'conclusao': conclusao
+                    'conclusao': conclusao,
+                    'forca': forca,
+                    'fraqueza': fraqueza,
+                    'oportunidades': oportunidades,
+                    'ameacas': ameacas
                 })
                 mensagem = 'Conclusão salva com sucesso!'
                 acao = 'salva'
             
             conn.commit()
             
-            print(f"📝 Conclusão {acao} para auditoria {auditoria_id}, área {area_id} por {usuario_nome}")
             return jsonify({
                 'success': True, 
                 'message': mensagem,
@@ -101,6 +128,8 @@ def api_salvar_conclusao():
             
     except Exception as e:
         print(f"❌ Erro ao salvar conclusão: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -112,6 +141,7 @@ def api_buscar_conclusao():
     from database import engine
     from sqlalchemy import text
     from flask import session
+    import json
     
     auditoria_id = request.args.get('auditoria_id')
     area_id = request.args.get('area_id')
@@ -140,23 +170,60 @@ def api_buscar_conclusao():
             }).fetchone()
             
             if result:
+                # ⭐ PARSE DO JSON
+                conclusao_data = result[1]
+                
+                # ⭐ SE FOR STRING, TENTAR CONVERTER PARA DICT
+                if isinstance(conclusao_data, str):
+                    try:
+                        conclusao_data = json.loads(conclusao_data)
+                    except:
+                        conclusao_data = {'conclusao': conclusao_data}
+                elif isinstance(conclusao_data, dict):
+                    # Já é um dicionário
+                    pass
+                else:
+                    # Fallback
+                    conclusao_data = {'conclusao': str(conclusao_data)}
+                
+                # ⭐ GARANTIR QUE TODOS OS CAMPOS SWOT EXISTAM
+                conclusao_data.setdefault('conclusao', '')
+                conclusao_data.setdefault('forca', '')
+                conclusao_data.setdefault('fraqueza', '')
+                conclusao_data.setdefault('oportunidades', '')
+                conclusao_data.setdefault('ameacas', '')
+                
                 return jsonify({
                     'success': True,
                     'conclusao': {
                         'id': result[0],
-                        'texto': result[1],
+                        'texto': conclusao_data,
                         'created_at': result[2].strftime('%d/%m/%Y %H:%M') if result[2] else None,
                         'updated_at': result[3].strftime('%d/%m/%Y %H:%M') if result[3] else None
                     }
                 })
             else:
+                # ⭐ RETORNAR ESTRUTURA VAZIA PARA O USUÁRIO PREENCHER
                 return jsonify({
                     'success': True,
-                    'conclusao': None
+                    'conclusao': {
+                        'id': None,
+                        'texto': {
+                            'conclusao': '',
+                            'forca': '',
+                            'fraqueza': '',
+                            'oportunidades': '',
+                            'ameacas': ''
+                        },
+                        'created_at': None,
+                        'updated_at': None
+                    }
                 })
                 
     except Exception as e:
         print(f"❌ Erro ao buscar conclusão: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -168,6 +235,7 @@ def api_historico_conclusoes():
     from database import engine
     from sqlalchemy import text
     from flask import session
+    import json
     
     auditoria_id = request.args.get('auditoria_id')
     area_id = request.args.get('area_id')
@@ -175,7 +243,6 @@ def api_historico_conclusoes():
     if not auditoria_id or not area_id:
         return jsonify({'success': False, 'error': 'Parâmetros incompletos'}), 400
     
-    # ⭐ PEGAR PERFIL DO USUÁRIO DA SESSÃO
     usuario_logado = session.get('usuario_nome', '')
     perfil = session.get('usuario_perfil', '')
     is_admin = perfil in ['administrador', 'admin', 'Administrador']
@@ -198,15 +265,38 @@ def api_historico_conclusoes():
             
             conclusoes = []
             for row in results:
+                # ⭐ PARSE DO JSON
+                conclusao_data = row[2]
+                
+                if isinstance(conclusao_data, str):
+                    try:
+                        conclusao_data = json.loads(conclusao_data)
+                    except:
+                        conclusao_data = {'conclusao': conclusao_data}
+                elif not isinstance(conclusao_data, dict):
+                    conclusao_data = {'conclusao': str(conclusao_data)}
+                
+                # ⭐ GARANTIR TODOS OS CAMPOS
+                conclusao_data.setdefault('conclusao', '')
+                conclusao_data.setdefault('forca', '')
+                conclusao_data.setdefault('fraqueza', '')
+                conclusao_data.setdefault('oportunidades', '')
+                conclusao_data.setdefault('ameacas', '')
+                
+                # ⭐ EXTRAIR TEXTO PARA EXIBIÇÃO RESUMIDA
+                texto_resumido = conclusao_data.get('conclusao', '') or ''
+                if len(texto_resumido) > 100:
+                    texto_resumido = texto_resumido[:100] + '...'
+                
                 conclusoes.append({
                     'id': row[0],
                     'usuario_nome': row[1],
-                    'conclusao': row[2],
+                    'conclusao': conclusao_data,
+                    'texto_resumido': texto_resumido,
                     'created_at': row[3].strftime('%d/%m/%Y %H:%M') if row[3] else None,
                     'updated_at': row[4].strftime('%d/%m/%Y %H:%M') if row[4] else None
                 })
             
-            # ⭐ RETORNAR TAMBÉM O PERFIL DO USUÁRIO
             return jsonify({
                 'success': True,
                 'conclusoes': conclusoes,
@@ -216,12 +306,14 @@ def api_historico_conclusoes():
                 
     except Exception as e:
         print(f"❌ Erro ao buscar histórico: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @conclusao_bp.route('/relatorios/gerar-conclusao', methods=['POST'])
 def gerar_relatorio_conclusao():
     """
-    Gera o relatório de conclusão em PDF
+    Gera o relatório de conclusão em PDF com suporte a SWOT
     """
     from flask import session, make_response
     from logic import gerar_pdf_conclusao
@@ -230,6 +322,7 @@ def gerar_relatorio_conclusao():
     from datetime import datetime
     from zoneinfo import ZoneInfo
     import traceback
+    import json
     
     print("=" * 50)
     print("🔵 ROTA /relatorios/gerar-conclusao FOI CHAMADA!")
@@ -281,10 +374,25 @@ def gerar_relatorio_conclusao():
                     return jsonify({'error': 'Você não tem permissão para baixar esta conclusão'}), 403
                 
                 usuario_conclusao = result[1]
-                texto_conclusao = result[2]
+                conclusao_data = result[2]
                 data_criacao = result[3]
                 
-                # ⭐ DETERMINAR SE O USUÁRIO LOGADO É O AUTOR
+                # ⭐ PARSE DO JSON
+                if isinstance(conclusao_data, str):
+                    try:
+                        conclusao_data = json.loads(conclusao_data)
+                    except:
+                        conclusao_data = {'conclusao': conclusao_data}
+                elif not isinstance(conclusao_data, dict):
+                    conclusao_data = {'conclusao': str(conclusao_data)}
+                
+                # ⭐ GARANTIR TODOS OS CAMPOS
+                conclusao_data.setdefault('conclusao', '')
+                conclusao_data.setdefault('forca', '')
+                conclusao_data.setdefault('fraqueza', '')
+                conclusao_data.setdefault('oportunidades', '')
+                conclusao_data.setdefault('ameacas', '')
+                
                 is_owner = (usuario_conclusao == usuario_logado)
                 
             elif usuario_filtro and is_admin:
@@ -307,10 +415,23 @@ def gerar_relatorio_conclusao():
                     return jsonify({'error': f'Nenhuma conclusão encontrada para {usuario_filtro}'}), 404
                 
                 usuario_conclusao = result[1]
-                texto_conclusao = result[2]
+                conclusao_data = result[2]
                 data_criacao = result[3]
                 
-                # ⭐ ADMIN BAIXANDO CONCLUSÃO DE OUTRO
+                if isinstance(conclusao_data, str):
+                    try:
+                        conclusao_data = json.loads(conclusao_data)
+                    except:
+                        conclusao_data = {'conclusao': conclusao_data}
+                elif not isinstance(conclusao_data, dict):
+                    conclusao_data = {'conclusao': str(conclusao_data)}
+                
+                conclusao_data.setdefault('conclusao', '')
+                conclusao_data.setdefault('forca', '')
+                conclusao_data.setdefault('fraqueza', '')
+                conclusao_data.setdefault('oportunidades', '')
+                conclusao_data.setdefault('ameacas', '')
+                
                 is_owner = False
                 
             else:
@@ -331,17 +452,39 @@ def gerar_relatorio_conclusao():
                 
                 if not result and conclusao_texto:
                     usuario_conclusao = usuario_logado
-                    texto_conclusao = conclusao_texto
+                    conclusao_data = {
+                        'conclusao': conclusao_texto,
+                        'forca': '',
+                        'fraqueza': '',
+                        'oportunidades': '',
+                        'ameacas': ''
+                    }
                     is_owner = True
                 elif not result:
                     return jsonify({'error': 'Nenhuma conclusão encontrada para este usuário'}), 404
                 else:
                     usuario_conclusao = result[1]
-                    texto_conclusao = result[2]
+                    conclusao_data = result[2]
                     data_criacao = result[3]
-                    is_owner = True  # ⭐ É O PRÓPRIO USUÁRIO
+                    
+                    if isinstance(conclusao_data, str):
+                        try:
+                            conclusao_data = json.loads(conclusao_data)
+                        except:
+                            conclusao_data = {'conclusao': conclusao_data}
+                    elif not isinstance(conclusao_data, dict):
+                        conclusao_data = {'conclusao': str(conclusao_data)}
+                    
+                    conclusao_data.setdefault('conclusao', '')
+                    conclusao_data.setdefault('forca', '')
+                    conclusao_data.setdefault('fraqueza', '')
+                    conclusao_data.setdefault('oportunidades', '')
+                    conclusao_data.setdefault('ameacas', '')
+                    
+                    is_owner = True
             
             print(f"📌 is_owner: {is_owner} (usuário logado: {usuario_logado}, autor: {usuario_conclusao})")
+            print(f"📊 Dados da conclusão: {conclusao_data}")
             
             # Buscar dados da área
             query_area = text("""
@@ -383,11 +526,11 @@ def gerar_relatorio_conclusao():
             unidade=unidade,
             codigo_auditoria=codigo_auditoria,
             titulo_auditoria=titulo_auditoria,
-            conclusao=texto_conclusao,
+            conclusao_data=conclusao_data,  # ⭐ PASSA O DICT COMPLETO
             orientacao=orientacao,
             usuario_nome=usuario_logado,
             usuario_conclusao=usuario_conclusao,
-            is_owner=is_owner  # ⭐ PASSA O FLAG
+            is_owner=is_owner
         )
         
         print(f"✅ PDF gerado! Tamanho: {len(pdf_bytes)} bytes")
@@ -396,7 +539,6 @@ def gerar_relatorio_conclusao():
         TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
         data_atual = datetime.now(TZ_BRASILIA).strftime('%Y%m%d_%H%M')
         
-        # ⭐ NOME DO ARQUIVO COM INDICAÇÃO DE VALIDADE
         if is_owner:
             nome_arquivo = f"relatorio_conclusao_{usuario_conclusao.replace(' ', '_')}_assinado_{data_atual}.pdf"
         else:

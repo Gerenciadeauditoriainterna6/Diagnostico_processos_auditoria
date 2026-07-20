@@ -1,0 +1,1395 @@
+.checklists-container {
+    max-width: 100%;
+    padding: 0 20px;
+}
+.cards-checklists {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.card-checklist {
+    flex: 1;
+    min-width: 250px;
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.card-checklist:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.card-checklist-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-icon i {
+    font-size: 24px;
+    color: white;
+}
+
+.card-title h4 {
+    margin: 0;
+    color: #184145;
+    font-size: 16px;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.status-badge.nao-iniciado { background: #e9ecef; color: #6c757d; }
+.status-badge.em-andamento { background: #fff3cd; color: #856404; }
+.status-badge.concluido { background: #d4edda; color: #155724; }
+
+.card-progresso {
+    margin: 15px 0;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.progress-bar {
+    background: #e0e0e0;
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s;
+}
+
+.btn-checklist {
+    width: 100%;
+    padding: 10px;
+    background: #184145;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-checklist:hover {
+    background: #0b5b99;
+    transform: translateY(-1px);
+}
+
+.analise-card {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.analise-card-header {
+    background: #f8f9fa;
+    padding: 12px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.analise-card-body {
+    padding: 20px;
+    display: none;
+}
+
+.analise-card.expanded .analise-card-body {
+    display: block;
+}
+
+.analise-categoria {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.categoria-governanca { background: #e3f2fd; color: #0b5b99; }
+.categoria-riscos { background: #fff3e0; color: #fd6a14; }
+.categoria-controles { background: #e8f5e9; color: #2e7d32; }
+
+.analise-detalhe {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid #0b5b99;
+}
+
+.btn-primary {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 10px 20px;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+}
+
+.modal-fechar {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    background: #f8f9fa;
+}
+
+.pergunta-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+}
+
+.pergunta-header {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.pergunta-numero {
+    background: #184145;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.pergunta-texto {
+    font-weight: 500;
+    color: #333;
+    flex: 1;
+}
+
+.pergunta-opcoes {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    padding-left: 40px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.pergunta-comentario {
+    padding-left: 40px;
+}
+
+.comentario-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    resize: vertical;
+}
+
+.checklist-footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.checklist-botoes {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 15px;
+}
+
+.btn-salvar-checklist {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-concluir-checklist {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #184145;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: #0b5b99;
+}
+
+.form-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.form-section h3 i {
+    margin-right: 3px;
+    color: #0b5b99;
+}
+
+.text-muted {
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.page-header {
+    margin-bottom: 25px;
+}
+
+.page-header h1 {
+    color: #184145;
+    font-size: 32px;
+    margin-bottom: 5px;
+}
+
+.page-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.page-header h1 i {
+    margin-right: 10px;
+    background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
+    padding: 10px;
+    border-radius: 12px;
+    color: white;
+}
+
+textarea.form-control {
+    resize: vertical;
+    font-family: inherit;
+}
+
+#analise-auditor-texto, #analise-auditor-sugestao, 
+#analise-auditor-necessidade, #analise-auditor-ganho,
+#analise-auditor-observacoes {
+    background: #fafafa;
+    border: 1px solid #ddd;
+}
+
+#analise-auditor-texto:focus, #analise-auditor-sugestao:focus,
+#analise-auditor-necessidade:focus, #analise-auditor-ganho:focus,
+#analise-auditor-observacoes:focus {
+    background: white;
+    border-color: #184145;
+    outline: none;
+}
+
+/* Cards de Análise do Auditor */
+.analise-auditor-card {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.analise-auditor-card:hover {
+    border-color: #184145;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.analise-auditor-header {
+    background: #f8f9fa;
+    padding: 12px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.analise-auditor-header:hover {
+    background: #f0f2f5;
+}
+
+.analise-auditor-body {
+    padding: 20px;
+    display: none;
+}
+
+.analise-auditor-card.expanded .analise-auditor-body {
+    display: block;
+}
+
+.analise-auditor-detalhe {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid #0b5b99;
+}
+
+.analise-auditor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit-analise-auditor {
+    background: transparent;
+    color: #ffc107;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-edit-analise-auditor:hover {
+    background: rgba(255,193,7,0.1);
+}
+
+.btn-delete-analise-auditor {
+    background: transparent;
+    color: #dc3545;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-delete-analise-auditor:hover {
+    background: rgba(220,53,69,0.1);
+}
+
+/* Cards de Análise do Auditor - NOVO DESIGN */
+.analise-auditor-card {
+    background: white;
+    border: none;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+.analise-auditor-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+.analise-auditor-header {
+    background: linear-gradient(135deg, #184145 0%, #0d3a3f 100%);
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.analise-auditor-header:hover {
+    background: linear-gradient(135deg, #1a4a4f 0%, #0f4247 100%);
+}
+
+.analise-auditor-header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.analise-auditor-titulo {
+    font-weight: 600;
+    font-size: 15px;
+    color: white;
+}
+
+.analise-auditor-data {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.15);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.analise-auditor-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-implantada {
+    background: #28a745;
+    color: white;
+}
+
+.badge-nao-implantada {
+    background: #6c757d;
+    color: white;
+}
+
+.badge-pendente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.analise-auditor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit-analise-auditor, .btn-delete-analise-auditor {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.btn-edit-analise-auditor:hover {
+    background: #ffc107;
+    color: #333;
+}
+
+.btn-delete-analise-auditor:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.analise-auditor-body {
+    padding: 20px;
+    display: none;
+    background: #fafafa;
+}
+
+.analise-auditor-card.expanded .analise-auditor-body {
+    display: block;
+}
+
+/* Grid de informações */
+.analise-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.analise-card-section {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+}
+
+.analise-card-section h4 {
+    color: #184145;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.analise-texto {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #333;
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+/* Plano de ação destacado */
+.plano-acao-card {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-left: 4px solid #28a745;
+}
+
+/* Histórico e Follow-ups */
+.historico-container, .followups-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 10px;
+    padding: 8px;
+}
+
+.historico-item, .followup-item {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    transition: background 0.2s;
+}
+
+.historico-item:hover, .followup-item:hover {
+    background: #f8f9fa;
+}
+
+.historico-header, .followup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.historico-status {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.followup-pergunta {
+    font-weight: 600;
+    font-size: 12px;
+    color: #184145;
+}
+
+.followup-data {
+    font-size: 11px;
+    color: #999;
+}
+
+.btn-registrar-andamento, .btn-registrar-followup {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+}
+
+.btn-registrar-andamento:hover, .btn-registrar-followup:hover {
+    background: #0b5b99;
+}
+
+/* Ajustes finos */
+.analise-card-section {
+    transition: all 0.2s ease;
+}
+
+.analise-card-section:hover {
+    border-color: #184145;
+}
+
+.analise-texto {
+    transition: background 0.2s;
+}
+
+.analise-texto:hover {
+    background: #f0f2f5;
+}
+
+/* Botões mais elegantes */
+.btn-registrar-andamento, .btn-registrar-followup {
+    background: transparent;
+    border: 1px solid #184145;
+    color: #184145;
+}
+
+.btn-registrar-andamento:hover, .btn-registrar-followup:hover {
+    background: #184145;
+    color: white;
+    border-color: #184145;
+}
+
+.analise-texto.empty {
+    color: #999;
+    font-style: italic;
+}
+
+/* Estilos para upload de arquivo */
+.btn-file-upload {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-file-upload:hover {
+    background: #0b5b99;
+    transform: translateY(-1px);
+}
+
+.file-name {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #e0e0e0;
+}
+
+.btn-remove-file {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.btn-remove-file:hover {
+    background: #f8d7da;
+}
+
+.custom-file-upload {
+    margin-top: 5px;
+}
+
+/* Botão de download de anexo */
+.btn-download-anexo {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-download-anexo:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220,53,69,0.3);
+}
+
+.btn-download-anexo i {
+    font-size: 14px;
+}
+
+.btn-download-anexo i:first-child {
+    color: #fff;
+}
+
+.btn-download-anexo i:last-child {
+    margin-left: 5px;
+}
+
+/* ============================================ */
+/* ETAPAS (AGRUPADOR) */
+/* ============================================ */
+
+.analise-etapa-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.analise-etapa-header {
+    background: #f8f9fa;
+    padding: 14px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.analise-etapa-header:hover {
+    background: #e9ecef;
+}
+
+.analise-etapa-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.analise-etapa-header-left i {
+    color: #0b5b99;
+    font-size: 16px;
+}
+
+.analise-etapa-header-left strong {
+    color: #184145;
+    font-size: 14px;
+}
+
+.analise-etapa-header .fa-chevron-down {
+    color: #6c757d;
+    transition: transform 0.2s;
+}
+
+.analise-etapa-body {
+    padding: 20px;
+    background: #fafafa;
+    display: none;
+}
+
+/* Quando a etapa está expandida */
+.analise-etapa-card.expanded .analise-etapa-body {
+    display: block;
+}
+
+.analise-etapa-card.expanded .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+
+/* ============================================ */
+/* CARDS DE ANÁLISE DO AUDITADO */
+/* ============================================ */
+
+.analise-auditado-card {
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+}
+
+.analise-auditado-card:last-child {
+    margin-bottom: 0;
+}
+
+/* CABEÇALHO */
+.analise-auditado-header {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.analise-auditado-header:hover {
+    background: #f1f3f5;
+}
+
+/* Lado esquerdo */
+.analise-auditado-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.analise-auditado-header-left i {
+    font-size: 16px;
+    width: 24px;
+}
+
+/* Título da categoria */
+.analise-auditado-titulo {
+    font-weight: 600;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+/* Badges */
+.analise-auditado-badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-implantada {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-nao-implantada {
+    background: #e9ecef;
+    color: #495057;
+}
+
+/* Ações do cabeçalho */
+.analise-auditado-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Botão Editar */
+.btn-edit-analise-auditado {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-edit-analise-auditado:hover {
+    background: #e9ecef;
+    color: #ffc107;
+}
+
+/* Seta */
+.analise-auditado-actions .fa-chevron-down {
+    color: #adb5bd;
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+
+/* CORPO DO CARD (escondido por padrão) */
+.analise-auditado-body {
+    display: none;
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Quando o card está expandido */
+.analise-auditado-card.expanded .analise-auditado-body {
+    display: block;
+}
+
+/* Quando expandido, a seta gira */
+.analise-auditado-card.expanded .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* REGRA CRÍTICA - Faz o corpo do card aparecer quando expandido */
+.analise-auditado-card.expanded .analise-auditado-body {
+    display: block;
+}
+
+/* Garantir que o corpo comece escondido */
+.analise-auditado-body {
+    display: none;
+}
+
+/* Badges para Análises do Auditor */
+.analise-auditor-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.badge-implantada {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.badge-nao-implantada {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.badge-pendente {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* Badges para Análises do Auditado (consistentes) */
+.analise-auditado-badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Estilos para upload de evidências no checklist */
+.evidencias-container {
+    margin-top: 10px;
+    padding-left: 40px;
+}
+
+.btn-evidencias {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-top: 5px;
+}
+
+.btn-evidencias:hover {
+    background: #5a6268;
+}
+
+.evidencias-lista {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.evidencia-item {
+    background: #184145;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.evidencia-item:hover {
+    background: #21575c;
+    transform: translateY(-1px);
+}
+
+.evidencia-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.evidencia-info span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.evidencia-pendente {
+    color: #ffc107;
+    margin-left: 8px;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.evidencia-acoes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-remover-evidencia,
+.btn-baixar-evidencia {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.btn-remover-evidencia {
+    color: #ff6b6b;
+}
+
+.btn-remover-evidencia:hover {
+    background: rgba(220,53,69,.2);
+    color: #fff;
+}
+
+.btn-baixar-evidencia {
+    color: #7dd3fc;
+}
+
+.btn-baixar-evidencia:hover {
+    background: rgba(11,91,153,.25);
+    color: #fff;
+}
+
+/* Badges UNIFICADOS - funciona para auditor e auditado */
+.analise-auditor-badge,
+.analise-auditado-badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.badge-implantada {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.badge-nao-implantada {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.badge-pendente {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.categoria-governanca { color: #0b5b99; }
+.categoria-riscos { color: #fd6a14; }
+.categoria-controles { color: #17a2b8; }
+
+/* ============================================ */
+/* ESTILOS PARA UPLOAD DE EVIDÊNCIAS - VERSÃO MELHORADA */
+/* ============================================ */
+
+/* Container do upload */
+.custom-file-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+/* Botão de upload */
+.btn-file-upload {
+    background: linear-gradient(135deg, #184145 0%, #0d3a3f 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-file-upload:hover {
+    background: linear-gradient(135deg, #0d3a3f 0%, #0b2e32 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(24, 65, 69, 0.3);
+}
+
+.btn-file-upload:active {
+    transform: translateY(0);
+}
+
+.btn-file-upload i {
+    font-size: 18px;
+    color: #7dd3fc;
+}
+
+/* Arquivo selecionado */
+.file-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #f8f9fa;
+    border: 2px dashed #184145;
+    border-radius: 10px;
+    font-size: 13px;
+    animation: fadeIn 0.3s ease;
+}
+
+.file-name i:first-child {
+    color: #dc3545;
+    font-size: 20px;
+}
+
+.file-name span {
+    flex: 1;
+    color: #333;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-name .btn-remove-file {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.file-name .btn-remove-file:hover {
+    background: #fee2e2;
+    transform: scale(1.1);
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Texto de ajuda */
+.text-muted {
+    color: #6c757d;
+    font-size: 12px;
+    margin-top: 6px;
+    display: block;
+}
+
+/* ============================================ */
+/* BOTÃO DE DOWNLOAD DE EVIDÊNCIAS - VERSÃO OTIMIZADA */
+/* ============================================ */
+
+.btn-download-evidencia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    color: #0b5b99;
+    border: 1.5px solid #0b5b99;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    min-width: 70px;
+}
+
+.btn-download-evidencia i {
+    font-size: 12px;
+    color: #0b5b99;
+    transition: color 0.25s ease;
+}
+
+.btn-download-evidencia:hover {
+    background: #0b5b99;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(11, 91, 153, 0.3);
+}
+
+.btn-download-evidencia:hover i {
+    color: white;
+}
+
+.btn-download-evidencia:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(11, 91, 153, 0.2);
+}
+
+/* Versão pequena (para cards compactos) */
+.btn-download-evidencia.sm {
+    padding: 3px 10px;
+    font-size: 10px;
+    min-width: 50px;
+}
+
+.btn-download-evidencia.sm i {
+    font-size: 10px;
+}
+
+/* Versão com fundo preenchido (mais chamativo) */
+.btn-download-evidencia.solid {
+    background: #0b5b99;
+    color: white;
+    border: none;
+}
+
+.btn-download-evidencia.solid i {
+    color: white;
+}
+
+.btn-download-evidencia.solid:hover {
+    background: #084a7a;
+    box-shadow: 0 4px 12px rgba(11, 91, 153, 0.4);
+}
+
+/* Botão de download de anexo (plano de ação) - mantido com estilo existente */
+.btn-download-anexo {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-download-anexo:hover {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220,53,69,0.3);
+}
+
+.btn-download-anexo i {
+    font-size: 14px;
+}

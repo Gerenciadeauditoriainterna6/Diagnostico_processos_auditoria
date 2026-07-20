@@ -5703,18 +5703,19 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     return buffer.getvalue()
 
 def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade, 
-                        codigo_auditoria, titulo_auditoria, conclusao, 
+                        codigo_auditoria, titulo_auditoria, conclusao_data, 
                         orientacao="RETRATO", usuario_nome="Usuário", 
-                        usuario_conclusao=None, is_owner=False):  # ⭐ NOVO PARÂMETRO
+                        usuario_conclusao=None, is_owner=False):
     """
-    Gera o relatório de conclusão em PDF
+    Gera o relatório de conclusão em PDF com suporte a SWOT
     
     Parâmetros:
+    - conclusao_data: Pode ser uma string (texto) ou um dicionário com os campos da SWOT
     - usuario_conclusao: Nome do usuário que escreveu a conclusão
     - is_owner: True se o usuário logado é o autor da conclusão (permite assinatura)
     """
     from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib import colors
     from reportlab.lib.units import cm
@@ -5725,6 +5726,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     from zoneinfo import ZoneInfo
     from PyPDF2 import PdfReader
     import copy
+    import json
     
     buffer = io.BytesIO()
     TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
@@ -5734,6 +5736,17 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     dados_gai = buscar_dados_gerencia_auditoria()
     email_gai = dados_gai['email']
     telefone_gai = dados_gai['telefone']
+    
+    # ⭐ EXTRAIR DADOS DA CONCLUSÃO (pode ser string ou dict)
+    if isinstance(conclusao_data, dict):
+        texto_conclusao = conclusao_data.get('conclusao', '')
+        forca = conclusao_data.get('forca', '')
+        fraqueza = conclusao_data.get('fraqueza', '')
+        oportunidades = conclusao_data.get('oportunidades', '')
+        ameacas = conclusao_data.get('ameacas', '')
+    else:
+        texto_conclusao = str(conclusao_data) if conclusao_data else ''
+        forca = fraqueza = oportunidades = ameacas = ''
     
     # Definir orientação
     if orientacao.upper() == "PAISAGEM":
@@ -5794,7 +5807,38 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         spaceAfter=8
     )
     
-    # ⭐ ESTILO PARA AVISO DE VALIDADE (apenas para não proprietários)
+    # ⭐ ESTILO PARA SWOT
+    swot_titulo_style = ParagraphStyle(
+        'SwotTitulo',
+        parent=normal_style,
+        fontSize=12,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        spaceAfter=10,
+        textColor=colors.HexColor('#184145')
+    )
+    
+    swot_label_style = ParagraphStyle(
+        'SwotLabel',
+        parent=normal_style,
+        fontSize=10,
+        fontName='Helvetica-Bold',
+        spaceAfter=3,
+        textColor=colors.HexColor('#184145')
+    )
+    
+    swot_texto_style = ParagraphStyle(
+        'SwotTexto',
+        parent=normal_style,
+        fontSize=9,
+        leading=12,
+        alignment=TA_JUSTIFY,
+        leftIndent=10,
+        rightIndent=10,
+        spaceAfter=8
+    )
+    
+    # ⭐ ESTILO PARA AVISO DE VALIDADE
     aviso_style = ParagraphStyle(
         'AvisoStyle',
         parent=normal_style,
@@ -5843,12 +5887,12 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     # ⭐ AVISO DE VALIDADE (se NÃO for o proprietário)
     if not is_owner:
         story.append(Paragraph(
-            "<b>AVISO IMPORTANTE</b>",
+            "AVISO IMPORTANTE",
             aviso_style
         ))
         story.append(Spacer(1, 5))
         story.append(Paragraph(
-            "<b>Este documento foi baixado por um usuário que NÃO é o autor da conclusão.</b><br/>"
+            "Este documento foi baixado por um usuário que NÃO é o autor da conclusão.<br/>"
             "Portanto, este relatório <b>É APENAS PARA VISUALIZAÇÃO</b> para fins de consulta.<br/><br/>"
             "Para obter um documento com validade, solicite que o autor da conclusão "
             "baixe o relatório diretamente de seu acesso.",
@@ -5856,12 +5900,74 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         ))
         story.append(Spacer(1, 15))
     
-    # Conclusão
-    story.append(Paragraph("<b>CONCLUSÃO:</b>", info_style))
-    story.append(Spacer(1, 5))
-    story.append(Paragraph(conclusao, conclusao_style))
+    # ⭐ CONCLUSÃO GERAL
+    if texto_conclusao:
+        story.append(Paragraph("<b>CONCLUSÃO:</b>", info_style))
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(texto_conclusao, conclusao_style))
+        story.append(Spacer(1, 20))
     
-    story.append(Spacer(1, 30))
+    # ⭐ ANÁLISE SWOT
+    tem_swot = any([forca, fraqueza, oportunidades, ameacas])
+    if tem_swot:
+        story.append(Paragraph("<b>ANÁLISE SWOT</b>", swot_titulo_style))
+        story.append(Spacer(1, 5))
+        
+        # ⭐ CRIAR TABELA SWOT (2x2)
+        dados_swot = []
+        
+        # Forças
+        forca_texto = forca if forca else 'Não informado'
+        dados_swot.append([
+            Paragraph('<b>FORÇAS</b>', swot_label_style),
+            Paragraph(forca_texto, swot_texto_style)
+        ])
+        
+        # Fraquezas
+        fraqueza_texto = fraqueza if fraqueza else 'Não informado'
+        dados_swot.append([
+            Paragraph('<b>FRAQUEZAS</b>', swot_label_style),
+            Paragraph(fraqueza_texto, swot_texto_style)
+        ])
+        
+        # Oportunidades
+        oportunidades_texto = oportunidades if oportunidades else 'Não informado'
+        dados_swot.append([
+            Paragraph('<b>OPORTUNIDADES</b>', swot_label_style),
+            Paragraph(oportunidades_texto, swot_texto_style)
+        ])
+        
+        # Ameaças
+        ameacas_texto = ameacas if ameacas else 'Não informado'
+        dados_swot.append([
+            Paragraph('<b>AMEAÇAS</b>', swot_label_style),
+            Paragraph(ameacas_texto, swot_texto_style)
+        ])
+        
+        # ⭐ CRIAR TABELA
+        tabela_swot = Table(dados_swot, colWidths=[3.5*cm, 12*cm])
+        tabela_swot.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+        ]))
+        
+        story.append(tabela_swot)
+        story.append(Spacer(1, 15))
+    
+    # ⭐ SE NÃO HOUVER NEM CONCLUSÃO NEM SWOT
+    if not texto_conclusao and not tem_swot:
+        story.append(Paragraph(
+            "<i>Nenhuma conclusão foi registrada para esta auditoria.</i>",
+            conclusao_style
+        ))
+        story.append(Spacer(1, 20))
     
     # ⭐ ASSINATURA (apenas se for o proprietário)
     if is_owner:
@@ -5871,14 +5977,24 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
         story.append(Spacer(1, 5))
         story.append(Paragraph(
-            f"{datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
+            f"Documento assinado digitalmente em {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
             assinatura_style
         ))
     else:
         # ⭐ SE NÃO FOR O PROPRIETÁRIO, MOSTRA UM SELO DE "SEM VALIDADE"
         story.append(Spacer(1, 30))
-    
-        
+        story.append(Paragraph(
+            "─" * 60,
+            assinatura_style
+        ))
+        story.append(Paragraph(
+            "<b><font color='#dc3545'>DOCUMENTO SEM VALIDADE JURÍDICA</font></b>",
+            assinatura_style
+        ))
+        story.append(Paragraph(
+            "<font color='#999'>Este documento foi baixado por um terceiro e não possui valor legal.</font>",
+            assinatura_style
+        ))
     
     # ============================================================
     # ⭐ RODAPÉ USANDO A FUNÇÃO PADRONIZADA

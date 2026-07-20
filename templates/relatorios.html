@@ -122,7 +122,7 @@
 
     <!-- ===== MODAL DE CONCLUSÃO ===== -->
     <div id="modal-conclusao" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-content" style="max-width: 850px;">
             <div class="modal-header">
                 <h2><i class="fas fa-pen-fancy"></i> Relatório de Conclusão</h2>
                 <button class="modal-close" id="btn-fechar-modal-conclusao">&times;</button>
@@ -131,22 +131,75 @@
                 <!-- ⭐ INFO -->
                 <div class="info-box" style="margin-bottom: 20px; background: #e8f4f8; border-left: 4px solid #0b5b99; padding: 12px 16px; border-radius: 10px;">
                     <i class="fas fa-info-circle" style="color: #0b5b99;"></i>
-                    <span style="color: #184145;">Escreva sua conclusão sobre a auditoria. Este texto será incluído no relatório final.</span>
+                    <span style="color: #184145;">Preencha sua conclusão sobre a auditoria, incluindo a análise SWOT.</span>
                 </div>
-                
-                <!-- ⭐ CAMPO DE TEXTO -->
+
+                <!-- ⭐ CAMPO DE TEXTO DA CONCLUSÃO -->
                 <div class="form-group">
-                    <label><i class="fas fa-edit"></i> Conclusão:</label>
-                    <textarea id="conclusao_texto" class="form-control" rows="10" 
-                        placeholder="Digite sua conclusão sobre a auditoria..."
-                        style="min-height: 200px; resize: vertical; width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 14px;"></textarea>
-                    <small class="text-muted" style="display: block; margin-top: 5px; color: #6c757d;">
-                        <i class="fas fa-info-circle"></i> Esta conclusão será salva e pode ser editada posteriormente.
+                    <label><i class="fas fa-edit"></i> Conclusão Geral:</label>
+                    <textarea id="conclusao_texto" class="form-control" rows="6" 
+                        placeholder="Digite sua conclusão geral sobre a auditoria..."
+                        style="min-height: 120px; resize: vertical; width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 14px;"></textarea>
+                </div>
+
+                <!-- ⭐ MATRIZ SWOT -->
+                <div style="margin-top: 20px;">
+                    <h4 style="color: #184145; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-chess-board" style="color: #0b5b99;"></i>
+                        Análise SWOT
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <!-- Forças -->
+                        <div class="swot-card swot-forca">
+                            <div class="swot-header">
+                                <i class="fas fa-arrow-up" style="color: #28a745;"></i>
+                                <span>Forças</span>
+                            </div>
+                            <textarea id="swot_forca" class="swot-textarea" rows="4" 
+                                placeholder="Ex: Equipe qualificada, processos bem definidos..."
+                                style="width: 100%; padding: 10px; border: 2px solid #28a745; border-radius: 8px; resize: vertical; font-size: 13px; background: #f8fff8;"></textarea>
+                        </div>
+
+                        <!-- Fraquezas -->
+                        <div class="swot-card swot-fraqueza">
+                            <div class="swot-header">
+                                <i class="fas fa-arrow-down" style="color: #dc3545;"></i>
+                                <span>Fraquezas</span>
+                            </div>
+                            <textarea id="swot_fraqueza" class="swot-textarea" rows="4" 
+                                placeholder="Ex: Falta de integração, processos manuais..."
+                                style="width: 100%; padding: 10px; border: 2px solid #dc3545; border-radius: 8px; resize: vertical; font-size: 13px; background: #fff8f8;"></textarea>
+                        </div>
+
+                        <!-- Oportunidades -->
+                        <div class="swot-card swot-oportunidade">
+                            <div class="swot-header">
+                                <i class="fas fa-lightbulb" style="color: #ffc107;"></i>
+                                <span>Oportunidades</span>
+                            </div>
+                            <textarea id="swot_oportunidade" class="swot-textarea" rows="4" 
+                                placeholder="Ex: Automatização, novos sistemas..."
+                                style="width: 100%; padding: 10px; border: 2px solid #ffc107; border-radius: 8px; resize: vertical; font-size: 13px; background: #fffcf0;"></textarea>
+                        </div>
+
+                        <!-- Ameaças -->
+                        <div class="swot-card swot-ameaca">
+                            <div class="swot-header">
+                                <i class="fas fa-exclamation-triangle" style="color: #fd6a14;"></i>
+                                <span>Ameaças</span>
+                            </div>
+                            <textarea id="swot_ameaca" class="swot-textarea" rows="4" 
+                                placeholder="Ex: Riscos de conformidade, mudanças regulatórias..."
+                                style="width: 100%; padding: 10px; border: 2px solid #fd6a14; border-radius: 8px; resize: vertical; font-size: 13px; background: #fff8f0;"></textarea>
+                        </div>
+                    </div>
+                    <small class="text-muted" style="display: block; margin-top: 8px; color: #6c757d;">
+                        <i class="fas fa-info-circle"></i> Preencha os campos da análise SWOT para uma conclusão mais completa.
                     </small>
                 </div>
-                
+
                 <!-- ⭐ HISTÓRICO DE CONCLUSÕES ANTERIORES -->
-                <div id="historico-conclusoes" style="margin-top: 20px; display: none;">
+                <div id="historico-conclusoes" style="margin-top: 25px; display: none;">
                     <hr style="border: 0; border-top: 2px solid #e0e0e0;">
                     <h4 style="color: #184145; margin-bottom: 10px;">
                         <i class="fas fa-history"></i> Conclusões Anteriores
@@ -645,6 +698,51 @@
         margin-top: 4px;
         white-space: pre-wrap;
         word-wrap: break-word;
+    }
+
+    /* ====== SWOT CARDS ====== */
+    .swot-card {
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.2s ease;
+    }
+
+    .swot-card:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    .swot-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .swot-textarea {
+        font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+        transition: border-color 0.2s;
+    }
+
+    .swot-textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(11,91,153,0.1);
+    }
+
+    .swot-forca .swot-header { color: #28a745; }
+    .swot-fraqueza .swot-header { color: #dc3545; }
+    .swot-oportunidade .swot-header { color: #ffc107; }
+    .swot-ameaca .swot-header { color: #fd6a14; }
+
+    @media (max-width: 640px) {
+        .swot-card {
+            grid-column: 1 / -1;
+        }
     }
 
 </style>
@@ -1233,7 +1331,7 @@
     let conclusaoAtual = null;
     let isAdmin = false;
 
-    // ⭐ Buscar conclusão existente do usuário logado
+    // Buscar conclusão existente do usuário logado (com SWOT)
     async function buscarConclusaoExistente() {
         const areaId = document.getElementById('area_relatorio').value;
         const auditoriaId = document.getElementById('auditoria_relatorio').value;
@@ -1244,14 +1342,32 @@
             const response = await fetch(`/api/conclusoes/buscar?auditoria_id=${auditoriaId}&area_id=${areaId}`);
             const data = await response.json();
             
+            console.log('📥 Dados da conclusão:', data);
+            
             if (data.success && data.conclusao) {
                 conclusaoAtual = data.conclusao;
-                document.getElementById('conclusao_texto').value = data.conclusao.texto || '';
+                
+                // ⭐ PEGAR OS DADOS DO JSON
+                const dados = data.conclusao.texto || {};
+                
+                // ⭐ PREENCHER TODOS OS CAMPOS
+                document.getElementById('conclusao_texto').value = dados.conclusao || '';
+                document.getElementById('swot_forca').value = dados.forca || '';
+                document.getElementById('swot_fraqueza').value = dados.fraqueza || '';
+                document.getElementById('swot_oportunidade').value = dados.oportunidades || '';
+                document.getElementById('swot_ameaca').value = dados.ameacas || '';
+                
+                console.log('✅ Conclusão carregada:', dados);
             } else {
+                // ⭐ LIMPAR TODOS OS CAMPOS
                 document.getElementById('conclusao_texto').value = '';
+                document.getElementById('swot_forca').value = '';
+                document.getElementById('swot_fraqueza').value = '';
+                document.getElementById('swot_oportunidade').value = '';
+                document.getElementById('swot_ameaca').value = '';
             }
             
-            // ⭐ Sempre carregar o histórico (todas as conclusões)
+            // ⭐ CARREGAR HISTÓRICO
             await carregarHistoricoConclusoes(auditoriaId, areaId);
             
         } catch (error) {
@@ -1259,7 +1375,7 @@
         }
     }
 
-    // ⭐ Carregar TODAS as conclusões (histórico)
+    // ⭐ Carregar TODAS as conclusões (histórico com SWOT)
     async function carregarHistoricoConclusoes(auditoriaId, areaId) {
         try {
             const response = await fetch(`/api/conclusoes/historico?auditoria_id=${auditoriaId}&area_id=${areaId}`);
@@ -1271,19 +1387,37 @@
             const historicoDiv = document.getElementById('historico-conclusoes');
             
             if (data.success && data.conclusoes && data.conclusoes.length > 0) {
-                // ⭐ USAR OS DADOS VINDOS DA API
                 const isAdmin = data.is_admin || false;
                 const usuarioLogado = data.usuario_logado || '';
                 
-                console.log('👑 É administrador? (API)', isAdmin);
-                console.log('👤 Usuário logado (API)', usuarioLogado);
-                console.log('📋 Total de conclusões:', data.conclusoes.length);
-                
-                // ⭐ Renderizar TODAS as conclusões
+                // ⭐ RENDERIZAR COM SWOT
                 container.innerHTML = data.conclusoes.map(item => {
                     const isOwn = item.usuario_nome === usuarioLogado;
+                    const dados = item.conclusao || {};
                     
-                    // ⭐ Admin pode baixar qualquer conclusão, usuário comum só a própria
+                    // ⭐ CONSTRUIR TEXTO PARA EXIBIÇÃO
+                    let textoExibicao = '';
+                    
+                    // Conclusão geral
+                    if (dados.conclusao) {
+                        textoExibicao += dados.conclusao;
+                    }
+                    
+                    // SWOT (se houver algum campo)
+                    const hasSwot = dados.forca || dados.fraqueza || dados.oportunidades || dados.ameacas;
+                    if (hasSwot) {
+                        textoExibicao += '\n\n📊 ANÁLISE SWOT:\n';
+                        if (dados.forca) textoExibicao += `✅ Forças: ${dados.forca}\n`;
+                        if (dados.fraqueza) textoExibicao += `❌ Fraquezas: ${dados.fraqueza}\n`;
+                        if (dados.oportunidades) textoExibicao += `💡 Oportunidades: ${dados.oportunidades}\n`;
+                        if (dados.ameacas) textoExibicao += `⚠️ Ameaças: ${dados.ameacas}\n`;
+                    }
+                    
+                    // ⭐ SE NÃO TIVER NADA, MOSTRAR MENSAGEM
+                    if (!textoExibicao.trim()) {
+                        textoExibicao = '(Nenhuma conclusão preenchida)';
+                    }
+                    
                     const podeBaixar = isAdmin || isOwn;
                     
                     const btnBaixar = podeBaixar ? `
@@ -1293,7 +1427,8 @@
                         </button>
                     ` : '<span style="color: #999; font-size: 11px;">(Somente o autor ou admin podem baixar)</span>';
                     
-                    const labelOwn = isOwn ? ' <span style="color: #0b5b99; font-weight: 600;">(Sua conclusão)</span>' : '';
+                    const isOwnLabel = isOwn ? ' <span style="color: #0b5b99; font-weight: 600;">(Sua conclusão)</span>' : '';
+                    const hasSwotLabel = hasSwot ? ' <span style="color: #fd6a14; font-weight: 600; font-size: 11px;">📊 SWOT</span>' : '';
                     
                     return `
                         <div class="conclusao-historico-item" style="${isOwn ? 'background: #e8f4f8; border-left-color: #0b5b99;' : ''}">
@@ -1301,11 +1436,12 @@
                                 <div>
                                     <span class="usuario">${escapeHtml(item.usuario_nome)}</span>
                                     <span class="data">${item.created_at || ''}</span>
-                                    ${labelOwn}
+                                    ${isOwnLabel}
+                                    ${hasSwotLabel}
                                 </div>
                                 ${btnBaixar}
                             </div>
-                            <div class="texto" style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(item.conclusao)}</div>
+                            <div class="texto" style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(textoExibicao)}</div>
                         </div>
                     `;
                 }).join('');
@@ -1372,16 +1508,28 @@
         }
     }
 
-    // ⭐ Salvar conclusão
+    // ⭐ Salvar conclusão com SWOT
     async function salvarConclusao() {
+        // ⭐ PEGAR TODOS OS CAMPOS
         const texto = document.getElementById('conclusao_texto').value.trim();
-        const areaId = document.getElementById('area_relatorio').value;
-        const auditoriaId = document.getElementById('auditoria_relatorio').value;
+        const forca = document.getElementById('swot_forca').value.trim();
+        const fraqueza = document.getElementById('swot_fraqueza').value.trim();
+        const oportunidades = document.getElementById('swot_oportunidade').value.trim();
+        const ameacas = document.getElementById('swot_ameaca').value.trim();
         
-        if (!texto) {
-            mostrarToast('⚠️ Por favor, escreva uma conclusão antes de gerar o relatório', 'warning');
+        // ⭐ VALIDAÇÃO: PELO MENOS UM CAMPO DEVE ESTAR PREENCHIDO
+        if (!texto && !forca && !fraqueza && !oportunidades && !ameacas) {
+            mostrarToast('⚠️ Preencha pelo menos um campo da conclusão', 'warning');
+            // ⭐ DESTACAR OS CAMPOS VAZIOS
+            document.getElementById('conclusao_texto').style.borderColor = '#dc3545';
+            setTimeout(() => {
+                document.getElementById('conclusao_texto').style.borderColor = '';
+            }, 3000);
             return false;
         }
+        
+        const areaId = document.getElementById('area_relatorio').value;
+        const auditoriaId = document.getElementById('auditoria_relatorio').value;
         
         if (!areaId || !auditoriaId) {
             mostrarToast('⚠️ Selecione a área e auditoria primeiro', 'warning');
@@ -1389,13 +1537,18 @@
         }
         
         try {
+            // ⭐ ENVIAR TODOS OS CAMPOS
             const response = await fetch('/api/conclusoes/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     auditoria_id: parseInt(auditoriaId),
                     area_id: parseInt(areaId),
-                    conclusao: texto
+                    conclusao: texto,
+                    forca: forca,
+                    fraqueza: fraqueza,
+                    oportunidades: oportunidades,
+                    ameacas: ameacas
                 })
             });
             
@@ -1420,12 +1573,18 @@
         const modal = document.getElementById('modal-conclusao');
         if (!modal) return;
         
-        // Resetar estado
+        // ⭐ RESETAR ESTADO
         document.getElementById('conclusao_texto').disabled = false;
         document.getElementById('conclusao_texto').style.background = '';
         document.getElementById('btn-salvar-conclusao').style.display = 'inline-flex';
         
-        // Buscar conclusão existente e histórico
+        // ⭐ LIMPAR CAMPOS SWOT
+        document.getElementById('swot_forca').value = '';
+        document.getElementById('swot_fraqueza').value = '';
+        document.getElementById('swot_oportunidade').value = '';
+        document.getElementById('swot_ameaca').value = '';
+        
+        // ⭐ BUSCAR CONCLUSÃO EXISTENTE E HISTÓRICO
         buscarConclusaoExistente();
         
         modal.style.display = 'flex';

@@ -5,13 +5,6 @@ let filtros = {
     auditoria: ''
 };
 
-// ====== LER CORES DO CSS ======
-function getCssVar(varName) {
-    return getComputedStyle(document.documentElement)
-        .getPropertyValue(varName)
-        .trim();
-}
-
 // ====== CARREGAR FILTROS ======
 async function carregarFiltros() {
     try {
@@ -325,7 +318,6 @@ async function carregarGraficoRiscosMagnitude() {
 let chartEvolucao = null;
 
 async function carregarGraficoEvolucao() {
-    // Construir URL com filtros
     const params = new URLSearchParams();
     if (filtros.ano) params.append('ano', filtros.ano);
     if (filtros.area) params.append('area_id', filtros.area);
@@ -343,7 +335,6 @@ async function carregarGraficoEvolucao() {
         if (data.success) {
             const ctx = document.getElementById('graficoEvolucao').getContext('2d');
             
-            // Destruir gráfico anterior se existir
             if (chartEvolucao) {
                 chartEvolucao.destroy();
             }
@@ -363,12 +354,8 @@ async function carregarGraficoEvolucao() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { beginAtZero: true }
-                        }
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
                     }
                 });
                 return;
@@ -377,17 +364,15 @@ async function carregarGraficoEvolucao() {
             const labels = data.dados.dados.map(item => item.label);
             const valores = data.dados.dados.map(item => item.valor);
             
-            // ⭐ Definir tipo de gráfico e cores baseado no tipo
+            // ⭐⭐ USAR AS CORES VINDAS DO BACKEND ⭐⭐
             let tipoGrafico = 'bar';
-            // ⭐ LER A COR DO TEMA
-            let cor = getCssVar('--primary-blue');  // Busca do CSS
-
+            let corLinha = data.dados.cor_linha || '#0b5b99';  // ← FALLBACK
+            let corArea = data.dados.cor_area || '#e8f4f8';     // ← FALLBACK
+            
             if (data.dados.tipo === 'mensal') {
                 tipoGrafico = 'line';
-                cor = getCssVar('--primary-blue');
             } else {
                 tipoGrafico = 'bar';
-                cor = getCssVar('--primary-blue');
             }
             
             chartEvolucao = new Chart(ctx, {
@@ -397,13 +382,11 @@ async function carregarGraficoEvolucao() {
                     datasets: [{
                         label: data.dados.titulo || 'Auditorias',
                         data: valores,
-                        borderColor: cor,
-                        backgroundColor: tipoGrafico === 'line' 
-                            ? getCssVar('--primary-lightest')  
-                            : cor,
+                        borderColor: corLinha,
+                        backgroundColor: tipoGrafico === 'line' ? corArea : corLinha,
                         fill: tipoGrafico === 'line',
                         tension: 0.4,
-                        pointBackgroundColor: cor,
+                        pointBackgroundColor: corLinha,
                         pointRadius: tipoGrafico === 'line' ? 4 : 0,
                         borderRadius: tipoGrafico === 'bar' ? 8 : 0
                     }]
@@ -433,9 +416,7 @@ async function carregarGraficoEvolucao() {
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            },
+                            ticks: { stepSize: 1 },
                             title: {
                                 display: true,
                                 text: data.dados.label_y || 'Quantidade'

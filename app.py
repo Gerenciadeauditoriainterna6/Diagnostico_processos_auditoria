@@ -9,7 +9,7 @@ import json
 import io
 from supabase import create_client
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash, make_response
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
@@ -491,6 +491,30 @@ def configurar_auditoria():
             conn.commit()
     except Exception as e:
         print(f"⚠️ [AUDITORIA] Erro: {e}")
+
+from config.cores import CORES
+
+@app.context_processor
+def inject_cores():
+    """Disponibiliza CORES para TODOS os templates HTML"""
+    return {'CORES': CORES}
+
+@app.route('/static/css/theme.css')
+def gerar_css_tema():
+    """
+    Gera UM ÚNICO ARQUIVO CSS com TODAS as cores
+    Você NUNCA precisa atualizar isso!
+    """
+    css = ":root {\n"
+    for nome, cor in CORES.items():
+        # primary_dark → --primary-dark
+        nome_css = nome.replace('_', '-')
+        css += f"    --{nome_css}: {cor};\n"
+    css += "}"
+    
+    response = make_response(css)
+    response.headers['Content-Type'] = 'text/css'
+    return response
 
 @app.before_request
 def verificar_inatividade():
