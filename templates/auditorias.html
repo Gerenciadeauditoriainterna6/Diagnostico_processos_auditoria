@@ -140,8 +140,18 @@
             <!-- TROCAR ESSA PARTE DA UNIDADE PARA SELECT DE OPTIONS QUE EXISTEM NO BANCO DE DADOS-->
             <div class="form-row">
                 <div class="form-group">
-                    <label><i class="fas fa-building"></i> Unidade:</label>
-                    <input type="text" id="unidade_auditoria" class="form-control" placeholder="Ex: FUSVE, HMK...">
+                    <label for="unidade_auditoria"><i class="fas fa-map-marker-alt"></i> Unidade:</label>
+                    <select id="unidade_auditoria" name="unidade" class="form-control">
+                        <option value="">Selecione uma unidade...</option>
+                        <option value="FUSVE">FUSVE</option>
+                        <option value="HMC">HMC</option>
+                        <option value="HMK">HMK</option>
+                        <option value="HUV">HUV</option>
+                        <option value="UNIVASSOURAS">UNIVASSOURAS</option>
+                        <option value="FAMIPE">FAMIPE</option>
+                        <option value="NOVA FRIBURGO">NOVA FRIBURGO</option>
+                        <option value="MARICÁ, FACMAR E CAMPUS SAQUAREMA">MARICÁ, FACMAR E CAMPUS SAQUAREMA</option>
+                    </select>
                 </div>
             </div>
 
