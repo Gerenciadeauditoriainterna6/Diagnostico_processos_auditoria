@@ -389,23 +389,6 @@ export async function carregarAnalisesAuditado() {
                                 </div>
                                 ` : ''}
                                 
-                                <!-- Histórico de Andamento -->
-                                <div class="analise-card-section" style="margin-top: 20px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                        <h4 style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-                                            <i class="fas fa-history"></i> Histórico de Andamento
-                                        </h4>
-                                        ${analise.sugestao_sera_implantada === true ? `
-                                            <button class="btn-registrar-andamento" onclick="event.stopPropagation(); abrirModalHistoricoAndamento(${analise.id})">
-                                                <i class="fas fa-plus"></i> Registrar
-                                            </button>
-                                        ` : ''}
-                                    </div>
-                                    <div class="historico-container">
-                                        ${renderizarListaHistorico(analise.historico)}
-                                    </div>
-                                </div>
-                                
                                 ${analise.efetivamente_implantada === true ? `
                                 <div class="analise-card-section" style="margin-top: 20px;">
                                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>

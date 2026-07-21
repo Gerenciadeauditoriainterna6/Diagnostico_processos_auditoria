@@ -442,14 +442,7 @@ export async function renderizarAnalisesAuditor() {
                     </div>
                 </div>
                 ` : ''}
-                
-                <div class="analise-card-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h4><i class="fas fa-history"></i> Histórico de Andamento</h4>
-                        ${analise.sugestao_sera_implantada === true ? `<button class="btn-registrar-andamento" onclick="event.stopPropagation(); abrirModalHistoricoAndamento(${analise.id})"><i class="fas fa-plus"></i> Registrar</button>` : ''}
-                    </div>
-                    <div class="historico-container">${renderizarListaHistorico(analise.historico)}</div>
-                </div>
+
             </div>
         </div>`;
     });

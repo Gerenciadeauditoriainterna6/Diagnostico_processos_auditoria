@@ -409,12 +409,14 @@ def calcular_tempo(data_inicio):
 
 from dashboard_api import dashboard_api
 from routes.dashboard_novo.endpoints import novo_dashboard_api
+from routes.followups import followups_bp
 from routes import register_blueprints
 
 app = Flask(__name__, static_folder='static')
 
 app.register_blueprint(dashboard_api)
 app.register_blueprint(novo_dashboard_api)
+app.register_blueprint(followups_bp)
 
 register_blueprints(app)
 

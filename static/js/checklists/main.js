@@ -25,7 +25,8 @@ import {
     setupFileUploadEvidenciaAuditado,
     editarAnaliseAuditado,
     abrirModalConfirmarImplantacaoAuditado,
-    baixarEvidenciaAuditadoChecklist
+    baixarEvidenciaAuditadoChecklist,
+    fecharModalAnaliseAuditado
 } from './analises-auditado.js';
 
 import { 
@@ -106,6 +107,7 @@ window.abrirModalHistoricoAndamento = abrirModalHistoricoAndamento;
 window.fecharModalHistorico = fecharModalHistorico;
 window.abrirModalFollowUp = abrirModalFollowUp;
 window.fecharModalFollowUp = fecharModalFollowUp;
+window.fecharModalAnaliseAuditado = fecharModalAnaliseAuditado
 
 // ============================================================
 // INICIALIZAÇÃO
