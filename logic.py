@@ -4559,26 +4559,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                         'created_by': h._mapping['created_by'] or ''
                     })
                 
-                # Buscar follow-ups
-                query_followups = text("""
-                    SELECT etapa, data_prevista, data_realizada, status, comentario
-                    FROM analises_follow_up
-                    WHERE analise_id = :analise_id
-                    ORDER BY data_prevista ASC
-                """)
-                followups_raw = conn.execute(query_followups, {"analise_id": a[0]}).fetchall()
                 
-                followups_list = []
-                for f in followups_raw:
-                    followups_list.append({
-                        'etapa': f._mapping['etapa'] or '',
-                        'data_prevista': f._mapping['data_prevista'].strftime('%d/%m/%Y') if f._mapping['data_prevista'] else '',
-                        'data_realizada': f._mapping['data_realizada'].strftime('%d/%m/%Y') if f._mapping['data_realizada'] else '',
-                        'status': f._mapping['status'] or 'Pendente',
-                        'comentario': f._mapping['comentario'] or ''
-                    })
-                
-                # ✅ USANDO row._mapping - NUNCA MAIS ÍNDICES!
                 analises_auditado_list.append({
                     'id': a._mapping['id'],
                     'categoria': a._mapping['categoria'],
@@ -4591,8 +4572,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     'ganho_previsto': a._mapping['ganho_previsto'] or '',
                     'evidencia_nome': a._mapping['evidencia_nome'] or '',
                     'evidencia_url': a._mapping['evidencia_url'] or '',
-                    'historico': historico_list,
-                    'followups': followups_list
+                    'historico': historico_list
                 })
             
             etapas.append({
@@ -4645,25 +4625,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     'created_by': h._mapping['created_by'] or ''
                 })
             
-            query_followups = text("""
-                SELECT etapa, data_prevista, data_realizada, status, comentario
-                FROM analises_follow_up
-                WHERE analise_id = :analise_id
-                ORDER BY data_prevista ASC
-            """)
-            followups_raw = conn.execute(query_followups, {"analise_id": a._mapping['id']}).fetchall()
-            
-            followups_list = []
-            for f in followups_raw:
-                followups_list.append({
-                    'etapa': f._mapping['etapa'] or '',
-                    'data_prevista': f._mapping['data_prevista'].strftime('%d/%m/%Y') if f._mapping['data_prevista'] else '',
-                    'data_realizada': f._mapping['data_realizada'].strftime('%d/%m/%Y') if f._mapping['data_realizada'] else '',
-                    'status': f._mapping['status'] or 'Pendente',
-                    'comentario': f._mapping['comentario'] or ''
-                })
-            
-            # ✅ USANDO row._mapping - NUNCA MAIS ÍNDICES!
             analises_auditor_list.append({
                 'id': a._mapping['id'],
                 'analise_critica': a._mapping['analise_critica'] or '',
@@ -4676,8 +4637,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 'ganho_previsto': a._mapping['ganho_previsto'] or '',
                 'evidencia_nome': a._mapping['evidencia_nome'] or '',
                 'evidencia_url': a._mapping['evidencia_url'] or '',
-                'historico': historico_list,
-                'followups': followups_list
+                'historico': historico_list
+
             })
         
         # ===== 3. BUSCAR MATRIZES DE CHECKLIST (GOVERNANÇA, RISCOS, CONTROLES) =====
@@ -4856,45 +4817,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         leading=12,
         wordWrap='CJK'
     )
-
-    # ===== CONTAR FOLLOW-UPS ATIVOS NO PROCESSO =====
-    total_followups_pendentes = 0
-    total_followups_em_andamento = 0
-    total_melhorias_em_implantacao = 0
-    
-    # Contar follow-ups pendentes nas análises do auditor
-    for analise in analises_auditor_list:
-        if analise.get('sugestao_sera_implantada') == True:
-            if analise.get('efetivamente_implantada') == False:
-                total_melhorias_em_implantacao += 1
-            if analise.get('followups'):
-                for fu in analise['followups']:
-                    if fu['status'] == 'Pendente':
-                        total_followups_pendentes += 1
-                    elif fu['status'] in ['Aderente', 'Nao aderente', 'Parcialmente aderente']:
-                        total_followups_em_andamento += 1
-    
-    # Contar follow-ups pendentes nas análises do auditado
-    for etapa in etapas:
-        for analise in etapa['analises_auditado']:
-            if analise.get('sugestao_sera_implantada') == True:
-                if analise.get('efetivamente_implantada') == False:
-                    total_melhorias_em_implantacao += 1
-                if analise.get('followups'):
-                    for fu in analise['followups']:
-                        if fu['status'] == 'Pendente':
-                            total_followups_pendentes += 1
-                        elif fu['status'] in ['Aderente', 'Nao aderente', 'Parcialmente aderente']:
-                            total_followups_em_andamento += 1
-    
-    # Criar mensagem de alerta
-    alerta_followup = ""
-    if total_followups_pendentes > 0:
-        alerta_followup = f'<font color="#dc5a10"><b>ATENÇÃO: {total_followups_pendentes} follow-up(s) pendente(s) aguardando registro!</b></font>'
-    elif total_melhorias_em_implantacao > 0:
-        alerta_followup = f'<font color="#ffc107"><b>{total_melhorias_em_implantacao} melhoria(s) em processo de implantação</b></font>'
-    elif total_followups_em_andamento > 0:
-        alerta_followup = f'<font color="#28a745"><b>{total_followups_em_andamento} follow-up(s) já registrados</b></font>'
     
     # ===== INFORMAÇÕES DO RELATÓRIO =====
     # ⭐ Usar a função padronizada
@@ -4913,24 +4835,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         cargo=cargo,
         titulo_auditoria=titulo_final
     )
-
-    # ⭐ ADICIONAR ALERTA DE FOLLOW-UP (se houver)
-    if alerta_followup:
-        # Criar uma tabela separada para o alerta
-        alerta_data = [
-            ["Status dos Follow-ups:", Paragraph(alerta_followup, cell_style_2)]
-        ]
-        alerta_table = Table(alerta_data, colWidths=[4*cm, 12*cm])
-        alerta_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FFF3CD')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#FFC107')),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ]))
-        story.append(alerta_table)
-        story.append(Spacer(1, 20))
     
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR PLANO DE AÇÃO =====
     def adicionar_plano_acao(analise):
@@ -4984,53 +4888,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             ]))
             story.append(tabela_hist)
     
-    # ===== FUNÇÃO AUXILIAR PARA EXIBIR FOLLOW-UPS =====
-    def adicionar_followups(followups):
-        if followups and len(followups) > 0:
-            story.append(Spacer(1, 5))
-            story.append(Paragraph("<b>Follow-ups Pós-Implantação:</b>", normal_style))
-            story.append(Spacer(1, 3))
-            
-            fu_data = [["Etapa", "Data Prevista", "Data Realizada", "Status", "Comentário"]]
-            for fu in followups:
-                etapa_texto = fu['etapa']
-                if '30' in etapa_texto:
-                    etapa_texto = '30 dias após implantação'
-                elif '60' in etapa_texto:
-                    etapa_texto = '60 dias após implantação'
-                elif '90' in etapa_texto:
-                    etapa_texto = '90 dias após implantação'
-                
-                status_texto = fu['status']
-                if fu['status'] == 'Pendente':
-                    status_texto = 'Pendente'
-                elif fu['status'] == 'Aderente':
-                    status_texto = 'Aderente'
-                elif fu['status'] == 'Nao aderente':
-                    status_texto = 'Não aderente'
-                elif fu['status'] == 'Parcialmente aderente':
-                    status_texto = 'Parcialmente aderente'
-                
-                fu_data.append([
-                    Paragraph(etapa_texto, normal_style),
-                    Paragraph(fu['data_prevista'], normal_style),
-                    Paragraph(fu['data_realizada'] or '-', normal_style),
-                    Paragraph(status_texto, normal_style),
-                    Paragraph(fu['comentario'][:50] or '-', normal_style)
-                ])
-            
-            tabela_fu = Table(fu_data, colWidths=[3*cm, 2.5*cm, 2.5*cm, 3.5*cm, 5*cm], repeatRows=1)
-            tabela_fu.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ]))
-            story.append(tabela_fu)
-    
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
     def adicionar_analise_auditado(analise, titulo):
         
@@ -5060,7 +4917,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
         # Decisão sobre implantação
         if analise.get('sugestao_sera_implantada') == True:
-            story.append(Paragraph("<b>Esta melhoria será implantada</b>", normal_style))
+            story.append(Paragraph("<b><font color=#00ff60>*ESTA SUGESTÃO DE MELHORIA SERÁ IMPLANTADA</font></b>", normal_style))
             story.append(Spacer(1, 3))
             
             # Plano de Ação
@@ -5071,15 +4928,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             if analise.get('historico') and len(analise['historico']) > 0:
                 adicionar_historico(analise['historico'])
                 story.append(Spacer(1, 5))
-            
-            # Follow-ups (apenas se já implantada)
-            if analise.get('efetivamente_implantada') == True and analise.get('followups') and len(analise['followups']) > 0:
-                adicionar_followups(analise['followups'])
                 
         elif analise.get('sugestao_sera_implantada') == False:
-            story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff0000>*ESTA SUGESTÃO DE MELHORIA NÃO SERÁ IMPLANTADA</font></b>", normal_style))
         else:
-            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DESTA SUGESTÃO DE MELHORIA</font></b>", normal_style))
         
         story.append(Spacer(1, 8))
 
@@ -5113,7 +4966,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
         # Decisão sobre implantação
         if analise.get('sugestao_sera_implantada') == True:
-            story.append(Paragraph("<b>Esta melhoria será implantada</b>", normal_style))
+            story.append(Paragraph("<b><font color=#00ff60>*ESTA SUGESTÃO DE MELHORIA SERÁ IMPLANTADA</font></b></b>", normal_style))
             story.append(Spacer(1, 3))
             
             # Plano de Ação
@@ -5124,15 +4977,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             if analise.get('historico') and len(analise['historico']) > 0:
                 adicionar_historico(analise['historico'])
                 story.append(Spacer(1, 5))
-            
-            # Follow-ups (apenas se já implantada)
-            if analise.get('efetivamente_implantada') == True and analise.get('followups') and len(analise['followups']) > 0:
-                adicionar_followups(analise['followups'])
                 
         elif analise.get('sugestao_sera_implantada') == False:
-            story.append(Paragraph("<b>Esta sugestão de melhoria não será implantada</b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff0000>*ESTA SUGESTÃO DE MELHORIA NÃO SERÁ IMPLANTADA</font></b>", normal_style))
         else:
-            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DA SUGESTÃO DE MELHORIA</font></b>", normal_style))
+            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DESTA SUGESTÃO DE MELHORIA</font></b>", normal_style))
         
         story.append(Spacer(1, 8))
     
@@ -5476,49 +5325,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             if idx < len(analises_auditor_list):
                 story.append(Spacer(1, 10))   # mantenha um espaço extra se desejar
                 story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#CCCCCC"), spaceBefore=0, spaceAfter=0))
-                story.append(Spacer(1, 10))
-    
-    # ===== SEÇÃO 3.5: RESUMO DAS MELHORIAS E FOLLOW-UPS =====
-    if total_melhorias_em_implantacao > 0 or total_followups_pendentes > 0:
-        story.append(PageBreak())
-        story.append(Paragraph("2.5. RESUMO DO ACOMPANHAMENTO", secao_style))
-        story.append(Spacer(1, 10))
-        
-        # Box de resumo
-        resumo_data = []
-        
-        if total_melhorias_em_implantacao > 0:
-            resumo_data.append([
-                Paragraph("Em implantação:", normal_style),
-                Paragraph(f"{total_melhorias_em_implantacao} melhoria(s) em andamento", normal_style)
-            ])
-        
-        if total_followups_pendentes > 0:
-            resumo_data.append([
-                Paragraph("Pendentes:", normal_style),
-                Paragraph(f"{total_followups_pendentes} follow-up(s) aguardando registro", normal_style)
-            ])
-        
-        if total_followups_em_andamento > 0:
-            resumo_data.append([
-                Paragraph("Realizados:", normal_style),
-                Paragraph(f"{total_followups_em_andamento} follow-up(s) já registrados", normal_style)
-            ])
-        
-        if resumo_data:
-            # Criar tabela resumo com fundo colorido
-            resumo_table = Table(resumo_data, colWidths=[5*cm, 11*cm])
-            resumo_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.Color(0.95, 0.97, 1.0, alpha=0.80)),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ]))
-            story.append(resumo_table)
-            story.append(Spacer(1, 15))
-    
+                story.append(Spacer(1, 10))    
     
     styles.add(ParagraphStyle('titulo', parent=titulo_style))
     
