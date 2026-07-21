@@ -42,6 +42,7 @@
                     <option value="detalhamento">Validação - Matriz de Detalhamento</option>
                     <option value="parecer">Parecer da Auditoria Interna</option>
                     <option value="conclusao">Conclusão</option>
+                    <option value="followup">Follow-up</option>
                 </select>
             </div>
         </div>
@@ -570,14 +571,6 @@
         padding: 10px;
     }
 
-    #tipo_relatorio option[value="gerencial"] {
-        color: #184145;
-    }
-
-    #tipo_relatorio option[value="parecer"] {
-        color: #0b5b99;
-    }
-
     /* ===== MODAL DE CONCLUSÃO ===== */
     #modal-conclusao {
         position: fixed;
@@ -987,6 +980,12 @@
                 bodyData.processo_id = processoId;
                 if (incluirABR) bodyData.incluir_abr = true;
                 break;
+            
+            case 'followup':
+                url = '/api/relatorios/gerar-followup';
+                nomeBase = processoId ? `relatorio_followup_processo_${processoId}` : 'relatorio_followup_todos';
+                if (processoId) bodyData.processo_id = processoId;
+                break;
 
             default:
                 mostrarToast('⚠️ Tipo de relatório inválido', 'warning');
@@ -1196,10 +1195,11 @@
                     if (checkboxIncluirAbr) checkboxIncluirAbr.checked = false;
                 }
                 
-                // ⭐ MOSTRA PROCESSO APENAS PARA: parecer, panorama, detalhamento
+                // ⭐ MOSTRA PROCESSO APENAS PARA: parecer, panorama, detalhamento, followup
                 // ⭐ NÃO mostra para: conclusao
                 if (tipoSelecionado && auditoriaId) {
-                    if (tipoSelecionado === 'parecer' || tipoSelecionado === 'panorama' || tipoSelecionado === 'detalhamento') {
+                    if (tipoSelecionado === 'parecer' || tipoSelecionado === 'panorama' || 
+                        tipoSelecionado === 'detalhamento' || tipoSelecionado === 'followup') {
                         rowProcesso.style.display = 'flex';
                         await carregarProcessosPorAuditoria(auditoriaId);
                         
@@ -1284,11 +1284,6 @@
         
         if (!selectProcesso) return;
         
-        // ⭐ SEMPRE MOSTRA PARA QUALQUER TIPO (comportamentos diferentes)
-        // Para parecer: obrigatório
-        // Para panorama/detalhamento: opcional
-        
-        // Mostra a linha de processo
         rowProcesso.style.display = 'flex';
         selectProcesso.innerHTML = '<option value="">Carregando processos...</option>';
         selectProcesso.disabled = true;
@@ -1302,7 +1297,7 @@
                 if (tipoRelatorio === 'parecer') {
                     selectProcesso.innerHTML = '<option value="">Selecione um processo...</option>';
                 } else {
-                    // Panorama e Detalhamento: mostra "Todos"
+                    // Panorama, Detalhamento e Follow-up: mostra "Todos"
                     selectProcesso.innerHTML = '<option value="">Todos os processos da auditoria</option>';
                 }
                 
