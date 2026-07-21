@@ -5781,25 +5781,20 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story.append(Spacer(1, 40))
         story.append(Paragraph("_________________________________________", assinatura_style))
         story.append(Paragraph(f"{usuario_conclusao or usuario_nome}", assinatura_style))
-        story.append(Paragraph("Responsável pela Conclusão", assinatura_style))
+        story.append(Paragraph("Auditor responsável pela conclusão", assinatura_style))
         story.append(Spacer(1, 5))
         story.append(Paragraph(
-            f"Documento assinado digitalmente em {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
+            f"Data/Hora: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
             assinatura_style
         ))
+        
     else:
         # ⭐ SE NÃO FOR O PROPRIETÁRIO, MOSTRA UM SELO DE "SEM VALIDADE"
         story.append(Spacer(1, 30))
+        
+        
         story.append(Paragraph(
-            "─" * 60,
-            assinatura_style
-        ))
-        story.append(Paragraph(
-            "<b><font color='#dc3545'>DOCUMENTO SEM VALIDADE JURÍDICA</font></b>",
-            assinatura_style
-        ))
-        story.append(Paragraph(
-            "<font color='#999'>Este documento foi baixado por um terceiro e não possui valor legal.</font>",
+            "<font color='#999'>Este documento foi baixado por um terceiro, logo está em modo de visualização.</font>",
             assinatura_style
         ))
     
