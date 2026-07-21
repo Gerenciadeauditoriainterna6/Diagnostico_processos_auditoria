@@ -14,9 +14,6 @@ import {
 // ============================================================
 
 let analisesData = [];
-let filtros = {
-    status: 'todos'
-};
 
 // ============================================================
 // CARREGAR FILTROS (Área, Auditoria, Processo)
@@ -238,7 +235,7 @@ function renderizarAnalises(analises) {
             statusClass = 'em-andamento';
             acoes = `
                 <button class="btn-registrar-followup" onclick="window.abrirModalFollowupRegistro(${analise.id}, '${escapeHtml(analise.analise_critica)}')">
-                    <i class="fas fa-edit"></i> Registrar Acompanhamento
+                    <i class="fas fa-eye"></i> Visualizar Follow-up
                 </button>
             `;
         }
@@ -281,7 +278,7 @@ function renderizarAnalises(analises) {
                 ${temFollowUps ? `
                 <div class="followup-body">
                     <div style="font-size: 13px; color: #555; margin-bottom: 8px;">
-                        <strong>Etapas de acompanhamento:</strong>
+                        <strong>Etapas de Follow-Up:</strong>
                     </div>
                     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         ${analise.follow_ups.map(fu => {
@@ -642,6 +639,9 @@ window.salvarFollowupItem = salvarFollowupItem;
 window.iniciarAcompanhamento = iniciarAcompanhamento;
 window.aplicarFiltros = aplicarFiltros;
 window.carregarAnalises = carregarAnalises;
+window.abrirModalFollowupEditar = abrirModalFollowupEditar;
+window.fecharModalFollowupEditar = fecharModalFollowupEditar;
+window.salvarFollowupEditar = salvarFollowupEditar;
 
 // ============================================================
 // INICIALIZAÇÃO
@@ -680,27 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    document.getElementById('btn-aplicar-filtros')?.addEventListener('click', aplicarFiltros);
-    document.getElementById('btn-limpar-filtros')?.addEventListener('click', () => {
-        document.getElementById('filtro-status').value = 'todos';
-        aplicarFiltros();
-    });
-    
     document.getElementById('btn-salvar-followup-item')?.addEventListener('click', salvarFollowupItem);
-    
-    const modal = document.getElementById('modal-followup-registro');
-    modal?.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            window.fecharModalFollowupRegistro();
-        }
-    });
-    
-    const modalItem = document.getElementById('modal-followup-item');
-    modalItem?.addEventListener('click', (e) => {
-        if (e.target === modalItem) {
-            window.fecharModalFollowupItem();
-        }
-    });
-    
+        
     console.log('✅ Página de follow-ups inicializada!');
 });

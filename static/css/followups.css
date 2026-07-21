@@ -1,5 +1,5 @@
 /* ============================================================
-   FOLLOW-UPS - Mesmo padrão do checklists.css
+   FOLLOW-UPS - Estilos completos
    ============================================================ */
 
 .followups-container {
@@ -8,177 +8,8 @@
 }
 
 /* ============================================ */
-/* RESUMO DOS FOLLOW-UPS */
+/* HEADER DA PÁGINA */
 /* ============================================ */
-
-.resumo-cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 25px;
-}
-
-.resumo-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-}
-
-.resumo-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-}
-
-.resumo-card .resumo-numero {
-    font-size: 36px;
-    font-weight: 700;
-    color: #184145;
-    line-height: 1.2;
-}
-
-.resumo-card .resumo-label {
-    font-size: 14px;
-    color: #6c757d;
-    margin-top: 5px;
-    font-weight: 500;
-}
-
-/* Cores específicas para cada card de resumo */
-.resumo-card:nth-child(1) .resumo-numero { color: #fd6a14; }
-.resumo-card:nth-child(2) .resumo-numero { color: #28a745; }
-.resumo-card:nth-child(3) .resumo-numero { color: #dc3545; }
-.resumo-card:nth-child(4) .resumo-numero { color: #dc3545; }
-
-/* ============================================ */
-/* CARDS DE FOLLOW-UP */
-/* ============================================ */
-
-.followup-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-}
-
-.followup-card:hover {
-    border-color: #184145;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
-}
-
-.followup-card .followup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.followup-card .followup-info {
-    flex: 1;
-    min-width: 200px;
-}
-
-.followup-card .followup-info h4 {
-    color: #184145;
-    font-size: 16px;
-    margin: 0 0 8px 0;
-    font-weight: 600;
-}
-
-.followup-card .followup-detalhes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 20px;
-    font-size: 13px;
-    color: #6c757d;
-}
-
-.followup-card .followup-detalhes strong {
-    color: #184145;
-}
-
-.followup-card .followup-status {
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.followup-status.pendente {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.followup-status.aderente {
-    background: #d4edda;
-    color: #155724;
-}
-
-.followup-status.nao-aderente {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.followup-status.parcialmente-aderente {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.followup-status.atrasado {
-    background: #dc3545;
-    color: white;
-}
-
-.followup-card .followup-body {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #e0e0e0;
-}
-
-.followup-card .followup-body div {
-    font-size: 13px;
-    color: #555;
-}
-
-.followup-card .followup-acoes {
-    margin-top: 12px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-/* Botão de registro de follow-up - mesmo padrão do btn-registrar-andamento */
-.btn-registrar-followup {
-    background: transparent;
-    border: 1px solid #184145;
-    color: #184145;
-    padding: 4px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.btn-registrar-followup:hover {
-    background: #184145;
-    color: white;
-    border-color: #184145;
-}
 
 .page-header {
     margin-bottom: 25px;
@@ -190,17 +21,17 @@
     margin-bottom: 5px;
 }
 
-.page-header p {
-    color: #666;
-    font-size: 14px;
-}
-
 .page-header h1 i {
     margin-right: 10px;
     background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
     padding: 10px;
     border-radius: 12px;
     color: white;
+}
+
+.page-header p {
+    color: #666;
+    font-size: 14px;
 }
 
 /* ============================================ */
@@ -215,14 +46,44 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
+.form-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.form-section h3 {
+    display: block;
+    color: #184145;
+    font-size: 18px;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+
+}
+
+.form-section h3 i {
+    margin-right: 8px;
+    color: #0b5b99;
+}
+
+.form-section .text-muted {
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
 .form-row {
     display: flex;
     gap: 20px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
 .form-group {
     flex: 1;
+    min-width: 200px;
 }
 
 .form-group label {
@@ -249,45 +110,353 @@
     background: white;
 }
 
-/* ============================================ */
-/* RESPONSIVIDADE - Mesmo padrão do checklists */
-/* ============================================ */
-
-@media (max-width: 768px) {
-    .resumo-cards {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .followup-card .followup-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .followup-card .followup-status {
-        align-self: flex-start;
-    }
+.form-control:focus {
+    border-color: #184145;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(24, 65, 69, 0.1);
 }
 
-@media (max-width: 480px) {
-    .resumo-cards {
-        grid-template-columns: 1fr;
-    }
-    
-    .followup-card .followup-detalhes {
-        flex-direction: column;
-        gap: 5px;
-    }
+.form-control:disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
 }
 
 /* ============================================ */
-/* MODAL DE REGISTRO - Mesmo padrão */
+/* CARDS DOS FOLLOW-UPS */
 /* ============================================ */
 
-#modal-followup-registro .modal-content {
-    max-width: 500px;
+.followup-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
 }
 
-#modal-followup-registro .modal-body p {
+.followup-card:hover {
+    border-color: #184145;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.followup-card.nao-iniciado {
+    border-left: 4px solid #6c757d;
+}
+
+.followup-card.em-andamento {
+    border-left: 4px solid #ffc107;
+}
+
+.followup-card.concluido {
+    border-left: 4px solid #28a745;
+}
+
+.followup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.followup-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.followup-info h4 {
+    color: #184145;
+    font-size: 16px;
+    margin: 0 0 8px 0;
+    font-weight: 600;
+}
+
+.followup-detalhes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.followup-detalhes strong {
+    color: #184145;
+}
+
+.followup-status-wrapper {
+    flex-shrink: 0;
+}
+
+/* Status Badges */
+.status-badge {
+    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-badge.nao-iniciado {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.status-badge.em-andamento {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.concluido {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Progresso */
+.card-progresso {
+    margin: 15px 0 10px 0;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.progress-bar {
+    background: #e0e0e0;
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s;
+}
+
+/* Etapas de follow-up */
+.followup-body {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.followup-body > div:first-child {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.followup-etapa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8f9fa;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.followup-etapa .etapa-status {
+    font-size: 14px;
+}
+
+.followup-etapa .etapa-status.pendente { color: #856404; }
+.followup-etapa .etapa-status.aderente { color: #155724; }
+.followup-etapa .etapa-status.nao-aderente { color: #721c24; }
+.followup-etapa .etapa-status.parcialmente-aderente { color: #856404; }
+
+/* Ações */
+.followup-acoes {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ============================================ */
+/* BOTÕES */
+/* ============================================ */
+
+.btn-primary {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    background: #0b5b99;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(24, 65, 69, 0.25);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+.btn-iniciar-acompanhamento {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-iniciar-acompanhamento:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-registrar-followup {
+    background: var(--primary-dark);
+    color: var(--text-light);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-registrar-followup:hover {
+    background: var(--primary-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px #184145;
+}
+
+/* ============================================ */
+/* MODAL */
+/* ============================================ */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+    border-radius: 16px 16px 0 0;
+    z-index: 1;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #184145;
+    font-size: 18px;
+}
+
+.modal-header h3 i {
+    margin-right: 8px;
+    color: #0b5b99;
+}
+
+.modal-fechar {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0 8px;
+}
+
+.modal-fechar:hover {
+    color: #dc3545;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body .form-group {
+    margin-bottom: 15px;
+}
+
+.modal-body .form-group label {
+    font-weight: 600;
+    color: #184145;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.modal-body .form-group label i {
+    margin-right: 6px;
+    color: #0b5b99;
+}
+
+.modal-body .form-group p {
     padding: 8px 12px;
     background: #f8f9fa;
     border-radius: 8px;
@@ -295,4 +464,80 @@
     margin: 0;
     color: #333;
     font-size: 14px;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #f8f9fa;
+    border-radius: 0 0 16px 16px;
+}
+
+/* ============================================ */
+/* ITENS DE FOLLOW-UP DENTRO DO MODAL */
+/* ============================================ */
+
+.followup-item-card {
+    padding: 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+    transition: all 0.2s;
+}
+
+.followup-item-card:hover {
+    background: #f1f3f5;
+    transform: translateX(4px);
+}
+
+.followup-item-card .etapa-status {
+    font-weight: 500;
+}
+
+/* ============================================ */
+/* RESPONSIVIDADE */
+/* ============================================ */
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .form-group {
+        min-width: 100%;
+    }
+    
+    .followup-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .followup-status-wrapper {
+        align-self: flex-start;
+    }
+    
+    .modal-content {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 480px) {
+    .followup-detalhes {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .followup-acoes {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .followup-acoes button {
+        width: 100%;
+        justify-content: center;
+    }
 }
