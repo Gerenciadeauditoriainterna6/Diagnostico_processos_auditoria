@@ -1727,6 +1727,13 @@ TEXTOS_VALIDACAO = {
         'texto': ""
     },
 
+    'followup': {
+        'titulo': "VALIDAÇÃO - FOLLOW-UP",
+        'texto': (
+            ""
+        )
+    },
+
     'padrao': {
         'titulo': "VALIDAÇÃO",
         'texto': (
@@ -1742,11 +1749,24 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     """
     Adiciona a página de validação do gestor ao story com todos os campos de assinatura
     """
+
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     
     # ⭐ BUSCAR O TEXTO CORRETO PARA O TIPO DE RELATÓRIO
     config = TEXTOS_VALIDACAO.get(tipo_relatorio, TEXTOS_VALIDACAO['padrao'])
     titulo_validacao = config['titulo']
     texto_declaracao = config['texto']
+
+    if 'titulo' not in styles:
+        styles.add(ParagraphStyle(
+            'titulo',
+            parent=styles['Normal'],
+            fontSize=14,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#184145'),
+            spaceAfter=12
+        ))
     
     # ⭐ ESTILOS REDUZIDOS
     campo_titulo_style = ParagraphStyle(
@@ -5848,6 +5868,562 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         rodape_conclusao(canvas, doc, total_paginas)
     
     doc_final.build(story, onFirstPage=rodape_final, onLaterPages=rodape_final)
+    
+    buffer.seek(0)
+    return buffer.getvalue()
+
+def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, processo_id,
+                               orientacao="RETRATO", titulo_auditoria=None):
+    """
+    Gera relatório de Follow-ups das sugestões de melhoria
+    Organizado por etapas do processo
+    """
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, KeepTogether, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+    from reportlab.lib.utils import ImageReader
+    from PIL import Image as PILImage
+    import copy
+    from PyPDF2 import PdfReader
+    
+    buffer = io.BytesIO()
+    TZ_BRASILIA = ZoneInfo('America/Sao_Paulo')
+    
+    # Definir orientação
+    if orientacao.upper() == "PAISAGEM":
+        pagesize = landscape(A4)
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.0*cm
+        rightMargin = 1.0*cm
+    else:
+        pagesize = A4
+        topMargin = 1.5*cm
+        bottomMargin = 2*cm
+        leftMargin = 1.2*cm
+        rightMargin = 1.2*cm
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    normal_style = styles['Normal']
+    normal_style.fontSize = 9
+    normal_style.fontName = 'Helvetica'
+    
+    # Estilos personalizados
+    titulo_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=TA_CENTER,
+        spaceAfter=20,
+        textColor=colors.HexColor('#000000')
+    )
+    
+    secao_style = ParagraphStyle(
+        'SecaoStyle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=5,
+        alignment=TA_CENTER,
+        spaceBefore=15,
+        textColor=colors.HexColor('#184145'),
+        underline=True,
+        underlineColor=colors.HexColor('#184145'),
+        underlineWidth=1.5,
+        underlineOffset=2
+    )
+    
+    subsecao_style = ParagraphStyle(
+        'SubSecaoStyle',
+        parent=styles['Heading3'],
+        fontSize=12,
+        spaceAfter=8,
+        spaceBefore=10,
+        textColor=colors.HexColor('#0b5b99')
+    )
+    
+    story = []
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # ===== BUSCAR TÍTULO DA AUDITORIA =====
+    titulo_final = titulo_auditoria
+    if titulo_final is None:
+        try:
+            with engine.connect() as conn:
+                query_titulo = text("SELECT titulo FROM auditorias WHERE id = :auditoria_id")
+                result = conn.execute(query_titulo, {'auditoria_id': auditoria_id}).fetchone()
+                if result:
+                    titulo_final = result[0]
+                else:
+                    titulo_final = 'Auditoria'
+        except Exception as e:
+            print(f"⚠️ Erro ao buscar título: {e}")
+            titulo_final = 'Auditoria'
+    
+    # ===== CAPA =====
+    criar_pagina_capa(
+        story=story,
+        pagesize=pagesize,
+        titulo_relatorio="RELATÓRIO DE FOLLOW-UPS",
+        subtitulo_relatorio=f"{titulo_final}",
+        area_nome=area_nome,
+        data_emissao=datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')
+    )
+    
+    # ===== TÍTULO =====
+    story.append(Paragraph("RELATÓRIO DE FOLLOW-UPS", titulo_style))
+    story.append(Spacer(1, 5))
+    
+    # ===== BUSCAR DADOS =====
+    with engine.connect() as conn:
+        # Buscar dados da auditoria
+        query_auditoria = text("""
+            SELECT codigo_auditoria, titulo, status
+            FROM auditorias WHERE id = :auditoria_id
+        """)
+        auditoria_info = conn.execute(query_auditoria, {'auditoria_id': auditoria_id}).fetchone()
+        
+        if not auditoria_info:
+            raise Exception(f"Auditoria não encontrada")
+        
+        codigo_auditoria = auditoria_info[0]
+        status = auditoria_info[2]
+        
+        # Buscar processo específico (se fornecido)
+        if processo_id:
+            query_processo = text("""
+                SELECT id, codigo_processo, nome_processo
+                FROM processos
+                WHERE id = :processo_id AND auditoria_id = :auditoria_id AND status = 'Ativo'
+            """)
+            processo = conn.execute(query_processo, {
+                "processo_id": processo_id,
+                "auditoria_id": auditoria_id
+            }).fetchone()
+            
+            if not processo:
+                raise Exception(f"Processo {processo_id} não encontrado")
+            
+            proc_id = processo[0]
+            proc_codigo = processo[1]
+            proc_nome = processo[2]
+            
+            # Buscar apenas as etapas deste processo
+            query_etapas = text("""
+                SELECT id, nome_etapa, codigo_etapa, descricao_etapa, objetivo_etapa
+                FROM etapas_processo 
+                WHERE processo_id = :processo_id 
+                ORDER BY codigo_etapa
+            """)
+            etapas_raw = conn.execute(query_etapas, {"processo_id": proc_id}).fetchall()
+        else:
+            # Buscar todos os processos da auditoria
+            query_processos = text("""
+                SELECT id, codigo_processo, nome_processo
+                FROM processos
+                WHERE auditoria_id = :auditoria_id AND status = 'Ativo'
+                ORDER BY codigo_processo
+            """)
+            processos = conn.execute(query_processos, {"auditoria_id": auditoria_id}).fetchall()
+            
+            if not processos:
+                raise Exception(f"Nenhum processo encontrado para esta auditoria")
+            
+            # Buscar etapas de todos os processos
+            proc_ids = [p[0] for p in processos]
+            query_etapas = text("""
+                SELECT id, nome_etapa, codigo_etapa, descricao_etapa, objetivo_etapa, processo_id
+                FROM etapas_processo 
+                WHERE processo_id IN :processo_ids
+                ORDER BY processo_id, codigo_etapa
+            """)
+            etapas_raw = conn.execute(query_etapas, {"processo_ids": tuple(proc_ids)}).fetchall()
+        
+        # ===== AGRUPAR ETAPAS =====
+        etapas = []
+        for etapa in etapas_raw:
+            if processo_id:
+                etapa_id = etapa[0]
+                etapa_nome = etapa[1]
+                etapa_codigo = etapa[2] or ''
+                etapa_desc = etapa[3] or ''
+                etapa_obj = etapa[4] or ''
+            else:
+                etapa_id = etapa[0]
+                etapa_nome = etapa[1]
+                etapa_codigo = etapa[2] or ''
+                etapa_desc = etapa[3] or ''
+                etapa_obj = etapa[4] or ''
+                proc_id_etapa = etapa[5]
+            
+            # Buscar análises com sugestao_sera_implantada = TRUE
+            query_analises = text("""
+                SELECT 
+                    ac.id,
+                    ac.analise_critica,
+                    ac.sugestao_melhoria,
+                    ac.sugestao_sera_implantada,
+                    ac.efetivamente_implantada,
+                    ac.data_implantacao_efetiva,
+                    ac.necessidade_implantacao,
+                    ac.ganho_previsto,
+                    ac.categoria,
+                    p.codigo_processo,
+                    p.nome_processo
+                FROM analises_criticas ac
+                LEFT JOIN processos p ON ac.processo_id = p.id
+                WHERE ac.etapa_id = :etapa_id 
+                  AND ac.sugestao_sera_implantada = true
+                  AND ac.processo_id = :processo_id
+                ORDER BY ac.categoria, ac.id
+            """)
+            
+            analises_params = {"etapa_id": etapa_id, "processo_id": proc_id if processo_id else proc_id_etapa}
+            analises_raw = conn.execute(query_analises, analises_params).fetchall()
+            
+            analises_list = []
+            for a in analises_raw:
+                # Buscar follow-ups
+                query_followups = text("""
+                    SELECT etapa, data_prevista, data_realizada, status, comentario, responsavel
+                    FROM analises_follow_up
+                    WHERE analise_id = :analise_id
+                    ORDER BY data_prevista ASC
+                """)
+                followups_raw = conn.execute(query_followups, {"analise_id": a[0]}).fetchall()
+                
+                followups_list = []
+                for f in followups_raw:
+                    followups_list.append({
+                        'etapa': f[0] or '',
+                        'data_prevista': f[1].strftime('%d/%m/%Y') if f[1] else '-',
+                        'data_realizada': f[2].strftime('%d/%m/%Y') if f[2] else '-',
+                        'status': f[3] or 'Pendente',
+                        'comentario': f[4] or '',
+                        'responsavel': f[5] or ''
+                    })
+                
+                analises_list.append({
+                    'id': a[0],
+                    'analise_critica': a[1] or '',
+                    'sugestao_melhoria': a[2] or '',
+                    'sugestao_sera_implantada': a[3],
+                    'efetivamente_implantada': a[4],
+                    'data_implantacao_efetiva': a[5].strftime('%d/%m/%Y') if a[5] else None,
+                    'necessidade_implantacao': a[6] or '',
+                    'ganho_previsto': a[7] or '',
+                    'categoria': a[8] or '',
+                    'codigo_processo': a[9] or '',
+                    'nome_processo': a[10] or '',
+                    'followups': followups_list
+                })
+            
+            # Só adicionar a etapa se tiver análises
+            if analises_list:
+                etapas.append({
+                    'id': etapa_id,
+                    'nome': etapa_nome,
+                    'codigo': etapa_codigo,
+                    'descricao': etapa_desc,
+                    'objetivo': etapa_obj,
+                    'analises': analises_list
+                })
+    
+    # ===== INFORMAÇÕES DO RELATÓRIO =====
+    adicionar_informacoes_relatorio(
+        story=story,
+        styles=styles,
+        normal_style=normal_style,
+        pagesize=pagesize,
+        leftMargin=2*cm,
+        rightMargin=2*cm,
+        auditoria_id=auditoria_id,
+        processo_id=processo_id,
+        area_id=area_id,
+        area_nome=area_nome,
+        gestor=gestor,
+        cargo=cargo,
+        titulo_auditoria=titulo_final
+    )
+    
+    # ===== SE NÃO HOUVER ANÁLISES =====
+    if not etapas:
+        story.append(Paragraph(
+            "<b>Nenhuma sugestão de melhoria com follow-ups encontrada para este processo.</b>",
+            normal_style
+        ))
+        story.append(Spacer(1, 10))
+    else:
+        # ===== RESUMO ESTATÍSTICO =====
+        total_analises = sum(len(e['analises']) for e in etapas)
+        total_followups = sum(len(a['followups']) for e in etapas for a in e['analises'])
+        total_pendentes = sum(1 for e in etapas for a in e['analises'] for fu in a['followups'] if fu['status'] == 'Pendente')
+        total_aderentes = sum(1 for e in etapas for a in e['analises'] for fu in a['followups'] if fu['status'] == 'Aderente')
+        total_nao_aderentes = sum(1 for e in etapas for a in e['analises'] for fu in a['followups'] if fu['status'] == 'Nao aderente')
+        total_parcial = sum(1 for e in etapas for a in e['analises'] for fu in a['followups'] if fu['status'] == 'Parcialmente aderente')
+        
+        story.append(Paragraph("1. RESUMO DOS FOLLOW-UPS", secao_style))
+        story.append(Spacer(1, 5))
+        
+        resumo_data = [
+            ["Métrica", "Quantidade"],
+            ["Total de análises com sugestões implantadas", str(total_analises)],
+            ["Total de follow-ups", str(total_followups)],
+            ["Pendentes", str(total_pendentes)],
+            ["Aderentes", str(total_aderentes)],
+            ["Não aderentes", str(total_nao_aderentes)],
+            ["Parcialmente aderentes", str(total_parcial)]
+        ]
+        
+        resumo_table = Table(resumo_data, colWidths=[8*cm, 8*cm])
+        resumo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#184145')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.Color(0.98, 0.98, 0.98, alpha=0.80)),
+        ]))
+        story.append(resumo_table)
+        story.append(Spacer(1, 15))
+        
+        # ===== DETALHES POR ETAPA =====
+        story.append(PageBreak())
+        story.append(Paragraph("2. DETALHES DOS FOLLOW-UPS POR ETAPA", secao_style))
+        story.append(Spacer(1, 5))
+        
+        for etapa_idx, etapa in enumerate(etapas, 1):
+            # Título da etapa
+            story.append(Paragraph(
+                f"Etapa {etapa['codigo']}: {etapa['nome']}",
+                subsecao_style
+            ))
+            
+            if etapa['descricao']:
+                story.append(Paragraph(
+                    f"<b>Descrição:</b> {etapa['descricao']}",
+                    normal_style
+                ))
+                story.append(Spacer(1, 3))
+            
+            if etapa['objetivo']:
+                story.append(Paragraph(
+                    f"<b>Objetivo:</b> {etapa['objetivo']}",
+                    normal_style
+                ))
+                story.append(Spacer(1, 5))
+            
+            # Análises da etapa
+            for analise_idx, analise in enumerate(etapa['analises'], 1):
+                # Cabeçalho da análise
+                categoria_nome = {
+                    'governanca': 'Governança',
+                    'riscos': 'Riscos',
+                    'controles': 'Controles'
+                }.get(analise['categoria'], analise['categoria'] or 'Análise')
+                
+                story.append(Paragraph(
+                    f"<b>{etapa_idx}.{analise_idx} - {categoria_nome}</b>",
+                    normal_style
+                ))
+                
+                # Análise Crítica
+                if analise['analise_critica']:
+                    story.append(Paragraph(
+                        f"<b>Análise Crítica:</b> {analise['analise_critica']}",
+                        normal_style
+                    ))
+                
+                # Sugestão de Melhoria
+                if analise['sugestao_melhoria']:
+                    story.append(Paragraph(
+                        f"<b>Sugestão de Melhoria:</b> {analise['sugestao_melhoria']}",
+                        normal_style
+                    ))
+                
+                # Status da implantação
+                if analise['efetivamente_implantada']:
+                    status_texto = '<font color="#28a745"><b>Implantada</b></font>'
+                else:
+                    status_texto = '<font color="#ffc107"><b>Em andamento</b></font>'
+                
+                story.append(Paragraph(
+                    f"<b>Status da implantação:</b> {status_texto}",
+                    normal_style
+                ))
+                
+                if analise['data_implantacao_efetiva']:
+                    story.append(Paragraph(
+                        f"<b>Data da implantação:</b> {analise['data_implantacao_efetiva']}",
+                        normal_style
+                    ))
+                
+                story.append(Spacer(1, 5))
+                
+                # Follow-ups
+                if analise['followups']:
+                    fu_data = [["Etapa", "Data Prevista", "Data Realizada", "Status", "Comentário"]]
+                    for fu in analise['followups']:
+                        etapa_texto = {
+                            'FOLLOW_UP_30': '30 dias',
+                            'FOLLOW_UP_60': '60 dias',
+                            'FOLLOW_UP_90': '90 dias'
+                        }.get(fu['etapa'], fu['etapa'])
+                        
+                        status_color = {
+                            'Pendente': '#ff6000',
+                            'Aderente': '#28a745',
+                            'Nao aderente': '#dc3545',
+                            'Parcialmente aderente': '#ffc107'
+                        }.get(fu['status'], '#000000')
+                        
+                        status_text = f'<font color="{status_color}"><b>{fu["status"]}</b></font>'
+                        
+                        fu_data.append([
+                            Paragraph(etapa_texto, normal_style),
+                            Paragraph(fu['data_prevista'] or '-', normal_style),
+                            Paragraph(fu['data_realizada'] or '-', normal_style),
+                            Paragraph(status_text, normal_style),
+                            Paragraph(fu['comentario'][:50] or '-', normal_style)
+                        ])
+                    
+                    fu_table = Table(fu_data, colWidths=[2.5*cm, 2.5*cm, 2.5*cm, 3*cm, 5.5*cm], repeatRows=1)
+                    fu_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5b99')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ]))
+                    story.append(fu_table)
+                else:
+                    story.append(Paragraph(
+                        "<i>Nenhum follow-up registrado.</i>",
+                        normal_style
+                    ))
+                
+                story.append(Spacer(1, 8))
+                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#E0E0E0"), spaceBefore=3, spaceAfter=3))
+            
+            # Separador entre etapas
+            if etapa_idx < len(etapas):
+                story.append(Spacer(1, 10))
+    
+    # ===== ASSINATURAS =====
+    criar_pagina_validacao(
+        story=story,
+        gestor=gestor,
+        styles=styles,
+        normal_style=normal_style,
+        auditoria_id=auditoria_id,
+        tipo_relatorio='followup',
+        entrevistado=None
+    )
+    
+    # ===== RODAPÉ =====
+    # Buscar dados da GAI
+    dados_gai = buscar_dados_gerencia_auditoria()
+    email_gai = dados_gai['email']
+    telefone_gai = dados_gai['telefone']
+    
+    # Função para desenhar logos
+    def desenhar_logos_followup(canvas):
+        logo1_path = os.path.join(root_dir, "static", "assets", "logo_fusve.png")
+        logo2_path = os.path.join(root_dir, "static", "assets", "logo_auditoria-removebg-preview.png")
+        logo3_path = os.path.join(root_dir, "static", "assets", "logo_iia.png")
+        
+        y_logo = 0.8 * cm
+        altura_max_logo = 5 * cm
+        
+        def desenhar_png(caminho, x, y, largura_max, altura_max):
+            if not os.path.exists(caminho):
+                return False
+            try:
+                pil_img = PILImage.open(caminho)
+                if pil_img.mode != 'RGBA':
+                    pil_img = pil_img.convert('RGBA')
+                img_width, img_height = pil_img.size
+                proporcao = img_width / img_height
+                largura = min(largura_max, 5*cm)
+                altura = largura / proporcao
+                if altura > altura_max:
+                    altura = altura_max
+                    largura = altura * proporcao
+                buffer_temp = io.BytesIO()
+                pil_img.save(buffer_temp, format='PNG')
+                buffer_temp.seek(0)
+                img = ImageReader(buffer_temp)
+                canvas.drawImage(img, x - largura/2, y - altura/2, width=largura, height=altura, mask='auto', preserveAspectRatio=True)
+                return True
+            except Exception as e:
+                print(f"Erro ao desenhar logo: {e}")
+                return False
+        
+        espacamento = pagesize[0] / 4
+        x1 = espacamento
+        x2 = pagesize[0] / 2
+        x3 = pagesize[0] - espacamento
+        largura_max = 2.5 * cm
+        
+        desenhar_png(logo1_path, x2, y_logo, largura_max, altura_max_logo)
+        desenhar_png(logo2_path, x1, y_logo, 3.5 * cm, 3.5 * cm)
+        desenhar_png(logo3_path, x3, y_logo, 3 * cm, 3 * cm)
+    
+    # Rodapé
+    def rodape_followup(canvas, doc, total_paginas):
+        titulo_rodape = f"Relatório de Follow-ups - {area_nome[:50]}"
+        if processo_id and 'proc_codigo' in locals():
+            titulo_rodape = f"Relatório de Follow-ups - Processo {proc_codigo} - {area_nome[:40]}"
+        criar_rodape(canvas, doc, pagesize, total_paginas, titulo_rodape,
+                     root_dir=root_dir,
+                     email_auditoria=email_gai,
+                     telefone_auditoria=telefone_gai)
+    
+    # Primeira passada para contar páginas
+    story_copy = copy.deepcopy(story)
+    buffer_temp = io.BytesIO()
+    doc_temp = SimpleDocTemplate(buffer_temp, pagesize=pagesize,
+                                 topMargin=topMargin, bottomMargin=bottomMargin,
+                                 leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_temp(canvas, doc):
+        if doc.page == 1:
+            return
+        titulo_temp = f"Relatório de Follow-ups - {area_nome[:40]}"
+        criar_rodape(canvas, doc, pagesize, 0, titulo_temp,
+                     root_dir=root_dir,
+                     email_auditoria=email_gai,
+                     telefone_auditoria=telefone_gai)
+    
+    doc_temp.build(story_copy, onFirstPage=lambda c, d: rodape_temp(c, d),
+                   onLaterPages=lambda c, d: rodape_temp(c, d))
+    
+    buffer_temp.seek(0)
+    pdf_reader = PdfReader(buffer_temp)
+    total_paginas = len(pdf_reader.pages)
+    
+    # Segunda passada - PDF final
+    doc_final = SimpleDocTemplate(buffer, pagesize=pagesize,
+                                  topMargin=topMargin, bottomMargin=bottomMargin,
+                                  leftMargin=leftMargin, rightMargin=rightMargin)
+    
+    def rodape_final(canvas, doc):
+        if doc.page == 1:
+            return
+        rodape_followup(canvas, doc, total_paginas)
+    
+    doc_final.build(story, onFirstPage=lambda c, d: rodape_final(c, d),
+                    onLaterPages=lambda c, d: rodape_final(c, d))
     
     buffer.seek(0)
     return buffer.getvalue()
