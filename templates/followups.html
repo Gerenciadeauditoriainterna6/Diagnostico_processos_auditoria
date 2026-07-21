@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Follow-ups - Sistema Gerência de Auditoria Interna{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/followups.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="followups-container">
+    <div class="page-header">
+        <h1><i class="fas fa-eye"></i> Acompanhamento de Implantações</h1>
+        <p>Follow-ups das sugestões de melhoria em andamento</p>
+    </div>
+
+        <!-- FILTROS -->
+    <div class="form-section filtros-section">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="area_select"><i class="fas fa-building"></i> Área:</label>
+                <select id="area_select" class="form-control">
+                    <option value="">Selecione uma área...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="auditoria_select"><i class="fas fa-clipboard-list"></i> Tema de Auditoria:</label>
+                <select id="auditoria_select" class="form-control" disabled>
+                    <option value="">Selecione uma área primeiro...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" id="row-processo" style="display: none;">
+                <label for="processo_select"><i class="fas fa-project-diagram"></i> Processo:</label>
+                <select id="processo_select" class="form-control" disabled>
+                    <option value="">Selecione uma auditoria primeiro...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL (aparece após selecionar processo) -->
+    <div id="conteudo-principal" style="display: none;">
+        
+        <!-- SEÇÃO: FILTROS ADICIONAIS DOS FOLLOW-UPS -->
+        <div class="form-section">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="filtro-status"><i class="fas fa-filter"></i> Status:</label>
+                    <select id="filtro-status" class="form-control">
+                        <option value="todos">Todos</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="aderente">Aderente</option>
+                        <option value="nao_aderente">Não aderente</option>
+                        <option value="parcialmente_aderente">Parcialmente aderente</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filtro-prazo"><i class="fas fa-clock"></i> Prazo:</label>
+                    <select id="filtro-prazo" class="form-control">
+                        <option value="todos">Todos</option>
+                        <option value="30">30 dias</option>
+                        <option value="60">60 dias</option>
+                        <option value="90">90 dias</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+                    <button id="btn-aplicar-filtros" class="btn-primary">
+                        <i class="fas fa-search"></i> Aplicar Filtros
+                    </button>
+                    <button id="btn-limpar-filtros" class="btn-secondary">
+                        <i class="fas fa-undo"></i> Limpar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: LISTA DE FOLLOW-UPS -->
+        <div class="form-section">
+            <h3><i class="fas fa-list"></i> Follow-ups</h3>
+            <p class="text-muted" style="margin-bottom: 20px;">Acompanhamento das sugestões de melhoria que serão implantadas</p>
+            <div id="followups-container">
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando follow-ups...
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL PARA REGISTRAR FOLLOW-UP -->
+<div id="modal-followup-registro" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 id="modal-followup-registro-titulo"><i class="fas fa-edit"></i> Registrar Acompanhamento</h3>
+            <button class="modal-fechar" onclick="window.fecharModalFollowupRegistro()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- ⭐ ADICIONAR ESTE CAMPO HIDDEN -->
+            <input type="hidden" id="followup-registro-analise-id">
+            
+            <div class="form-group">
+                <label><i class="fas fa-info-circle"></i> Análise</label>
+                <p id="followup-registro-analise" style="padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;"></p>
+            </div>
+            
+            <!-- ⭐ ESTA DIV É ONDE OS FOLLOW-UPS PENDENTES SERÃO LISTADOS -->
+            <div id="followup-registro-lista">
+                <div style="text-align: center; padding: 20px; color: #999;">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando follow-ups pendentes...
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="window.fecharModalFollowupRegistro()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA REGISTRAR ITEM DE FOLLOW-UP -->
+<div id="modal-followup-item" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 id="modal-followup-item-titulo"><i class="fas fa-edit"></i> Registrar Follow-up</h3>
+            <button class="modal-fechar" onclick="window.fecharModalFollowupItem()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- ⭐ ADICIONAR ESTE CAMPO HIDDEN -->
+            <input type="hidden" id="followup-item-id">
+            
+            <div class="form-group">
+                <label><i class="fas fa-info-circle"></i> Análise</label>
+                <p id="followup-item-analise" style="padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;"></p>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-calendar"></i> Data prevista</label>
+                <p id="followup-item-data" style="padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;"></p>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-check-circle"></i> Status</label>
+                <select id="followup-item-status" class="form-control">
+                    <option value="Aderente">✅ Aderente</option>
+                    <option value="Nao aderente">❌ Não aderente</option>
+                    <option value="Parcialmente aderente">🟡 Parcialmente aderente</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-comment"></i> Comentário</label>
+                <textarea id="followup-item-comentario" class="form-control" rows="3" placeholder="Descreva o resultado do follow-up..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="window.fecharModalFollowupItem()">Cancelar</button>
+            <button id="btn-salvar-followup-item" class="btn-primary">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA EDITAR FOLLOW-UP -->
+<div id="modal-followup-editar" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 id="modal-followup-editar-titulo"><i class="fas fa-edit"></i> Editar Follow-up</h3>
+            <button class="modal-fechar" onclick="window.fecharModalFollowupEditar()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="followup-editar-id">
+            
+            <div class="form-group">
+                <label><i class="fas fa-info-circle"></i> Etapa</label>
+                <p id="followup-editar-etapa" style="padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;"></p>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-calendar"></i> Data prevista</label>
+                <p id="followup-editar-data" style="padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;"></p>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-check-circle"></i> Status</label>
+                <select id="followup-editar-status" class="form-control">
+                    <option value="Pendente">⏳ Pendente</option>
+                    <option value="Aderente">✅ Aderente</option>
+                    <option value="Nao aderente">❌ Não aderente</option>
+                    <option value="Parcialmente aderente">🟡 Parcialmente aderente</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-comment"></i> Comentário</label>
+                <textarea id="followup-editar-comentario" class="form-control" rows="3" placeholder="Descreva o resultado do follow-up..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="window.fecharModalFollowupEditar()">Cancelar</button>
+            <button id="btn-salvar-followup-editar" class="btn-primary">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module" src="{{ url_for('static', filename='js/checklists/followups.js') }}"></script>
+{% endblock %}

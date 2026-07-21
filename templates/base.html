@@ -202,6 +202,9 @@
         .nav-section-title.nav-section-comunicacao::before {
             background: #f70a0a;
         }
+        .nav-section-title.nav-section-followup::before {
+            background: #f3f70a;
+        }
         .nav-section-title.nav-section-administracao::before {
             background: #0b5b99;
         }
@@ -1574,7 +1577,7 @@
                 <!-- SEÇÃO DE FOLLOW-UPS -->
                 <div class="nav-section">
                     <div class="nav-section-title nav-section-followup">MÓDULO Acompanhamento de Melhorias</div>
-                    <a class="nav-item">
+                    <a href="{{ url_for('followups.index') }}" class="nav-item">
                         <i class="fas fa-eye"></i>
                         <span>Follow-ups</span>
                     </a>
@@ -1852,7 +1855,8 @@
                             { url: '/auditorias-emergenciais', selector: 'a[href="/auditorias-emergenciais"]' },
                             { url: '/checklists', selector: 'a[href="/checklists"]' },
                             { url: '/diagnostico', selector: 'a[href="/diagnostico"]' },
-                            { url: '/matriz_achados', selector: 'a[href="/matriz_achados"]'}
+                            { url: '/matriz_achados', selector: 'a[href="/matriz_achados"]'},
+                            { url: '/followups', selector: 'a[href="/followups"]'}
                         ],
 
                         // Itens com submenu
