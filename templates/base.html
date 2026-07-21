@@ -95,7 +95,7 @@
         /* ====== LOGO NO SIDEBAR ====== */
         .sidebar-logo {
             text-align: center;
-            padding: 25px 20px 15px 20px;
+            padding: 5px 20px 15px 20px;
             border-bottom: 1px solid rgba(228,228,228,0.2);
             margin-bottom: 20px;
         }
@@ -1446,7 +1446,7 @@
                 <h3>Mapeamento, Auditoria e Processos Avaliados</h3>
                 <h4>Gerência de Auditoria Interna<br><br></h4>
                 <a class="logo-fusve-link">
-                    <img src="{{ url_for('static', filename='assets/logo_fusve.png')}}">
+                    <img src="{{ url_for('static', filename='assets/logo_fusve.png')}}" style="width: 120px; height: auto;">
                 </a>
             </div>
             
@@ -1856,7 +1856,7 @@
                             { url: '/checklists', selector: 'a[href="/checklists"]' },
                             { url: '/diagnostico', selector: 'a[href="/diagnostico"]' },
                             { url: '/matriz_achados', selector: 'a[href="/matriz_achados"]'},
-                            { url: '/followups', selector: 'a[href="/followups"]'}
+                            { url: '/followups/', selector: 'a[href="/followups/"]'}
                         ],
 
                         // Itens com submenu
