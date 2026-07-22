@@ -966,6 +966,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // ⭐ BOTÃO SALVAR PLANO DE AÇÃO
     document.getElementById('btn-salvar-plano-acao')?.addEventListener('click', salvarPlanoAcao);
+
+    document.getElementById('btn-salvar-followup-editar')?.addEventListener('click', salvarFollowupEditar);
         
     console.log('✅ Página de follow-ups inicializada!');
 });

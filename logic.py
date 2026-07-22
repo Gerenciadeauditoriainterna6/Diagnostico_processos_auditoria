@@ -6247,12 +6247,21 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     ac.ganho_previsto,
                     ac.categoria,
                     p.codigo_processo,
-                    p.nome_processo
+                    p.nome_processo,
+                    pa.oque,                    
+                    pa.por_que,                 
+                    pa.onde,                    
+                    pa.quando,                  
+                    pa.quem,                    
+                    pa.como,                    
+                    pa.quanto_custa,           
+                    pa.comentario               
                 FROM analises_criticas ac
                 LEFT JOIN processos p ON ac.processo_id = p.id
+                LEFT JOIN planos_acao pa ON ac.id = pa.analise_id   
                 WHERE ac.etapa_id = :etapa_id 
-                  AND ac.sugestao_sera_implantada = true
-                  AND ac.processo_id = :processo_id
+                AND ac.sugestao_sera_implantada = true
+                AND ac.processo_id = :processo_id
                 ORDER BY ac.categoria, ac.id
             """)
             
@@ -6293,6 +6302,17 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     'categoria': a[8] or '',
                     'codigo_processo': a[9] or '',
                     'nome_processo': a[10] or '',
+                    # ⭐ PLANO DE AÇÃO 5W2H
+                    'plano_acao': {
+                        'oque': a[11] or '',
+                        'por_que': a[12] or '',
+                        'onde': a[13] or '',
+                        'quando': a[14].strftime('%d/%m/%Y') if a[14] else None,
+                        'quem': a[15] or '',
+                        'como': a[16] or '',
+                        'quanto_custa': a[17] or '',
+                        'comentario': a[18] or ''
+                    } if a[11] else None,  # ⭐ Se tiver 'oque', mostra o plano
                     'followups': followups_list
                 })
             
@@ -6423,9 +6443,43 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                         normal_style
                     ))
                 
+                # ⭐ PLANO DE AÇÃO 5W2H (se existir)
+                if analise.get('plano_acao') and analise['plano_acao'].get('oque'):
+                    plano = analise['plano_acao']
+                    story.append(Paragraph(
+                        "<b>PLANO DE AÇÃO 5W2H:</b>",
+                        normal_style
+                    ))
+                    
+                    # Tabela do plano de ação
+                    plano_data = [
+                        ["O que?", plano.get('oque', '-')],
+                        ["Por que?", plano.get('por_que', '-')],
+                        ["Onde?", plano.get('onde', '-')],
+                        ["Quando?", plano.get('quando', '-')],
+                        ["Quem?", plano.get('quem', '-')],
+                        ["Como?", plano.get('como', '-')],
+                        ["Quanto custa?", plano.get('quanto_custa', '-')],
+                        ["Comentário:", plano.get('comentario', '-')]
+                    ]
+                    
+                    plano_table = Table(plano_data, colWidths=[3*cm, 11*cm])
+                    plano_table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F5E9')),
+                        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    story.append(plano_table)
+                    story.append(Spacer(1, 5))
+                
                 # Status da implantação
                 if analise['plano_de_acao_implantado']:
-                    status_texto = '<font color="#28a745"><b>Implantada</b></font>'
+                    status_texto = '<font color="#28a745"><b>Implantado</b></font>'
                 else:
                     status_texto = '<font color="#ffc107"><b>Em andamento</b></font>'
                 

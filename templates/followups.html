@@ -239,25 +239,25 @@
 <div id="modal-confirmar-implantacao" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 450px;">
         <div class="modal-header">
-            <h3><i class="fas fa-check-circle"></i> Confirmar Implantação</h3>
+            <h3><i class="fas fa-check-circle"></i> Confirmar a execução do Plano de Ação</h3>
             <button class="modal-fechar" onclick="window.fecharModalConfirmarImplantacao()">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="confirmar-analise-id">
             <div class="form-group">
-                <label>A melhoria foi efetivamente implantada?</label>
+                <label>O Plano de Ação será executado?</label>
                 <select id="confirmar-status" class="form-control">
-                    <option value="true">✅ Sim, foi implantada</option>
-                    <option value="false">❌ Não, não foi implantada</option>
+                    <option value="true">Sim, será executado!</option>
+                    <option value="false">Não, não será executado!</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Data da implantação</label>
+                <label>Data de início da execução</label>
                 <input type="date" id="confirmar-data" class="form-control">
             </div>
             <div class="form-group">
                 <label>Comentário (opcional)</label>
-                <textarea id="confirmar-comentario" class="form-control" rows="2" placeholder="Observações sobre a implantação..."></textarea>
+                <textarea id="confirmar-comentario" class="form-control" rows="2" placeholder="Observações sobre a execução..."></textarea>
             </div>
         </div>
         <div class="modal-footer">

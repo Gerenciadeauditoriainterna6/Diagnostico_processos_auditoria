@@ -200,40 +200,42 @@
                     </div>
                     
                     <!-- 3. Status da Sugestão de Melhoria - AGORA COM RADIO BUTTONS -->
-                    <div class="form-group">
-                        <label><i class="fas fa-check-circle"></i> Status da sugestão de melhoria:</label>
-                        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap;">
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="radio" name="sugestao-status-auditado-radio" value=""> 
-                                <span>Aguardando avaliação</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="radio" name="sugestao-status-auditado-radio" value="true"> 
-                                <span>Será implantada</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="radio" name="sugestao-status-auditado-radio" value="false"> 
-                                <span>Não será implantada</span>
-                            </label>
+                    <div id="campos-sugestao-melhoria">
+                        <div class="form-group">
+                            <label><i class="fas fa-check-circle"></i> Status da sugestão de melhoria:</label>
+                            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sugestao-status-auditado-radio" value=""> 
+                                    <span>Aguardando avaliação</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sugestao-status-auditado-radio" value="true"> 
+                                    <span>Será implantada</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sugestao-status-auditado-radio" value="false"> 
+                                    <span>Não será implantada</span>
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- 5. Necessidade para Implantação -->
-                    <div class="form-group">
-                        <label><i class="fas fa-tasks"></i> Necessidade para Implantação</label>
-                        <textarea id="analise-auditado-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
-                    </div>
-                    
-                    <!-- 6. Ganho Previsto -->
-                    <div class="form-group">
-                        <label><i class="fas fa-chart-line"></i> Ganho Previsto</label>
-                        <textarea id="analise-auditado-ganho" class="form-control" rows="2" placeholder="Ganhos previstos com as melhorias..."></textarea>
-                    </div>
-                    
-                    <!-- 7. Observações -->
-                    <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Recomendações GRC</label>
-                        <textarea id="analise-auditado-observacoes" class="form-control" rows="2" placeholder="Recomendações adicionais..."></textarea>
+                        
+                        <!-- 5. Necessidade para Implantação -->
+                        <div class="form-group">
+                            <label><i class="fas fa-tasks"></i> Necessidade para Implantação</label>
+                            <textarea id="analise-auditado-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
+                        </div>
+                        
+                        <!-- 6. Ganho Previsto -->
+                        <div class="form-group">
+                            <label><i class="fas fa-chart-line"></i> Ganho Previsto</label>
+                            <textarea id="analise-auditado-ganho" class="form-control" rows="2" placeholder="Ganhos previstos com as melhorias..."></textarea>
+                        </div>
+                        
+                        <!-- 7. Observações -->
+                        <div class="form-group">
+                            <label><i class="fas fa-comment"></i> Recomendações GRC</label>
+                            <textarea id="analise-auditado-observacoes" class="form-control" rows="2" placeholder="Recomendações adicionais..."></textarea>
+                        </div>
                     </div>
 
                     <!-- ⭐ NOVO: 8. Evidências da Análise do Auditado -->
@@ -301,41 +303,42 @@
                     </div>
                     
                     <!-- 3. Status da Sugestão de Melhoria -->
-                    <div class="form-group">
-                        <label><i class="fas fa-check-circle"></i> Status da sugestão de melhoria:</label>
-                        <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap;">
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="radio" name="sugestao-status-radio" value=""> 
-                                <span>Aguardando avaliação</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="radio" name="sugestao-status-radio" value="true"> 
-                                <span>Será implantada</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                <input type="radio" name="sugestao-status-radio" value="false"> 
-                                <span>Não será implantada</span>
-                            </label>
+                    <div id="campos-sugestao-melhoria-auditor">
+                        <div class="form-group">
+                            <label><i class="fas fa-check-circle"></i> Status da sugestão de melhoria:</label>
+                            <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sugestao-status-radio" value=""> 
+                                    <span>Aguardando avaliação</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sugestao-status-radio" value="true"> 
+                                    <span>Será implantada</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sugestao-status-radio" value="false"> 
+                                    <span>Não será implantada</span>
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    
-                                        
-                    <!-- 5. Necessidade para Implantação -->
-                    <div class="form-group">
-                        <label><i class="fas fa-tasks"></i> Necessidade para Implantação</label>
-                        <textarea id="analise-auditor-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
-                    </div>
-                    
-                    <!-- 6. Ganho Previsto -->
-                    <div class="form-group">
-                        <label><i class="fas fa-chart-line"></i> Ganho Previsto</label>
-                        <textarea id="analise-auditor-ganho" class="form-control" rows="2" placeholder="Ganhos previstos com as melhorias..."></textarea>
-                    </div>
-                    
-                    <!-- 7. Observações -->
-                    <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Recomendações GRC</label>
-                        <textarea id="analise-auditor-observacoes" class="form-control" rows="2" placeholder="Recomendações adicionais..."></textarea>
+                        
+                        <!-- 5. Necessidade para Implantação -->
+                        <div class="form-group">
+                            <label><i class="fas fa-tasks"></i> Necessidade para Implantação</label>
+                            <textarea id="analise-auditor-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
+                        </div>
+                        
+                        <!-- 6. Ganho Previsto -->
+                        <div class="form-group">
+                            <label><i class="fas fa-chart-line"></i> Ganho Previsto</label>
+                            <textarea id="analise-auditor-ganho" class="form-control" rows="2" placeholder="Ganhos previstos com as melhorias..."></textarea>
+                        </div>
+                        
+                        <!-- 7. Observações -->
+                        <div class="form-group">
+                            <label><i class="fas fa-comment"></i> Recomendações GRC</label>
+                            <textarea id="analise-auditor-observacoes" class="form-control" rows="2" placeholder="Recomendações adicionais..."></textarea>
+                        </div>
                     </div>
 
                     <!-- ⭐ NOVO: 8. Evidências -->
