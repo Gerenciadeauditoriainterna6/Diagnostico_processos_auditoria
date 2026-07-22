@@ -1906,9 +1906,9 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
             story.append(criar_bloco_assinatura(f"Auditor", responsavel))
             story.append(Spacer(1, 4))
     else:
-        story.append(criar_bloco_assinatura("Auditor 1"))
+        story.append(criar_bloco_assinatura("Auditor"))
         story.append(Spacer(1, 4))
-        story.append(criar_bloco_assinatura("Auditor 2"))
+        story.append(criar_bloco_assinatura("Auditor"))
     
     story.append(Spacer(1, 8))
     
@@ -1930,7 +1930,7 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     
     gerente_dados = []
     gerente_dados.append([
-        Paragraph("<b>Gerente:</b> TEÓFILO GAIO BOTO", nome_style)
+        Paragraph("TEÓFILO GAIO BOTO", nome_style)
     ])
     gerente_dados.append([
         Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
@@ -1959,6 +1959,185 @@ def criar_pagina_validacao(story, gestor, styles, normal_style, auditoria_id=Non
     gerente_content.append(tabela_gerente)
     
     from reportlab.platypus import KeepTogether
+    story.append(KeepTogether(gerente_content))
+
+def criar_pagina_validacao_conclusao(story, gestor, styles, normal_style, auditoria_id=None, 
+                                     responsaveis=None, tipo_relatorio='conclusao'):
+    """
+    Adiciona a página de validação do relatório de conclusão com campos de assinatura
+    """
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.platypus import KeepTogether
+    
+    # ⭐ TEXTO ESPECÍFICO PARA O RELATÓRIO DE CONCLUSÃO
+    titulo_validacao = "VALIDACÃO DA CONCLUSÃO DA AUDITORIA"
+    texto_declaracao = """
+    
+    """
+    
+    if 'titulo' not in styles:
+        styles.add(ParagraphStyle(
+            'titulo',
+            parent=styles['Normal'],
+            fontSize=14,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#184145'),
+            spaceAfter=12
+        ))
+    
+    # ⭐ ESTILOS
+    campo_titulo_style = ParagraphStyle(
+        'CampoTitulo',
+        parent=normal_style,
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=1
+    )
+    
+    nome_style = ParagraphStyle(
+        'NomeStyle',
+        parent=normal_style,
+        fontSize=10,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#184145'),
+        spaceAfter=1
+    )
+    
+    rotulo_style = ParagraphStyle(
+        'RotuloStyle',
+        parent=normal_style,
+        fontSize=8,
+        textColor=colors.HexColor('#666666')
+    )
+    
+    linha_assinatura_style = ParagraphStyle(
+        'LinhaAssinatura',
+        parent=normal_style,
+        fontSize=8,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#999999'),
+        spaceAfter=1
+    )
+    
+    texto_declaracao_style = ParagraphStyle(
+        'TextoDeclaracao',
+        parent=normal_style,
+        fontSize=9,
+        leading=12,
+        alignment=TA_CENTER,
+        spaceAfter=10
+    )
+    
+    # ⭐ Função auxiliar para criar um bloco de assinatura
+    def criar_bloco_assinatura(titulo, nome_padrao=None):
+        """Cria um bloco com Nome, Data e Assinatura"""
+        dados = []
+        
+        if nome_padrao:
+            dados.append([
+                Paragraph(f"<b>{titulo}:</b> {nome_padrao}", nome_style)
+            ])
+        else:
+            dados.append([
+                Paragraph(f"<b>{titulo}:</b> _________________________", nome_style)
+            ])
+        
+        dados.append([
+            Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
+        ])
+        
+        dados.append([
+            Paragraph("___________________________________________", linha_assinatura_style)
+        ])
+        dados.append([
+            Paragraph("<i>Assinatura</i>", ParagraphStyle(
+                'AssinaturaLabel',
+                parent=normal_style,
+                fontSize=7,
+                alignment=TA_CENTER,
+                textColor=colors.HexColor('#999999')
+            ))
+        ])
+        
+        tabela = Table(dados, colWidths=[14*cm])
+        tabela.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ]))
+        
+        return tabela
+    
+    # ⭐ INÍCIO DA PÁGINA
+    story.append(PageBreak())
+    
+    # Título principal
+    story.append(Paragraph(titulo_validacao, styles['titulo']))
+    story.append(Spacer(1, 5))
+    
+    # Texto de declaração
+    story.append(Paragraph(texto_declaracao, texto_declaracao_style))
+    story.append(Spacer(1, 10))
+        
+    # ============================================================
+    # 2. RESPONSÁVEIS PELA AUDITORIA (da equipe)
+    # ============================================================
+    story.append(Paragraph("AUDITORES RESPONSÁVEIS PELA AUDITORIA", campo_titulo_style))
+    story.append(Spacer(1, 2))
+    
+    if responsaveis and len(responsaveis) > 0:
+        for idx, responsavel in enumerate(responsaveis, 1):
+            story.append(criar_bloco_assinatura(f"Auditor", responsavel))
+            story.append(Spacer(1, 4))
+    else:
+        # ⭐ Se não houver responsáveis, mostrar campos em branco
+        story.append(criar_bloco_assinatura("Auditor"))
+        story.append(Spacer(1, 4))
+        story.append(criar_bloco_assinatura("Auditor"))
+    
+    story.append(Spacer(1, 8))
+    
+    # ============================================================
+    # 3. GERENTE DE AUDITORIA INTERNA
+    # ============================================================
+    gerente_content = []
+    
+    gerente_content.append(Paragraph("GERENTE DE AUDITORIA INTERNA", campo_titulo_style))
+    gerente_content.append(Spacer(1, 2))
+    
+    gerente_dados = []
+    gerente_dados.append([
+        Paragraph("TEÓFILO GAIO BOTO", nome_style)
+    ])
+    gerente_dados.append([
+        Paragraph("<b>Data:</b> ____/____/________", rotulo_style)
+    ])
+    gerente_dados.append([
+        Paragraph("___________________________________________", linha_assinatura_style)
+    ])
+    gerente_dados.append([
+        Paragraph("<i>Assinatura</i>", ParagraphStyle(
+            'AssinaturaLabel',
+            parent=normal_style,
+            fontSize=7,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#999999')
+        ))
+    ])
+    
+    tabela_gerente = Table(gerente_dados, colWidths=[14*cm])
+    tabela_gerente.setStyle(TableStyle([
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    
+    gerente_content.append(tabela_gerente)
+    
     story.append(KeepTogether(gerente_content))
 
 def contar_paginas_e_gerar_pdf(story, pagesize, topMargin, bottomMargin, leftMargin, rightMargin, 
@@ -2326,7 +2505,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
     altura_estimada = 0
     
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    logo_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_recortada_circulo2.png")
     if os.path.exists(logo_path):
         altura_estimada += 4*cm + 20
     else:
@@ -2508,7 +2687,7 @@ def gerar_validacao_relatorio_panorama(area_id, area_nome, gestor, cargo, orient
     
     # ===== 4a. CABEÇALHO COM LOGOS =====
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_circulo.png")
+    logo_auditoria_path = os.path.join(root_dir, "static", "assets", "logo_auditoria_recortada_circulo2.png")
 
     header_data = []
     tem_logo = os.path.exists(logo_auditoria_path)
@@ -5531,15 +5710,13 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
 def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade, 
                         codigo_auditoria, titulo_auditoria, conclusao_data, 
-                        orientacao="RETRATO", usuario_nome="Usuário", 
-                        usuario_conclusao=None, is_owner=False):
+                        orientacao="RETRATO", usuario_nome="Usuário"):
     """
     Gera o relatório de conclusão em PDF com suporte a SWOT
     
     Parâmetros:
     - conclusao_data: Pode ser uma string (texto) ou um dicionário com os campos da SWOT
-    - usuario_conclusao: Nome do usuário que escreveu a conclusão
-    - is_owner: True se o usuário logado é o autor da conclusão (permite assinatura)
+    - usuario_nome: Nome do usuário que está baixando o relatório (vai na assinatura)
     """
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle
@@ -5660,24 +5837,10 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         parent=normal_style,
         fontSize=9,
         leading=12,
-        alignment=TA_JUSTIFY,
-        leftIndent=10,
-        rightIndent=10,
+        alignment=TA_JUSTIFY,  # ⭐ Centralizado
+        leftIndent=0,         # ⭐ Remove indentação
+        rightIndent=0,
         spaceAfter=8
-    )
-    
-    # ⭐ ESTILO PARA AVISO DE VALIDADE
-    aviso_style = ParagraphStyle(
-        'AvisoStyle',
-        parent=normal_style,
-        fontSize=12,
-        fontName='Helvetica-Bold',
-        alignment=TA_CENTER,
-        textColor=colors.HexColor('#dc3545'),
-        spaceAfter=20,
-        spaceBefore=10,
-        backColor=colors.HexColor('#FFF3CD'),
-        borderPadding=10
     )
     
     assinatura_style = ParagraphStyle(
@@ -5699,34 +5862,32 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story.append(Paragraph(f"<b>Unidade:</b> {unidade}", info_style))
     story.append(Paragraph(f"<b>Gestor:</b> {gestor} - {cargo}", info_style))
     
-    # ⭐ Quem escreveu a conclusão
-    if usuario_conclusao:
-        story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_conclusao}", info_style))
-    else:
-        story.append(Paragraph(f"<b>Responsável pela Conclusão:</b> {usuario_nome}", info_style))
+    # ⭐ Quem escreveu a conclusão (vem do banco)
+    # Buscar o autor da conclusão do banco
+    autor_conclusao = usuario_nome  # Por padrão, usa o usuário atual
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT usuario_nome FROM conclusoes_auditoria
+                WHERE auditoria_id = :auditoria_id AND area_id = :area_id
+            """)
+            result = conn.execute(query, {
+                'auditoria_id': codigo_auditoria,  # Precisa do ID da auditoria
+                'area_id': area_id
+            }).fetchone()
+            if result:
+                autor_conclusao = result[0]
+    except:
+        pass
     
-    story.append(Paragraph(f"<b>Data de Emissão:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
+    story.append(Paragraph(f"<b>Data/Hora Emissão:</b> {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}", info_style))
     story.append(Spacer(1, 20))
     
     # Linha divisória
     story.append(Paragraph("<hr/>", normal_style))
     story.append(Spacer(1, 15))
     
-    # ⭐ AVISO DE VALIDADE (se NÃO for o proprietário)
-    if not is_owner:
-        story.append(Paragraph(
-            "AVISO IMPORTANTE",
-            aviso_style
-        ))
-        story.append(Spacer(1, 5))
-        story.append(Paragraph(
-            "Este documento foi baixado por um usuário que NÃO é o autor da conclusão.<br/>"
-            "Portanto, este relatório <b>É APENAS PARA VISUALIZAÇÃO</b> para fins de consulta.<br/><br/>"
-            "Para obter um documento com validade, solicite que o autor da conclusão "
-            "baixe o relatório diretamente de seu acesso.",
-            aviso_style
-        ))
-        story.append(Spacer(1, 15))
+    # ⭐ REMOVIDO O AVISO DE VALIDADE - SEMPRE ASSINA
     
     # ⭐ CONCLUSÃO GERAL
     if texto_conclusao:
@@ -5736,6 +5897,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         story.append(Spacer(1, 20))
     
     # ⭐ ANÁLISE SWOT
+    story.append(PageBreak())
     tem_swot = any([forca, fraqueza, oportunidades, ameacas])
     if tem_swot:
         story.append(Paragraph("<b>ANÁLISE SWOT</b>", swot_titulo_style))
@@ -5747,28 +5909,28 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         # Forças
         forca_texto = forca if forca else 'Não informado'
         dados_swot.append([
-            Paragraph('<b>FORÇAS</b>', swot_label_style),
+            Paragraph('<b><font color="#28a745">FORÇAS</font></b>', swot_label_style),
             Paragraph(forca_texto, swot_texto_style)
         ])
         
         # Fraquezas
         fraqueza_texto = fraqueza if fraqueza else 'Não informado'
         dados_swot.append([
-            Paragraph('<b>FRAQUEZAS</b>', swot_label_style),
+            Paragraph('<b><font color="#dc3545">FRAQUEZAS</font></b>', swot_label_style),
             Paragraph(fraqueza_texto, swot_texto_style)
         ])
         
         # Oportunidades
         oportunidades_texto = oportunidades if oportunidades else 'Não informado'
         dados_swot.append([
-            Paragraph('<b>OPORTUNIDADES</b>', swot_label_style),
+            Paragraph('<b><font color="#ffc107">OPORTUNIDADES</font></b>', swot_label_style),
             Paragraph(oportunidades_texto, swot_texto_style)
         ])
         
         # Ameaças
         ameacas_texto = ameacas if ameacas else 'Não informado'
         dados_swot.append([
-            Paragraph('<b>AMEAÇAS</b>', swot_label_style),
+            Paragraph('<b><font color="#fd6a14">AMEAÇAS</font></b>', swot_label_style),
             Paragraph(ameacas_texto, swot_texto_style)
         ])
         
@@ -5778,9 +5940,10 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-            ('VALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),      # ⭐ Centraliza horizontalmente
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),     # ⭐ Centraliza verticalmente
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
             ('LEFTPADDING', (0, 0), (-1, -1), 8),
             ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
@@ -5797,27 +5960,38 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
         ))
         story.append(Spacer(1, 20))
     
-    # ⭐ ASSINATURA (apenas se for o proprietário)
-    if is_owner:
-        story.append(Spacer(1, 40))
-        story.append(Paragraph("_________________________________________", assinatura_style))
-        story.append(Paragraph(f"{usuario_conclusao or usuario_nome}", assinatura_style))
-        story.append(Paragraph("Auditor responsável pela conclusão", assinatura_style))
-        story.append(Spacer(1, 5))
-        story.append(Paragraph(
-            f"Data/Hora: {datetime.now(TZ_BRASILIA).strftime('%d/%m/%Y %H:%M')}",
-            assinatura_style
-        ))
-        
-    else:
-        # ⭐ SE NÃO FOR O PROPRIETÁRIO, MOSTRA UM SELO DE "SEM VALIDADE"
-        story.append(Spacer(1, 30))
-        
-        
-        story.append(Paragraph(
-            "<font color='#999'>Este documento foi baixado por um terceiro, logo está em modo de visualização.</font>",
-            assinatura_style
-        ))
+   
+
+    # ============================================================
+    # ⭐ PÁGINA DE VALIDAÇÃO COM ASSINATURAS
+    # ============================================================
+
+    # Buscar responsáveis da auditoria
+    responsaveis = []
+    try:
+        with engine.connect() as conn:
+            query_resp = text("""
+                SELECT responsavel_equipe FROM auditorias WHERE codigo_auditoria = :codigo
+            """)
+            # ⭐ USAR codigo_auditoria como código
+            result = conn.execute(query_resp, {'codigo': codigo_auditoria}).fetchone()
+            
+            if result and result[0]:
+                responsaveis = result[0]
+                print(f"📋 Responsáveis: {responsaveis}")
+    except Exception as e:
+        print(f"⚠️ Erro ao buscar responsáveis: {e}")
+
+    # ⭐ CHAMAR A FUNÇÃO DE VALIDAÇÃO
+    criar_pagina_validacao_conclusao(
+        story=story,
+        gestor=gestor,
+        styles=styles,
+        normal_style=normal_style,
+        auditoria_id=codigo_auditoria,
+        responsaveis=responsaveis,
+        tipo_relatorio='conclusao'
+    )
     
     # ============================================================
     # ⭐ RODAPÉ USANDO A FUNÇÃO PADRONIZADA
@@ -6073,12 +6247,21 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     ac.ganho_previsto,
                     ac.categoria,
                     p.codigo_processo,
-                    p.nome_processo
+                    p.nome_processo,
+                    pa.oque,                    
+                    pa.por_que,                 
+                    pa.onde,                    
+                    pa.quando,                  
+                    pa.quem,                    
+                    pa.como,                    
+                    pa.quanto_custa,           
+                    pa.comentario               
                 FROM analises_criticas ac
                 LEFT JOIN processos p ON ac.processo_id = p.id
+                LEFT JOIN planos_acao pa ON ac.id = pa.analise_id   
                 WHERE ac.etapa_id = :etapa_id 
-                  AND ac.sugestao_sera_implantada = true
-                  AND ac.processo_id = :processo_id
+                AND ac.sugestao_sera_implantada = true
+                AND ac.processo_id = :processo_id
                 ORDER BY ac.categoria, ac.id
             """)
             
@@ -6119,6 +6302,17 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     'categoria': a[8] or '',
                     'codigo_processo': a[9] or '',
                     'nome_processo': a[10] or '',
+                    # ⭐ PLANO DE AÇÃO 5W2H
+                    'plano_acao': {
+                        'oque': a[11] or '',
+                        'por_que': a[12] or '',
+                        'onde': a[13] or '',
+                        'quando': a[14].strftime('%d/%m/%Y') if a[14] else None,
+                        'quem': a[15] or '',
+                        'como': a[16] or '',
+                        'quanto_custa': a[17] or '',
+                        'comentario': a[18] or ''
+                    } if a[11] else None,  # ⭐ Se tiver 'oque', mostra o plano
                     'followups': followups_list
                 })
             
@@ -6249,9 +6443,43 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                         normal_style
                     ))
                 
+                # ⭐ PLANO DE AÇÃO 5W2H (se existir)
+                if analise.get('plano_acao') and analise['plano_acao'].get('oque'):
+                    plano = analise['plano_acao']
+                    story.append(Paragraph(
+                        "<b>PLANO DE AÇÃO 5W2H:</b>",
+                        normal_style
+                    ))
+                    
+                    # Tabela do plano de ação
+                    plano_data = [
+                        ["O que?", plano.get('oque', '-')],
+                        ["Por que?", plano.get('por_que', '-')],
+                        ["Onde?", plano.get('onde', '-')],
+                        ["Quando?", plano.get('quando', '-')],
+                        ["Quem?", plano.get('quem', '-')],
+                        ["Como?", plano.get('como', '-')],
+                        ["Quanto custa?", plano.get('quanto_custa', '-')],
+                        ["Comentário:", plano.get('comentario', '-')]
+                    ]
+                    
+                    plano_table = Table(plano_data, colWidths=[3*cm, 11*cm])
+                    plano_table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 8),
+                        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F5E9')),
+                        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    story.append(plano_table)
+                    story.append(Spacer(1, 5))
+                
                 # Status da implantação
                 if analise['plano_de_acao_implantado']:
-                    status_texto = '<font color="#28a745"><b>Implantada</b></font>'
+                    status_texto = '<font color="#28a745"><b>Implantado</b></font>'
                 else:
                     status_texto = '<font color="#ffc107"><b>Em andamento</b></font>'
                 

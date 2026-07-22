@@ -1690,6 +1690,7 @@ async function editarAnaliseAuditado(id) {
                 // ⭐⭐⭐ NOVO: Verificar se o valor é "INEXISTENTE" para marcar o checkbox ⭐⭐⭐
                 const checkbox = document.getElementById('sem_sugestao_melhoria');
                 const textarea = document.getElementById('analise-auditado-sugestao');
+                const camposContainer = document.getElementById('campos-sugestao-melhoria');
                 
                 if (checkbox && textarea) {
                     const sugestaoValue = analise.sugestao_melhoria || '';
@@ -1698,11 +1699,40 @@ async function editarAnaliseAuditado(id) {
                         textarea.disabled = true;
                         textarea.style.backgroundColor = '#f5f5f5';
                         textarea.style.color = '#999';
+                        
+                        // ⭐ ESCONDER CAMPOS
+                        if (camposContainer) {
+                            camposContainer.style.display = 'none';
+                            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+                            radios.forEach(radio => {
+                                radio.disabled = true;
+                                radio.checked = false;
+                            });
+                            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+                            inputs.forEach(input => {
+                                input.disabled = true;
+                                input.style.backgroundColor = '#f5f5f5';
+                                input.style.color = '#999';
+                            });
+                        }
                     } else {
                         checkbox.checked = false;
                         textarea.disabled = false;
                         textarea.style.backgroundColor = '';
                         textarea.style.color = '';
+                        
+                        // ⭐ MOSTRAR CAMPOS
+                        if (camposContainer) {
+                            camposContainer.style.display = 'block';
+                            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+                            radios.forEach(radio => radio.disabled = false);
+                            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+                            inputs.forEach(input => {
+                                input.disabled = false;
+                                input.style.backgroundColor = '';
+                                input.style.color = '';
+                            });
+                        }
                     }
                 }
                 // ⭐⭐⭐ FIM DO NOVO CÓDIGO ⭐⭐⭐

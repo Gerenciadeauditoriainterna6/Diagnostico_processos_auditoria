@@ -1401,7 +1401,7 @@
                     // SWOT (se houver algum campo)
                     const hasSwot = dados.forca || dados.fraqueza || dados.oportunidades || dados.ameacas;
                     if (hasSwot) {
-                        textoExibicao += '\n\n📊 ANÁLISE SWOT:\n';
+                        textoExibicao += '\n\nANÁLISE SWOT:\n';
                         if (dados.forca) textoExibicao += `✅ Forças: ${dados.forca}\n`;
                         if (dados.fraqueza) textoExibicao += `❌ Fraquezas: ${dados.fraqueza}\n`;
                         if (dados.oportunidades) textoExibicao += `💡 Oportunidades: ${dados.oportunidades}\n`;
@@ -1415,15 +1415,15 @@
                     
                     const podeBaixar = isAdmin || isOwn;
                     
-                    const btnBaixar = podeBaixar ? `
-                        <button class="btn-baixar-conclusao" onclick="baixarConclusaoPorId(${item.id}, '${escapeHtml(item.usuario_nome)}')" 
-                                style="background: ${isOwn ? '#184145' : '#0b5b99'}; color: white; border: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; margin-top: 4px;">
-                            <i class="fas fa-download"></i> Baixar
-                        </button>
-                    ` : '<span style="color: #999; font-size: 11px;">(Somente o autor ou admin podem baixar)</span>';
+                    // const btnBaixar = podeBaixar ? `
+                    //     <button class="btn-baixar-conclusao" onclick="baixarConclusaoPorId(${item.id}, '${escapeHtml(item.usuario_nome)}')" 
+                    //             style="background: ${isOwn ? '#184145' : '#0b5b99'}; color: white; border: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; margin-top: 4px;">
+                    //         <i class="fas fa-download"></i> Baixar
+                    //     </button>
+                    // ` : '<span style="color: #999; font-size: 11px;">(Somente o autor ou admin podem baixar)</span>';
                     
                     const isOwnLabel = isOwn ? ' <span style="color: #0b5b99; font-weight: 600;">(Sua conclusão)</span>' : '';
-                    const hasSwotLabel = hasSwot ? ' <span style="color: #fd6a14; font-weight: 600; font-size: 11px;">📊 SWOT</span>' : '';
+                    
                     
                     return `
                         <div class="conclusao-historico-item" style="${isOwn ? 'background: #e8f4f8; border-left-color: #0b5b99;' : ''}">
@@ -1432,9 +1432,7 @@
                                     <span class="usuario">${escapeHtml(item.usuario_nome)}</span>
                                     <span class="data">${item.created_at || ''}</span>
                                     ${isOwnLabel}
-                                    ${hasSwotLabel}
                                 </div>
-                                ${btnBaixar}
                             </div>
                             <div class="texto" style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(textoExibicao)}</div>
                         </div>
