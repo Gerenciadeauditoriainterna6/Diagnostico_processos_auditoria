@@ -2,6 +2,8 @@ from flask import request, jsonify, session
 from database import engine
 from sqlalchemy import text
 from . import conclusao_bp
+import json
+from utils.verificar_responsavel_auditoria import verificar_responsavel_auditoria, verificar_administrador
 
 # ⭐ PRINT PARA CONFIRMAR QUE O ARQUIVO FOI CARREGADO
 print("🔵 Arquivo conclusao_routes.py CARREGADO!")
@@ -16,7 +18,7 @@ print(f"🔵 Blueprint conclusao_bp registrado com prefixo: {conclusao_bp.url_pr
 @conclusao_bp.route('/conclusoes/salvar', methods=['POST'])
 def api_salvar_conclusao():
     """
-    Salva ou atualiza uma conclusão de auditoria com SWOT
+    Salva ou atualiza a conclusão da auditoria (APENAS UMA POR AUDITORIA)
     """
     from database import engine
     from sqlalchemy import text
@@ -27,49 +29,46 @@ def api_salvar_conclusao():
     auditoria_id = data.get('auditoria_id')
     area_id = data.get('area_id')
     
+    if not auditoria_id or not area_id:
+        return jsonify({'success': False, 'error': 'Auditoria e área são obrigatórios'}), 400
+    
+    usuario_nome = session.get('usuario_nome', '')
+    
+    # ⭐ VERIFICAR SE O USUÁRIO É RESPONSÁVEL OU ADMIN
+    if not verificar_responsavel_auditoria(auditoria_id, usuario_nome):
+        return jsonify({
+            'success': False, 
+            'error': 'Apenas administradores ou responsáveis pela auditoria podem salvar a conclusão'
+        }), 403
+    
     conclusao = data.get('conclusao', '').strip()
     forca = data.get('forca', '').strip()
     fraqueza = data.get('fraqueza', '').strip()
     oportunidades = data.get('oportunidades', '').strip()
     ameacas = data.get('ameacas', '').strip()
     
+    # ⭐ PELO MENOS UM CAMPO DEVE ESTAR PREENCHIDO
     if not any([conclusao, forca, fraqueza, oportunidades, ameacas]):
         return jsonify({
             'success': False, 
             'error': 'Preencha pelo menos um campo da conclusão'
         }), 400
     
-    dados_conclusao = {
-        'conclusao': conclusao,
-        'forca': forca,
-        'fraqueza': fraqueza,
-        'oportunidades': oportunidades,
-        'ameacas': ameacas
-    }
-    
-    usuario_nome = session.get('usuario_nome', 'Usuário')
-    
-    # ⭐ CONVERTER PARA JSON STRING
-    conclusao_json = json.dumps(dados_conclusao, ensure_ascii=False)
-    
     try:
         with engine.connect() as conn:
-            # ⭐ VERIFICAR SE JÁ EXISTE
+            # ⭐ VERIFICAR SE JÁ EXISTE UMA CONCLUSÃO PARA ESTA AUDITORIA
             check_query = text("""
                 SELECT id FROM conclusoes_auditoria 
                 WHERE auditoria_id = :auditoria_id 
-                AND area_id = :area_id 
-                AND usuario_nome = :usuario_nome
+                AND area_id = :area_id
             """)
-            
             existing = conn.execute(check_query, {
                 'auditoria_id': auditoria_id,
-                'area_id': area_id,
-                'usuario_nome': usuario_nome
+                'area_id': area_id
             }).fetchone()
             
-            # ⭐ ALTERNATIVA: Usar jsonb_build_object no SQL
             if existing:
+                # ⭐ ATUALIZAR A CONCLUSÃO EXISTENTE
                 update_query = text("""
                     UPDATE conclusoes_auditoria 
                     SET conclusao = jsonb_build_object(
@@ -79,6 +78,7 @@ def api_salvar_conclusao():
                         'oportunidades', :oportunidades,
                         'ameacas', :ameacas
                     ),
+                    usuario_nome = :usuario_nome,  -- ⭐ QUEM EDITOU POR ÚLTIMO
                     updated_at = CURRENT_TIMESTAMP
                     WHERE id = :id
                 """)
@@ -88,12 +88,14 @@ def api_salvar_conclusao():
                     'forca': forca,
                     'fraqueza': fraqueza,
                     'oportunidades': oportunidades,
-                    'ameacas': ameacas
+                    'ameacas': ameacas,
+                    'usuario_nome': usuario_nome
                 })
                 mensagem = 'Conclusão atualizada com sucesso!'
                 acao = 'atualizada'
                 
             else:
+                # ⭐ CRIAR A PRIMEIRA CONCLUSÃO
                 insert_query = text("""
                     INSERT INTO conclusoes_auditoria (
                         auditoria_id, area_id, usuario_nome, conclusao
@@ -118,7 +120,6 @@ def api_salvar_conclusao():
                     'oportunidades': oportunidades,
                     'ameacas': ameacas
                 })
-                # ⭐ ADICIONAR AQUI!
                 mensagem = 'Conclusão salva com sucesso!'
                 acao = 'salva'
             
@@ -140,138 +141,119 @@ def api_salvar_conclusao():
 @conclusao_bp.route('/conclusoes/buscar', methods=['GET'])
 def api_buscar_conclusao():
     """
-    Busca a conclusão do usuário atual para uma auditoria/área específica
+    Busca a conclusão da auditoria (APENAS UMA POR AUDITORIA)
     """
-    from database import engine
-    from sqlalchemy import text
-    from flask import session
-    import json
-    
     auditoria_id = request.args.get('auditoria_id')
     area_id = request.args.get('area_id')
     
     if not auditoria_id or not area_id:
-        return jsonify({'success': False, 'error': 'Parâmetros incompletos'}), 400
+        return jsonify({'success': False, 'error': 'Auditoria e área são obrigatórios'}), 400
     
-    usuario_nome = session.get('usuario_nome', 'Usuário')
+    usuario_nome = session.get('usuario_nome', '')
+    
+    # ⭐ VERIFICAR SE O USUÁRIO É RESPONSÁVEL OU ADMIN
+    if not verificar_responsavel_auditoria(auditoria_id, usuario_nome):
+        return jsonify({
+            'success': False, 
+            'error': 'Apenas administradores ou responsáveis pela auditoria podem visualizar a conclusão'
+        }), 403
     
     try:
         with engine.connect() as conn:
+            # ⭐ BUSCAR A ÚNICA CONCLUSÃO DA AUDITORIA
             query = text("""
-                SELECT id, conclusao, created_at, updated_at
+                SELECT id, usuario_nome, conclusao, created_at, updated_at
                 FROM conclusoes_auditoria
                 WHERE auditoria_id = :auditoria_id 
-                AND area_id = :area_id 
-                AND usuario_nome = :usuario_nome
-                ORDER BY created_at DESC
+                AND area_id = :area_id
+                ORDER BY updated_at DESC
                 LIMIT 1
             """)
-            
             result = conn.execute(query, {
                 'auditoria_id': auditoria_id,
-                'area_id': area_id,
-                'usuario_nome': usuario_nome
+                'area_id': area_id
             }).fetchone()
             
-            if result:
-                # ⭐ PARSE DO JSON
-                conclusao_data = result[1]
-                
-                # ⭐ SE FOR STRING, TENTAR CONVERTER PARA DICT
-                if isinstance(conclusao_data, str):
-                    try:
-                        conclusao_data = json.loads(conclusao_data)
-                    except:
-                        conclusao_data = {'conclusao': conclusao_data}
-                elif isinstance(conclusao_data, dict):
-                    # Já é um dicionário
-                    pass
-                else:
-                    # Fallback
-                    conclusao_data = {'conclusao': str(conclusao_data)}
-                
-                # ⭐ GARANTIR QUE TODOS OS CAMPOS SWOT EXISTAM
-                conclusao_data.setdefault('conclusao', '')
-                conclusao_data.setdefault('forca', '')
-                conclusao_data.setdefault('fraqueza', '')
-                conclusao_data.setdefault('oportunidades', '')
-                conclusao_data.setdefault('ameacas', '')
-                
-                return jsonify({
-                    'success': True,
-                    'conclusao': {
-                        'id': result[0],
-                        'texto': conclusao_data,
-                        'created_at': result[2].strftime('%d/%m/%Y %H:%M') if result[2] else None,
-                        'updated_at': result[3].strftime('%d/%m/%Y %H:%M') if result[3] else None
-                    }
-                })
-            else:
-                # ⭐ RETORNAR ESTRUTURA VAZIA PARA O USUÁRIO PREENCHER
-                return jsonify({
-                    'success': True,
-                    'conclusao': {
-                        'id': None,
-                        'texto': {
-                            'conclusao': '',
-                            'forca': '',
-                            'fraqueza': '',
-                            'oportunidades': '',
-                            'ameacas': ''
-                        },
-                        'created_at': None,
-                        'updated_at': None
-                    }
-                })
-                
+            if not result:
+                return jsonify({'success': True, 'conclusao': None})
+            
+            conclusao_id = result[0]
+            usuario_nome_db = result[1]
+            conclusao_data = result[2]
+            created_at = result[3]
+            updated_at = result[4]
+            
+            # ⭐ PARSE DO JSON
+            if isinstance(conclusao_data, str):
+                try:
+                    conclusao_data = json.loads(conclusao_data)
+                except:
+                    conclusao_data = {'conclusao': conclusao_data}
+            elif not isinstance(conclusao_data, dict):
+                conclusao_data = {'conclusao': str(conclusao_data)}
+            
+            # ⭐ GARANTIR TODOS OS CAMPOS
+            conclusao_data.setdefault('conclusao', '')
+            conclusao_data.setdefault('forca', '')
+            conclusao_data.setdefault('fraqueza', '')
+            conclusao_data.setdefault('oportunidades', '')
+            conclusao_data.setdefault('ameacas', '')
+            
+            return jsonify({
+                'success': True,
+                'conclusao': {
+                    'id': conclusao_id,
+                    'usuario_nome': usuario_nome_db,
+                    'texto': conclusao_data,
+                    'created_at': created_at.strftime('%d/%m/%Y %H:%M') if created_at else '',
+                    'updated_at': updated_at.strftime('%d/%m/%Y %H:%M') if updated_at else ''
+                }
+            })
+            
     except Exception as e:
         print(f"❌ Erro ao buscar conclusão: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @conclusao_bp.route('/conclusoes/historico', methods=['GET'])
 def api_historico_conclusoes():
     """
-    Busca TODAS as conclusões de uma auditoria/área (todos os usuários)
+    Busca o histórico de edições da conclusão da auditoria
     """
-    from database import engine
-    from sqlalchemy import text
-    from flask import session
-    import json
-    
     auditoria_id = request.args.get('auditoria_id')
     area_id = request.args.get('area_id')
     
     if not auditoria_id or not area_id:
-        return jsonify({'success': False, 'error': 'Parâmetros incompletos'}), 400
+        return jsonify({'success': False, 'error': 'Auditoria e área são obrigatórios'}), 400
     
-    usuario_logado = session.get('usuario_nome', '')
-    perfil = session.get('usuario_perfil', '')
-    is_admin = perfil in ['administrador', 'admin', 'Administrador']
+    usuario_nome = session.get('usuario_nome', '')
     
-    print(f"🔍 Histórico - Usuário: {usuario_logado}, Perfil: {perfil}, is_admin: {is_admin}")
+    # ⭐ VERIFICAR SE O USUÁRIO É RESPONSÁVEL OU ADMIN
+    if not verificar_responsavel_auditoria(auditoria_id, usuario_nome):
+        return jsonify({
+            'success': False, 
+            'error': 'Apenas administradores ou responsáveis pela auditoria podem ver o histórico'
+        }), 403
     
     try:
         with engine.connect() as conn:
+            # ⭐ BUSCAR A CONCLUSÃO (COM HISTÓRICO)
+            # Como não temos uma tabela de histórico separada, vamos mostrar a conclusão atual
             query = text("""
                 SELECT id, usuario_nome, conclusao, created_at, updated_at
                 FROM conclusoes_auditoria
-                WHERE auditoria_id = :auditoria_id AND area_id = :area_id
-                ORDER BY created_at DESC
+                WHERE auditoria_id = :auditoria_id 
+                AND area_id = :area_id
+                ORDER BY updated_at DESC
             """)
-            
-            results = conn.execute(query, {
+            result = conn.execute(query, {
                 'auditoria_id': auditoria_id,
                 'area_id': area_id
             }).fetchall()
             
             conclusoes = []
-            for row in results:
-                # ⭐ PARSE DO JSON
+            for row in result:
                 conclusao_data = row[2]
-                
                 if isinstance(conclusao_data, str):
                     try:
                         conclusao_data = json.loads(conclusao_data)
@@ -280,38 +262,23 @@ def api_historico_conclusoes():
                 elif not isinstance(conclusao_data, dict):
                     conclusao_data = {'conclusao': str(conclusao_data)}
                 
-                # ⭐ GARANTIR TODOS OS CAMPOS
-                conclusao_data.setdefault('conclusao', '')
-                conclusao_data.setdefault('forca', '')
-                conclusao_data.setdefault('fraqueza', '')
-                conclusao_data.setdefault('oportunidades', '')
-                conclusao_data.setdefault('ameacas', '')
-                
-                # ⭐ EXTRAIR TEXTO PARA EXIBIÇÃO RESUMIDA
-                texto_resumido = conclusao_data.get('conclusao', '') or ''
-                if len(texto_resumido) > 100:
-                    texto_resumido = texto_resumido[:100] + '...'
-                
                 conclusoes.append({
                     'id': row[0],
                     'usuario_nome': row[1],
                     'conclusao': conclusao_data,
-                    'texto_resumido': texto_resumido,
-                    'created_at': row[3].strftime('%d/%m/%Y %H:%M') if row[3] else None,
-                    'updated_at': row[4].strftime('%d/%m/%Y %H:%M') if row[4] else None
+                    'created_at': row[3].strftime('%d/%m/%Y %H:%M') if row[3] else '',
+                    'updated_at': row[4].strftime('%d/%m/%Y %H:%M') if row[4] else ''
                 })
             
             return jsonify({
                 'success': True,
                 'conclusoes': conclusoes,
-                'is_admin': is_admin,
-                'usuario_logado': usuario_logado
+                'usuario_logado': usuario_nome,
+                'is_admin': verificar_administrador(usuario_nome)
             })
-                
+            
     except Exception as e:
         print(f"❌ Erro ao buscar histórico: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @conclusao_bp.route('/relatorios/gerar-conclusao', methods=['POST'])
@@ -345,12 +312,14 @@ def gerar_relatorio_conclusao():
         print(f"📥 conclusao_id: {conclusao_id}")
         print(f"📥 usuario_filtro: {usuario_filtro}")
         
-        # Validações
-        if not area_id:
-            return jsonify({'error': 'Área não informada'}), 400
+        if not area_id or not auditoria_id:
+            return jsonify({'error': 'Área e auditoria são obrigatórios'}), 400
         
-        if not auditoria_id:
-            return jsonify({'error': 'Auditoria não informada'}), 400
+        usuario_nome = session.get('usuario_nome', '')
+        
+        # ⭐ VERIFICAR SE O USUÁRIO É RESPONSÁVEL
+        if not verificar_responsavel_auditoria(auditoria_id, usuario_nome):
+            return jsonify({'error': 'Apenas responsáveis pela auditoria podem baixar o relatório'}), 403
         
         usuario_logado = session.get('usuario_nome', 'Usuário')
         perfil = session.get('usuario_perfil', '')
@@ -533,8 +502,6 @@ def gerar_relatorio_conclusao():
             conclusao_data=conclusao_data,  # ⭐ PASSA O DICT COMPLETO
             orientacao=orientacao,
             usuario_nome=usuario_logado,
-            usuario_conclusao=usuario_conclusao,
-            is_owner=is_owner
         )
         
         print(f"✅ PDF gerado! Tamanho: {len(pdf_bytes)} bytes")
