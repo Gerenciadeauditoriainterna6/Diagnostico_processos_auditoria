@@ -413,6 +413,7 @@ from routes.followups import followups_bp
 from routes.relatorios import relatorios_bp
 from routes import register_blueprints
 
+
 app = Flask(__name__, static_folder='static')
 
 app.register_blueprint(dashboard_api)
@@ -422,9 +423,6 @@ app.register_blueprint(relatorios_bp)
 
 register_blueprints(app)
 
-
-
-# Configurações da sessão
 app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=int(os.getenv('SESSION_TIMEOUT_SECONDS', 1800)))
 app.config['SESSION_COOKIE_SECURE'] = False
@@ -6909,109 +6907,109 @@ def api_analise_auditor_excluir(analise_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
     
-@app.route('/api/analise-auditor/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
-def api_analise_auditor_confirmar_implantacao(analise_id):
-    """Confirma se a melhoria foi efetivamente implantada e CRIA FOLLOW-UPS automáticos"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+# @app.route('/api/analise-auditor/<int:analise_id>/confirmar-implantacao', methods=['PUT'])
+# def api_analise_auditor_confirmar_implantacao(analise_id):
+#     """Confirma se a melhoria foi efetivamente implantada e CRIA FOLLOW-UPS automáticos"""
+#     if not session.get('autenticado'):
+#         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    data = request.json
-    plano_de_acao_implantado = data.get('plano_de_acao_implantado')
-    data_execucao_plano_acao = data.get('data_execucao_plano_acao')
+#     data = request.json
+#     plano_de_acao_implantado = data.get('plano_de_acao_implantado')
+#     data_execucao_plano_acao = data.get('data_execucao_plano_acao')
 
     
-    if plano_de_acao_implantado and not data_execucao_plano_acao:
-        return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
+#     if plano_de_acao_implantado and not data_execucao_plano_acao:
+#         return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
     
-    from database import engine
-    from sqlalchemy import text
-    from datetime import datetime, timedelta
+#     from database import engine
+#     from sqlalchemy import text
+#     from datetime import datetime, timedelta
     
-    try:
-        with engine.connect() as conn:
-            # Buscar dados atuais da análise (usando 'tipo', não 'tipo')
-            result = conn.execute(text("""
-                SELECT sugestao_sera_implantada, processo_id
-                FROM analises_criticas 
-                WHERE id = :id AND tipo = 'auditor'
-            """), {'id': analise_id})
-            analise = result.fetchone()
+#     try:
+#         with engine.connect() as conn:
+#             # Buscar dados atuais da análise (usando 'tipo', não 'tipo')
+#             result = conn.execute(text("""
+#                 SELECT sugestao_sera_implantada, processo_id
+#                 FROM analises_criticas 
+#                 WHERE id = :id AND tipo = 'auditor'
+#             """), {'id': analise_id})
+#             analise = result.fetchone()
             
-            if not analise:
-                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+#             if not analise:
+#                 return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
             
-            # Atualizar a análise
-            conn.execute(text("""
-                UPDATE analises_criticas 
-                SET plano_de_acao_implantado = :plano_de_acao_implantado,
-                    data_execucao_plano_acao = :data_execucao_plano_acao,
-                    updated_at = NOW()
-                WHERE id = :id
-            """), {
-                'id': analise_id,
-                'plano_de_acao_implantado': plano_de_acao_implantado,
-                'data_execucao_plano_acao': data_execucao_plano_acao
-            })
+#             # Atualizar a análise
+#             conn.execute(text("""
+#                 UPDATE analises_criticas 
+#                 SET plano_de_acao_implantado = :plano_de_acao_implantado,
+#                     data_execucao_plano_acao = :data_execucao_plano_acao,
+#                     updated_at = NOW()
+#                 WHERE id = :id
+#             """), {
+#                 'id': analise_id,
+#                 'plano_de_acao_implantado': plano_de_acao_implantado,
+#                 'data_execucao_plano_acao': data_execucao_plano_acao
+#             })
             
-            # Se foi implantada, criar follow-ups automáticos
-            if plano_de_acao_implantado:
-                data_base = datetime.strptime(data_execucao_plano_acao, '%Y-%m-%d')
+#             # Se foi implantada, criar follow-ups automáticos
+#             if plano_de_acao_implantado:
+#                 data_base = datetime.strptime(data_execucao_plano_acao, '%Y-%m-%d')
                 
-                follow_ups = [
-                    {'etapa': 'FOLLOW_UP_30', 'dias': 30},
-                    {'etapa': 'FOLLOW_UP_60', 'dias': 60},
-                    {'etapa': 'FOLLOW_UP_90', 'dias': 90}
-                ]
+#                 follow_ups = [
+#                     {'etapa': 'FOLLOW_UP_30', 'dias': 30},
+#                     {'etapa': 'FOLLOW_UP_60', 'dias': 60},
+#                     {'etapa': 'FOLLOW_UP_90', 'dias': 90}
+#                 ]
                 
-                for fu in follow_ups:
-                    data_prevista = data_base + timedelta(days=fu['dias'])
+#                 for fu in follow_ups:
+#                     data_prevista = data_base + timedelta(days=fu['dias'])
                     
-                    # Verificar se já existe follow-up
-                    check = conn.execute(text("""
-                        SELECT id FROM analises_follow_up 
-                        WHERE analise_id = :analise_id AND etapa = :etapa
-                    """), {'analise_id': analise_id, 'etapa': fu['etapa']}).fetchone()
+#                     # Verificar se já existe follow-up
+#                     check = conn.execute(text("""
+#                         SELECT id FROM analises_follow_up 
+#                         WHERE analise_id = :analise_id AND etapa = :etapa
+#                     """), {'analise_id': analise_id, 'etapa': fu['etapa']}).fetchone()
                     
-                    if not check:
-                        conn.execute(text("""
-                            INSERT INTO analises_follow_up (
-                                analise_id, etapa, data_prevista, status, created_by, created_at
-                            ) VALUES (
-                                :analise_id, :etapa, :data_prevista, 'Pendente', :created_by, NOW()
-                            )
-                        """), {
-                            'analise_id': analise_id,
-                            'etapa': fu['etapa'],
-                            'data_prevista': data_prevista.date(),
-                            'created_by': session.get('usuario_nome', 'Sistema')
-                        })
-                        print(f"✅ Follow-up {fu['etapa']} criado para {data_prevista.date()}")
+#                     if not check:
+#                         conn.execute(text("""
+#                             INSERT INTO analises_follow_up (
+#                                 analise_id, etapa, data_prevista, status, created_by, created_at
+#                             ) VALUES (
+#                                 :analise_id, :etapa, :data_prevista, 'Pendente', :created_by, NOW()
+#                             )
+#                         """), {
+#                             'analise_id': analise_id,
+#                             'etapa': fu['etapa'],
+#                             'data_prevista': data_prevista.date(),
+#                             'created_by': session.get('usuario_nome', 'Sistema')
+#                         })
+#                         print(f"✅ Follow-up {fu['etapa']} criado para {data_prevista.date()}")
                 
-                # Registrar no histórico de andamento (se a tabela existir)
-                try:
-                    conn.execute(text("""
-                        INSERT INTO analises_historico_andamento (
-                            analise_id, status, comentario, created_by, created_at
-                        ) VALUES (
-                            :analise_id, 'Concluido', :comentario, :created_by, NOW()
-                        )
-                    """), {
-                        'analise_id': analise_id,
-                        'comentario': f'✅ Melhoria implantada em {data_execucao_plano_acao}. Follow-ups criados para 30, 60 e 90 dias.',
-                        'created_by': session.get('usuario_nome', 'Sistema')
-                    })
-                except Exception as e:
-                    print(f"⚠️ Histórico: {e}")
+#                 # Registrar no histórico de andamento (se a tabela existir)
+#                 try:
+#                     conn.execute(text("""
+#                         INSERT INTO analises_historico_andamento (
+#                             analise_id, status, comentario, created_by, created_at
+#                         ) VALUES (
+#                             :analise_id, 'Concluido', :comentario, :created_by, NOW()
+#                         )
+#                     """), {
+#                         'analise_id': analise_id,
+#                         'comentario': f'✅ Melhoria implantada em {data_execucao_plano_acao}. Follow-ups criados para 30, 60 e 90 dias.',
+#                         'created_by': session.get('usuario_nome', 'Sistema')
+#                     })
+#                 except Exception as e:
+#                     print(f"⚠️ Histórico: {e}")
             
-            conn.commit()
+#             conn.commit()
             
-            return jsonify({'success': True, 'message': 'Implantação confirmada e follow-ups criados'})
+#             return jsonify({'success': True, 'message': 'Implantação confirmada e follow-ups criados'})
             
-    except Exception as e:
-        print(f"❌ Erro ao confirmar implantação: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+#     except Exception as e:
+#         print(f"❌ Erro ao confirmar implantação: {e}")
+#         import traceback
+#         traceback.print_exc()
+#         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/analise-auditor/<int:analise_id>/evidencias')
 def listar_evidencias_analise(analise_id):
@@ -7458,83 +7456,83 @@ def api_analise_auditado_confirmar_implantacao(analise_id):
 # API - HISTÓRICO DE ANDAMENTO
 # ============================================================
 
-@app.route('/api/analise-historico/<int:analise_id>', methods=['GET'])
-def api_analise_historico_buscar(analise_id):
-    """Busca o histórico de andamento de uma análise"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+# @app.route('/api/analise-historico/<int:analise_id>', methods=['GET'])
+# def api_analise_historico_buscar(analise_id):
+#     """Busca o histórico de andamento de uma análise"""
+#     if not session.get('autenticado'):
+#         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    from database import engine
-    from sqlalchemy import text
+#     from database import engine
+#     from sqlalchemy import text
     
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                SELECT id, status, comentario, created_by, created_at
-                FROM analises_historico_andamento
-                WHERE analise_id = :analise_id
-                ORDER BY created_at DESC
-            """)
-            result = conn.execute(query, {'analise_id': analise_id}).fetchall()
+#     try:
+#         with engine.connect() as conn:
+#             query = text("""
+#                 SELECT id, status, comentario, created_by, created_at
+#                 FROM analises_historico_andamento
+#                 WHERE analise_id = :analise_id
+#                 ORDER BY created_at DESC
+#             """)
+#             result = conn.execute(query, {'analise_id': analise_id}).fetchall()
             
-            historico = []
-            for row in result:
-                historico.append({
-                    'id': row[0],
-                    'status': row[1],
-                    'comentario': row[2] or '',
-                    'created_by': row[3] or '',
-                    'data_registro': row[4].isoformat() if row[4] else None
-                })
+#             historico = []
+#             for row in result:
+#                 historico.append({
+#                     'id': row[0],
+#                     'status': row[1],
+#                     'comentario': row[2] or '',
+#                     'created_by': row[3] or '',
+#                     'data_registro': row[4].isoformat() if row[4] else None
+#                 })
             
-            return jsonify({'success': True, 'historico': historico})
+#             return jsonify({'success': True, 'historico': historico})
             
-    except Exception as e:
-        print(f"❌ Erro ao buscar histórico: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+#     except Exception as e:
+#         print(f"❌ Erro ao buscar histórico: {e}")
+#         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/analise-historico/salvar', methods=['POST'])
-def api_analise_historico_salvar():
-    """Salva um registro de andamento"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+# @app.route('/api/analise-historico/salvar', methods=['POST'])
+# def api_analise_historico_salvar():
+#     """Salva um registro de andamento"""
+#     if not session.get('autenticado'):
+#         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
-    data = request.json
-    analise_id = data.get('analise_id')
-    status = data.get('status')
-    comentario = data.get('comentario')
-    usuario_nome = session.get('usuario_nome', 'Sistema')
+#     data = request.json
+#     analise_id = data.get('analise_id')
+#     status = data.get('status')
+#     comentario = data.get('comentario')
+#     usuario_nome = session.get('usuario_nome', 'Sistema')
     
-    if not analise_id:
-        return jsonify({'success': False, 'error': 'analise_id é obrigatório'}), 400
+#     if not analise_id:
+#         return jsonify({'success': False, 'error': 'analise_id é obrigatório'}), 400
     
-    from database import engine
-    from sqlalchemy import text
-    from datetime import datetime
+#     from database import engine
+#     from sqlalchemy import text
+#     from datetime import datetime
     
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                INSERT INTO analises_historico_andamento (
-                    analise_id, status, comentario, created_by, created_at
-                ) VALUES (
-                    :analise_id, :status, :comentario, :created_by, NOW()
-                )
-            """)
-            conn.execute(query, {
-                'analise_id': analise_id,
-                'status': status,
-                'comentario': comentario,
-                'created_by': usuario_nome
-            })
-            conn.commit()
+#     try:
+#         with engine.connect() as conn:
+#             query = text("""
+#                 INSERT INTO analises_historico_andamento (
+#                     analise_id, status, comentario, created_by, created_at
+#                 ) VALUES (
+#                     :analise_id, :status, :comentario, :created_by, NOW()
+#                 )
+#             """)
+#             conn.execute(query, {
+#                 'analise_id': analise_id,
+#                 'status': status,
+#                 'comentario': comentario,
+#                 'created_by': usuario_nome
+#             })
+#             conn.commit()
             
-            return jsonify({'success': True, 'message': 'Andamento registrado'})
+#             return jsonify({'success': True, 'message': 'Andamento registrado'})
             
-    except Exception as e:
-        print(f"❌ Erro ao salvar histórico: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+#     except Exception as e:
+#         print(f"❌ Erro ao salvar histórico: {e}")
+#         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/analise-follow-ups/<int:analise_id>', methods=['GET'])
