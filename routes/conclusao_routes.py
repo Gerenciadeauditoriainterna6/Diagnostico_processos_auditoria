@@ -90,6 +90,9 @@ def api_salvar_conclusao():
                     'oportunidades': oportunidades,
                     'ameacas': ameacas
                 })
+                mensagem = 'Conclusão atualizada com sucesso!'
+                acao = 'atualizada'
+                
             else:
                 insert_query = text("""
                     INSERT INTO conclusoes_auditoria (
@@ -115,6 +118,7 @@ def api_salvar_conclusao():
                     'oportunidades': oportunidades,
                     'ameacas': ameacas
                 })
+                # ⭐ ADICIONAR AQUI!
                 mensagem = 'Conclusão salva com sucesso!'
                 acao = 'salva'
             

@@ -5648,10 +5648,11 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
     swot_label_style = ParagraphStyle(
         'SwotLabel',
         parent=normal_style,
-        fontSize=10,
+        fontSize=9,
         fontName='Helvetica-Bold',
         spaceAfter=3,
-        textColor=colors.HexColor('#184145')
+        textColor=colors.HexColor('#184145'),
+        alignment=TA_CENTER
     )
     
     swot_texto_style = ParagraphStyle(
@@ -5777,7 +5778,7 @@ def gerar_pdf_conclusao(area_id, area_nome, gestor, cargo, unidade,
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F4F8')),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('VALIGN', (0, 0), (0, -1), 'CENTER'),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('LEFTPADDING', (0, 0), (-1, -1), 8),
