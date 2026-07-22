@@ -1576,14 +1576,12 @@
 
                 <!-- SEÇÃO DE FOLLOW-UPS -->
                 <div class="nav-section">
-                    <div class="nav-section-title nav-section-followup">MÓDULO Acompanhamento de Melhorias</div>
+                    <div class="nav-section-title nav-section-followup">MÓDULO FOLLOW-UP</div>
                     <a href="{{ url_for('followups.index') }}" class="nav-item">
                         <i class="fas fa-eye"></i>
-                        <span>Follow-ups</span>
+                        <span>Acompanhamento das Melhorias</span>
                     </a>
                 </div>
-
-                
             </nav>
 
             <a href="{{ url_for('logout') }}" class="logout-btn">
@@ -2054,6 +2052,28 @@
         }
 
         // ============================================================
+        // FUNÇÃO PARA REQUISIÇÕES COM VERIFICAÇÃO DE AUTENTICAÇÃO
+        // ============================================================
+
+        async function fetchComAutenticacao(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                
+                // Se a sessão expirou (401)
+                if (response.status === 401) {
+                    console.warn('⏳ Sessão expirada. Redirecionando para login...');
+                    window.location.href = '/login';
+                    return null;
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('❌ Erro na requisição:', error);
+                throw error;
+            }
+        }
+
+        // ============================================================
         // ANOTAÇÕES DO AUDITOR (BLOCO DE NOTAS FLUTUANTE)
         // ============================================================
 
@@ -2102,7 +2122,7 @@
             async function carregarAnotacoes() {
                 const container = document.getElementById('anotacoes-lista');
                 try {
-                    const response = await fetch('/api/anotacoes');
+                    const response = await fetchComAutenticacao('/api/anotacoes');
                     const data = await response.json();
                     
                     if (data.success && data.anotacoes.length > 0) {
@@ -2143,7 +2163,7 @@
                 const conteudo = document.getElementById('anotacao-conteudo').value;
                 
                 try {
-                    const response = await fetch('/api/anotacoes/salvar', {
+                    const response = await fetchComAutenticacao('/api/anotacoes/salvar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ id, titulo, conteudo })
@@ -2165,7 +2185,7 @@
                 if (!confirm('Tem certeza que deseja excluir esta anotação?')) return;
                 
                 try {
-                    await fetch(`/api/anotacoes/${id}`, { method: 'DELETE' });
+                    await fetchComAutenticacao(`/api/anotacoes/${id}`, { method: 'DELETE' });
                     carregarAnotacoes();
                 } catch (error) {
                     console.error('Erro ao excluir:', error);
@@ -2183,6 +2203,8 @@
                     .replace(/>/g, '&gt;');
             }
         })();
+
+
 
     </script>
 

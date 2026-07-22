@@ -24,7 +24,7 @@ export async function carregarAreas() {
     if (!select) return;
     
     try {
-        const response = await fetch('/api/areas');
+        const response = await fetchComAutenticacao('/api/areas');
         const areas = await response.json();
         select.innerHTML = '<option value="">Selecione uma área...</option>';
         areas.forEach(area => { 
@@ -52,7 +52,7 @@ export async function carregarAuditorias(areaId) {
     }
     select.innerHTML = '<option value="">Carregando...</option>';
     try {
-        const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+        const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
         const data = await response.json();
         if (data.auditorias && data.auditorias.length > 0) {
             select.innerHTML = '<option value="">Selecione uma auditoria...</option>';
@@ -78,7 +78,7 @@ export async function carregarProcessos(auditoriaId) {
         return; 
     }
     try {
-        const response = await fetch(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+        const response = await fetchComAutenticacao(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
         const data = await response.json();
         if (data.success && data.processos && data.processos.length > 0) {
             select.innerHTML = '<option value="">Selecione um processo...</option>';
@@ -150,13 +150,18 @@ export async function carregarAnalises(processoId = null) {
             url += `?processo_id=${processoId}`;
         }
         
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
-        console.log('📦 Dados recebidos:', data);
+        // ⭐ ADICIONAR LOGS AQUI (dentro da função)
+        console.log('📦 Dados recebidos após confirmação:', data);
         console.log('📦 data.success:', data.success);
         console.log('📦 data.analises:', data.analises);
-        console.log('📦 data.analises.length:', data.analises ? data.analises.length : 'undefined');
+        
+        if (data.success && data.analises && data.analises.length > 0) {
+            console.log('📦 analises[0].plano_de_acao_implantado:', data.analises[0]?.plano_de_acao_implantado);
+            console.log('📦 analises[0].follow_ups:', data.analises[0]?.follow_ups);
+        }
         
         if (data.success) {
             const analises = data.analises || [];
@@ -174,10 +179,8 @@ export async function carregarAnalises(processoId = null) {
                 return;
             }
             
-            console.log('📊 Chamando renderizarAnalises com:', analises);
             analisesData = analises;
             renderizarAnalises(analises);
-    
         } else {
             container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Nenhuma sugestão de melhoria aguardando acompanhamento.</div>';
         }
@@ -186,6 +189,11 @@ export async function carregarAnalises(processoId = null) {
         container.innerHTML = '<div class="alert-error">❌ Erro ao carregar análises</div>';
     }
 }
+
+// ============================================================
+// RENDERIZAR ANÁLISES
+// ============================================================
+
 
 // ============================================================
 // RENDERIZAR ANÁLISES
@@ -209,20 +217,34 @@ function renderizarAnalises(analises) {
     analises.forEach(analise => {
         const temFollowUps = analise.follow_ups && analise.follow_ups.length > 0;
         const todosConcluidos = temFollowUps && analise.follow_ups.every(fu => fu.status !== 'Pendente');
+        const temPlanoAcao = analise.plano_acao !== null && analise.plano_acao !== undefined;
         
         let statusBadge = '';
         let statusClass = '';
         let acoes = '';
         
-        if (!temFollowUps) {
-            statusBadge = '<span class="status-badge nao-iniciado">Não iniciado</span>';
+        // ⭐ 1. SEM PLANO DE AÇÃO
+        if (!temPlanoAcao) {
+            statusBadge = '<span class="status-badge nao-iniciado">Aguardando plano</span>';
             statusClass = 'nao-iniciado';
             acoes = `
-                <button class="btn-iniciar-acompanhamento" onclick="window.iniciarAcompanhamento(${analise.id}, '${escapeHtml(analise.analise_critica)}')">
-                    <i class="fas fa-play"></i> Iniciar Acompanhamento
+                <button class="btn-criar-plano" onclick="window.abrirModalPlanoAcao(${analise.id})" style="background: transparent; border: 1px dashed #0b5b99; color: #0b5b99; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-plus"></i> Adicionar Plano de Ação (5W2H)
                 </button>
             `;
-        } else if (todosConcluidos) {
+        } 
+        // ⭐ 2. COM PLANO, MAS NÃO IMPLANTADO
+        else if (temPlanoAcao && !analise.plano_de_acao_implantado) {
+            statusBadge = '<span class="status-badge em-andamento">Aguardando execução do plano de ação</span>';
+            statusClass = 'em-andamento';
+            acoes = `
+                <button class="btn-confirmar-implantacao" onclick="window.abrirModalConfirmarImplantacao(${analise.id})" style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-check-circle"></i> Iniciar execução do plano de ação
+                </button>
+            `;
+        }
+        // ⭐ 3. COM PLANO, IMPLANTADO E FOLLOW-UPS CONCLUÍDOS
+        else if (temFollowUps && todosConcluidos) {
             statusBadge = '<span class="status-badge concluido">Concluído</span>';
             statusClass = 'concluido';
             acoes = `
@@ -230,7 +252,9 @@ function renderizarAnalises(analises) {
                     <i class="fas fa-check-circle"></i> Acompanhamento concluído
                 </span>
             `;
-        } else {
+        }
+        // ⭐ 4. COM PLANO, IMPLANTADO E FOLLOW-UPS EM ANDAMENTO
+        else if (temFollowUps && !todosConcluidos) {
             statusBadge = '<span class="status-badge em-andamento">Em andamento</span>';
             statusClass = 'em-andamento';
             acoes = `
@@ -238,6 +262,56 @@ function renderizarAnalises(analises) {
                     <i class="fas fa-eye"></i> Visualizar Follow-up
                 </button>
             `;
+        }
+        // ⭐ 5. COM PLANO, IMPLANTADO E SEM FOLLOW-UPS AINDA
+        else if (temPlanoAcao && analise.plano_de_acao_implantado && !temFollowUps) {
+            statusBadge = '<span class="status-badge em-andamento">Pronto para iniciar</span>';
+            statusClass = 'em-andamento';
+            acoes = `
+                <button class="btn-iniciar-acompanhamento" onclick="window.iniciarAcompanhamento(${analise.id}, '${escapeHtml(analise.analise_critica)}')">
+                    <i class="fas fa-play"></i> Iniciar Acompanhamento
+                </button>
+            `;
+        }
+        
+        // ⭐ MOSTRAR PLANO DE AÇÃO SE EXISTIR
+        let planoAcaoHtml = '';
+        if (temPlanoAcao) {
+            const plano = analise.plano_acao;
+
+            // ⭐ FORMATAR DATA DE IMPLANTAÇÃO
+            let dataImplantacaoHtml = '';
+            if (analise.plano_de_acao_implantado && analise.data_execucao_plano_acao) {
+                dataImplantacaoHtml = `
+                    <div style="font-size: 12px; margin-top: 4px; color: #2e7d32;">
+                        <strong><i class="fas fa-check-circle" style="color: #28a745;"></i> Plano de ação iniciado em:</strong> ${formatarData(analise.data_execucao_plano_acao)}
+                    </div>
+                `;
+            }
+
+            planoAcaoHtml = `
+            <div class="plano-acao-preview" style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #28a745;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 600; color: #2e7d32; font-size: 13px;">
+                        <i class="fas fa-clipboard-check"></i> Plano de Ação 5W2H
+                    </span>
+                    <button class="btn-editar-plano" onclick="window.abrirModalPlanoAcao(${analise.id})" style="background: none; border: none; color: #0b5b99; cursor: pointer; font-size: 12px;">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 15px; font-size: 12px; color: #333;">
+                    <div><strong>O que?</strong> ${escapeHtml(plano.oque || '-')}</div>
+                    <div><strong>Por que?</strong> ${escapeHtml(plano.por_que || '-')}</div>
+                    <div><strong>Onde?</strong> ${escapeHtml(plano.onde || '-')}</div>
+                    <div><strong>Quando?</strong> ${plano.quando ? formatarData(plano.quando) : '-'}</div>
+                    <div><strong>Quem?</strong> ${escapeHtml(plano.quem || '-')}</div>
+                    <div><strong>Como?</strong> ${escapeHtml(plano.como || '-')}</div>
+                </div>
+                ${plano.quanto_custa ? `<div style="font-size: 12px; margin-top: 4px;"><strong>Quanto custa?</strong> R$ ${parseFloat(plano.quanto_custa).toFixed(2)}</div>` : ''}
+                ${plano.comentario ? `<div style="font-size: 12px; margin-top: 4px; color: #555;"><strong>Comentário:</strong> ${escapeHtml(plano.comentario)}</div>` : ''}
+                ${dataImplantacaoHtml}
+            </div>
+        `;
         }
         
         // Mostrar progresso dos follow-ups
@@ -274,6 +348,8 @@ function renderizarAnalises(analises) {
                 </div>
                 
                 ${progressoHtml}
+                
+                ${planoAcaoHtml}
                 
                 ${temFollowUps ? `
                 <div class="followup-body">
@@ -325,6 +401,7 @@ function renderizarAnalises(analises) {
 }
 
 
+
 // ============================================================
 // INICIAR ACOMPANHAMENTO
 // ============================================================
@@ -341,7 +418,7 @@ export async function iniciarAcompanhamento(analiseId, analiseTexto) {
     }
     
     try {
-        const response = await fetch('/followups/api/iniciar-acompanhamento', {
+        const response = await fetchComAutenticacao('/followups/api/iniciar-acompanhamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analise_id: analiseId })
@@ -390,7 +467,7 @@ async function carregarFollowupsPendentes(analiseId) {
     container.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
     
     try {
-        const response = await fetch(`/followups/api/por-analise/${analiseId}`);
+        const response = await fetchComAutenticacao(`/followups/api/por-analise/${analiseId}`);
         const data = await response.json();
         
         if (data.success && data.follow_ups) {
@@ -472,7 +549,7 @@ async function carregarFollowupsPendentes(analiseId) {
 // ============================================================
 
 export function abrirModalFollowupEditar(followUpId) {
-    fetch(`/followups/api/follow-up/${followUpId}`)
+    fetchComAutenticacao(`/followups/api/follow-up/${followUpId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.follow_up) {
@@ -516,7 +593,7 @@ export async function salvarFollowupEditar() {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     
     try {
-        const response = await fetch(`/followups/api/atualizar/${followUpId}`, {
+        const response = await fetchComAutenticacao(`/followups/api/atualizar/${followUpId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status, comentario })
@@ -574,7 +651,7 @@ export async function salvarFollowupItem() {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     
     try {
-        const response = await fetch(`/followups/api/atualizar/${followUpId}`, {
+        const response = await fetchComAutenticacao(`/followups/api/atualizar/${followUpId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status, comentario })
@@ -628,6 +705,202 @@ export function aplicarFiltros() {
 }
 
 // ============================================================
+// PLANO DE AÇÃO 5W2H
+// ============================================================
+
+export function abrirModalPlanoAcao(analiseId) {
+    document.getElementById('plano-acao-analise-id').value = analiseId;
+    document.getElementById('modal-plano-acao-titulo').innerHTML = '<i class="fas fa-clipboard-check"></i> Plano de Ação 5W2H';
+    
+    // ⭐ CARREGAR DADOS EXISTENTES
+    fetchComAutenticacao(`/followups/api/plano-acao/${analiseId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.plano) {
+                const p = data.plano;
+                document.getElementById('plano-acao-oque').value = p.oque || '';
+                document.getElementById('plano-acao-porque').value = p.por_que || '';
+                document.getElementById('plano-acao-onde').value = p.onde || '';
+                document.getElementById('plano-acao-quando').value = p.quando || '';
+                document.getElementById('plano-acao-quem').value = p.quem || '';
+                document.getElementById('plano-acao-como').value = p.como || '';
+                document.getElementById('plano-acao-quanto-custa').value = p.quanto_custa || '';
+                document.getElementById('plano-acao-comentario').value = p.comentario || '';
+            } else {
+                // Limpar campos
+                document.getElementById('plano-acao-oque').value = '';
+                document.getElementById('plano-acao-porque').value = '';
+                document.getElementById('plano-acao-onde').value = '';
+                document.getElementById('plano-acao-quando').value = '';
+                document.getElementById('plano-acao-quem').value = '';
+                document.getElementById('plano-acao-como').value = '';
+                document.getElementById('plano-acao-quanto-custa').value = '';
+                document.getElementById('plano-acao-comentario').value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar plano de ação:', error);
+            // Limpar campos em caso de erro
+            document.getElementById('plano-acao-oque').value = '';
+            document.getElementById('plano-acao-porque').value = '';
+            document.getElementById('plano-acao-onde').value = '';
+            document.getElementById('plano-acao-quando').value = '';
+            document.getElementById('plano-acao-quem').value = '';
+            document.getElementById('plano-acao-como').value = '';
+            document.getElementById('plano-acao-quanto-custa').value = '';
+            document.getElementById('plano-acao-comentario').value = '';
+        });
+    
+    document.getElementById('modal-plano-acao').style.display = 'flex';
+}
+
+export function fecharModalPlanoAcao() {
+    document.getElementById('modal-plano-acao').style.display = 'none';
+}
+
+export async function salvarPlanoAcao() {
+    const analiseId = document.getElementById('plano-acao-analise-id').value;
+    const oque = document.getElementById('plano-acao-oque').value.trim();
+    const quem = document.getElementById('plano-acao-quem').value.trim();
+    
+    if (!oque) {
+        mostrarToast('⚠️ O campo "O que?" é obrigatório', 'warning');
+        document.getElementById('plano-acao-oque').style.borderColor = '#dc3545';
+        setTimeout(() => {
+            document.getElementById('plano-acao-oque').style.borderColor = '';
+        }, 3000);
+        return;
+    }
+    
+    if (!quem) {
+        mostrarToast('⚠️ O campo "Quem?" é obrigatório', 'warning');
+        document.getElementById('plano-acao-quem').style.borderColor = '#dc3545';
+        setTimeout(() => {
+            document.getElementById('plano-acao-quem').style.borderColor = '';
+        }, 3000);
+        return;
+    }
+    
+    const payload = {
+        analise_id: parseInt(analiseId),
+        oque: oque,
+        por_que: document.getElementById('plano-acao-porque').value.trim(),
+        onde: document.getElementById('plano-acao-onde').value.trim(),
+        quando: document.getElementById('plano-acao-quando').value || null,
+        quem: quem,
+        como: document.getElementById('plano-acao-como').value.trim(),
+        quanto_custa: document.getElementById('plano-acao-quanto-custa').value || null,
+        comentario: document.getElementById('plano-acao-comentario').value.trim()
+    };
+    
+    const btnSalvar = document.getElementById('btn-salvar-plano-acao');
+    btnSalvar.disabled = true;
+    btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    
+    try {
+        const response = await fetchComAutenticacao('/followups/api/plano-acao/salvar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarToast('✅ Plano de ação salvo com sucesso!', 'success');
+            fecharModalPlanoAcao();
+            
+            const processoId = document.getElementById('processo_select')?.value;
+            await carregarAnalises(processoId);
+
+            setTimeout(() => {
+                const container = document.getElementById('followups-container');
+                if (container) {
+                    renderizarAnalises(analisesData);
+                }
+            }, 100);
+
+        } else {
+            mostrarToast('❌ Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'error');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+    } finally {
+        btnSalvar.disabled = false;
+        btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Plano de Ação';
+    }
+}
+
+// ============================================================
+// MODAL - CONFIRMAR IMPLANTAÇÃO
+// ============================================================
+
+export function abrirModalConfirmarImplantacao(analiseId) {
+    document.getElementById('confirmar-analise-id').value = analiseId;
+    document.getElementById('confirmar-status').value = 'true';
+    document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
+    document.getElementById('confirmar-comentario').value = '';
+    document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
+}
+
+export function fecharModalConfirmarImplantacao() {
+    document.getElementById('modal-confirmar-implantacao').style.display = 'none';
+}
+
+export async function confirmarImplantacao() {
+    const analiseId = document.getElementById('confirmar-analise-id').value;
+    const foiImplantada = document.getElementById('confirmar-status').value === 'true';
+    const dataImplantacao = document.getElementById('confirmar-data').value;
+    
+    if (!dataImplantacao) {
+        mostrarToast('⚠️ Informe a data da implantação', 'warning');
+        return;
+    }
+    
+    const btnConfirmar = document.getElementById('btn-confirmar-implantacao');
+    btnConfirmar.disabled = true;
+    btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando...';
+    
+    try {
+        const response = await fetchComAutenticacao(`/api/analise-auditor/${analiseId}/confirmar-implantacao`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                plano_de_acao_implantado: foiImplantada, 
+                data_execucao_plano_acao: dataImplantacao
+            })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarToast('✅ Plano de ação confirmado! Follow-ups criados.', 'success');
+            fecharModalConfirmarImplantacao();
+            
+            // ⭐ FORÇAR RECARREGAMENTO DA LISTA
+            const processoId = document.getElementById('processo_select')?.value;
+            await carregarAnalises(processoId);
+            
+            // ⭐ FORÇAR RENDERIZAÇÃO NOVA
+            setTimeout(() => {
+                const container = document.getElementById('followups-container');
+                if (container && analisesData.length > 0) {
+                    renderizarAnalises(analisesData);
+                }
+            }, 200);
+            
+        } else {
+            mostrarToast('❌ Erro ao confirmar: ' + (data.error || 'Erro desconhecido'), 'error');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+    } finally {
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = '<i class="fas fa-save"></i> Confirmar';
+    }
+}
+
+// ============================================================
 // EXPORTA PARA O ESCOPO GLOBAL
 // ============================================================
 
@@ -642,6 +915,12 @@ window.carregarAnalises = carregarAnalises;
 window.abrirModalFollowupEditar = abrirModalFollowupEditar;
 window.fecharModalFollowupEditar = fecharModalFollowupEditar;
 window.salvarFollowupEditar = salvarFollowupEditar;
+window.abrirModalPlanoAcao = abrirModalPlanoAcao;
+window.fecharModalPlanoAcao = fecharModalPlanoAcao;
+window.salvarPlanoAcao = salvarPlanoAcao;
+window.abrirModalConfirmarImplantacao = abrirModalConfirmarImplantacao;
+window.fecharModalConfirmarImplantacao = fecharModalConfirmarImplantacao;
+window.confirmarImplantacao = confirmarImplantacao;
 
 // ============================================================
 // INICIALIZAÇÃO
@@ -681,6 +960,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     document.getElementById('btn-salvar-followup-item')?.addEventListener('click', salvarFollowupItem);
+
+    // ⭐ ADICIONAR O EVENTO DO BOTÃO CONFIRMAR
+    document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
+    
+    // ⭐ BOTÃO SALVAR PLANO DE AÇÃO
+    document.getElementById('btn-salvar-plano-acao')?.addEventListener('click', salvarPlanoAcao);
         
     console.log('✅ Página de follow-ups inicializada!');
 });

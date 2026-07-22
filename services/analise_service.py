@@ -10,7 +10,7 @@ class AnaliseService:
     CAMPOS_PERMITIDOS = [
         'analise_critica', 'sugestao_melhoria', 'necessidade_implantacao',
         'ganho_previsto', 'observacoes', 'sugestao_sera_implantada',
-        'efetivamente_implantada', 'data_implantacao_efetiva', 'status'
+        'plano_de_acao_implantado', 'data_execucao_plano_acao', 'status'
     ]
     
     @staticmethod
@@ -39,8 +39,8 @@ class AnaliseService:
                     ac.ganho_previsto,
                     ac.observacoes,
                     ac.sugestao_sera_implantada,
-                    ac.efetivamente_implantada,
-                    ac.data_implantacao_efetiva,
+                    ac.plano_de_acao_implantado,
+                    ac.data_execucao_plano_acao,
                     ac.status,
                     ac.created_by,
                     ac.created_at,
@@ -73,8 +73,8 @@ class AnaliseService:
                     'ganho_previsto': row[8] or '',
                     'observacoes': row[9] or '',
                     'sugestao_sera_implantada': row[10],
-                    'efetivamente_implantada': row[11],
-                    'data_implantacao_efetiva': row[12].isoformat() if row[12] else None,
+                    'plano_de_acao_implantado': row[11],
+                    'data_execucao_plano_acao': row[12].isoformat() if row[12] else None,
                     'status': row[13],
                     'created_by': row[14],
                     'created_at': row[15].isoformat() if row[15] else None,
@@ -171,8 +171,8 @@ class AnaliseService:
                     id, processo_id, etapa_id, tipo, categoria,
                     analise_critica, sugestao_melhoria,
                     necessidade_implantacao, ganho_previsto, observacoes,
-                    sugestao_sera_implantada, efetivamente_implantada,
-                    data_implantacao_efetiva, status,
+                    sugestao_sera_implantada, plano_de_acao_implantado,
+                    data_execucao_plano_acao, status,
                     created_by, created_at, updated_at,
                     evidencia_url, evidencia_nome
                 FROM analises_criticas
@@ -196,8 +196,8 @@ class AnaliseService:
                 'ganho_previsto': result[8] or '',
                 'observacoes': result[9] or '',
                 'sugestao_sera_implantada': result[10],
-                'efetivamente_implantada': result[11],
-                'data_implantacao_efetiva': result[12].isoformat() if result[12] else None,
+                'plano_de_acao_implantado': result[11],
+                'data_execucao_plano_acao': result[12].isoformat() if result[12] else None,
                 'status': result[13],
                 'created_by': result[14],
                 'created_at': result[15].isoformat() if result[15] else None,
@@ -207,14 +207,13 @@ class AnaliseService:
             }
     
     @classmethod
-    def confirmar_implantacao(cls, id: int, efetivamente_implantada: bool, 
-                              data_implantacao_efetiva: str, comentario: str = None) -> bool:
+    def confirmar_implantacao(cls, id: int, plano_de_acao_implantado: bool, 
+                              data_execucao_plano_acao: str, comentario: str = None) -> bool:
         """Confirma a implantação de uma análise"""
         query = text("""
             UPDATE analises_criticas 
-            SET efetivamente_implantada = :efetivamente_implantada,
-                data_implantacao_efetiva = :data_implantacao_efetiva,
-                comentario_implantacao = :comentario,
+            SET plano_de_acao_implantado = :plano_de_acao_implantado,
+                data_execucao_plano_acao = :data_execucao_plano_acao,
                 updated_at = NOW()
             WHERE id = :id
         """)
@@ -222,9 +221,8 @@ class AnaliseService:
         with engine.connect() as conn:
             result = conn.execute(query, {
                 'id': id,
-                'efetivamente_implantada': efetivamente_implantada,
-                'data_implantacao_efetiva': data_implantacao_efetiva,
-                'comentario': comentario
+                'plano_de_acao_implantado': plano_de_acao_implantado,
+                'data_execucao_plano_acao': data_execucao_plano_acao,
             })
             conn.commit()
             return result.rowcount > 0

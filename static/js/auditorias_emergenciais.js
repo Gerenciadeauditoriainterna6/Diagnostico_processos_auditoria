@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 url += `?area_id=${areaId}`;
             }
 
-            const response = await fetch(url);
+            const response = await fetchComAutenticacao(url);
             const data = await response.json();
 
             if (!data.success) {
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 try {
-                    const resp = await fetch(`/api/auditoria/${aud.id}/responsavel`);
+                    const resp = await fetchComAutenticacao(`/api/auditoria/${aud.id}/responsavel`);
                     const dataResp = await resp.json();
                     return { ...aud, temPermissao: dataResp.autorizado || false };
                 } catch (error) {
@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ====== VERIFICAR SE USUÁRIO É RESPONSÁVEL ======
     async function verificarResponsavel(auditoriaId) {
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
             const data = await response.json();
             return data.autorizado || false;
         } catch (error) {
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ====== VERIFICAR PERMISSÃO ======
     async function verificarPermissaoAuditoria(auditoriaId) {
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
             const data = await response.json();
             
             console.log('🔍 Verificação de permissão:', data);
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ====== VERIFICAR EXISTÊNCIA DO PDF ======
     async function verificarPdf(codigoAuditoria) {
         try {
-            const response = await fetch(`/api/plano-anual-pdf?codigo=${codigoAuditoria}&tipo=emergencial`);
+            const response = await fetchComAutenticacao(`/api/plano-anual-pdf?codigo=${codigoAuditoria}&tipo=emergencial`);
             console.log('Status da resposta:', response.status);
             
             if (response.ok) {
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 Carregando fundamentos para auditoria ID:', auditoriaId);
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/fundamentos`);
             const data = await response.json();
             
             console.log('📦 Dados recebidos da API:', data);
@@ -611,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             
-            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`, {
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/fundamentos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fundamentos: fundamentosFiltrados })
@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             btnSalvar.disabled = true;
             
-            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/fundamentos`, {
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaAtualId}/fundamentos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -770,7 +770,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!evidenciasContainer) return;
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/evidencias`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/evidencias`);
             const data = await response.json();
             
             console.log('📦 Evidências recebidas:', data);
@@ -860,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('arquivo', file);
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/upload-evidencia`, {
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaAtualId}/upload-evidencia`, {
                 method: 'POST',
                 body: formData
             });
@@ -882,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ====== BAIXAR EVIDÊNCIA ======
     window.baixarEvidencia = async function(caminho) {
         try {
-            const response = await fetch(`/api/evidencia/${encodeURIComponent(caminho)}`);
+            const response = await fetchComAutenticacao(`/api/evidencia/${encodeURIComponent(caminho)}`);
             const data = await response.json();
             
             if (data.success) {
@@ -901,7 +901,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!confirm('Tem certeza que deseja remover esta evidência?')) return;
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaAtualId}/evidencias`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaAtualId}/evidencias`);
             const data = await response.json();
             
             if (!data.success) {
@@ -914,7 +914,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!evidencia) return;
             
-            const deleteResponse = await fetch(`/api/auditoria/${auditoriaAtualId}/evidencia`, {
+            const deleteResponse = await fetchComAutenticacao(`/api/auditoria/${auditoriaAtualId}/evidencia`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ caminho: evidencia.url })

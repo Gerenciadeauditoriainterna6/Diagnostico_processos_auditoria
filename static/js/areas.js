@@ -1,7 +1,7 @@
 // ====== ATUALIZAR CONTADOR DE FUNCIONÁRIOS DE UMA ÁREA ======
 async function atualizarContadorArea(areaId) {
   try {
-    const response = await fetch(`/api/area/${areaId}/funcionarios`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/funcionarios`);
     const funcionarios = await response.json();
     const count = funcionarios.length;
 
@@ -42,7 +42,7 @@ function converterParaBase64(file) {
 // ====== CARREGAR ORGANOGRAMA EXISTENTE ======
 async function carregarOrganograma(areaId) {
   try {
-    const response = await fetch(`/api/area/${areaId}/organograma`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/organograma`);
     const data = await response.json();
 
     const infoDiv = document.getElementById("organograma_info");
@@ -173,7 +173,7 @@ function setupOrganogramaUpload(areaId) {
 
         // Remover via API
         try {
-          const response = await fetch(`/api/area/${areaId}/organograma`, {
+          const response = await fetchComAutenticacao(`/api/area/${areaId}/organograma`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
           });
@@ -306,7 +306,7 @@ async function salvarOrganograma(areaId) {
   try {
     const base64 = await converterParaBase64(arquivoOrganograma);
 
-    const response = await fetch(`/api/area/${areaId}/upload-organograma`, {
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/upload-organograma`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -437,7 +437,7 @@ function formatarTelefoneExibicao(telefone) {
 // ====== BUSCAR CONTAGEM DE FUNCIONÁRIOS ======
 async function buscarContagemFuncionarios(areaId) {
   try {
-    const response = await fetch(`/api/area/${areaId}/funcionarios`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/funcionarios`);
     const funcionarios = await response.json();
     return funcionarios.length;
   } catch (error) {
@@ -462,7 +462,7 @@ async function carregarDetalhesArea(areaId) {
   }
 
   try {
-    const response = await fetch(`/api/area/${areaId}`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}`);
     const area = await response.json();
 
     const container = document.querySelector(".area-details");
@@ -580,7 +580,7 @@ async function carregarFuncionariosArea(areaId, isAreaAtiva) {
   try {
     // SEMPRE buscar TODOS os funcionários (ativos e inativos)
     const endpoint = `/api/area/${areaId}/todos-funcionarios`;
-    const response = await fetch(endpoint);
+    const response = await fetchComAutenticacao(endpoint);
 
     console.log("Resposta da API:", response.status);
 
@@ -690,7 +690,7 @@ async function excluirFuncionario(funcionarioId, areaId, btnElement) {
     btnElement.classList.add("btn-loading");
     btnElement.innerHTML = '<i class="fas fa-spinner"></i> Excluindo...';
 
-    const response = await fetch(`/api/funcionario/${funcionarioId}`, {
+    const response = await fetchComAutenticacao(`/api/funcionario/${funcionarioId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -736,7 +736,7 @@ async function excluirArea(areaId, areaNome, btnElement) {
     btnElement.classList.add("btn-loading");
     btnElement.innerHTML = '<i class="fas fa-spinner"></i> Desativando...';
 
-    const response = await fetch(`/api/area/${areaId}`, {
+    const response = await fetchComAutenticacao(`/api/area/${areaId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
     });
@@ -878,7 +878,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       try {
-        const response = await fetch("/api/salvar-area", {
+        const response = await fetchComAutenticacao("/api/salvar-area", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dados),
@@ -1015,7 +1015,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const areaIdParaRecarregar = areaIdAtual;
 
       try {
-        const response = await fetch("/api/salvar-funcionario", {
+        const response = await fetchComAutenticacao("/api/salvar-funcionario", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dados),
@@ -1111,7 +1111,7 @@ if (btnCancelarEditarArea)
 
 async function abrirModalEditarArea(areaId) {
   try {
-    const response = await fetch(`/api/area/${areaId}`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}`);
     const area = await response.json();
 
     console.log("=== DEBUG COMPLETO ===");
@@ -1213,7 +1213,7 @@ if (formEditarArea) {
     console.log("📤 Enviando dados para API:", dados);
 
     try {
-      const response = await fetch(`/api/area/${areaId}`, {
+      const response = await fetchComAutenticacao(`/api/area/${areaId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dados),
@@ -1292,7 +1292,7 @@ if (btnCancelarEditarFuncionario)
 
 async function abrirModalEditarFuncionario(funcionarioId, areaIdAtual) {
   try {
-    const response = await fetch(`/api/funcionario/${funcionarioId}`);
+    const response = await fetchComAutenticacao(`/api/funcionario/${funcionarioId}`);
     const func = await response.json();
 
     document.getElementById("edit_func_id").value = func.id;
@@ -1345,7 +1345,7 @@ if (formEditarFuncionario) {
     };
 
     try {
-      const response = await fetch(`/api/funcionario/${funcionarioId}`, {
+      const response = await fetchComAutenticacao(`/api/funcionario/${funcionarioId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dados),
@@ -1392,7 +1392,7 @@ let todasAreas = []; // Armazenar todas as áreas para filtro
 // Modificar a função carregarAreas para salvar os dados originais
 async function carregarAreas() {
   try {
-    const response = await fetch("/api/areas");
+    const response = await fetchComAutenticacao("/api/areas");
     const areas = await response.json();
 
     todasAreas = areas;
@@ -1714,7 +1714,7 @@ async function reativarArea(areaId, areaNome, btnElement) {
     btnElement.classList.add("btn-loading");
     btnElement.innerHTML = '<i class="fas fa-spinner"></i> Reativando...';
 
-    const response = await fetch(`/api/area/${areaId}/reativar`, {
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/reativar`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
     });
@@ -1754,12 +1754,12 @@ async function reativarArea(areaId, areaNome, btnElement) {
 // ====== BAIXAR ORGANOGRAMA (COM URL ASSINADA) ======
 window.baixarOrganograma = async function (areaId) {
   try {
-    const response = await fetch(`/api/area/${areaId}/organograma-url`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/organograma-url`);
     const data = await response.json();
 
     if (data.success) {
       // Baixar o arquivo
-      fetch(data.url)
+      fetchComAutenticacao(data.url)
         .then((res) => res.blob())
         .then((blob) => {
           const link = document.createElement("a");
@@ -1782,7 +1782,7 @@ window.baixarOrganograma = async function (areaId) {
 // ====== VISUALIZAR ORGANOGRAMA (COM URL ASSINADA) ======
 window.visualizarOrganograma = async function (areaId) {
   try {
-    const response = await fetch(`/api/area/${areaId}/organograma-url`);
+    const response = await fetchComAutenticacao(`/api/area/${areaId}/organograma-url`);
     const data = await response.json();
 
     if (data.success) {

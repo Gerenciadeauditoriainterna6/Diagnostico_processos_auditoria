@@ -10,7 +10,7 @@
 {% block content %}
 <div class="followups-container">
     <div class="page-header">
-        <h1><i class="fas fa-eye"></i> Acompanhamento de Implantações</h1>
+        <h1><i class="fas fa-eye"></i> Acompanhamento das Melhorias</h1>
         <p>Follow-ups das sugestões de melhoria em andamento</p>
     </div>
 
@@ -173,6 +173,103 @@
         </div>
     </div>
 </div>
+
+<!-- MODAL PARA PLANO DE AÇÃO 5W2H -->
+<div id="modal-plano-acao" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3 id="modal-plano-acao-titulo"><i class="fas fa-clipboard-check"></i> Plano de Ação 5W2H</h3>
+            <button class="modal-fechar" onclick="window.fecharModalPlanoAcao()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="plano-acao-analise-id">
+            
+            <div class="form-group">
+                <label><i class="fas fa-question-circle"></i> O que? *</label>
+                <textarea id="plano-acao-oque" class="form-control" rows="2" placeholder="Descreva o que será feito..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-question-circle"></i> Por que? </label>
+                <textarea id="plano-acao-porque" class="form-control" rows="2" placeholder="Motivo da ação..."></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Onde?</label>
+                    <input type="text" id="plano-acao-onde" class="form-control" placeholder="Local da execução...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Quando?</label>
+                    <input type="date" id="plano-acao-quando" class="form-control">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Quem? *</label>
+                    <input type="text" id="plano-acao-quem" class="form-control" placeholder="Responsável pela execução...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-tasks"></i> Como?</label>
+                    <input type="text" id="plano-acao-como" class="form-control" placeholder="Como será executado...">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-dollar-sign"></i> Quanto custa?</label>
+                <input type="number" id="plano-acao-quanto-custa" class="form-control" placeholder="0.00" step="0.01">
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-comment"></i> Comentário</label>
+                <textarea id="plano-acao-comentario" class="form-control" rows="2" placeholder="Observações adicionais..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="window.fecharModalPlanoAcao()">Cancelar</button>
+            <button id="btn-salvar-plano-acao" class="btn-primary">
+                <i class="fas fa-save"></i> Salvar Plano de Ação
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA CONFIRMAR IMPLANTAÇÃO -->
+<div id="modal-confirmar-implantacao" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-check-circle"></i> Confirmar Implantação</h3>
+            <button class="modal-fechar" onclick="window.fecharModalConfirmarImplantacao()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="confirmar-analise-id">
+            <div class="form-group">
+                <label>A melhoria foi efetivamente implantada?</label>
+                <select id="confirmar-status" class="form-control">
+                    <option value="true">✅ Sim, foi implantada</option>
+                    <option value="false">❌ Não, não foi implantada</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Data da implantação</label>
+                <input type="date" id="confirmar-data" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Comentário (opcional)</label>
+                <textarea id="confirmar-comentario" class="form-control" rows="2" placeholder="Observações sobre a implantação..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="window.fecharModalConfirmarImplantacao()">Cancelar</button>
+            <button id="btn-confirmar-implantacao" class="btn-primary">
+                <i class="fas fa-save"></i> Confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
+
 
 {% endblock %}
 

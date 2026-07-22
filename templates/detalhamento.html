@@ -688,7 +688,7 @@
         selectArea.innerHTML = '<option value="">Carregando áreas...</option>';
 
         try {
-            const response = await fetch('/api/areas');
+            const response = await fetchComAutenticacao('/api/areas');
             const areas = await response.json();
 
             if (areas && areas.length > 0) {
@@ -840,7 +840,7 @@
         }
 
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (selectAuditoria) {
@@ -892,7 +892,7 @@
 
         try {
             // ===== 1. VERIFICAR PERMISSÃO DO USUÁRIO =====
-            const respPermissao = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const respPermissao = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
             const dadosPermissao = await respPermissao.json();
             
             if (!dadosPermissao.autorizado) {
@@ -921,7 +921,7 @@
             `;
             }
             
-            const response = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+            const response = await fetchComAutenticacao(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const data = await response.json();
 
             if (!data.success || !data.processos || data.processos.length === 0) {
@@ -1060,7 +1060,7 @@
         body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
         
         // Buscar dados do processo para verificar se já tem BPMN
-        fetch(`/api/processo/${processoId}/dados`)
+        fetchComAutenticacao(`/api/processo/${processoId}/dados`)
             .then(res => res.json())
             .then(data => {
                 if (data.fluxo_bpmn_nome) {
@@ -1128,7 +1128,7 @@
             
             try {
                 const base64 = await converterParaBase64(file);
-                const response = await fetch(`/api/processo/${processoId}/upload-bpmn`, {
+                const response = await fetchComAutenticacao(`/api/processo/${processoId}/upload-bpmn`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1163,7 +1163,7 @@
         if (!confirm('Tem certeza que deseja remover o fluxo BPMN deste processo?')) return;
         
         try {
-            const response = await fetch(`/api/processo/${processoId}/remover-bpmn`, { method: 'DELETE' });
+            const response = await fetchComAutenticacao(`/api/processo/${processoId}/remover-bpmn`, { method: 'DELETE' });
             const data = await response.json();
             
             if (data.success) {
@@ -1200,7 +1200,7 @@
 
     async function baixarAnexo(achadoId, anexoIndex) {
         try {
-            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
+            const response = await fetchComAutenticacao(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
             const data = await response.json();
             
             if (data.success && data.url) {

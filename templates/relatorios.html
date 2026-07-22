@@ -817,7 +817,7 @@
         selectArea.innerHTML = '<option value="">Carregando áreas...</option>';
 
         try {
-            const response = await fetch('/api/relatorios/areas');
+            const response = await fetchComAutenticacao('/api/relatorios/areas');
             const data = await response.json();
 
             if (data.success && data.areas) {
@@ -993,7 +993,7 @@
         }
 
         try {
-            const response = await fetch(url, {
+            const response = await fetchComAutenticacao(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyData)
@@ -1057,7 +1057,7 @@
         if (infoBox) infoBox.style.display = 'none';
 
         try {
-            const response = await fetch(`/api/relatorios/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/relatorios/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (data.success && data.auditorias && data.auditorias.length > 0) {
@@ -1155,7 +1155,7 @@
                 
                 // Verificar permissão do usuário
                 try {
-                    const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                    const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
                     const data = await response.json();
                     
                     if (data.autorizado) {
@@ -1289,7 +1289,7 @@
         selectProcesso.disabled = true;
 
         try {
-            const response = await fetch(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+            const response = await fetchComAutenticacao(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const data = await response.json();
 
             if (data.success && data.processos && data.processos.length > 0) {
@@ -1334,7 +1334,7 @@
         if (!areaId || !auditoriaId) return;
         
         try {
-            const response = await fetch(`/api/conclusoes/buscar?auditoria_id=${auditoriaId}&area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/conclusoes/buscar?auditoria_id=${auditoriaId}&area_id=${areaId}`);
             const data = await response.json();
             
             console.log('📥 Dados da conclusão:', data);
@@ -1373,7 +1373,7 @@
     // ⭐ Carregar TODAS as conclusões (histórico com SWOT)
     async function carregarHistoricoConclusoes(auditoriaId, areaId) {
         try {
-            const response = await fetch(`/api/conclusoes/historico?auditoria_id=${auditoriaId}&area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/conclusoes/historico?auditoria_id=${auditoriaId}&area_id=${areaId}`);
             const data = await response.json();
             
             console.log('📋 Histórico de conclusões:', data);
@@ -1461,7 +1461,7 @@
         console.log(`📥 Baixando conclusão ID: ${conclusaoId} do usuário: ${usuarioNome}`);
         
         try {
-            const response = await fetch('/api/relatorios/gerar-conclusao', {
+            const response = await fetchComAutenticacao('/api/relatorios/gerar-conclusao', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1533,7 +1533,7 @@
         
         try {
             // ⭐ ENVIAR TODOS OS CAMPOS
-            const response = await fetch('/api/conclusoes/salvar', {
+            const response = await fetchComAutenticacao('/api/conclusoes/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1618,7 +1618,7 @@
         }
         
         try {
-            const response = await fetch('/api/relatorios/gerar-conclusao', {
+            const response = await fetchComAutenticacao('/api/relatorios/gerar-conclusao', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

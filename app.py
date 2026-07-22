@@ -522,29 +522,29 @@ def gerar_css_tema():
 
 @app.before_request
 def verificar_inatividade():
-    """
-    Verifica se a sessão expirou por inatividade (30 minutos)
-    """
-    # Pular para rotas públicas
     if request.endpoint in ['login', 'static', 'ping', 'cadastro']:
         return
     
     if not session.get('autenticado'):
         return
     
-    # Verificar última atividade
     ultima_atividade = session.get('_last_activity')
     if ultima_atividade:
         try:
             ultimo_timestamp = datetime.fromisoformat(ultima_atividade)
             tempo_decorrido = (datetime.now() - ultimo_timestamp).total_seconds()
             
-            # Se passou mais de 30 minutos desde a última atividade
-            if tempo_decorrido > 1800:  # 30 minutos
+            if tempo_decorrido > 1800:
                 session.clear()
-                return jsonify({'error': 'Sessão expirada por inatividade'}), 401
+                
+                # ⭐ SE FOR REQUISIÇÃO AJAX → RETORNA 401
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Sessão expirada por inatividade'}), 401
+                
+                # ⭐ SE FOR REQUISIÇÃO NORMAL → REDIRECIONA PARA O LOGIN
+                return redirect(url_for('login'))
         except:
-            pass  # Se não conseguir parsear, ignora
+            pass
 
 
 
@@ -6916,11 +6916,11 @@ def api_analise_auditor_confirmar_implantacao(analise_id):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
-    efetivamente_implantada = data.get('efetivamente_implantada')
-    data_implantacao_efetiva = data.get('data_implantacao_efetiva')
-    comentario_implantacao = data.get('comentario_implantacao', '')
+    plano_de_acao_implantado = data.get('plano_de_acao_implantado')
+    data_execucao_plano_acao = data.get('data_execucao_plano_acao')
+
     
-    if efetivamente_implantada and not data_implantacao_efetiva:
+    if plano_de_acao_implantado and not data_execucao_plano_acao:
         return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
     
     from database import engine
@@ -6943,21 +6943,19 @@ def api_analise_auditor_confirmar_implantacao(analise_id):
             # Atualizar a análise
             conn.execute(text("""
                 UPDATE analises_criticas 
-                SET efetivamente_implantada = :efetivamente_implantada,
-                    data_implantacao_efetiva = :data_implantacao_efetiva,
-                    comentario_implantacao = :comentario,
+                SET plano_de_acao_implantado = :plano_de_acao_implantado,
+                    data_execucao_plano_acao = :data_execucao_plano_acao,
                     updated_at = NOW()
                 WHERE id = :id
             """), {
                 'id': analise_id,
-                'efetivamente_implantada': efetivamente_implantada,
-                'data_implantacao_efetiva': data_implantacao_efetiva,
-                'comentario': comentario_implantacao
+                'plano_de_acao_implantado': plano_de_acao_implantado,
+                'data_execucao_plano_acao': data_execucao_plano_acao
             })
             
             # Se foi implantada, criar follow-ups automáticos
-            if efetivamente_implantada:
-                data_base = datetime.strptime(data_implantacao_efetiva, '%Y-%m-%d')
+            if plano_de_acao_implantado:
+                data_base = datetime.strptime(data_execucao_plano_acao, '%Y-%m-%d')
                 
                 follow_ups = [
                     {'etapa': 'FOLLOW_UP_30', 'dias': 30},
@@ -6999,7 +6997,7 @@ def api_analise_auditor_confirmar_implantacao(analise_id):
                         )
                     """), {
                         'analise_id': analise_id,
-                        'comentario': f'✅ Melhoria implantada em {data_implantacao_efetiva}. Follow-ups criados para 30, 60 e 90 dias.',
+                        'comentario': f'✅ Melhoria implantada em {data_execucao_plano_acao}. Follow-ups criados para 30, 60 e 90 dias.',
                         'created_by': session.get('usuario_nome', 'Sistema')
                     })
                 except Exception as e:
@@ -7074,14 +7072,14 @@ def api_melhorias_ativas():
                     a.sugestao_melhoria,
                     a.responsavel_implantacao,
                     a.data_conclusao_prevista,
-                    a.data_implantacao_efetiva,
-                    a.efetivamente_implantada,
+                    a.data_execucao_plano_acao,
+                    a.plano_de_acao_implantado,
                     p.codigo_processo,
                     p.nome_processo
                 FROM analises_criticas a
                 JOIN processos p ON a.processo_id = p.id
                 WHERE a.sugestao_sera_implantada = true
-                  AND (a.efetivamente_implantada = false OR a.efetivamente_implantada IS NULL)
+                  AND (a.plano_de_acao_implantado = false OR a.plano_de_acao_implantado IS NULL)
             """
             
             params = {}
@@ -7111,7 +7109,7 @@ def api_melhorias_ativas():
                     'responsavel': row[3] or '',
                     'data_conclusao_prevista': row[4].isoformat() if row[4] else None,
                     'data_implantacao': row[5].isoformat() if row[5] else None,
-                    'efetivamente_implantada': row[6] or False,
+                    'plano_de_acao_implantado': row[6] or False,
                     'prazo_vencido': prazo_vencido,
                     'processo': f"{row[7]} - {row[8]}" if row[7] else row[8] or ''
                 })
@@ -7381,11 +7379,10 @@ def api_analise_auditado_confirmar_implantacao(analise_id):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     data = request.json
-    efetivamente_implantada = data.get('efetivamente_implantada')
-    data_implantacao_efetiva = data.get('data_implantacao_efetiva')
-    comentario_implantacao = data.get('comentario_implantacao', '')
+    plano_de_acao_implantado = data.get('plano_de_acao_implantado')
+    data_execucao_plano_acao = data.get('data_execucao_plano_acao')
     
-    if efetivamente_implantada and not data_implantacao_efetiva:
+    if plano_de_acao_implantado and not data_execucao_plano_acao:
         return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
     
     from database import engine
@@ -7405,21 +7402,19 @@ def api_analise_auditado_confirmar_implantacao(analise_id):
             # Atualizar
             conn.execute(text("""
                 UPDATE analises_criticas 
-                SET efetivamente_implantada = :efetivamente_implantada,
-                    data_implantacao_efetiva = :data_implantacao_efetiva,
-                    comentario_implantacao = :comentario,
+                SET plano_de_acao_implantado = :plano_de_acao_implantado,
+                    data_execucao_plano_acao = :data_execucao_plano_acao,
                     updated_at = NOW()
                 WHERE id = :id
             """), {
                 'id': analise_id,
-                'efetivamente_implantada': efetivamente_implantada,
-                'data_implantacao_efetiva': data_implantacao_efetiva,
-                'comentario': comentario_implantacao
+                'plano_de_acao_implantado': plano_de_acao_implantado,
+                'data_execucao_plano_acao': data_execucao_plano_acao
             })
             
             # Criar follow-ups se implantada
-            if efetivamente_implantada:
-                data_base = datetime.strptime(data_implantacao_efetiva, '%Y-%m-%d')
+            if plano_de_acao_implantado:
+                data_base = datetime.strptime(data_execucao_plano_acao, '%Y-%m-%d')
                 
                 follow_ups = [
                     {'etapa': 'FOLLOW_UP_30', 'dias': 30},
