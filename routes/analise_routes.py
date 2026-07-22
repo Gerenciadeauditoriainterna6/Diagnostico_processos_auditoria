@@ -584,18 +584,18 @@ def api_confirmar_implantacao_auditor(analise_id):
     if not data:
         return jsonify({'success': False, 'error': 'Dados não fornecidos'}), 400
     
-    efetivamente_implantada = data.get('efetivamente_implantada')
-    data_implantacao_efetiva = data.get('data_implantacao_efetiva')
+    plano_de_acao_implantado = data.get('plano_de_acao_implantado')
+    data_execucao_plano_acao = data.get('data_execucao_plano_acao')
     comentario = data.get('comentario_implantacao')
     
-    if data_implantacao_efetiva is None:
+    if data_execucao_plano_acao is None:
         return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
     
     try:
         sucesso = AnaliseService.confirmar_implantacao(
             analise_id,
-            efetivamente_implantada,
-            data_implantacao_efetiva,
+            plano_de_acao_implantado,
+            data_execucao_plano_acao,
             comentario
         )
         
@@ -619,18 +619,18 @@ def api_confirmar_implantacao_auditado(analise_id):
     if not data:
         return jsonify({'success': False, 'error': 'Dados não fornecidos'}), 400
     
-    efetivamente_implantada = data.get('efetivamente_implantada')
-    data_implantacao_efetiva = data.get('data_implantacao_efetiva')
+    plano_de_acao_implantado = data.get('plano_de_acao_implantado')
+    data_execucao_plano_acao = data.get('data_execucao_plano_acao')
     comentario = data.get('comentario_implantacao')
     
-    if data_implantacao_efetiva is None:
+    if data_execucao_plano_acao is None:
         return jsonify({'success': False, 'error': 'Data de implantação é obrigatória'}), 400
     
     try:
         sucesso = AnaliseService.confirmar_implantacao(
             analise_id,
-            efetivamente_implantada,
-            data_implantacao_efetiva,
+            plano_de_acao_implantado,
+            data_execucao_plano_acao,
             comentario
         )
         

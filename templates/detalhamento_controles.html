@@ -1295,7 +1295,7 @@
         filtroAuditoriaSelect.disabled = true;
 
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (data.auditorias && data.auditorias.length > 0) {
@@ -1360,7 +1360,7 @@
             `;
 
             try {
-                const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
                 const data = await response.json();
 
                 if (data.autorizado) {
@@ -1401,7 +1401,7 @@
         `;
 
         try {
-            const responseProcessos = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+            const responseProcessos = await fetchComAutenticacao(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const dataProcessos = await responseProcessos.json();
 
             console.log('📦 Processos encontrados:', dataProcessos);
@@ -1420,7 +1420,7 @@
             for (const processo of dataProcessos.processos) {
                 console.log(`🔍 Buscando etapas do processo: ${processo.codigo_processo} - ${processo.nome_processo}`);
 
-                const responseEtapas = await fetch(`/api/processo/${processo.id}/etapas`);
+                const responseEtapas = await fetchComAutenticacao(`/api/processo/${processo.id}/etapas`);
                 const dataEtapas = await responseEtapas.json();
 
                 console.log(`   📋 Etapas encontradas: ${dataEtapas.etapas?.length || 0}`);
@@ -1482,7 +1482,7 @@
             document.querySelectorAll('.etapa-card').forEach(async (card) => {
                 const etapaId = card.getAttribute('data-etapa-id');
                 try {
-                    const resp = await fetch(`/api/etapa/${etapaId}/controles/count`);
+                    const resp = await fetchComAutenticacao(`/api/etapa/${etapaId}/controles/count`);
                     const data = await resp.json();
                     if (data.success && data.total > 0) {
                         const header = card.querySelector('.etapa-info');
@@ -1548,7 +1548,7 @@
         if (!container) return;
 
         try {
-            const response = await fetch(`/api/etapa/${etapaId}/riscos`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos`);
             const data = await response.json();
 
             console.log(`📦 Riscos encontrados:`, data);
@@ -1564,7 +1564,7 @@
 
             const promessasContagem = [];
             for (const risco of data.riscos) {
-                const promessa = fetch(`/api/risco/${risco.id}/controles/count`)
+                const promessa = fetchComAutenticacao(`/api/risco/${risco.id}/controles/count`)
                     .then(res => res.json())
                     .then(data => ({
                         id: risco.id,
@@ -1693,7 +1693,7 @@
         if (!container) return;
 
         try {
-            const response = await fetch(`/api/risco/${riscoId}/controles`);
+            const response = await fetchComAutenticacao(`/api/risco/${riscoId}/controles`);
             const data = await response.json();
 
             if (!data.success || !data.controles || data.controles.length === 0) {
@@ -1849,7 +1849,7 @@
         if (!confirm(`Tem certeza que deseja excluir o controle "${nomeControle}"?`)) return;
         
         try {
-            const response = await fetch(`/api/controle-etapa/${controleId}`, {
+            const response = await fetchComAutenticacao(`/api/controle-etapa/${controleId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -1877,7 +1877,7 @@
     // ====== FUNÇÕES PARA ATUALIZAR BADGES ======
     async function atualizarBadgeControles(riscoId) {
         try {
-            const response = await fetch(`/api/risco/${riscoId}/controles/count`);
+            const response = await fetchComAutenticacao(`/api/risco/${riscoId}/controles/count`);
             const data = await response.json();
             
             if (data.success) {
@@ -1906,7 +1906,7 @@
 
     async function atualizarBadgeEtapaControles(etapaId) {
         try {
-            const response = await fetch(`/api/etapa/${etapaId}/controles/count`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/controles/count`);
             const data = await response.json();
             
             if (data.success) {
@@ -1997,7 +1997,7 @@
                 `;
                 
                 try {
-                    const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                    const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
                     const data = await response.json();
                     
                     if (data.autorizado) {
@@ -2134,7 +2134,7 @@
 
     async function editarControle(controleId, riscoId) {
         try {
-            const response = await fetch(`/api/controle-etapa/${controleId}`);
+            const response = await fetchComAutenticacao(`/api/controle-etapa/${controleId}`);
             const data = await response.json();
             
             if (!data.success) {
@@ -2241,7 +2241,7 @@
             btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             btnSalvar.disabled = true;
             
-            const response = await fetch('/api/controle-etapa/salvar', {
+            const response = await fetchComAutenticacao('/api/controle-etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)

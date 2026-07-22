@@ -3522,7 +3522,7 @@ def gerar_validacao_relatorio_detalhamento(area_id, area_nome, gestor, cargo, or
 
                 if etapa.get('analise_critica'):
                     info_etapa.append([
-                        Paragraph("<b>ANÁLISE CRÍTICA:</b>", card_texto_style),
+                        Paragraph("<b>PONTO DE AUDITORIA:</b>", card_texto_style),
                         Paragraph(limitar_texto(etapa['analise_critica'], 10000), texto_etapa_style)
                     ])
 
@@ -4546,8 +4546,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     ac.analise_critica,
                     ac.sugestao_melhoria,
                     ac.sugestao_sera_implantada,
-                    ac.efetivamente_implantada,
-                    ac.data_implantacao_efetiva,
+                    ac.plano_de_acao_implantado,
+                    ac.data_execucao_plano_acao,
                     ac.necessidade_implantacao,
                     ac.ganho_previsto,
                     ac.evidencia_nome,
@@ -4586,8 +4586,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     'analise_critica': a._mapping['analise_critica'] or '',
                     'sugestao_melhoria': a._mapping['sugestao_melhoria'] or '',
                     'sugestao_sera_implantada': a._mapping['sugestao_sera_implantada'],
-                    'efetivamente_implantada': a._mapping['efetivamente_implantada'],
-                    'data_implantacao_efetiva': a._mapping['data_implantacao_efetiva'].strftime('%d/%m/%Y') if a._mapping['data_implantacao_efetiva'] else None,
+                    'plano_de_acao_implantado': a._mapping['plano_de_acao_implantado'],
+                    'data_execucao_plano_acao': a._mapping['data_execucao_plano_acao'].strftime('%d/%m/%Y') if a._mapping['data_execucao_plano_acao'] else None,
                     'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
                     'ganho_previsto': a._mapping['ganho_previsto'] or '',
                     'evidencia_nome': a._mapping['evidencia_nome'] or '',
@@ -4611,8 +4611,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 ac.analise_critica,
                 ac.sugestao_melhoria,
                 ac.sugestao_sera_implantada,
-                ac.efetivamente_implantada,
-                ac.data_implantacao_efetiva,
+                ac.plano_de_acao_implantado,
+                ac.data_execucao_plano_acao,
                 ac.created_at,
                 ac.necessidade_implantacao,
                 ac.ganho_previsto,
@@ -4650,8 +4650,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 'analise_critica': a._mapping['analise_critica'] or '',
                 'sugestao_melhoria': a._mapping['sugestao_melhoria'] or '',
                 'sugestao_sera_implantada': a._mapping['sugestao_sera_implantada'],
-                'efetivamente_implantada': a._mapping['efetivamente_implantada'],
-                'data_implantacao_efetiva': a._mapping['data_implantacao_efetiva'].strftime('%d/%m/%Y') if a._mapping['data_implantacao_efetiva'] else None,
+                'plano_de_acao_implantado': a._mapping['plano_de_acao_implantado'],
+                'data_execucao_plano_acao': a._mapping['data_execucao_plano_acao'].strftime('%d/%m/%Y') if a._mapping['data_execucao_plano_acao'] else None,
                 'data_criacao': a._mapping['created_at'].strftime('%d/%m/%Y') if a._mapping['created_at'] else '',
                 'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
                 'ganho_previsto': a._mapping['ganho_previsto'] or '',
@@ -4913,7 +4913,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         
         # Análise Crítica
         if analise.get('analise_critica'):
-            story.append(Paragraph("<b>ANÁLISE CRÍTICA</b>", card_texto_style))
+            story.append(Paragraph("<b>PONTO DE AUDITORIA</b>", card_texto_style))
             story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
             story.append(Spacer(1, 10))
         
@@ -4962,7 +4962,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         
         # Análise Crítica
         if analise.get('analise_critica'):
-            story.append(Paragraph("<b>ANÁLISE CRÍTICA</b>", card_texto_style_secao3))
+            story.append(Paragraph("<b>PONTO DE AUDITORIA</b>", card_texto_style_secao3))
             story.append(Paragraph(analise['analise_critica'] or '', normal_style))  # ⭐ Adicionar or ''
             story.append(Spacer(1, 10))
         
@@ -5260,7 +5260,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         story.append(Spacer(1, 10))
     
     # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
-    story.append(Paragraph("1. ANÁLISE DO AUDITADO", secao_style))
+    story.append(Paragraph("1. ANÁLISES E PARECER DO AUDITADO", secao_style))
     story.append(Paragraph("Análises realizadas pelo auditado durante o detalhamento das etapas", normal_style))
     story.append(Spacer(1, 10))
     
@@ -5271,13 +5271,13 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             story.append(Paragraph(f"Etapa {etapa['codigo']}: {etapa['nome']}", subsecao_style))
             story.append(Spacer(1, 3))
             
-            if etapa['descricao']:
-                story.append(Paragraph(f"<b>DESCRIÇÃO DA ETAPA</b>: {etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}", normal_style))
-                story.append(Spacer(1, 5))
+            # if etapa['descricao']:
+            #     story.append(Paragraph(f"<b>DESCRIÇÃO DA ETAPA</b>: {etapa['descricao'][:200]}{'...' if len(etapa['descricao']) > 200 else ''}", normal_style))
+            #     story.append(Spacer(1, 5))
       
-            if etapa['objetivo']:
-                story.append(Paragraph(f"<b>OBJETIVO DA ETAPA</b>: {etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}", normal_style))
-                story.append(Spacer(1, 5))
+            # if etapa['objetivo']:
+            #     story.append(Paragraph(f"<b>OBJETIVO DA ETAPA</b>: {etapa['objetivo'][:200]}{'...' if len(etapa['objetivo']) > 200 else ''}", normal_style))
+            #     story.append(Spacer(1, 5))
             
             if etapa['analises_auditado']:
                 num_analises = len(etapa['analises_auditado'])
@@ -5332,7 +5332,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     # ====== SEÇÃO 3 ANÁLISES DO AUDITOR ======
 
     story.append(PageBreak())
-    story.append(Paragraph("3. ANÁLISES DO AUDITOR", secao_style))
+    story.append(Paragraph("3. ANÁLISES E PARECER DO AUDITOR", secao_style))
     story.append(Spacer(1, 10))
     
     if not analises_auditor_list:
@@ -6066,8 +6066,8 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     ac.analise_critica,
                     ac.sugestao_melhoria,
                     ac.sugestao_sera_implantada,
-                    ac.efetivamente_implantada,
-                    ac.data_implantacao_efetiva,
+                    ac.plano_de_acao_implantado,
+                    ac.data_execucao_plano_acao,
                     ac.necessidade_implantacao,
                     ac.ganho_previsto,
                     ac.categoria,
@@ -6111,8 +6111,8 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     'analise_critica': a[1] or '',
                     'sugestao_melhoria': a[2] or '',
                     'sugestao_sera_implantada': a[3],
-                    'efetivamente_implantada': a[4],
-                    'data_implantacao_efetiva': a[5].strftime('%d/%m/%Y') if a[5] else None,
+                    'plano_de_acao_implantado': a[4],
+                    'data_execucao_plano_acao': a[5].strftime('%d/%m/%Y') if a[5] else None,
                     'necessidade_implantacao': a[6] or '',
                     'ganho_previsto': a[7] or '',
                     'categoria': a[8] or '',
@@ -6237,7 +6237,7 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                 # Análise Crítica
                 if analise['analise_critica']:
                     story.append(Paragraph(
-                        f"<b>Análise Crítica:</b> {analise['analise_critica']}",
+                        f"<b>PONTO DE AUDITORIA:</b> {analise['analise_critica']}",
                         normal_style
                     ))
                 
@@ -6249,7 +6249,7 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     ))
                 
                 # Status da implantação
-                if analise['efetivamente_implantada']:
+                if analise['plano_de_acao_implantado']:
                     status_texto = '<font color="#28a745"><b>Implantada</b></font>'
                 else:
                     status_texto = '<font color="#ffc107"><b>Em andamento</b></font>'
@@ -6259,9 +6259,9 @@ def gerar_relatorio_followups(area_id, area_nome, gestor, cargo, auditoria_id, p
                     normal_style
                 ))
                 
-                if analise['data_implantacao_efetiva']:
+                if analise['data_execucao_plano_acao']:
                     story.append(Paragraph(
-                        f"<b>Data da implantação:</b> {analise['data_implantacao_efetiva']}",
+                        f"<b>Data da implantação:</b> {analise['data_execucao_plano_acao']}",
                         normal_style
                     ))
                 

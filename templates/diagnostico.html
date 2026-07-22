@@ -3030,12 +3030,12 @@
         
         try {
             // Buscar dados do processo
-            const response = await fetch(`/api/processo/${processoId}/dados`);
+            const response = await fetchComAutenticacao(`/api/processo/${processoId}/dados`);
             const data = await response.json();
             
             if (data.success) {
                 // Buscar riscos do processo
-                const riscosResponse = await fetch(`/api/processo/${processoId}/riscos`);
+                const riscosResponse = await fetchComAutenticacao(`/api/processo/${processoId}/riscos`);
                 const riscosData = await riscosResponse.json();
                 console.log('Riscos recebidos do backend (RAW):', riscosData);
 
@@ -3407,7 +3407,7 @@
     // ===== DESATIVAR PROCESSO (soft delete) =====
     async function desativarProcesso(processoId) {
         try {
-            const response = await fetch(`/api/processo/${processoId}/desativar`, {
+            const response = await fetchComAutenticacao(`/api/processo/${processoId}/desativar`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -3526,7 +3526,7 @@
         filtroAuditoriaSelect.disabled = true;
 
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (data.auditorias && data.auditorias.length > 0) {
@@ -3606,7 +3606,7 @@
             `;
             
             try {
-                const response = await fetch(url);
+                const response = await fetchComAutenticacao(url);
                 const data = await response.json();
                 
                 if (!data.success || !data.processos || data.processos.length === 0) {
@@ -3619,7 +3619,7 @@
                 
                 // Buscar riscos para cada processo
                 for (const processo of data.processos) {
-                    const riscosResponse = await fetch(`/api/processo/${processo.id}/riscos`);
+                    const riscosResponse = await fetchComAutenticacao(`/api/processo/${processo.id}/riscos`);
                     const riscosData = await riscosResponse.json();
                     
                     let scoreMaximo = 0;
@@ -4007,7 +4007,7 @@
         console.log(`🔄 Carregando funcionários da área ${areaId}...`);
         
         try {
-            const response = await fetch(`/api/area/${areaId}/funcionarios-para-select`);
+            const response = await fetchComAutenticacao(`/api/area/${areaId}/funcionarios-para-select`);
             
             if (!response.ok) {
                 console.error(`❌ Erro HTTP: ${response.status}`);
@@ -4218,7 +4218,7 @@
             try {
                 
                 // Verificar se o processo já existe com este nome
-                const response = await fetch(
+                const response = await fetchComAutenticacao(
                     `/api/processo/verificar?nome=${encodeURIComponent(nomeProcesso)}&id_area=${areaId}&auditoria_id=${auditoriaId}`
                 );
                 const data = await response.json();
@@ -4243,7 +4243,7 @@
                     
                 } else {
                     // ===== CASO 2: PROCESSO NOVO - GERAR NOVO CÓDIGO =====
-                    const codigoResponse = await fetch(
+                    const codigoResponse = await fetchComAutenticacao(
                         `/api/processo/gerar-codigo?id_area=${areaId}&auditoria_id=${auditoriaId}`
                     );
                     const codigoData = await codigoResponse.json();
@@ -4589,7 +4589,7 @@
         }
         
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
             
             console.log('Auditorias recebidas:', data);
@@ -4679,7 +4679,7 @@
         }
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
             const data = await response.json();
             
             console.log('Verificação de responsável:', data);
@@ -4896,7 +4896,7 @@
                     } else {
                         // Tenta buscar o processo pelo código
                         console.log('🔍 [DEBUG] Storage sem ID, tentando buscar pelo código:', codigoProcesso);
-                        const buscaResponse = await fetch(`/api/processo/buscar-por-codigo?codigo=${codigoProcesso}&area_id=${areaId}`);
+                        const buscaResponse = await fetchComAutenticacao(`/api/processo/buscar-por-codigo?codigo=${codigoProcesso}&area_id=${areaId}`);
                         const buscaData = await buscaResponse.json();
                         if (buscaData.id) {
                             payload.processo_id = buscaData.id;
@@ -4913,7 +4913,7 @@
 
                 console.log('🔍 [DEBUG] Payload final:', payload);
 
-                const response = await fetch('/api/processo/salvar-basico', {
+                const response = await fetchComAutenticacao('/api/processo/salvar-basico', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -4958,7 +4958,7 @@
 
     async function carregarAuditoriasPorArea(areaId) {
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
             
             if (data.auditorias && data.auditorias.length > 0) {
@@ -5012,7 +5012,7 @@
         // Se não houver dados temporários, buscar do banco
         console.log('🔍 Buscando detalhes do backend...');
         try {
-            const response = await fetch(`/api/processo/${processoId}/dados`);
+            const response = await fetchComAutenticacao(`/api/processo/${processoId}/dados`);
             const data = await response.json();
             console.log('📦 Dados do backend:', data);
             
@@ -5046,7 +5046,7 @@
         const objetivo = document.getElementById('objetivo_processo')?.value || '';
         
         try {
-            const response = await fetch('/api/processo/salvar-detalhes', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-detalhes', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'  // ← VERIFIQUE ESTA LINHA
@@ -5762,7 +5762,7 @@
         if (!processoId) return;
         
         // ⭐ PRIORIDADE: BUSCAR DO BANCO DE DADOS
-        fetch(`/api/processo/${processoId}/riscos`)
+        fetchComAutenticacao(`/api/processo/${processoId}/riscos`)
             .then(response => response.json())
             .then(data => {
                 if (data.riscos && data.riscos.length > 0) {
@@ -5847,7 +5847,7 @@
         }
         
         try {
-            const response = await fetch('/api/processo/salvar-riscos', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-riscos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -5993,7 +5993,7 @@
         const nomeArea = areaSelectElement.options[areaSelectElement.selectedIndex]?.text || '';
         
         try {
-            const response = await fetch('/api/processo/salvar-basico', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-basico', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -6047,7 +6047,7 @@
         const objetivo = document.getElementById('objetivo_processo')?.value.trim().toUpperCase() || '';
         
         try {
-            const response = await fetch('/api/processo/salvar-detalhes', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-detalhes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -6107,7 +6107,7 @@
         });
 
         try {
-            const response = await fetch('/api/processo/salvar-riscos', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-riscos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -6139,7 +6139,7 @@
         }
         
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
             
             // Verificar se a resposta é ok
             if (!response.ok) {
@@ -6309,7 +6309,7 @@
         }
 
         // ===== BUSCAR DADOS DO PROCESSO =====
-        fetch(`/api/processo/${processoId}/dados`)
+        fetchComAutenticacao(`/api/processo/${processoId}/dados`)
             .then(response => response.json())
             .then(data => {
                 console.log('📦 Dados recebidos do backend:', data);
@@ -6551,7 +6551,7 @@
         }
         
         try {
-            const response = await fetch('/api/processo/salvar-basico', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-basico', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -6587,7 +6587,7 @@
         const objetivo = document.getElementById('objetivo_processo')?.value.trim().toUpperCase() || '';
         
         try {
-            const response = await fetch('/api/processo/salvar-detalhes', {
+            const response = await fetchComAutenticacao('/api/processo/salvar-detalhes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -6618,7 +6618,7 @@
         }
 
         // Buscar dados do backend para garantir dados atualizados
-        fetch(`/api/processo/${processoId}/dados`)
+        fetchComAutenticacao(`/api/processo/${processoId}/dados`)
         .then(response => response.json())
         .then(data => {
             if(data.success) {

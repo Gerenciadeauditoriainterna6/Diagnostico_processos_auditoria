@@ -17,14 +17,18 @@ def api_followups_todos():
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
+    processo_id = request.args.get('processo_id')
+    
     try:
         with engine.connect() as conn:
-            query = text("""
+            base_query = """
                 SELECT 
                     ac.id as analise_id,
                     ac.analise_critica,
                     ac.categoria,
                     ac.sugestao_sera_implantada,
+                    ac.plano_de_acao_implantado,
+                    ac.data_execucao_plano_acao,
                     p.codigo_processo,
                     p.nome_processo,
                     ep.codigo_etapa,
@@ -34,31 +38,66 @@ def api_followups_todos():
                     afu.data_realizada,
                     afu.status,
                     afu.comentario,
-                    afu.responsavel
+                    afu.responsavel,
+                    pa.id as plano_id,
+                    pa.oque as plano_oque,
+                    pa.por_que as plano_por_que,
+                    pa.onde as plano_onde,
+                    pa.quando as plano_quando,
+                    pa.quem as plano_quem,
+                    pa.como as plano_como,
+                    pa.quanto_custa as plano_quanto_custa,
+                    pa.comentario as plano_comentario
                 FROM analises_criticas ac
                 LEFT JOIN processos p ON ac.processo_id = p.id
                 LEFT JOIN etapas_processo ep ON ac.etapa_id = ep.id
                 LEFT JOIN analises_follow_up afu ON ac.id = afu.analise_id
+                LEFT JOIN planos_acao pa ON ac.id = pa.analise_id
                 WHERE ac.sugestao_sera_implantada = 'true'
-                ORDER BY ac.id, afu.data_prevista
-            """)
-            result = conn.execute(query).fetchall()
+            """
+            
+            params = {}
+            if processo_id:
+                base_query += " AND ac.processo_id = :processo_id"
+                params['processo_id'] = processo_id
+            
+            base_query += " ORDER BY ac.id, afu.data_prevista"
+            
+            query = text(base_query)
+            result = conn.execute(query, params).fetchall()
             
             analises_map = {}
             
             for row in result:
-                # ⭐ USANDO row._mapping PARA ACESSAR POR NOME
                 analise_id = row._mapping['analise_id']
                 
                 if analise_id not in analises_map:
+                    # ⭐ VERIFICAR PLANO DE AÇÃO
+                    plano = None
+                    if row._mapping['plano_id'] is not None:
+                        plano = {
+                            'id': row._mapping['plano_id'],
+                            'oque': row._mapping['plano_oque'] or '',
+                            'por_que': row._mapping['plano_por_que'] or '',
+                            'onde': row._mapping['plano_onde'] or '',
+                            'quando': row._mapping['plano_quando'].isoformat() if row._mapping['plano_quando'] else None,
+                            'quem': row._mapping['plano_quem'] or '',
+                            'como': row._mapping['plano_como'] or '',
+                            'quanto_custa': str(row._mapping['plano_quanto_custa']) if row._mapping['plano_quanto_custa'] else None,
+                            'comentario': row._mapping['plano_comentario'] or ''
+                        }
+                    
                     analises_map[analise_id] = {
                         'id': analise_id,
                         'analise_critica': row._mapping['analise_critica'] or 'Análise sem título',
                         'categoria': row._mapping['categoria'] or '',
                         'codigo_etapa': row._mapping['codigo_etapa'] or '',
                         'sugestao_sera_implantada': row._mapping['sugestao_sera_implantada'] == True,
+                        'plano_de_acao_implantado': row._mapping['plano_de_acao_implantado'] == True,
+                        'data_execucao_plano_acao': row._mapping['data_execucao_plano_acao'].isoformat() if row._mapping['data_execucao_plano_acao'] else None,
                         'codigo_processo': row._mapping['codigo_processo'] or '',
                         'nome_processo': row._mapping['nome_processo'] or '',
+                        'plano_acao': plano,
                         'follow_ups': []
                     }
                 
@@ -398,4 +437,137 @@ def api_followup_buscar(follow_up_id):
             
     except Exception as e:
         print(f"❌ Erro ao buscar follow-up: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# PLANO DE AÇÃO 5W2H
+# ============================================================
+
+@followups_bp.route('/api/plano-acao/<int:analise_id>')
+def api_plano_acao_buscar(analise_id):
+    """Busca o plano de ação de uma análise"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                SELECT id, analise_id, oque, por_que, onde, quando, quem, como, quanto_custa, comentario
+                FROM planos_acao
+                WHERE analise_id = :analise_id
+                ORDER BY id DESC
+                LIMIT 1
+            """)
+            result = conn.execute(query, {'analise_id': analise_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Plano de ação não encontrado'}), 404
+            
+            return jsonify({
+                'success': True,
+                'plano': {
+                    'id': result[0],
+                    'analise_id': result[1],
+                    'oque': result[2] or '',
+                    'por_que': result[3] or '',
+                    'onde': result[4] or '',
+                    'quando': result[5].isoformat() if result[5] else None,
+                    'quem': result[6] or '',
+                    'como': result[7] or '',
+                    'quanto_custa': str(result[8]) if result[8] else None,
+                    'comentario': result[9] or ''
+                }
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar plano de ação: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@followups_bp.route('/api/plano-acao/salvar', methods=['POST'])
+def api_plano_acao_salvar():
+    """Salva ou atualiza o plano de ação de uma análise"""
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    analise_id = data.get('analise_id')
+    oque = data.get('oque')
+    quem = data.get('quem')
+    
+    if not analise_id:
+        return jsonify({'success': False, 'error': 'analise_id é obrigatório'}), 400
+    
+    if not oque:
+        return jsonify({'success': False, 'error': 'O campo "O que?" é obrigatório'}), 400
+    
+    if not quem:
+        return jsonify({'success': False, 'error': 'O campo "Quem?" é obrigatório'}), 400
+    
+    usuario_nome = session.get('usuario_nome', 'Sistema')
+    
+    try:
+        with engine.connect() as conn:
+            # Verificar se já existe um plano para esta análise
+            check_query = text("SELECT id FROM planos_acao WHERE analise_id = :analise_id")
+            existing = conn.execute(check_query, {'analise_id': analise_id}).fetchone()
+            
+            if existing:
+                # Atualizar
+                update_query = text("""
+                    UPDATE planos_acao 
+                    SET oque = :oque,
+                        por_que = :por_que,
+                        onde = :onde,
+                        quando = :quando,
+                        quem = :quem,
+                        como = :como,
+                        quanto_custa = :quanto_custa,
+                        comentario = :comentario,
+                        updated_at = NOW()
+                    WHERE analise_id = :analise_id
+                """)
+                conn.execute(update_query, {
+                    'analise_id': analise_id,
+                    'oque': oque,
+                    'por_que': data.get('por_que') or None,
+                    'onde': data.get('onde') or None,
+                    'quando': data.get('quando') or None,
+                    'quem': quem,
+                    'como': data.get('como') or None,
+                    'quanto_custa': data.get('quanto_custa') or None,
+                    'comentario': data.get('comentario') or None
+                })
+                conn.commit()
+                message = 'Plano de ação atualizado com sucesso!'
+            else:
+                # Inserir
+                insert_query = text("""
+                    INSERT INTO planos_acao (
+                        analise_id, oque, por_que, onde, quando, quem, como, 
+                        quanto_custa, comentario, created_by, created_at, updated_at
+                    ) VALUES (
+                        :analise_id, :oque, :por_que, :onde, :quando, :quem, :como,
+                        :quanto_custa, :comentario, :created_by, NOW(), NOW()
+                    )
+                """)
+                conn.execute(insert_query, {
+                    'analise_id': analise_id,
+                    'oque': oque,
+                    'por_que': data.get('por_que') or None,
+                    'onde': data.get('onde') or None,
+                    'quando': data.get('quando') or None,
+                    'quem': quem,
+                    'como': data.get('como') or None,
+                    'quanto_custa': data.get('quanto_custa') or None,
+                    'comentario': data.get('comentario') or None,
+                    'created_by': usuario_nome
+                })
+                conn.commit()
+                message = 'Plano de ação criado com sucesso!'
+            
+            return jsonify({'success': True, 'message': message})
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar plano de ação: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

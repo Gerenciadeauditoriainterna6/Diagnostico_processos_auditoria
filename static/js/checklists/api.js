@@ -5,7 +5,7 @@ export async function carregarAreas() {
     if (!select) return;
     
     try {
-        const response = await fetch('/api/areas');
+        const response = await fetchComAutenticacao('/api/areas');
         const areas = await response.json();
         select.innerHTML = '<option value="">Selecione uma área...</option>';
         areas.forEach(area => { 
@@ -34,7 +34,7 @@ export async function carregarAuditorias(areaId) {
     }
     select.innerHTML = '<option value="">Carregando...</option>';
     try {
-        const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+        const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
         const data = await response.json();
         if (data.auditorias && data.auditorias.length > 0) {
             select.innerHTML = '<option value="">Selecione uma auditoria...</option>';
@@ -57,7 +57,7 @@ export async function carregarProcessos(auditoriaId) {
     const row = document.getElementById('row-processo');
     if (!auditoriaId) { row.style.display = 'none'; return; }
     try {
-        const response = await fetch(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+        const response = await fetchComAutenticacao(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
         const data = await response.json();
         if (data.success && data.processos && data.processos.length > 0) {
             select.innerHTML = '<option value="">Selecione um processo...</option>';
@@ -80,7 +80,7 @@ export async function carregarProcessos(auditoriaId) {
 export async function carregarProgressoChecklists() {
     if (!processoIdAtual) return;
     try {
-        const response = await fetch(`/api/checklist/progresso?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/checklist/progresso?processo_id=${processoIdAtual}`);
         const data = await response.json();
         console.log('📊 Progresso recebido:', data);
         

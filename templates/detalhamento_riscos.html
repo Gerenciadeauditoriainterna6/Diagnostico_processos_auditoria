@@ -1565,7 +1565,7 @@
         filtroAuditoriaSelect.disabled = true;
 
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (data.auditorias && data.auditorias.length > 0) {
@@ -1605,7 +1605,7 @@
         `;
 
         try {
-            const responseProcessos = await fetch(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+            const responseProcessos = await fetchComAutenticacao(`/api/processos-por-auditoria?auditoria_id=${auditoriaId}`);
             const dataProcessos = await responseProcessos.json();
 
             if (!dataProcessos.success || !dataProcessos.processos || dataProcessos.processos.length === 0) {
@@ -1620,7 +1620,7 @@
             let htmlFinal = '';
 
             for (const processo of dataProcessos.processos) {
-                const responseEtapas = await fetch(`/api/processo/${processo.id}/etapas`);
+                const responseEtapas = await fetchComAutenticacao(`/api/processo/${processo.id}/etapas`);
                 const dataEtapas = await responseEtapas.json();
 
                 htmlFinal += `
@@ -1644,7 +1644,7 @@
                     for (const etapa of dataEtapas.etapas) {
                         etapasTemp.push(etapa);
 
-                        const promessa = fetch(`/api/etapa/${etapa.id}/riscos/count`)
+                        const promessa = fetchComAutenticacao(`/api/etapa/${etapa.id}/riscos/count`)
                             .then(res => res.json())
                             .then(data => ({
                                 id: etapa.id,
@@ -1777,7 +1777,7 @@
         if (!container) return;
 
         try {
-            const response = await fetch(`/api/etapa/${etapaId}/riscos/todos`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos/todos`);
             const data = await response.json();
 
             if (!data.success || !data.riscos || data.riscos.length === 0) {
@@ -1971,7 +1971,7 @@
                 btn.className = 'fas fa-spinner fa-spin';
             }
 
-            const response = await fetch(`/api/risco-etapa/${riscoId}/status`, {
+            const response = await fetchComAutenticacao(`/api/risco-etapa/${riscoId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -2001,7 +2001,7 @@
     // ============================================================
     async function atualizarBadgeRiscos(etapaId) {
         try {
-            const response = await fetch(`/api/etapa/${etapaId}/riscos/count`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos/count`);
             const data = await response.json();
 
             if (data.success) {
@@ -2070,7 +2070,7 @@
         nomeEtapaAtual = nomeEtapa;
 
         try {
-            const response = await fetch(`/api/risco-etapa/${riscoId}`);
+            const response = await fetchComAutenticacao(`/api/risco-etapa/${riscoId}`);
             const data = await response.json();
 
             if (!data.success) {
@@ -2150,7 +2150,7 @@
         if (!confirmado) return;
 
         try {
-            const response = await fetch(`/api/risco-etapa/${riscoId}`, {
+            const response = await fetchComAutenticacao(`/api/risco-etapa/${riscoId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
@@ -2226,7 +2226,7 @@
             btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             btnSalvar.disabled = true;
 
-            const response = await fetch('/api/risco-etapa/salvar', {
+            const response = await fetchComAutenticacao('/api/risco-etapa/salvar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -2533,7 +2533,7 @@
                 `;
 
                 try {
-                    const response = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                    const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
                     const data = await response.json();
 
                     if (data.autorizado) {

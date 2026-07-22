@@ -52,7 +52,7 @@ export function renderizarListaFollowUps(followUps) {
 
 export async function carregarHistoricoAndamento(analiseId) {
     try {
-        const response = await fetch(`/api/analise-historico/${analiseId}`);
+        const response = await fetchComAutenticacao(`/api/analise-historico/${analiseId}`);
         const data = await response.json();
         return data.success ? data.historico : [];
     } catch (error) {
@@ -63,7 +63,7 @@ export async function carregarHistoricoAndamento(analiseId) {
 
 export async function carregarFollowUps(analiseId) {
     try {
-        const response = await fetch(`/api/analise-follow-ups/${analiseId}`);
+        const response = await fetchComAutenticacao(`/api/analise-follow-ups/${analiseId}`);
         const data = await response.json();
         return data.success ? data.follow_ups : [];
     } catch (error) {
@@ -98,7 +98,7 @@ export async function salvarHistoricoAndamento() {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     
     try {
-        const response = await fetch('/api/analise-historico/salvar', {
+        const response = await fetchComAutenticacao('/api/analise-historico/salvar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analise_id: analiseId, status: status, comentario: comentario })
@@ -152,7 +152,7 @@ export async function salvarFollowUp() {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     
     try {
-        const response = await fetch(`/api/analise-follow-up/${followUpId}`, {
+        const response = await fetchComAutenticacao(`/api/analise-follow-up/${followUpId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: status, comentario: comentario })
@@ -184,7 +184,7 @@ export async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiv
     if (!analiseId || !dataImplantacaoEfetiva) return;
     
     try {
-        const checkResponse = await fetch(`/api/analise-follow-ups/${analiseId}`);
+        const checkResponse = await fetchComAutenticacao(`/api/analise-follow-ups/${analiseId}`);
         const checkData = await checkResponse.json();
         if (checkData.success && checkData.follow_ups && checkData.follow_ups.length > 0) {
             console.log('✅ Follow-ups já existem');
@@ -206,7 +206,7 @@ export async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiv
     ];
     
     try {
-        const response = await fetch('/api/analise-follow-ups/criar', {
+        const response = await fetchComAutenticacao('/api/analise-follow-ups/criar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analise_id: analiseId, follow_ups: followUps })

@@ -34,11 +34,11 @@
                 <thead>
                     <tr>
                         <th>Código</th>
-                        <th>Título</th>
+                        <th>Tema</th>
                         <th>Área</th>
                         <th>Ano/Trim</th>
                         <th>Período</th>
-                        <th>Status</th>
+                        <th>Status da auditoria</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -612,7 +612,7 @@
         if (!selectArea) return;
 
         try {
-            const response = await fetch('/api/areas');
+            const response = await fetchComAutenticacao('/api/areas');
             const areas = await response.json();
 
             selectArea.innerHTML = '<option value="">Selecione uma área...</option>';
@@ -654,7 +654,7 @@
         selectResponsaveis.innerHTML = '<option value="">Carregando usuários...</option>';
 
         try {
-            const response = await fetch('/api/usuarios-para-select');
+            const response = await fetchComAutenticacao('/api/usuarios-para-select');
             const usuarios = await response.json();
 
             selectResponsaveis.innerHTML = '';
@@ -674,7 +674,7 @@
         if (!confirm('⚠️ ATENÇÃO: Esta ação irá CANCELAR a auditoria. O status será alterado para "Cancelada". Deseja continuar?')) return;
 
         try {
-            const response = await fetch(`/api/auditorias/${id}/cancelar`, { 
+            const response = await fetchComAutenticacao(`/api/auditorias/${id}/cancelar`, { 
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -696,7 +696,7 @@
         const tbody = document.querySelector('#tabela-auditorias tbody');
 
         try {
-            const response = await fetch('/api/auditorias');
+            const response = await fetchComAutenticacao('/api/auditorias');
             const auditorias = await response.json();
 
             if (!auditorias || auditorias.length === 0) {
@@ -772,7 +772,7 @@
         document.getElementById('modal-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Auditoria';
         
         try {
-            const response = await fetch(`/api/auditorias/${id}`);
+            const response = await fetchComAutenticacao(`/api/auditorias/${id}`);
             const data = await response.json();
 
             if (data.success) {
@@ -911,7 +911,7 @@
             const url = auditoriaId ? `/api/auditorias/${auditoriaId}` : '/api/auditorias/salvar';
             const method = auditoriaId ? 'PUT' : 'POST';
             
-            const response = await fetch(url, {
+            const response = await fetchComAutenticacao(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -951,7 +951,7 @@
         if (!confirm('Tem certeza que deseja excluir esta auditoria? Esta ação não poderá ser desfeita.')) return;
 
         try {
-            const response = await fetch(`/api/auditorias/${id}`, { method: 'DELETE' });
+            const response = await fetchComAutenticacao(`/api/auditorias/${id}`, { method: 'DELETE' });
             const data = await response.json();
 
             if (data.success) {

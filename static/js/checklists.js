@@ -176,7 +176,7 @@ function abrirModalNovaAnaliseAuditor() {
 async function editarAnaliseAuditor(id) {
     console.log('✏️ editarAnaliseAuditor chamado para ID:', id);
     
-    const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
+    const response = await fetchComAutenticacao(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
     const data = await response.json();
     
     if (data.success) analisesAuditorList = data.analises;
@@ -335,7 +335,7 @@ async function salvarAnaliseAuditor() {
         const method = analiseId ? 'PUT' : 'POST';
         
         // ⭐ USAR JSON EM VEZ DE FormData
-        const response = await fetch(url, { 
+        const response = await fetchComAutenticacao(url, { 
             method: method,
             headers: {
                 'Content-Type': 'application/json'
@@ -382,7 +382,7 @@ async function salvarAnaliseAuditor() {
 async function excluirAnaliseAuditor(id) {
     if (!confirm('⚠️ Tem certeza que deseja excluir esta análise?')) return;
     try {
-        const response = await fetch(`/api/analise-auditor/${id}`, { method: 'DELETE' });
+        const response = await fetchComAutenticacao(`/api/analise-auditor/${id}`, { method: 'DELETE' });
         const data = await response.json();
         if (data.success) {
             mostrarToast('✅ Análise excluída!', 'success');
@@ -615,7 +615,7 @@ async function carregarChecklistModal(tipo) {
         const url = `/api/checklist/carregar?processo_id=${processoIdAtual}&tipo=${tipo}`;
         console.log('📤 Fazendo requisição para:', url);
         
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         console.log('📥 Resposta recebida, status:', response.status);
         
         const dados = await response.json();
@@ -654,7 +654,7 @@ async function carregarChecklistModal(tipo) {
         for (const [ordem, resposta] of Object.entries(respostasMap)) {
             if (resposta.id) {
                 try {
-                    const evResponse = await fetch(`/api/checklist/evidencias/${resposta.id}`);
+                    const evResponse = await fetchComAutenticacao(`/api/checklist/evidencias/${resposta.id}`);
                     const evData = await evResponse.json();
                     if (evData.success) {
                         evidenciasMap[ordem] = evData.evidencias || [];
@@ -1021,7 +1021,7 @@ async function carregarEvidenciasPergunta(perguntaIndex) {
     if (!respostaId) return;
     
     try {
-        const response = await fetch(`/api/checklist/evidencias/${respostaId}`);
+        const response = await fetchComAutenticacao(`/api/checklist/evidencias/${respostaId}`);
         const data = await response.json();
         
         if (data.success) {
@@ -1075,7 +1075,7 @@ async function removerEvidenciaChecklist(evidenciaId, perguntaIndex) {
     }
     
     try {
-        const response = await fetch(`/api/checklist/evidencia/${evidenciaId}`, { 
+        const response = await fetchComAutenticacao(`/api/checklist/evidencia/${evidenciaId}`, { 
             method: 'DELETE' 
         });
         
@@ -1190,7 +1190,7 @@ async function salvarChecklist(tipo, concluir) {
         console.log('📤 Salvando checklist:', bodyData);
         console.log('📤 Respostas sendo enviadas:', respostas);
         
-        const response = await fetch('/api/checklist/salvar', { 
+        const response = await fetchComAutenticacao('/api/checklist/salvar', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(bodyData) 
@@ -1254,7 +1254,7 @@ async function salvarChecklist(tipo, concluir) {
                         try {
                             console.log(`📎 Enviando evidência: ${arquivo.nome} para resposta ${respostaId}`);
                             
-                            const evidenciaResponse = await fetch('/api/checklist/evidencia/salvar', {
+                            const evidenciaResponse = await fetchComAutenticacao('/api/checklist/evidencia/salvar', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -1337,7 +1337,7 @@ async function carregarAreas() {
     if (!select) return;
     
     try {
-        const response = await fetch('/api/areas');
+        const response = await fetchComAutenticacao('/api/areas');
         const areas = await response.json();
         select.innerHTML = '<option value="">Selecione uma área...</option>';
         areas.forEach(area => { 
@@ -1366,7 +1366,7 @@ async function carregarAuditorias(areaId) {
     }
     select.innerHTML = '<option value="">Carregando...</option>';
     try {
-        const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+        const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
         const data = await response.json();
         if (data.auditorias && data.auditorias.length > 0) {
             select.innerHTML = '<option value="">Selecione uma auditoria...</option>';
@@ -1389,7 +1389,7 @@ async function carregarProcessos(auditoriaId) {
     const row = document.getElementById('row-processo');
     if (!auditoriaId) { row.style.display = 'none'; return; }
     try {
-        const response = await fetch(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
+        const response = await fetchComAutenticacao(`/api/relatorios/processos-por-auditoria?auditoria_id=${auditoriaId}`);
         const data = await response.json();
         if (data.success && data.processos && data.processos.length > 0) {
             select.innerHTML = '<option value="">Selecione um processo...</option>';
@@ -1412,7 +1412,7 @@ async function carregarProcessos(auditoriaId) {
 async function carregarProgressoChecklists() {
     if (!processoIdAtual) return;
     try {
-        const response = await fetch(`/api/checklist/progresso?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/checklist/progresso?processo_id=${processoIdAtual}`);
         const data = await response.json();
         console.log('📊 Progresso recebido:', data);
         
@@ -1442,7 +1442,7 @@ async function carregarAnalisesAuditado() {
     container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
     
     try {
-        const response = await fetch(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         
         if (data.success && data.analises && data.analises.length > 0) {
@@ -1464,7 +1464,7 @@ async function carregarAnalisesAuditado() {
                     let plano = null;
                     if (analise.sugestao_sera_implantada === true) {
                         try {
-                            const planoResponse = await fetch(`/api/planos-acao/${analise.id}`);
+                            const planoResponse = await fetchComAutenticacao(`/api/planos-acao/${analise.id}`);
                             const planoData = await planoResponse.json();
                             if (planoData.success && planoData.plano) {
                                 plano = planoData.plano;
@@ -1618,14 +1618,14 @@ async function carregarAnalisesAuditado() {
                                     </div>
                                 </div>
                                 
-                                ${analise.efetivamente_implantada === true ? `
+                                ${analise.plano_de_acao_implantado === true ? `
                                 <div class="analise-card-section" style="margin-top: 20px;">
                                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
                                     <div class="followups-container">
                                         ${renderizarListaFollowUps(analise.followUps)}
                                     </div>
                                 </div>
-                                ` : (analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada) ? `
+                                ` : (analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado) ? `
                                 <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99;">
                                     <div style="padding: 10px;">
                                         <i class="fas fa-check-circle" style="color: #0b5b99;"></i>
@@ -1660,7 +1660,7 @@ async function editarAnaliseAuditado(id) {
     console.log('✏️ Editando análise do auditado ID:', id);
     
     try {
-        const response = await fetch(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         
         if (data.success) {
@@ -1889,7 +1889,7 @@ async function salvarAnaliseAuditado() {
         const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
         const method = analiseId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, { 
+        const response = await fetchComAutenticacao(url, { 
             method: method,
             headers: {
                 'Content-Type': 'application/json'
@@ -1963,7 +1963,7 @@ async function renderizarAnalisesAuditor() {
     analisesComDados.forEach((analise, index) => {
         const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
         const prazoExpirado = analise.sugestao_sera_implantada === true &&
-                            !analise.efetivamente_implantada && 
+                            !analise.plano_de_acao_implantado && 
                             analise.data_conclusao_prevista && 
                             new Date(analise.data_conclusao_prevista) < new Date();
         
@@ -2059,7 +2059,7 @@ async function renderizarAnalisesAuditor() {
                 ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
                 
                 <!-- ⭐ BOTÃO DE CONFIRMAÇÃO DE IMPLANTAÇÃO -->
-                ${analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada ? `
+                ${analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado ? `
                 <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99; border-radius: 12px;">
                     <div style="padding: 15px;">
                         <i class="fas fa-check-circle" style="color: #0b5b99; font-size: 24px;"></i>
@@ -2085,7 +2085,7 @@ async function renderizarAnalisesAuditor() {
                 ` : ''}
                 
                 <!-- ⭐ FOLLOW-UPS (APENAS SE IMPLANTADA) -->
-                ${analise.efetivamente_implantada === true ? `
+                ${analise.plano_de_acao_implantado === true ? `
                 <div class="analise-card-section" style="margin-top: 20px;">
                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
                     <div class="followups-container">
@@ -2190,7 +2190,7 @@ async function baixarEvidenciaAuditadoChecklist(analiseId, nomeArquivo) {
     try {
         console.log('📥 Baixando evidência do auditado (checklist):', analiseId, nomeArquivo);
         
-        const response = await fetch(`/api/analise-auditado/${analiseId}/evidencia`);
+        const response = await fetchComAutenticacao(`/api/analise-auditado/${analiseId}/evidencia`);
         
         if (!response.ok) {
             let errorMsg = 'Erro ao baixar evidência';
@@ -2247,7 +2247,7 @@ async function baixarEvidenciaAnaliseAuditor(evidenciaId, nomeArquivo) {
         // ⭐ MOSTRAR LOADING
         mostrarToast('⏳ Baixando arquivo...', 'info');
         
-        const response = await fetch(`/api/analise-auditor/evidencia/${evidenciaId}/download`);
+        const response = await fetchComAutenticacao(`/api/analise-auditor/evidencia/${evidenciaId}/download`);
         
         console.log('📥 Status da resposta:', response.status);
         console.log('📥 Headers:', response.headers);
@@ -2323,7 +2323,7 @@ async function baixarEvidenciaAnaliseAuditor(evidenciaId, nomeArquivo) {
 
 async function carregarHistoricoAndamento(analiseId) {
     try {
-        const response = await fetch(`/api/analise-historico/${analiseId}`);
+        const response = await fetchComAutenticacao(`/api/analise-historico/${analiseId}`);
         const data = await response.json();
         return data.success ? data.historico : [];
     } catch (error) {
@@ -2334,7 +2334,7 @@ async function carregarHistoricoAndamento(analiseId) {
 
 async function carregarFollowUps(analiseId) {
     try {
-        const response = await fetch(`/api/analise-follow-ups/${analiseId}`);
+        const response = await fetchComAutenticacao(`/api/analise-follow-ups/${analiseId}`);
         const data = await response.json();
         return data.success ? data.follow_ups : [];
     } catch (error) {
@@ -2369,7 +2369,7 @@ async function salvarHistoricoAndamento() {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     
     try {
-        const response = await fetch('/api/analise-historico/salvar', {
+        const response = await fetchComAutenticacao('/api/analise-historico/salvar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analise_id: analiseId, status: status, comentario: comentario })
@@ -2419,7 +2419,7 @@ async function salvarFollowUp() {
     btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     
     try {
-        const response = await fetch(`/api/analise-follow-up/${followUpId}`, {
+        const response = await fetchComAutenticacao(`/api/analise-follow-up/${followUpId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: status, comentario: comentario })
@@ -2488,12 +2488,12 @@ async function confirmarImplantacao() {
     const url = tipoAnalise === 'auditado' ? `/api/analise-auditado/${analiseId}/confirmar-implantacao` : `/api/analise-auditor/${analiseId}/confirmar-implantacao`;
     
     try {
-        const response = await fetch(url, {
+        const response = await fetchComAutenticacao(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                efetivamente_implantada: foiImplantada, 
-                data_implantacao_efetiva: dataImplantacao, 
+                plano_de_acao_implantado: foiImplantada, 
+                data_execucao_plano_acao: dataImplantacao, 
                 comentario_implantacao: comentario 
             })
         });
@@ -2522,7 +2522,7 @@ async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiva) {
     if (!analiseId || !dataImplantacaoEfetiva) return;
     
     try {
-        const checkResponse = await fetch(`/api/analise-follow-ups/${analiseId}`);
+        const checkResponse = await fetchComAutenticacao(`/api/analise-follow-ups/${analiseId}`);
         const checkData = await checkResponse.json();
         if (checkData.success && checkData.follow_ups && checkData.follow_ups.length > 0) {
             console.log('✅ Follow-ups já existem');
@@ -2544,7 +2544,7 @@ async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiva) {
     ];
     
     try {
-        const response = await fetch('/api/analise-follow-ups/criar', {
+        const response = await fetchComAutenticacao('/api/analise-follow-ups/criar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ analise_id: analiseId, follow_ups: followUps })
@@ -2563,14 +2563,14 @@ async function carregarAnalisesAuditor() {
     const container = document.getElementById('analises-auditor-container');
     container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
     try {
-        const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         if (data.success && data.analises && data.analises.length > 0) {
             // ⭐ BUSCAR PLANO DE AÇÃO PARA CADA ANÁLISE
             for (const analise of data.analises) {
                 if (analise.sugestao_sera_implantada === true) {
                     try {
-                        const planoResponse = await fetch(`/api/planos-acao/${analise.id}`);
+                        const planoResponse = await fetchComAutenticacao(`/api/planos-acao/${analise.id}`);
                         const planoData = await planoResponse.json();
                         if (planoData.success && planoData.plano) {
                             analise.plano = planoData.plano;
@@ -2683,7 +2683,7 @@ async function salvarAnaliseAuditor() {
         const method = analiseId ? 'PUT' : 'POST';
         
         // ⭐ USAR JSON EM VEZ DE FormData
-        const response = await fetch(url, { 
+        const response = await fetchComAutenticacao(url, { 
             method: method,
             headers: {
                 'Content-Type': 'application/json'

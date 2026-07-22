@@ -711,7 +711,7 @@
         selectArea.innerHTML = '<option value="">Carregando áreas...</option>';
 
         try {
-            const response = await fetch('/api/areas');
+            const response = await fetchComAutenticacao('/api/areas');
             const areas = await response.json();
 
             if (areas && areas.length > 0) {
@@ -763,7 +763,7 @@
         }
 
         try {
-            const response = await fetch(`/api/auditorias-por-area?area_id=${areaId}`);
+            const response = await fetchComAutenticacao(`/api/auditorias-por-area?area_id=${areaId}`);
             const data = await response.json();
 
             if (selectAuditoria) {
@@ -812,7 +812,7 @@
         `;
 
         try {
-            const response = await fetch(`/api/auditoria/${auditoriaId}/achados`);
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/achados`);
             const data = await response.json();
 
             if (data.success && data.achados && data.achados.length > 0) {
@@ -946,7 +946,7 @@
                 });
             }
 
-            const response = await fetch(`/api/auditoria/${achadoAuditoriaAtual}/achados`, {
+            const response = await fetchComAutenticacao(`/api/auditoria/${achadoAuditoriaAtual}/achados`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -984,7 +984,7 @@
 
     async function baixarAnexo(achadoId, anexoIndex) {
         try {
-            const response = await fetch(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
+            const response = await fetchComAutenticacao(`/api/achado/anexo/${achadoId}/${anexoIndex}/download`);
             const data = await response.json();
 
             if (data.success && data.url) {
@@ -1006,7 +1006,7 @@
         if (!confirm('Tem certeza que deseja excluir este achado?')) return;
 
         try {
-            const response = await fetch(`/api/achado/${achadoId}`, {
+            const response = await fetchComAutenticacao(`/api/achado/${achadoId}`, {
                 method: 'DELETE'
             });
 
@@ -1167,7 +1167,7 @@
         }
 
         try {
-            const response = await fetch(`/api/achado/${achadoId}`, {
+            const response = await fetchComAutenticacao(`/api/achado/${achadoId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1198,7 +1198,7 @@
         if (!confirm('Tem certeza que deseja remover este anexo?')) return;
 
         try {
-            const response = await fetch(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
+            const response = await fetchComAutenticacao(`/api/achado/${achadoId}/anexo/${anexoIndex}`, {
                 method: 'DELETE'
             });
 

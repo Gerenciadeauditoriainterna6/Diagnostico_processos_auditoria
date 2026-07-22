@@ -138,7 +138,7 @@ export async function baixarEvidenciaAuditadoChecklist(analiseId, nomeArquivo) {
     try {
         console.log('📥 Baixando evidência do auditado (checklist):', analiseId, nomeArquivo);
         
-        const response = await fetch(`/api/analise-auditado/${analiseId}/evidencia`);
+        const response = await fetchComAutenticacao(`/api/analise-auditado/${analiseId}/evidencia`);
         
         if (!response.ok) {
             let errorMsg = 'Erro ao baixar evidência';
@@ -230,7 +230,7 @@ export async function carregarAnalisesAuditado() {
     container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
     
     try {
-        const response = await fetch(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         
         if (data.success && data.analises && data.analises.length > 0) {
@@ -252,7 +252,7 @@ export async function carregarAnalisesAuditado() {
                     let plano = null;
                     if (analise.sugestao_sera_implantada === true) {
                         try {
-                            const planoResponse = await fetch(`/api/planos-acao/${analise.id}`);
+                            const planoResponse = await fetchComAutenticacao(`/api/planos-acao/${analise.id}`);
                             const planoData = await planoResponse.json();
                             if (planoData.success && planoData.plano) {
                                 plano = planoData.plano;
@@ -389,14 +389,14 @@ export async function carregarAnalisesAuditado() {
                                 </div>
                                 ` : ''}
                                 
-                                ${analise.efetivamente_implantada === true ? `
+                                ${analise.plano_de_acao_implantado === true ? `
                                 <div class="analise-card-section" style="margin-top: 20px;">
                                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
                                     <div class="followups-container">
                                         ${renderizarListaFollowUps(analise.followUps)}
                                     </div>
                                 </div>
-                                ` : (analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada) ? `
+                                ` : (analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado) ? `
                                 <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99;">
                                     <div style="padding: 10px;">
                                         <i class="fas fa-check-circle" style="color: #0b5b99;"></i>
@@ -427,7 +427,7 @@ export async function editarAnaliseAuditado(id) {
     console.log('✏️ Editando análise do auditado ID:', id);
     
     try {
-        const response = await fetch(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         
         if (data.success) {
@@ -509,11 +509,6 @@ export async function editarAnaliseAuditado(id) {
                 // ⭐⭐⭐ Só marcar se o valor for true ou false (não marcar se for null) ⭐⭐⭐
                 if (analise.sugestao_sera_implantada === true) {
                     valorParaMarcar = 'true';
-                    // Preencher campos do plano de ação
-                    document.getElementById('plano-acao-auditado').value = analise.plano_acao || '';
-                    document.getElementById('responsavel-implantacao-auditado').value = analise.responsavel_implantacao || '';
-                    document.getElementById('data-inicio-implantacao-auditado').value = analise.data_inicio_implantacao || '';
-                    document.getElementById('data-conclusao-prevista-auditado').value = analise.data_conclusao_prevista || '';
                     
                     if (analise.anexo_nome) {
                         anexoExistenteNomeAuditado = analise.anexo_nome;
@@ -652,7 +647,7 @@ export async function salvarAnaliseAuditado() {
         const url = analiseId ? `/api/analise-auditado/${analiseId}` : '/api/analise-auditado/salvar';
         const method = analiseId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, { 
+        const response = await fetchComAutenticacao(url, { 
             method: method,
             headers: {
                 'Content-Type': 'application/json'
