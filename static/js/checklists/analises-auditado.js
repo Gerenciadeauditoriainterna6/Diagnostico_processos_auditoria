@@ -196,8 +196,41 @@ export function abrirModalConfirmarImplantacaoAuditado(analiseId) {
 export function setupSemSugestaoCheckbox() {
     const checkbox = document.getElementById('sem_sugestao_melhoria');
     const textarea = document.getElementById('analise-auditado-sugestao');
+    const camposContainer = document.getElementById('campos-sugestao-melhoria'); // ⭐ ADICIONAR
     
-    if (!checkbox || !textarea) return;
+    if (!checkbox || !textarea || !camposContainer) return;
+    
+    // ⭐ FUNÇÃO PARA ALTERNAR VISIBILIDADE DOS CAMPOS
+    function toggleCamposSugestao() {
+        if (checkbox.checked) {
+            // ESCONDER CAMPOS
+            camposContainer.style.display = 'none';
+            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.disabled = true;
+                radio.checked = false;
+            });
+            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.style.backgroundColor = '#f5f5f5';
+                input.style.color = '#999';
+            });
+        } else {
+            // MOSTRAR CAMPOS
+            camposContainer.style.display = 'block';
+            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.disabled = false;
+            });
+            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+            inputs.forEach(input => {
+                input.disabled = false;
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            });
+        }
+    }
     
     // Quando o checkbox for marcado, preencher o textarea com "INEXISTENTE" e desabilitar
     checkbox.addEventListener('change', function() {
@@ -213,14 +246,23 @@ export function setupSemSugestaoCheckbox() {
             textarea.style.color = '';
             textarea.focus();
         }
+        // ⭐ CHAMAR A FUNÇÃO PARA ALTERNAR OS CAMPOS
+        toggleCamposSugestao();
     });
     
     // Se o usuário digitar algo no textarea, desmarcar o checkbox
     textarea.addEventListener('input', function() {
         if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
             checkbox.checked = false;
+            // ⭐ CHAMAR A FUNÇÃO PARA ALTERNAR OS CAMPOS
+            toggleCamposSugestao();
         }
     });
+    
+    // ⭐ SE O CHECKBOX JÁ ESTIVER MARCADO AO CARREGAR A PÁGINA
+    if (checkbox.checked) {
+        toggleCamposSugestao();
+    }
 }
 
 export async function carregarAnalisesAuditado() {
@@ -457,6 +499,7 @@ export async function editarAnaliseAuditado(id) {
                 // ⭐⭐⭐ NOVO: Verificar se o valor é "INEXISTENTE" para marcar o checkbox ⭐⭐⭐
                 const checkbox = document.getElementById('sem_sugestao_melhoria');
                 const textarea = document.getElementById('analise-auditado-sugestao');
+                const camposContainer = document.getElementById('campos-sugestao-melhoria');
                 
                 if (checkbox && textarea) {
                     const sugestaoValue = analise.sugestao_melhoria || '';
@@ -465,11 +508,42 @@ export async function editarAnaliseAuditado(id) {
                         textarea.disabled = true;
                         textarea.style.backgroundColor = '#f5f5f5';
                         textarea.style.color = '#999';
+                        
+                        // ⭐⭐⭐ ESCONDER CAMPOS ⭐⭐⭐
+                        if (camposContainer) {
+                            camposContainer.style.display = 'none';
+                            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+                            radios.forEach(radio => {
+                                radio.disabled = true;
+                                radio.checked = false;
+                            });
+                            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+                            inputs.forEach(input => {
+                                input.disabled = true;
+                                input.style.backgroundColor = '#f5f5f5';
+                                input.style.color = '#999';
+                            });
+                        }
                     } else {
                         checkbox.checked = false;
                         textarea.disabled = false;
                         textarea.style.backgroundColor = '';
                         textarea.style.color = '';
+                        
+                        // ⭐⭐⭐ MOSTRAR CAMPOS ⭐⭐⭐
+                        if (camposContainer) {
+                            camposContainer.style.display = 'block';
+                            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+                            radios.forEach(radio => {
+                                radio.disabled = false;
+                            });
+                            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+                            inputs.forEach(input => {
+                                input.disabled = false;
+                                input.style.backgroundColor = '';
+                                input.style.color = '';
+                            });
+                        }
                     }
                 }
                 // ⭐⭐⭐ FIM DO NOVO CÓDIGO ⭐⭐⭐
@@ -520,10 +594,9 @@ export async function editarAnaliseAuditado(id) {
                         }
                     }
                     
-                                        
                 } else if (analise.sugestao_sera_implantada === false) {
                     valorParaMarcar = 'false';
-                                        
+                    
                 } else {
                     // ⭐⭐⭐ CASO NULL: NENHUM radio deve ser marcado ⭐⭐⭐
                     valorParaMarcar = null;

@@ -1647,6 +1647,32 @@
 
     <div id ="toastContainer" class="toast-container"></div>
 
+    <script>
+        // ============================================================
+        // FUNÇÃO PARA REQUISIÇÕES COM VERIFICAÇÃO DE AUTENTICAÇÃO
+        // ============================================================
+
+        window.fetchComAutenticacao = async function(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                
+                // Se a sessão expirou (401)
+                if (response.status === 401) {
+                    console.warn('⏳ Sessão expirada. Redirecionando para login...');
+                    window.location.href = '/login';
+                    return null;
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('❌ Erro na requisição:', error);
+                throw error;
+            }
+        }
+
+        window.fetchComAutenticacao = window.fetchComAutenticacao;
+    </script>
+
     <!-- ⭐ NOVO: BLOCO PARA JAVASCRIPT PERSONALIZADO -->
     {% block scripts %}
         <!-- JavaScript padrão do base (se houver) -->
@@ -2051,27 +2077,7 @@
             }, 5000);
         }
 
-        // ============================================================
-        // FUNÇÃO PARA REQUISIÇÕES COM VERIFICAÇÃO DE AUTENTICAÇÃO
-        // ============================================================
-
-        async function fetchComAutenticacao(url, options = {}) {
-            try {
-                const response = await fetch(url, options);
-                
-                // Se a sessão expirou (401)
-                if (response.status === 401) {
-                    console.warn('⏳ Sessão expirada. Redirecionando para login...');
-                    window.location.href = '/login';
-                    return null;
-                }
-                
-                return response;
-            } catch (error) {
-                console.error('❌ Erro na requisição:', error);
-                throw error;
-            }
-        }
+        
 
         // ============================================================
         // ANOTAÇÕES DO AUDITOR (BLOCO DE NOTAS FLUTUANTE)

@@ -103,6 +103,38 @@ export async function editarAnaliseAuditor(id) {
     // Verificar se o valor é "INEXISTENTE" para marcar o checkbox
     const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
     const textarea = document.getElementById('analise-auditor-sugestao');
+    const camposContainer = document.getElementById('campos-sugestao-melhoria-auditor');
+    
+    function toggleCamposSugestaoAuditor() {
+        if (!camposContainer) return;
+        
+        if (checkbox && checkbox.checked) {
+            camposContainer.style.display = 'none';
+            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.disabled = true;
+                radio.checked = false;
+            });
+            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.style.backgroundColor = '#f5f5f5';
+                input.style.color = '#999';
+            });
+        } else {
+            camposContainer.style.display = 'block';
+            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.disabled = false;
+            });
+            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+            inputs.forEach(input => {
+                input.disabled = false;
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            });
+        }
+    }
     
     if (checkbox && textarea) {
         const sugestaoValue = analise.sugestao_melhoria || '';
@@ -111,11 +143,13 @@ export async function editarAnaliseAuditor(id) {
             textarea.disabled = true;
             textarea.style.backgroundColor = '#f5f5f5';
             textarea.style.color = '#999';
+            toggleCamposSugestaoAuditor();
         } else {
             checkbox.checked = false;
             textarea.disabled = false;
             textarea.style.backgroundColor = '';
             textarea.style.color = '';
+            toggleCamposSugestaoAuditor();
         }
     }
 
@@ -141,12 +175,19 @@ export async function editarAnaliseAuditor(id) {
         document.getElementById('analise-auditor-id').removeAttribute('data-evidencia-id');
     }
     
-    // ⭐⭐⭐ CORREÇÃO: RADIOS ⭐⭐⭐
+    // RADIOS
     const radios = document.querySelectorAll('#modal-analise-auditor input[name="sugestao-status-radio"]');
     let valorParaMarcar = '';
     
     console.log('📊 analise.sugestao_sera_implantada:', analise.sugestao_sera_implantada);
     
+    if (analise.sugestao_sera_implantada === true) {
+        valorParaMarcar = 'true';
+    } else if (analise.sugestao_sera_implantada === false) {
+        valorParaMarcar = 'false';
+    } else {
+        valorParaMarcar = '';
+    }
     
     // Desmarcar todos
     radios.forEach(radio => {
@@ -163,9 +204,8 @@ export async function editarAnaliseAuditor(id) {
     console.log('🎯 valorParaMarcar:', valorParaMarcar);
     console.log('🎯 Radio checked:', document.querySelector('#modal-analise-auditor input[name="sugestao-status-radio"]:checked')?.value);
     
-    // ⭐ ABRIR MODAL
+    // ABRIR MODAL
     document.getElementById('modal-analise-auditor').style.display = 'flex';
-
 }
 
 export async function excluirAnaliseAuditor(id) {
@@ -629,13 +669,48 @@ export async function carregarAnalisesAuditor() {
 
 
 
+// ============================================================
+// CONTROLE DO CHECKBOX "SEM SUGESTÃO DE MELHORIA" - AUDITOR
+// ============================================================
+
 export function setupSemSugestaoCheckboxAuditor() {
     const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
     const textarea = document.getElementById('analise-auditor-sugestao');
+    const camposContainer = document.getElementById('campos-sugestao-melhoria-auditor');
     
-    if (!checkbox || !textarea) return;
+    if (!checkbox || !textarea || !camposContainer) return;
     
-    // Quando o checkbox for marcado, preencher o textarea com "INEXISTENTE" e desabilitar
+    function toggleCamposSugestaoAuditor() {
+        if (checkbox.checked) {
+            // ⭐ ESCONDER CAMPOS
+            camposContainer.style.display = 'none';
+            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.disabled = true;
+                radio.checked = false;
+            });
+            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.style.backgroundColor = '#f5f5f5';
+                input.style.color = '#999';
+            });
+        } else {
+            // ⭐ MOSTRAR CAMPOS
+            camposContainer.style.display = 'block';
+            const radios = camposContainer.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.disabled = false;
+            });
+            const inputs = camposContainer.querySelectorAll('textarea, input:not([type="radio"])');
+            inputs.forEach(input => {
+                input.disabled = false;
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            });
+        }
+    }
+    
     checkbox.addEventListener('change', function() {
         if (this.checked) {
             textarea.value = 'INEXISTENTE';
@@ -649,14 +724,20 @@ export function setupSemSugestaoCheckboxAuditor() {
             textarea.style.color = '';
             textarea.focus();
         }
+        toggleCamposSugestaoAuditor();
     });
     
-    // Se o usuário digitar algo no textarea, desmarcar o checkbox
     textarea.addEventListener('input', function() {
         if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
             checkbox.checked = false;
+            toggleCamposSugestaoAuditor();
         }
     });
+    
+    // Se o checkbox já estiver marcado ao carregar
+    if (checkbox.checked) {
+        toggleCamposSugestaoAuditor();
+    }
 }
 
 export async function salvarAnaliseAuditor() {
