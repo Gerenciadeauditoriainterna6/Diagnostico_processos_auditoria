@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function verificarPdf(ano) {
         try {
             // Buscar o PDF do plano anual pelo ano
-            const response = await fetch(`/api/plano-anual-pdf?ano=${ano}&tipo=plano`);
+            const response = await fetchComAutenticacao(`/api/plano-anual-pdf?ano=${ano}&tipo=plano`);
             console.log('Status da resposta:', response.status);
             
             // Atualizar textos com o ano
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         try {
-            const response = await fetch(`/api/fundamentos-por-ano?ano=${ano}`);
+            const response = await fetchComAutenticacao(`/api/fundamentos-por-ano?ano=${ano}`);
             const data = await response.json();
 
             console.log('📦 Dados recebidos:', data);
@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
             
-            const response = await fetch(`/api/auditoria/${auditoriaId}/fundamentos`, {
+            const response = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/fundamentos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fundamentos: fundamentosFiltrados })

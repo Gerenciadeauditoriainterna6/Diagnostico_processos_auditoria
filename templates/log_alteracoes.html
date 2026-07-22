@@ -434,7 +434,7 @@
 
     async function carregarTabelas() {
         try {
-            const response = await fetch('/api/tabelas');
+            const response = await fetchComAutenticacao('/api/tabelas');
             const data = await response.json();
             
             if (data.success && data.tabelas) {
@@ -495,7 +495,7 @@
         if (dataFim) url += `&data_fim=${dataFim}`;
 
         try {
-            const response = await fetch(url);
+            const response = await fetchComAutenticacao(url);
             const data = await response.json();
 
             if (data.success) {
@@ -876,7 +876,7 @@
 
     async function carregarUsuarios() {
         try {
-            const response = await fetch('/api/usuarios');
+            const response = await fetchComAutenticacao('/api/usuarios');
             const data = await response.json();
             
             if (data.success && data.usuarios) {

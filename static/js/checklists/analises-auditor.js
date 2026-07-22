@@ -84,7 +84,7 @@ export function abrirModalNovaAnaliseAuditor() {
 export async function editarAnaliseAuditor(id) {
     console.log('✏️ editarAnaliseAuditor chamado para ID:', id);
     
-    const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
+    const response = await fetchComAutenticacao(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
     const data = await response.json();
     
     if (data.success) setAnalisesAuditorList(data.analises);
@@ -171,7 +171,7 @@ export async function editarAnaliseAuditor(id) {
 export async function excluirAnaliseAuditor(id) {
     if (!confirm('⚠️ Tem certeza que deseja excluir esta análise?')) return;
     try {
-        const response = await fetch(`/api/analise-auditor/${id}`, { method: 'DELETE' });
+        const response = await fetchComAutenticacao(`/api/analise-auditor/${id}`, { method: 'DELETE' });
         const data = await response.json();
         if (data.success) {
             mostrarToast('✅ Análise excluída!', 'success');
@@ -312,7 +312,7 @@ export async function renderizarAnalisesAuditor() {
     analisesComDados.forEach((analise, index) => {
         const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
         const prazoExpirado = analise.sugestao_sera_implantada === true &&
-                            !analise.efetivamente_implantada && 
+                            !analise.plano_de_acao_implantado && 
                             analise.data_conclusao_prevista && 
                             new Date(analise.data_conclusao_prevista) < new Date();
         
@@ -408,7 +408,7 @@ export async function renderizarAnalisesAuditor() {
                 ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
                 
                 <!-- ⭐ BOTÃO DE CONFIRMAÇÃO DE IMPLANTAÇÃO -->
-                ${analise.sugestao_sera_implantada === true && !analise.efetivamente_implantada ? `
+                ${analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado ? `
                 <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99; border-radius: 12px;">
                     <div style="padding: 15px;">
                         <i class="fas fa-check-circle" style="color: #0b5b99; font-size: 24px;"></i>
@@ -434,7 +434,7 @@ export async function renderizarAnalisesAuditor() {
                 ` : ''}
                 
                 <!-- ⭐ FOLLOW-UPS (APENAS SE IMPLANTADA) -->
-                ${analise.efetivamente_implantada === true ? `
+                ${analise.plano_de_acao_implantado === true ? `
                 <div class="analise-card-section" style="margin-top: 20px;">
                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
                     <div class="followups-container">
@@ -460,7 +460,7 @@ export async function baixarEvidenciaAnaliseAuditor(evidenciaId, nomeArquivo) {
         // ⭐ MOSTRAR LOADING
         mostrarToast('⏳ Baixando arquivo...', 'info');
         
-        const response = await fetch(`/api/analise-auditor/evidencia/${evidenciaId}/download`);
+        const response = await fetchComAutenticacao(`/api/analise-auditor/evidencia/${evidenciaId}/download`);
         
         console.log('📥 Status da resposta:', response.status);
         console.log('📥 Headers:', response.headers);
@@ -563,12 +563,12 @@ export async function confirmarImplantacao() {
     const url = tipoAnalise === 'auditado' ? `/api/analise-auditado/${analiseId}/confirmar-implantacao` : `/api/analise-auditor/${analiseId}/confirmar-implantacao`;
     
     try {
-        const response = await fetch(url, {
+        const response = await fetchComAutenticacao(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                efetivamente_implantada: foiImplantada, 
-                data_implantacao_efetiva: dataImplantacao, 
+                plano_de_acao_implantado: foiImplantada, 
+                data_execucao_plano_acao: dataImplantacao, 
                 comentario_implantacao: comentario 
             })
         });
@@ -597,14 +597,14 @@ export async function carregarAnalisesAuditor() {
     const container = document.getElementById('analises-auditor-container');
     container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
     try {
-        const response = await fetch(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
+        const response = await fetchComAutenticacao(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         if (data.success && data.analises && data.analises.length > 0) {
             // ⭐ BUSCAR PLANO DE AÇÃO PARA CADA ANÁLISE
             for (const analise of data.analises) {
                 if (analise.sugestao_sera_implantada === true) {
                     try {
-                        const planoResponse = await fetch(`/api/planos-acao/${analise.id}`);
+                        const planoResponse = await fetchComAutenticacao(`/api/planos-acao/${analise.id}`);
                         const planoData = await planoResponse.json();
                         if (planoData.success && planoData.plano) {
                             analise.plano = planoData.plano;
@@ -725,7 +725,7 @@ export async function salvarAnaliseAuditor() {
         const method = analiseId ? 'PUT' : 'POST';
         
         // ⭐ USAR JSON EM VEZ DE FormData
-        const response = await fetch(url, { 
+        const response = await fetchComAutenticacao(url, { 
             method: method,
             headers: {
                 'Content-Type': 'application/json'

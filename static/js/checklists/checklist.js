@@ -203,7 +203,7 @@ export async function carregarChecklistModal(tipo) {
         const url = `/api/checklist/carregar?processo_id=${processoIdAtual}&tipo=${tipo}`;
         console.log('📤 Fazendo requisição para:', url);
         
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         console.log('📥 Resposta recebida, status:', response.status);
         
         const dados = await response.json();
@@ -243,7 +243,7 @@ export async function carregarChecklistModal(tipo) {
         for (const [ordem, resposta] of Object.entries(respostasMap)) {
             if (resposta.id) {
                 try {
-                    const evResponse = await fetch(`/api/checklist/evidencias/${resposta.id}`);
+                    const evResponse = await fetchComAutenticacao(`/api/checklist/evidencias/${resposta.id}`);
                     const evData = await evResponse.json();
                     if (evData.success) {
                         evidenciasMap[ordem] = evData.evidencias || [];
@@ -480,7 +480,7 @@ export async function carregarEvidenciasPergunta(perguntaIndex) {
     if (!respostaId) return;
     
     try {
-        const response = await fetch(`/api/checklist/evidencias/${respostaId}`);
+        const response = await fetchComAutenticacao(`/api/checklist/evidencias/${respostaId}`);
         const data = await response.json();
         
         if (data.success) {
@@ -534,7 +534,7 @@ export async function removerEvidenciaChecklist(evidenciaId, perguntaIndex) {
     }
     
     try {
-        const response = await fetch(`/api/checklist/evidencia/${evidenciaId}`, { 
+        const response = await fetchComAutenticacao(`/api/checklist/evidencia/${evidenciaId}`, { 
             method: 'DELETE' 
         });
         
@@ -645,7 +645,7 @@ export async function salvarChecklist(tipo, concluir) {
         console.log('📤 Salvando checklist:', bodyData);
         console.log('📤 Respostas sendo enviadas:', respostas);
         
-        const response = await fetch('/api/checklist/salvar', { 
+        const response = await fetchComAutenticacao('/api/checklist/salvar', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(bodyData) 
@@ -709,7 +709,7 @@ export async function salvarChecklist(tipo, concluir) {
                         try {
                             console.log(`📎 Enviando evidência: ${arquivo.nome} para resposta ${respostaId}`);
                             
-                            const evidenciaResponse = await fetch('/api/checklist/evidencia/salvar', {
+                            const evidenciaResponse = await fetchComAutenticacao('/api/checklist/evidencia/salvar', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({

@@ -323,7 +323,7 @@
             spinner.style.display = 'block';
             
             try {
-                const response = await fetch('/trocar-senha', {
+                const response = await fetchComAutenticacao('/trocar-senha', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nova_senha, confirmar_senha })

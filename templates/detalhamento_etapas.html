@@ -1693,7 +1693,7 @@
                         try {
                             mostrarToast('🗑️ Removendo arquivo...', 'info');
                             
-                            const response = await fetch('/api/obrigacao/remover-arquivo', {
+                            const response = await fetchComAutenticacao('/api/obrigacao/remover-arquivo', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -2260,7 +2260,7 @@
             console.log('📋 Parâmetros da URL:', params);
             
             if (params.processoId) {
-                fetch(`/api/processo/${params.processoId}/dados`)
+                fetchComAutenticacao(`/api/processo/${params.processoId}/dados`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -2314,7 +2314,7 @@
                 nomes.push(nomeFuncionariosCache.get(idTrimmed));
             } else {
                 try {
-                    const response = await fetch(`/api/funcionario/${idTrimmed}`);
+                    const response = await fetchComAutenticacao(`/api/funcionario/${idTrimmed}`);
                     if (response.ok) {
                         const data = await response.json();
                         const nome = data.nome_funcionario;
@@ -2343,7 +2343,7 @@
     // Carregar executores do processo
     async function carregarExecutoresProcesso() {
         try {
-            const response = await fetch(`/api/processo/${processoAtualId}/dados`);
+            const response = await fetchComAutenticacao(`/api/processo/${processoAtualId}/dados`);
             const data = await response.json();
             
             if (data.success && data.executores && data.executores.length > 0) {
@@ -2727,7 +2727,7 @@
         let auditoriaId = null;
         
         try {
-            const response = await fetch(`/api/processo/${processoAtualId}/dados`);
+            const response = await fetchComAutenticacao(`/api/processo/${processoAtualId}/dados`);
             const data = await response.json();
             if (data.success) {
                 nomeProcesso = data.nome_processo;
@@ -2756,7 +2756,7 @@
             `;
             
             try {
-                const respPermissao = await fetch(`/api/auditoria/${auditoriaId}/responsavel`);
+                const respPermissao = await fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
                 const dadosPermissao = await respPermissao.json();
                 
                 if (dadosPermissao.autorizado) {
@@ -2803,7 +2803,7 @@
             `;
 
         try {
-            const response = await fetch(`/api/processo/${processoAtualId}/etapas`);
+            const response = await fetchComAutenticacao(`/api/processo/${processoAtualId}/etapas`);
             const data = await response.json();
 
             if (data.success) {
@@ -2836,7 +2836,7 @@
     // ============================================================
     async function carregarAnalisesResumo(etapaId) {
         try {
-            const response = await fetch(`/api/etapa/${etapaId}/analises`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/analises`);
             const data = await response.json();
             
             const container = document.getElementById(`analises-resumo-${etapaId}`);
@@ -2903,7 +2903,7 @@
                 console.log('📎 Tipo da URL:', typeof arquivoUrl);
                 console.log('📎 URL está vazia?', arquivoUrl === '' || arquivoUrl === null);
                 
-                const response = await fetch('/api/obrigacao/excluir', {
+                const response = await fetchComAutenticacao('/api/obrigacao/excluir', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -3043,7 +3043,7 @@
     
     async function gerarCodigoEtapa() {
         try {
-            const response = await fetch(`/api/etapa/gerar-codigo?processo_id=${processoAtualId}`);
+            const response = await fetchComAutenticacao(`/api/etapa/gerar-codigo?processo_id=${processoAtualId}`);
             const data = await response.json();
             if (data.success) {
                 document.getElementById('modal-codigo-etapa').value = data.codigo_etapa;
@@ -3131,7 +3131,7 @@
         analisesTemporarias = [];
         
         try {
-            const response = await fetch(`/api/etapa/${etapaId}`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}`);
             const data = await response.json();
             
             if (data.success) {
@@ -3220,7 +3220,7 @@
     async function excluirEtapa(etapaId, etapaNome) {
         if (confirm(`Tem certeza que deseja excluir a etapa "${etapaNome}"?`)) {
             try {
-                const response = await fetch(`/api/etapa/${etapaId}/excluir`, {
+                const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/excluir`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -3256,7 +3256,7 @@
                     formData.append('etapa_id', etapaId || 'temp');
                     formData.append('titulo_obrigacao', obrigacao.titulo);
                     
-                    const response = await fetch('/api/upload/detalhamento', {
+                    const response = await fetchComAutenticacao('/api/upload/detalhamento', {
                         method: 'POST',
                         body: formData
                     });
@@ -3330,7 +3330,7 @@
 
 
         try {
-            const response = await fetch('/api/etapa/salvar', {
+            const response = await fetchComAutenticacao('/api/etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -3391,7 +3391,7 @@
         if (!container) return;
         
         try {
-            const response = await fetch(`/api/etapa/${etapaId}/analises`);
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/analises`);
             const data = await response.json();
             
             if (data.success) {
@@ -3411,7 +3411,7 @@
         try {
             console.log('📥 Baixando evidência do auditado (detalhamento):', analiseId, nomeArquivo);
             
-            const response = await fetch(`/api/analise-auditado/${analiseId}/evidencia`);
+            const response = await fetchComAutenticacao(`/api/analise-auditado/${analiseId}/evidencia`);
             
             if (!response.ok) {
                 const errorData = await response.json();
@@ -3842,7 +3842,7 @@
         }
         
         try {
-            const response = await fetch('/api/analise/salvar', {
+            const response = await fetchComAutenticacao('/api/analise/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -3891,7 +3891,7 @@
     // Excluir análise do banco
     async function excluirAnaliseDoBanco(analiseId) {
         try {
-            const response = await fetch(`/api/analise/${analiseId}`, { method: 'DELETE' });
+            const response = await fetchComAutenticacao(`/api/analise/${analiseId}`, { method: 'DELETE' });
             const data = await response.json();
             
             if (data.success) {
@@ -3941,7 +3941,7 @@
             console.log('📤 Enviando payload:', payload);
             
             try {
-                const response = await fetch('/api/analise/salvar', {
+                const response = await fetchComAutenticacao('/api/analise/salvar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -3986,10 +3986,10 @@
         `;
         
         try {
-            const responseEtapa = await fetch(`/api/etapa/${etapaId}`);
+            const responseEtapa = await fetchComAutenticacao(`/api/etapa/${etapaId}`);
             const dataEtapa = await responseEtapa.json();
             
-            const responseAnalises = await fetch(`/api/etapa/${etapaId}/analises`);
+            const responseAnalises = await fetchComAutenticacao(`/api/etapa/${etapaId}/analises`);
             const dataAnalises = await responseAnalises.json();
             
             if (dataEtapa.success) {
@@ -4231,7 +4231,7 @@
     function carregarEstadoManual(etapaId) {
         etapaIdAtual = etapaId;
         
-        fetch(`/api/etapa/${etapaId}`)
+        fetchComAutenticacao(`/api/etapa/${etapaId}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.etapa) {
@@ -4363,7 +4363,7 @@
     async function salvarUrlManual(etapaId, url, nomeArquivo, tamanho, emAndamento) {
         try {
             // Buscar dados atuais da etapa
-            const responseDados = await fetch(`/api/etapa/${etapaId}`);
+            const responseDados = await fetchComAutenticacao(`/api/etapa/${etapaId}`);
             const dadosAtuais = await responseDados.json();
             
             if (!dadosAtuais.success) {
@@ -4392,7 +4392,7 @@
                 manual_em_andamento: emAndamento
             };
             
-            const response = await fetch('/api/etapa/salvar', {
+            const response = await fetchComAutenticacao('/api/etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -4422,7 +4422,7 @@
         
         try {
             // 🔥 Buscar a URL do manual antes de remover
-            const responseDados = await fetch(`/api/etapa/${etapaIdAtual}`);
+            const responseDados = await fetchComAutenticacao(`/api/etapa/${etapaIdAtual}`);
             const dados = await responseDados.json();
             
             if (!dados.success) {
@@ -4438,7 +4438,7 @@
             const urlManual = dados.etapa.manual_url;
             
             // 🔥 Chamar API para remover do storage e limpar URL
-            const response = await fetch(`/api/etapa/${etapaIdAtual}/remover-manual`, {
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaIdAtual}/remover-manual`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -4482,7 +4482,7 @@
             formData.append('nome_personalizado', nomePersonalizado);
             
             // Fazer upload para a API
-            const response = await fetch('/api/upload/detalhamento', {
+            const response = await fetchComAutenticacao('/api/upload/detalhamento', {
                 method: 'POST',
                 body: formData
             });
@@ -4516,7 +4516,7 @@
     async function salvarEstadoManual(etapaId, emAndamento, arquivoUrl = null, nomeArquivo = null) {
         try {
             // Buscar dados atuais da etapa
-            const responseDados = await fetch(`/api/etapa/${etapaId}`);
+            const responseDados = await fetchComAutenticacao(`/api/etapa/${etapaId}`);
             const dadosAtuais = await responseDados.json();
             
             if (!dadosAtuais.success) {
@@ -4554,7 +4554,7 @@
                 payload.manual_nome = null;
             }
             
-            const response = await fetch('/api/etapa/salvar', {
+            const response = await fetchComAutenticacao('/api/etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -4586,7 +4586,7 @@
         }
         
         // Buscar a URL do manual da etapa
-        fetch(`/api/etapa/${etapaIdAtual}`)
+        fetchComAutenticacao(`/api/etapa/${etapaIdAtual}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.etapa.manual_url) {

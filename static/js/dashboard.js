@@ -8,7 +8,7 @@ let filtros = {
 // ====== CARREGAR FILTROS ======
 async function carregarFiltros() {
     try {
-        const response = await fetch('/api/novo-dashboard/filtros');
+        const response = await fetchComAutenticacao('/api/novo-dashboard/filtros');
         const data = await response.json();
         
         if (data.success) {
@@ -53,7 +53,7 @@ async function carregarAuditoriasPorArea(areaId) {
     selectAuditoria.disabled = true;
 
     try {
-        const response = await fetch(`/api/novo-dashboard/auditorias-por-area?area_id=${areaId}`);
+        const response = await fetchComAutenticacao(`/api/novo-dashboard/auditorias-por-area?area_id=${areaId}`);
         const data = await response.json();
         
         if (data.success && data.dados.auditorias.length > 0) {
@@ -88,7 +88,7 @@ async function carregarCards() {
     console.log(`📡 Chamando API: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         if (data.success) {
@@ -181,7 +181,7 @@ async function carregarGraficoSituacao() {
     console.log(`📡 Chamando API situação: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         console.log('📊 Dados do gráfico situação:', data);
@@ -262,7 +262,7 @@ async function carregarGraficoRiscosMagnitude() {
     console.log(`📡 Chamando API riscos magnitude: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         console.log('📊 Dados do gráfico riscos magnitude:', data);
@@ -327,7 +327,7 @@ async function carregarGraficoEvolucao() {
     console.log(`📡 Chamando API evolução: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         console.log('📊 Dados do gráfico evolução:', data);
@@ -453,7 +453,7 @@ async function carregarGraficoRiscosCategoria() {
     console.log(`📡 Chamando API riscos categoria: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         console.log('📊 Dados do gráfico riscos categoria:', data);
@@ -533,7 +533,7 @@ async function carregarGraficoTopAreas() {
     console.log(`📡 Chamando API top áreas: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         console.log('📊 Dados do gráfico top áreas:', data);
@@ -613,7 +613,7 @@ async function carregargraficoControlesNatureza() {
     console.log(`📡 Chamando API controles status: ${url}`);
     
     try {
-        const response = await fetch(url);
+        const response = await fetchComAutenticacao(url);
         const data = await response.json();
         
         console.log('📊 Dados do gráfico controles status:', data);
