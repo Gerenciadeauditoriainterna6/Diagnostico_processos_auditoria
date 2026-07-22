@@ -4738,26 +4738,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             analises_auditado_raw = conn.execute(query_analises_auditado, {"etapa_id": etapa_id}).fetchall()
             
             analises_auditado_list = []
-            for a in analises_auditado_raw:
-
-                # Buscar histórico de andamento
-                query_historico = text("""
-                    SELECT status, comentario, created_by, created_at
-                    FROM analises_historico_andamento
-                    WHERE analise_id = :analise_id
-                    ORDER BY created_at ASC
-                """)
-                historico_raw = conn.execute(query_historico, {"analise_id": a[0]}).fetchall()
-                
-                historico_list = []
-                for h in historico_raw:
-                    historico_list.append({
-                        'data': h._mapping['created_at'].strftime('%d/%m/%Y') if h._mapping['created_at'] else '',
-                        'status': h._mapping['status'] or '',
-                        'comentario': h._mapping['comentario'] or '',
-                        'created_by': h._mapping['created_by'] or ''
-                    })
-                
+            for a in analises_auditado_raw:                
                 
                 analises_auditado_list.append({
                     'id': a._mapping['id'],
@@ -4770,8 +4751,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
                     'ganho_previsto': a._mapping['ganho_previsto'] or '',
                     'evidencia_nome': a._mapping['evidencia_nome'] or '',
-                    'evidencia_url': a._mapping['evidencia_url'] or '',
-                    'historico': historico_list
+                    'evidencia_url': a._mapping['evidencia_url'] or ''
                 })
             
             etapas.append({
@@ -4802,28 +4782,12 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             AND ac.tipo = 'auditor'
             ORDER BY ac.created_at ASC
         """)
+
+        # ⭐ EXECUTA A QUERY E POPULA A LISTA
         analises_auditor_raw = conn.execute(query_analises_auditor, {"processo_id": proc_id}).fetchall()
 
         analises_auditor_list = []
         for a in analises_auditor_raw:
-            # Buscar histórico e follow-ups (usando _mapping também)
-            query_historico = text("""
-                SELECT status, comentario, created_by, created_at
-                FROM analises_historico_andamento
-                WHERE analise_id = :analise_id
-                ORDER BY created_at ASC
-            """)
-            historico_raw = conn.execute(query_historico, {"analise_id": a._mapping['id']}).fetchall()
-            
-            historico_list = []
-            for h in historico_raw:
-                historico_list.append({
-                    'data': h._mapping['created_at'].strftime('%d/%m/%Y') if h._mapping['created_at'] else '',
-                    'status': h._mapping['status'] or '',
-                    'comentario': h._mapping['comentario'] or '',
-                    'created_by': h._mapping['created_by'] or ''
-                })
-            
             analises_auditor_list.append({
                 'id': a._mapping['id'],
                 'analise_critica': a._mapping['analise_critica'] or '',
@@ -4835,11 +4799,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 'necessidade_implantacao': a._mapping['necessidade_implantacao'] or '',
                 'ganho_previsto': a._mapping['ganho_previsto'] or '',
                 'evidencia_nome': a._mapping['evidencia_nome'] or '',
-                'evidencia_url': a._mapping['evidencia_url'] or '',
-                'historico': historico_list
-
+                'evidencia_url': a._mapping['evidencia_url'] or ''
             })
-        
+            
         # ===== 3. BUSCAR MATRIZES DE CHECKLIST (GOVERNANÇA, RISCOS, CONTROLES) =====
         checklist_tipos = ['governanca', 'riscos', 'controles']
         checklist_data = {}
@@ -5060,33 +5022,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             ]))
             story.append(tabela_plano)
     
-    # ===== FUNÇÃO AUXILIAR PARA EXIBIR HISTÓRICO =====
-    def adicionar_historico(historico):
-        if historico and len(historico) > 0:
-            story.append(Paragraph("<b>Histórico de Andamento:</b>", normal_style))
-            story.append(Spacer(1, 3))
-            
-            hist_data = [["Data", "Status", "Comentário", "Registrado por"]]
-            for h in historico:
-                hist_data.append([
-                    Paragraph(h['data'], normal_style),
-                    Paragraph(h['status'], normal_style),
-                    Paragraph(h['comentario'][:60] + ('...' if len(h['comentario']) > 60 else ''), normal_style),
-                    Paragraph(h['created_by'], normal_style)
-                ])
-            
-            tabela_hist = Table(hist_data, colWidths=[2.5*cm, 3*cm, 8*cm, 3.5*cm], repeatRows=1)
-            tabela_hist.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.09, 0.25, 0.27, alpha=0.60)),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#CCCCCC')),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ]))
-            story.append(tabela_hist)
-    
     # ===== FUNÇÃO AUXILIAR PARA EXIBIR ANÁLISE COMPLETA =====
     def adicionar_analise_auditado(analise, titulo):
         
@@ -5122,16 +5057,11 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             # Plano de Ação
             adicionar_plano_acao(analise)
             story.append(Spacer(1, 5))
-            
-            # Histórico de Andamento
-            if analise.get('historico') and len(analise['historico']) > 0:
-                adicionar_historico(analise['historico'])
-                story.append(Spacer(1, 5))
                 
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b><font color=#ff0000>*ESTA SUGESTÃO DE MELHORIA NÃO SERÁ IMPLANTADA</font></b>", normal_style))
         else:
-            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DESTA SUGESTÃO DE MELHORIA</font></b>", normal_style))
+            pass
         
         story.append(Spacer(1, 8))
 
@@ -5172,15 +5102,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             adicionar_plano_acao(analise)
             story.append(Spacer(1, 5))
             
-            # Histórico de Andamento
-            if analise.get('historico') and len(analise['historico']) > 0:
-                adicionar_historico(analise['historico'])
-                story.append(Spacer(1, 5))
-                
         elif analise.get('sugestao_sera_implantada') == False:
             story.append(Paragraph("<b><font color=#ff0000>*ESTA SUGESTÃO DE MELHORIA NÃO SERÁ IMPLANTADA</font></b>", normal_style))
         else:
-            story.append(Paragraph("<b><font color=#ff6000>*AGUARDANDO DECISÃO SOBRE IMPLANTAÇÃO DESTA SUGESTÃO DE MELHORIA</font></b>", normal_style))
+            pass
         
         story.append(Spacer(1, 8))
     
@@ -5512,8 +5437,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
 
     story.append(PageBreak())
     story.append(Paragraph("3. ANÁLISES E PARECER DO AUDITOR", secao_style))
-    story.append(Spacer(1, 10))
-    
+    story.append(Spacer(1, 10)) 
+
     if not analises_auditor_list:
         story.append(Paragraph("<i>Nenhuma análise do auditor cadastrada para este processo.</i>", normal_style))
     else:
@@ -5527,6 +5452,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 story.append(Spacer(1, 10))    
     
     styles.add(ParagraphStyle('titulo', parent=titulo_style))
+
     
     # ===== ASSINATURAS =====
     criar_pagina_validacao(
