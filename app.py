@@ -7929,13 +7929,15 @@ def api_auditorias_salvar():
             query = text("""
                 INSERT INTO auditorias (
                     codigo_auditoria, id_area, titulo, ano, trimestre, 
-                    data_inicio, data_fim, status, unidade, responsavel_equipe
+                    data_inicio, data_fim, status, unidade, responsavel_equipe,
+                    emergencial   -- <-- ADICIONE AQUI
                 ) VALUES (
                     :codigo, :id_area, :titulo, :ano, :trimestre,
-                    :data_inicio, :data_fim, :status, :unidade, :responsaveis
+                    :data_inicio, :data_fim, :status, :unidade, :responsaveis,
+                    :emergencial   -- <-- E AQUI
                 )
             """)
-            
+
             conn.execute(query, {
                 'codigo': data.get('codigo_auditoria'),
                 'id_area': data.get('id_area'),
@@ -7946,7 +7948,8 @@ def api_auditorias_salvar():
                 'data_fim': data.get('data_fim'),
                 'status': data.get('status', 'Planejamento'),
                 'unidade': data.get('unidade'),
-                'responsaveis': data.get('responsavel_equipe', [])
+                'responsaveis': data.get('responsavel_equipe', []),
+                'emergencial': data.get('emergencial', False)   # <-- ADICIONE
             })
             conn.commit()
             
@@ -8016,7 +8019,8 @@ def api_auditorias_atualizar(auditoria_id):
             # Atualizar
             query = text("""
                 UPDATE auditorias 
-                SET codigo_auditoria = :codigo,
+                SET 
+                    codigo_auditoria = :codigo,
                     id_area = :id_area,
                     titulo = :titulo,
                     ano = :ano,
@@ -8026,10 +8030,10 @@ def api_auditorias_atualizar(auditoria_id):
                     status = :status,
                     unidade = :unidade,
                     responsavel_equipe = :responsaveis,
-                    updated_at = NOW()
+                    emergencial = :emergencial   -- <-- ADICIONE
                 WHERE id = :id
             """)
-            
+
             conn.execute(query, {
                 'id': auditoria_id,
                 'codigo': data.get('codigo_auditoria'),
@@ -8041,7 +8045,8 @@ def api_auditorias_atualizar(auditoria_id):
                 'data_fim': data.get('data_fim'),
                 'status': data.get('status', 'Planejamento'),
                 'unidade': data.get('unidade'),
-                'responsaveis': data.get('responsavel_equipe', [])
+                'responsaveis': data.get('responsavel_equipe', []),
+                'emergencial': data.get('emergencial', False)   # <-- ADICIONE
             })
             conn.commit()
             
