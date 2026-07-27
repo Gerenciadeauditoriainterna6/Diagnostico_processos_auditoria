@@ -122,3 +122,6 @@ backup_supabase.py  # Ignorar o script (se não quiser versionar)
 # ============================================
 .streamlit/
 *.streamlit/
+
+
+Regras e Padronização de código - regras.md

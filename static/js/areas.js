@@ -447,9 +447,7 @@ async function buscarContagemFuncionarios(areaId) {
 }
 
 // ====== PERFIL DO USUÁRIO ======
-const usuarioPerfil = "{{ usuario_perfil }}";
-const isAdmin = usuarioPerfil === "administrador" || usuarioPerfil === "admin";
-console.log("Perfil do usuário:", usuarioPerfil, "é admin?", isAdmin);
+console.log("Perfil do usuário:", USUARIO_PERFIL, "é admin?", IS_ADMIN);
 
 // ====== CARREGAR DETALHES DA ÁREA ======
 

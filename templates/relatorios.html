@@ -1429,9 +1429,8 @@
                         <div class="conclusao-historico-item" style="${isOwn ? 'background: #e8f4f8; border-left-color: #0b5b99;' : ''}">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <div>
-                                    <span class="usuario">${escapeHtml(item.usuario_nome)}</span>
-                                    <span class="data">${item.created_at || ''}</span>
-                                    ${isOwnLabel}
+                                    <span class="usuario">Atualizado por: ${escapeHtml(item.usuario_nome)}</span>
+                                    <span class="data">Data/Hora da última atualização: ${item.updated_at || ''}</span>
                                 </div>
                             </div>
                             <div class="texto" style="margin-top: 6px; white-space: pre-wrap;">${escapeHtml(textoExibicao)}</div>

@@ -8135,8 +8135,8 @@ def api_auditorias_cancelar(auditoria_id):
         with engine.connect() as conn:
             query = text("""
                 UPDATE auditorias 
-                SET status = 'Cancelada', updated_at = NOW()
-                WHERE id = :id AND status != 'Cancelada'
+                SET status = 'CANCELADA', updated_at = NOW()
+                WHERE id = :id AND status != 'CANCELADA'
             """)
             result = conn.execute(query, {'id': auditoria_id})
             conn.commit()
