@@ -911,7 +911,7 @@ textarea.form-control {
 .analise-auditado-header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 

@@ -53,7 +53,7 @@ export function abrirModalNovaAnaliseAuditado(etapaId, etapaNome, categoria) {
         
     // Atualizar título e abrir modal
     document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-        '<i class="fas fa-clipboard-list"></i> Nova Análise do Auditado - ' + categoriaNome;
+        '<i class="fas fa-clipboard-list"></i> Nova Análise do Auditado - ' + ordemAnalise;
     
     document.getElementById('modal-analise-auditado').style.display = 'flex';
 }
@@ -367,8 +367,7 @@ export async function carregarAnalisesAuditado() {
                         <div class="analise-auditado-card" data-analise-id="${analise.id}">
                             <div class="analise-auditado-header" onclick="toggleAnaliseAuditadoCard(this)">
                                 <div class="analise-auditado-header-left">
-                                    <i class="fas ${categoriaIcon} ${categoriaClass}"></i>
-                                    <span class="analise-auditado-titulo">Análise ${ordemAnalise}</span>
+                                    <span class="analise-auditado-titulo"><i class="fas fa-file-alt"></i> Análise ${ordemAnalise}</span>
                                     ${badgeHtml}
                                     ${temEvidencia ? '<span style="color: #0b5b99; font-size: 12px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                                 </div>
@@ -675,7 +674,7 @@ export async function editarAnaliseAuditado(id) {
                 console.log('🎯 Radio checked após marcação:', document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked')?.value);
                 
                 document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-                    '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + categoriaNome;
+                    '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + ordemAnalise;
                 
                 document.getElementById('modal-analise-auditado').style.display = 'flex';
                 
