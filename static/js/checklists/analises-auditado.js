@@ -324,8 +324,11 @@ export async function carregarAnalisesAuditado() {
                         </div>
                         <div class="analise-etapa-body" style="display: none;">
                 `;
+
+                let ordemAnalise = 0;
                 
                 for (const analise of etapa.analises) {
+                    ordemAnalise++;
                     const categoriaIcon = analise.categoria === 'governanca' ? 'fa-briefcase' : (analise.categoria === 'riscos' ? 'fa-exclamation-triangle' : 'fa-shield-alt');
                     const categoriaClass = analise.categoria === 'governanca' ? 'categoria-governanca' : (analise.categoria === 'riscos' ? 'categoria-riscos' : 'categoria-controles');
                     const categoriaNome = analise.categoria === 'governanca' ? 'Governança' : (analise.categoria === 'riscos' ? 'Riscos' : 'Controles');
@@ -365,7 +368,7 @@ export async function carregarAnalisesAuditado() {
                             <div class="analise-auditado-header" onclick="toggleAnaliseAuditadoCard(this)">
                                 <div class="analise-auditado-header-left">
                                     <i class="fas ${categoriaIcon} ${categoriaClass}"></i>
-                                    <span class="analise-auditado-titulo">${categoriaNome}</span>
+                                    <span class="analise-auditado-titulo">Análise ${ordemAnalise}</span>
                                     ${badgeHtml}
                                     ${temEvidencia ? '<span style="color: #0b5b99; font-size: 12px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                                 </div>
