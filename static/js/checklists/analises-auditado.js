@@ -92,10 +92,10 @@ export function setupFileUploadEvidenciaAuditado() {
                 inputFile.value = '';
                 return;
             }
-            arquivoSelecionadoAuditadoEvidencia = file;
+            setArquivoSelecionadoAuditadoEvidencia(file);
             if (evidenciaTexto) evidenciaTexto.textContent = file.name;
             if (evidenciaDiv) evidenciaDiv.style.display = 'flex';
-            setAnexoExistenteAuditadoEvidencia(analise.evidencia_nome);
+            setAnexoExistenteAuditadoEvidencia(null);
             console.log('📎 Evidência do auditado selecionada:', file.name);
         }
     });
@@ -108,7 +108,7 @@ export function setupFileUploadEvidenciaAuditado() {
             if (evidenciaDiv) evidenciaDiv.style.display = 'none';
             if (evidenciaTexto) evidenciaTexto.textContent = '';
             
-            if (anexoExistenteAuditadoEvidencia) {
+            if (anexoExistenteAuditadoEvidencia) { 
                 let hidden = document.getElementById('remover-evidencia-auditado-hidden');
                 if (!hidden) {
                     hidden = document.createElement('input');
@@ -119,7 +119,7 @@ export function setupFileUploadEvidenciaAuditado() {
                 } else {
                     hidden.value = 'true';
                 }
-                setAnexoExistenteAuditadoEvidencia(analise.evidencia_nome);
+                setAnexoExistenteAuditadoEvidencia(null);
             }
             console.log('🗑️ Evidência do auditado removida');
         });
@@ -232,10 +232,10 @@ export function setupSemSugestaoCheckbox() {
         }
     }
     
-    // Quando o checkbox for marcado, preencher o textarea com "INEXISTENTE" e desabilitar
+    // Quando o checkbox for marcado, preencher o textarea com "NÃO APLICÁVEL NO MOMENTO" e desabilitar
     checkbox.addEventListener('change', function() {
         if (this.checked) {
-            textarea.value = 'INEXISTENTE';
+            textarea.value = 'NÃO APLICÁVEL NO MOMENTO';
             textarea.disabled = true;
             textarea.style.backgroundColor = '#f5f5f5';
             textarea.style.color = '#999';
@@ -252,7 +252,7 @@ export function setupSemSugestaoCheckbox() {
     
     // Se o usuário digitar algo no textarea, desmarcar o checkbox
     textarea.addEventListener('input', function() {
-        if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
+        if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'NÃO APLICÁVEL NO MOMENTO') {
             checkbox.checked = false;
             // ⭐ CHAMAR A FUNÇÃO PARA ALTERNAR OS CAMPOS
             toggleCamposSugestao();
@@ -287,10 +287,10 @@ export async function carregarAnalisesAuditado() {
             for (const [codigo, etapa] of Object.entries(etapas)) {
                 for (let i = 0; i < etapa.analises.length; i++) {
                     const analise = etapa.analises[i];
-                    const historico = await carregarHistoricoAndamento(analise.id);
-                    const followUps = await carregarFollowUps(analise.id);
                     
-                    // ⭐ CARREGAR PLANO DE AÇÃO SE HOUVER
+                    const historico = [];
+                    const followUps = [];
+                    
                     let plano = null;
                     if (analise.sugestao_sera_implantada === true) {
                         try {
@@ -330,8 +330,7 @@ export async function carregarAnalisesAuditado() {
                     const categoriaClass = analise.categoria === 'governanca' ? 'categoria-governanca' : (analise.categoria === 'riscos' ? 'categoria-riscos' : 'categoria-controles');
                     const categoriaNome = analise.categoria === 'governanca' ? 'Governança' : (analise.categoria === 'riscos' ? 'Riscos' : 'Controles');
                     
-                    // Verificar se tem sugestão de melhoria
-                    const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
+                    const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA', 'NÃO APLICÁVEL NO MOMENTO'];
                     const temSugestaoMelhoria = analise.sugestao_melhoria && 
                                             typeof analise.sugestao_melhoria === 'string' && 
                                             !valoresSemSugestao.includes(analise.sugestao_melhoria.trim().toLowerCase());
@@ -347,6 +346,20 @@ export async function carregarAnalisesAuditado() {
                         }
                     }
                     
+                    // ⭐⭐⭐ CORREÇÃO: Verificar evidência (igual ao auditor) ⭐⭐⭐
+                    const temEvidenciaIndividual = analise.evidencia_url && analise.evidencia_url.trim() !== '';
+                    const temEvidencia = temEvidenciaIndividual;
+                    
+                    // ⭐⭐⭐ CONSTRUIR LISTA DE EVIDÊNCIAS (igual ao auditor) ⭐⭐⭐
+                    let listaEvidencias = [];
+                    if (temEvidencia) {
+                        listaEvidencias = [{
+                            id: analise.id,
+                            nome_arquivo: analise.evidencia_nome || 'evidencia.pdf',
+                            caminho_arquivo: analise.evidencia_url
+                        }];
+                    }
+                    
                     html += `
                         <div class="analise-auditado-card" data-analise-id="${analise.id}">
                             <div class="analise-auditado-header" onclick="toggleAnaliseAuditadoCard(this)">
@@ -354,6 +367,7 @@ export async function carregarAnalisesAuditado() {
                                     <i class="fas ${categoriaIcon} ${categoriaClass}"></i>
                                     <span class="analise-auditado-titulo">${categoriaNome}</span>
                                     ${badgeHtml}
+                                    ${temEvidencia ? '<span style="color: #0b5b99; font-size: 12px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                                 </div>
                                 <div class="analise-auditado-actions" onclick="event.stopPropagation()">
                                     <button class="btn-edit-analise-auditado" onclick="editarAnaliseAuditado(${analise.id})" title="Editar análise">
@@ -392,16 +406,33 @@ export async function carregarAnalisesAuditado() {
                                 </div>
                                 ` : ''}
 
-                                ${analise.evidencia_nome ? `
-                                <div class="analise-card-section" style="margin-top: 15px; border-left: 3px solid #0b5b99; background: #f0f7ff;">
-                                    <h4><i class="fas fa-paperclip" style="color: #0b5b99;"></i> Evidência da Análise</h4>
-                                    <div style="display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
-                                        <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 20px;"></i>
-                                        <span style="font-size: 13px; color: #333; flex: 1;">${escapeHtml(analise.evidencia_nome)}</span>
-                                        <button onclick="event.stopPropagation(); baixarEvidenciaAuditadoChecklist(${analise.id}, '${escapeHtml(analise.evidencia_nome)}')" 
-                                                class="btn-download-evidencia solid">
-                                            <i class="fas fa-download"></i> Baixar
-                                        </button>
+                                <!-- ⭐ EVIDÊNCIAS - MESMO PADRÃO DO AUDITOR ⭐ -->
+                                ${temEvidencia ? `
+                                <div class="analise-card-section" style="margin-top: 20px; border-left: 3px solid #0b5b99; background: #f0f7ff; padding: 15px; border-radius: 8px;">
+                                    <h4 style="margin-bottom: 10px; color: #0b5b99;">
+                                        <i class="fas fa-paperclip"></i> Evidências da Análise
+                                    </h4>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+                                        ${listaEvidencias.map(ev => `
+                                            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                                <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 16px;"></i>
+                                                <span style="font-size: 13px; color: #333; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(ev.nome_arquivo)}">
+                                                    ${escapeHtml(ev.nome_arquivo)}
+                                                </span>
+                                                <button class="btn-download-anexo-auditado" 
+                                                        data-evidencia-id="${ev.id}" 
+                                                        data-nome-arquivo="${escapeHtml(ev.nome_arquivo)}"
+                                                        style="padding: 4px 12px; font-size: 11px; background: #0b5b99; border-radius: 6px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                                <!-- ⭐ BOTÃO DE REMOVER -->
+                                                <button class="btn-remove-evidencia-auditado" 
+                                                        data-analise-id="${ev.id}"
+                                                        style="padding: 4px 12px; font-size: 11px; background: #dc3545; border-radius: 6px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        `).join('')}
                                     </div>
                                 </div>
                                 ` : ''}
@@ -456,6 +487,30 @@ export async function carregarAnalisesAuditado() {
                 html += `</div></div>`;
             }
             container.innerHTML = html;
+
+            // ⭐ ADICIONAR EVENT LISTENERS PARA OS BOTÕES DE DOWNLOAD (igual ao auditor)
+            container.querySelectorAll('.btn-download-anexo-auditado').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const evidenciaId = this.dataset.evidenciaId;
+                    const nomeArquivo = this.dataset.nomeArquivo;
+                    console.log('🔽 Clique no download (auditado):', evidenciaId, nomeArquivo);
+                    baixarEvidenciaAuditadoChecklist(evidenciaId, nomeArquivo);
+                });
+            });
+
+            // ⭐ ADICIONAR EVENT LISTENERS PARA OS BOTÕES DE REMOVER
+            container.querySelectorAll('.btn-remove-evidencia-auditado').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const analiseId = this.dataset.analiseId;
+                    console.log('🗑️ Clique em remover evidência (auditado):', analiseId);
+                    removerEvidenciaAuditadoChecklist(analiseId);
+                });
+            });
+            
         } else {
             container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditado encontrada.</div>';
         }
@@ -496,14 +551,14 @@ export async function editarAnaliseAuditado(id) {
                 document.getElementById('analise-auditado-ganho').value = analise.ganho_previsto || '';
                 document.getElementById('analise-auditado-observacoes').value = analise.observacoes || '';
                 
-                // ⭐⭐⭐ NOVO: Verificar se o valor é "INEXISTENTE" para marcar o checkbox ⭐⭐⭐
+                // ⭐⭐⭐ NOVO: Verificar se o valor é "NÃO APLICÁVEL NO MOMENTO" para marcar o checkbox ⭐⭐⭐
                 const checkbox = document.getElementById('sem_sugestao_melhoria');
                 const textarea = document.getElementById('analise-auditado-sugestao');
                 const camposContainer = document.getElementById('campos-sugestao-melhoria');
                 
                 if (checkbox && textarea) {
                     const sugestaoValue = analise.sugestao_melhoria || '';
-                    if (sugestaoValue.trim().toUpperCase() === 'INEXISTENTE') {
+                    if (sugestaoValue.trim().toUpperCase() === 'NÃO APLICÁVEL NO MOMENTO') {
                         checkbox.checked = true;
                         textarea.disabled = true;
                         textarea.style.backgroundColor = '#f5f5f5';
@@ -584,12 +639,12 @@ export async function editarAnaliseAuditado(id) {
                 if (analise.sugestao_sera_implantada === true) {
                     valorParaMarcar = 'true';
                     
-                    if (analise.anexo_nome) {
-                        anexoExistenteNomeAuditado = analise.anexo_nome;
+                    if (analise.evidencia_nome) {
+                        setAnexoExistenteAuditadoEvidencia(analise.evidencia_nome);
                         const anexoDiv = document.getElementById('anexo-nome-auditado');
                         const anexoTexto = document.getElementById('anexo-nome-texto-auditado');
                         if (anexoDiv && anexoTexto) {
-                            anexoTexto.textContent = analise.anexo_nome;
+                            anexoTexto.textContent = analise.evidencia_nome;  // ✅ CORRETO
                             anexoDiv.style.display = 'flex';
                         }
                     }
@@ -647,7 +702,7 @@ export async function salvarAnaliseAuditado() {
     }
     
     // ⭐ VERIFICA SE TEM SUGESTÃO DE MELHORIA
-    const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
+    const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA', 'NÃO APLICÁVEL NO MOMENTO'];
     const temSugestaoMelhoria = sugestaoMelhoria.length > 0 && !valoresSemSugestao.includes(sugestaoMelhoria.trim().toLowerCase());
     
     // ⭐ BUSCAR O RADIO SELECIONADO
@@ -755,5 +810,35 @@ export async function salvarAnaliseAuditado() {
     } finally {
         btnSalvar.disabled = false;
         btnSalvar.innerHTML = textoOriginal;
+    }
+}
+
+// ============================================================
+// FUNÇÃO PARA REMOVER EVIDÊNCIA DO AUDITADO
+// ============================================================
+
+export async function removerEvidenciaAuditadoChecklist(analiseId) {
+    if (!confirm('⚠️ Tem certeza que deseja remover esta evidência?')) return;
+    
+    try {
+        mostrarToast('⏳ Removendo evidência...', 'info');
+        
+        const response = await fetchComAutenticacao(`/api/analise-auditado/${analiseId}/evidencia`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarToast('✅ Evidência removida com sucesso!', 'success');
+            
+            // ⭐ RECARREGAR AS ANÁLISES
+            await carregarAnalisesAuditado();
+        } else {
+            mostrarToast('❌ Erro ao remover evidência: ' + (data.error || 'Erro desconhecido'), 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao remover evidência:', error);
+        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
     }
 }
