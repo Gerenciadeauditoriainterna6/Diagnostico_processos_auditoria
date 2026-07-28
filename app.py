@@ -4951,8 +4951,8 @@ def api_upload_detalhamento():
         etapa_id = request.form.get('etapa_id', 'temp')
         titulo_obrigacao = request.form.get('titulo_obrigacao', '')
         
-        # ⭐ NOVO: Buscar auditoria_id se a etapa existir
-        auditoria_id = None
+        # ⭐ Buscar processo_id se necessário (opcional)
+        processo_id = None
         if etapa_id and etapa_id != 'temp':
             try:
                 from database import engine
@@ -4960,20 +4960,18 @@ def api_upload_detalhamento():
                 
                 with engine.connect() as conn:
                     query = text("""
-                        SELECT p.auditoria_id 
-                        FROM matriz_etapas e
-                        JOIN matriz_processos p ON e.processo_id = p.id
-                        WHERE e.id = :etapa_id
+                        SELECT processo_id 
+                        FROM etapas_processo 
+                        WHERE id = :etapa_id
                     """)
                     result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
                     if result:
-                        auditoria_id = result[0]
-                        print(f"📍 Auditoria ID encontrado para etapa {etapa_id}: {auditoria_id}")
+                        processo_id = result[0]
+                        print(f"📍 Processo ID encontrado para etapa {etapa_id}: {processo_id}")
                     else:
-                        print(f"⚠️ Etapa {etapa_id} não encontrada para buscar auditoria_id")
+                        print(f"⚠️ Etapa {etapa_id} não encontrada")
             except Exception as e:
-                print(f"⚠️ Erro ao buscar auditoria_id: {e}")
-                # Continua sem auditoria_id
+                print(f"⚠️ Erro ao buscar processo_id: {e}")
         
         # Validar tipo de arquivo
         tipos_permitidos = ['application/pdf']
@@ -4993,15 +4991,33 @@ def api_upload_detalhamento():
         from datetime import datetime
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_id = str(uuid.uuid4())[:8]
-        nome_unico = f"{timestamp}_{unique_id}"
         
-        # ⭐ Fazer upload passando o auditoria_id
-        url_arquivo = upload_para_bucket_detalhamento(
-            arquivo,
-            nome_unico,
-            tipo,
-            etapa_id,
-            auditoria_id 
+        # Limpar nome do arquivo
+        nome_original = arquivo.filename
+        nome_limpo = ''.join(c for c in nome_original if c.isalnum() or c in ' ._-')
+        nome_limpo = nome_limpo.replace(' ', '_')
+        
+        # Definir pasta baseada no tipo
+        if tipo == 'manual':
+            pasta = 'manuais'
+        elif tipo == 'obrigacao':
+            pasta = 'obrigacoes'
+        else:
+            pasta = 'outros'
+        
+        # ⭐ CONSTRUIR CAMINHO (com processo_id se disponível)
+        if processo_id:
+            caminho = f"{pasta}/processo_id_{processo_id}/etapa_id_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}"
+        else:
+            # Fallback: apenas com etapa_id
+            caminho = f"{pasta}/etapa_id_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}"
+        
+        # ⭐ CHAMAR FUNÇÃO GENÉRICA
+        url_arquivo = upload_arquivo_storage(
+            arquivo=arquivo,
+            caminho_destino=caminho,
+            bucket_name="detalhamento_etapas",
+            content_type="application/pdf"
         )
         
         if url_arquivo:
@@ -5010,8 +5026,8 @@ def api_upload_detalhamento():
                 'url': url_arquivo,
                 'nome_arquivo': arquivo.filename,
                 'tamanho': tamanho,
-                'nome_unico': nome_unico,
-                'auditoria_id': auditoria_id  # ⭐ Opcional: retornar para debug
+                'nome_unico': f"{timestamp}_{unique_id}",
+                'processo_id': processo_id
             })
         else:
             return jsonify({'success': False, 'error': 'Erro ao fazer upload para o bucket'}), 500
