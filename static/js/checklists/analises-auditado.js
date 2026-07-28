@@ -53,7 +53,7 @@ export function abrirModalNovaAnaliseAuditado(etapaId, etapaNome, categoria) {
         
     // Atualizar título e abrir modal
     document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-        '<i class="fas fa-clipboard-list"></i> Nova Análise do Auditado - ' + categoriaNome;
+        '<i class="fas fa-clipboard-list"></i> Nova Análise do Auditado - ' + ordemAnalise;
     
     document.getElementById('modal-analise-auditado').style.display = 'flex';
 }
@@ -324,8 +324,11 @@ export async function carregarAnalisesAuditado() {
                         </div>
                         <div class="analise-etapa-body" style="display: none;">
                 `;
+
+                let ordemAnalise = 0;
                 
                 for (const analise of etapa.analises) {
+                    ordemAnalise++;
                     const categoriaIcon = analise.categoria === 'governanca' ? 'fa-briefcase' : (analise.categoria === 'riscos' ? 'fa-exclamation-triangle' : 'fa-shield-alt');
                     const categoriaClass = analise.categoria === 'governanca' ? 'categoria-governanca' : (analise.categoria === 'riscos' ? 'categoria-riscos' : 'categoria-controles');
                     const categoriaNome = analise.categoria === 'governanca' ? 'Governança' : (analise.categoria === 'riscos' ? 'Riscos' : 'Controles');
@@ -364,8 +367,7 @@ export async function carregarAnalisesAuditado() {
                         <div class="analise-auditado-card" data-analise-id="${analise.id}">
                             <div class="analise-auditado-header" onclick="toggleAnaliseAuditadoCard(this)">
                                 <div class="analise-auditado-header-left">
-                                    <i class="fas ${categoriaIcon} ${categoriaClass}"></i>
-                                    <span class="analise-auditado-titulo">${categoriaNome}</span>
+                                    <span class="analise-auditado-titulo"><i class="fas fa-file-alt"></i> Análise ${ordemAnalise}</span>
                                     ${badgeHtml}
                                     ${temEvidencia ? '<span style="color: #0b5b99; font-size: 12px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                                 </div>
@@ -379,22 +381,22 @@ export async function carregarAnalisesAuditado() {
                             <div class="analise-auditado-body">
                                 <div class="analise-grid">
                                     <div class="analise-card-section">
-                                        <h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4>
+                                        <h4 class="cor-ponto-de-auditoria"><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4>
                                         <div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div>
                                     </div>
                                     <div class="analise-card-section">
-                                        <h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4>
+                                        <h4 class="cor-sugestao-de-melhoria"><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4>
                                         <div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div>
                                     </div>
                                 </div>
                                 
                                 <div class="analise-grid">
                                     <div class="analise-card-section">
-                                        <h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4>
+                                        <h4 class="cor-necessidade-para-implantacao"><i class="fas fa-tasks"></i> Necessidade para implantação da sugestão de melhoria</h4>
                                         <div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div>
                                     </div>
                                     <div class="analise-card-section">
-                                        <h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4>
+                                        <h4 class="cor-ganho-previsto"><i class="fas fa-chart-line"></i> Ganho Previsto</h4>
                                         <div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div>
                                     </div>
                                 </div>
@@ -672,7 +674,7 @@ export async function editarAnaliseAuditado(id) {
                 console.log('🎯 Radio checked após marcação:', document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked')?.value);
                 
                 document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-                    '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + categoriaNome;
+                    '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + ordemAnalise;
                 
                 document.getElementById('modal-analise-auditado').style.display = 'flex';
                 
