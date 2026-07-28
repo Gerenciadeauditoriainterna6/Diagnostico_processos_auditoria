@@ -100,7 +100,7 @@ export async function editarAnaliseAuditor(id) {
     document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
     document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
 
-    // Verificar se o valor é "INEXISTENTE" para marcar o checkbox
+    // Verificar se o valor é "NÃO APLICÁVEL NO MOMENTO" para marcar o checkbox
     const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
     const textarea = document.getElementById('analise-auditor-sugestao');
     const camposContainer = document.getElementById('campos-sugestao-melhoria-auditor');
@@ -138,7 +138,7 @@ export async function editarAnaliseAuditor(id) {
     
     if (checkbox && textarea) {
         const sugestaoValue = analise.sugestao_melhoria || '';
-        if (sugestaoValue.trim().toUpperCase() === 'INEXISTENTE') {
+        if (sugestaoValue.trim().toUpperCase() === 'NÃO APLICÁVEL NO MOMENTO') {
             checkbox.checked = true;
             textarea.disabled = true;
             textarea.style.backgroundColor = '#f5f5f5';
@@ -360,7 +360,7 @@ export async function renderizarAnalisesAuditor() {
         const temEvidencia = analise.evidencias && analise.evidencias.length > 0;
         
         // ⭐⭐⭐ MELHORIA: Verificar se TEM sugestão de melhoria ⭐⭐⭐
-        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
+        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA', 'NÃO APLICÁVEL NO MOMENTO'];
         const temSugestaoMelhoria = analise.sugestao_melhoria && 
                                 typeof analise.sugestao_melhoria === 'string' && 
                                 !valoresSemSugestao.includes(analise.sugestao_melhoria.trim().toLowerCase());
@@ -377,7 +377,7 @@ export async function renderizarAnalisesAuditor() {
                 badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhorias aguardando avaliação</span>';
             }
         }
-        // Se não tiver sugestão ou for "INEXISTENTE", badgeHtml permanece vazio
+        // Se não tiver sugestão ou for "NÃO APLICÁVEL NO MOMENTO", badgeHtml permanece vazio
         
         html += `<div class="analise-auditor-card" data-analise-id="${analise.id}">
             <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
@@ -713,7 +713,7 @@ export function setupSemSugestaoCheckboxAuditor() {
     
     checkbox.addEventListener('change', function() {
         if (this.checked) {
-            textarea.value = 'INEXISTENTE';
+            textarea.value = 'NÃO APLICÁVEL NO MOMENTO';
             textarea.disabled = true;
             textarea.style.backgroundColor = '#f5f5f5';
             textarea.style.color = '#999';
@@ -728,7 +728,7 @@ export function setupSemSugestaoCheckboxAuditor() {
     });
     
     textarea.addEventListener('input', function() {
-        if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
+        if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'NÃO APLICÁVEL NO MOMENTO') {
             checkbox.checked = false;
             toggleCamposSugestaoAuditor();
         }
