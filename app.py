@@ -5732,18 +5732,21 @@ def baixar_evidencia_checklist_route(evidencia_id):
             content_type = result[4] or 'application/pdf'
         
         print(f"📥 Baixando evidência: id={evidencia_id}, nome={nome_arquivo}")
-        print(f"📥 Caminho: {caminho_arquivo}")
+        print(f"📥 Caminho salvo no banco: {caminho_arquivo}")
         
         # 2. VERIFICAR SE É URL OU CAMINHO
         if caminho_arquivo.startswith('https://'):
-            # Já é uma URL - redirecionar ou baixar
+            # Já é uma URL - redirecionar
             from flask import redirect
+            print(f"📥 É uma URL, redirecionando...")
             return redirect(caminho_arquivo)
         
-        # 3. ⭐ USAR A FUNÇÃO DO UTILS PARA BAIXAR
-        file_bytes = baixar_evidencia_checklist(caminho_arquivo, "matriz_eficacia")
+        # 3. ⭐ USAR A FUNÇÃO GENÉRICA PARA BAIXAR
+        print(f"📥 É um caminho, baixando do storage...")
+        file_bytes = baixar_arquivo_storage(caminho_arquivo, "matriz_eficacia")
         
         if file_bytes:
+            print(f"✅ Arquivo baixado! Tamanho: {len(file_bytes)} bytes")
             return send_file(
                 io.BytesIO(file_bytes),
                 download_name=nome_arquivo,
@@ -5751,10 +5754,12 @@ def baixar_evidencia_checklist_route(evidencia_id):
                 as_attachment=True
             )
         
-        # 4. ⭐ TENTAR GERAR URL ASSINADA
-        signed_url = obter_url_assinada_checklist(caminho_arquivo, "matriz_eficacia", 3600)
+        # 4. ⭐ TENTAR GERAR URL ASSINADA (fallback)
+        print(f"📥 Tentando gerar URL assinada...")
+        signed_url = obter_url_assinada(caminho_arquivo, "matriz_eficacia", 3600)
         if signed_url:
             from flask import redirect
+            print(f"✅ URL assinada gerada, redirecionando...")
             return redirect(signed_url)
         
         return jsonify({'success': False, 'error': 'Erro ao baixar evidência'}), 500
@@ -5835,6 +5840,8 @@ def salvar_evidencia_checklist_route():
     from database import engine
     from sqlalchemy import text
     import base64
+    import uuid
+    from datetime import datetime
     
     try:
         data = request.json
@@ -5863,16 +5870,39 @@ def salvar_evidencia_checklist_route():
             checklist_id = resposta[1]
             pergunta_ordem = resposta[2]
             
-            # ⭐ USAR A FUNÇÃO DO UTILS
-            caminho = upload_evidencia_checklist(
-                checklist_id=checklist_id,
-                pergunta_ordem=pergunta_ordem,
-                evidencia_base64=evidencia_base64,
-                evidencia_nome=evidencia_nome,
-                bucket_name="matriz_eficacia"
+            # ⭐ DECODIFICAR BASE64
+            if ',' in evidencia_base64:
+                evidencia_base64 = evidencia_base64.split(',')[1]
+            file_bytes = base64.b64decode(evidencia_base64)
+            
+            # ⭐ GERAR NOME ÚNICO
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_id = str(uuid.uuid4())[:8]
+            
+            # ⭐ LIMPAR NOME
+            nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+            nome_limpo = nome_limpo.replace(' ', '_')
+            
+            # ⭐ CONSTRUIR CAMINHO
+            # Estrutura: checklists/{checklist_id}/pergunta_{ordem}/{timestamp}_{uuid}_{nome}.pdf
+            caminho = f"checklists/checklist_id_{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{nome_limpo}"
+            
+            # ⭐ CHAMAR FUNÇÃO GENÉRICA
+            url_retornada = upload_arquivo_storage(
+                arquivo=file_bytes,
+                caminho_destino=caminho,
+                bucket_name="matriz_eficacia",
+                content_type="application/pdf"
             )
             
-            if not caminho:
+            # ⭐ IMPORTANTE: Para checklist, precisamos do CAMINHO, não da URL
+            # A função retorna a URL assinada, mas o banco espera o caminho
+            # Então usamos o caminho que construímos
+            if url_retornada:
+                # Upload foi bem-sucedido, salvar o caminho no banco
+                caminho_para_salvar = caminho
+                print(f"📎 Evidência salva: {caminho_para_salvar}")
+            else:
                 return jsonify({'success': False, 'error': 'Erro ao fazer upload da evidência'}), 500
             
             # Calcular tamanho
@@ -5893,7 +5923,7 @@ def salvar_evidencia_checklist_route():
             result = conn.execute(query_insert, {
                 'resposta_id': resposta_id,
                 'nome_arquivo': evidencia_nome,
-                'caminho_arquivo': caminho,
+                'caminho_arquivo': caminho_para_salvar,
                 'tamanho_bytes': tamanho_aproximado,
                 'content_type': 'application/pdf'
             })
@@ -5906,7 +5936,7 @@ def salvar_evidencia_checklist_route():
                 'evidencia': {
                     'id': evidencia_id,
                     'nome': evidencia_nome,
-                    'caminho': caminho,
+                    'caminho': caminho_para_salvar,
                     'tamanho': tamanho_aproximado
                 }
             })
