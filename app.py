@@ -5798,17 +5798,28 @@ def remover_evidencia_checklist_route(evidencia_id):
             caminho_arquivo = result[2]
             
             print(f"🗑️ Removendo evidência: id={evidencia_id}, nome={nome_arquivo}")
+            print(f"🗑️ Caminho salvo no banco: {caminho_arquivo}")
             
-            # 2. ⭐ REMOVER DO STORAGE USANDO A FUNÇÃO DO UTILS
+            # 2. ⭐ REMOVER DO STORAGE USANDO A FUNÇÃO GENÉRICA
             if caminho_arquivo:
-                # Se for URL, extrair o caminho
-                if caminho_arquivo.startswith('https://'):
-                    from utils import extrair_caminho_da_url
-                    caminho, _ = extrair_caminho_da_url(caminho_arquivo)
-                    if caminho:
-                        caminho_arquivo = caminho
-                
-                remover_evidencia_checklist(caminho_arquivo, "matriz_eficacia")
+                try:
+                    # Verificar se é URL ou caminho direto
+                    if caminho_arquivo.startswith('https://'):
+                        # É uma URL - extrair caminho e bucket
+                        from utils import extrair_caminho_da_url
+                        caminho, bucket = extrair_caminho_da_url(caminho_arquivo)
+                        if caminho and bucket:
+                            print(f"📎 Extraído - caminho: {caminho}, bucket: {bucket}")
+                            excluir_arquivo_storage(caminho, bucket)
+                        else:
+                            print(f"⚠️ Não foi possível extrair caminho da URL: {caminho_arquivo}")
+                    else:
+                        # É um caminho direto - usar diretamente
+                        print(f"📎 Caminho direto: {caminho_arquivo}")
+                        excluir_arquivo_storage(caminho_arquivo, "matriz_eficacia")
+                except Exception as e:
+                    print(f"⚠️ Erro ao remover do storage: {e}")
+                    # Continua mesmo se falhar para remover do banco
             
             # 3. REMOVER DO BANCO
             query_delete = text("""
