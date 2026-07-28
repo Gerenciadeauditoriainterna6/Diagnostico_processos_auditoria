@@ -2,10 +2,12 @@ print("🔵 Arquivo analise_routes.py CARREGADO!")
 
 from flask import Blueprint, request, jsonify, session, redirect, send_file
 from services.analise_service import AnaliseService
-from utils.storage_utils import upload_evidencia_storage  # ⭐ IMPORTAR FUNÇÃO DE UPLOAD
 from database import engine
 from sqlalchemy import text
+from utils import upload_arquivo_storage, excluir_arquivo_storage, extrair_caminho_da_url
 import base64
+import uuid
+from datetime import datetime
 import io
 from urllib.parse import urlparse, unquote
 import re
@@ -131,18 +133,27 @@ def api_analise_auditor_salvar():
                     evidencia_file.seek(0)
                     evidencia_bytes = evidencia_file.read()
                 
-                # Converter para base64
-                evidencia_base64 = base64.b64encode(evidencia_bytes).decode('utf-8')
+                # ⭐ CONSTRUIR CAMINHO PARA AUDITOR
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = str(uuid.uuid4())[:8]
                 
-                # ⭐ CHAMAR UPLOAD
-                evidencia_url = upload_evidencia_storage(
-                    novo_id, 
-                    evidencia_base64, 
-                    evidencia_nome
+                # Limpar nome
+                nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+                nome_limpo = nome_limpo.replace(' ', '_')
+                
+                # Caminho: analises_auditor/analise_{id}/{timestamp}_{uuid}_{nome}.pdf
+                caminho = f"analises_auditor/analise_{novo_id}/{timestamp}_{unique_id}_{nome_limpo}.pdf"
+                
+                # ⭐ CHAMAR FUNÇÃO GENÉRICA
+                evidencia_url = upload_arquivo_storage(
+                    arquivo=evidencia_bytes,
+                    caminho_destino=caminho,
+                    bucket_name="evidencia_analises_auditor",
+                    content_type="application/pdf"
                 )
                 
                 if evidencia_url:
-                    AnaliseService.atualizar_evidencia(novo_id, evidencia_url, evidencia_nome)
+                    AnaliseService.atualizar_evidencia(novo_id, caminho, evidencia_nome)
                     print(f"📎 Evidência salva: {evidencia_nome}")
                     
             except Exception as e:
@@ -217,23 +228,77 @@ def api_analise_auditado_salvar():
         
         if evidencia_base64 and evidencia_nome:
             try:
-                evidencia_url = upload_evidencia_storage(
-                    None,  # ID será gerado depois
-                    evidencia_base64,
-                    evidencia_nome
+                # ⭐ DECODIFICAR BASE64
+                if ',' in evidencia_base64:
+                    evidencia_base64 = evidencia_base64.split(',')[1]
+                file_bytes = base64.b64decode(evidencia_base64)
+                
+                # ⭐ CONSTRUIR CAMINHO PARA AUDITADO
+                # (ID ainda não existe, mas o service vai gerar)
+                # Vamos usar um ID temporário e depois atualizar
+                analise_id_temp = int(datetime.now().timestamp())
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = str(uuid.uuid4())[:8]
+                
+                # Limpar nome
+                nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+                nome_limpo = nome_limpo.replace(' ', '_')
+                
+                # Caminho: analises_auditado/analise_{id}/etapa_{etapa_id}/{timestamp}_{uuid}_{nome}.pdf
+                caminho = f"analises_auditado/analise_id_{analise_id_temp}/etapa_id_{payload['etapa_id']}/{timestamp}_{unique_id}_{nome_limpo}.pdf"
+                
+                # ⭐ CHAMAR FUNÇÃO GENÉRICA
+                evidencia_url = upload_arquivo_storage(
+                    arquivo=file_bytes,
+                    caminho_destino=caminho,
+                    bucket_name="evidencia_analises_auditado",
+                    content_type="application/pdf"
                 )
-                payload['evidencia_url'] = evidencia_url
-                payload['evidencia_nome'] = evidencia_nome
+                
+                if evidencia_url:
+                    payload['evidencia_url'] = caminho  
+                    payload['evidencia_nome'] = evidencia_nome
+                    payload['_caminho_evidencia'] = caminho  
+                    payload['_analise_id_temp'] = analise_id_temp
+                    
             except Exception as e:
                 print(f"⚠️ Erro ao processar evidência: {e}")
     
     try:
         novo_id = AnaliseService.criar(payload)
+        
+        if payload.get('_caminho_evidencia') and payload.get('_analise_id_temp'):
+            caminho_antigo = payload['_caminho_evidencia']
+            analise_id_temp = payload['_analise_id_temp']
+            
+            caminho_novo = caminho_antigo.replace(f"analise_{analise_id_temp}", f"analise_{novo_id}")
+            
+            try:
+                from utils import baixar_arquivo_storage, excluir_arquivo_storage
+                
+                file_bytes = baixar_arquivo_storage(caminho_antigo, "evidencia_analises_auditado")
+                if file_bytes:
+                    # ⭐ FAZER UPLOAD COM O NOVO CAMINHO
+                    nova_url = upload_arquivo_storage(
+                        arquivo=file_bytes,
+                        caminho_destino=caminho_novo,
+                        bucket_name="evidencia_analises_auditado",
+                        content_type="application/pdf"
+                    )
+                    if nova_url:
+                        # ⭐ SALVAR APENAS O CAMINHO (NÃO A URL)
+                        AnaliseService.atualizar_evidencia(novo_id, caminho_novo, evidencia_nome)  # ← Usar caminho_novo
+                        excluir_arquivo_storage(caminho_antigo, "evidencia_analises_auditado")
+                        print(f"📎 Evidência renomeada para: {caminho_novo}")
+            except Exception as e:
+                print(f"⚠️ Erro ao renomear evidência: {e}")
+        
         return jsonify({
             'success': True,
             'id': novo_id,
             'message': 'Análise salva com sucesso'
         })
+        
     except Exception as e:
         print(f"❌ Erro: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -262,18 +327,11 @@ def api_analise_auditor_atualizar(analise_id):
     # ⭐ EXTRAIR CAMPOS PARA UPDATE
     dados_para_atualizar = {}
     campos_permitidos = ['analise_critica', 'sugestao_melhoria', 'necessidade_implantacao',
-                        'ganho_previsto', 'observacoes', 'status', 'sugestao_sera_implantada', 'plano_acao_id']  # ⭐ ADICIONADO
+                        'ganho_previsto', 'observacoes', 'status', 'sugestao_sera_implantada', 'plano_acao_id']
     
     for campo in campos_permitidos:
         if campo in data:
             dados_para_atualizar[campo] = data.get(campo)
-    
-    # ⭐ LOG PARA VER O QUE ESTÁ CHEGANDO
-    print("=" * 50)
-    print("📥 Dados para atualizar:")
-    print(f"  sugestao_sera_implantada: {dados_para_atualizar.get('sugestao_sera_implantada')}")
-    print(f"  tipo: {type(dados_para_atualizar.get('sugestao_sera_implantada'))}")
-    print("=" * 50)
     
     if not dados_para_atualizar:
         return jsonify({'success': False, 'error': 'Nenhum campo válido para atualizar'}), 400
@@ -297,20 +355,32 @@ def api_analise_auditor_atualizar(analise_id):
                     evidencia_file.seek(0)
                     evidencia_bytes = evidencia_file.read()
                 
-                evidencia_base64 = base64.b64encode(evidencia_bytes).decode('utf-8')
-                evidencia_url = upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome)
+                # ⭐ CONSTRUIR CAMINHO PARA AUDITOR
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = str(uuid.uuid4())[:8]
+                
+                # Limpar nome
+                nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+                nome_limpo = nome_limpo.replace(' ', '_')
+                
+                # Caminho: analises_auditor/analise_{id}/{timestamp}_{uuid}_{nome}.pdf
+                caminho = f"analises_auditor/analise_{analise_id}/{timestamp}_{unique_id}_{nome_limpo}.pdf"
+                
+                # ⭐ CHAMAR FUNÇÃO GENÉRICA
+                evidencia_url = upload_arquivo_storage(
+                    arquivo=evidencia_bytes,
+                    caminho_destino=caminho,
+                    bucket_name="evidencia_analises_auditor",
+                    content_type="application/pdf"
+                )
                 
                 if evidencia_url:
-                    AnaliseService.atualizar_evidencia(analise_id, evidencia_url, evidencia_nome)
+                    AnaliseService.atualizar_evidencia(analise_id, caminho, evidencia_nome)
                     print(f"📎 Evidência atualizada: {evidencia_nome}")
                     
             except Exception as e:
                 print(f"⚠️ Erro ao atualizar evidência: {e}")
         
-        # ⭐ 3. REMOVER EVIDÊNCIA (se solicitado)
-        if data.get('remover_evidencia') == 'true':
-            AnaliseService.atualizar_evidencia(analise_id, None, None)
-            print(f"🗑️ Evidência removida da análise {analise_id}")
         
         return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
         
@@ -362,17 +432,45 @@ def api_analise_auditado_atualizar(analise_id):
         
         if evidencia_base64 and evidencia_nome:
             try:
-                evidencia_url = upload_evidencia_storage(analise_id, evidencia_base64, evidencia_nome)
+                # ⭐ DECODIFICAR BASE64
+                if ',' in evidencia_base64:
+                    evidencia_base64 = evidencia_base64.split(',')[1]
+                file_bytes = base64.b64decode(evidencia_base64)
+                
+                # ⭐ CONSTRUIR CAMINHO PARA AUDITADO
+                # Precisamos buscar a etapa_id da análise
+                analise = AnaliseService.buscar_por_id(analise_id)
+                etapa_id = analise.get('etapa_id') if analise else None
+                
+                if not etapa_id:
+                    print("⚠️ Etapa não encontrada para a análise")
+                    return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+                
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = str(uuid.uuid4())[:8]
+                
+                # Limpar nome
+                nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+                nome_limpo = nome_limpo.replace(' ', '_')
+                
+                # Caminho: analises_auditado/analise_{id}/etapa_{etapa_id}/{timestamp}_{uuid}_{nome}.pdf
+                caminho = f"analises_auditado/analise_id_{analise_id}/etapa_id_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}.pdf"
+                
+                # ⭐ CHAMAR FUNÇÃO GENÉRICA
+                evidencia_url = upload_arquivo_storage(
+                    arquivo=file_bytes,
+                    caminho_destino=caminho,
+                    bucket_name="evidencia_analises_auditado",
+                    content_type="application/pdf"
+                )
+                
                 if evidencia_url:
-                    AnaliseService.atualizar_evidencia(analise_id, evidencia_url, evidencia_nome)
+                    AnaliseService.atualizar_evidencia(analise_id, caminho, evidencia_nome)
                     print(f"📎 Evidência atualizada: {evidencia_nome}")
+                    
             except Exception as e:
                 print(f"⚠️ Erro ao atualizar evidência: {e}")
         
-        # ⭐ Remover evidência (se solicitado)
-        if data.get('remover_evidencia') == 'true':
-            AnaliseService.atualizar_evidencia(analise_id, None, None)
-            print(f"🗑️ Evidência removida da análise {analise_id}")
         
         return jsonify({'success': True, 'message': 'Análise atualizada com sucesso'})
         
@@ -387,11 +485,18 @@ def api_analise_auditado_atualizar(analise_id):
 
 @analise_bp.route('/analise-auditado/<int:analise_id>/evidencia', methods=['GET'])
 def api_analise_auditado_evidencia(analise_id):
-    """Baixa a evidência de uma análise do auditado"""
+    """Baixa a evidência de uma análise do auditado diretamente do Storage"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     try:
+        from database import engine
+        from sqlalchemy import text
+        from flask import send_file
+        import io
+        import re
+        from urllib.parse import unquote
+        
         with engine.connect() as conn:
             query = text("""
                 SELECT evidencia_url, evidencia_nome
@@ -405,94 +510,123 @@ def api_analise_auditado_evidencia(analise_id):
             
             evidencia_url = result[0]
             evidencia_nome = result[1] or 'evidencia.pdf'
+        
+        print(f"📥 URL original: {evidencia_url}")
+        
+        # ⭐ SE FOR UM CAMINHO PURO (SEM HTTP), USAR DIRETAMENTE
+        file_path = None
+        if not evidencia_url.startswith('http'):
+            file_path = evidencia_url
+            print(f"📥 Caminho direto: {file_path}")
+        else:
+            # ⭐ EXTRAIR O CAMINHO DO ARQUIVO (URL COMPLETA)
+            # Método 1: Extrair depois de "evidencia_analises_auditado/"
+            if 'evidencia_analises_auditado/' in evidencia_url:
+                partes = evidencia_url.split('evidencia_analises_auditado/')
+                if len(partes) > 1:
+                    file_path = partes[1].split('?')[0]
+                    file_path = unquote(file_path)
+                    print(f"📥 Caminho extraído (método 1): {file_path}")
             
-            # Extrair caminho para regenerar assinatura
-            parsed = urlparse(evidencia_url)
-            path_parts = parsed.path.split('/')
+            # Método 2: Usar regex para /object/...
+            if not file_path:
+                padrao = r'/object/(?:public|sign|authenticated)/[^/]+/(.+)'
+                match = re.search(padrao, evidencia_url)
+                if match:
+                    file_path = match.group(1).split('?')[0]
+                    file_path = unquote(file_path)
+                    print(f"📥 Caminho extraído (método 2): {file_path}")
             
-            caminho = None
-            for i, part in enumerate(path_parts):
-                if part == 'evidencia_analises_auditado' and i + 1 < len(path_parts):
-                    caminho = '/'.join(path_parts[i+1:])
-                    if '?' in caminho:
-                        caminho = caminho.split('?')[0]
-                    break
-            
-            if caminho:
-                from supabase_client import SupabaseClient
-                supabase = SupabaseClient.get_instance()
-                
-                url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
-                    path=caminho,
-                    expires_in=604800
-                )
-                
-                update_query = text("""
-                    UPDATE analises_criticas 
-                    SET evidencia_url = :evidencia_url
-                    WHERE id = :id
-                """)
-                conn.execute(update_query, {
-                    'evidencia_url': url_assinada['signedURL'],
-                    'id': analise_id
-                })
-                conn.commit()
-                
-                return redirect(url_assinada['signedURL'])
-            
-            return redirect(evidencia_url)
+            # ⭐ SE O CAMINHO NÃO COMEÇAR COM "analises_auditado/", AJUSTAR
+            if file_path and not file_path.startswith('analises_auditado/'):
+                if file_path.startswith('analises_auditado'):
+                    file_path = file_path.replace('analises_auditado', 'analises_auditado/', 1)
+                elif 'evidencia_analises_auditado/' in file_path:
+                    file_path = file_path.split('evidencia_analises_auditado/')[-1]
+                print(f"📥 Caminho ajustado: {file_path}")
+        
+        if not file_path:
+            return jsonify({'success': False, 'error': 'Não foi possível extrair o caminho do arquivo'}), 400
+        
+        print(f"📥 Bucket: evidencia_analises_auditado")
+        print(f"📥 File path FINAL: {file_path}")
+        
+        # ⭐ USAR A FUNÇÃO GENÉRICA PARA BAIXAR
+        from utils import baixar_arquivo_storage
+        
+        bucket = "evidencia_analises_auditado"
+        file_bytes = baixar_arquivo_storage(file_path, bucket)
+        
+        if not file_bytes:
+            return jsonify({'success': False, 'error': f'Arquivo não encontrado no storage: {file_path}'}), 500
+        
+        # ⭐ ENVIAR COMO ATTACHMENT (FORÇA O DOWNLOAD)
+        return send_file(
+            io.BytesIO(file_bytes),
+            download_name=evidencia_nome,
+            mimetype='application/pdf',
+            as_attachment=True
+        )
             
     except Exception as e:
         print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @analise_bp.route('/analise-auditor/evidencia/<int:evidencia_id>/download')
 def baixar_evidencia_analise_auditor(evidencia_id):
-    """Baixa a evidência do Storage"""
+    """Baixa a evidência diretamente do Storage (sem abrir no navegador)"""
     if not session.get('autenticado'):
         return jsonify({'error': 'Não autenticado'}), 401
     
     try:
+        from database import engine
+        from sqlalchemy import text
+        from flask import send_file
+        import io
+        
         with engine.connect() as conn:
             query = text("""
-                SELECT evidencia_url, evidencia_nome 
+                SELECT evidencia_nome 
                 FROM analises_criticas 
                 WHERE id = :id AND tipo = 'auditor'
             """)
             result = conn.execute(query, {'id': evidencia_id}).fetchone()
             
-            if not result or not result[0]:
+            if not result:
                 return jsonify({'error': 'Evidência não encontrada'}), 404
             
-            evidencia_url = result[0]
-            evidencia_nome = result[1] or 'evidencia.pdf'
+            evidencia_nome = result[0] or 'evidencia.pdf'
         
-        # Extrair caminho
-        match = re.search(r'/sign/[^/]+/(.+)', evidencia_url)
-        if not match:
-            return jsonify({'error': 'Não foi possível extrair o caminho do arquivo'}), 400
+        # ⭐ CONSTRUIR O CAMINHO CORRETO
+        # Caminho: analises_auditor/analise_id_{id}/{nome_arquivo}
+        file_path = f"analises_auditor/analise_id_{evidencia_id}/{evidencia_nome}"
         
-        file_path = match.group(1).split('?')[0]
-        file_path = unquote(file_path)
+        print(f"📥 Baixando: {file_path}")
         
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
+        # ⭐ USAR A FUNÇÃO GENÉRICA PARA BAIXAR
+        from utils import baixar_arquivo_storage
         
-        response = supabase.storage.from_('evidencia_analises_auditor').download(file_path)
+        bucket = "evidencia_analises_auditor"
+        file_bytes = baixar_arquivo_storage(file_path, bucket)
         
-        if response:
-            return send_file(
-                io.BytesIO(response),
-                download_name=evidencia_nome,
-                mimetype='application/pdf',
-                as_attachment=True
-            )
-        else:
-            return jsonify({'error': 'Erro ao baixar arquivo'}), 500
+        if not file_bytes:
+            return jsonify({'error': 'Arquivo não encontrado no storage'}), 500
+        
+        # ⭐ ENVIAR COMO ATTACHMENT (FORÇA O DOWNLOAD)
+        return send_file(
+            io.BytesIO(file_bytes),
+            download_name=evidencia_nome,
+            mimetype='application/pdf',
+            as_attachment=True  # ⭐ FORÇA O DOWNLOAD EM VEZ DE ABRIR
+        )
             
     except Exception as e:
         print(f"❌ Erro: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
@@ -524,39 +658,6 @@ def api_analise_auditor_anexo(analise_id):
             
             if len(anexo_bytes) < 100:
                 return jsonify({'error': 'Arquivo muito pequeno (corrompido)'}), 400
-            
-            return send_file(
-                io.BytesIO(anexo_bytes),
-                mimetype='application/pdf',
-                as_attachment=True,
-                download_name=anexo_nome
-            )
-            
-    except Exception as e:
-        print(f"❌ Erro: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@analise_bp.route('/analise-auditado/<int:analise_id>/anexo')
-def api_analise_auditado_anexo(analise_id):
-    """Baixa o anexo PDF de uma análise do auditado"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(text("""
-                SELECT anexo_base64, anexo_nome 
-                FROM analises_criticas 
-                WHERE id = :id AND tipo = 'auditado'
-            """), {'id': analise_id})
-            row = result.fetchone()
-            
-            if not row or not row[0]:
-                return jsonify({'error': 'Arquivo não encontrado'}), 404
-            
-            anexo_bytes = bytes(row[0]) if hasattr(row[0], '__iter__') else row[0]
-            anexo_nome = row[1] or f'anexo_auditado_{analise_id}.pdf'
             
             return send_file(
                 io.BytesIO(anexo_bytes),
@@ -641,4 +742,162 @@ def api_confirmar_implantacao_auditado(analise_id):
             
     except Exception as e:
         print(f"❌ Erro: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@analise_bp.route('/analise-auditor/<int:analise_id>/evidencia', methods=['DELETE'])
+def api_remover_evidencia_analise_auditor(analise_id):
+    """
+    Remove a evidência de uma análise do auditor
+    - Remove o arquivo do storage
+    - Limpa os campos evidencia_url e evidencia_nome no banco
+    """
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        from database import engine
+        from sqlalchemy import text
+        from utils import excluir_arquivo_storage, extrair_caminho_da_url
+        
+        with engine.connect() as conn:
+            # 1. Buscar a evidência atual
+            query = text("""
+                SELECT evidencia_url, evidencia_nome
+                FROM analises_criticas
+                WHERE id = :id AND tipo = 'auditor'
+            """)
+            result = conn.execute(query, {'id': analise_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            evidencia_url = result[0]
+            evidencia_nome = result[1]
+            
+            if not evidencia_url:
+                return jsonify({'success': False, 'error': 'Nenhuma evidência encontrada para remover'}), 404
+            
+            print(f"🗑️ Removendo evidência da análise {analise_id}: {evidencia_nome}")
+            print(f"🗑️ Caminho: {evidencia_url}")
+            
+            # 2. REMOVER DO STORAGE
+            try:
+                # Verificar se é URL ou caminho
+                if evidencia_url.startswith('http'):
+                    caminho, bucket = extrair_caminho_da_url(evidencia_url)
+                else:
+                    caminho = evidencia_url
+                    bucket = "evidencia_analises_auditor"
+                
+                if caminho:
+                    excluir_arquivo_storage(caminho, bucket)
+                    print(f"✅ Arquivo removido do storage: {caminho}")
+                else:
+                    print("⚠️ Não foi possível extrair o caminho do arquivo")
+                    
+            except Exception as e:
+                print(f"⚠️ Erro ao remover do storage: {e}")
+                # Continua para limpar o banco mesmo se falhar no storage
+            
+            # 3. LIMPAR OS CAMPOS NO BANCO
+            query_update = text("""
+                UPDATE analises_criticas
+                SET evidencia_url = NULL,
+                    evidencia_nome = NULL,
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            conn.execute(query_update, {'id': analise_id})
+            conn.commit()
+            
+            print(f"✅ Campos de evidência limpos na análise {analise_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Evidência removida com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@analise_bp.route('/analise-auditado/<int:analise_id>/evidencia', methods=['DELETE'])
+def api_remover_evidencia_analise_auditado(analise_id):
+    """
+    Remove a evidência de uma análise do auditado
+    - Remove o arquivo do storage
+    - Limpa os campos evidencia_url e evidencia_nome no banco
+    """
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        from database import engine
+        from sqlalchemy import text
+        from utils import excluir_arquivo_storage, extrair_caminho_da_url
+        
+        with engine.connect() as conn:
+            # 1. Buscar a evidência atual
+            query = text("""
+                SELECT evidencia_url, evidencia_nome
+                FROM analises_criticas
+                WHERE id = :id AND tipo = 'auditado'
+            """)
+            result = conn.execute(query, {'id': analise_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+            evidencia_url = result[0]
+            evidencia_nome = result[1]
+            
+            if not evidencia_url:
+                return jsonify({'success': False, 'error': 'Nenhuma evidência encontrada para remover'}), 404
+            
+            print(f"🗑️ Removendo evidência da análise {analise_id}: {evidencia_nome}")
+            print(f"🗑️ Caminho: {evidencia_url}")
+            
+            # 2. REMOVER DO STORAGE
+            try:
+                # Verificar se é URL ou caminho
+                if evidencia_url.startswith('http'):
+                    caminho, bucket = extrair_caminho_da_url(evidencia_url)
+                else:
+                    caminho = evidencia_url
+                    bucket = "evidencia_analises_auditado"
+                
+                if caminho:
+                    excluir_arquivo_storage(caminho, bucket)
+                    print(f"✅ Arquivo removido do storage: {caminho}")
+                else:
+                    print("⚠️ Não foi possível extrair o caminho do arquivo")
+                    
+            except Exception as e:
+                print(f"⚠️ Erro ao remover do storage: {e}")
+                # Continua para limpar o banco mesmo se falhar no storage
+            
+            # 3. LIMPAR OS CAMPOS NO BANCO
+            query_update = text("""
+                UPDATE analises_criticas
+                SET evidencia_url = NULL,
+                    evidencia_nome = NULL,
+                    updated_at = NOW()
+                WHERE id = :id
+            """)
+            conn.execute(query_update, {'id': analise_id})
+            conn.commit()
+            
+            print(f"✅ Campos de evidência limpos na análise {analise_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Evidência removida com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao remover evidência: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500

@@ -29,15 +29,7 @@ from utils import (
     baixar_arquivo_storage,
     excluir_arquivo_storage,
     obter_url_assinada,
-    extrair_caminho_da_url,
-    excluir_arquivo_por_url,
-    upload_evidencia_storage,
-    upload_para_bucket_detalhamento,
-    excluir_arquivo_por_url,
-    upload_evidencia_checklist,
-    remover_evidencia_checklist,
-    baixar_evidencia_checklist,
-    obter_url_assinada_checklist
+    extrair_caminho_da_url
 )
 
 from logic import (validar_login_no_banco, gerar_relatorio_parecer_auditoria, listar_areas,
@@ -648,16 +640,28 @@ def api_obrigacao_remover_arquivo():
                 return jsonify({'success': False, 'error': 'Obrigação não encontrada'}), 404
             
             # 🔥 Se tiver URL, excluir do storage
-
             if arquivo_url and arquivo_url.strip() != '':
                 print(f"📎 Excluindo arquivo do storage: {arquivo_url}")
                 
-                # ⭐ USAR A FUNÇÃO QUE EXTRAI DA URL
-                sucesso = excluir_arquivo_por_url(arquivo_url)
-                
-                if not sucesso:
-                    print("⚠️ Falha ao excluir arquivo do storage, mas continuando...")
-                    # Opcional: retornar erro ou continuar
+                try:
+                    # ⭐ EXTRAIR CAMINHO E BUCKET DA URL
+                    caminho, bucket = extrair_caminho_da_url(arquivo_url)
+                    
+                    if caminho and bucket:
+                        print(f"📎 Caminho extraído: {caminho}")
+                        print(f"📎 Bucket extraído: {bucket}")
+                        
+                        # ⭐ EXCLUIR USANDO A FUNÇÃO GENÉRICA
+                        sucesso = excluir_arquivo_storage(caminho, bucket)
+                        
+                        if not sucesso:
+                            print("⚠️ Falha ao excluir arquivo do storage, mas continuando...")
+                    else:
+                        print(f"⚠️ Não foi possível extrair caminho da URL: {arquivo_url}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao excluir do storage: {e}")
+                    # Continua mesmo se falhar para remover do banco
             else:
                 print("⚠️ Nenhuma URL fornecida para excluir")
                 return jsonify({'success': False, 'error': 'URL do arquivo não fornecida'}), 400
@@ -7025,7 +7029,7 @@ def api_analise_salvar():
                     )
                     
                     if url_assinada:
-                        evidencia_url_final = url_assinada
+                        evidencia_url_final = caminho
                         evidencia_nome_final = evidencia_nome
                         print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
                     else:
