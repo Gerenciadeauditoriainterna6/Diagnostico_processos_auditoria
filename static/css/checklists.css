@@ -609,7 +609,6 @@ textarea.form-control {
 }
 
 .analise-card-section h4 {
-    color: #184145;
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 12px;
@@ -912,7 +911,7 @@ textarea.form-control {
 .analise-auditado-header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
@@ -1392,4 +1391,16 @@ textarea.form-control {
 
 .btn-download-anexo i {
     font-size: 14px;
+}
+
+.cor-ponto-de-auditoria {
+    color: #ff0000 !important;
+}
+
+.cor-sugestao-de-melhoria, .cor-ganho-previsto {
+    color: #00ff00 !important;
+}
+
+.cor-necessidade-para-implantacao {
+    color: #0077ff !important;
 }

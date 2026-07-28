@@ -26,7 +26,8 @@ import {
     editarAnaliseAuditado,
     abrirModalConfirmarImplantacaoAuditado,
     baixarEvidenciaAuditadoChecklist,
-    fecharModalAnaliseAuditado
+    fecharModalAnaliseAuditado,
+    removerEvidenciaAuditadoChecklist
 } from './analises-auditado.js';
 
 import { 
@@ -39,7 +40,9 @@ import {
     editarAnaliseAuditor,
     excluirAnaliseAuditor,
     fecharModalAnaliseAuditor,
-    abrirModalConfirmarImplantacao
+    abrirModalConfirmarImplantacao,
+    baixarEvidenciaAnaliseAuditor,
+    removerEvidenciaAnaliseAuditor
 } from './analises-auditor.js';
 
 import { 
@@ -108,6 +111,9 @@ window.fecharModalHistorico = fecharModalHistorico;
 window.abrirModalFollowUp = abrirModalFollowUp;
 window.fecharModalFollowUp = fecharModalFollowUp;
 window.fecharModalAnaliseAuditado = fecharModalAnaliseAuditado
+window.baixarEvidenciaAnaliseAuditor = baixarEvidenciaAnaliseAuditor;
+window.removerEvidenciaAnaliseAuditor = removerEvidenciaAnaliseAuditor;
+window.removerEvidenciaAuditadoChecklist = removerEvidenciaAuditadoChecklist;
 
 // ============================================================
 // INICIALIZAÇÃO

@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, date
 import json
 import io
 from supabase import create_client
+import base64
+import uuid
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash, make_response
 from dotenv import load_dotenv
@@ -22,7 +24,14 @@ from database import (
     criar_tabelas
 )
 
-from utils import upload_evidencia_storage
+from utils import (
+    upload_arquivo_storage,
+    baixar_arquivo_storage,
+    excluir_arquivo_storage,
+    obter_url_assinada,
+    extrair_caminho_da_url
+)
+
 from logic import (validar_login_no_banco, gerar_relatorio_parecer_auditoria, listar_areas,
                    listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
 
@@ -46,234 +55,14 @@ from logic import validar_login_no_banco
 # ============================================================
 
 
-def upload_evidencia_checklist(checklist_id, pergunta_ordem, evidencia_base64, evidencia_nome, bucket_name=None):
-    """Salva evidência do checklist no bucket privado do Supabase Storage"""
-    import base64
-    import uuid
-    from datetime import datetime
-    import os
-    from dotenv import load_dotenv
-    
-    load_dotenv()
-    
-    if not evidencia_base64 or not evidencia_nome:
-        print("❌ Evidência ou nome vazio")
-        return None
-    
-    try:
-        # Remover prefixo
-        if ',' in evidencia_base64:
-            evidencia_base64 = evidencia_base64.split(',')[1]
-        
-        # Decodificar base64
-        try:
-            file_bytes = base64.b64decode(evidencia_base64)
-        except Exception as e:
-            print(f"❌ Erro ao decodificar base64: {e}")
-            return None
-        
-        # Gerar nome único
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_id = str(uuid.uuid4())[:8]
-        storage_filename = f"checklists/{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{evidencia_nome}"
-        
-        # SINGLETON
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
-
-        bucket = bucket_name or "matriz_eficacia"
-        
-        print(f"📎 Upload: bucket={bucket}, path={storage_filename}")
-        
-        # Upload
-        response = supabase.storage.from_(bucket).upload(
-            storage_filename,
-            file_bytes,
-            file_options={"content-type": "application/pdf"}
-        )
-        
-        if response:
-            print("✅ Upload realizado com sucesso!")
-            # ⭐ RETORNAR O CAMINHO (NÃO A URL ASSINADA)
-            return storage_filename  # ← IMPORTANTE: retornar o caminho, não a URL
-        
-        print("❌ Upload falhou")
-        return None
-        
-    except Exception as e:
-        print(f"❌ Erro no upload: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
 
 
-def remover_evidencia_checklist(caminho_arquivo, bucket_name=None):
-    """Remove uma evidência do bucket"""
-    if not caminho_arquivo:
-        return False
-    
-    try:
-        # ⭐ USAR O SINGLETON
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
-        
-        bucket = bucket_name or "matriz_eficacia"
-        
-        # Remover o arquivo
-        response = supabase.storage.from_(bucket).remove([caminho_arquivo])
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Erro ao remover evidência: {e}")
-        return False
 
 
-def baixar_evidencia_checklist(caminho_arquivo, bucket_name=None):
-    """Baixa uma evidência do bucket"""
-    if not caminho_arquivo:
-        return None
-    
-    try:
-        # ⭐ USAR O SINGLETON
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
-        
-        bucket = bucket_name or "matriz_eficacia"
-        
-        # Baixar o arquivo
-        response = supabase.storage.from_(bucket).download(caminho_arquivo)
-        
-        return response
-        
-    except Exception as e:
-        print(f"❌ Erro ao baixar evidência: {e}")
-        return None
-
-def excluir_arquivo_storage(arquivo_url, bucket_name=None):
-    """
-    Exclui um arquivo do Supabase Storage a partir da URL
-    """
-    from urllib.parse import urlparse, unquote
-    
-    if not arquivo_url or arquivo_url.strip() == '':
-        print("⚠️ URL vazia, nada para excluir")
-        return True
-    
-    print(f"📎 Excluindo arquivo: {arquivo_url}")
-    
-    try:
-        # ⭐ USAR O SINGLETON
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
-        
-        # Extrair o caminho do arquivo da URL
-        parsed_url = urlparse(arquivo_url)
-        path = unquote(parsed_url.path)
-        
-        # 🔥 Extrair o caminho após "detalhamento_etapas"
-        if 'detalhamento_etapas' in path:
-            parts = path.split('detalhamento_etapas/')
-            if len(parts) == 2:
-                file_path = parts[1]
-                # Remover parâmetros de consulta (token, etc)
-                file_path = file_path.split('?')[0]
-                
-                bucket_name = "detalhamento_etapas"
-                
-                print(f"📎 Bucket: {bucket_name}")
-                print(f"📎 File path: {file_path}")
-                
-                # Excluir do storage
-                response = supabase.storage.from_(bucket_name).remove([file_path])
-                
-                print(f"📎 Resposta da exclusão: {response}")
-                return True
-            else:
-                print(f"❌ Formato de URL inesperado: {path}")
-                return False
-        else:
-            print(f"❌ 'detalhamento_etapas' não encontrado na URL: {path}")
-            return False
-        
-    except Exception as e:
-        print(f"❌ Erro ao excluir arquivo do storage: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 
-def upload_para_bucket_detalhamento(arquivo, nome_unico, tipo, etapa_id):
-    """
-    Salva arquivo no bucket detalhamento_etapas do Supabase Storage
-    """
-    import uuid
-    from datetime import datetime
-    
-    if not arquivo:
-        return None
-    
-    try:
-        # Ler o arquivo (se for um objeto File/Stream)
-        if hasattr(arquivo, 'read'):
-            file_bytes = arquivo.read()
-        else:
-            # Se for caminho ou bytes
-            file_bytes = arquivo if isinstance(arquivo, bytes) else open(arquivo, 'rb').read()
-        
-        # Nome do arquivo no storage
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_id = str(uuid.uuid4())[:8]
-        
-        # Organizar por pastas
-        if tipo == 'obrigacao':
-            pasta = 'obrigacoes'
-        elif tipo == 'manual':
-            pasta = 'manuais'
-        else:
-            pasta = 'outros'
-        
-        # Caminho: detalhamento_etapas/{pasta}/{etapa_id}/{timestamp}_{unique_id}_{nome_original}
-        storage_filename = f"{pasta}/{etapa_id}/{timestamp}_{unique_id}.pdf"
-        
-        # ⭐ USAR O SINGLETON
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
-        
-        bucket_name = "detalhamento_etapas"
-        
-        print(f"📎 Upload para bucket: {bucket_name}, path: {storage_filename}")
-        
-        # Upload para o bucket
-        response = supabase.storage.from_(bucket_name).upload(
-            storage_filename,
-            file_bytes,
-            file_options={"content-type": "application/pdf"}
-        )
-        
-        if response:
-            # Gerar URL assinada (válida por 1 ano = 31536000 segundos)
-            signed_url = supabase.storage.from_(bucket_name).create_signed_url(
-                storage_filename, 31536000
-            )
-            
-            if signed_url and signed_url.get('signedURL'):
-                print(f"✅ Upload concluído: {signed_url['signedURL']}")
-                return signed_url['signedURL']
-            
-            # Fallback: tentar URL pública
-            public_url = supabase.storage.from_(bucket_name).get_public_url(storage_filename)
-            if public_url:
-                print(f"✅ Upload concluído (público): {public_url}")
-                return public_url
-        
-        return None
-        
-    except Exception as e:
-        print(f"❌ Erro no upload para bucket detalhamento_etapas: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+
+
 
 def atualizar_obrigacao_com_arquivo(etapa_id, indice_obrigacao, arquivo_url, arquivo_nome, arquivo_tamanho):
     """
@@ -852,9 +641,27 @@ def api_obrigacao_remover_arquivo():
             
             # 🔥 Se tiver URL, excluir do storage
             if arquivo_url and arquivo_url.strip() != '':
-           
                 print(f"📎 Excluindo arquivo do storage: {arquivo_url}")
-                excluir_arquivo_storage(arquivo_url)
+                
+                try:
+                    # ⭐ EXTRAIR CAMINHO E BUCKET DA URL
+                    caminho, bucket = extrair_caminho_da_url(arquivo_url)
+                    
+                    if caminho and bucket:
+                        print(f"📎 Caminho extraído: {caminho}")
+                        print(f"📎 Bucket extraído: {bucket}")
+                        
+                        # ⭐ EXCLUIR USANDO A FUNÇÃO GENÉRICA
+                        sucesso = excluir_arquivo_storage(caminho, bucket)
+                        
+                        if not sucesso:
+                            print("⚠️ Falha ao excluir arquivo do storage, mas continuando...")
+                    else:
+                        print(f"⚠️ Não foi possível extrair caminho da URL: {arquivo_url}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao excluir do storage: {e}")
+                    # Continua mesmo se falhar para remover do banco
             else:
                 print("⚠️ Nenhuma URL fornecida para excluir")
                 return jsonify({'success': False, 'error': 'URL do arquivo não fornecida'}), 400
@@ -2383,7 +2190,7 @@ def api_adicionar_achado(auditoria_id):
                 
                 # Gerar caminho único no Storage
                 timestamp = int(datetime.now().timestamp())
-                caminho_storage = f"matriz_achados_auditoria/{auditoria_id}/{achado_id}/{timestamp}_{nome_arquivo}"
+                caminho_storage = f"matriz_achados_auditoria/auditoria_id_{auditoria_id}/achado_id_{achado_id}/{timestamp}_{nome_arquivo}"
                 
                 # Upload para o Storage
                 try:
@@ -2519,8 +2326,18 @@ def api_editar_achado(achado_id):
                     continue
                 
                 # Gerar caminho único no Storage
+
                 timestamp = int(datetime.now().timestamp())
-                caminho_storage = f"matriz_achados_auditoria/{achado_id}/{timestamp}_{nome_arquivo}"
+                query_auditoria = text("""
+                    SELECT auditoria_id 
+                    FROM matriz_achados 
+                    WHERE id = :achado_id
+                """)
+                result_auditoria = conn.execute(query_auditoria, {'achado_id': achado_id}).fetchone()
+                auditoria_id = result_auditoria[0]
+
+                # Depois usar o mesmo padrão do POST
+                caminho_storage = f"matriz_achados_auditoria/auditoria_id_{auditoria_id}/achado_id_{achado_id}/{timestamp}_{nome_arquivo}"
                 
                 # Upload para o Storage
                 try:
@@ -5121,6 +4938,9 @@ def api_upload_detalhamento():
     """
     Endpoint para upload de arquivos para o bucket detalhamento_etapas
     """
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
     try:
         # Verificar se o arquivo foi enviado
         if 'arquivo' not in request.files:
@@ -5135,6 +4955,28 @@ def api_upload_detalhamento():
         etapa_id = request.form.get('etapa_id', 'temp')
         titulo_obrigacao = request.form.get('titulo_obrigacao', '')
         
+        # ⭐ Buscar processo_id se necessário (opcional)
+        processo_id = None
+        if etapa_id and etapa_id != 'temp':
+            try:
+                from database import engine
+                from sqlalchemy import text
+                
+                with engine.connect() as conn:
+                    query = text("""
+                        SELECT processo_id 
+                        FROM etapas_processo 
+                        WHERE id = :etapa_id
+                    """)
+                    result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+                    if result:
+                        processo_id = result[0]
+                        print(f"📍 Processo ID encontrado para etapa {etapa_id}: {processo_id}")
+                    else:
+                        print(f"⚠️ Etapa {etapa_id} não encontrada")
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar processo_id: {e}")
+        
         # Validar tipo de arquivo
         tipos_permitidos = ['application/pdf']
         if arquivo.content_type not in tipos_permitidos:
@@ -5148,21 +4990,38 @@ def api_upload_detalhamento():
         if tamanho > 10 * 1024 * 1024:
             return jsonify({'success': False, 'error': 'Arquivo muito grande (máx. 10MB)'}), 400
         
-        
-        
         # Gerar nome único
         import uuid
         from datetime import datetime
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_id = str(uuid.uuid4())[:8]
-        nome_unico = f"{timestamp}_{unique_id}"
         
-        # Fazer upload para o bucket
-        url_arquivo = upload_para_bucket_detalhamento(
-            arquivo,
-            nome_unico,
-            tipo,
-            etapa_id
+        # Limpar nome do arquivo
+        nome_original = arquivo.filename
+        nome_limpo = ''.join(c for c in nome_original if c.isalnum() or c in ' ._-')
+        nome_limpo = nome_limpo.replace(' ', '_')
+        
+        # Definir pasta baseada no tipo
+        if tipo == 'manual':
+            pasta = 'manuais'
+        elif tipo == 'obrigacao':
+            pasta = 'obrigacoes'
+        else:
+            pasta = 'outros'
+        
+        # ⭐ CONSTRUIR CAMINHO (com processo_id se disponível)
+        if processo_id:
+            caminho = f"{pasta}/processo_id_{processo_id}/etapa_id_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}"
+        else:
+            # Fallback: apenas com etapa_id
+            caminho = f"{pasta}/etapa_id_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}"
+        
+        # ⭐ CHAMAR FUNÇÃO GENÉRICA
+        url_arquivo = upload_arquivo_storage(
+            arquivo=arquivo,
+            caminho_destino=caminho,
+            bucket_name="detalhamento_etapas",
+            content_type="application/pdf"
         )
         
         if url_arquivo:
@@ -5171,7 +5030,8 @@ def api_upload_detalhamento():
                 'url': url_arquivo,
                 'nome_arquivo': arquivo.filename,
                 'tamanho': tamanho,
-                'nome_unico': nome_unico
+                'nome_unico': f"{timestamp}_{unique_id}",
+                'processo_id': processo_id
             })
         else:
             return jsonify({'success': False, 'error': 'Erro ao fazer upload para o bucket'}), 500
@@ -5845,7 +5705,7 @@ def api_checklist_progresso():
 
 
 @app.route('/api/checklist/evidencia/<int:evidencia_id>/download', methods=['GET'])
-def baixar_evidencia_checklist(evidencia_id):
+def baixar_evidencia_checklist_route(evidencia_id):
     """Baixa uma evidência do checklist do Supabase Storage"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
@@ -5854,8 +5714,6 @@ def baixar_evidencia_checklist(evidencia_id):
     from sqlalchemy import text
     from flask import send_file
     import io
-    import re
-    from urllib.parse import unquote
     
     try:
         # 1. BUSCAR EVIDÊNCIA NO BANCO
@@ -5878,93 +5736,37 @@ def baixar_evidencia_checklist(evidencia_id):
             content_type = result[4] or 'application/pdf'
         
         print(f"📥 Baixando evidência: id={evidencia_id}, nome={nome_arquivo}")
-        print(f"📥 Caminho: {caminho_arquivo}")
+        print(f"📥 Caminho salvo no banco: {caminho_arquivo}")
         
-        # 2. VERIFICAR SE O CAMINHO É UMA URL OU UM PATH
+        # 2. VERIFICAR SE É URL OU CAMINHO
         if caminho_arquivo.startswith('https://'):
-            # Já é uma URL - baixar diretamente
-            import requests
-            try:
-                response = requests.get(caminho_arquivo)
-                if response.status_code == 200:
-                    return send_file(
-                        io.BytesIO(response.content),
-                        download_name=nome_arquivo,
-                        mimetype=content_type,
-                        as_attachment=True
-                    )
-                else:
-                    return jsonify({'success': False, 'error': f'Erro ao baixar: status {response.status_code}'}), 500
-            except Exception as e:
-                return jsonify({'success': False, 'error': f'Erro ao baixar: {str(e)}'}), 500
+            # Já é uma URL - redirecionar
+            from flask import redirect
+            print(f"📥 É uma URL, redirecionando...")
+            return redirect(caminho_arquivo)
         
-        # 3. É UM PATH - GERAR URL ASSINADA
-        # ⭐ USAR O SINGLETON
-        from supabase_client import SupabaseClient
-        supabase = SupabaseClient.get_instance()
+        # 3. ⭐ USAR A FUNÇÃO GENÉRICA PARA BAIXAR
+        print(f"📥 É um caminho, baixando do storage...")
+        file_bytes = baixar_arquivo_storage(caminho_arquivo, "matriz_eficacia")
         
-        bucket = "matriz_eficacia"
+        if file_bytes:
+            print(f"✅ Arquivo baixado! Tamanho: {len(file_bytes)} bytes")
+            return send_file(
+                io.BytesIO(file_bytes),
+                download_name=nome_arquivo,
+                mimetype=content_type,
+                as_attachment=True
+            )
         
-        try:
-            # Extrair o caminho do arquivo
-            file_path = caminho_arquivo
-            
-            # Se for URL com /sign/, extrair o caminho
-            if '/sign/' in file_path:
-                match = re.search(r'/sign/[^/]+/(.+)', file_path)
-                if match:
-                    file_path = match.group(1).split('?')[0]
-                    file_path = unquote(file_path)
-            
-            print(f"📥 File path extraído: {file_path}")
-            
-            # Tentar baixar diretamente
-            response = supabase.storage.from_(bucket).download(file_path)
-            
-            if response:
-                print(f"✅ Arquivo baixado! Tamanho: {len(response)} bytes")
-                return send_file(
-                    io.BytesIO(response),
-                    download_name=nome_arquivo,
-                    mimetype=content_type,
-                    as_attachment=True
-                )
-            else:
-                print("❌ Resposta vazia do Storage")
-                
-                # Tentar gerar URL assinada e redirecionar
-                signed_url = supabase.storage.from_(bucket).create_signed_url(
-                    file_path, 3600  # 1 hora
-                )
-                
-                if signed_url and signed_url.get('signedURL'):
-                    print(f"✅ URL assinada gerada: {signed_url['signedURL'][:100]}...")
-                    from flask import redirect
-                    return redirect(signed_url['signedURL'])
-                else:
-                    return jsonify({'success': False, 'error': 'Erro ao gerar URL assinada'}), 500
-                
-        except Exception as e:
-            print(f"❌ Erro no download: {e}")
-            import traceback
-            traceback.print_exc()
-            
-            # Tentar URL direta como fallback
-            try:
-                if caminho_arquivo.startswith('https://'):
-                    import requests
-                    response = requests.get(caminho_arquivo)
-                    if response.status_code == 200:
-                        return send_file(
-                            io.BytesIO(response.content),
-                            download_name=nome_arquivo,
-                            mimetype=content_type,
-                            as_attachment=True
-                        )
-            except:
-                pass
-            
-            return jsonify({'success': False, 'error': f'Erro ao baixar: {str(e)}'}), 500
+        # 4. ⭐ TENTAR GERAR URL ASSINADA (fallback)
+        print(f"📥 Tentando gerar URL assinada...")
+        signed_url = obter_url_assinada(caminho_arquivo, "matriz_eficacia", 3600)
+        if signed_url:
+            from flask import redirect
+            print(f"✅ URL assinada gerada, redirecionando...")
+            return redirect(signed_url)
+        
+        return jsonify({'success': False, 'error': 'Erro ao baixar evidência'}), 500
             
     except Exception as e:
         print(f"❌ Erro geral: {e}")
@@ -5973,15 +5775,13 @@ def baixar_evidencia_checklist(evidencia_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/checklist/evidencia/<int:evidencia_id>', methods=['DELETE'])
-def remover_evidencia_checklist(evidencia_id):
+def remover_evidencia_checklist_route(evidencia_id):
     """Remove uma evidência do checklist (banco + storage)"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
-    import re
-    from urllib.parse import unquote
     
     try:
         # 1. BUSCAR EVIDÊNCIA NO BANCO
@@ -6002,41 +5802,28 @@ def remover_evidencia_checklist(evidencia_id):
             caminho_arquivo = result[2]
             
             print(f"🗑️ Removendo evidência: id={evidencia_id}, nome={nome_arquivo}")
-            print(f"🗑️ Caminho: {caminho_arquivo}")
+            print(f"🗑️ Caminho salvo no banco: {caminho_arquivo}")
             
-            # 2. REMOVER DO STORAGE
-            # ⭐ USAR O SINGLETON
-            from supabase_client import SupabaseClient
-            
-            try:
-                supabase = SupabaseClient.get_instance()
-                bucket = "matriz_eficacia"
-                
-                # Extrair o caminho do arquivo do storage
-                file_path = caminho_arquivo
-                
-                # Se for URL com /sign/, extrair o caminho
-                if '/sign/' in file_path:
-                    match = re.search(r'/sign/[^/]+/(.+)', file_path)
-                    if match:
-                        file_path = match.group(1).split('?')[0]
-                        file_path = unquote(file_path)
-                # Se for URL completa do storage, extrair o path
-                elif 'supabase.co/storage/v1/object/' in file_path:
-                    parts = file_path.split('/object/')
-                    if len(parts) > 1:
-                        path_parts = parts[1].split('/', 2)
-                        if len(path_parts) >= 3:
-                            file_path = path_parts[2]
-                
-                print(f"🗑️ File path para remover: {file_path}")
-                
-                # Remover do storage
-                response = supabase.storage.from_(bucket).remove([file_path])
-                print(f"🗑️ Resposta do storage: {response}")
-                
-            except Exception as e:
-                print(f"⚠️ Erro ao remover do storage: {e}")
+            # 2. ⭐ REMOVER DO STORAGE USANDO A FUNÇÃO GENÉRICA
+            if caminho_arquivo:
+                try:
+                    # Verificar se é URL ou caminho direto
+                    if caminho_arquivo.startswith('https://'):
+                        # É uma URL - extrair caminho e bucket
+                        from utils import extrair_caminho_da_url
+                        caminho, bucket = extrair_caminho_da_url(caminho_arquivo)
+                        if caminho and bucket:
+                            print(f"📎 Extraído - caminho: {caminho}, bucket: {bucket}")
+                            excluir_arquivo_storage(caminho, bucket)
+                        else:
+                            print(f"⚠️ Não foi possível extrair caminho da URL: {caminho_arquivo}")
+                    else:
+                        # É um caminho direto - usar diretamente
+                        print(f"📎 Caminho direto: {caminho_arquivo}")
+                        excluir_arquivo_storage(caminho_arquivo, "matriz_eficacia")
+                except Exception as e:
+                    print(f"⚠️ Erro ao remover do storage: {e}")
+                    # Continua mesmo se falhar para remover do banco
             
             # 3. REMOVER DO BANCO
             query_delete = text("""
@@ -6061,12 +5848,15 @@ def remover_evidencia_checklist(evidencia_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/checklist/evidencia/salvar', methods=['POST'])
-def salvar_evidencia_checklist():
+def salvar_evidencia_checklist_route():
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
     from database import engine
     from sqlalchemy import text
+    import base64
+    import uuid
+    from datetime import datetime
     
     try:
         data = request.json
@@ -6074,17 +5864,14 @@ def salvar_evidencia_checklist():
         evidencia_base64 = data.get('evidencia_base64')
         evidencia_nome = data.get('evidencia_nome')
         
-        print(f"📎 Recebendo evidência: resposta_id={resposta_id}, nome={evidencia_nome}")
-        
         if not resposta_id or not evidencia_base64 or not evidencia_nome:
             return jsonify({'success': False, 'error': 'Dados incompletos'}), 400
         
-        # Validar tipo do arquivo
         if not evidencia_nome.lower().endswith('.pdf'):
             return jsonify({'success': False, 'error': 'Apenas arquivos PDF são permitidos'}), 400
         
         with engine.connect() as conn:
-            # 1. VERIFICAR SE A RESPOSTA EXISTE
+            # Buscar dados da resposta
             query_resposta = text("""
                 SELECT id, checklist_id, pergunta_ordem
                 FROM checklist_respostas
@@ -6098,48 +5885,60 @@ def salvar_evidencia_checklist():
             checklist_id = resposta[1]
             pergunta_ordem = resposta[2]
             
-            print(f"📎 Checklist ID: {checklist_id}, Pergunta: {pergunta_ordem}")
+            # ⭐ DECODIFICAR BASE64
+            if ',' in evidencia_base64:
+                evidencia_base64 = evidencia_base64.split(',')[1]
+            file_bytes = base64.b64decode(evidencia_base64)
             
-            # 2. UPLOAD PARA O STORAGE
+            # ⭐ GERAR NOME ÚNICO
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_id = str(uuid.uuid4())[:8]
             
-            caminho = upload_evidencia_checklist(
-                checklist_id=checklist_id,
-                pergunta_ordem=pergunta_ordem,
-                evidencia_base64=evidencia_base64,
-                evidencia_nome=evidencia_nome,
-                bucket_name="matriz_eficacia"
+            # ⭐ LIMPAR NOME
+            nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+            nome_limpo = nome_limpo.replace(' ', '_')
+            
+            # ⭐ CONSTRUIR CAMINHO
+            # Estrutura: checklists/{checklist_id}/pergunta_{ordem}/{timestamp}_{uuid}_{nome}.pdf
+            caminho = f"checklists/checklist_id_{checklist_id}/pergunta_{pergunta_ordem}/{timestamp}_{unique_id}_{nome_limpo}"
+            
+            # ⭐ CHAMAR FUNÇÃO GENÉRICA
+            url_retornada = upload_arquivo_storage(
+                arquivo=file_bytes,
+                caminho_destino=caminho,
+                bucket_name="matriz_eficacia",
+                content_type="application/pdf"
             )
             
-            if not caminho:
+            # ⭐ IMPORTANTE: Para checklist, precisamos do CAMINHO, não da URL
+            # A função retorna a URL assinada, mas o banco espera o caminho
+            # Então usamos o caminho que construímos
+            if url_retornada:
+                # Upload foi bem-sucedido, salvar o caminho no banco
+                caminho_para_salvar = caminho
+                print(f"📎 Evidência salva: {caminho_para_salvar}")
+            else:
                 return jsonify({'success': False, 'error': 'Erro ao fazer upload da evidência'}), 500
             
-            print(f"📎 Upload realizado: {caminho}")
+            # Calcular tamanho
+            tamanho_aproximado = 0
+            if evidencia_base64:
+                base64_data = evidencia_base64
+                if ',' in base64_data:
+                    base64_data = base64_data.split(',')[1]
+                tamanho_aproximado = int(len(base64_data) * 0.75)
             
-            # 3. SALVAR NO BANCO
-            print("🔍 Inserindo no banco...")
-            
+            # Salvar no banco
             query_insert = text("""
                 INSERT INTO checklist_evidencias (resposta_id, nome_arquivo, caminho_arquivo, tamanho_bytes, content_type)
                 VALUES (:resposta_id, :nome_arquivo, :caminho_arquivo, :tamanho_bytes, :content_type)
                 RETURNING id
             """)
             
-            # Calcular tamanho aproximado
-            import base64
-            tamanho_aproximado = 0
-            if evidencia_base64:
-                # Remover prefixo se existir
-                base64_data = evidencia_base64
-                if ',' in base64_data:
-                    base64_data = base64_data.split(',')[1]
-                tamanho_aproximado = int(len(base64_data) * 0.75)
-            
-            print(f"📎 Tamanho aproximado: {tamanho_aproximado} bytes")
-            
             result = conn.execute(query_insert, {
                 'resposta_id': resposta_id,
                 'nome_arquivo': evidencia_nome,
-                'caminho_arquivo': caminho,
+                'caminho_arquivo': caminho_para_salvar,
                 'tamanho_bytes': tamanho_aproximado,
                 'content_type': 'application/pdf'
             })
@@ -6147,14 +5946,12 @@ def salvar_evidencia_checklist():
             
             evidencia_id = result.fetchone()[0]
             
-            print(f"✅ Evidência salva com sucesso! ID: {evidencia_id}")
-            
             return jsonify({
                 'success': True,
                 'evidencia': {
                     'id': evidencia_id,
                     'nome': evidencia_nome,
-                    'caminho': caminho,
+                    'caminho': caminho_para_salvar,
                     'tamanho': tamanho_aproximado
                 }
             })
@@ -7122,7 +6919,7 @@ def api_melhorias_ativas():
 
 @app.route('/api/analise/salvar', methods=['POST'])
 def api_analise_salvar():
-    """Salva ou atualiza uma análise crítica (auditado) com evidência"""
+    """Salva ou atualiza uma análise crítica com evidência"""
     if not session.get('autenticado'):
         return jsonify({'success': False, 'error': 'Não autenticado'}), 401
     
@@ -7146,9 +6943,9 @@ def api_analise_salvar():
     
     from database import engine
     from sqlalchemy import text
-    import base64
-    import os
     from datetime import datetime
+    import base64
+    import uuid
     
     try:
         with engine.connect() as conn:
@@ -7161,65 +6958,83 @@ def api_analise_salvar():
             
             print(f"🔍 Etapa {etapa_id} pertence ao processo {processo_id}")
             
-            # Processar evidência (se houver)
             evidencia_url_final = None
             evidencia_nome_final = None
             
             if remover_evidencia:
                 print(f"🗑️ Removendo evidência da análise {analise_id or 'nova'}")
+                
+                if analise_id:
+                    query_evidencia = text("""
+                        SELECT evidencia_url FROM analises_criticas WHERE id = :id
+                    """)
+                    result_evidencia = conn.execute(query_evidencia, {'id': analise_id}).fetchone()
+                    if result_evidencia and result_evidencia[0]:
+                        url_antiga = result_evidencia[0]
+                        print(f"📎 Removendo evidência antiga: {url_antiga}")
+                        
+                        # Extrair caminho e bucket da URL
+                        caminho, bucket = extrair_caminho_da_url(url_antiga)
+                        if caminho and bucket:
+                            excluir_arquivo_storage(caminho, bucket)
+                
                 evidencia_url_final = None
                 evidencia_nome_final = None
+                
             elif evidencia_base64 and evidencia_nome:
                 try:
-                    # Decodificar Base64
-                    if ',' in evidencia_base64:
-                        evidencia_base64 = evidencia_base64.split(',')[1]
-                    evidencia_bytes = base64.b64decode(evidencia_base64)
-                    
-                    # Validar tamanho (10MB)
-                    if len(evidencia_bytes) > 10 * 1024 * 1024:
-                        return jsonify({'success': False, 'error': 'Arquivo muito grande. Máximo 10MB'}), 400
-                    
-                    # ⭐ USAR O SINGLETON - NÃO MAIS create_client!
-                    from supabase_client import SupabaseClient
-                    supabase = SupabaseClient.get_instance()
-                    
-                    # Se for edição, buscar ID da análise para criar o caminho
+                    # Determinar o ID para o caminho
                     if analise_id:
-                        query_analise = text("""
+                        query_check = text("""
                             SELECT id FROM analises_criticas WHERE id = :id
                         """)
-                        result_analise = conn.execute(query_analise, {'id': analise_id}).fetchone()
-                        if result_analise:
+                        result_check = conn.execute(query_check, {'id': analise_id}).fetchone()
+                        if result_check:
                             analise_id_para_path = analise_id
                         else:
                             analise_id_para_path = int(datetime.now().timestamp())
                     else:
                         analise_id_para_path = int(datetime.now().timestamp())
                     
-                    # Gerar caminho único
-                    extensao = evidencia_nome.split('.')[-1].lower() if '.' in evidencia_nome else 'pdf'
-                    timestamp = int(datetime.now().timestamp())
-                    caminho = f"analises_auditado/{analise_id_para_path}/evidencia_{analise_id_para_path}_{timestamp}.{extensao}"
-                    
-                    # Fazer upload
-                    supabase.storage.from_('evidencia_analises_auditado').upload(
-                        path=caminho,
-                        file=evidencia_bytes,
-                        file_options={"content-type": "application/pdf"}
+                    # Decodificar base64
+                    if ',' in evidencia_base64:
+                        evidencia_base64 = evidencia_base64.split(',')[1]
+                    file_bytes = base64.b64decode(evidencia_base64)
+
+                    # Definir bucket baseado no tipo
+                    bucket = "evidencia_analises_auditor" if tipo == 'auditor' else "evidencia_analises_auditado"
+
+                    # Gerar nome único
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    unique_id = str(uuid.uuid4())[:8]
+
+                    # Limpar nome
+                    nome_limpo = ''.join(c for c in evidencia_nome if c.isalnum() or c in ' ._-')
+                    nome_limpo = nome_limpo.replace(' ', '_')
+
+                    # Definir caminho baseado no tipo
+                    if tipo == 'auditado':
+                        # Auditado: inclui a etapa no caminho
+                        caminho = f"analises_{tipo}/analise_id_{analise_id_para_path}/etapa_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}.pdf"
+                    else:
+                        # Auditor: sem etapa no caminho
+                        caminho = f"analises_{tipo}/analise_id_{analise_id_para_path}/{timestamp}_{unique_id}_{nome_limpo}.pdf"
+
+                    # Chamar função genérica
+                    url_assinada = upload_arquivo_storage(
+                        arquivo=file_bytes,
+                        caminho_destino=caminho,
+                        bucket_name=bucket,
+                        content_type="application/pdf"
                     )
                     
-                    # Gerar URL assinada
-                    url_assinada = supabase.storage.from_('evidencia_analises_auditado').create_signed_url(
-                        path=caminho,
-                        expires_in=604800  # 7 dias
-                    )
-                    
-                    evidencia_url_final = url_assinada['signedURL']
-                    evidencia_nome_final = evidencia_nome
-                    
-                    print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
-                    
+                    if url_assinada:
+                        evidencia_url_final = caminho
+                        evidencia_nome_final = evidencia_nome
+                        print(f"📎 Evidência salva no Storage: {evidencia_url_final}")
+                    else:
+                        print("⚠️ Falha ao salvar evidência no Storage")
+                        
                 except Exception as e:
                     print(f"⚠️ Erro ao salvar evidência no Storage: {e}")
             
@@ -7289,7 +7104,7 @@ def api_analise_salvar():
                     'evidencia_nome': evidencia_nome_final
                 })
                 analise_id = result.fetchone()[0]
-                print(f"✅ Nova análise criada! ID: {analise_id}, processo_id: {processo_id}")
+                print(f"✅ Nova análise criada! ID: {analise_id}")
             
             conn.commit()
             

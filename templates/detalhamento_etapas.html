@@ -307,10 +307,10 @@
             <!-- Seção de Análises Críticas -->
             <div class="form-section-inline" style="margin-top: 20px; border-top: 2px solid #e0e0e0; padding-top: 20px;">
                 <h4 style="color: #184145; margin-bottom: 15px;">
-                    <i class="fas fa-clipboard-check"></i> Análises Críticas
+                    <i class="fas fa-clipboard-check"></i> Pontos de Auditoria
                 </h4>
                 <p class="text-muted" style="margin-bottom: 15px;">
-                    Cadastre as análises críticas do auditado e do auditor para esta etapa.
+                    Cadastre os pontos de auditoria levantados pelo Auditado nesta etapa.
                 </p>
                 
                 <!-- Lista de análises existentes -->
@@ -342,7 +342,7 @@
                  
 
                     <div class="form-group">
-                        <label>
+                        <label class="cor-ponto-de-auditoria">
                             <i class="fas fa-check-circle"></i> Ponto de Auditoria
                             <span class="help-icon" style="position: relative; display: inline-block;" data-tooltip="1- O que falta na etapa do processo?&#10; 2-O que essa falta provoca no processo?&#10;&#10;Conclusão: Essa falta são as dores do processo">
                                 <i class="fas fa-question-circle"></i>
@@ -352,17 +352,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Sugestão de Melhoria</label>
+                        <label class="cor-sugestao-de-melhoria">Sugestão de Melhoria</label>
                         <textarea id="analise-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria..."></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label>Necessidade para Implantação</label>
+                        <label class="cor-necessidade-para-implantacao">Necessidade para implantação da sugestão de melhoria</label>
                         <textarea id="analise-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label>Ganho Previsto</label>
+                        <label class="cor-ganho-previsto">Ganho Previsto</label>
                         <textarea id="analise-ganho" class="form-control" rows="2" placeholder="Ganhos previstos..."></textarea>
                     </div>
 
@@ -1524,6 +1524,18 @@
 
     .btn-remover-arquivo-obrigacao:hover {
         color: #c82333 !important;
+    }
+
+    .cor-ponto-de-auditoria {
+        color: #ff0000 !important;
+    }
+
+    .cor-sugestao-de-melhoria, .cor-ganho-previsto {
+        color: #00ff00;
+    }
+
+    .cor-necessidade-para-implantacao {
+        color: #0077ff;
     }
 
 </style>
@@ -4136,7 +4148,7 @@
                         
                         <!-- Análises Críticas -->
                         <div class="vis-secao">
-                            <h4><i class="fas fa-clipboard-list"></i> Análises Críticas do Auditado</h4>
+                            <h4><i class="fas fa-clipboard-list"></i> Pontos de auditoria levantados pelo Auditado</h4>
                             ${analises.length === 0 ? 
                                 '<div class="analises-empty"><i class="fas fa-clipboard"></i> Nenhum ponto de auditoria cadastrado.</div>' :
                                 analises.map((analise) => {
@@ -4174,7 +4186,7 @@
                                                 <div class="analise-card-detalhes">
                                                     ${analise.analise_critica ? `<div class="analise-detalhe"><strong>Ponto de Auditoria:</strong> ${escapeHtml(analise.analise_critica)}</div>` : ''}
                                                     ${temSugestaoMelhoria ? `<div class="analise-detalhe"><strong>Sugestão de Melhoria:</strong> ${escapeHtml(analise.sugestao_melhoria)}</div>` : ''}
-                                                    ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
+                                                    ${analise.necessidade_implantacao ? `<div class="analise-detalhe"><strong>Necessidade para Implantação da Sugestão de Melhoria:</strong> ${escapeHtml(analise.necessidade_implantacao)}</div>` : ''}
                                                     ${analise.ganho_previsto ? `<div class="analise-detalhe"><strong>Ganho Previsto:</strong> ${escapeHtml(analise.ganho_previsto)}</div>` : ''}
                                                 </div>
                                             </div>

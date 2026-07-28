@@ -24,7 +24,7 @@ class AnaliseService:
     
     @classmethod
     def listar_por_processo(cls, processo_id: int, tipo: str = 'auditado') -> List[Dict]:
-        """Lista análises de um processo"""
+        """Lista análises de um processo com suas evidências"""
         with engine.connect() as conn:
             query = text("""
                 SELECT 
@@ -61,6 +61,17 @@ class AnaliseService:
             
             analises = []
             for row in result:
+                # ⭐ CONSTRUIR O ARRAY DE EVIDÊNCIAS
+                evidencias = []
+                if row[19] and row[20]:  # evidencia_url e evidencia_nome
+                    evidencias.append({
+                        'id': row[0],  # Usa o ID da análise como ID da evidência
+                        'nome_arquivo': row[20],
+                        'caminho_arquivo': row[19],
+                        'tamanho_bytes': 0,  # Não temos essa info
+                        'content_type': 'application/pdf'  # Assumindo PDF
+                    })
+                
                 analises.append({
                     'id': row[0],
                     'processo_id': row[1],
@@ -81,8 +92,9 @@ class AnaliseService:
                     'updated_at': row[16].isoformat() if row[16] else None,
                     'codigo_etapa': row[17] or '',
                     'nome_etapa': row[18] or '',
-                    'evidencia_url': row[19],
-                    'evidencia_nome': row[20]
+                    'evidencia_url': row[19],  # ⭐ MANTER PARA COMPATIBILIDADE
+                    'evidencia_nome': row[20],  # ⭐ MANTER PARA COMPATIBILIDADE
+                    'evidencias': evidencias  # ⭐ NOVO: ARRAY DE EVIDÊNCIAS
                 })
             
             return analises

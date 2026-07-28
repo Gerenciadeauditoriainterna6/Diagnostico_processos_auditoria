@@ -100,7 +100,7 @@ export async function editarAnaliseAuditor(id) {
     document.getElementById('analise-auditor-ganho').value = analise.ganho_previsto || '';
     document.getElementById('analise-auditor-observacoes').value = analise.observacoes || '';
 
-    // Verificar se o valor é "INEXISTENTE" para marcar o checkbox
+    // Verificar se o valor é "NÃO APLICÁVEL NO MOMENTO" para marcar o checkbox
     const checkbox = document.getElementById('sem_sugestao_melhoria_auditor');
     const textarea = document.getElementById('analise-auditor-sugestao');
     const camposContainer = document.getElementById('campos-sugestao-melhoria-auditor');
@@ -138,7 +138,7 @@ export async function editarAnaliseAuditor(id) {
     
     if (checkbox && textarea) {
         const sugestaoValue = analise.sugestao_melhoria || '';
-        if (sugestaoValue.trim().toUpperCase() === 'INEXISTENTE') {
+        if (sugestaoValue.trim().toUpperCase() === 'NÃO APLICÁVEL NO MOMENTO') {
             checkbox.checked = true;
             textarea.disabled = true;
             textarea.style.backgroundColor = '#f5f5f5';
@@ -290,7 +290,7 @@ export function setupFileUploadEvidenciaAuditor() {
             }
             
             // Armazenar o arquivo
-            arquivoSelecionadoAuditor = file;
+            setArquivoSelecionadoAuditor(file);
             
             // Mostrar na interface
             if (evidenciaTexto) evidenciaTexto.textContent = file.name;
@@ -334,6 +334,8 @@ export function setupFileUploadEvidenciaAuditor() {
 
 export async function renderizarAnalisesAuditor() {
     const container = document.getElementById('analises-auditor-container');
+
+    console.log('📊 analisesAuditorList:', analisesAuditorList);
     
     if (analisesAuditorList.length === 0) {
         container.innerHTML = `<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditor cadastrada.<br><br>
@@ -343,9 +345,11 @@ export async function renderizarAnalisesAuditor() {
     
     const analisesComDados = [];
     for (const analise of analisesAuditorList) {
-        const historico = await carregarHistoricoAndamento(analise.id);
-        const followUps = await carregarFollowUps(analise.id);
-        analisesComDados.push({ ...analise, historico, followUps });
+        analisesComDados.push({ 
+            ...analise, 
+            historico: [], 
+            followUps: [] 
+        });
     }
     
     let html = '';
@@ -356,16 +360,31 @@ export async function renderizarAnalisesAuditor() {
                             analise.data_conclusao_prevista && 
                             new Date(analise.data_conclusao_prevista) < new Date();
         
-        // ⭐ NOVO: Verificar se tem evidências
-        const temEvidencia = analise.evidencias && analise.evidencias.length > 0;
+        // ⭐⭐⭐ CORREÇÃO AQUI ⭐⭐⭐
+        // Verificar tanto o array 'evidencias' quanto os campos individuais
+        const temEvidenciaArray = analise.evidencias && analise.evidencias.length > 0;
+        const temEvidenciaIndividual = analise.evidencia_url && analise.evidencia_url.trim() !== '';
+        const temEvidencia = temEvidenciaArray || temEvidenciaIndividual;
         
-        // ⭐⭐⭐ MELHORIA: Verificar se TEM sugestão de melhoria ⭐⭐⭐
-        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA'];
+        console.log(`📊 Análise ${analise.id}: temEvidenciaArray=${temEvidenciaArray}, temEvidenciaIndividual=${temEvidenciaIndividual}, temEvidencia=${temEvidencia}`);
+        
+        // ⭐⭐⭐ CONSTRUIR LISTA DE EVIDÊNCIAS ⭐⭐⭐
+        let listaEvidencias = [];
+        if (temEvidenciaArray) {
+            listaEvidencias = analise.evidencias;
+        } else if (temEvidenciaIndividual) {
+            listaEvidencias = [{
+                id: analise.id,
+                nome_arquivo: analise.evidencia_nome || 'evidencia.pdf',
+                caminho_arquivo: analise.evidencia_url
+            }];
+        }
+        
+        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA', 'NÃO APLICÁVEL NO MOMENTO'];
         const temSugestaoMelhoria = analise.sugestao_melhoria && 
                                 typeof analise.sugestao_melhoria === 'string' && 
                                 !valoresSemSugestao.includes(analise.sugestao_melhoria.trim().toLowerCase());
         
-        // ⭐ BADGE - APENAS SE HOUVER SUGESTÃO DE MELHORIA
         let badgeHtml = '';
         if (temSugestaoMelhoria) {
             if (analise.sugestao_sera_implantada === true) {
@@ -373,11 +392,9 @@ export async function renderizarAnalisesAuditor() {
             } else if (analise.sugestao_sera_implantada === false) {
                 badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
             } else {
-                // Só mostra "aguardando avaliação" se tiver sugestão
                 badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhorias aguardando avaliação</span>';
             }
         }
-        // Se não tiver sugestão ou for "INEXISTENTE", badgeHtml permanece vazio
         
         html += `<div class="analise-auditor-card" data-analise-id="${analise.id}">
             <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
@@ -395,21 +412,33 @@ export async function renderizarAnalisesAuditor() {
             </div>
             <div class="analise-auditor-body">
                 <div class="analise-grid">
-                    <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
-                    <div class="analise-card-section"><h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-ponto-de-auditoria"><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-sugestao-de-melhoria"><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
                 </div>
                 
-                <!-- ⭐ NOVO: Exibir evidências -->
                 ${temEvidencia ? `
-                <div class="analise-card-section" style="margin-top: 20px; border-left: 3px solid #0b5b99; background: #f0f7ff;">
-                    <h4><i class="fas fa-paperclip"></i> Evidências da Análise</h4>
+                <div class="analise-card-section" style="margin-top: 20px; border-left: 3px solid #0b5b99; background: #f0f7ff; padding: 15px; border-radius: 8px;">
+                    <h4 style="margin-bottom: 10px; color: #0b5b99;">
+                        <i class="fas fa-paperclip"></i> Evidências da Análise
+                    </h4>
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
-                        ${analise.evidencias.map(ev => `
-                            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                                <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
-                                <span style="font-size: 13px;">${escapeHtml(ev.nome_arquivo)}</span>
-                                <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarEvidenciaAnaliseAuditor(${ev.id}, '${escapeHtml(ev.nome_arquivo)}')" style="padding: 4px 10px; font-size: 11px; background: #0b5b99; border-radius: 6px; border: none; color: white; cursor: pointer;">
+                        ${listaEvidencias.map(ev => `
+                            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 16px;"></i>
+                                <span style="font-size: 13px; color: #333; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(ev.nome_arquivo)}">
+                                    ${escapeHtml(ev.nome_arquivo)}
+                                </span>
+                                <button class="btn-download-anexo" 
+                                        data-evidencia-id="${ev.id}" 
+                                        data-nome-arquivo="${escapeHtml(ev.nome_arquivo)}"
+                                        style="padding: 4px 12px; font-size: 11px; background: #0b5b99; border-radius: 6px; border: none; color: white; cursor: pointer;">
                                     <i class="fas fa-download"></i>
+                                </button>
+                                <!-- ⭐ BOTÃO DE REMOVER -->
+                                <button class="btn-remove-evidencia" 
+                                        data-analise-id="${ev.id}"
+                                        style="padding: 4px 12px; font-size: 11px; background: #dc3545; border-radius: 6px; border: none; color: white; cursor: pointer;">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             </div>
                         `).join('')}
@@ -442,12 +471,11 @@ export async function renderizarAnalisesAuditor() {
                 ` : ''}
                 
                 <div class="analise-grid">
-                    <div class="analise-card-section"><h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
-                    <div class="analise-card-section"><h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-necessidade-para-implantacao"><i class="fas fa-tasks"></i> Necessidade para implantação da sugestão de melhoria</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-ganho-previsto"><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
                 </div>
                 ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
                 
-                <!-- ⭐ BOTÃO DE CONFIRMAÇÃO DE IMPLANTAÇÃO -->
                 ${analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado ? `
                 <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99; border-radius: 12px;">
                     <div style="padding: 15px;">
@@ -460,7 +488,6 @@ export async function renderizarAnalisesAuditor() {
                 </div>
                 ` : ''}
                 
-                <!-- ⭐ BOTÃO DE PRAZO EXPIRADO -->
                 ${prazoExpirado ? `
                 <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 12px;">
                     <div style="padding: 15px;">
@@ -473,7 +500,6 @@ export async function renderizarAnalisesAuditor() {
                 </div>
                 ` : ''}
                 
-                <!-- ⭐ FOLLOW-UPS (APENAS SE IMPLANTADA) -->
                 ${analise.plano_de_acao_implantado === true ? `
                 <div class="analise-card-section" style="margin-top: 20px;">
                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
@@ -487,6 +513,29 @@ export async function renderizarAnalisesAuditor() {
         </div>`;
     });
     container.innerHTML = html;
+
+    // ⭐ ADICIONAR EVENT LISTENERS PARA OS BOTÕES DE DOWNLOAD
+    container.querySelectorAll('.btn-download-anexo').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const evidenciaId = this.dataset.evidenciaId;
+            const nomeArquivo = this.dataset.nomeArquivo;
+            console.log('🔽 Clique no download:', evidenciaId, nomeArquivo);
+            baixarEvidenciaAnaliseAuditor(evidenciaId, nomeArquivo);
+        });
+    });
+
+    // ⭐ ADICIONAR EVENT LISTENERS PARA OS BOTÕES DE REMOVER
+    container.querySelectorAll('.btn-remove-evidencia').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const analiseId = this.dataset.analiseId;
+            console.log('🗑️ Clique em remover evidência (auditor):', analiseId);
+            removerEvidenciaAnaliseAuditor(analiseId);
+        });
+    });
 }
 
 // ============================================================
@@ -653,6 +702,20 @@ export async function carregarAnalisesAuditor() {
                         console.warn(`⚠️ Erro ao carregar plano da análise ${analise.id}:`, err);
                     }
                 }
+                
+                // ⭐⭐⭐ NOVO: CARREGAR EVIDÊNCIAS DA ANÁLISE ⭐⭐⭐
+                try {
+                    const evidenciaResponse = await fetchComAutenticacao(`/api/analise-auditor/${analise.id}/evidencias`);
+                    const evidenciaData = await evidenciaResponse.json();
+                    if (evidenciaData.success && evidenciaData.evidencias) {
+                        analise.evidencias = evidenciaData.evidencias;
+                    } else {
+                        analise.evidencias = [];
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ Erro ao carregar evidências da análise ${analise.id}:`, err);
+                    analise.evidencias = [];
+                }
             }
             
             setAnalisesAuditorList(data.analises);
@@ -713,7 +776,7 @@ export function setupSemSugestaoCheckboxAuditor() {
     
     checkbox.addEventListener('change', function() {
         if (this.checked) {
-            textarea.value = 'INEXISTENTE';
+            textarea.value = 'NÃO APLICÁVEL NO MOMENTO';
             textarea.disabled = true;
             textarea.style.backgroundColor = '#f5f5f5';
             textarea.style.color = '#999';
@@ -728,7 +791,7 @@ export function setupSemSugestaoCheckboxAuditor() {
     });
     
     textarea.addEventListener('input', function() {
-        if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'INEXISTENTE') {
+        if (this.value.trim() !== '' && this.value.trim().toUpperCase() !== 'NÃO APLICÁVEL NO MOMENTO') {
             checkbox.checked = false;
             toggleCamposSugestaoAuditor();
         }
@@ -847,5 +910,35 @@ export async function salvarAnaliseAuditor() {
     } finally {
         btnSalvar.disabled = false;
         btnSalvar.innerHTML = textoOriginal;
+    }
+}
+
+// ============================================================
+// FUNÇÃO PARA REMOVER EVIDÊNCIA DO AUDITOR
+// ============================================================
+
+export async function removerEvidenciaAnaliseAuditor(analiseId) {
+    if (!confirm('⚠️ Tem certeza que deseja remover esta evidência?')) return;
+    
+    try {
+        mostrarToast('⏳ Removendo evidência...', 'info');
+        
+        const response = await fetchComAutenticacao(`/api/analise-auditor/${analiseId}/evidencia`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarToast('✅ Evidência removida com sucesso!', 'success');
+            
+            // ⭐ RECARREGAR AS ANÁLISES
+            await carregarAnalisesAuditor();
+        } else {
+            mostrarToast('❌ Erro ao remover evidência: ' + (data.error || 'Erro desconhecido'), 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao remover evidência:', error);
+        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
     }
 }
