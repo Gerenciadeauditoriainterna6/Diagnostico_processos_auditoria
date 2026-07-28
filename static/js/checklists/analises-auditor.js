@@ -412,8 +412,8 @@ export async function renderizarAnalisesAuditor() {
             </div>
             <div class="analise-auditor-body">
                 <div class="analise-grid">
-                    <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
-                    <div class="analise-card-section"><h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-ponto-de-auditoria"><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-sugestao-de-melhoria"><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
                 </div>
                 
                 ${temEvidencia ? `
@@ -471,8 +471,8 @@ export async function renderizarAnalisesAuditor() {
                 ` : ''}
                 
                 <div class="analise-grid">
-                    <div class="analise-card-section"><h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
-                    <div class="analise-card-section"><h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-necessidade-para-implantacao"><i class="fas fa-tasks"></i> Necessidade para implantação da sugestão de melhoria</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
+                    <div class="analise-card-section"><h4 class="cor-ganho-previsto"><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
                 </div>
                 ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
                 
