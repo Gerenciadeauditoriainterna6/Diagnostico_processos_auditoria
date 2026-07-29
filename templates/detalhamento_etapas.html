@@ -328,7 +328,7 @@
                     <input type="hidden" id="analise-id">
                     <input type="hidden" id="analise-temp-id"> <!-- Para análises temporárias -->
                     
-                    <div class="form-row">
+                    <!-- <div class="form-row">
                         <div class="form-group">
                             <label><i class="fas fa-tags"></i> Categoria</label>
                             <select id="analise-categoria" class="form-control">
@@ -338,13 +338,12 @@
                             </select>
                             <small class="text-muted">Selecione a categoria do Ponto de Auditoria</small>
                         </div>
-                    </div>
+                    </div> -->
                  
 
                     <div class="form-group">
-                        <label class="cor-ponto-de-auditoria">
-                            <i class="fas fa-check-circle"></i> Ponto de Auditoria
-                            <span class="help-icon" style="position: relative; display: inline-block;" data-tooltip="1- O que falta na etapa do processo?&#10; 2-O que essa falta provoca no processo?&#10;&#10;Conclusão: Essa falta são as dores do processo">
+                        <label> <span class="cor-ponto-de-auditoria">Ponto de Auditoria</span>
+                            <span class="help-icon" style="position: relative; display: inline-block;" data-tooltip="Problema encontrado.">
                                 <i class="fas fa-question-circle"></i>
                             </span>
                         </label>
@@ -352,7 +351,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="cor-sugestao-de-melhoria">Sugestão de Melhoria</label>
+                        <label> <span class="cor-sugestao-de-melhoria">Sugestão de Melhoria</span>
+                            <span class="help-icon" style="position: relative; display: inline-block;" data-tooltip="Recomendação para sanar o problema encontrado.">
+                                <i class="fas fa-question-circle"></i>
+                        </label>
                         <textarea id="analise-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria..."></textarea>
                     </div>
 
@@ -757,6 +759,11 @@
         font-weight: 500;
         color: #48606c;
         font-size: 13px;
+    }
+
+    .form-group label i{
+        color: #0b5b99;
+        margin-left: 3px;
     }
 
     .form-control {
@@ -1531,11 +1538,11 @@
     }
 
     .cor-sugestao-de-melhoria, .cor-ganho-previsto {
-        color: #00ff00;
+        color: #00ff00 !important;
     }
 
     .cor-necessidade-para-implantacao {
-        color: #0077ff;
+        color: #0077ff !important;
     }
 
 </style>

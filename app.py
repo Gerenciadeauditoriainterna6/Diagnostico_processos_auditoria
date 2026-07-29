@@ -54,16 +54,6 @@ from logic import validar_login_no_banco
 # FUNÇÕES DE UTILIDADE
 # ============================================================
 
-
-
-
-
-
-
-
-
-
-
 def atualizar_obrigacao_com_arquivo(etapa_id, indice_obrigacao, arquivo_url, arquivo_nome, arquivo_tamanho):
     """
     Atualiza a obrigação com a URL do arquivo
@@ -212,7 +202,9 @@ app.register_blueprint(relatorios_bp)
 
 register_blueprints(app)
 
-app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
+# ⭐⭐⭐ CONFIGURAÇÕES DE SESSÃO ⭐⭐⭐
+app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao')
+app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=int(os.getenv('SESSION_TIMEOUT_SECONDS', 1800)))
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -237,6 +229,15 @@ def configurar_auditoria():
         session.permanent = True
         # Atualiza o timestamp da última atividade (para debug)
         session['_last_activity'] = datetime.now().isoformat()
+        # Verifica se a sessão tem tempo definido
+        if session.permanent:
+            # Pega o tempo de expiração
+            sessao_expira_em = app.permanent_session_lifetime
+            tempo_restante = sessao_expira_em.total_seconds() / 60  # em minutos
+            
+            print(f"🟢 USUÁRIO: {session.get('usuario_nome')}")
+            print(f"🟢 SESSÃO EXPIRA EM: {tempo_restante:.0f} minutos")
+            print(f"🟢 ÚLTIMA ATIVIDADE: {session.get('_last_activity')}")
         # A sessão é automaticamente salva pelo Flask
         # O timeout conta a partir da última requisição
     else:
@@ -3564,6 +3565,18 @@ def api_processos_por_area():
     if not area_id:
         return jsonify({'success': False, 'error': 'area_id é obrigatório'}), 400
     
+    # ⭐ VALIDAR E CONVERTER ⭐
+    try:
+        area_id = int(area_id)  # Converte para inteiro
+        
+        # Só converte auditoria_id se existir
+        if auditoria_id and auditoria_id.strip():
+            auditoria_id = int(auditoria_id)
+        else:
+            auditoria_id = None
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'IDs devem ser números inteiros'}), 400
+    
     from database import engine
     from sqlalchemy import text
     
@@ -3588,8 +3601,8 @@ def api_processos_por_area():
                         CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
                 """)
                 result = conn.execute(query, {
-                    "area_id": area_id,
-                    "auditoria_id": auditoria_id
+                    "area_id": area_id,          # ← int
+                    "auditoria_id": auditoria_id # ← int
                 }).fetchall()
             else:
                 # Sem auditoria - todos os processos da área

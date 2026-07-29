@@ -1404,3 +1404,25 @@ textarea.form-control {
 .cor-necessidade-para-implantacao {
     color: #0077ff !important;
 }
+
+/* Tooltip */
+    .help-icon:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        max-width: 350px;
+        min-width: 250px;
+        text-align: center;
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        line-height: 1.4;
+        z-index: 9999;
+        margin-top: 20px;
+        margin-left: 5px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
