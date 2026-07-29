@@ -737,7 +737,15 @@
                             <!-- Impacto e Probabilidade -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro *</label>
+                                    <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro *
+                                    <span class="help-icon">
+                                        <i class="fas fa-question-circle"></i>
+                                        <span class="tooltip-img">
+                                            <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                            <span class="tooltip=caption">Matriz Impacto x Probabilidade</span>
+                                        </span>
+                                    </span>
+                                    </label>
                                     <select id="modal-impacto" class="form-control">
                                         <option value="BAIXO">BAIXO</option>
                                         <option value="MÉDIO">MÉDIO</option>
@@ -745,8 +753,17 @@
                                         <option value="MUITO ALTO">MUITO ALTO</option>
                                     </select>
                                 </div>
+                                
                                 <div class="form-group">
-                                    <label><i class="fas fa-chart-simple"></i> Probabilidade *</label>
+                                    <label><i class="fas fa-chart-simple"></i> Probabilidade *
+                                    <span class="help-icon">
+                                        <i class="fas fa-question-circle"></i>
+                                        <span class="tooltip-img">
+                                            <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                            <span class="tooltip=caption">Matriz Impacto x Probabilidade</span>
+                                        </span>
+                                    </span>
+                                    </label>
                                     <select id="modal-probabilidade" class="form-control">
                                         <option value="BAIXO">BAIXO</option>
                                         <option value="MÉDIO">MÉDIO</option>
@@ -781,7 +798,15 @@
                                 <!-- Impacto Aceitável e Probabilidade Aceitável -->
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro Aceitável</label>
+                                        <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro Aceitável
+                                        <span class="help-icon">
+                                            <i class="fas fa-question-circle"></i>
+                                            <span class="tooltip-img">
+                                                <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                                <span class="tooltip-caption">Matriz de Impacto x Probabilidade</span>
+                                            </span>
+                                        </span>
+                                        </label>
                                         <select id="apetite_impacto" class="form-control">
                                             <option value="BAIXO">BAIXO</option>
                                             <option value="MÉDIO" selected>MÉDIO</option>
@@ -790,7 +815,15 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável</label>
+                                        <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável
+                                        <span class="help-icon">
+                                            <i class="fas fa-question-circle"></i>
+                                            <span class="tooltip-img">
+                                                <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                                <span class="tooltip-caption">Matriz de Impacto x Probabilidade</span>
+                                            </span>
+                                        </span>
+                                        </label>
                                         <select id="apetite_probabilidade" class="form-control">
                                             <option value="BAIXO">BAIXO</option>
                                             <option value="MÉDIO" selected>MÉDIO</option>
@@ -1533,6 +1566,60 @@
         cursor: help;
         margin-left: 6px;
         transition: all 0.2s ease;
+    }
+
+    .help-icon .tooltip-img {
+        visibility: hidden;
+        width: 320px;
+        background-color: #184145;
+        color: #fff;
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        
+        /* Posicionamento */
+        position: absolute;
+        z-index: 1000;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        
+        /* Efeito */
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* Seta do tooltip */
+    .help-icon .tooltip-img::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 8px solid transparent;
+        border-top-color: #184145;
+    }
+
+    /* Mostrar ao passar o mouse */
+    .help-icon:hover .tooltip-img {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* Imagem dentro do tooltip */
+    .help-icon .tooltip-img img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+
+    .help-icon .tooltip-img .tooltip-caption {
+        display: block;
+        font-size: 11px;
+        color: #ccc;
+        margin-top: 5px;
     }
 
     /* Reduz o tamanho do ícone de ajuda dos critérios */
