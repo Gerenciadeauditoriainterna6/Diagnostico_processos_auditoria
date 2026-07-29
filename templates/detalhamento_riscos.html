@@ -220,17 +220,17 @@
                             <div style="margin-top: 8px;">
                                 <strong>PROBABILIDADE</strong>
                                 <ul>
-                                    <li><strong>Baixa:</strong> Pode ocorrer até 1 vez por ano.</li>
-                                    <li><strong>Média:</strong> Pode ocorrer mais de 1 vez por ano.</li>
-                                    <li><strong>Alta:</strong> Pode ocorrer mensalmente.</li>
-                                    <li><strong>Muito Alta:</strong> Pode ocorrer diariamente ou semanalmente.</li>
+                                    <li><strong>Baixa:</strong> Pode ser que ocorra uma vez dentro de um ano.</li>
+                                    <li><strong>Média:</strong> Pode ser que ocorra mais de uma vez dentro de um ano.</li>
+                                    <li><strong>Alta:</strong> Pode ser que ocorra mensalmente.</li>
+                                    <li><strong>Muito Alta:</strong> Pode ser que ocorra diariamente.</li>
                                 </ul>
-                                <strong>IMPACTO</strong>
+                                <strong>IMPACTO FINANCEIRO</strong>
                                 <ul>
-                                    <li><strong>Baixo:</strong> Impacto mínimo, sem grandes consequências.</li>
-                                    <li><strong>Médio:</strong> Impacto moderado, requer ação corretiva.</li>
-                                    <li><strong>Alto:</strong> Impacto significativo, requer ação imediata.</li>
-                                    <li><strong>Muito Alto:</strong> Impacto crítico, compromete a operação.</li>
+                                    <li><strong>Baixo:</strong> Desembolsos de até R$ 150.000,00.</li>
+                                    <li><strong>Médio:</strong> Desembolsos de R$ 150.000,01 até R$ 300.000,00.</li>
+                                    <li><strong>Alto:</strong> Desembolso de R$ 300.000,01 até R$ 1.500.000,00.</li>
+                                    <li><strong>Muito Alto:</strong> Desembolso acima de R$ 1.500.000,00.</li>
                                 </ul>
                             </div>
                         </div>
@@ -238,7 +238,7 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label><i class="fas fa-chart-line"></i> Impacto *</label>
+                            <label><i class="fas fa-chart-line"></i> Impacto Financeiro *</label>
                             <select id="risco_impacto" class="form-control">
                                 <option value="BAIXO">BAIXO</option>
                                 <option value="MÉDIO" selected>MÉDIO</option>
@@ -280,7 +280,7 @@
                         </label>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Impacto Aceitável para o Apetite ao Risco</label>
+                                <label>Impacto financeiro Aceitável para o Apetite ao Risco</label>
                                 <select id="apetite_impacto" class="form-control">
                                     <option value="BAIXO">BAIXO</option>
                                     <option value="MÉDIO" selected>MÉDIO</option>
@@ -1537,7 +1537,7 @@
         
         if (score === undefined) {
             console.warn(`⚠️ Combinação não encontrada no mapa: "${chave}"`);
-            console.warn(`   Impacto: "${impactoUpper}", Probabilidade: "${probabilidadeUpper}"`);
+            console.warn(`   Impacto Financeiro: "${impactoUpper}", Probabilidade: "${probabilidadeUpper}"`);
             return 0;
         }
         
@@ -1890,7 +1890,7 @@
                                 <span class="detalhe-valor">${escapeHtml(origem) || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
-                                <span class="detalhe-label">Impacto:</span>
+                                <span class="detalhe-label">Impacto Financeiro:</span>
                                 <span class="detalhe-valor">${impacto}</span>
                             </div>
                             <div class="risco-detalhe">
@@ -1902,7 +1902,7 @@
                                 <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao || '').toUpperCase() || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
-                                <span class="detalhe-label">Impacto Aceitável:</span>
+                                <span class="detalhe-label">Impacto Financeiro Aceitável:</span>
                                 <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel || '').toUpperCase() || '-'}</span>
                             </div>
                             <div class="risco-detalhe">
