@@ -1,0 +1,90 @@
+<!-- MODAL DE VISUALIZAÇÃO DE RISCO -->
+<div id="modal-visualizar-risco" class="modal" style="display: none; z-index: 100001;">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-eye"></i> Visualizar Risco</h3>
+            <button type="button" class="modal-close" id="btn-fechar-visualizar-modal" onclick="fecharModalRisco()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="visualizar-risco-content">
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-tag"></i> Nome do Risco</div>
+                    <div class="vis-value" id="vis-nome_risco">-</div>
+                </div>
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)</div>
+                    <div class="vis-value" id="vis-fator_risco">-</div>
+                </div>
+                <!-- Categoria de causas -->
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</div>
+                    <div class="vis-value" id="vis-categoria-causa"></div>
+                </div>
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-lightbulb"></i> O que mais te incomoda nesse processo?</div>
+                    <div class="vis-value" id="vis-melhoria">-</div>
+                </div>
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-tags"></i> Categoria(s)</div>
+                    <div class="vis-value" id="vis-categorias">-</div>
+                </div>
+                <div class="vis-row">
+                    <div class="vis-item half">
+                        <div class="vis-label"><i class="fas fa-chart-line"></i> Impacto Financeiro</div>
+                        <div class="vis-value" id="vis-impacto">-</div>
+                    </div>
+                    <div class="vis-item half">
+                        <div class="vis-label"><i class="fas fa-chart-simple"></i> Probabilidade</div>
+                        <div class="vis-value" id="vis-probabilidade">-</div>
+                    </div>
+                </div>
+                <!-- ⭐ NOVOS CAMPOS: Apetite Impacto e Probabilidade -->
+                <div class="vis-row">
+                    <div class="vis-item half">
+                        <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite do Impacto Financeiro</div>
+                        <div class="vis-value" id="vis-apetite-impacto">-</div>
+                    </div>
+                    <div class="vis-item half">
+                        <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite da Probabilidade</div>
+                        <div class="vis-value" id="vis-apetite-probabilidade">-</div>
+                    </div>
+                </div>
+
+                <!-- ⭐ NOVO: Score do Apetite -->
+                
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-calculator"></i> Score</div>
+                    <div class="vis-value" id="vis-score">-</div>
+                </div>
+
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-calculator"></i> Score do Apetite</div>
+                    <div class="vis-value" id="vis-score-apetite">-</div>
+                </div>
+
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-comment"></i> Motivo da Classificação</div>
+                    <div class="vis-value" id="vis-motivo_risco">-</div>
+                </div>
+                <!-- NOVOS CAMPOS - VISUALIZAÇÃO -->
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-shield-alt"></i> Como tratar o risco?</div>
+                    <div class="vis-value" id="vis-como-tratar">-</div>
+                </div>
+
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-file-alt"></i> Descrição do tratamento</div>
+                    <div class="vis-value" id="vis-desc-tratamento">-</div>
+                </div>
+
+                <div class="vis-item">
+                    <div class="vis-label"><i class="fas fa-calendar-alt"></i> Prazo para implantação</div>
+                    <div class="vis-value" id="vis-prazo-implantacao">-</div>
+                </div> 
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="btn-fechar-visualizar" onclick="fecharModalRisco()">Fechar</button>
+        </div>
+    </div>
+</div>
