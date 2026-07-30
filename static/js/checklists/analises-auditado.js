@@ -372,7 +372,7 @@ export async function carregarAnalisesAuditado() {
                                     ${temEvidencia ? '<span style="color: #0b5b99; font-size: 12px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
                                 </div>
                                 <div class="analise-auditado-actions" onclick="event.stopPropagation()">
-                                    <button class="btn-edit-analise-auditado" onclick="editarAnaliseAuditado(${analise.id})" title="Editar análise">
+                                    <button class="btn-edit-analise-auditado" onclick="editarAnaliseAuditado(${analise.id}, ${ordemAnalise})" title="Editar análise">
                                         <i class="fas fa-pencil-alt"></i> Editar
                                     </button>
                                     <i class="fas fa-chevron-down"></i>
@@ -522,8 +522,8 @@ export async function carregarAnalisesAuditado() {
     }
 }
 
-export async function editarAnaliseAuditado(id) {
-    console.log('✏️ Editando análise do auditado ID:', id);
+export async function editarAnaliseAuditado(id, ordem) {
+    console.log('✏️ Editando análise do auditado ID:', id, 'Ordem', ordem);
     
     try {
         const response = await fetchComAutenticacao(`/api/analises-criticas-por-processo?processo_id=${processoIdAtual}`);
@@ -534,6 +534,8 @@ export async function editarAnaliseAuditado(id) {
             if (analise) {
                 console.log('📊 Dados da análise:', analise);
                 console.log('📊 sugestao_sera_implantada:', analise.sugestao_sera_implantada);
+
+                document.getElementById('modal-analise-auditado-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Análise do Auditado - Análise ' + ordem
                 
                 // 1. Primeiro, limpar e preencher campos básicos
                 document.getElementById('analise-auditado-id').value = analise.id;
@@ -672,9 +674,6 @@ export async function editarAnaliseAuditado(id) {
                 
                 console.log('🎯 Radio selecionado:', valorParaMarcar);
                 console.log('🎯 Radio checked após marcação:', document.querySelector('#modal-analise-auditado input[name="sugestao-status-auditado-radio"]:checked')?.value);
-                
-                document.getElementById('modal-analise-auditado-titulo').innerHTML = 
-                    '<i class="fas fa-edit"></i> Editar Análise do Auditado - ' + ordemAnalise;
                 
                 document.getElementById('modal-analise-auditado').style.display = 'flex';
                 

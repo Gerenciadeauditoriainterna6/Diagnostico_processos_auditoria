@@ -157,6 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function renderizarFundamentos(auditorias) {
+        console.log('🔄 renderizarFundamentos chamado!', auditorias);
         if (!fundamentosContainer) return;
         
         // ⭐ MOSTRAR TODAS AS AUDITORIAS (não emergenciais)
@@ -217,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="pontos-container">
                                 <label class="pontos-label"><i class="fas fa-list"></i> Pontos:</label>
                                 <div class="pontos-lista-edit" data-auditoria-idx="${audIdx}" data-fundamento-idx="${fIdx}">
-                                    ${(fundamento.pontos || []).filter(p => p && p.trim() !== '').map((ponto, pIdx) => `
+                                    ${(fundamento.pontos || []).map((ponto, pIdx) => `
                                         <div class="ponto-item-edit">
                                             <span class="ponto-numero">${pIdx + 1}.</span>
                                             <input type="text" class="ponto-input" value="${escapeHtml(ponto)}" 
@@ -249,99 +250,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `).join('');
         
-        // Adicionar eventos de edição
-        adicionarEventosEdicao();
     }
 
-    // ====== ADICIONAR EVENTOS DE EDIÇÃO ======
-    function adicionarEventosEdicao() {
-        // Adicionar Risco
-        document.querySelectorAll('.btn-adicionar-risco, .btn-adicionar-risco-inline').forEach(btn => {
-            btn.removeEventListener('click', handleAdicionarRisco);
-            btn.addEventListener('click', handleAdicionarRisco);
-        });
-        
-        // Remover Risco
-        document.querySelectorAll('.btn-remover-risco').forEach(btn => {
-            btn.removeEventListener('click', handleRemoverRisco);
-            btn.addEventListener('click', handleRemoverRisco);
-        });
-        
-        // Adicionar Ponto
-        document.querySelectorAll('.btn-adicionar-ponto').forEach(btn => {
-            btn.removeEventListener('click', handleAdicionarPonto);
-            btn.addEventListener('click', handleAdicionarPonto);
-        });
-        
-        // Remover Ponto
-        document.querySelectorAll('.btn-remover-ponto').forEach(btn => {
-            btn.removeEventListener('click', handleRemoverPonto);
-            btn.addEventListener('click', handleRemoverPonto);
-        });
-        
-        // Salvar Auditoria
-        document.querySelectorAll('.btn-salvar-auditoria').forEach(btn => {
-            btn.removeEventListener('click', handleSalvarAuditoria);
-            btn.addEventListener('click', handleSalvarAuditoria);
-        });
-    }
-
-    // ====== HANDLERS DE EDIÇÃO ======
-    function handleAdicionarRisco(e) {
-        const btn = e.target.closest('.btn-adicionar-risco, .btn-adicionar-risco-inline');
-        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
-        const auditoria = dadosAuditorias[auditoriaIdx];
-        
-        if (!auditoria) return;
-        
-        if (!auditoria.fundamentos) {
-            auditoria.fundamentos = [];
-        }
-        
-        auditoria.fundamentos.push({
-            titulo: '',
-            pontos: ['']
-        });
-        
-        renderizarFundamentos(dadosAuditorias);
-    }
-
-    function handleRemoverRisco(e) {
-        const btn = e.target.closest('.btn-remover-risco');
-        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
-        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
-        const auditoria = dadosAuditorias[auditoriaIdx];
-        
-        if (!auditoria || !auditoria.fundamentos) return;
-        
-        auditoria.fundamentos.splice(fundamentoIdx, 1);
-        renderizarFundamentos(dadosAuditorias);
-    }
-
-    function handleAdicionarPonto(e) {
-        const btn = e.target.closest('.btn-adicionar-ponto');
-        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
-        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
-        const auditoria = dadosAuditorias[auditoriaIdx];
-        
-        if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
-        
-        auditoria.fundamentos[fundamentoIdx].pontos.push('');
-        renderizarFundamentos(dadosAuditorias);
-    }
-
-    function handleRemoverPonto(e) {
-        const btn = e.target.closest('.btn-remover-ponto');
-        const auditoriaIdx = parseInt(btn.getAttribute('data-auditoria-idx'));
-        const fundamentoIdx = parseInt(btn.getAttribute('data-fundamento-idx'));
-        const pontoIdx = parseInt(btn.getAttribute('data-ponto-idx'));
-        const auditoria = dadosAuditorias[auditoriaIdx];
-        
-        if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
-        
-        auditoria.fundamentos[fundamentoIdx].pontos.splice(pontoIdx, 1);
-        renderizarFundamentos(dadosAuditorias);
-    }
 
     async function handleSalvarAuditoria(e) {
         const btn = e.target.closest('.btn-salvar-auditoria');
@@ -484,6 +394,73 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         document.head.appendChild(style);
     }
+
+    fundamentosContainer.addEventListener('click', function(e) {
+        console.log('🔵 Clique detectado no container!');
+        const target = e.target.closest('button');
+        if (!target) return;
+        console.log('🔵 Botão clicado:', target.className);
+        
+        // ADICIONAR RISCO
+        if (target.classList.contains('btn-adicionar-risco')) {
+            e.preventDefault();
+            const auditoriaIdx = parseInt(target.dataset.auditoriaIdx);
+            const auditoria = dadosAuditorias[auditoriaIdx];
+            if (!auditoria) return;
+            if (!auditoria.fundamentos) auditoria.fundamentos = [];
+            auditoria.fundamentos.push({ titulo: '', pontos: [''] });
+            renderizarFundamentos(dadosAuditorias);
+            return;
+        }
+        
+        // REMOVER RISCO
+        if (target.classList.contains('btn-remover-risco')) {
+            e.preventDefault();
+            const auditoriaIdx = parseInt(target.dataset.auditoriaIdx);
+            const fundamentoIdx = parseInt(target.dataset.fundamentoIdx);
+            const auditoria = dadosAuditorias[auditoriaIdx];
+            if (!auditoria || !auditoria.fundamentos) return;
+            auditoria.fundamentos.splice(fundamentoIdx, 1);
+            renderizarFundamentos(dadosAuditorias);
+            return;
+        }
+        
+        // ADICIONAR PONTO
+        if (target.classList.contains('btn-adicionar-ponto')) {
+            e.preventDefault();
+            console.log('🔵 Adicionar Ponto clicado!');
+            const auditoriaIdx = parseInt(target.dataset.auditoriaIdx);
+            const fundamentoIdx = parseInt(target.dataset.fundamentoIdx);
+            console.log('📊 auditoriaIdx:', auditoriaIdx, 'fundamentoIdx:', fundamentoIdx); 
+            const auditoria = dadosAuditorias[auditoriaIdx];
+            console.log('📊 auditoria:', auditoria);
+            if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
+            auditoria.fundamentos[fundamentoIdx].pontos.push('');
+            console.log('✅ Pontos atualizados:', auditoria.fundamentos[fundamentoIdx].pontos);
+            renderizarFundamentos(dadosAuditorias);
+            return;
+        }
+        
+        // REMOVER PONTO
+        if (target.classList.contains('btn-remover-ponto')) {
+            e.preventDefault();
+            const auditoriaIdx = parseInt(target.dataset.auditoriaIdx);
+            const fundamentoIdx = parseInt(target.dataset.fundamentoIdx);
+            const pontoIdx = parseInt(target.dataset.pontoIdx);
+            const auditoria = dadosAuditorias[auditoriaIdx];
+            if (!auditoria || !auditoria.fundamentos || !auditoria.fundamentos[fundamentoIdx]) return;
+            auditoria.fundamentos[fundamentoIdx].pontos.splice(pontoIdx, 1);
+            renderizarFundamentos(dadosAuditorias);
+            return;
+        }
+        
+        // SALVAR AUDITORIA
+        if (target.classList.contains('btn-salvar-auditoria')) {
+            e.preventDefault();
+            handleSalvarAuditoria(e);
+            return;
+        }
+    });
     
 })
 

@@ -95,7 +95,7 @@
                     </div>
                     <div class="vis-row">
                         <div class="vis-item half">
-                            <div class="vis-label"><i class="fas fa-chart-line"></i> Impacto</div>
+                            <div class="vis-label"><i class="fas fa-chart-line"></i> Impacto Financeiro</div>
                             <div class="vis-value" id="vis-impacto">-</div>
                         </div>
                         <div class="vis-item half">
@@ -106,11 +106,11 @@
                     <!-- ⭐ NOVOS CAMPOS: Apetite Impacto e Probabilidade -->
                     <div class="vis-row">
                         <div class="vis-item half">
-                            <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite Impacto</div>
+                            <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite do Impacto Financeiro</div>
                             <div class="vis-value" id="vis-apetite-impacto">-</div>
                         </div>
                         <div class="vis-item half">
-                            <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite Probabilidade</div>
+                            <div class="vis-label"><i class="fas fa-bullseye"></i> Apetite da Probabilidade</div>
                             <div class="vis-value" id="vis-apetite-probabilidade">-</div>
                         </div>
                     </div>
@@ -723,7 +723,7 @@
                                             <li><strong>Alta:</strong> Pode ser que ocorra mensalmente.</li>
                                             <li><strong>Muito Alta:</strong> Pode ser que ocorra diariamente.</li>
                                         </ul>
-                                        <strong>IMPACTO</strong>
+                                        <strong>IMPACTO FINANCEIRO</strong>
                                         <ul>
                                             <li><strong>Baixo:</strong> Desembolsos de até R$ 150.000,00.</li>
                                             <li><strong>Médio:</strong> Desembolsos de R$ 150.000,01 até R$ 300.000,00.</li>
@@ -737,7 +737,15 @@
                             <!-- Impacto e Probabilidade -->
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label><i class="fas fa-sack-dollar"></i> Impacto *</label>
+                                    <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro *
+                                    <span class="help-icon">
+                                        <i class="fas fa-question-circle"></i>
+                                        <span class="tooltip-img">
+                                            <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                            <span class="tooltip=caption">Matriz Impacto x Probabilidade</span>
+                                        </span>
+                                    </span>
+                                    </label>
                                     <select id="modal-impacto" class="form-control">
                                         <option value="BAIXO">BAIXO</option>
                                         <option value="MÉDIO">MÉDIO</option>
@@ -745,8 +753,17 @@
                                         <option value="MUITO ALTO">MUITO ALTO</option>
                                     </select>
                                 </div>
+                                
                                 <div class="form-group">
-                                    <label><i class="fas fa-chart-simple"></i> Probabilidade *</label>
+                                    <label><i class="fas fa-chart-simple"></i> Probabilidade *
+                                    <span class="help-icon">
+                                        <i class="fas fa-question-circle"></i>
+                                        <span class="tooltip-img">
+                                            <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                            <span class="tooltip=caption">Matriz Impacto x Probabilidade</span>
+                                        </span>
+                                    </span>
+                                    </label>
                                     <select id="modal-probabilidade" class="form-control">
                                         <option value="BAIXO">BAIXO</option>
                                         <option value="MÉDIO">MÉDIO</option>
@@ -781,7 +798,15 @@
                                 <!-- Impacto Aceitável e Probabilidade Aceitável -->
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label><i class="fas fa-sack-dollar"></i> Impacto Aceitável</label>
+                                        <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro Aceitável
+                                        <span class="help-icon">
+                                            <i class="fas fa-question-circle"></i>
+                                            <span class="tooltip-img">
+                                                <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                                <span class="tooltip-caption">Matriz de Impacto x Probabilidade</span>
+                                            </span>
+                                        </span>
+                                        </label>
                                         <select id="apetite_impacto" class="form-control">
                                             <option value="BAIXO">BAIXO</option>
                                             <option value="MÉDIO" selected>MÉDIO</option>
@@ -790,7 +815,15 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável</label>
+                                        <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável
+                                        <span class="help-icon">
+                                            <i class="fas fa-question-circle"></i>
+                                            <span class="tooltip-img">
+                                                <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                                <span class="tooltip-caption">Matriz de Impacto x Probabilidade</span>
+                                            </span>
+                                        </span>
+                                        </label>
                                         <select id="apetite_probabilidade" class="form-control">
                                             <option value="BAIXO">BAIXO</option>
                                             <option value="MÉDIO" selected>MÉDIO</option>
@@ -1533,6 +1566,60 @@
         cursor: help;
         margin-left: 6px;
         transition: all 0.2s ease;
+    }
+
+    .help-icon .tooltip-img {
+        visibility: hidden;
+        width: 320px;
+        background-color: #184145;
+        color: #fff;
+        text-align: center;
+        padding: 12px;
+        border-radius: 8px;
+        
+        /* Posicionamento */
+        position: absolute;
+        z-index: 1000;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        
+        /* Efeito */
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* Seta do tooltip */
+    .help-icon .tooltip-img::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 8px solid transparent;
+        border-top-color: #184145;
+    }
+
+    /* Mostrar ao passar o mouse */
+    .help-icon:hover .tooltip-img {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* Imagem dentro do tooltip */
+    .help-icon .tooltip-img img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+
+    .help-icon .tooltip-img .tooltip-caption {
+        display: block;
+        font-size: 11px;
+        color: #ccc;
+        margin-top: 5px;
     }
 
     /* Reduz o tamanho do ícone de ajuda dos critérios */
@@ -3260,15 +3347,15 @@
                         <div class="kanban-card-title">${escapeHtml(risco.nome_risco)}</div>
                         <div class="kanban-card-score">
                             <span style="font-size: 11px; color: #666;">Magnitude do risco:</span>
-                            <span class="kanban-card-badge impact">Impacto: ${(risco.impacto || 'Médio').toUpperCase()}</span>
-                            <span class="kanban-card-badge prob">Prob: ${ (risco.probabilidade || 'Médio').toUpperCase()}</span>
+                            <span class="kanban-card-badge impact">Impacto Financeiro: ${(risco.impacto || 'Médio').toUpperCase()}</span>
+                            <span class="kanban-card-badge prob">Probabilidade: ${ (risco.probabilidade || 'Médio').toUpperCase()}</span>
                             <span><strong>Score do risco (magnitude): ${risco.score}</strong> (${risco.nivelTexto})</span>
                         </div>
                         <!-- ⭐ NOVO: Score do Apetite -->
                         <div class="kanban-card-score" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eee;">
                             <span style="font-size: 11px; color: #666;">Apetite:</span>
-                            <span class="kanban-card-badge impact" style="background: #e8f4f8;">Impacto: ${ (risco.apetite_impacto || 'Médio').toUpperCase()}</span>
-                            <span class="kanban-card-badge prob" style="background: #e8f4f8;">Prob: ${ (risco.apetite_probabilidade || 'Médio').toUpperCase()}</span>
+                            <span class="kanban-card-badge impact" style="background: #e8f4f8;">Apetite do Impacto Fin.: ${ (risco.apetite_impacto || 'Médio').toUpperCase()}</span>
+                            <span class="kanban-card-badge prob" style="background: #e8f4f8;">Apetite da Prob.: ${ (risco.apetite_probabilidade || 'Médio').toUpperCase()}</span>
                             <span><strong>Score do apetite (risco residual): ${risco.apetiteScore}</strong> ${apetiteIcon} (${risco.apetiteNivelTexto})</span>
                         </div>
                         <div class="kanban-card-categorias">
@@ -5149,7 +5236,7 @@
         
         if (score === undefined) {
             console.warn(`⚠️ Combinação não encontrada no mapa: "${chave}"`);
-            console.warn(`   Impacto: "${impactoUpper}", Probabilidade: "${probabilidadeUpper}"`);
+            console.warn(`   Impacto Financeiro: "${impactoUpper}", Probabilidade: "${probabilidadeUpper}"`);
             return 0;
         }
         
@@ -5232,15 +5319,15 @@
                 <div class="kanban-card-title">${escapeHtml(risco.nome_risco || 'Risco sem nome')}</div>
                 <div class="kanban-card-score">
                     <span style="font-size: 11px; color: #666;">Magnitude do risco:</span>
-                    <span class="kanban-card-badge impact">Impacto: ${risco.impacto || 'Médio'}</span>
-                    <span class="kanban-card-badge prob">Prob: ${risco.probabilidade || 'Médio'}</span>
+                    <span class="kanban-card-badge impact">Impacto Financeiro: ${risco.impacto || 'Médio'}</span>
+                    <span class="kanban-card-badge prob">Probabilidade: ${risco.probabilidade || 'Médio'}</span>
                     <span><strong>Score do risco (magnitude): ${score}</strong> (${levelText})</span>
                 </div>
                 <!-- ⭐ NOVO: Score do Apetite (Risco Residual) -->
                 <div class="kanban-card-score" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eee;">
                     <span style="font-size: 11px; color: #666;">Apetite do risco:</span>
-                    <span class="kanban-card-badge impact" style="background: #e8f4f8;">Impacto: ${risco.apetite_impacto || 'Médio'}</span>
-                    <span class="kanban-card-badge prob" style="background: #e8f4f8;">Prob: ${risco.apetite_probabilidade || 'Médio'}</span>
+                    <span class="kanban-card-badge impact" style="background: #e8f4f8;">Apetite do Impacto Fin.: ${risco.apetite_impacto || 'Médio'}</span>
+                    <span class="kanban-card-badge prob" style="background: #e8f4f8;">Apetite da Prob.: ${risco.apetite_probabilidade || 'Médio'}</span>
                     <span><strong>Score do apetite (risco residual): ${apetiteScore}</strong> ${apetiteIcon} (${apetiteNivelTexto})</span>
                 </div>
                 <div class="kanban-card-categorias">
@@ -6673,7 +6760,7 @@
                                 </div>
                                 <div class="resumo-risco-detalhes">
                                     <div class="detalhe">
-                                        <span class="detalhe-label">Impacto</span>
+                                        <span class="detalhe-label">Impacto Financeiro</span>
                                         <span class="detalhe-value">${risco.impacto || 'Médio'}</span>
                                     </div>
                                     <div class="detalhe">
@@ -6683,11 +6770,11 @@
                                     
                                     <!-- ⭐ NOVOS CAMPOS: Apetite -->
                                     <div class="detalhe">
-                                        <span class="detalhe-label">Apetite Impacto</span>
+                                        <span class="detalhe-label">Apetite do Impacto Financeiro</span>
                                         <span class="detalhe-value">${risco.apetite_impacto || 'Médio'}</span>
                                     </div>
                                     <div class="detalhe">
-                                        <span class="detalhe-label">Apetite Probabilidade</span>
+                                        <span class="detalhe-label">Apetite da Probabilidade</span>
                                         <span class="detalhe-value">${risco.apetite_probabilidade || 'Médio'}</span>
                                     </div>
                                     
