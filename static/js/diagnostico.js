@@ -1931,22 +1931,31 @@ async function irParaEtapa(etapa) {
     
     // ===== VALIDAÇÃO AO SAIR DA ETAPA 2 (apenas se estiver avançando) =====
     if (etapaAtual === 2 && etapa > etapaAtual) {
-        const nomeProcesso = document.getElementById('nome_processo')?.value.trim();
+        // Nova validação: verifica se tem funcionários com processos
+        const funcionariosIds = Object.keys(funcionariosComProcessos);
         
-        if (!nomeProcesso) {
-            mostrarToast('⚠️ Por favor, informe o nome do processo antes de avançar.', 'warning');
+        if (funcionariosIds.length === 0) {
+            mostrarToast('⚠️ Selecione pelo menos um funcionário executor.', 'warning');
             return;
         }
         
-        if (executoresSelecionados.length === 0) {
-            mostrarToast('⚠️ Selecione pelo menos um executor para o processo.', 'warning');
+        // Verifica se todos os processos têm nome
+        const todosPreenchidos = funcionariosIds.every(funcId => {
+            return funcionariosComProcessos[funcId].processos.every(proc => {
+                return proc.nome.trim() !== '';
+            });
+        });
+        
+        if (!todosPreenchidos) {
+            mostrarToast('⚠️ Preencha o nome de todos os processos.', 'warning');
             return;
         }
         
-        // 🔧 Só salva se NÃO for edição
+        // Salva os processos antes de avançar
         const modoEdicao = sessionStorage.getItem('modo_edicao');
         if (modoEdicao !== 'true') {
-            await salvarInfoBasicasAntesDeAvancar();
+            const salvou = await salvarProcessosBasicos();  // ← Nova função
+            if (!salvou) return;  // Se falhou, não avança
         }
     }
     
