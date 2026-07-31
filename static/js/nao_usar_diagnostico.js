@@ -3961,3 +3961,90 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// ============================================================
+// CARREGAR EXECUTORES EXISTENTES (MODO EDIÇÃO)
+// ============================================================
+
+async function carregarExecutoresExistentes() {
+    const modoEdicao = sessionStorage.getItem('modo_edicao');
+    const processoId = sessionStorage.getItem('processo_id');
+    
+    if (modoEdicao !== 'true' || !processoId) {
+        console.log('📝 Modo novo processo - nenhum executor para carregar');
+        return;
+    }
+    
+    console.log(`✏️ Modo edição - carregando executores do processo ${processoId}...`);
+    
+    try {
+        const response = await fetchComAutenticacao(`/api/processo/${processoId}/executores`);
+        const data = await response.json();
+        
+        if (data.success && data.executores.length > 0) {
+            console.log(`👥 ${data.executores.length} executores encontrados:`, data.executores);
+            
+            // Limpa o estado atual
+            funcionariosComProcessos = {};
+            
+            // Para cada executor, busca os processos vinculados
+            for (const executor of data.executores) {
+                const processosDoFuncionario = await carregarProcessosDoFuncionario(
+                    executor.funcionario_id, 
+                    executor.nome
+                );
+                
+                funcionariosComProcessos[executor.funcionario_id] = {
+                    nome: executor.nome,
+                    cargo: executor.cargo || 'Sem cargo',
+                    processos: processosDoFuncionario
+                };
+            }
+            
+            // Atualiza a interface
+            atualizarListaProcessosExecutores();
+            exibirListaFuncionarios();
+            verificarHabilitarProximoStep2();
+            
+            console.log('✅ Executores carregados:', funcionariosComProcessos);
+        } else {
+            console.log('📝 Nenhum executor encontrado para este processo');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar executores:', error);
+    }
+}
+
+async function carregarProcessosDoFuncionario(funcionarioId, funcionarioNome) {
+    const processoId = sessionStorage.getItem('processo_id');
+    const modoEdicao = sessionStorage.getItem('modo_edicao');
+    
+    // Se for edição de um processo existente, carrega os dados reais
+    if (modoEdicao === 'true' && processoId) {
+        try {
+            const response = await fetchComAutenticacao(
+                `/api/processo/${processoId}/dados-basicos`
+            );
+            const data = await response.json();
+            
+            if (data.success && data.processo) {
+                return [{
+                    nome: data.processo.nome_processo || '',
+                    codigo: data.processo.codigo_processo || '',
+                    tempId: Date.now(),
+                    existente: true  // Marca como existente para não duplicar
+                }];
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados do processo:', error);
+        }
+    }
+    
+    // Se for novo, retorna um processo vazio
+    return [{
+        nome: '',
+        codigo: '',
+        tempId: Date.now(),
+        existente: false
+    }];
+};

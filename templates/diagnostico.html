@@ -18,7 +18,7 @@
     <!-- Inclui os filtros como componente -->
     {% include 'diagnostico/partials/filtros.html' %}
 
-    <!-- Aqui virão os outros includes -->
+    
 
     <!--TABELA DE PROCESSOS-->
     <div class="form-section tabela-section">
@@ -80,5 +80,13 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='js/diagnostico.js') }}"></script>
+<!-- MÓDULOS DO DIAGNÓSTICO (ORDEM IMPORTA!) -->
+<!-- 1. Módulos Base (sem dependencia) -->
+<script src="{{ url_for('static', filename='js/diagnostico/filtros.js') }}"></script>
+<script src="{{ url_for('static', filename='js/diagnostico/tabela.js') }}"></script>
+
+
+<!-- 4. Orquestrador -->
+<script src="{{ url_for('static', filename='js/diagnostico/main.js') }}"></script>
+
 {% endblock %}
