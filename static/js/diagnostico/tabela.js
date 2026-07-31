@@ -283,12 +283,12 @@ const TabelaModule = {
                     valorB = (b.codigo_auditoria || b.auditoria_codigo || '').toLowerCase();
                     break;
                 case 'score':
-                    valorA = a.scoreMaximo || 0;
-                    valorB = b.scoreMaximo || 0;
+                    valorA = a.score_maximo || 0;
+                    valorB = b.score_maximo || 0;
                     break;
                 case 'riscos':
-                    valorA = a.qtdRiscos || 0;
-                    valorB = b.qtdRiscos || 0;
+                    valorA = a.qtd_riscos || 0;
+                    valorB = b.qtd_riscos || 0;
                     break;
                 default:
                     return 0;
