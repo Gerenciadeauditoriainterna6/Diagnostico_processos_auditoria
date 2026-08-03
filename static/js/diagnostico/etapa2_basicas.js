@@ -364,16 +364,7 @@ const Etapa2Module = {
                                 <button class="btn-funcionario-toggle ${selecionado ? 'btn-funcionario-selecionado' : ''}"
                                     data-temp-id="${proc.tempId}"
                                     data-func-id="${func.id}"
-                                    data-func-nome="${func.nome}"
-                                    style="
-                                        padding:6px 12px;
-                                        border-radius:20px;
-                                        border:1px solid ${selecionado ? '#28a745' : '#ddd'};
-                                        background:${selecionado ? '#d4edda' : 'white'};
-                                        cursor:pointer;
-                                        font-size:13px;
-                                        transition:all 0.2s;
-                                    ">
+                                    data-func-nome="${func.nome}">
                                     ${selecionado ? '✓' : '+'} ${func.nome}
                                 </button>
                             `;

@@ -210,3 +210,93 @@ def buscar_ultimo_sequencial(area_id):
     with engine.connect() as conn:
         result = conn.execute(query, {'area_id': area_id}).fetchone()
         return result[0] if result else 0
+
+def salvar_processo_basico(nome_processo, codigo_processo, area_id, auditoria_id, entrevistado):
+    """Salva um processo básico e retorna o ID"""
+    from database import engine
+    from sqlalchemy import text
+    
+    nome_upper = nome_processo.strip().upper()
+    
+    with engine.connect() as conn:
+        # Buscar nome da área
+        busca_area = text("SELECT UPPER(nome_area) FROM informacoes_area WHERE id_area = :id_area")
+        result_area = conn.execute(busca_area, {'id_area': area_id}).fetchone()
+        nome_area = result_area[0] if result_area else ''
+        
+        # Verificar se já existe
+        check_query = text("""
+            SELECT id, codigo_processo FROM processos 
+            WHERE UPPER(nome_processo) = UPPER(:nome) 
+            AND id_area = :id_area 
+            AND auditoria_id = :auditoria_id
+        """)
+        existing = conn.execute(check_query, {
+            'nome': nome_upper,
+            'id_area': area_id,
+            'auditoria_id': auditoria_id
+        }).fetchone()
+        
+        if existing:
+            processo_id = existing[0]
+            codigo = existing[1]
+            
+            conn.execute(text("""
+                UPDATE processos 
+                SET nome_processo = UPPER(:nome), 
+                    area = UPPER(:area),
+                    auditoria_id = :auditoria_id,
+                    entrevistado = UPPER(:entrevistado),
+                    updated_at = NOW()
+                WHERE id = :id
+            """), {
+                'nome': nome_upper,
+                'area': nome_area,
+                'auditoria_id': auditoria_id,
+                'entrevistado': entrevistado.strip().upper(),
+                'id': processo_id
+            })
+        else:
+            result = conn.execute(text("""
+                INSERT INTO processos (
+                    nome_processo, codigo_processo, id_area, area, 
+                    auditoria_id, entrevistado, created_at, updated_at
+                )
+                VALUES (
+                    UPPER(:nome), :codigo, :id_area, UPPER(:area), 
+                    :auditoria_id, UPPER(:entrevistado), NOW(), NOW()
+                )
+                RETURNING id
+            """), {
+                'nome': nome_upper,
+                'codigo': codigo_processo,
+                'id_area': area_id,
+                'area': nome_area,
+                'auditoria_id': auditoria_id,
+                'entrevistado': entrevistado.strip().upper()
+            })
+            processo_id = result.fetchone()[0]
+        
+        conn.commit()
+        
+        return processo_id
+
+
+def salvar_executores_processo(processo_id, funcionarios_ids):
+    """Salva os executores de um processo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        # Remove vínculos antigos
+        conn.execute(text("DELETE FROM processo_executores WHERE processo_id = :pid"), {'pid': processo_id})
+        
+        # Insere novos vínculos
+        if funcionarios_ids:
+            for fid in funcionarios_ids:
+                conn.execute(text("""
+                    INSERT INTO processo_executores (processo_id, funcionario_id, created_at, updated_at)
+                    VALUES (:pid, :fid, NOW(), NOW())
+                """), {'pid': processo_id, 'fid': fid})
+    
+        conn.commit()

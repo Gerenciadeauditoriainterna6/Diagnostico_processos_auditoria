@@ -99,7 +99,7 @@
 .form-section h3 {
     color: #184145;
     font-size: 18px;
-    margin-bottom: 20px;
+    margin-bottom: 5px;
     padding-bottom: 10px;
     border-bottom: 2px solid #e0e0e0;
 }
@@ -560,7 +560,7 @@
 }
 
 .section-title i {
-    color: #184145;
+    color: #0b5b99;
 }
 
 .funcionarios-grid {
@@ -1982,4 +1982,43 @@
 
 #modal-visualizar-risco .modal-close:hover {
     color: #dc3545;
+}
+
+.btn-funcionario-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid #d0d0d0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.btn-funcionario-toggle::before {
+    content: '○';
+    font-size: 16px;
+    color: #ccc;
+    transition: all 0.2s;
+}
+
+.btn-funcionario-toggle:hover {
+    border-color: #184145;
+    color: #184145;
+    background: rgba(24,65,69,0.03);
+}
+
+.btn-funcionario-selecionado {
+    border-color: #28a745 !important;
+    color: #28a745 !important;
+    background: rgba(40,167,69,0.05) !important;
+}
+
+.btn-funcionario-selecionado::before {
+    content: '●';
+    color: #28a745;
 }

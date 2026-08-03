@@ -89,3 +89,49 @@ def api_ultimo_sequencial():
     ultimo = buscar_ultimo_sequencial(area_id)
     
     return jsonify({'ultimo_sequencial': ultimo})
+
+# ============================================================
+# ROTA: Salva as informações básicas do processo na etapa 2 do wizard
+# ============================================================
+@diagnostico_bp.route('/api/processo/salvar-basicos', methods=['POST'])
+def api_salvar_processos_basicos():
+    """Salva MÚLTIPLOS processos básicos de uma vez"""
+    from routes.diagnostico.queries import salvar_processo_basico, salvar_executores_processo
+    
+    data = request.json
+    processos = data.get('processos', [])
+    
+    if not processos:
+        return jsonify({'success': False, 'error': 'Nenhum processo para salvar'}), 400
+    
+    ids_salvos = []
+    
+    try:
+        for proc in processos:
+            nome = proc.get('nome', '').strip().upper()
+            codigo = proc.get('codigo', '').strip()
+            funcionarios_ids = proc.get('funcionarios_ids', [])  # ← PLURAL!
+            entrevistado = proc.get('entrevistado', '')
+            area_id = proc.get('area_id')
+            auditoria_id = proc.get('auditoria_id')
+            
+            if not nome or not area_id or not auditoria_id:
+                continue
+            
+            # Salva o processo
+            processo_id = salvar_processo_basico(nome, codigo, area_id, auditoria_id, entrevistado)
+            
+            # Salva os executores (VÁRIOS)
+            salvar_executores_processo(processo_id, funcionarios_ids)
+            
+            ids_salvos.append(processo_id)
+        
+        return jsonify({
+            'success': True,
+            'ids': ids_salvos,
+            'quantidade': len(ids_salvos)
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar processos: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
