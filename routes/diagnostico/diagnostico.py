@@ -2,7 +2,11 @@
 ##############################
 
 from flask import session, request, jsonify, Blueprint
-from routes.diagnostico.queries import buscar_auditorias_por_area, buscar_processos_por_area, buscar_riscos_por_processo, buscar_score_maximo_e_qtd_riscos_por_processo
+from routes.diagnostico.queries import (
+    buscar_auditorias_por_area, buscar_processos_por_area, 
+    buscar_riscos_por_processo, buscar_score_maximo_e_qtd_riscos_por_processo,
+    buscar_funcionarios_por_area
+    )
 
 # Criamos o blueprint
 diagnostico_bp = Blueprint('diagnostico', __name__)
@@ -61,3 +65,27 @@ def api_processo_riscos(processo_id):
     except Exception as e:
         print(f"❌ Erro ao buscar riscos: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# ROTA: Carregar os funcionários da área
+# ============================================================
+@diagnostico_bp.route('/api/area/<int:area_id>/funcionarios-para-select')
+def api_area_funcionarios_para_select(area_id):
+    """Retorna funcionários da área"""
+    
+    funcionarios = buscar_funcionarios_por_area(area_id)
+    return jsonify({'funcionarios': funcionarios})
+
+# ============================================================
+# ROTA: Retorna o último numero sequencial de uma area
+# ============================================================
+@diagnostico_bp.route('/api/processo/ultimo-sequencial')
+def api_ultimo_sequencial():
+    area_id = request.args.get('id_area')
+    if not area_id:
+        return jsonify({'error': 'id_area é obrigatório'}), 400
+    
+    from routes.diagnostico.queries import buscar_ultimo_sequencial
+    ultimo = buscar_ultimo_sequencial(area_id)
+    
+    return jsonify({'ultimo_sequencial': ultimo})

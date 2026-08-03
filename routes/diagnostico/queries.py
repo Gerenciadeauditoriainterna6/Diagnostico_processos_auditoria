@@ -175,3 +175,38 @@ def buscar_riscos_por_processo(processo_id):
             riscos.append(risco)
         
         return riscos
+
+def buscar_funcionarios_por_area(area_id):
+    """Retorna funcionários de uma área"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT id, nome_funcionario, cargo
+        FROM funcionarios_area
+        WHERE id_area = :area_id AND ativo = true
+        ORDER BY nome_funcionario
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'area_id': area_id})
+        return [{'id': row[0], 'nome': row[1], 'cargo': row[2] or ''} for row in result]
+
+def buscar_ultimo_sequencial(area_id):
+    """Retorna o último número sequencial de uma área"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT COALESCE(
+            MAX(CAST(SPLIT_PART(codigo_processo, '.', 2) AS INTEGER)), 
+            0
+        ) as ultimo
+        FROM processos 
+        WHERE id_area = :area_id 
+          AND codigo_processo ~ '^[0-9]+\\.[0-9]+$'
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'area_id': area_id}).fetchone()
+        return result[0] if result else 0

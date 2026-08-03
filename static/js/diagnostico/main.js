@@ -34,5 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
         Etapa1Module.init();
         console.log('   ✅ Etapa1Module inicializado');
     }
+
+    if (typeof Etapa2Module !== 'undefined') {
+        Etapa2Module.init();
+        console.log('   ✅ Etapa2Module inicializado');
+    }
     
 });

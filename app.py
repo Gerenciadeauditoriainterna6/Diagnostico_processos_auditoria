@@ -2668,25 +2668,6 @@ def api_gerar_codigo_processo():
     
     return jsonify({'codigo': codigo})
 
-@app.route('/api/area/<int:area_id>/funcionarios-para-select')
-def api_area_funcionarios_para_select(area_id):
-    """Retorna funcionários da área formatados para select/multiselect"""
-    from database import engine
-    from sqlalchemy import text
-    
-    # Usar funcionarios_area (correto)
-    query = text("""
-        SELECT id, nome_funcionario, cargo
-        FROM funcionarios_area
-        WHERE id_area = :area_id AND ativo = true
-        ORDER BY nome_funcionario
-    """)
-    
-    with engine.connect() as conn:
-        result = conn.execute(query, {'area_id': area_id})
-        funcionarios = [{'id': row[0], 'nome': row[1], 'cargo': row[2] or ''} for row in result]
-    
-    return jsonify(funcionarios)
 
 @app.route('/api/area/<int:area_id>/upload-organograma', methods=['POST'])
 def api_upload_organograma(area_id):
