@@ -29,5 +29,10 @@ document.addEventListener('DOMContentLoaded', function() {
         WizardModule.init();
         console.log('   ✅ WizardModule inicializado');
     }
+
+    if (typeof Etapa1Module !== 'undefined') {
+        Etapa1Module.init();
+        console.log('   ✅ Etapa1Module inicializado');
+    }
     
 });
