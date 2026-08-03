@@ -481,6 +481,8 @@ const Etapa2Module = {
             const data = await response.json();
             
             if (data.success) {
+                sessionStorage.setItem('processos_salvos_ids', JSON.stringify(data.ids));
+                
                 window.mostrarToast(`${data.quantidade} processo(s) salvos!`, 'success');
                 return true;
             }

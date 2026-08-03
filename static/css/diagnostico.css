@@ -2022,3 +2022,49 @@
     content: '●';
     color: #28a745;
 }
+
+/* ============================================================ */
+/* ETAPA 3 - LISTA DE PROCESSOS                                 */
+/* ============================================================ */
+
+.etapa3-lista-vazia {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.processo-item-lista {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: box-shadow 0.2s;
+}
+
+.processo-item-lista:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.processo-codigo {
+    color: #184145;
+}
+
+.processo-nome {
+    margin-left: 10px;
+}
+
+.processo-status {
+    font-size: 12px;
+}
+
+.status-detalhado {
+    color: #28a745;
+}
+
+.status-pendente {
+    color: #856404;
+}

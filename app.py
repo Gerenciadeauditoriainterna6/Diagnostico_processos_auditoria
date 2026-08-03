@@ -2828,52 +2828,6 @@ def api_remover_organograma(area_id):
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     
-@app.route('/api/processo/salvar-detalhes', methods=['POST'])
-def api_salvar_processo_detalhes():
-    """Salva os detalhes do processo (descrição, objetivo, etc)"""
-    from database import engine
-    from sqlalchemy import text
-    
-    data = request.json
-    processo_id = data.get('processo_id')
-    
-    # 👇 CONVERTER PARA MAIÚSCULAS
-    descricao = data.get('descricao', '').upper().strip()
-    etapa_ini = data.get('etapa_ini', '').upper().strip()
-    etapa_fim = data.get('etapa_fim', '').upper().strip()
-    produto = data.get('produto', '').upper().strip()
-    objetivo = data.get('objetivo', '').upper().strip()
-    
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
-    
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                UPDATE processos 
-                SET descricao = UPPER(:descricao),
-                    etapa_ini = UPPER(:etapa_ini),
-                    etapa_fim = UPPER(:etapa_fim),
-                    produto = UPPER(:produto),
-                    objetivo = UPPER(:objetivo)
-                WHERE id = :processo_id
-            """)
-            
-            conn.execute(query, {
-                'descricao': descricao,
-                'etapa_ini': etapa_ini,
-                'etapa_fim': etapa_fim,
-                'produto': produto,
-                'objetivo': objetivo,
-                'processo_id': processo_id
-            })
-            conn.commit()
-            
-            return jsonify({'success': True, 'message': 'Detalhes salvos com sucesso'})
-            
-    except Exception as e:
-        print(f"❌ Erro ao salvar detalhes: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/processo/<int:processo_id>/desativar', methods=['PUT'])
 def api_desativar_processo(processo_id):

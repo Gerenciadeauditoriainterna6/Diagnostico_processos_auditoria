@@ -135,3 +135,54 @@ def api_salvar_processos_basicos():
     except Exception as e:
         print(f"❌ Erro ao salvar processos: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ============================================================
+# ROTA: Salva os detalhes do processo na etapa 3 do wizard
+# ============================================================
+@diagnostico_bp.route('/api/processo/salvar-detalhes', methods=['POST'])
+def api_salvar_processo_detalhes():
+    """Salva os detalhes do processo"""
+    from routes.diagnostico.queries import salvar_detalhes_processo
+    
+    data = request.json
+    processo_id = data.get('processo_id')
+    
+    if not processo_id:
+        return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
+    
+    try:
+        salvar_detalhes_processo(
+            processo_id=processo_id,
+            descricao=data.get('descricao', ''),
+            etapa_ini=data.get('etapa_ini', ''),
+            etapa_fim=data.get('etapa_fim', ''),
+            produto=data.get('produto', ''),
+            objetivo=data.get('objetivo', '')
+        )
+        
+        return jsonify({'success': True, 'message': 'Detalhes salvos com sucesso'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar detalhes: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+# ============================================================
+# ROTA: Retorna os processos em Ids específicos
+# ============================================================
+@diagnostico_bp.route('/api/processos-por-ids')
+def api_processos_por_ids():
+    """Retorna processos por IDs específicos"""
+    ids_str = request.args.get('ids', '')
+    
+    if not ids_str:
+        return jsonify({'success': False, 'error': 'ids é obrigatório'}), 400
+    
+    try:
+        ids = [int(id.strip()) for id in ids_str.split(',')]
+    except ValueError:
+        return jsonify({'success': False, 'error': 'IDs inválidos'}), 400
+    
+    from routes.diagnostico.queries import buscar_processos_por_ids
+    
+    processos = buscar_processos_por_ids(ids)
+    return jsonify({'success': True, 'processos': processos})

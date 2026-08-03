@@ -34,14 +34,20 @@ def buscar_processos_por_area(area_id, auditoria_id=None):
                 p.auditoria_id, 
                 a.codigo_auditoria,
                 COALESCE(MAX(r.score_risco), 0) as score_maximo,
-                COUNT(r.id) as qtd_riscos
+                COUNT(r.id) as qtd_riscos,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto
             FROM processos p
             LEFT JOIN auditorias a ON p.auditoria_id = a.id
             LEFT JOIN riscos r ON p.id = r.processo_id
             WHERE p.id_area = :area_id 
                 AND p.status = 'Ativo'
                 AND p.auditoria_id = :auditoria_id
-            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo, p.auditoria_id, a.codigo_auditoria
+            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo, 
+                p.auditoria_id, a.codigo_auditoria,
+                p.descricao, p.etapa_ini, p.etapa_fim, p.produto
             ORDER BY CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
         """)
         params = {"area_id": area_id, "auditoria_id": auditoria_id}
@@ -55,13 +61,19 @@ def buscar_processos_por_area(area_id, auditoria_id=None):
                 p.auditoria_id, 
                 a.codigo_auditoria,
                 COALESCE(MAX(r.score_risco), 0) as score_maximo,
-                COUNT(r.id) as qtd_riscos
+                COUNT(r.id) as qtd_riscos,
+                p.descricao,
+                p.etapa_ini,
+                p.etapa_fim,
+                p.produto
             FROM processos p
             LEFT JOIN auditorias a ON p.auditoria_id = a.id
             LEFT JOIN riscos r ON p.id = r.processo_id
             WHERE p.id_area = :area_id 
                 AND p.status = 'Ativo'
-            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo, p.auditoria_id, a.codigo_auditoria
+            GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo, 
+                p.auditoria_id, a.codigo_auditoria,
+                p.descricao, p.etapa_ini, p.etapa_fim, p.produto
             ORDER BY CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
         """)
         params = {"area_id": area_id}
@@ -101,7 +113,11 @@ def buscar_processos_por_area(area_id, auditoria_id=None):
                 'score_maximo': score,
                 'qtd_riscos': row[7] or 0,
                 'texto_score': texto_score,
-                'cor_score': cor_score
+                'cor_score': cor_score,
+                'descricao': row[8] or '',
+                'etapa_ini': row[9] or '',
+                'etapa_fim': row[10] or '',
+                'produto': row[11] or ''
             })
         
         return processos
@@ -300,3 +316,72 @@ def salvar_executores_processo(processo_id, funcionarios_ids):
                 """), {'pid': processo_id, 'fid': fid})
     
         conn.commit()
+
+def salvar_detalhes_processo(processo_id, descricao, etapa_ini, etapa_fim, produto, objetivo):
+    """Salva os detalhes de um processo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        query = text("""
+            UPDATE processos 
+            SET descricao = UPPER(:descricao),
+                etapa_ini = UPPER(:etapa_ini),
+                etapa_fim = UPPER(:etapa_fim),
+                produto = UPPER(:produto),
+                objetivo = UPPER(:objetivo),
+                updated_at = NOW()
+            WHERE id = :processo_id
+        """)
+        
+        conn.execute(query, {
+            'descricao': descricao.strip().upper(),
+            'etapa_ini': etapa_ini.strip().upper(),
+            'etapa_fim': etapa_fim.strip().upper(),
+            'produto': produto.strip().upper(),
+            'objetivo': objetivo.strip().upper(),
+            'processo_id': processo_id
+        })
+        conn.commit()
+
+def buscar_processos_por_ids(ids):
+    """Busca processos por uma lista de IDs"""
+    from database import engine
+    from sqlalchemy import text
+    
+    if not ids:
+        return []
+    
+    # Converte lista de IDs para string: '1,2,3'
+    ids_str = ','.join(str(id) for id in ids)
+    
+    query = text(f"""
+        SELECT 
+            p.id, p.codigo_processo, p.nome_processo, p.objetivo,
+            p.auditoria_id, a.codigo_auditoria,
+            p.descricao, p.etapa_ini, p.etapa_fim, p.produto
+        FROM processos p
+        LEFT JOIN auditorias a ON p.auditoria_id = a.id
+        WHERE p.id IN ({ids_str})
+        ORDER BY p.id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query).fetchall()
+        
+        processos = []
+        for row in result:
+            processos.append({
+                'id': row[0],
+                'codigo_processo': row[1] or '',
+                'nome_processo': row[2] or '',
+                'objetivo': row[3] or '',
+                'auditoria_id': row[4],
+                'codigo_auditoria': row[5] or '',
+                'descricao': row[6] or '',
+                'etapa_ini': row[7] or '',
+                'etapa_fim': row[8] or '',
+                'produto': row[9] or '',
+            })
+        
+        return processos
