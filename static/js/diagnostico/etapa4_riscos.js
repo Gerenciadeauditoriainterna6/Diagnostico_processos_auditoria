@@ -703,10 +703,18 @@ const Etapa4Module = {
     // RENDERIZAR CARD DE RISCO
     // ============================================================
     renderizarCardRisco(risco) {
+        const score = risco.score_risco || 0;
+        let classeCor;
+        
+        if (score <= 3) classeCor = 'low';
+        else if (score <= 7) classeCor = 'medium';
+        else if (score <= 11) classeCor = 'high';
+        else classeCor = 'critical';
+        
         return `
-            <div class="kanban-card">
+            <div class="kanban-card ${classeCor}">
                 <div class="kanban-card-title">${risco.nome_risco || 'Sem nome'}</div>
-                <div class="kanban-card-score">Score: ${risco.score_risco || 0}</div>
+                <div class="kanban-card-score">Score: ${score}</div>
                 <div class="kanban-card-actions">
                     <button class="btn-visualizar-risco" data-risco-id="${risco.id}">
                         <i class="fas fa-eye"></i>

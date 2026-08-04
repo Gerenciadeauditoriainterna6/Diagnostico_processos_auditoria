@@ -328,3 +328,16 @@ def api_anexo_url(anexo_id):
             return jsonify({'success': True, 'url': url})
     
     return jsonify({'success': False, 'error': 'Anexo não encontrado'}), 404
+
+# ============================================================
+# ROTA: Retorna os dados do risco
+# ============================================================
+@diagnostico_bp.route('/api/risco/<int:risco_id>/dados')
+def api_risco_dados(risco_id):
+    from routes.diagnostico.queries import buscar_risco_por_id
+    
+    risco = buscar_risco_por_id(risco_id)
+    
+    if risco:
+        return jsonify({'success': True, 'risco': risco})
+    return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404

@@ -73,8 +73,7 @@
             <!-- STEP5 -->
             {% include 'diagnostico/partials/wizard/etapa5_resumo.html' %}
 
-            
-
+        
         </div>
     </div>
 </div>
@@ -85,6 +84,7 @@
 {{ super() }}
 <!-- MÓDULOS DO DIAGNÓSTICO (ORDEM IMPORTA!) -->
 <!-- 1. Módulos Base (sem dependencia) -->
+<script src="{{ url_for('static', filename='js/diagnostico/modais.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/filtros.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/tabela.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/anexos.js') }}"></script>

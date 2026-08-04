@@ -1908,12 +1908,13 @@
 
 .auditoria-badge {
     display: inline-block;
-    background: #e8f4f8;
-    color: #0b5b99;
+    /* background: #e8f4f8;
+    color: #0b5b99; */
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* ===== MODAL DE VISUALIZAÇÃO DE RISCO - CORREÇÃO DEFINITIVA ===== */
@@ -2107,7 +2108,7 @@
 }
 
 #modal-anexos .modal-content {
-    max-width: 600px;
+    max-width: 800px;
 }
 
 /* Área de upload */
@@ -2149,7 +2150,7 @@
 
 .btn-anexo {
     background: none;
-    border: 1px solid #17a2b8;
+    border: none;
     color: #17a2b8;
     padding: 5px 8px;
     border-radius: 6px;
@@ -2159,7 +2160,245 @@
 }
 
 .btn-anexo:hover {
-    background: #17a2b8;
+    background: #49a9b8;
     color: white;
     transform: scale(1.05);
+}
+
+/* ============================================================ */
+/* MODAL DE VISUALIZAÇÃO DO PROCESSO                            */
+/* ============================================================ */
+
+#modal-visualizar-processo {
+    z-index: 10000;
+}
+
+.modal-visualizar-processo-content {
+    max-width: 1200px;
+}
+
+.vis-processo-container {
+    padding: 5px;
+}
+
+.vis-section {
+    margin-bottom: 30px;
+}
+
+.vis-section h4 {
+    color: #184145;
+    font-size: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e8ecf0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vis-section h4 i {
+    color: #0b5b99;
+}
+
+.vis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.vis-item {
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border-left: 3px solid #0b5b99;
+}
+
+.vis-item.vis-full {
+    grid-column: 1 / -1;
+}
+
+.vis-item label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.vis-item span {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .vis-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Botões de ação nos cards - cores por nível */
+
+/* LOW (Verde) */
+.kanban-card.low .btn-visualizar-risco i,
+.kanban-card.low .btn-editar-risco i,
+.kanban-card.low .btn-excluir-risco i {
+    color: #28a745;
+}
+
+/* MEDIUM (Amarelo) */
+.kanban-card.medium .btn-visualizar-risco i,
+.kanban-card.medium .btn-editar-risco i,
+.kanban-card.medium .btn-excluir-risco i {
+    color: #e6a800;
+}
+
+/* HIGH (Laranja) */
+.kanban-card.high .btn-visualizar-risco i,
+.kanban-card.high .btn-editar-risco i,
+.kanban-card.high .btn-excluir-risco i {
+    color: #fd7e14;
+}
+
+/* CRITICAL (Vermelho) */
+.kanban-card.critical .btn-visualizar-risco i,
+.kanban-card.critical .btn-editar-risco i,
+.kanban-card.critical .btn-excluir-risco i {
+    color: #dc3545;
+}
+
+/* Hover nos botões */
+.kanban-card .btn-visualizar-risco:hover,
+.kanban-card .btn-editar-risco:hover,
+.kanban-card .btn-excluir-risco:hover {
+    transform: scale(1.15);
+}
+
+.kanban-card .btn-visualizar-risco,
+.kanban-card .btn-editar-risco,
+.kanban-card .btn-excluir-risco {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.kanban-card.low .btn-visualizar-risco:hover,
+.kanban-card.low .btn-editar-risco:hover,
+.kanban-card.low .btn-excluir-risco:hover {
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.kanban-card.medium .btn-visualizar-risco:hover,
+.kanban-card.medium .btn-editar-risco:hover,
+.kanban-card.medium .btn-excluir-risco:hover {
+    background: rgba(230, 168, 0, 0.1);
+}
+
+.kanban-card.high .btn-visualizar-risco:hover,
+.kanban-card.high .btn-editar-risco:hover,
+.kanban-card.high .btn-excluir-risco:hover {
+    background: rgba(253, 126, 20, 0.1);
+}
+
+.kanban-card.critical .btn-visualizar-risco:hover,
+.kanban-card.critical .btn-editar-risco:hover,
+.kanban-card.critical .btn-excluir-risco:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+/* Anexos na visualização */
+.vis-anexo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #e8ecf0;
+}
+
+.vis-anexo-item i {
+    font-size: 18px;
+    color: #0b5b99;
+}
+
+.vis-anexo-nome {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+}
+
+.vis-anexo-extensao {
+    font-size: 11px;
+    background: #e0e0e0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #555;
+    font-weight: 600;
+}
+
+.vis-anexo-vazio {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    padding: 15px;
+    font-style: italic;
+}
+
+/* Botão Visualizar nos cards do kanban (visualização do processo) */
+/* Mesmo estilo dos botões de ação */
+.kanban-card .btn-visualizar-risco-card {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+}
+
+/* Cores por nível - seguindo o mesmo padrão */
+.kanban-card.low .btn-visualizar-risco-card i,
+.kanban-card.low .btn-visualizar-risco-card {
+    color: #28a745;
+}
+.kanban-card.low .btn-visualizar-risco-card:hover {
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.kanban-card.medium .btn-visualizar-risco-card i,
+.kanban-card.medium .btn-visualizar-risco-card {
+    color: #e6a800;
+}
+.kanban-card.medium .btn-visualizar-risco-card:hover {
+    background: rgba(230, 168, 0, 0.1);
+}
+
+.kanban-card.high .btn-visualizar-risco-card i,
+.kanban-card.high .btn-visualizar-risco-card {
+    color: #fd7e14;
+}
+.kanban-card.high .btn-visualizar-risco-card:hover {
+    background: rgba(253, 126, 20, 0.1);
+}
+
+.kanban-card.critical .btn-visualizar-risco-card i,
+.kanban-card.critical .btn-visualizar-risco-card {
+    color: #dc3545;
+}
+.kanban-card.critical .btn-visualizar-risco-card:hover {
+    background: rgba(220, 53, 69, 0.1);
 }

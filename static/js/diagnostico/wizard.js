@@ -68,10 +68,23 @@ const WizardModule = {
     // ABRIR / FECHAR
     // ============================================================
     abrir(modo, processoId = null) {
+        console.log(`🧙 Wizard: abrindo - Modo: ${modo}, ID: ${processoId || 'novo'}`);
+        
         this.modo = modo;
         this.processoId = processoId;
         this.etapaAtual = 1;
-        this.etapaMaximaAtingida = 1; 
+        this.etapaMaximaAtingida = 1;
+        
+        // ⭐ Se for EDIÇÃO, limpar os IDs salvos e setar apenas o ID atual
+        if (modo === 'edicao' && processoId) {
+            sessionStorage.setItem('processos_salvos_ids', JSON.stringify([processoId]));
+            sessionStorage.setItem('modo_edicao', 'true');
+            sessionStorage.setItem('processo_id', processoId);
+        } else if (modo === 'novo') {
+            sessionStorage.removeItem('processos_salvos_ids');
+            sessionStorage.removeItem('modo_edicao');
+            sessionStorage.removeItem('processo_id');
+        }
         
         this.modal.style.display = 'flex';
         this.irParaEtapa(1);

@@ -110,7 +110,7 @@ const TabelaModule = {
                             <th class="sortable" data-coluna="riscos">
                                 Riscos ${this.getSetaOrdenacao('riscos')}
                             </th>
-                            <th>Fluxo</th>
+                            <th>Anexo Fluxo</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
