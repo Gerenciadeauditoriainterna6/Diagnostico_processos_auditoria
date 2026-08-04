@@ -2088,3 +2088,12 @@
     padding-left: 10px;
     border-left: 3px solid #0b5b99;
 }
+
+.progress-steps .step {
+    cursor: pointer;
+}
+
+.progress-steps .step:hover .step-circle {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

@@ -12,9 +12,10 @@
 const WizardModule = {
     
     // Estado do wizard
-    modo: 'novo',          // 'novo' ou 'edicao'
-    processoId: null,      // ID do processo (só na edição)
-    etapaAtual: 1,         // Etapa atual (1-5)
+    modo: 'novo',          
+    processoId: null,      
+    etapaAtual: 1,
+    etapaMaximaAtingida: 1,         
     
     // Elementos do DOM
     modal: null,
@@ -37,24 +38,42 @@ const WizardModule = {
         if (btnFechar) {
             btnFechar.addEventListener('click', () => this.fechar());
         }
+
+        // Configurar clique na barra de progresso
+        document.querySelectorAll('.progress-steps .step').forEach(step => {
+            step.addEventListener('click', () => {
+                const etapa = parseInt(step.dataset.step);
+                this.clicarProgresso(etapa);
+            });
+        });
         
         console.log('✅ WizardModule: inicializado');
+    },
+
+    clicarProgresso(etapa) {
+        // No modo NOVO: só permite voltar para etapas já concluídas
+        if (this.modo === 'novo') {
+            // A etapa máxima que o usuário já atingiu
+            if (etapa > this.etapaMaximaAtingida) {
+                window.mostrarToast('⚠️ Avance pelas etapas para desbloquear.', 'warning');
+                return;
+            }
+        }
+        
+        // No modo EDIÇÃO: permite qualquer etapa
+        this.irParaEtapa(etapa);
     },
     
     // ============================================================
     // ABRIR / FECHAR
     // ============================================================
     abrir(modo, processoId = null) {
-        console.log(`🧙 Wizard: abrindo - Modo: ${modo}, ID: ${processoId || 'novo'}`);
-        
         this.modo = modo;
         this.processoId = processoId;
         this.etapaAtual = 1;
+        this.etapaMaximaAtingida = 1; 
         
-        // Mostra o modal
         this.modal.style.display = 'flex';
-        
-        // Vai para a etapa 1
         this.irParaEtapa(1);
     },
     
@@ -75,6 +94,11 @@ const WizardModule = {
     // ============================================================
     irParaEtapa(etapa) {
         console.log(`📍 Wizard: indo para etapa ${etapa}`);
+
+        // ⭐ Registrar etapa máxima atingida
+        if (etapa > this.etapaMaximaAtingida) {
+            this.etapaMaximaAtingida = etapa;
+        }
         
         // Esconde todas as etapas
         for (let i = 1; i <= 5; i++) {
@@ -127,6 +151,11 @@ const WizardModule = {
                 step.classList.add('active');
             } else if (index + 1 < etapa) {
                 step.classList.add('completed');
+            }
+            
+            // ⭐ No modo edição, todos são clicáveis
+            if (this.modo === 'edicao') {
+                step.style.cursor = 'pointer';
             }
         });
     },

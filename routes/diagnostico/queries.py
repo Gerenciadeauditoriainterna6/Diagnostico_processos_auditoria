@@ -504,3 +504,15 @@ def buscar_processo_completo(processo_id):
             'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores],
             'riscos': riscos
         }
+
+def buscar_executores_processo(processo_id):
+    query = text("""
+        SELECT f.id as funcionario_id, f.nome_funcionario, f.cargo
+        FROM processo_executores pe
+        JOIN funcionarios_area f ON pe.funcionario_id = f.id
+        WHERE pe.processo_id = :pid
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'pid': processo_id}).fetchall()
+        return [{'funcionario_id': r[0], 'nome': r[1], 'cargo': r[2] or ''} for r in result]

@@ -218,3 +218,14 @@ def api_processo_dados(processo_id):
     if dados:
         return jsonify({'success': True, **dados})
     return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404
+
+
+# ============================================================
+# ROTA: Busca os executores de um processo
+# ============================================================
+@diagnostico_bp.route('/api/processo/<int:processo_id>/executores')
+def api_processo_executores(processo_id):
+    from routes.diagnostico.queries import buscar_executores_processo
+    
+    executores = buscar_executores_processo(processo_id)
+    return jsonify({'success': True, 'executores': executores})
