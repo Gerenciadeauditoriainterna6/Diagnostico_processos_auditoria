@@ -1,0 +1,94 @@
+<!-- PASSO 3: DETALHAMENTO DOS PROCESSOS -->
+<div id="detalhes-section" class="form-section" style="display: none;">
+    <h3>3. Informações do Processo</h3>
+    
+    <!-- VISÃO 1: Lista de Processos -->
+    <div id="etapa3-lista-processos">
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">
+            <i class="fas fa-info-circle"></i> Selecione um processo abaixo para continuar cadastrando suas informações.
+        </p>
+        <div id="etapa3-lista-container">
+            <!-- Preenchido pelo JavaScript -->
+        </div>
+        <div class="wizard-buttons" style="margin-top: 20px;">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa2-lista">
+                ← Voltar
+            </button>
+
+            <button type="button" class="btn-primary" id="btn-proximo-etapa4-lista">
+                Próximo: Riscos →
+            </button>
+        </div>
+    </div>
+
+    
+    <!-- VISÃO 2: Formulário de Detalhamento -->
+    <div id="etapa3-form-detalhamento" style="display: none;">
+        <div id="etapa3-processo-selecionado-info" style="margin-bottom: 15px; padding: 10px; background: #f0f4f5; border-radius: 8px;">
+            <!-- Nome e código do processo selecionado -->
+        </div>
+        
+        <div class="detalhes-container">
+            <div class="form-group">
+                <label for="descricao_processo">
+                    <i class="fas fa-align-left"></i> O que é o processo?
+                    <span class="help-icon" data-tooltip="O que acontece aqui dentro no dia a dia? Exemplo (Processo de Contratação): É o conjunto de etapas que inclui a abertura da vaga, a triagem de currículos, as entrevistas e a coleta de documentos do candidato.">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <textarea id="descricao_processo" name="descricao" class="form-control" 
+                    rows="3" placeholder="Descreva o que é o processo..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="etapa_ini_processo">
+                    <i class="fas fa-play-circle"></i> Onde começa o processo?
+                    <span class="help-icon" data-tooltip="Ex: Do envio do relatório x pela área y – ETAPA INICIAL">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <textarea id="etapa_ini_processo" name="etapa_ini" class="form-control" rows="2" placeholder="Etapa de..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="produto_processo">
+                    <i class="fas fa-cube"></i> Qual(is) o(s) produto(s) final(is) desse processo?
+                    <span class="help-icon" data-tooltip="(Relatório, Planilha, Sistema, Word e etc) – PENÚLTIMA ETAPA ">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <textarea id="produto_processo" name="produto" class="form-control" rows="2" placeholder="Ex: Relatório, Planilha, Sistema..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="etapa_fim_processo">
+                    <i class="fas fa-stop-circle"></i> Depois de acabado, para onde envia?
+                    <span class="help-icon" data-tooltip="(Ex: Área x, Arquivo físico localizado no..., Arquivo digital localizado no...) ETAPA FINAL">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <textarea id="etapa_fim_processo" name="etapa_fim" class="form-control" rows="2" placeholder="Ex: Enviado para..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="objetivo_processo">
+                    <i class="fas fa-bullseye"></i> Qual o objetivo do processo? E por que faz?
+                    <span class="help-icon" data-tooltip="Exemplo (Objetivo da Contratação): Garantir que a empresa tenha o talento certo, na cadeira certa, no tempo necessário para não perder produtividade.">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <textarea id="objetivo_processo" name="objetivo" class="form-control" 
+                    rows="2" placeholder="Garantir o que exatamente?"></textarea>
+            </div>
+        </div>
+
+        <div class="wizard-buttons">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa2-form">
+                ← Voltar para lista
+            </button>
+            <button type="button" class="btn-primary" id="btn-salvar-detalhes">
+                <i class="fas fa-save"></i> Salvar Detalhes
+            </button>
+        </div>
+    </div>
+</div>

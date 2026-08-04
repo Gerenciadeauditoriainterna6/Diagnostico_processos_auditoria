@@ -1,0 +1,366 @@
+<!-- MODAL PARA RISCOS -->
+<div id="modal-risco" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title"><i class="fas fa-shield-alt"></i> Novo Risco</h3>
+            <button type="button" class="modal-close" id="btn-fechar-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="modal-risco-idx">
+
+            <div id="modal-objetivo-processo" style="
+                background: #f8f9fa;
+                border-left: 4px solid #184145;
+                padding: 12px 15px;
+                margin-bottom: 20px;
+                border-radius: 6px;
+            ">
+                <label style="font-size: 11px; color: #666; display: block; margin-bottom: 4px;">
+                    <i class="fas fa-bullseye"></i> Objetivo do Processo
+                </label>
+                <div id="modal-objetivo-texto" style="
+                    font-size: 13px;
+                    color: #333;
+                    line-height: 1.5;
+                ">
+                    <!-- Preenchido pelo JavaScript -->
+                </div>
+            </div>
+
+            <!-- ===== SEÇÃO 1: IDENTIFICAÇÃO DO RISCO ===== -->
+            <div class="form-section-inline">
+                <h4>
+                    <i class="fas fa-tag"></i> Identificação do Risco
+                </h4>
+
+                <!-- Nome do Risco -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-font"></i> Nome do Risco *
+                        <span class="help-icon" data-tooltip="Qual a incerteza do processo que pode impedir de ele ser concluído corretamente?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <input type="text" id="modal-nome_risco" class="form-control" placeholder="Risco pela possibilidade de...">
+                </div>
+
+
+                <!-- Categorias do Risco -->
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <label><i class="fas fa-tags"></i> Categoria(s) do Risco</label>
+                        <span id="help-categorias-icon" class="help-icon-categorias" style="cursor: pointer;">i</span>
+                    </div>
+                    <!-- Card descritivo das categorias -->
+                    <div id="info-categorias" class="info-card" style="display: none; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong>Descrição das Categorias de risco</strong>
+                            <button type="button" id="fechar-info-categorias" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+                        </div>
+                        <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                            <li><strong>Risco Financeiro:</strong> Qualquer atividade que envolva incerteza e, portanto, possa resultar em consequências financeiras negativas para a FUSVE.</li>
+                            <li><strong>Risco Legal:</strong> Engloba todas as ameaças as quais a FUSVE esteja vulnerável em decorrência do descumprimento das legislações vigentes.</li>
+                            <li><strong>Risco Inerente:</strong> É o nível de risco natural de uma atividade ou processo antes de qualquer ação de controle ou mitigação ser aplicada.</li>
+                            <li><strong>Risco de TI:</strong> A possibilidade de ocorrência de deficiência ou inadequação de quaisquer processos que envolvem sistemas ou tecnologia.</li>
+                            <li><strong>Risco de Integridade:</strong> Engloba as atividades divergentes aos valores, princípios e normas éticas da FUSVE, geralmente àquelas ligadas a fraudes e atos de corrupção.</li>
+                            <li><strong>Risco Reputacional:</strong> O potencial de qualquer evento, controlável ou não, de prejudicar negativamente a reputação de uma organização.</li>
+                            <li><strong>Risco Ambiental:</strong> Qualquer ameaça causada por agentes físicos, químicos ou biológicos que possam acarretar em descumprimento das normas, podendo comprometer a saúde e a segurança dos envolvidos ao ecossistema.</li>
+                        </ul>
+                    </div>
+                    <div id="categorias-checkboxes" class="checkbox-grid">
+                        <label><input type="checkbox" value="Risco Financeiro"> Risco Financeiro</label>
+                        <label><input type="checkbox" value="Risco Legal"> Risco Legal</label>
+                        <label><input type="checkbox" value="Risco Inerente"> Risco Inerente</label>
+                        <label><input type="checkbox" value="Risco de TI"> Risco de TI</label>
+                        <label><input type="checkbox" value="Risco Reputacional"> Risco Reputacional</label>
+                        <label><input type="checkbox" value="Risco de Integridade"> Risco de Integridade</label>
+                        <label><input type="checkbox" value="Risco Ambiental"> Risco Ambiental</label>
+                        <label><input type="checkbox" value="OUTRA" id="check-outra-categoria-risco"> Outra</label>
+                    </div>
+
+                    <div id="outra-categoria-risco-container" style="display: none; margin-top: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="outra-categoria-risco-texto" class="form-control" placeholder="Digite a categoria...">
+                            <button type="button" id="btn-adicionar-outra-risco" class="btn-outline btn-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="outras-categorias-risco-lista" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SEÇÃO 2: CAUSA E ANÁLISE ===== -->
+            <div class="form-section-inline">
+                <h4>
+                    <i class="fas fa-search"></i> Causa e Análise
+                </h4>
+
+                <!-- Fator de Risco -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-exclamation-triangle"></i> Fator de Risco (causa)
+                        <span class="help-icon" data-tooltip="Qual a causa conhecida ou estimada responsável por materializar esse risco?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <textarea id="modal-fator_risco" class="form-control" rows="2" placeholder="Pelo motivo de..."></textarea>
+                </div>
+
+                <!-- ⭐ ADICIONAR ESTE ÍCONE ANTES DO CARD -->
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <label><i class="fas fa-balance-scale"></i> Categoria(s) de Causa</label>
+                        <span id="help-categorias-causa-icon" class="help-icon-categorias" style="cursor: pointer;">i</span>
+                    </div>
+                </div>
+
+                <!-- Card descritivo das categorias de causa -->
+                <div id="info-categorias-causa" class="info-card" style="display: none; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>Descrição das Categorias de causa</strong>
+                        <button type="button" id="fechar-info-categorias-causa" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                    <ul style="margin-top: 8px; padding-left: 20px; margin-bottom: 0;">
+                        <li><strong>Falha Operacional:</strong> Refere-se decorrente de processos internos inadequados, erros humanos ou problemas em sistemas e infraestrutura.</li>
+                        <li><strong>Falta de Controle:</strong> Diretamente ligada à ausência ou fragilidade de mecanismos que monitorem e mitiguem desvios.</li>
+                        <li><strong>Não Conformidade:</strong> Foca na quebra de diretrizes obrigatórias. Ou seja, no descumprimento de leis externas, regulamentações setoriais ou políticas internas.</li>
+                        <li><strong>Problemas Financeiros:</strong> Associados a todo e qualquer compromisso financeiro.</li>
+                        <li><strong>Fenômeno Natural:</strong> Processos a eventos da natureza que possuem magnitude suficiente para causar interrupções ou danos físicos.</li>
+                        <li><strong>Fraude:</strong> movida pela vontade consciente de enganar ou burlar normas para benefício próprio ou de terceiros.</li>
+                    </ul>
+                </div>
+
+                <!-- Categoria de Causa -->
+                <div class="form-group">
+                    <div id="causa-checkboxes" class="checkbox-grid">
+                        <label><input type="checkbox" value="FALHA OPERACIONAL"> Falha Operacional</label>
+                        <label><input type="checkbox" value="FALTA DE CONTROLE"> Falta de Controle</label>
+                        <label><input type="checkbox" value="NÃO CONFORMIDADE"> Não Conformidade</label>
+                        <label><input type="checkbox" value="PROBLEMAS FINANCEIROS"> Problemas Financeiros</label>
+                        <label><input type="checkbox" value="FENÔMENO NATURAL"> Fenômeno Natural</label>
+                        <label><input type="checkbox" value="FRAUDE"> Fraude</label>
+                        <label><input type="checkbox" value="OUTRA" id="check-outra-categoria-causa"> Outra</label>
+                    </div>
+                    <small class="text-muted">Selecione uma ou mais causas</small>
+
+                    <div id="outra-categoria-causa-container" style="display: none; margin-top: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="outra-categoria-causa-texto" class="form-control" placeholder="Digite a causa...">
+                            <button type="button" id="btn-adicionar-outra-causa" class="btn-outline btn-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="outras-categorias-causa-lista" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                    </div>
+                </div>
+
+                <!-- Ponto de Melhoria -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-lightbulb"></i> O que mais te incomoda no processo?
+                        <span class="help-icon" data-tooltip="O que mais te incomoda no processo e pensa que deveria ser melhorado?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <textarea id="modal-melhoria" class="form-control" rows="2" placeholder="Descreva o que mais te incomoda nesse processo..."></textarea>
+                </div>
+
+        
+            </div>
+
+            <!-- ===== SEÇÃO 3: AVALIAÇÃO DO RISCO ===== -->
+            <div class="form-section-inline">
+                <h4>
+                    <i class="fas fa-chart-line"></i> Avaliação do Risco
+                </h4>
+
+                <!-- Critérios de avaliação -->
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <label><i class="fas fa-info-circle"></i> Critérios de avaliação</label>
+                        <span id="help-criterios-icon" class="help-icon-categorias" style="cursor: pointer;">i</span>
+                    </div>
+                    <div id="info-criterios" class="info-card" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong>Critérios de Avaliação</strong>
+                            <button type="button" id="fechar-info-criterios" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <strong>IMPACTO FINANCEIRO</strong>
+                            <ul>
+                                <li><strong>Baixo:</strong> Desembolsos de até R$ 150.000,00.</li>
+                                <li><strong>Médio:</strong> Desembolsos de R$ 150.000,01 até R$ 300.000,00.</li>
+                                <li><strong>Alto:</strong> Desembolso de R$ 300.000,01 até R$ 1.500.000,00.</li>
+                                <li><strong>Muito Alto:</strong> Desembolso acima de R$ 1.500.000,00.</li>
+                            </ul>
+
+                            <strong>PROBABILIDADE</strong>
+                            <ul>
+                                <li><strong>Baixa:</strong> Pode ser que ocorra uma vez dentro de um ano.</li>
+                                <li><strong>Média:</strong> Pode ser que ocorra mais de uma vez dentro de um ano.</li>
+                                <li><strong>Alta:</strong> Pode ser que ocorra mensalmente.</li>
+                                <li><strong>Muito Alta:</strong> Pode ser que ocorra diariamente.</li>
+                            </ul>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Impacto e Probabilidade -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro *
+                        <span class="help-icon">
+                            <i class="fas fa-question-circle"></i>
+                            <span class="tooltip-img">
+                                <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                <span class="tooltip=caption">Matriz Impacto x Probabilidade</span>
+                            </span>
+                        </span>
+                        </label>
+                        <select id="modal-impacto" class="form-control">
+                            <option value="">Selecione uma opção...</option>
+                            <option value="BAIXO">BAIXO</option>
+                            <option value="MÉDIO">MÉDIO</option>
+                            <option value="ALTO">ALTO</option>
+                            <option value="MUITO ALTO">MUITO ALTO</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-chart-simple"></i> Probabilidade *
+                        <span class="help-icon">
+                            <i class="fas fa-question-circle"></i>
+                            <span class="tooltip-img">
+                                <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                <span class="tooltip=caption">Matriz Impacto x Probabilidade</span>
+                            </span>
+                        </span>
+                        </label>
+                        <select id="modal-probabilidade" class="form-control">
+                            <option value="">Selecione uma opção...</option>
+                            <option value="BAIXO">BAIXO</option>
+                            <option value="MÉDIO">MÉDIO</option>
+                            <option value="ALTO">ALTO</option>
+                            <option value="MUITO ALTO">MUITO ALTO</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Score Preview -->
+                <div id="modal-score-preview" class="score-preview" style="margin: 15px 0;">
+                    <strong>Risco Bruto:</strong>-
+                </div>
+
+                <!-- Motivo da Classificação -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-comment"></i> Motivo da Classificação
+                        <span class="help-icon" data-tooltip="Qual o motivo da classificação do nível da probabilidade?">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <textarea id="modal-motivo_risco" class="form-control" rows="2" placeholder="Justifique o nível definido na probabilidade..."></textarea>
+                </div>
+
+                <!-- ===== SEÇÃO 3.5: APETITE AO RISCO (RISCO RESIDUAL) ===== -->
+                <div class="form-section-inline">
+                    <h4>
+                        <i class="fas fa-bullseye"></i> Apetite ao Risco (Risco Residual)
+                    </h4>
+
+                    <!-- Impacto Aceitável e Probabilidade Aceitável -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-sack-dollar"></i> Impacto Financeiro Aceitável
+                            <span class="help-icon">
+                                <i class="fas fa-question-circle"></i>
+                                <span class="tooltip-img">
+                                    <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                    <span class="tooltip-caption">Matriz de Impacto x Probabilidade</span>
+                                </span>
+                            </span>
+                            </label>
+                            <select id="apetite_impacto" class="form-control">
+                                <option value="">Selecione uma opção...</option>
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MÉDIO" selected>MÉDIO</option>
+                                <option value="ALTO">ALTO</option>
+                                <option value="MUITO ALTO">MUITO ALTO</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-chart-simple"></i> Probabilidade Aceitável
+                            <span class="help-icon">
+                                <i class="fas fa-question-circle"></i>
+                                <span class="tooltip-img">
+                                    <img src="{{ url_for('static', filename='images/matriz_impacto_probabilidade.png') }}" alt="Matriz de Impacto x Probabilidade">
+                                    <span class="tooltip-caption">Matriz de Impacto x Probabilidade</span>
+                                </span>
+                            </span>
+                            </label>
+                            <select id="apetite_probabilidade" class="form-control">
+                                <option value="">Selecione uma opção...</option>
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MÉDIO" selected>MÉDIO</option>
+                                <option value="ALTO">ALTO</option>
+                                <option value="MUITO ALTO">MUITO ALTO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Score Preview do Apetite -->
+                    <div id="apetite-score-preview" class="score-preview" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                        <strong>Apetite ao Risco:</strong> <span id="preview-apetite-score">-</span>
+                    </div>
+            </div>
+
+
+
+
+            <!-- ===== SEÇÃO 4: TRATAMENTO DO RISCO ===== -->
+            <div class="form-section-inline">
+                <h4>
+                    <i class="fas fa-shield-alt"></i> Tratamento do Risco
+                </h4>
+
+                <!-- Como tratar -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-handshake"></i> Como tratar o risco? *
+                        <span class="help-icon" data-tooltip="1. EVITAR? (isso quer dizer deixar de fazer o processo); 2. MITIGAR? (isso quer dizer incluir um controle interno para mitigar a probabilidade do evento acontecer, mesmo sabendo que o sistema de controle interno não é absoluto e que o evento possui chances de ocorrer); 3. COMPARTILHAR? (isso quer dizer quando a responsabilidade pela mitigação do risco é terceirizada ou dividida com agentes terceiros, por exemplo uma outra área ou um seguro de veículo. 4. ACEITAR? (isso quer dizer quando a magnitude do risco já foi medida e ela esta dentro do meu apetite a risco ou quando o custo para mitigar for maior que o custo de ter o risco)">
+                            <i class="fas fa-question-circle"></i>
+                        </span>
+                    </label>
+                    <select id="modal-como-tratar" class="form-control">
+                        <option value="">Selecione uma opção...</option>
+                        <option value="Aceitar">Aceitar</option>
+                        <option value="Mitigar">Mitigar</option>
+                        <option value="Compartilhar">Compartilhar (Transferir)</option>
+                        <option value="Evitar">Evitar</option>
+                    </select>
+                </div>
+
+                <!-- Descrição do tratamento -->
+                <div class="form-group">
+                    <label>
+                        <i class="fas fa-file-alt"></i> Descrição do tratamento do risco
+                    </label>
+                    <textarea id="modal-desc-tratamento" class="form-control" rows="2" placeholder="Descreva como o tratamento será aplicado..."></textarea>
+                </div>
+
+                <!-- Prazo para implantação -->
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Prazo para implantação</label>
+                    <input type="text" id="modal-prazo-implantacao" class="form-control">
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancelar-modal" id="btn-cancelar-modal"><i class="fas fa-times"></i> Cancelar</button>
+            <button type="button" class="btn-salvar-risco" id="btn-salvar-modal"><i class="fas fa-save"></i> Salvar Risco</button>
+        </div>
+    </div>
+</div>

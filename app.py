@@ -54,16 +54,6 @@ from logic import validar_login_no_banco
 # FUNÇÕES DE UTILIDADE
 # ============================================================
 
-
-
-
-
-
-
-
-
-
-
 def atualizar_obrigacao_com_arquivo(etapa_id, indice_obrigacao, arquivo_url, arquivo_nome, arquivo_tamanho):
     """
     Atualiza a obrigação com a URL do arquivo
@@ -200,11 +190,13 @@ from dashboard_api import dashboard_api
 from routes.dashboard_novo.endpoints import novo_dashboard_api
 from routes.followups import followups_bp
 from routes.relatorios import relatorios_bp
+from routes.diagnostico.diagnostico import diagnostico_bp
 from routes import register_blueprints
 
 
 app = Flask(__name__, static_folder='static')
 
+app.register_blueprint(diagnostico_bp)
 app.register_blueprint(dashboard_api)
 app.register_blueprint(novo_dashboard_api)
 app.register_blueprint(followups_bp)
@@ -212,7 +204,9 @@ app.register_blueprint(relatorios_bp)
 
 register_blueprints(app)
 
-app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao-em-producao-mude')
+# ⭐⭐⭐ CONFIGURAÇÕES DE SESSÃO ⭐⭐⭐
+app.secret_key = os.getenv('SECRET_KEY', 'chave-padrao')
+app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=int(os.getenv('SESSION_TIMEOUT_SECONDS', 1800)))
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -237,6 +231,15 @@ def configurar_auditoria():
         session.permanent = True
         # Atualiza o timestamp da última atividade (para debug)
         session['_last_activity'] = datetime.now().isoformat()
+        # Verifica se a sessão tem tempo definido
+        if session.permanent:
+            # Pega o tempo de expiração
+            sessao_expira_em = app.permanent_session_lifetime
+            tempo_restante = sessao_expira_em.total_seconds() / 60  # em minutos
+            
+            print(f"🟢 USUÁRIO: {session.get('usuario_nome')}")
+            print(f"🟢 SESSÃO EXPIRA EM: {tempo_restante:.0f} minutos")
+            print(f"🟢 ÚLTIMA ATIVIDADE: {session.get('_last_activity')}")
         # A sessão é automaticamente salva pelo Flask
         # O timeout conta a partir da última requisição
     else:
@@ -1731,29 +1734,6 @@ def api_auditoria_emergencial_pdf():
     else:
         return jsonify({'error': 'Arquivo PDF não encontrado'}), 404
 
-@app.route('/api/auditorias-por-area')
-def api_auditorias_por_area():
-    """Retorna as auditorias de uma área"""
-    from database import engine
-    from sqlalchemy import text
-    
-    area_id = request.args.get('area_id')
-    if not area_id:
-        return jsonify({'error': 'area_id é obrigatório'}), 400
-    
-    query = text("""
-        SELECT id, codigo_auditoria, titulo, trimestre, ano, status, unidade, emergencial
-        FROM auditorias
-        WHERE id_area = :area_id
-        ORDER BY ano DESC, trimestre DESC
-    """)
-    
-    with engine.connect() as conn:
-        result = conn.execute(query, {"area_id": area_id})
-        auditorias = [dict(row._mapping) for row in result]
-    
-    return jsonify({'auditorias': auditorias})
-
 @app.route('/api/auditoria/<int:auditoria_id>/responsavel')
 def api_auditoria_responsavel(auditoria_id):
     """Verifica se o usuário logado é responsável pela auditoria ou é administrador"""
@@ -2688,25 +2668,6 @@ def api_gerar_codigo_processo():
     
     return jsonify({'codigo': codigo})
 
-@app.route('/api/area/<int:area_id>/funcionarios-para-select')
-def api_area_funcionarios_para_select(area_id):
-    """Retorna funcionários da área formatados para select/multiselect"""
-    from database import engine
-    from sqlalchemy import text
-    
-    # Usar funcionarios_area (correto)
-    query = text("""
-        SELECT id, nome_funcionario, cargo
-        FROM funcionarios_area
-        WHERE id_area = :area_id AND ativo = true
-        ORDER BY nome_funcionario
-    """)
-    
-    with engine.connect() as conn:
-        result = conn.execute(query, {'area_id': area_id})
-        funcionarios = [{'id': row[0], 'nome': row[1], 'cargo': row[2] or ''} for row in result]
-    
-    return jsonify(funcionarios)
 
 @app.route('/api/area/<int:area_id>/upload-organograma', methods=['POST'])
 def api_upload_organograma(area_id):
@@ -2866,217 +2827,7 @@ def api_remover_organograma(area_id):
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/processo/salvar-basico', methods=['POST'])
-def api_salvar_processo_basico():
-    """Salva ou atualiza as informações básicas do processo"""
-    from database import engine
-    from sqlalchemy import text
-    from logic import gerar_codigo_processo
     
-    data = request.json
-    print(f"📥 Dados recebidos em salvar-basico: {data}")
-    print(f"🔍 processo_id recebido: {data.get('processo_id')}")
-    
-    # ===== DADOS RECEBIDOS DO FRONTEND =====
-    processo_id = data.get('processo_id')
-    
-    # 👇 CONVERTER PARA MAIÚSCULAS
-    nome_processo = data.get('nome_processo', '').upper().strip()
-    codigo_processo = data.get('codigo_processo', '').upper().strip()
-    nome_area = data.get('nome_area', '').upper().strip()
-    entrevistado = data.get('entrevistado', '').upper().strip()
-    
-    id_area = data.get('id_area')
-    executores_ids = data.get('executores_ids', [])
-    auditoria_id = data.get('auditoria_id')
-    
-    # ===== VALIDAÇÕES BÁSICAS =====
-    if not nome_processo or not id_area:
-        return jsonify({'success': False, 'error': 'Nome do processo e área são obrigatórios'}), 400
-    
-    try:
-        with engine.connect() as conn:
-            # ===== BUSCAR NOME DA ÁREA SE NÃO VEIO =====
-            if not nome_area:
-                busca_area = text("SELECT UPPER(nome_area) FROM informacoes_area WHERE id_area = :id_area")
-                result_area = conn.execute(busca_area, {'id_area': id_area}).fetchone()
-                nome_area = result_area[0] if result_area else ''
-            
-            # ===== DECIDIR ENTRE UPDATE (EDIÇÃO) OU INSERT (NOVO) =====
-            if processo_id:
-                # ===== CASO 1: EDIÇÃO - Processo já existe, vamos ATUALIZAR =====
-                print(f"✏️ Editando processo existente ID: {processo_id}")
-                
-                update_query = text("""
-                    UPDATE processos 
-                    SET nome_processo = UPPER(:nome), 
-                        codigo_processo = UPPER(:codigo),
-                        area = UPPER(:area),
-                        auditoria_id = :auditoria_id,
-                        entrevistado = UPPER(:entrevistado),
-                        updated_at = NOW()
-                    WHERE id = :id
-                    RETURNING id
-                """)
-                result = conn.execute(update_query, {
-                    'nome': nome_processo,
-                    'codigo': codigo_processo,
-                    'area': nome_area,
-                    'auditoria_id': auditoria_id,
-                    'entrevistado': entrevistado,
-                    'id': processo_id
-                })
-                processo_id = result.fetchone()[0]
-                print(f"✅ Processo {processo_id} atualizado com sucesso!")
-                
-            else:
-                # ===== CASO 2: NOVO PROCESSO - Vamos CRIAR =====
-                print(f"➕ Criando novo processo: {nome_processo}")
-                
-                # Verificar se já existe outro com mesmo nome na área E MESMA AUDITORIA
-                check_query = text("""
-                    SELECT id FROM processos 
-                    WHERE UPPER(nome_processo) = UPPER(:nome) 
-                    AND id_area = :id_area 
-                    AND auditoria_id = :auditoria_id
-                """)
-                existing = conn.execute(check_query, {
-                    'nome': nome_processo,
-                    'id_area': id_area,
-                    'auditoria_id': auditoria_id
-                }).fetchone()
-                
-                if existing:
-                    # Se já existe, usar o ID existente (edição implícita)
-                    processo_id = existing[0]
-                    print(f"⚠️ Processo já existe! Reutilizando ID: {processo_id}")
-                    
-                    # Atualizar mesmo assim
-                    update_query = text("""
-                        UPDATE processos 
-                        SET nome_processo = UPPER(:nome), 
-                            codigo_processo = UPPER(:codigo),
-                            area = UPPER(:area),
-                            auditoria_id = :auditoria_id,
-                            entrevistado = UPPER(:entrevistado),
-                            updated_at = NOW()
-                        WHERE id = :id
-                    """)
-                    conn.execute(update_query, {
-                        'nome': nome_processo,
-                        'codigo': codigo_processo,
-                        'area': nome_area,
-                        'auditoria_id': auditoria_id,
-                        'entrevistado': entrevistado,
-                        'id': processo_id
-                    })
-                else:
-                    # Realmente novo: gerar código e inserir
-                    if not codigo_processo:
-                        codigo_processo = gerar_codigo_processo(id_area, auditoria_id)
-                    
-                    insert_query = text("""
-                        INSERT INTO processos (
-                            nome_processo, codigo_processo, id_area, area, 
-                            auditoria_id, entrevistado, created_at, updated_at
-                        )
-                        VALUES (
-                            UPPER(:nome), UPPER(:codigo), :id_area, UPPER(:area), 
-                            :auditoria_id, UPPER(:entrevistado), NOW(), NOW()
-                        )
-                        RETURNING id
-                    """)
-                    result = conn.execute(insert_query, {
-                        'nome': nome_processo,
-                        'codigo': codigo_processo,
-                        'id_area': id_area,
-                        'area': nome_area,
-                        'auditoria_id': auditoria_id,
-                        'entrevistado': entrevistado
-                    })
-                    processo_id = result.fetchone()[0]
-                    print(f"✅ Novo processo criado com ID: {processo_id}")
-            
-            # ===== SALVAR EXECUTORES =====
-            if executores_ids:
-                print(f"👥 Salvando {len(executores_ids)} executores para o processo {processo_id}")
-                
-                delete_executors = text("DELETE FROM processo_executores WHERE processo_id = :processo_id")
-                conn.execute(delete_executors, {'processo_id': processo_id})
-                
-                insert_executor = text("""
-                    INSERT INTO processo_executores (processo_id, funcionario_id, created_at, updated_at)
-                    VALUES (:processo_id, :funcionario_id, NOW(), NOW())
-                """)
-                for func_id in executores_ids:
-                    conn.execute(insert_executor, {
-                        'processo_id': processo_id,
-                        'funcionario_id': func_id
-                    })
-                print(f"✅ {len(executores_ids)} executores salvos!")
-            else:
-                print(f"⚠️ Nenhum executor para salvar no processo {processo_id}")
-            
-            conn.commit()
-            
-            return jsonify({
-                'success': True,
-                'processo_id': processo_id,
-                'codigo_processo': codigo_processo,
-                'message': 'Informações básicas salvas com sucesso'
-            })
-            
-    except Exception as e:
-        print(f"❌ Erro ao salvar processo: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-    
-@app.route('/api/processo/salvar-detalhes', methods=['POST'])
-def api_salvar_processo_detalhes():
-    """Salva os detalhes do processo (descrição, objetivo, etc)"""
-    from database import engine
-    from sqlalchemy import text
-    
-    data = request.json
-    processo_id = data.get('processo_id')
-    
-    # 👇 CONVERTER PARA MAIÚSCULAS
-    descricao = data.get('descricao', '').upper().strip()
-    etapa_ini = data.get('etapa_ini', '').upper().strip()
-    etapa_fim = data.get('etapa_fim', '').upper().strip()
-    produto = data.get('produto', '').upper().strip()
-    objetivo = data.get('objetivo', '').upper().strip()
-    
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
-    
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                UPDATE processos 
-                SET descricao = UPPER(:descricao),
-                    etapa_ini = UPPER(:etapa_ini),
-                    etapa_fim = UPPER(:etapa_fim),
-                    produto = UPPER(:produto),
-                    objetivo = UPPER(:objetivo)
-                WHERE id = :processo_id
-            """)
-            
-            conn.execute(query, {
-                'descricao': descricao,
-                'etapa_ini': etapa_ini,
-                'etapa_fim': etapa_fim,
-                'produto': produto,
-                'objetivo': objetivo,
-                'processo_id': processo_id
-            })
-            conn.commit()
-            
-            return jsonify({'success': True, 'message': 'Detalhes salvos com sucesso'})
-            
-    except Exception as e:
-        print(f"❌ Erro ao salvar detalhes: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/processo/<int:processo_id>/desativar', methods=['PUT'])
 def api_desativar_processo(processo_id):
@@ -3165,94 +2916,6 @@ def api_processo_riscos(processo_id):
         print(f"❌ Erro ao buscar riscos: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/processo/<int:processo_id>/dados')
-def api_processo_dados(processo_id):
-    from database import engine
-    from sqlalchemy import text
-    from datetime import datetime
-    
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area, p.auditoria_id,
-                       p.descricao, p.etapa_ini, p.etapa_fim, p.produto, p.objetivo,
-                       p.fluxo_bpmn_nome, p.fluxo_bpmn_tipo,
-                       i.nome_area
-                FROM processos p
-                JOIN informacoes_area i ON p.id_area = i.id_area
-                WHERE p.id = :processo_id
-            """)
-            processo = conn.execute(query, {'processo_id': processo_id}).fetchone()
-            
-            if not processo:
-                return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404
-            
-            # ===== BUSCAR EXECUTORES =====
-            query_exec = text("""
-                SELECT f.id, f.nome_funcionario, f.cargo
-                FROM processo_executores pe
-                JOIN funcionarios_area f ON pe.funcionario_id = f.id
-                WHERE pe.processo_id = :processo_id
-            """)
-            executores = conn.execute(query_exec, {'processo_id': processo_id}).fetchall()
-            
-            # ===== BUSCAR RISCOS =====
-            query_riscos = text("""
-                SELECT id, nome_risco, fator_risco, melhoria,
-                       impacto, probabilidade, motivo_risco, categoria, causas,
-                       tratamento_risco, descricao_tratamento, prazo_implantacao,
-                       apetite_impacto, apetite_probabilidade
-                FROM riscos
-                WHERE processo_id = :processo_id
-            """)
-            riscos_result = conn.execute(query_riscos, {'processo_id': processo_id}).fetchall()
-            
-            riscos = []
-            for r in riscos_result:
-                # Os dados já estão em maiúsculas (salvos assim)
-                # Mas se quiser garantir:
-                categorias = r[7].split(',') if r[7] else []
-                categoria_causa = r[8].split(',') if r[8] else []
-                
-                riscos.append({
-                    'id': r[0],
-                    'nome_risco': r[1] or '',
-                    'fator_risco': r[2] or '',
-                    'melhoria': r[3] or '',
-                    'impacto': r[4] or 'Médio',
-                    'probabilidade': r[5] or 'Médio',
-                    'motivo_risco': r[6] or '',
-                    'categorias': [c.strip() for c in categorias if c.strip()],
-                    'categoria_causa': [c.strip() for c in categoria_causa if c.strip()],
-                    'como_tratar': r[9] or '',
-                    'desc_tratamento': r[10] or '',
-                    'prazo_implantacao': r[11] or '',
-                    'apetite_impacto': r[12] or 'Médio',
-                    'apetite_probabilidade': r[13] or 'Médio'
-                })
-            
-            return jsonify({
-                'success': True,
-                'nome_processo': processo[1] or '',
-                'codigo_processo': processo[2] or '',
-                'id_area': processo[3],
-                'auditoria_id': processo[4],
-                'nome_area': processo[12] or '',
-                'descricao': processo[5] or '',
-                'etapa_ini': processo[6] or '',
-                'etapa_fim': processo[7] or '',
-                'produto': processo[8] or '',
-                'objetivo': processo[9] or '',
-                'fluxo_bpmn_nome': processo[10] or '',
-                'fluxo_bpmn_tipo': processo[11] or '',
-                'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores],
-                'riscos': riscos
-            })
-            
-    except Exception as e:
-        print(f"❌ Erro ao buscar dados do processo: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     
 @app.route('/api/processo/<int:processo_id>/upload-bpmn', methods=['POST'])
@@ -3550,83 +3213,6 @@ def api_processos_por_auditoria():
     
     except Exception as e:
         print(f"❌ Erro ao buscar processos: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/processos-por-area')
-def api_processos_por_area():
-    """Retorna todos os processos de uma área (com opção de filtrar por auditoria)"""
-    if not session.get('autenticado'):
-        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-    
-    area_id = request.args.get('area_id')
-    auditoria_id = request.args.get('auditoria_id')
-    
-    if not area_id:
-        return jsonify({'success': False, 'error': 'area_id é obrigatório'}), 400
-    
-    from database import engine
-    from sqlalchemy import text
-    
-    try:
-        with engine.connect() as conn:
-            if auditoria_id:
-                # Se tem auditoria, filtrar por ela
-                query = text("""
-                    SELECT 
-                        p.id, 
-                        p.codigo_processo, 
-                        p.nome_processo, 
-                        p.objetivo,
-                        p.auditoria_id,
-                        a.codigo_auditoria
-                    FROM processos p
-                    LEFT JOIN auditorias a ON p.auditoria_id = a.id
-                    WHERE p.id_area = :area_id 
-                        AND p.status = 'Ativo'
-                        AND p.auditoria_id = :auditoria_id
-                    ORDER BY 
-                        CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
-                """)
-                result = conn.execute(query, {
-                    "area_id": area_id,
-                    "auditoria_id": auditoria_id
-                }).fetchall()
-            else:
-                # Sem auditoria - todos os processos da área
-                query = text("""
-                    SELECT 
-                        p.id, 
-                        p.codigo_processo, 
-                        p.nome_processo, 
-                        p.objetivo,
-                        p.auditoria_id,
-                        a.codigo_auditoria
-                    FROM processos p
-                    LEFT JOIN auditorias a ON p.auditoria_id = a.id
-                    WHERE p.id_area = :area_id 
-                        AND p.status = 'Ativo'
-                    ORDER BY 
-                        CAST(SPLIT_PART(p.codigo_processo, '.', 2) AS INTEGER)
-                """)
-                result = conn.execute(query, {"area_id": area_id}).fetchall()
-            
-            processos = []
-            for row in result:
-                processos.append({
-                    'id': row[0],
-                    'codigo_processo': row[1] or '',
-                    'nome_processo': row[2] or '',
-                    'objetivo': row[3] or '',
-                    'auditoria_id': row[4],
-                    'codigo_auditoria': row[5] or f'Auditoria {row[4]}' if row[4] else '-'
-                })
-            
-            return jsonify({'success': True, 'processos': processos})
-            
-    except Exception as e:
-        print(f"❌ Erro em /api/processos-por-area: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
                            
 
