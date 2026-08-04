@@ -1,0 +1,34 @@
+<!-- PASSO 1: VINCULAR À AUDITORIA -->
+<div id="auditoria-section" class="form-section">
+    <h3>1. Vincular à Auditoria</h3>
+    
+    <div class="form-row">
+        <div class="form-group">
+            <label for="area_select">Área:</label>
+            <select id="area_select" name="area_id" class="form-control">
+                <option value="">Selecione uma área...</option>
+                {% for nome, id in areas.items() %}
+                <option value="{{ id }}">{{ nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div id="auditoria-inner" style="display: none;">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="auditoria_select">Auditoria:</label>
+                <select id="auditoria_select" name="auditoria_id" class="form-control">
+                    <option value="">Selecione uma auditoria...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão Próximo da Seção 1 -->
+    <div class="wizard-buttons" style="margin-top: 20px;">
+        <button type="button" class="btn-primary" id="btn-proximo-etapa2" disabled>
+            Próximo: Informações Básicas →
+        </button>
+    </div>
+</div>
