@@ -23,6 +23,7 @@ const Etapa3Module = {
     btnVoltarLista: null,
     btnVoltarForm: null,
     btnSalvarDetalhes: null,
+    btnProximoLista: null,
     
     // Campos do formulário
     descricaoInput: null,
@@ -47,6 +48,7 @@ const Etapa3Module = {
         this.btnVoltarLista = document.getElementById('btn-voltar-etapa2-lista');
         this.btnVoltarForm = document.getElementById('btn-voltar-etapa2-form');
         this.btnSalvarDetalhes = document.getElementById('btn-salvar-detalhes');
+        this.btnProximoLista = document.getElementById('btn-proximo-etapa4-lista');
         
         // Campos
         this.descricaoInput = document.getElementById('descricao_processo');
@@ -81,6 +83,12 @@ const Etapa3Module = {
         if (this.btnSalvarDetalhes) {
             this.btnSalvarDetalhes.addEventListener('click', () => {
                 this.salvarDetalhes();
+            });
+        }
+
+        if (this.btnProximoLista) {
+            this.btnProximoLista.addEventListener('click', () => {
+                if (typeof WizardModule !== 'undefined') WizardModule.irParaEtapa(4);
             });
         }
     },

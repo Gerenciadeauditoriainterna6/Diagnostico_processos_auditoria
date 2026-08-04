@@ -1,0 +1,81 @@
+<!-- PASSO 4: RISCOS IDENTIFICADOS -->
+<div id="riscos-section" class="form-section" style="display: none;">
+    <h3>4. Riscos Identificados</h3>
+    
+    <!-- VISÃO 1: Lista de Processos -->
+    <div id="etapa4-lista-processos">
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">
+            <i class="fas fa-info-circle"></i> Selecione um processo para gerenciar os riscos.
+        </p>
+        <div id="etapa4-lista-container">
+            <!-- Preenchido pelo JavaScript -->
+        </div>
+        <div class="wizard-buttons" style="margin-top: 20px;">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa3-lista">
+                ← Voltar
+            </button>
+            <button type="button" class="btn-primary" id="btn-proximo-etapa5-lista">
+                Próximo: Resumo →
+            </button>
+        </div>
+    </div>
+    
+    <!-- VISÃO 2: Kanban de Riscos -->
+    <div id="etapa4-kanban-riscos" style="display: none;">
+        <div id="etapa4-processo-selecionado-info" style="margin-bottom: 15px; padding: 10px; background: #f0f4f5; border-radius: 8px;">
+            <!-- Nome e código do processo -->
+        </div>
+        
+        <div class="riscos-header">
+            <button type="button" id="btn-adicionar-risco" class="btn-primary">
+                <i class="fas fa-plus"></i> Novo Risco
+            </button>
+        </div>
+
+        <!-- Kanban Board (MANTIDO IGUAL) -->
+        <div class="kanban-board">
+            <div class="kanban-col" data-score-level="baixo">
+                <div class="kanban-col-header low">
+                    <i class="fas fa-circle"></i>
+                    <span>BAIXA EXPOSIÇÃO</span>
+                    <span class="score-range">0 - 3</span>
+                    <span class="risk-count" id="count-baixo">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-baixo"></div>
+            </div>
+            <div class="kanban-col" data-score-level="medio">
+                <div class="kanban-col-header medium">
+                    <i class="fas fa-circle"></i>
+                    <span>SOB OBSERVAÇÃO</span>
+                    <span class="score-range">4 - 7</span>
+                    <span class="risk-count" id="count-medio">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-medio"></div>
+            </div>
+            <div class="kanban-col" data-score-level="alto">
+                <div class="kanban-col-header high">
+                    <i class="fas fa-circle"></i>
+                    <span>ATENÇÃO</span>
+                    <span class="score-range">8 - 11</span>
+                    <span class="risk-count" id="count-alto">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-alto"></div>
+            </div>
+            <div class="kanban-col" data-score-level="critico">
+                <div class="kanban-col-header critical">
+                    <i class="fas fa-circle"></i>
+                    <span>CRÍTICO</span>
+                    <span class="score-range">12+</span>
+                    <span class="risk-count" id="count-critico">0</span>
+                </div>
+                <div class="kanban-col-body" id="col-critico"></div>
+            </div>
+        </div>
+
+        <div class="wizard-buttons" style="margin-top: 20px;">
+            <button type="button" class="btn-secondary" id="btn-voltar-etapa3-kanban">
+                ← Voltar para lista
+            </button>
+        </div>
+    </div>
+</div>

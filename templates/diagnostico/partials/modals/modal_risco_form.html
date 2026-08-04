@@ -8,9 +8,28 @@
         <div class="modal-body">
             <input type="hidden" id="modal-risco-idx">
 
+            <div id="modal-objetivo-processo" style="
+                background: #f8f9fa;
+                border-left: 4px solid #184145;
+                padding: 12px 15px;
+                margin-bottom: 20px;
+                border-radius: 6px;
+            ">
+                <label style="font-size: 11px; color: #666; display: block; margin-bottom: 4px;">
+                    <i class="fas fa-bullseye"></i> Objetivo do Processo
+                </label>
+                <div id="modal-objetivo-texto" style="
+                    font-size: 13px;
+                    color: #333;
+                    line-height: 1.5;
+                ">
+                    <!-- Preenchido pelo JavaScript -->
+                </div>
+            </div>
+
             <!-- ===== SEÇÃO 1: IDENTIFICAÇÃO DO RISCO ===== -->
-            <div class="form-section-inline" style="margin-bottom: 20px;">
-                <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #0b5b99; padding-left: 10px;">
+            <div class="form-section-inline">
+                <h4>
                     <i class="fas fa-tag"></i> Identificação do Risco
                 </h4>
 
@@ -56,20 +75,24 @@
                         <label><input type="checkbox" value="Risco Reputacional"> Risco Reputacional</label>
                         <label><input type="checkbox" value="Risco de Integridade"> Risco de Integridade</label>
                         <label><input type="checkbox" value="Risco Ambiental"> Risco Ambiental</label>
-                        <label><input type="checkbox" value="OUTRA" id="check-outra-categoria"> Outra</label>
+                        <label><input type="checkbox" value="OUTRA" id="check-outra-categoria-risco"> Outra</label>
                     </div>
 
-                    <!-- Campo para categoria personalizada -->
-                        <div id="outra-categoria-container" style="display: none; margin-top: 8px;">
-                        <input type="text" id="outra-categoria-texto" class="form-control" placeholder="Digite a categoria...">
-
+                    <div id="outra-categoria-risco-container" style="display: none; margin-top: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="outra-categoria-risco-texto" class="form-control" placeholder="Digite a categoria...">
+                            <button type="button" id="btn-adicionar-outra-risco" class="btn-outline btn-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
                         </div>
+                        <div id="outras-categorias-risco-lista" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- ===== SEÇÃO 2: CAUSA E ANÁLISE ===== -->
-            <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #17a2b8; padding-left: 10px;">
+            <div class="form-section-inline">
+                <h4>
                     <i class="fas fa-search"></i> Causa e Análise
                 </h4>
 
@@ -111,14 +134,25 @@
                 <!-- Categoria de Causa -->
                 <div class="form-group">
                     <div id="causa-checkboxes" class="checkbox-grid">
-                        <label><input type="checkbox" value="Falha Operacional"> Falha Operacional</label>
-                        <label><input type="checkbox" value="Falta de Controle"> Falta de Controle</label>
-                        <label><input type="checkbox" value="Não Conformidade"> Não Conformidade</label>
-                        <label><input type="checkbox" value="Problemas Financeiros"> Problemas Financeiros</label>
-                        <label><input type="checkbox" value="Fenômeno Natural"> Fenômeno Natural</label>
-                        <label><input type="checkbox" value="Fraude"> Fraude</label>
+                        <label><input type="checkbox" value="FALHA OPERACIONAL"> Falha Operacional</label>
+                        <label><input type="checkbox" value="FALTA DE CONTROLE"> Falta de Controle</label>
+                        <label><input type="checkbox" value="NÃO CONFORMIDADE"> Não Conformidade</label>
+                        <label><input type="checkbox" value="PROBLEMAS FINANCEIROS"> Problemas Financeiros</label>
+                        <label><input type="checkbox" value="FENÔMENO NATURAL"> Fenômeno Natural</label>
+                        <label><input type="checkbox" value="FRAUDE"> Fraude</label>
+                        <label><input type="checkbox" value="OUTRA" id="check-outra-categoria-causa"> Outra</label>
                     </div>
                     <small class="text-muted">Selecione uma ou mais causas</small>
+
+                    <div id="outra-categoria-causa-container" style="display: none; margin-top: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="outra-categoria-causa-texto" class="form-control" placeholder="Digite a causa...">
+                            <button type="button" id="btn-adicionar-outra-causa" class="btn-outline btn-sm">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="outras-categorias-causa-lista" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                    </div>
                 </div>
 
                 <!-- Ponto de Melhoria -->
@@ -136,8 +170,8 @@
             </div>
 
             <!-- ===== SEÇÃO 3: AVALIAÇÃO DO RISCO ===== -->
-            <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #ffc107; padding-left: 10px;">
+            <div class="form-section-inline">
+                <h4>
                     <i class="fas fa-chart-line"></i> Avaliação do Risco
                 </h4>
 
@@ -153,13 +187,6 @@
                             <button type="button" id="fechar-info-criterios" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
                         </div>
                         <div style="margin-top: 8px;">
-                            <strong>PROBABILIDADE</strong>
-                            <ul>
-                                <li><strong>Baixa:</strong> Pode ser que ocorra uma vez dentro de um ano.</li>
-                                <li><strong>Média:</strong> Pode ser que ocorra mais de uma vez dentro de um ano.</li>
-                                <li><strong>Alta:</strong> Pode ser que ocorra mensalmente.</li>
-                                <li><strong>Muito Alta:</strong> Pode ser que ocorra diariamente.</li>
-                            </ul>
                             <strong>IMPACTO FINANCEIRO</strong>
                             <ul>
                                 <li><strong>Baixo:</strong> Desembolsos de até R$ 150.000,00.</li>
@@ -167,6 +194,15 @@
                                 <li><strong>Alto:</strong> Desembolso de R$ 300.000,01 até R$ 1.500.000,00.</li>
                                 <li><strong>Muito Alto:</strong> Desembolso acima de R$ 1.500.000,00.</li>
                             </ul>
+
+                            <strong>PROBABILIDADE</strong>
+                            <ul>
+                                <li><strong>Baixa:</strong> Pode ser que ocorra uma vez dentro de um ano.</li>
+                                <li><strong>Média:</strong> Pode ser que ocorra mais de uma vez dentro de um ano.</li>
+                                <li><strong>Alta:</strong> Pode ser que ocorra mensalmente.</li>
+                                <li><strong>Muito Alta:</strong> Pode ser que ocorra diariamente.</li>
+                            </ul>
+                            
                         </div>
                     </div>
                 </div>
@@ -184,6 +220,7 @@
                         </span>
                         </label>
                         <select id="modal-impacto" class="form-control">
+                            <option value="">Selecione uma opção...</option>
                             <option value="BAIXO">BAIXO</option>
                             <option value="MÉDIO">MÉDIO</option>
                             <option value="ALTO">ALTO</option>
@@ -202,6 +239,7 @@
                         </span>
                         </label>
                         <select id="modal-probabilidade" class="form-control">
+                            <option value="">Selecione uma opção...</option>
                             <option value="BAIXO">BAIXO</option>
                             <option value="MÉDIO">MÉDIO</option>
                             <option value="ALTO">ALTO</option>
@@ -212,7 +250,7 @@
 
                 <!-- Score Preview -->
                 <div id="modal-score-preview" class="score-preview" style="margin: 15px 0;">
-                    <strong>Score calculado:</strong> 0 (Baixo)
+                    <strong>Risco Bruto:</strong>-
                 </div>
 
                 <!-- Motivo da Classificação -->
@@ -227,8 +265,8 @@
                 </div>
 
                 <!-- ===== SEÇÃO 3.5: APETITE AO RISCO (RISCO RESIDUAL) ===== -->
-                <div class="form-section-inline" style="margin-bottom: 20px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                    <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #0b5b99; padding-left: 10px;">
+                <div class="form-section-inline">
+                    <h4>
                         <i class="fas fa-bullseye"></i> Apetite ao Risco (Risco Residual)
                     </h4>
 
@@ -245,6 +283,7 @@
                             </span>
                             </label>
                             <select id="apetite_impacto" class="form-control">
+                                <option value="">Selecione uma opção...</option>
                                 <option value="BAIXO">BAIXO</option>
                                 <option value="MÉDIO" selected>MÉDIO</option>
                                 <option value="ALTO">ALTO</option>
@@ -262,6 +301,7 @@
                             </span>
                             </label>
                             <select id="apetite_probabilidade" class="form-control">
+                                <option value="">Selecione uma opção...</option>
                                 <option value="BAIXO">BAIXO</option>
                                 <option value="MÉDIO" selected>MÉDIO</option>
                                 <option value="ALTO">ALTO</option>
@@ -272,7 +312,7 @@
 
                     <!-- Score Preview do Apetite -->
                     <div id="apetite-score-preview" class="score-preview" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                        <strong>Score do Apetite:</strong> <span id="preview-apetite-score">5</span> (SOB OBSERVAÇÃO)
+                        <strong>Apetite ao Risco:</strong> <span id="preview-apetite-score">-</span>
                     </div>
             </div>
 
@@ -280,8 +320,8 @@
 
 
             <!-- ===== SEÇÃO 4: TRATAMENTO DO RISCO ===== -->
-            <div class="form-section-inline" style="margin-bottom: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                <h4 style="color: #184145; font-size: 14px; margin-bottom: 15px; border-left: 3px solid #28a745; padding-left: 10px;">
+            <div class="form-section-inline">
+                <h4>
                     <i class="fas fa-shield-alt"></i> Tratamento do Risco
                 </h4>
 

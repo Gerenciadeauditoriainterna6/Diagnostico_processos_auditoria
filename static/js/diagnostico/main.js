@@ -44,5 +44,10 @@ document.addEventListener('DOMContentLoaded', function() {
         Etapa3Module.init();
         console.log('   ✅ Etapa3Module inicializado');
     }
+
+    if (typeof Etapa4Module !== 'undefined') {
+        Etapa4Module.init();
+        console.log('   ✅ Etapa4Module inicializado');
+    }
     
 });

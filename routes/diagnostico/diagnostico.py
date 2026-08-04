@@ -186,3 +186,21 @@ def api_processos_por_ids():
     
     processos = buscar_processos_por_ids(ids)
     return jsonify({'success': True, 'processos': processos})
+
+# ============================================================
+# ROTA: Exclui um risco específico
+# ============================================================
+
+@diagnostico_bp.route('/api/risco/<int:risco_id>/excluir', methods=['DELETE'])
+def api_excluir_risco(risco_id):
+    """Exclui um risco"""
+    from database import engine
+    from sqlalchemy import text
+    
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("DELETE FROM riscos WHERE id = :id"), {'id': risco_id})
+            conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500

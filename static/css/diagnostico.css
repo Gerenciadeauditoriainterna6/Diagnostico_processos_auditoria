@@ -1058,7 +1058,7 @@
     background: white;
     border-radius: 16px;
     width: 90%;
-    max-width: 600px;
+    max-width: 1000px;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
@@ -2067,4 +2067,24 @@
 
 .status-pendente {
     color: #856404;
+}
+
+/* Seções do modal de risco */
+.form-section-inline {
+    margin-bottom: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.form-section-inline:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+.form-section-inline h4 {
+    color: #184145;
+    font-size: 14px;
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-left: 3px solid #0b5b99;
 }

@@ -345,24 +345,25 @@ def salvar_detalhes_processo(processo_id, descricao, etapa_ini, etapa_fim, produ
         conn.commit()
 
 def buscar_processos_por_ids(ids):
-    """Busca processos por uma lista de IDs"""
-    from database import engine
-    from sqlalchemy import text
-    
     if not ids:
         return []
     
-    # Converte lista de IDs para string: '1,2,3'
     ids_str = ','.join(str(id) for id in ids)
     
     query = text(f"""
         SELECT 
             p.id, p.codigo_processo, p.nome_processo, p.objetivo,
             p.auditoria_id, a.codigo_auditoria,
-            p.descricao, p.etapa_ini, p.etapa_fim, p.produto
+            p.descricao, p.etapa_ini, p.etapa_fim, p.produto,
+            COALESCE(MAX(r.score_risco), 0) as score_maximo,
+            COUNT(r.id) as qtd_riscos
         FROM processos p
         LEFT JOIN auditorias a ON p.auditoria_id = a.id
+        LEFT JOIN riscos r ON p.id = r.processo_id
         WHERE p.id IN ({ids_str})
+        GROUP BY p.id, p.codigo_processo, p.nome_processo, p.objetivo,
+                 p.auditoria_id, a.codigo_auditoria,
+                 p.descricao, p.etapa_ini, p.etapa_fim, p.produto
         ORDER BY p.id
     """)
     
@@ -371,6 +372,24 @@ def buscar_processos_por_ids(ids):
         
         processos = []
         for row in result:
+            score = row[10] or 0
+            
+            if score == 0:
+                texto_score = ''
+                cor_score = ''
+            elif score <= 3:
+                texto_score = 'score-baixo'
+                cor_score = '🟢'
+            elif score <= 7:
+                texto_score = 'score-medio'
+                cor_score = '🟡'
+            elif score <= 11:
+                texto_score = 'score-alto'
+                cor_score = '🟠'
+            else:
+                texto_score = 'score-critico'
+                cor_score = '🔴'
+            
             processos.append({
                 'id': row[0],
                 'codigo_processo': row[1] or '',
@@ -382,6 +401,10 @@ def buscar_processos_por_ids(ids):
                 'etapa_ini': row[7] or '',
                 'etapa_fim': row[8] or '',
                 'produto': row[9] or '',
+                'score_maximo': score,
+                'qtd_riscos': row[11] or 0,
+                'texto_score': texto_score,
+                'cor_score': cor_score
             })
         
         return processos
