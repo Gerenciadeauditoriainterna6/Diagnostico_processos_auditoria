@@ -49,5 +49,9 @@ document.addEventListener('DOMContentLoaded', function() {
         Etapa4Module.init();
         console.log('   ✅ Etapa4Module inicializado');
     }
+
+    if (typeof AnexosModule !== 'undefined') {
+        AnexosModule.init();
+    }
     
 });

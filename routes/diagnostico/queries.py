@@ -516,3 +516,65 @@ def buscar_executores_processo(processo_id):
     with engine.connect() as conn:
         result = conn.execute(query, {'pid': processo_id}).fetchall()
         return [{'funcionario_id': r[0], 'nome': r[1], 'cargo': r[2] or ''} for r in result]
+
+def salvar_anexo(processo_id, nome_arquivo, nome_original, caminho_storage, tipo_mime, tamanho_bytes):
+    """Registra um anexo no banco"""
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            INSERT INTO processo_anexos (processo_id, nome_arquivo, nome_original, caminho_storage, tipo_mime, tamanho_bytes)
+            VALUES (:pid, :nome, :original, :caminho, :tipo, :tamanho)
+            RETURNING id
+        """), {
+            'pid': processo_id,
+            'nome': nome_arquivo,
+            'original': nome_original,
+            'caminho': caminho_storage,
+            'tipo': tipo_mime or 'application/octet-stream',
+            'tamanho': tamanho_bytes or 0
+        })
+        conn.commit()
+        return result.fetchone()[0]
+
+
+def listar_anexos_processo(processo_id):
+    """Lista anexos de um processo"""
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT id, nome_arquivo, nome_original, caminho_storage, tipo_mime, tamanho_bytes, created_at
+            FROM processo_anexos
+            WHERE processo_id = :pid
+            ORDER BY created_at DESC
+        """), {'pid': processo_id}).fetchall()
+        
+        return [{
+            'id': r[0],
+            'nome_arquivo': r[1],
+            'nome_original': r[2],
+            'caminho_storage': r[3],
+            'tipo_mime': r[4],
+            'tamanho_bytes': r[5],
+            'created_at': str(r[6]) if r[6] else ''
+        } for r in result]
+
+
+def excluir_anexo(anexo_id):
+    """Exclui um anexo do banco e retorna o caminho para excluir do storage"""
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT caminho_storage FROM processo_anexos WHERE id = :id
+        """), {'id': anexo_id}).fetchone()
+        
+        if result:
+            conn.execute(text("DELETE FROM processo_anexos WHERE id = :id"), {'id': anexo_id})
+            conn.commit()
+            return result[0]
+    return None

@@ -1,0 +1,45 @@
+<!-- MODAL DE ANEXOS -->
+<div id="modal-anexos" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <div>
+                <h3><i class="fas fa-paperclip"></i> Fluxo(s) do Processo</h3>
+                <small>Anexe um ou mais fluxos do processo</small>
+            </div>
+            <button type="button" class="modal-close" id="btn-fechar-modal-anexos">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Info do processo -->
+            <div id="anexos-processo-info" style="margin-bottom: 15px; padding: 10px; background: #f0f4f5; border-radius: 8px;">
+                <!-- Preenchido pelo JS -->
+            </div>
+            
+            <!-- Upload -->
+            <div class="upload-area" id="upload-area" style="
+                border: 2px dashed #ccc;
+                border-radius: 10px;
+                padding: 30px;
+                text-align: center;
+                cursor: pointer;
+                margin-bottom: 20px;
+                transition: border-color 0.2s;
+            ">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: #aaa;"></i>
+                <p style="margin-top: 10px; color: #666;">
+                    Clique ou arraste um arquivo aqui<br>
+                    <small>PDF, JPG, PNG ou JPEG (máx. 10MB)</small>
+                </p>
+                <input type="file" id="input-upload-anexo" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+            </div>
+            
+            <!-- Lista de anexos -->
+            <div id="anexos-lista">
+                <!-- Preenchido pelo JS -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="btn-fechar-modal-anexos-footer">Fechar</button>
+        </div>
+    </div>
+</div>

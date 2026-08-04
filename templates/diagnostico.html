@@ -37,7 +37,9 @@
 
     <!-- MODAIS DE VISUALIZAR PROCESSO E VISUALIZAR O RISCO-->
     {% include 'diagnostico/partials/modals/visualizar_processo.html' %}
+    
     {% include 'diagnostico/partials/modals/visualizar_risco.html' %}
+    {% include 'diagnostico/partials/modals/anexos.html' %}
     
 </div>
 
@@ -66,11 +68,12 @@
             
             <!-- STEP4 -->
             {% include 'diagnostico/partials/wizard/etapa4_riscos.html' %}
+            {% include 'diagnostico/partials/modals/modal_risco_form.html' %}
 
             <!-- STEP5 -->
             {% include 'diagnostico/partials/wizard/etapa5_resumo.html' %}
 
-            {% include 'diagnostico/partials/modals/modal_risco_form.html' %}
+            
 
         </div>
     </div>
@@ -84,6 +87,7 @@
 <!-- 1. Módulos Base (sem dependencia) -->
 <script src="{{ url_for('static', filename='js/diagnostico/filtros.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/tabela.js') }}"></script>
+<script src="{{ url_for('static', filename='js/diagnostico/anexos.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/wizard.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/etapa1_auditoria.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/etapa2_basicas.js') }}"></script>

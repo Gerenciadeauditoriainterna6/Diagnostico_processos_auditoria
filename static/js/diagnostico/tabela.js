@@ -8,8 +8,8 @@ const TabelaModule = {
     btnNovoProcesso: null,
     processosData: [],       // Armazena os processos para ordenação
     ordenacaoAtual: {        // Estado da ordenação
-        coluna: 'codigo',
-        direcao: 'asc'
+    coluna: 'codigo',
+    direcao: 'asc'
     },
     
     // ============================================================
@@ -236,13 +236,14 @@ const TabelaModule = {
             });
         });
 
-        // Botão de Anexar fluxo
+
+        // Botão Anexo
         this.container.querySelectorAll('.btn-anexo').forEach(btn => {
             btn.addEventListener('click', () => {
-                const processoId = btn.getAttribute('data-anexar');
+                const processoId = parseInt(btn.dataset.anexar);
                 this.aoClicarAnexo(processoId);
-            })
-        })
+            });
+        });
     },
     
     // ============================================================
@@ -397,8 +398,16 @@ const TabelaModule = {
     },
 
     aoClicarAnexo(processoId) {
-        console.log(`📎 Anexar arquivo ao processo ${processoId}`);
-        window.mostrarToast('📎 Funcionalidade de anexo em desenvolvimento!', 'info');
+        const id = parseInt(processoId); 
+        const proc = this.processosData.find(p => p.id === id);
+        
+        if (typeof AnexosModule !== 'undefined') {
+            AnexosModule.abrir(
+                id,
+                proc?.nome_processo || 'Processo',
+                proc?.codigo_processo || ''
+            );
+        }
     },
     
 };

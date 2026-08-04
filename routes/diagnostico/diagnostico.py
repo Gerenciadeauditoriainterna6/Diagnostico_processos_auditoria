@@ -7,6 +7,7 @@ from routes.diagnostico.queries import (
     buscar_riscos_por_processo, buscar_score_maximo_e_qtd_riscos_por_processo,
     buscar_funcionarios_por_area
     )
+import uuid
 
 # Criamos o blueprint
 diagnostico_bp = Blueprint('diagnostico', __name__)
@@ -229,3 +230,101 @@ def api_processo_executores(processo_id):
     
     executores = buscar_executores_processo(processo_id)
     return jsonify({'success': True, 'executores': executores})
+
+# ============================================================
+# ROTA: Listar anexos do storage nos processos
+# ============================================================
+@diagnostico_bp.route('/api/processo/<int:processo_id>/anexos', methods=['GET'])
+def api_listar_anexos(processo_id):
+    from routes.diagnostico.queries import listar_anexos_processo
+    anexos = listar_anexos_processo(processo_id)
+    return jsonify({'success': True, 'anexos': anexos})
+
+
+# ============================================================
+# ROTA: Upload dos anexos
+# ============================================================
+@diagnostico_bp.route('/api/processo/<int:processo_id>/anexos', methods=['POST'])
+def api_upload_anexo(processo_id):
+    from utils.storage_utils import upload_arquivo_storage
+    from routes.diagnostico.queries import salvar_anexo
+    
+    if 'arquivo' not in request.files:
+        return jsonify({'success': False, 'error': 'Nenhum arquivo enviado'}), 400
+    
+    arquivo = request.files['arquivo']
+    
+    if arquivo.filename == '':
+        return jsonify({'success': False, 'error': 'Arquivo vazio'}), 400
+    
+    # Validar tamanho (10MB)
+    arquivo.seek(0, 2)
+    tamanho = arquivo.tell()
+    arquivo.seek(0)
+    
+    if tamanho > 10 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Arquivo excede 10MB'}), 400
+    
+    # Gerar nome único
+    extensao = arquivo.filename.rsplit('.', 1)[-1].lower() if '.' in arquivo.filename else ''
+    nome_unico = f"{uuid.uuid4()}.{extensao}" if extensao else str(uuid.uuid4())
+    
+    # Caminho no storage
+    caminho = f"processo_{processo_id}/{nome_unico}"
+    
+    # Upload
+    url = upload_arquivo_storage(arquivo, caminho, 'fluxo_processo', arquivo.content_type)
+    
+    if url:
+        # Salvar no banco
+        anexo_id = salvar_anexo(
+            processo_id=processo_id,
+            nome_arquivo=nome_unico,
+            nome_original=arquivo.filename,
+            caminho_storage=caminho,
+            tipo_mime=arquivo.content_type,
+            tamanho_bytes=tamanho
+        )
+        return jsonify({'success': True, 'anexo_id': anexo_id, 'url': url})
+    
+    return jsonify({'success': False, 'error': 'Erro no upload'}), 500
+
+# ============================================================
+# ROTA: Excuir anexos
+# ============================================================
+@diagnostico_bp.route('/api/anexo/<int:anexo_id>', methods=['DELETE'])
+def api_excluir_anexo(anexo_id):
+    from utils.storage_utils import excluir_arquivo_storage
+    from routes.diagnostico.queries import excluir_anexo
+    
+    caminho = excluir_anexo(anexo_id)
+    
+    if caminho:
+        excluir_arquivo_storage(caminho, 'fluxo_processo')
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Anexo não encontrado'}), 404
+
+# ============================================================
+# ROTA: Buscar URL assinada
+# ============================================================
+@diagnostico_bp.route('/api/anexo/<int:anexo_id>/url')
+def api_anexo_url(anexo_id):
+    from routes.diagnostico.queries import listar_anexos_processo
+    from utils.storage_utils import obter_url_assinada
+    
+    # Buscar todos os anexos (não temos busca por ID único)
+    # Vamos criar uma query específica
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT caminho_storage FROM processo_anexos WHERE id = :id
+        """), {'id': anexo_id}).fetchone()
+        
+        if result:
+            url = obter_url_assinada(result[0], 'fluxo_processo')
+            return jsonify({'success': True, 'url': url})
+    
+    return jsonify({'success': False, 'error': 'Anexo não encontrado'}), 404
