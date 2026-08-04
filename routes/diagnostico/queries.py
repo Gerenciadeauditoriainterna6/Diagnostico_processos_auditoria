@@ -227,7 +227,7 @@ def buscar_ultimo_sequencial(area_id):
         result = conn.execute(query, {'area_id': area_id}).fetchone()
         return result[0] if result else 0
 
-def salvar_processo_basico(nome_processo, codigo_processo, area_id, auditoria_id, entrevistado):
+def salvar_processo_basico(nome_processo, codigo_processo, area_id, auditoria_id, entrevistado, processo_id=None):
     """Salva um processo básico e retorna o ID"""
     from database import engine
     from sqlalchemy import text
@@ -235,12 +235,31 @@ def salvar_processo_basico(nome_processo, codigo_processo, area_id, auditoria_id
     nome_upper = nome_processo.strip().upper()
     
     with engine.connect() as conn:
-        # Buscar nome da área
         busca_area = text("SELECT UPPER(nome_area) FROM informacoes_area WHERE id_area = :id_area")
         result_area = conn.execute(busca_area, {'id_area': area_id}).fetchone()
         nome_area = result_area[0] if result_area else ''
         
-        # Verificar se já existe
+        # ⭐ SE TEM ID, É EDIÇÃO DIRETA (UPDATE)
+        if processo_id:
+            conn.execute(text("""
+                UPDATE processos 
+                SET nome_processo = UPPER(:nome), 
+                    area = UPPER(:area),
+                    auditoria_id = :auditoria_id,
+                    entrevistado = UPPER(:entrevistado),
+                    updated_at = NOW()
+                WHERE id = :id
+            """), {
+                'nome': nome_upper,
+                'area': nome_area,
+                'auditoria_id': auditoria_id,
+                'entrevistado': entrevistado.strip().upper(),
+                'id': processo_id
+            })
+            conn.commit()
+            return processo_id
+        
+        # ⭐ SE NÃO TEM ID, É NOVO (verifica duplicidade)
         check_query = text("""
             SELECT id, codigo_processo FROM processos 
             WHERE UPPER(nome_processo) = UPPER(:nome) 
@@ -408,3 +427,80 @@ def buscar_processos_por_ids(ids):
             })
         
         return processos
+
+def buscar_processo_completo(processo_id):
+    """Busca TODOS os dados de um processo (básico + detalhes + executores + riscos)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        # Processo
+        query = text("""
+            SELECT p.id, p.nome_processo, p.codigo_processo, p.id_area, p.auditoria_id,
+                   p.descricao, p.etapa_ini, p.etapa_fim, p.produto, p.objetivo,
+                   p.entrevistado, i.nome_area
+            FROM processos p
+            JOIN informacoes_area i ON p.id_area = i.id_area
+            WHERE p.id = :pid
+        """)
+        processo = conn.execute(query, {'pid': processo_id}).fetchone()
+        
+        if not processo:
+            return None
+        
+        # Executores
+        query_exec = text("""
+            SELECT f.id, f.nome_funcionario, f.cargo
+            FROM processo_executores pe
+            JOIN funcionarios_area f ON pe.funcionario_id = f.id
+            WHERE pe.processo_id = :pid
+        """)
+        executores = conn.execute(query_exec, {'pid': processo_id}).fetchall()
+        
+        # Riscos
+        query_riscos = text("""
+            SELECT id, nome_risco, fator_risco, melhoria,
+                   impacto, probabilidade, motivo_risco, categoria, causas,
+                   tratamento_risco, descricao_tratamento, prazo_implantacao,
+                   apetite_impacto, apetite_probabilidade, score_risco
+            FROM riscos
+            WHERE processo_id = :pid
+        """)
+        riscos_result = conn.execute(query_riscos, {'pid': processo_id}).fetchall()
+        
+        riscos = []
+        for r in riscos_result:
+            riscos.append({
+                'id': r[0],
+                'nome_risco': r[1] or '',
+                'fator_risco': r[2] or '',
+                'melhoria': r[3] or '',
+                'impacto': r[4] or '',
+                'probabilidade': r[5] or '',
+                'motivo_risco': r[6] or '',
+                'categorias': [c.strip() for c in (r[7] or '').split(',') if c.strip()],
+                'categoria_causa': [c.strip() for c in (r[8] or '').split(',') if c.strip()],
+                'como_tratar': r[9] or '',
+                'desc_tratamento': r[10] or '',
+                'prazo_implantacao': r[11] or '',
+                'apetite_impacto': r[12] or '',
+                'apetite_probabilidade': r[13] or '',
+                'score_risco': r[14] or 0
+            })
+        
+        return {
+            'id': processo[0],
+            'nome_processo': processo[1] or '',
+            'codigo_processo': processo[2] or '',
+            'id_area': processo[3],
+            'auditoria_id': processo[4],
+            'descricao': processo[5] or '',
+            'etapa_ini': processo[6] or '',
+            'etapa_fim': processo[7] or '',
+            'produto': processo[8] or '',
+            'objetivo': processo[9] or '',
+            'entrevistado': processo[10] or '',
+            'nome_area': processo[11] or '',
+            'executores': [{'id': e[0], 'nome': e[1], 'cargo': e[2] or ''} for e in executores],
+            'riscos': riscos
+        }

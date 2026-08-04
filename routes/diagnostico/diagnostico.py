@@ -114,12 +114,13 @@ def api_salvar_processos_basicos():
             entrevistado = proc.get('entrevistado', '')
             area_id = proc.get('area_id')
             auditoria_id = proc.get('auditoria_id')
+            processo_id = proc.get('id')
             
             if not nome or not area_id or not auditoria_id:
                 continue
             
             # Salva o processo
-            processo_id = salvar_processo_basico(nome, codigo, area_id, auditoria_id, entrevistado)
+            processo_id = salvar_processo_basico(nome, codigo, area_id, auditoria_id, entrevistado, processo_id)
             
             # Salva os executores (VÁRIOS)
             salvar_executores_processo(processo_id, funcionarios_ids)
@@ -204,3 +205,16 @@ def api_excluir_risco(risco_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+# ============================================================
+# ROTA: Busca os dados do processo
+# ============================================================
+@diagnostico_bp.route('/api/processo/<int:processo_id>/dados')
+def api_processo_dados(processo_id):
+    from routes.diagnostico.queries import buscar_processo_completo
+    
+    dados = buscar_processo_completo(processo_id)
+    
+    if dados:
+        return jsonify({'success': True, **dados})
+    return jsonify({'success': False, 'error': 'Processo não encontrado'}), 404

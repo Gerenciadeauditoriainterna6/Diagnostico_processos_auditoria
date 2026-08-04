@@ -25,6 +25,7 @@ const Etapa2Module = {
     btnProximo: null,
     btnVoltar: null,
     btnAdicionarProcesso: null,
+    funcionariosComProcessos: {},
     
     // Debounce
     timeoutGerarCodigo: null,
@@ -63,6 +64,35 @@ const Etapa2Module = {
             this.btnAdicionarProcesso.addEventListener('click', () => this.adicionarProcesso());
         }
     },
+
+    async carregarDadosEdicao() {
+        const processoId = WizardModule.getProcessoId();
+        
+        try {
+            const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.entrevistadoInput.value = data.entrevistado || '';
+                
+                // ⭐ Preencher this.processos (array) para a renderização funcionar
+                this.processos = [{
+                    nome: data.nome_processo || '',
+                    codigo: data.codigo_processo || '',
+                    tempId: Date.now(),
+                    existente: true,
+                    funcionarios: data.executores.map(exec => ({
+                        id: exec.id || exec.funcionario_id,
+                        nome: exec.nome
+                    }))
+                }];
+                
+                this.carregarFuncionarios();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+        }
+    },
     
     // ============================================================
     // AO ENTRAR NA ETAPA
@@ -70,17 +100,18 @@ const Etapa2Module = {
     async aoEntrar() {
         console.log('👋 Etapa 2 ativada');
         
-        // Buscar último sequencial do banco
         await this.buscarUltimoSequencial();
-        
-        // Carregar funcionários da área
         await this.carregarFuncionarios();
         
-        // Se edição, carregar dados (implementar depois)
         if (WizardModule.isEdicao()) {
-            // await this.carregarDadosEdicao();
+            await this.carregarDadosEdicao();
+            // ⭐ Esconder botão "Adicionar Processo"
+            const btnAdd = document.getElementById('btn-adicionar-processo');
+            if (btnAdd) btnAdd.style.display = 'none';
         } else {
             this.processos = [];
+            const btnAdd = document.getElementById('btn-adicionar-processo');
+            if (btnAdd) btnAdd.style.display = 'inline-block';
         }
         
         this.renderizarTudo();
@@ -212,6 +243,10 @@ const Etapa2Module = {
     // GERAR CÓDIGO DO PROCESSO
     // ============================================================
     async gerarCodigoProcesso(proc) {
+        if (WizardModule.isEdicao()) {
+            return;
+        }
+        
         const areaId = this.getAreaId();
         const nomeUpper = proc.nome.trim().toUpperCase();
         
@@ -349,7 +384,7 @@ const Etapa2Module = {
                     </button>
                 </div>
                 
-                ${proc.existente ? '<small style="color:#856404;">⚠️ Este processo já existe no banco</small>' : ''}
+                ${proc.existente ? '<small style="color:#856404;">⚠️ Editando o Processo</small>' : ''}
                 
                 <!-- Funcionários -->
                 <div>
@@ -453,9 +488,15 @@ const Etapa2Module = {
         
         const processosParaSalvar = [];
         
+        const processoId = WizardModule.isEdicao() ? WizardModule.getProcessoId() : null;
+
         this.processos.forEach(proc => {
-            if (!proc.existente && proc.nome.trim()) {
+            if (!proc.nome.trim()) return;  // Pula se estiver vazio
+            
+            if (WizardModule.isEdicao()) {
+                // ⭐ EDIÇÃO: sempre envia com o ID
                 processosParaSalvar.push({
+                    id: processoId,
                     nome: proc.nome.trim().toUpperCase(),
                     codigo: proc.codigo,
                     funcionarios_ids: proc.funcionarios.map(f => f.id),
@@ -463,6 +504,18 @@ const Etapa2Module = {
                     area_id: areaId,
                     auditoria_id: auditoriaId
                 });
+            } else {
+                // ⭐ NOVO: só se não existir
+                if (!proc.existente) {
+                    processosParaSalvar.push({
+                        nome: proc.nome.trim().toUpperCase(),
+                        codigo: proc.codigo,
+                        funcionarios_ids: proc.funcionarios.map(f => f.id),
+                        entrevistado: entrevistado,
+                        area_id: areaId,
+                        auditoria_id: auditoriaId
+                    });
+                }
             }
         });
         

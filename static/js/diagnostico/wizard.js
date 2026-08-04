@@ -132,8 +132,12 @@ const WizardModule = {
     },
     
     notificarEtapa(etapa) {
-        // Avisa o módulo específico que a etapa foi ativada
+        console.log(`🔔 Notificando etapa ${etapa}`);
         switch (etapa) {
+
+            case 1:
+                if (typeof Etapa1Module !== 'undefined') Etapa1Module.aoEntrar();
+                break;
             case 2:
                 if (typeof Etapa2Module !== 'undefined') Etapa2Module.aoEntrar();
                 break;

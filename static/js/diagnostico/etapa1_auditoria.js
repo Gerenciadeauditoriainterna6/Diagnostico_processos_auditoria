@@ -81,25 +81,16 @@ const Etapa1Module = {
         console.log(`✏️ Etapa 1: carregando dados do processo ${processoId}`);
 
         try {
-            const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados-basicos`);
+            const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados`);
             const data = await response.json();
 
-            if (data.success && data.processo) {
-                const proc = data.processo;
-
-                // Preencher área
-                this.areaSelect.value = proc.id_area;
-                this.idAreaSelecionado.value = proc.id_area;
-
-                // Carregar auditorias da área
-                await this.carregarAuditorias(proc.id_area);
-
-                // Preencher auditoria
-                this.auditoriaSelect.value = proc.auditoria_id;
-
-                // Habilitar botão próximo
+            if (data.success) {
+                // ⭐ Os dados estão DIRETO em data, não em data.processo!
+                this.areaSelect.value = data.id_area;
+                this.idAreaSelecionado.value = data.id_area;
+                await this.carregarAuditorias(data.id_area);
+                this.auditoriaSelect.value = data.auditoria_id;
                 this.verificarHabilitarProximo();
-
                 console.log('✅ Etapa 1: dados carregados');
             }
         } catch (error) {
