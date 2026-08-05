@@ -1,0 +1,12 @@
+/* diagnostico.css - Arquivo central */
+/* Só importa os outros */
+
+@import url('wizard.css');
+@import url('executores.css');
+@import url('kanban.css');
+@import url('tabela.css');
+@import url('modais.css');
+@import url('forms.css');
+@import url('resumo.css');
+@import url('components/modal_risco.css');
+

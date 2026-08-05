@@ -1,0 +1,398 @@
+/*====== MODAL WIZARD ======*/
+.modal-wizard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+
+.modal-wizard-content {
+    background: #f5f7fa;
+    width: 90vw;
+    max-width: 1400px;
+    height: 90vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.modal-wizard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-wizard-header h2 {
+    margin: 0;
+    color: #184145;
+    font-size: 20px;
+}
+
+.modal-wizard-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #999;
+    transition: all 0.2s;
+}
+
+.modal-wizard-close:hover {
+    color: #dc3545;
+}
+
+.modal-wizard-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 25px;
+}
+
+.diagnostico-container {
+    max-width: 100%;
+    padding: 0 20px;
+}
+
+.page-header {
+    margin-bottom: 25px;
+}
+
+.page-header h1 {
+    color: #184145;
+    font-size: 32px;
+    margin-bottom: 5px;
+}
+
+.page-header h1 i {
+    background: linear-gradient(135deg, #184145 40%, #0b5b99 100%);
+    color: #e4e4e4;
+    margin-right: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 32px;
+}
+
+.page-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.form-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.form-section h3 {
+    color: #184145;
+    font-size: 18px;
+    margin-bottom: 5px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #184145;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.form-group label i {
+    margin-right: 6px;
+    color: #0b5b99;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #184145;
+    box-shadow: 0 0 0 3px rgba(24,65,69,0.1);
+}
+
+.form-control:hover:not(:disabled) {
+    border-color: #b0b0b0;
+}
+
+.form-control:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    border-color: #e0e0e0;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.mt-2 {
+    margin-top: 10px;
+}
+
+.text-muted {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    color: #856404;
+    font-size: 14px;
+}
+
+.alert-warning i {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    color: #0c5460;
+    font-size: 13px;
+}
+
+.alert-info i {
+    margin-right: 8px;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    color: #721c24;
+    font-size: 14px;
+}
+
+.alert-error i {
+    margin-right: 8px;
+}
+
+.wizard-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-primary {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0d2e31;
+    transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.wizard-progress {
+    background: white;
+    border-radius: 15px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+}
+
+.step:not(:last-child):before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #e0e0e0;
+    z-index: 1;
+}
+
+.step.active:not(:last-child):before,
+.step.completed:not(:last-child):before {
+    background: #0b5b99;
+}
+
+.step-circle {
+    width: 30px;
+    height: 30px;
+    background: #e0e0e0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #666;
+    position: relative;
+    z-index: 2;
+    background: white;
+    border: 2px solid #e0e0e0;
+}
+
+.step.active .step-circle {
+    border-color: #0b5b99;
+    background: #0b5b99;
+    color: white;
+}
+
+.step.completed .step-circle {
+    border-color: #184145;
+    background: #184145;
+    color: white;
+}
+
+.step-label {
+    font-size: 11px;
+    margin-top: 8px;
+    color: #666;
+}
+
+.step.active .step-label {
+    color: #184145;
+    font-weight: 500;
+}
+
+/* ============================================================ */
+/* ETAPA 3 - LISTA DE PROCESSOS                                 */
+/* ============================================================ */
+
+.etapa3-lista-vazia {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.processo-item-lista {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: box-shadow 0.2s;
+}
+
+.processo-item-lista:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.processo-codigo {
+    color: #184145;
+}
+
+.processo-nome {
+    margin-left: 10px;
+}
+
+.processo-status {
+    font-size: 12px;
+}
+
+.status-detalhado {
+    color: #28a745;
+}
+
+.status-pendente {
+    color: #856404;
+}
+
+.progress-steps .step {
+    cursor: pointer;
+}
+
+.progress-steps .step:hover .step-circle {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

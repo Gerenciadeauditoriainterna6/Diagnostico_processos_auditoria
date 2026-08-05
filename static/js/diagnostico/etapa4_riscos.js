@@ -110,7 +110,16 @@ const Etapa4Module = {
             return;
         }
         
-        this.listaProcessos.innerHTML = '<p style="text-align:center; padding:20px;">Carregando...</p>';
+        this.listaProcessos.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando processos...</p>
+            </div>
+        `;
         
         try {
             const response = await window.fetchComAutenticacao(

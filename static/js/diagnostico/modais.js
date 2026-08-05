@@ -25,7 +25,16 @@ const ModaisModule = {
         const conteudo = document.getElementById('visualizar-processo-conteudo');
         
         modal.style.display = 'flex';
-        conteudo.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        conteudo.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando processos...</p>
+            </div>
+        `;
         
         try {
             const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados`);

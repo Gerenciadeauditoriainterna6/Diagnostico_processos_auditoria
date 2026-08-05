@@ -1,0 +1,198 @@
+/* ===== ESTILOS PARA ETAPA 5 - VISUALIZAÇÃO ===== */
+.resumo-container {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.resumo-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.resumo-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.resumo-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.resumo-card-header i {
+    font-size: 20px;
+    color: #0b5b99;
+}
+
+.resumo-card-header h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #184145;
+    font-weight: 600;
+}
+
+.resumo-badge {
+    margin-left: auto;
+    background: #e8f4f8;
+    color: #0b5b99;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.resumo-card-body {
+    padding: 20px;
+}
+
+.resumo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.resumo-item {
+    flex: 1;
+    min-width: 200px;
+}
+
+.resumo-item.full-width {
+    flex: 100%;
+}
+
+.resumo-item.half {
+    flex: 1;
+    min-width: 150px;
+}
+
+.resumo-item label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px
+}
+
+.resumo-item span {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 8px;
+    word-break: break-word;
+    border-left: 3px solid #0b5b99;
+}
+
+/* Riscos dentro do resumo */
+.riscos-resumo-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.resumo-risco-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid;
+    transition: all 0.2s;
+}
+
+.resumo-risco-card:hover {
+    transform: translateX(3px);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.resumo-risco-card.low {border-left-color: #28a745; }
+.resumo-risco-card.medium { border-left-color: #ffc107; }
+.resumo-risco-card.high { border-left-color: #fd7e14; }
+.resumo-risco-card.critical { border-left-color: #dc3545; }
+
+.resumo-risco-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.resumo-risco-nome {
+    font-weight: 600;
+    font-size: 15px;
+    color: #184145;
+}
+
+.resumo-risco-score {
+    background: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.resumo-risco-detalhes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 13px
+}
+
+.resumo-risco-detalhes .detalhe {
+    display: flex;
+    flex-direction: columns;
+    gap: 2px;
+}
+
+.resumo-risco-detalhes .detalhe-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.resumo-risco-detalhes .detalhe-value {
+    color: #333;
+}
+
+/* Botão Finalizar */
+.btn-finalizar {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px
+}
+
+.btn-finalizar:hover {
+    transform: translateU(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    padding: 30px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    font-size: 14px;
+}
