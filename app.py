@@ -1,6 +1,6 @@
 """
 Arquivo principal para aplicação Flask
-Sistema de Auditoria Interna - FUSVE
+Sistema MAPA - FUSVE
 """
 
 import os
