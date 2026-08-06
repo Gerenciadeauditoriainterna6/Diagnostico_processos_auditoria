@@ -1308,7 +1308,7 @@ def diagnostico():
     areas = carregar_areas_banco()
     usuario_perfil = session.get('usuario_perfil', 'auditor')
     
-    return render_template('diagnostico.html', areas=areas, usuario_perfil=usuario_perfil)
+    return render_template('diagnostico/diagnostico.html', areas=areas, usuario_perfil=usuario_perfil)
 
 @app.route('/detalhamento')
 def detalhamento():
