@@ -17,9 +17,9 @@
     </div>
 
     <!-- Inclui os filtros como componente -->
-    {% include 'diagnostico/partials/filtros.html' %}
-
-    
+   {% with prefix='filtro' %}
+        {% include 'partials/components/filtros.html' %}
+   {% endwith %}
 
     <!--TABELA DE PROCESSOS-->
     <div class="form-section tabela-section">

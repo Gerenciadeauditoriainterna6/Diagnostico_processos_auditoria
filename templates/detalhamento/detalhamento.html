@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Matriz de Detalhamento - Sistema Gerência de Auditoria Interna{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/detalhamento/detalhamento.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="detalhamento-container">
+    <div class="page-header">
+        <h1><i class="fas fa-clipboard-list"></i> Matriz de Detalhamento</h1>
+        <p>Gerencie o detalhamento dos processos baseados em etapas</p>
+    </div>
+
+   {% with prefix='detalhamento' %}
+        {% include 'partials/components/filtros.html' %}
+   {% endwith %}
+
+
+    <!-- TABELA DE PROCESSOS -->
+    <div class="form-section tabela-section">
+        <div class="tabela-header">
+            <h3>Processos da Auditoria</h3>
+        </div>
+        <div id="detalhamento-tabela-container">
+            <div class="alert-info" style="text-align: center; padding: 40px;">
+                <i class="fas fa-info-circle"></i> Selecione uma área e auditoria para visualizar os processos.
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Utilitários globais -->
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+
+<!-- Componentes -->
+<script src="{{ url_for('static', filename='js/components/filtros.js') }}"></script>
+
+<!-- Módulos do Detalhamento -->
+<script src="{{ url_for('static', filename='js/detalhamento/tabela.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/bpmn.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/main.js') }}"></script>
+{% endblock %}
