@@ -53,7 +53,7 @@
         </div>
         <div class="modal-wizard-body">
             <!-- ==== CONTAINER FIXO PARA AVISOS GLOBAIS ====-->
-             <div id="global-avisos-container" style="margin-bottom: 15px;"></div>
+            <div id="global-avisos-container" style="margin-bottom: 15px;"></div>
             <!-- Adicionar após o page-header -->
             <!-- PROGRESS BAR DO WIZARD -->
             {% include 'diagnostico/partials/wizard/progress_bar.html' %}
@@ -69,13 +69,14 @@
             
             <!-- STEP4 -->
             {% include 'diagnostico/partials/wizard/etapa4_riscos.html' %}
-            {% include 'partials/components/modal_risco_form.html' %}
+            
 
             <!-- STEP5 -->
             {% include 'diagnostico/partials/wizard/etapa5_resumo.html' %}
 
-        
         </div>
+        <!-- MODAL DE CADASTRO/EDIÇÃO DO RISCO -->
+        {% include 'partials/components/modal_risco_form.html' %}
     </div>
 </div>
 
