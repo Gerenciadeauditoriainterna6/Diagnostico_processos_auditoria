@@ -4,7 +4,8 @@
 
 {% block styles %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/diagnostico.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/diagnostico/main.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/modal_risco.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -68,13 +69,12 @@
             
             <!-- STEP4 -->
             {% include 'diagnostico/partials/wizard/etapa4_riscos.html' %}
-            {% include 'diagnostico/partials/modals/modal_risco_form.html' %}
+            {% include 'partials/components/modal_risco_form.html' %}
 
             <!-- STEP5 -->
             {% include 'diagnostico/partials/wizard/etapa5_resumo.html' %}
 
-            
-
+        
         </div>
     </div>
 </div>
@@ -83,8 +83,13 @@
 
 {% block scripts %}
 {{ super() }}
+
+<!-- COMPONENTES REUTILIZÁVEIS -->
+<script src="{{ url_for('static', filename='js/components/risco_modal.js') }}"></script>
+
 <!-- MÓDULOS DO DIAGNÓSTICO (ORDEM IMPORTA!) -->
 <!-- 1. Módulos Base (sem dependencia) -->
+<script src="{{ url_for('static', filename='js/diagnostico/modais.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/filtros.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/tabela.js') }}"></script>
 <script src="{{ url_for('static', filename='js/diagnostico/anexos.js') }}"></script>
@@ -97,7 +102,7 @@
 
 
 
-<!-- 4. Orquestrador -->
+<!-- Orquestrador -->
 <script src="{{ url_for('static', filename='js/diagnostico/main.js') }}"></script>
 
 {% endblock %}

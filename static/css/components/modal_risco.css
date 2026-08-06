@@ -1,0 +1,150 @@
+/* Seções do modal de risco */
+.form-section-inline {
+    margin-bottom: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.form-section-inline:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
+.form-section-inline h4 {
+    color: #184145;
+    font-size: 14px;
+    margin-bottom: 15px;
+    padding-left: 10px;
+    border-left: 3px solid #0b5b99;
+}
+
+.score-preview {
+    background: #f0f2f5;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 15px 0;
+    font-weight: 500;
+}
+
+/* Grid para checkboxes */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    margin-top: 5px;
+}
+.checkbox-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: normal;
+    cursor: pointer;
+}
+.checkbox-grid input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Card informativo */
+.info-card ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+.info-card li {
+    margin-bottom: 8px;          /* espaço entre os itens da lista */
+    line-height: 1.4;
+}
+
+/* Garantir que os bullets não fiquem sobre a borda esquerda */
+.info-card {
+    padding-left: 16px;          /* espaço interno para não colidir com a borda */
+    overflow-x: auto;            /* evita quebra por causa do padding */
+}
+.info-card ul, .info-card ol {
+    margin-left: 0;
+    padding-left: 20px;          /* recuo suficiente para os bullets */
+}
+.info-card li {
+    margin-left: 0;
+}
+
+/* ===== MODAL ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 16px 16px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #184145;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+.modal-close:hover {
+    color: #dc3545;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+    border-radius: 0 0 16px 16px;
+}
+
+#modal-objetivo-processo {
+    background: #f8f9fa;
+    border-left: 4px solid #184145;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+}
+
+#modal-objetivo-texto {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+}

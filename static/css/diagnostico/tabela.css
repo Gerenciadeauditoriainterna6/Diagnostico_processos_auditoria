@@ -1,0 +1,206 @@
+/* ===== TABELA DE PROCESSOS ===== */
+.tabela-processos {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.tabela-processos th,
+.tabela-processos td {
+    padding: 30px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tabela-processos th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #184145;
+}
+
+.tabela-processos tr:hover {
+    background: #f8f9fa;
+}
+
+/* Definir largura mínima para a coluna de ações */
+.tabela-processos th:last-child,
+.tabela-processos td:last-child {
+    min-width: 160px;
+    white-space: nowrap;
+}
+
+/* Largura específica para coluna de código */
+.tabela-processos th:first-child,
+.tabela-processos td:first-child {
+    min-width: 120px;
+    width: 120px;
+}
+
+
+/* Botão Editar (Amarelo - versão com texto) */
+.btn-editar-processo {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    color: #ffc107;
+}
+
+.btn-editar-processo:hover {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.btn-excluir-processo {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-excluir-processo:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-excluir-processo i {
+    font-size: 12px;
+}
+
+/* Badges de Score */
+.score-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.score-badge.baixo {
+    background: #d4edda;
+    color: #155724;
+}
+
+.score-badge.médio {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.score-badge.alto {
+    background: #ffe5d0;
+    color: #dc851a;
+}
+
+.score-badge.crítico {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.tabela-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.tabela-header h3 {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.sortable:hover {
+    background: #e9ecef;
+}
+
+/* Botão Editar (Amarelo - apenas ícone) */
+.btn-edit-processo {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    color: #ffc107;
+}
+
+.btn-edit-processo:hover {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* Botão Excluir (Vermelho - apenas ícone) */
+.btn-delete-processo {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    color: #dc3545;
+}
+
+.btn-delete-processo:hover {
+    background: #f8d7da;
+    color: #c82333;
+}
+
+/* ============================================================ */
+/* BOTÃO DE ANEXO NA TABELA                                     */
+/* ============================================================ */
+
+.btn-anexo {
+    background: none;
+    border: none;
+    color: #17a2b8;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-anexo:hover {
+    background: #49a9b8;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* ====== BOTÕES DE AÇÃO PADRONIZADOS (mesmo padrão do detalhamento_etapas) ====== */
+
+#btn-novo-processo {
+    background: #184145;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+#btn-novo-processo:hover {
+    background: #0b5b99;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}

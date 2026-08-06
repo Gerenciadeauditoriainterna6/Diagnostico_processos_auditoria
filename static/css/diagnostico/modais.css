@@ -1,0 +1,641 @@
+/* ===== MODAL DE VISUALIZAÇÃO DE RISCO ===== */
+.visualizar-risco-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.vis-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vis-row {
+    display: flex;
+    gap: 20px;
+}
+
+.vis-item.half {
+    flex: 1;
+}
+
+.vis-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.vis-label i {
+    margin-right: 5px;
+    color: #0b5b99;
+}
+
+.vis-value {
+    font-size: 14px;
+    color: #333;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 8px;
+    word-break: break-word;
+}
+
+/* Botão visualizar processo */
+.btn-visualizar-processo {
+    background: none;
+    border: none;
+    color: #0b5b99;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 8px;
+    transition: all 0.2s;
+    padding: 2px 5px;
+    border-radius: 50%;
+}
+
+.btn-visualizar-processo:hover {
+    color: #0c5460;
+    transform: scale(1.1);
+    background: rgba(23, 162, 184, 0.1);
+}
+
+/* ===== KANBAN DE VISUALIZAÇÃO ===== */
+.kanban-board-vis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+@media (max-width: 800px) {
+    .kanban-board-vis {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.kanban-col-vis {
+    background: #f8f9fa;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.kanban-col-header-vis {
+    padding: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+}
+
+.kanban-col-vis.low .kanban-col-header-vis { background: #d4edda; color: #155724; }
+.kanban-col-vis.medium .kanban-col-header-vis { background: #fff3cd; color: #856404; }
+.kanban-col-vis.high .kanban-col-header-vis { background: #ffe5d0; color: #dc851a; }
+.kanban-col-vis.critical .kanban-col-header-vis { background: #f8d7da; color: #721c24; }
+
+.kanban-col-body-vis {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.kanban-card-vis {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    border-left: 3px solid;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.kanban-col-vis.low .kanban-card-vis { border-left-color: #28a745; }
+.kanban-col-vis.medium .kanban-card-vis { border-left-color: #ffc107; }
+.kanban-col-vis.high .kanban-card-vis { border-left-color: #fd7e14; }
+.kanban-col-vis.critical .kanban-card-vis { border-left-color: #dc3545; }
+
+.kanban-card-title-vis {
+    font-weight: 600;
+    font-size: 13px;
+    color: #184145;
+    margin-bottom: 5px;
+}
+
+.kanban-card-score-vis {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.kanban-card-categoria-vis {
+    font-size: 10px;
+    color: #6c757d;
+}
+
+/* Estilos para a visualização do processo */
+.vis-processo-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.vis-secao {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.vis-secao h4 {
+    color: #184145;
+    font-size: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.vis-secao h4 i {
+    margin-right: 8px;
+    color: #0b5b99;
+}
+
+.vis-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.vis-item {
+    flex: 1;
+    min-width: 200px;
+}
+
+.vis-item.full-width {
+    flex: 100%;
+}
+
+.vis-item.half {
+    flex: 1;
+    min-width: 150px;
+}
+
+.vis-item label {
+    display: block;
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.vis-item span {
+    font-size: 13px;
+    color: #333;
+    background: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: block;
+    word-break: break-word;
+}
+
+/* Modal de visualização do processo - mais largo */
+.modal-visualizar-processo-content {
+    max-width: 1200px;
+    width: 95%;
+}
+
+/* Apenas o container principal dos toasts (onde eles são empilhados) */
+.toast-container,
+#toastContainer,
+#toast-container {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 2147483647 !important;
+}
+
+/* Apenas o toast individual (o card em si) */
+.toast,
+.toast-notification {
+    position: relative !important;  /* ou manter o que já tem, sem fixed */
+    z-index: 2147483648 !important;
+}
+
+/* Grid para checkboxes */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    margin-top: 5px;
+}
+.checkbox-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: normal;
+    cursor: pointer;
+}
+.checkbox-grid input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Card informativo */
+.info-card ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+.info-card li {
+    margin-bottom: 8px;          /* espaço entre os itens da lista */
+    line-height: 1.4;
+}
+
+/* Garantir que os bullets não fiquem sobre a borda esquerda */
+.info-card {
+    padding-left: 16px;          /* espaço interno para não colidir com a borda */
+    overflow-x: auto;            /* evita quebra por causa do padding */
+}
+.info-card ul, .info-card ol {
+    margin-left: 0;
+    padding-left: 20px;          /* recuo suficiente para os bullets */
+}
+.info-card li {
+    margin-left: 0;
+}
+
+.help-icon-categorias {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: #0b5b99;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* Garantir o visual do card de critérios (azul clarinho, borda azul) */
+#info-criterios {
+    background: #e8f4f8 !important;        /* fundo azul bem clarinho */
+    border-left: 4px solid #0b5b99 !important;  /* borda azul à esquerda */
+    border-radius: 8px;
+    padding: 12px 12px 12px 16px;          /* espaço interno para não esmagar o conteúdo */
+    margin: 10px 0 15px 0;
+}
+
+/* Ajuste fino para listas dentro do card */
+#info-criterios ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;                   /* recuo para os bullets não encostarem na borda */
+}
+#info-criterios li {
+    margin-bottom: 8px;                   /* espaçamento entre os itens */
+    line-height: 1.4;
+}
+
+/* Ícones de ajuda reduzidos */
+#help-categorias-icon,
+#help-criterios-icon,
+#help-categorias-causa-icon {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 10px !important;
+    line-height: 14px !important;
+}
+
+/* Cards informativos com fundo azul claro e borda azul */
+#info-categorias,
+#info-criterios,
+#info-categorias-causa {
+    background: #e8f4f8 !important;
+    border-left: 4px solid #0b5b99 !important;
+    border-radius: 8px;
+    padding: 12px 12px 12px 16px;
+    margin: 10px 0 15px 0;
+}
+
+/* Ajuste das listas dentro dos cards */
+#info-categorias ul,
+#info-criterios ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+#info-categorias li,
+#info-criterios li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+/* Checkboxes personalizados */
+.checkbox-grid input[type="checkbox"] {
+    accent-color: #0b5b99;  /* Cor principal do sistema (azul) */
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Botão Cancelar (vermelho) - mesmo padrão do areas.html */
+.btn-cancelar-modal {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-cancelar-modal:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Botão Salvar Risco (verde) - mesmo padrão do areas.html */
+.btn-salvar-risco {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-salvar-risco:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ===== MODAL DE VISUALIZAÇÃO DE RISCO - CORREÇÃO DEFINITIVA ===== */
+#modal-visualizar-risco {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100001;
+    align-items: center;
+    justify-content: center;
+}
+
+#modal-visualizar-risco.visible {
+    display: flex !important;
+}
+
+#modal-visualizar-risco .modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90% !important;
+    max-width: 550px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    position: relative;
+    padding: 0;
+}
+
+#modal-visualizar-risco .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#modal-visualizar-risco .modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#modal-visualizar-risco .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+    border-radius: 0 0 16px 16px;
+}
+
+#modal-visualizar-risco .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+#modal-visualizar-risco .modal-close:hover {
+    color: #dc3545;
+}
+
+.btn-funcionario-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid #d0d0d0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.btn-funcionario-toggle::before {
+    content: '○';
+    font-size: 16px;
+    color: #ccc;
+    transition: all 0.2s;
+}
+
+.btn-funcionario-toggle:hover {
+    border-color: #184145;
+    color: #184145;
+    background: rgba(24,65,69,0.03);
+}
+
+.btn-funcionario-selecionado {
+    border-color: #28a745 !important;
+    color: #28a745 !important;
+    background: rgba(40,167,69,0.05) !important;
+}
+
+.btn-funcionario-selecionado::before {
+    content: '●';
+    color: #28a745;
+}
+
+/* ============================================================ */
+/* MODAL DE ANEXOS                                              */
+/* ============================================================ */
+
+#modal-anexos {
+    z-index: 10000;
+}
+
+#modal-anexos .modal-content {
+    max-width: 800px;
+}
+
+/* Área de upload */
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.upload-area:hover {
+    border-color: #184145;
+    background: #f8fafa;
+}
+
+/* Item de anexo */
+.anexo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: white;
+    transition: box-shadow 0.2s;
+}
+
+.anexo-item:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* ============================================================ */
+/* MODAL DE VISUALIZAÇÃO DO PROCESSO                            */
+/* ============================================================ */
+
+#modal-visualizar-processo {
+    z-index: 10000;
+}
+
+.modal-visualizar-processo-content {
+    max-width: 1200px;
+}
+
+.vis-processo-container {
+    padding: 5px;
+}
+
+.vis-section {
+    margin-bottom: 30px;
+}
+
+.vis-section h4 {
+    color: #184145;
+    font-size: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e8ecf0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vis-section h4 i {
+    color: #0b5b99;
+}
+
+.vis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.vis-item {
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border-left: 3px solid #0b5b99;
+}
+
+.vis-item.vis-full {
+    grid-column: 1 / -1;
+}
+
+.vis-item label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.vis-item span {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .vis-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Anexos na visualização */
+.vis-anexo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #e8ecf0;
+}
+
+.vis-anexo-item i {
+    font-size: 18px;
+    color: #0b5b99;
+}
+
+.vis-anexo-nome {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+}
+
+.vis-anexo-extensao {
+    font-size: 11px;
+    background: #e0e0e0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #555;
+    font-weight: 600;
+}
+
+.vis-anexo-vazio {
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    padding: 15px;
+    font-style: italic;
+}

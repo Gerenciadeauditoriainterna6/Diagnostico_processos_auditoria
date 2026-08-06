@@ -42,8 +42,13 @@ const TabelaModule = {
         console.log(`📊 TabelaModule: carregando - Área: ${areaId}, Auditoria: ${auditoriaId || 'Todas'}`);
         
         this.container.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
-                <i class="fas fa-spinner fa-spin"></i> Carregando processos...
+            <div style="text-align: center; padding: 60px 20px;">
+                <div class="dot-spinner">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <p style="margin-top: 25px; color: #666; font-size: 14px;">Carregando processos...</p>
             </div>
         `;
         
@@ -110,7 +115,7 @@ const TabelaModule = {
                             <th class="sortable" data-coluna="riscos">
                                 Riscos ${this.getSetaOrdenacao('riscos')}
                             </th>
-                            <th>Fluxo</th>
+                            <th>Anexo Fluxo</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
