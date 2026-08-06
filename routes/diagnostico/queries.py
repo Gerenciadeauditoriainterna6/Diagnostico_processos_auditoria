@@ -578,3 +578,46 @@ def excluir_anexo(anexo_id):
             conn.commit()
             return result[0]
     return None
+
+def buscar_risco_por_id(risco_id):
+    """Busca um risco específico pelo ID"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT 
+            id, nome_risco, fator_risco, melhoria,
+            impacto, probabilidade, motivo_risco,
+            categoria, causas,
+            tratamento_risco, descricao_tratamento, prazo_implantacao,
+            score_risco, apetite_impacto, apetite_probabilidade
+        FROM riscos
+        WHERE id = :id
+    """)
+    
+    with engine.connect() as conn:
+        row = conn.execute(query, {'id': risco_id}).fetchone()
+        
+        if not row:
+            return None
+        
+        categorias = [c.strip() for c in (row[7] or '').split(',') if c.strip()]
+        causas = [c.strip() for c in (row[8] or '').split(',') if c.strip()]
+        
+        return {
+            'id': row[0],
+            'nome_risco': row[1] or '',
+            'fator_risco': row[2] or '',
+            'melhoria': row[3] or '',
+            'impacto': row[4] or 'Médio',
+            'probabilidade': row[5] or 'Médio',
+            'motivo_risco': row[6] or '',
+            'categorias': categorias,
+            'categoria_causa': causas,
+            'score_risco': row[12] or 0,
+            'como_tratar': row[9] or '',
+            'desc_tratamento': row[10] or '',
+            'prazo_implantacao': row[11] or '',
+            'apetite_impacto': row[13] or 'Médio',
+            'apetite_probabilidade': row[14] or 'Médio'
+        }
