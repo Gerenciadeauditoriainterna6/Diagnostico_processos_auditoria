@@ -381,7 +381,7 @@ export async function carregarAnalisesAuditado() {
                             <div class="analise-auditado-body">
                                 <div class="analise-grid">
                                     <div class="analise-card-section">
-                                        <h4 class="cor-ponto-de-auditoria"><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4>
+                                        <h4 class="cor-ponto-de-auditoria"><i class="fas fa-clipboard-list"></i> Análise</h4>
                                         <div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div>
                                     </div>
                                     <div class="analise-card-section">
@@ -698,7 +698,7 @@ export async function salvarAnaliseAuditado() {
     const sugestaoMelhoria = document.getElementById('analise-auditado-sugestao').value.trim();
     
     if (!analiseCritica.trim()) {
-        mostrarToast('O Ponto de Auditoria é obrigatório', 'warning');
+        mostrarToast('A Análise é obrigatória', 'warning');
         return;
     }
     

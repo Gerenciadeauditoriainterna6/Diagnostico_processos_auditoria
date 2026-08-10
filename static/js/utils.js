@@ -51,3 +51,42 @@ function formatarTamanho(bytes) {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
+
+/**
+ * Limita o tamanho do texto
+ */
+function limitarTexto(texto, limite = 300) {
+    if (!texto || texto.trim() === '') return '-';
+    if (texto.length <= limite) return escapeHtml(texto);
+    
+    const textoTruncado = escapeHtml(texto.substring(0, limite)) + '...';
+    const textoCompleto = escapeHtml(texto);
+    const idUnico = 'texto-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    
+    return `
+        <span id="${idUnico}-resumo">${textoTruncado}</span>
+        <span id="${idUnico}-completo" style="display: none;">${textoCompleto}</span>
+        <button onclick="toggleTextoCompleto('${idUnico}')" 
+                style="background: none; border: none; color: #0b5b99; cursor: pointer; font-size: 12px; padding: 0; margin-left: 5px; text-decoration: underline;">
+            <span id="${idUnico}-btn">Ver mais</span>
+        </button>
+    `;
+}
+
+window.toggleTextoCompleto = function(id) {
+    const resumo = document.getElementById(id + '-resumo');
+    const completo = document.getElementById(id + '-completo');
+    const btn = document.getElementById(id + '-btn');
+    
+    if (resumo && completo && btn) {
+        if (resumo.style.display === 'none') {
+            resumo.style.display = 'inline';
+            completo.style.display = 'none';
+            btn.textContent = 'Ver mais';
+        } else {
+            resumo.style.display = 'none';
+            completo.style.display = 'inline';
+            btn.textContent = 'Ver menos';
+        }
+    }
+};

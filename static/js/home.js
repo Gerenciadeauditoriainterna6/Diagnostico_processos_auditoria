@@ -156,8 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     {
       // PONTO 7 - SEM IMAGENS
-      images: [],
-      captions: [],
+      images: ["/static/images/nomeacao_oficial.jpg"],
+      captions: ["Nomeação oficial do Teófilo para exercera função de Auditor Interno"],
     },
     {
       // PONTO 8 - TEM IMAGENS
@@ -172,11 +172,10 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       // PONTO 10 - TEM IMAGENS
       images: [
-        "/static/images/estruturacao_fisica_equipe3.jpg",
         "/static/images/estruturacao_fisica_equipe.jpg",
         "/static/images/estruturacao_fisica_equipe2.jpg",
       ],
-      captions: ["Nomeação do Téofilo para Gerente da área", "", ""],
+      captions: [ "", ""],
     },
     {
       // PONTO 11 - SEM IMAGENS
@@ -185,8 +184,8 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     {
       // PONTO 12 - SEM IMAGENS
-      images: [],
-      captions: [],
+      images: ["/static/images/estruturacao_fisica_equipe3.jpg"],
+      captions: ["Nomeação do Téofilo para Gerente da área"],
     },
     {
       // PONTO 13 - TEM IMAGENS
