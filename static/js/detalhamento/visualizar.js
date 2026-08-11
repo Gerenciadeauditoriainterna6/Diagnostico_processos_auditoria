@@ -61,56 +61,130 @@ const VisualizarModule = {
         const temManual = etapa.manual_nome && etapa.manual_nome.trim() !== '';
         const emAndamento = etapa.manual_em_andamento || false;
 
-        let manualBadge = '';
+        let manualStatus = '';
         if (temManual) {
-            manualBadge = '<span style="background:#d4edda;color:#155724;padding:2px 10px;border-radius:12px;font-size:11px;margin-left:8px;">✅ Concluído</span>';
+            manualStatus = '<span class="vis-badge vis-badge-success"><i class="fas fa-check-circle"></i> Manual Concluído</span>';
         } else if (emAndamento) {
-            manualBadge = '<span style="background:#fff3cd;color:#856404;padding:2px 10px;border-radius:12px;font-size:11px;margin-left:8px;">⏳ Em andamento</span>';
+            manualStatus = '<span class="vis-badge vis-badge-warning"><i class="fas fa-clock"></i> Manual em Andamento</span>';
         } else {
-            manualBadge = '<span style="background:#f8f9fa;color:#6c757d;padding:2px 10px;border-radius:12px;font-size:11px;margin-left:8px;">❌ Não anexado</span>';
+            manualStatus = '<span class="vis-badge vis-badge-empty"><i class="fas fa-times-circle"></i> Nenhum Manual</span>';
         }
+
+        const statusEtapa = etapa.status_etapa === 'ATIVA' 
+            ? '<span class="vis-badge vis-badge-success"><i class="fas fa-circle"></i> ATIVA</span>'
+            : '<span class="vis-badge vis-badge-danger"><i class="fas fa-circle"></i> INATIVA</span>';
 
         const obrigacoesHtml = this._renderizarObrigacoes(etapa.obrigacoes_regulatorias);
         const analisesHtml = analises.length === 0 
-            ? '<div class="analises-empty">Nenhuma Análise.</div>'
+            ? '<div class="vis-empty"><i class="fas fa-clipboard"></i> Nenhuma análise cadastrada</div>'
             : analises.map(a => this._renderizarAnalise(a)).join('');
 
         return `
-            <div class="vis-etapa-container">
-                <div class="vis-secao">
-                    <h4><i class="fas fa-info-circle"></i> Informações Básicas</h4>
-                    <div class="vis-grid">
-                        <div class="vis-item"><label>Código</label><span>${escapeHtml(etapa.codigo_etapa)}</span></div>
-                        <div class="vis-item"><label>Nome</label><span>${escapeHtml(etapa.nome_etapa)}</span></div>
-                        <div class="vis-item"><label>Status</label><span>${escapeHtml(etapa.status_etapa)}</span></div>
-                        <div class="vis-item vis-full"><label>Executores</label><span>${escapeHtml(executoresNomes)}</span></div>
+            <div class="vis-etapa-container-v2">
+                
+                <!-- Cabeçalho -->
+                <div class="vis-header">
+                    <div class="vis-codigo">${escapeHtml(etapa.codigo_etapa)}</div>
+                    <div class="vis-titulo">${escapeHtml(etapa.nome_etapa)}</div>
+                    ${statusEtapa}
+                </div>
+                
+                <!-- Grid de informações -->
+                <div class="vis-grid-v2">
+                    <div class="vis-col">
+                        <!-- Executores -->
+                        <div class="vis-card">
+                            <div class="vis-card-header">
+                                <i class="fas fa-users"></i> Executores
+                            </div>
+                            <div class="vis-card-body">
+                                ${escapeHtml(executoresNomes)}
+                            </div>
+                        </div>
+                        
+                        <!-- Descrição -->
+                        <div class="vis-card">
+                            <div class="vis-card-header">
+                                <i class="fas fa-align-left"></i> Descrição
+                            </div>
+                            <div class="vis-card-body">
+                                ${escapeHtml(etapa.descricao_etapa) || '<span class="vis-nao-informado">Não informado</span>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Como é feito -->
+                        <div class="vis-card">
+                            <div class="vis-card-header">
+                                <i class="fas fa-cogs"></i> Como é feito?
+                            </div>
+                            <div class="vis-card-body">
+                                ${escapeHtml(etapa.como_e_feito) || '<span class="vis-nao-informado">Não informado</span>'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="vis-col">
+                        <!-- Objetivo -->
+                        <div class="vis-card">
+                            <div class="vis-card-header">
+                                <i class="fas fa-bullseye"></i> Objetivo
+                            </div>
+                            <div class="vis-card-body">
+                                ${escapeHtml(etapa.objetivo_etapa) || '<span class="vis-nao-informado">Não informado</span>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Política Interna -->
+                        <div class="vis-card">
+                            <div class="vis-card-header">
+                                <i class="fas fa-gavel"></i> Política Interna
+                            </div>
+                            <div class="vis-card-body">
+                                ${escapeHtml(etapa.politica_interna) || '<span class="vis-nao-informado">Não informado</span>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Manual -->
+                        <div class="vis-card">
+                            <div class="vis-card-header">
+                                <i class="fas fa-book"></i> Manual da Etapa
+                            </div>
+                            <div class="vis-card-body">
+                                ${manualStatus}
+                                ${temManual ? `
+                                    <div style="margin-top:6px;font-size:13px;display:flex;align-items:center;gap:10px;">
+                                        📄 ${escapeHtml(etapa.manual_nome)}
+                                        <button onclick="ManualModule.baixar(${etapa.id})"
+                                            style="background:#0b5b99;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">
+                                            <i class="fas fa-download"></i> Baixar
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="vis-secao">
-                    <h4><i class="fas fa-clipboard-list"></i> Detalhes</h4>
-                    <div class="vis-grid">
-                        <div class="vis-item vis-full"><label>Descrição</label><span>${escapeHtml(etapa.descricao_etapa) || '-'}</span></div>
-                        <div class="vis-item vis-full"><label>Como é feito?</label><span>${escapeHtml(etapa.como_e_feito) || '-'}</span></div>
-                        <div class="vis-item vis-full"><label>Objetivo</label><span>${escapeHtml(etapa.objetivo_etapa) || '-'}</span></div>
+                
+                <!-- Obrigações Regulatórias -->
+                <div class="vis-card vis-card-full">
+                    <div class="vis-card-header">
+                        <i class="fas fa-balance-scale"></i> Obrigações Regulatórias
+                    </div>
+                    <div class="vis-card-body">
+                        ${obrigacoesHtml}
                     </div>
                 </div>
-                <div class="vis-secao">
-                    <h4><i class="fas fa-gavel"></i> Políticas</h4>
-                    <div class="vis-grid">
-                        <div class="vis-item vis-full"><label>Política Interna</label><span>${escapeHtml(etapa.politica_interna) || '-'}</span></div>
-                        <div class="vis-item vis-full"><label>Obrigações Regulatórias</label>${obrigacoesHtml}</div>
+                
+                <!-- Análises -->
+                <div class="vis-card vis-card-full">
+                    <div class="vis-card-header">
+                        <i class="fas fa-clipboard-check"></i> Análises do Auditado
+                    </div>
+                    <div class="vis-card-body">
+                        ${analisesHtml}
                     </div>
                 </div>
-                <div class="vis-secao">
-                    <h4><i class="fas fa-folder-open"></i> Arquivos</h4>
-                    <div class="vis-grid">
-                        <div class="vis-item vis-full"><label>Manual</label><span>${manualBadge} ${temManual ? escapeHtml(etapa.manual_nome) : ''}</span></div>
-                    </div>
-                </div>
-                <div class="vis-secao">
-                    <h4><i class="fas fa-clipboard-list"></i> Análises do auditado</h4>
-                    ${analisesHtml}
-                </div>
+                
             </div>
         `;
     },
@@ -121,8 +195,20 @@ const VisualizarModule = {
             if (obrigacoes.length === 0) return '<span style="color:#999;">Nenhuma obrigação</span>';
             return obrigacoes.map(o => `
                 <div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:10px;border-left:3px solid #184145;">
-                    <strong>${escapeHtml(o.titulo || 'INEXISTENTE')}</strong>
-                    ${o.orgao_regulador ? `<span style="color:#666;font-size:12px;">${escapeHtml(o.orgao_regulador)}</span>` : ''}
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                        <div>
+                            <strong>${escapeHtml(o.titulo || 'INEXISTENTE')}</strong>
+                            ${o.orgao_regulador ? `<span style="color:#666;font-size:12px;margin-left:8px;">${escapeHtml(o.orgao_regulador)}</span>` : ''}
+                        </div>
+                        ${o.arquivo_url && o.arquivo_url.trim() !== '' ? `
+                            <button onclick="ObrigacoesModule.baixarArquivoObrigacaoPorUrl('${o.arquivo_url}', '${escapeHtml(o.arquivo_nome || 'documento.pdf')}')"
+                                style="background:#0b5b99;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;">
+                                <i class="fas fa-download"></i> Baixar
+                            </button>
+                        ` : ''}
+                    </div>
+                    ${o.documento_necessario ? `<div style="font-size:12px;color:#666;margin-top:5px;"><i class="fas fa-file-alt"></i> ${escapeHtml(o.documento_necessario)}</div>` : ''}
+                    ${o.prazo ? `<div style="font-size:12px;color:#666;margin-top:3px;"><i class="fas fa-calendar-alt"></i> Prazo: ${formatarDataBR(o.prazo)}</div>` : ''}
                 </div>
             `).join('');
         } catch { return '<span>Erro ao carregar</span>'; }

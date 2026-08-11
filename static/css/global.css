@@ -40,3 +40,90 @@
     font-weight: 500;
     white-space: nowrap;
 }
+
+/* ============================================================ */
+/* BOTÕES DE AÇÃO PADRONIZADOS (SISTEMA INTEIRO)               */
+/* ============================================================ */
+
+.btn-action-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.btn-action {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+/* Cores padronizadas */
+.btn-action-view {
+    color: #0b5b99;
+}
+.btn-action-view:hover {
+    background: #e8f4f8;
+    color: #07416d;
+}
+
+.btn-action-edit {
+    color: #f0ad4e;
+}
+.btn-action-edit:hover {
+    background: #fff9f0;
+    color: #d49500;
+}
+
+.btn-action-delete {
+    color: #dc3545;
+}
+.btn-action-delete:hover {
+    background: #fff5f5;
+    color: #b02a37;
+}
+
+/* Com texto (opcional) */
+.btn-action-text {
+    width: auto;
+    padding: 6px 14px;
+    font-size: 12px;
+    gap: 6px;
+    font-weight: 500;
+}
+
+/* Tamanhos */
+.btn-action-sm {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+.btn-action-lg {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+    border-radius: 10px;
+}
+
+/* Tooltip no hover */
+.btn-action[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    margin-top: 40px;
+    z-index: 9999;
+}

@@ -90,3 +90,20 @@ window.toggleTextoCompleto = function(id) {
         }
     }
 };
+
+/**
+ * Formata data ISO (YYYY-MM-DD) para formato brasileiro (DD/MM/YYYY)
+ * @param {string} data - Data no formato ISO
+ * @returns {string} Data formatada
+ */
+function formatarDataBR(data) {
+    if (!data) return '-';
+    const partes = data.split('-');
+    if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+    // Se já estiver em outro formato, tenta converter
+    const d = new Date(data);
+    if (isNaN(d.getTime())) return data;
+    return d.toLocaleDateString('pt-BR');
+}
