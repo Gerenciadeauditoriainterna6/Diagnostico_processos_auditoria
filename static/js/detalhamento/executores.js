@@ -15,11 +15,25 @@ const ExecutoresModule = {
         this.setupSearch();
         this.setupClickFora();
         
-        // ⭐ Configurar o trigger do dropdown (substitui o onclick)
+        // ⭐ Configurar o trigger do dropdown
         const trigger = document.querySelector('.selector-trigger');
         if (trigger) {
             trigger.addEventListener('click', () => this.toggleDropdown());
         }
+        
+        // ⭐ Recalcular posição do dropdown ao rolar
+        window.addEventListener('scroll', () => {
+            const dropdown = document.getElementById('executores-dropdown');
+            if (dropdown && dropdown.style.display === 'block') {
+                const trigger = document.querySelector('.selector-trigger');
+                if (trigger) {
+                    const rect = trigger.getBoundingClientRect();
+                    dropdown.style.top = (rect.bottom + 4) + 'px';
+                    dropdown.style.left = rect.left + 'px';
+                    dropdown.style.width = rect.width + 'px';
+                }
+            }
+        }, true);  // ← true para capturar scroll em qualquer elemento
     },
 
     // ============================================================
@@ -73,12 +87,17 @@ const ExecutoresModule = {
         let html = '';
         filteredExecutores.forEach(executor => {
             const isSelected = this.selectedExecutoresMap.has(String(executor.id));
+            const iniciais = executor.nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            
             html += `
-                <div class="executor-option ${isSelected ? 'selected' : ''}" onclick="ExecutoresModule.toggle(${executor.id})">
-                    <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); ExecutoresModule.toggle(${executor.id})">
-                    <div class="executor-info">
-                        <span class="executor-name">${escapeHtml(executor.nome)}</span>
-                        ${executor.cargo ? `<span class="executor-cargo">- ${escapeHtml(executor.cargo)}</span>` : ''}
+                <div class="executor-item-v2 ${isSelected ? 'selected' : ''}" onclick="ExecutoresModule.toggle(${executor.id})">
+                    <div class="executor-avatar-v2">${iniciais}</div>
+                    <div class="executor-details-v2">
+                        <div class="executor-name-v2">${escapeHtml(executor.nome)}</div>
+                        ${executor.cargo ? `<div class="executor-cargo-v2">${escapeHtml(executor.cargo)}</div>` : ''}
+                    </div>
+                    <div class="executor-check-v2 ${isSelected ? 'checked' : 'unchecked'}">
+                        <i class="fas fa-${isSelected ? 'check-circle' : 'circle'}"></i>
                     </div>
                 </div>
             `;
@@ -114,26 +133,23 @@ const ExecutoresModule = {
 
         if (this.selectedExecutoresMap.size === 0) {
             displayDiv.innerHTML = '<span class="placeholder">Selecione os executores...</span>';
-            infoDiv.innerHTML = `
-                <i class="fas fa-info-circle" style="color: #ffc107;"></i>
-                Nenhum executor selecionado
-            `;
+            infoDiv.innerHTML = '';
         } else {
-            let badgesHtml = '';
+            let chipsHtml = '';
             this.selectedExecutoresMap.forEach((executor, id) => {
-                badgesHtml += `
-                    <span class="selected-badge">
+                chipsHtml += `
+                    <span class="chip-v2">
                         ${escapeHtml(executor.nome)}
-                        <span class="remove-badge" onclick="event.stopPropagation(); ExecutoresModule.toggle(${id})">&times;</span>
+                        <span class="chip-remove-v2" onclick="event.stopPropagation(); ExecutoresModule.toggle(${id})">×</span>
                     </span>
                 `;
             });
-            displayDiv.innerHTML = badgesHtml;
-
+            displayDiv.innerHTML = chipsHtml;
+            
             const nomes = Array.from(this.selectedExecutoresMap.values()).map(e => e.nome).join(', ');
             infoDiv.innerHTML = `
                 <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                <strong>${this.selectedExecutoresMap.size} executor(es) selecionado(s):</strong> ${nomes}
+                <strong>${this.selectedExecutoresMap.size}</strong> executor(es) selecionado(s): ${nomes}
             `;
         }
     },
@@ -148,7 +164,16 @@ const ExecutoresModule = {
         if (dropdown.style.display === 'block') {
             dropdown.style.display = 'none';
         } else {
-            dropdown.style.display = 'flex';
+            const trigger = document.querySelector('.selector-trigger');
+            const rect = trigger.getBoundingClientRect();
+            
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.width = rect.width + 'px';
+            dropdown.style.display = 'block';
+            dropdown.style.zIndex = '99999';
+            
             const searchInput = document.getElementById('executor-search');
             if (searchInput) searchInput.focus();
             this.renderizarLista('');

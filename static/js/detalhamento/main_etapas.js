@@ -61,11 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSalvarAnalise.addEventListener('click', () => AnalisesModule.salvar());
     }
 
-    // Botão Adicionar Obrigação
-    const btnAdicionarObrigacao = document.getElementById('btn-adicionar-obrigacao');
-    if (btnAdicionarObrigacao && typeof ObrigacoesModule !== 'undefined') {
-        btnAdicionarObrigacao.addEventListener('click', () => ObrigacoesModule.adicionarObrigacao());
-    }
+    // Botão Adicionar Obrigação (delegação - funciona mesmo se criado depois)
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('#btn-adicionar-obrigacao');
+        if (btn && typeof ObrigacoesModule !== 'undefined') {
+            ObrigacoesModule.adicionarObrigacao();
+        }
+    });
 
     // Modal - configurar eventos
     if (typeof ModalEtapaModule !== 'undefined') {
@@ -120,6 +122,50 @@ async function salvarEstado() {
         console.error('Erro ao salvar estado:', error);
     }
 }
+
+// ============================================================
+// TOOLTIP SEGUINDO O MOUSE
+// ============================================================
+document.addEventListener('mousemove', (e) => {
+    document.querySelectorAll('.help-icon:hover').forEach(icon => {
+        const tooltip = icon.getAttribute('data-tooltip');
+        if (!tooltip) return;
+        
+        // Cria ou atualiza tooltip
+        let tip = document.getElementById('active-tooltip');
+        if (!tip) {
+            tip = document.createElement('div');
+            tip.id = 'active-tooltip';
+            tip.style.cssText = `
+                position: fixed;
+                background: #1a1a1a;
+                color: #fff;
+                padding: 10px 14px;
+                border-radius: 8px;
+                font-size: 12px;
+                line-height: 1.5;
+                max-width: 320px;
+                z-index: 999999;
+                pointer-events: none;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            `;
+            document.body.appendChild(tip);
+        }
+        
+        tip.textContent = tooltip;
+        tip.style.left = (e.clientX + 15) + 'px';
+        tip.style.top = (e.clientY - 40) + 'px';
+        tip.style.display = 'block';
+    });
+});
+
+// Esconde tooltip quando mouse sai
+document.addEventListener('mouseout', (e) => {
+    if (!e.target.closest('.help-icon')) {
+        const tip = document.getElementById('active-tooltip');
+        if (tip) tip.style.display = 'none';
+    }
+});
 
 window.voltarParaDetalhamento = function () {
     salvarEstado();

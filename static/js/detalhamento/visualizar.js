@@ -108,7 +108,7 @@ const VisualizarModule = {
                     </div>
                 </div>
                 <div class="vis-secao">
-                    <h4><i class="fas fa-clipboard-list"></i> Pontos de Auditoria</h4>
+                    <h4><i class="fas fa-clipboard-list"></i> Análises do auditado</h4>
                     ${analisesHtml}
                 </div>
             </div>

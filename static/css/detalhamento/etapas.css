@@ -172,12 +172,7 @@
     color: #c82333;
 }
 
-.etapa-card-body {
-    padding: 20px;
-    display: none;
-    background: white;
-    border-top: 1px solid #f0f0f0;
-}
+
 
 .etapa-card.expanded .etapa-card-body {
     display: block;
@@ -293,9 +288,11 @@
     border-radius: 16px 16px 0 0;
 }
 
-.modal-header h3 {
+.modal-header,
+.modal-header h3,
+.modal-header h3 i {
     margin: 0;
-    color: #184145;
+    color: #0b5b99;
 }
 
 .modal-close {
@@ -532,11 +529,7 @@ textarea.form-control {
     display: none; /* Esconde as badges de status */
 }
 
-/* Selector de Executores */
-.executores-selector {
-    position: relative;
-    width: 100%;
-}
+
 
 .selector-trigger {
     display: flex;
@@ -590,7 +583,7 @@ textarea.form-control {
     border-radius: 8px;
     margin-top: 5px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 1000;
+    z-index: 1000 !important;
     max-height: 300px;
     display: flex;
     flex-direction: column;
@@ -987,26 +980,33 @@ textarea.form-control {
     }
 }
 
-/* Tooltip */
-.help-icon:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    background: #333;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    max-width: 350px;
-    min-width: 250px;
-    text-align: center;
-    white-space: normal;
-    word-wrap: break-word;
-    word-break: break-word;
-    line-height: 1.4;
-    z-index: 9999;
-    margin-top: 20px;
-    margin-left: 5px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+/* ============================================================ */
+/* TOOLTIP - SEMPRE VISÍVEL E PRÓXIMO AO MOUSE                 */
+/* ============================================================ */
+
+.help-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.help-icon i {
+    font-size: 13px;
+    color: #0b5b99;
+}
+
+/* Mostrar ao passar o mouse */
+.help-icon:hover::after,
+.help-icon:hover::before {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Seta do tooltip */
@@ -1129,4 +1129,372 @@ textarea.form-control {
 
 .cor-necessidade-para-implantacao {
     color: #0077ff !important;
+}
+
+/* ============================================================ */
+/* CARDS DE ETAPA - VISUAL MELHORADO                            */
+/* ============================================================ */
+
+.etapa-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border: 1px solid #e8ecf0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.etapa-card:hover {
+    border-color: #184145;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+}
+
+.etapa-card-body {
+    flex: 1;
+}
+
+.etapa-card-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.etapa-codigo {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0b5b99;
+    background: #e8f4f8;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.etapa-nome {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.etapa-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 8px;
+}
+
+.etapa-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.badge-pendente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-concluido {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-andamento {
+    background: #e8f4f8;
+    color: #0b5b99;
+}
+
+.badge-vazio {
+    background: #f8f9fa;
+    color: #999;
+}
+
+/* Botões de ação */
+.etapa-card-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: 16px;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.btn-view { color: #0b5b99; }
+.btn-view:hover { background: #e8f4f8; }
+
+.btn-edit { color: #f0ad4e; }
+.btn-edit:hover { background: #fff9f0; }
+
+.btn-delete { color: #dc3545; }
+.btn-delete:hover { background: #fff5f5; }
+
+/* ============================================================ */
+/* SEÇÕES COLAPSÁVEIS                                           */
+/* ============================================================ */
+
+.collapsible-section {
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    overflow: visible !important;
+}
+
+.collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.collapsible-header:hover {
+    background: #f0f2f5;
+}
+
+.collapsible-header h4 {
+    margin: 0;
+    font-size: 14px;
+    color: #184145;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.collapsible-header h4 i {
+    color: #0b5b99;
+    width: 20px;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+    color: #999;
+    font-size: 14px;
+}
+
+/* Fechado */
+.collapsible-section.collapsed .collapsible-body {
+    display: none;
+}
+
+.collapsible-section.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+/* Corpo */
+.collapsible-body {
+    padding: 18px;
+    background: white;
+    overflow: visible !important;
+}
+
+/* ============================================================ */
+/* SELETOR DE EXECUTORES - VISUAL MELHORADO                      */
+/* ============================================================ */
+
+/* Chips no display */
+.chip-v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #e8f4f8 0%, #d4e8f0 100%);
+    color: #0b5b99;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #b8d4e0;
+    margin: 2px 4px;
+}
+
+.chip-remove-v2 {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(11, 91, 153, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: all 0.15s;
+}
+
+.chip-remove-v2:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Placeholder */
+.placeholder {
+    color: #aaa;
+    font-size: 13px;
+}
+
+/* Trigger */
+.selector-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    min-height: 44px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.selector-trigger:hover {
+    border-color: #0b5b99;
+    box-shadow: 0 0 0 3px rgba(11, 91, 153, 0.08);
+}
+
+/* Dropdown */
+.selector-dropdown {
+    position: fixed;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 99999;
+    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdown-search {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+}
+
+.dropdown-search i {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.dropdown-search input {
+    width: 100%;
+    padding: 8px 8px 8px 32px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+}
+
+.dropdown-search input:focus {
+    border-color: #0b5b99;
+}
+
+/* Lista de executores */
+.dropdown-options {
+    overflow-y: auto;
+    max-height: 250px;
+    padding: 4px;
+}
+
+.executor-item-v2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.executor-item-v2:hover {
+    background: #f0f7ff;
+}
+
+.executor-item-v2.selected {
+    background: #e8f4f8;
+}
+
+.executor-avatar-v2 {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0b5b99;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.executor-details-v2 {
+    flex: 1;
+}
+
+.executor-name-v2 {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+}
+
+.executor-cargo-v2 {
+    font-size: 11px;
+    color: #888;
+    margin-top: 1px;
+}
+
+.executor-check-v2 {
+    font-size: 16px;
+}
+
+.executor-check-v2.checked {
+    color: #28a745;
+}
+
+.executor-check-v2.unchecked {
+    color: #ddd;
+}
+
+.no-options, .loading-options {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 13px;
+}
+
+/* Info de selecionados */
+#executores-selecionados-info {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
 }

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhamento de Etapas - sistema Gerência de Auditoria Interna{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/detalhamento/etapas.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="detalhamento-etapas-container">
+    <div class="page-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1><i class="fas fa-project-diagram"></i> Detalhamento das Etapas</h1>
+                <p id="processo-info"></p>
+            </div>
+            <button class="btn-voltar" id="btn-voltar-detalhamento">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+        </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="form-section" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: flex-end;">
+            <button type="button" id="btn-nova-etapa" class="btn-primary">
+                <i class="fas fa-plus"></i> Nova Etapa
+            </button>
+        </div>
+    </div>
+
+    <!-- Container Integrado de Etapas -->
+    <div style="background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 25px;">
+        <!-- Cabeçalho -->
+        <div style="padding: 15px 25px; border-bottom: 2px solid #e0e0e0;">
+            <h3 style="color: #184145; margin: 0;">
+                <i class="fas fa-list"></i> Etapas do Processo
+            </h3>
+        </div>
+        
+        <!-- Corpo com os cards de etapa -->
+        <div id="etapas-container" style="padding: 20px;">
+            
+        </div>
+    </div>
+</div>
+
+{% include 'detalhamento/partials/modals/modal_etapa.html' %}
+{% include 'detalhamento/partials/modals/modal_visualizar_etapa.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Utilitários -->
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+
+<!-- Módulo das Etapas -->
+<script src="{{ url_for('static', filename='js/detalhamento/obrigacoes.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/executores.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/analises.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/manual.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/autosave.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/tabela_etapas.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/modal_etapa.js') }}"></script>
+<script src="{{ url_for('static', filename='js/detalhamento/visualizar.js') }}"></script>
+
+<!-- Orquestrador -->
+<script src="{{ url_for('static', filename='js/detalhamento/main_etapas.js') }}"></script>
+
+{% endblock %}

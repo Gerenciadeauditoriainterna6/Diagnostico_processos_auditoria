@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       // PONTO 7 - SEM IMAGENS
       images: ["/static/images/nomeacao_oficial.jpg"],
-      captions: ["Nomeação oficial do Teófilo para exercera função de Auditor Interno"],
+      captions: ["Nomeação oficial do Teófilo para exercer a função de Auditor Interno"],
     },
     {
       // PONTO 8 - TEM IMAGENS

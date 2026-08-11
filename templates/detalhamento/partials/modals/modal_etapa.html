@@ -1,0 +1,321 @@
+<!-- MODAL PARA CADASTRO/EDIÇÃO DE ETAPA -->
+<div id="modal-etapa" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3 id="modal-etapa-title"><i class="fas fa-plus-circle"></i> Nova Etapa</h3>
+            <button type="button" class="modal-close" id="btn-fechar-modal-etapa">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="modal-etapa-id">
+            <input type="hidden" id="modal-processo-id">
+            
+            <!-- ============================================================ -->
+            <!-- SEÇÃO 1: INFORMAÇÕES BÁSICAS (ABERTA POR PADRÃO)           -->
+            <!-- ============================================================ -->
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <h4><i class="fas fa-info-circle"></i> Informações Básicas</h4>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="collapsible-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-barcode"></i> Código da Etapa</label>
+                            <input type="text" id="modal-codigo-etapa" class="form-control" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Nome da Etapa *</label>
+                            <input type="text" id="modal-nome-etapa" class="form-control" placeholder="Ex: Análise inicial">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Descrição da Etapa</label>
+                        <textarea id="modal-descricao-etapa" class="form-control" rows="2" placeholder="Descreva o que acontece nesta etapa..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-cogs"></i> Como é feito?</label>
+                            <textarea id="modal-como-feito" class="form-control" rows="2" placeholder="Descreva como a etapa é executada..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-bullseye"></i> Objetivo da Etapa
+                                <span class="help-icon" data-tooltip="Qual o objetivo desta etapa?">
+                                    <i class="fas fa-question-circle"></i>
+                                </span>
+                            </label>
+                            <textarea id="modal-objetivo-etapa" class="form-control" rows="2" placeholder="Qual o objetivo desta etapa?"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-circle"></i> Status</label>
+                            <select id="modal-status-etapa" class="form-control">
+                                <option value="ATIVA">ATIVA</option>
+                                <option value="INATIVA">INATIVA</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-gavel"></i> Política Interna</label>
+                            <textarea id="modal-politica-interna" class="form-control" rows="2" placeholder="Políticas internas aplicáveis..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- SEÇÃO 2: EXECUTORES                                           -->
+            <!-- ============================================================ -->
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <h4><i class="fas fa-users"></i> Executores da Etapa</h4>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="collapsible-body">
+                    <div class="form-group">
+                        <label><i class="fas fa-users"></i> Executores da Etapa</label>
+                        <div class="executores-selector">
+                            <div class="selector-trigger">
+                                <div class="selector-display" id="executores-display">
+                                    <span class="placeholder">Selecione os executores...</span>
+                                </div>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="selector-dropdown" id="executores-dropdown" style="display: none;">
+                                <div class="dropdown-search">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="executor-search" placeholder="Filtrar executores...">
+                                </div>
+                                <div class="dropdown-options" id="executores-options">
+                                    <div class="loading-options">Carregando executores...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Selecione os funcionários que executam esta etapa</small>
+                        <div id="executores-selecionados-info" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- SEÇÃO 3: MANUAL DA ETAPA                                     -->
+            <!-- ============================================================ -->
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <h4><i class="fas fa-book"></i> Manual da Etapa</h4>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="collapsible-body">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 3px solid #ffc107;">
+                        <input type="checkbox" id="manual_em_andamento" style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="manual_em_andamento" style="margin: 0; cursor: pointer; font-weight: 500; color: #184145;">
+                            <i class="fas fa-clock"></i> Manual em andamento (ainda não finalizado)
+                        </label>
+                    </div>
+
+                    <div id="manual_status_container" style="margin-top: 10px;">
+                        <div id="manual_anexado" style="display: none; padding: 12px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-file-pdf" style="font-size: 24px; color: #dc3545;"></i>
+                                    <div>
+                                        <div id="manual_nome_exibicao" style="font-weight: 500; color: #155724;"></div>
+                                        <span style="font-size: 12px; color: #155724;">✅ Manual concluído</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn-sm btn-download btn-baixar-manual" title="Baixar manual"><i class="fas fa-download"></i></button>
+                                    <button type="button" class="btn-sm btn-remove btn-remover-manual" title="Remover manual"><i class="fas fa-trash"></i></button>
+                                    <button type="button" class="btn-sm btn-substituir btn-substituir-manual" title="Substituir manual"><i class="fas fa-exchange-alt"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="manual_andamento" style="display: none; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-clock" style="font-size: 24px; color: #856404;"></i>
+                                    <div>
+                                        <div style="font-weight: 500; color: #856404;">📝 Manual em andamento</div>
+                                        <span style="font-size: 12px; color: #856404;">Aguardando finalização para anexar o arquivo</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="button" class="btn-sm btn-concluir btn-concluir-manual" title="Concluir e anexar arquivo"><i class="fas fa-check"></i> Concluir</button>
+                                    <button type="button" class="btn-sm btn-remove btn-cancelar-andamento" title="Cancelar andamento"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="manual_nenhum" style="padding: 20px; border: 2px dashed #ccc; border-radius: 12px; text-align: center; background: #fafafa;">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #184145;"></i>
+                            <p style="margin: 8px 0 4px 0; color: #666; font-size: 13px;">
+                                <strong>Nenhum manual anexado</strong>
+                            </p>
+                            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap;">
+                                <button type="button" class="btn-primary btn-anexar-manual"><i class="fas fa-upload"></i> Anexar arquivo</button>
+                                <button type="button" class="btn-secondary btn-marcar-andamento"><i class="fas fa-clock"></i> Marcar como em andamento</button>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="manual_file_input" accept=".pdf,.doc,.docx" style="display: none;">
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- SEÇÃO 4: OBRIGAÇÕES REGULATÓRIAS (ESCONDIDA POR PADRÃO)     -->
+            <!-- ============================================================ -->
+            <div class="collapsible-section collapsed">
+                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <h4><i class="fas fa-balance-scale"></i> Obrigações Regulatórias</h4>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="collapsible-body">
+                    <p class="text-muted" style="margin-bottom: 10px; font-size: 12px;">
+                        Cadastre as obrigações regulatórias aplicáveis a esta etapa.
+                    </p>
+                    <div id="obrigacoes-container"></div>
+                    <template id="template-obrigacao">
+                        <div class="obrigacao-item" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <strong style="color: #184145;">Obrigação <span class="obrigacao-index">1</span></strong>
+                                <button type="button" class="btn-remover-obrigacao" 
+                                    style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;" 
+                                    title="Excluir obrigação">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label><i class="fas fa-gavel"></i> Título da Obrigação *</label>
+                                    <input type="text" class="obrigacao-titulo form-control" placeholder="Ex: Lei Geral de Proteção de Dados">
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-building"></i> Órgão Regulador</label>
+                                    <input type="text" class="obrigacao-orgao form-control" placeholder="Ex: ANPD">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label><i class="fas fa-calendar-alt"></i> Prazo</label>
+                                    <input type="date" class="obrigacao-prazo form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-check-circle"></i> Com obrigatoriedade de entrega?</label>
+                                    <select class="obrigacao-obrigatorio form-control">
+                                        <option value="false">NÃO</option>
+                                        <option value="true">SIM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-file-alt"></i> Documento Necessário</label>
+                                <input type="text" class="obrigacao-documento form-control" placeholder="Ex: Relatório de conformidade">
+                            </div>
+                            
+                            <div class="obrigacao-upload-area" style="display: block;">
+                                <div class="form-group">
+                                    <label><i class="fas fa-paperclip"></i> Documento Legal (PDF)</label>
+                                    <div class="custom-file-upload">
+                                        <input type="file" class="obrigacao-arquivo" accept=".pdf" style="display: none;">
+                                        <button type="button" class="btn-upload-obrigacao btn-file-upload" style="background: #184145; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                                            <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
+                                        </button>
+                                        <div class="obrigacao-arquivo-info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #e8f4f8; border-radius: 6px; border-left: 3px solid #28a745;">
+                                            <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
+                                            <span class="obrigacao-arquivo-nome"></span>
+                                            <button type="button" class="btn-download-arquivo" style="background: #0b5b99; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                                <i class="fas fa-download"></i> Baixar
+                                            </button>
+                                            <button type="button" class="btn-remover-arquivo-obrigacao" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Anexe o documento legal em PDF (máx. 10MB)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <button type="button" id="btn-adicionar-obrigacao" class="btn-secondary" style="margin-top: 10px;">
+                        <i class="fas fa-plus"></i> Adicionar Obrigação Regulatória
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- SEÇÃO 5: PONTOS DE AUDITORIA (ESCONDIDA POR PADRÃO)         -->
+            <!-- ============================================================ -->
+            <div class="collapsible-section collapsed">
+                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <h4><i class="fas fa-clipboard-check"></i> Pontos de Auditoria</h4>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="collapsible-body">
+                    <p class="text-muted" style="margin-bottom: 15px;">
+                        Cadastre os pontos de auditoria levantados pelo Auditado nesta etapa.
+                    </p>
+                    <div id="analises-lista" style="margin-bottom: 15px;"></div>
+                    <button type="button" class="btn-outline" id="btn-nova-analise">
+                        <i class="fas fa-plus"></i> Adicionar Ponto de Auditoria
+                    </button>
+                    <div id="form-analise" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                        <input type="hidden" id="analise-id">
+                        <input type="hidden" id="analise-temp-id">
+                        
+                        <div class="form-group">
+                            <label><span class="cor-ponto-de-auditoria">Ponto de Auditoria</span>
+                                <span class="help-icon" data-tooltip="Problema encontrado.">
+                                    <i class="fas fa-question-circle"></i>
+                                </span>
+                            </label>
+                            <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva o ponto de auditoria..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label><span class="cor-sugestao-de-melhoria">Sugestão de Melhoria</span>
+                                <span class="help-icon" data-tooltip="Recomendação para sanar o problema encontrado.">
+                                    <i class="fas fa-question-circle"></i>
+                                </span>
+                            </label>
+                            <textarea id="analise-sugestao" class="form-control" rows="2" placeholder="Sugestões de melhoria..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="cor-necessidade-para-implantacao">Necessidade para implantação da sugestão de melhoria</label>
+                            <textarea id="analise-necessidade" class="form-control" rows="2" placeholder="O que é necessário implantar..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="cor-ganho-previsto">Ganho Previsto</label>
+                            <textarea id="analise-ganho" class="form-control" rows="2" placeholder="Ganhos previstos..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-paperclip"></i> Evidência (PDF)</label>
+                            <div class="custom-file-upload">
+                                <input type="file" id="analise_evidencia_input" accept=".pdf" style="display: none;">
+                                <button type="button" id="btn_analise_evidencia" class="btn-file-upload" style="background: #184145; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-cloud-upload-alt"></i> Anexar Evidência (PDF)
+                                </button>
+                                <div id="analise_evidencia_info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                                    <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
+                                    <span id="analise_evidencia_nome"></span>
+                                    <button type="button" id="btn_remover_analise_evidencia" style="background: none; border: none; color: #dc3545; cursor: pointer; margin-left: 10px;">&times;</button>
+                                </div>
+                            </div>
+                            <small class="text-muted">Anexe arquivos PDF que fundamentam sua análise (máx. 10MB)</small>
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn-cancelar-modal-etapa" id="btn-cancelar-analise">Cancelar</button>
+                            <button type="button" class="btn-salvar-modal-etapa" id="btn-salvar-analise">Salvar Análise</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancelar-modal-etapa" id="btn-cancelar-modal-etapa">Cancelar</button>
+            <button type="button" class="btn-salvar-modal-etapa" id="btn-salvar-modal-etapa">Salvar Etapa</button>
+        </div>
+    </div>
+</div>

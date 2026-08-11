@@ -98,28 +98,58 @@ const TabelaEtapasModule = {
         const container = document.getElementById('etapas-container');
 
         const cardsHtml = await Promise.all(etapas.map(async (etapa) => {
-            const executoresNomes = await ExecutoresModule.getNomes(etapa.executores_etapa);
+            const executoresNomes = typeof ExecutoresModule !== 'undefined' 
+                ? await ExecutoresModule.getNomes(etapa.executores_etapa) : '-';
 
-            let statusBadge = '';
+            // Status da análise
+            let analiseBadge = '';
             if (!etapa.tem_analise_auditado) {
-                statusBadge = '<span class="status-badge status-pendente">Análise do Auditado Pendente</span>';
+                analiseBadge = '<span class="badge badge-pendente"><i class="fas fa-clock"></i> Análise do Auditado Pendente</span>';
             } else {
-                statusBadge = '<span class="status-badge status-concluido">Análise do Auditado Realizada</span>';
+                analiseBadge = '<span class="badge badge-concluido"><i class="fas fa-check-circle"></i> Análise do Auditado Realizada</span>';
+            }
+
+            // Status do manual
+            let manualBadge = '';
+            if (etapa.manual_nome && etapa.manual_nome.trim() !== '') {
+                manualBadge = '<span class="badge badge-concluido"><i class="fas fa-file-pdf"></i> Manual Concluído</span>';
+            } else if (etapa.manual_em_andamento) {
+                manualBadge = '<span class="badge badge-andamento"><i class="fas fa-clock"></i> Manual em Andamento</span>';
+            } else {
+                manualBadge = '<span class="badge badge-vazio"><i class="fas fa-times-circle"></i> Sem Manual</span>';
             }
 
             return `
                 <div class="etapa-card" data-etapa-id="${etapa.id}">
-                    <div class="etapa-card-header">
-                        <div class="etapa-info">
-                            <span class="etapa-codigo">${escapeHtml(etapa.codigo_etapa)}</span>
-                            <span class="etapa-nome">${escapeHtml(etapa.nome_etapa)}</span>
-                            ${statusBadge}
+                    <div class="etapa-card-body">
+                        <div class="etapa-card-main">
+                            <div class="etapa-codigo">${escapeHtml(etapa.codigo_etapa)}</div>
+                            <div class="etapa-nome">${escapeHtml(etapa.nome_etapa)}</div>
                         </div>
-                        <div class="etapa-actions">
-                            <button class="btn-view-etapa" onclick="VisualizarModule.abrir(${etapa.id})">👁️</button>
-                            <button class="btn-edit-etapa" onclick="ModalEtapaModule.editar(${etapa.id})">✏️</button>
-                            <button class="btn-delete-etapa" onclick="ModalEtapaModule.excluir(${etapa.id}, '${escapeHtml(etapa.nome_etapa)}')">🗑️</button>
+                        <div class="etapa-card-info">
+                            <div class="etapa-executores">
+                                <i class="fas fa-users"></i> ${escapeHtml(executoresNomes)}
+                            </div>
+                            <!-- ⭐ Objetivo da etapa -->
+                            <div class="etapa-objetivo">
+                                <i class="fas fa-bullseye"></i> ${escapeHtml(etapa.objetivo_etapa || 'Sem objetivo')}
+                            </div>
+                            <div class="etapa-badges">
+                                ${analiseBadge}
+                                ${manualBadge}
+                            </div>
                         </div>
+                    </div>
+                    <div class="etapa-card-actions">
+                        <button class="btn-icon btn-view" onclick="VisualizarModule.abrir(${etapa.id})" title="Visualizar">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-icon btn-edit" onclick="ModalEtapaModule.editar(${etapa.id})" title="Editar">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="btn-icon btn-delete" onclick="ModalEtapaModule.excluir(${etapa.id}, '${escapeHtml(etapa.nome_etapa)}')" title="Excluir">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 </div>
             `;

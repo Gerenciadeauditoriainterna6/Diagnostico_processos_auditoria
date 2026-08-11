@@ -509,96 +509,6 @@ def excluir_obrigacao_completa(etapa_id, indice_obrigacao, arquivo_url=None):
         traceback.print_exc()
         return {'success': False, 'error': str(e)}
 
-
-@app.route('/api/obrigacao/excluir', methods=['DELETE'])
-def api_excluir_obrigacao():
-    """
-    Exclui uma obrigação regulatória da etapa
-    Remove do banco de dados E do storage
-    """
-    from database import engine
-    from sqlalchemy import text
-    import json
-    
-    try:
-        data = request.json
-        etapa_id = data.get('etapa_id')
-        indice_obrigacao = data.get('indice')  # Índice da obrigação no array
-        arquivo_url = data.get('arquivo_url')  # URL do arquivo para excluir do storage
-        
-        if not etapa_id:
-            return jsonify({'success': False, 'error': 'ID da etapa é obrigatório'}), 400
-        
-        if indice_obrigacao is None:
-            return jsonify({'success': False, 'error': 'Índice da obrigação é obrigatório'}), 400
-        
-        print(f"🗑️ Excluindo obrigação {indice_obrigacao} da etapa {etapa_id}")
-        
-        with engine.connect() as conn:
-            # Buscar a etapa atual
-            query_busca = text("""
-                SELECT obrigacoes_regulatorias FROM etapas_processo WHERE id = :etapa_id
-            """)
-            result = conn.execute(query_busca, {'etapa_id': etapa_id}).fetchone()
-            
-            if not result:
-                return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
-            
-            # Parse do JSON
-            obrigacoes_str = result[0]
-            if obrigacoes_str:
-                obrigacoes = json.loads(obrigacoes_str)
-            else:
-                obrigacoes = []
-            
-            # Verificar se o índice existe
-            if indice_obrigacao >= len(obrigacoes):
-                return jsonify({'success': False, 'error': 'Obrigação não encontrada'}), 404
-            
-            # 🔥 Remover a obrigação do array
-            obrigacao_removida = obrigacoes.pop(indice_obrigacao)
-            
-            # 🔥 Se tiver URL, excluir do storage
-            if arquivo_url and arquivo_url.strip() != '':
-               
-                print(f"📎 Excluindo arquivo do storage: {arquivo_url}")
-                excluir_arquivo_storage(arquivo_url)
-            elif obrigacao_removida and obrigacao_removida.get('arquivo_url'):
-                # Se não veio a URL no payload, mas a obrigação tem URL
-                url_para_excluir = obrigacao_removida.get('arquivo_url')
-                if url_para_excluir and url_para_excluir.strip() != '':
-                   
-                    print(f"📎 Excluindo arquivo do storage: {url_para_excluir}")
-                    excluir_arquivo_storage(url_para_excluir)
-            
-            # Atualizar o campo no banco
-            obrigacoes_json = json.dumps(obrigacoes, ensure_ascii=False)
-            
-            query_update = text("""
-                UPDATE etapas_processo 
-                SET obrigacoes_regulatorias = :obrigacoes, updated_at = NOW()
-                WHERE id = :etapa_id
-            """)
-            conn.execute(query_update, {
-                'obrigacoes': obrigacoes_json,
-                'etapa_id': etapa_id
-            })
-            conn.commit()
-            
-            print(f"✅ Obrigação {indice_obrigacao} excluída com sucesso")
-            
-            return jsonify({
-                'success': True,
-                'message': 'Obrigação excluída com sucesso',
-                'total_restantes': len(obrigacoes)
-            })
-            
-    except Exception as e:
-        print(f"❌ Erro ao excluir obrigação: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @app.route('/api/obrigacao/remover-arquivo', methods=['POST'])
 def api_obrigacao_remover_arquivo():
     """
@@ -1446,7 +1356,7 @@ def detalhamento_etapas():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
     
-    return render_template('detalhamento_etapas.html')
+    return render_template('detalhamento/detalhamento_etapas.html')
 
 @app.route('/api/controle-etapa/salvar', methods=['POST'])
 def api_controle_etapa_salvar():

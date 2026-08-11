@@ -398,36 +398,31 @@ const ObrigacoesModule = {
     },
 
     async excluirObrigacao(indice) {
-        // Buscar o elemento da obrigação
         const items = document.querySelectorAll('.obrigacao-item');
         if (indice >= items.length) {
-            mostrarToast('⚠️ Obrigação não encontrada', 'warning');
+            window.mostrarToast('⚠️ Obrigação não encontrada', 'warning');
             return;
         }
         
         const item = items[indice];
         const titulo = item.querySelector('.obrigacao-titulo').value.trim() || 'Obrigação';
         
-        // Confirmar exclusão
-        if (!confirm(`Tem certeza que deseja excluir "${titulo}"?`)) {
-            return;
-        }
+        if (!confirm(`Tem certeza que deseja excluir "${titulo}"?`)) return;
         
-        // Verificar se a etapa já foi salva (tem ID)
         const etapaId = document.getElementById('modal-etapa-id').value;
         const arquivoUrl = item.getAttribute('data-arquivo-url');
         
-        // Se a etapa já foi salva, excluir do banco e storage
-        if (etapaId && etapaId !== '') {
+        // ⭐ Verificar se a obrigação TEM dados salvos (já foi salva antes)
+        const tituloSalvo = item.querySelector('.obrigacao-titulo').value.trim();
+        const temUrlSalva = arquivoUrl && arquivoUrl.trim() !== '';
+        const obrigacaoJaExisteNoBanco = (etapaId && etapaId !== '') && (tituloSalvo || temUrlSalva);
+        
+        if (obrigacaoJaExisteNoBanco) {
+            // ⭐ Já foi salva → excluir do banco e storage
             try {
-                mostrarToast('🗑️ Excluindo obrigação...', 'info');
-
-                const arquivoUrl = item.getAttribute('data-arquivo-url');
-                console.log('📎 URL do arquivo a ser excluído:', arquivoUrl);
-                console.log('📎 Tipo da URL:', typeof arquivoUrl);
-                console.log('📎 URL está vazia?', arquivoUrl === '' || arquivoUrl === null);
+                window.mostrarToast('🗑️ Excluindo obrigação...', 'info');
                 
-                const response = await fetchComAutenticacao('/api/obrigacao/excluir', {
+                const response = await window.fetchComAutenticacao('/api/obrigacao/excluir', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -440,61 +435,40 @@ const ObrigacoesModule = {
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Remover do DOM
                     item.remove();
-                    
-                    // Reindexar os itens restantes
-                    document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
-                        el.setAttribute('data-index', i);
-                        el.querySelector('.obrigacao-index').textContent = i + 1;
-                    });
-                    
-                    // Limpar do objeto this.arquivosObrigacoes se existir
+                    this._reindexar();
                     delete this.arquivosObrigacoes[indice];
-                    
-                    // Reorganizar o objeto this.arquivosObrigacoes
-                    const novoArquivosObrigacoes = {};
-                    document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
-                        const idx = parseInt(el.getAttribute('data-index'));
-                        if (this.arquivosObrigacoes[idx]) {
-                            novoArquivosObrigacoes[i] = this.arquivosObrigacoes[idx];
-                        }
-                    });
-                    this.arquivosObrigacoes = novoArquivosObrigacoes;
-                    
-                    mostrarToast('✅ Obrigação excluída com sucesso!', 'success');
+                    window.mostrarToast('✅ Obrigação excluída!', 'success');
                 } else {
-                    mostrarToast('❌ Erro ao excluir: ' + (data.error || 'Tente novamente'), 'error');
+                    window.mostrarToast('❌ ' + (data.error || 'Erro'), 'error');
                 }
             } catch (error) {
-                console.error('Erro ao excluir obrigação:', error);
-                mostrarToast('❌ Erro ao conectar com o servidor', 'error');
+                window.mostrarToast('❌ Erro de conexão', 'error');
             }
         } else {
-            // Etapa ainda não salva, apenas remover do DOM e do objeto
+            // ⭐ NUNCA foi salva → apenas remover do frontend
             item.remove();
-            
-            // Reindexar os itens restantes
-            document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
-                el.setAttribute('data-index', i);
-                el.querySelector('.obrigacao-index').textContent = i + 1;
-            });
-            
-            // Remover do objeto this.arquivosObrigacoes
+            this._reindexar();
             delete this.arquivosObrigacoes[indice];
-            
-            // Reorganizar o objeto arquivosObrigacoes
-            const novoArquivosObrigacoes = {};
-            document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
-                const idx = parseInt(el.getAttribute('data-index'));
-                if (this.arquivosObrigacoes[idx]) {
-                    novoArquivosObrigacoes[i] = this.arquivosObrigacoes[idx];
-                }
-            });
-            this.arquivosObrigacoes = novoArquivosObrigacoes;
-            
-            mostrarToast('🗑️ Obrigação removida (não salva)', 'info');
+            window.mostrarToast('🗑️ Obrigação removida', 'info');
         }
+    },
+
+    _reindexar() {
+        document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
+            el.setAttribute('data-index', i);
+            const idxSpan = el.querySelector('.obrigacao-index');
+            if (idxSpan) idxSpan.textContent = i + 1;
+        });
+        
+        const novo = {};
+        document.querySelectorAll('.obrigacao-item').forEach((el, i) => {
+            const idx = parseInt(el.getAttribute('data-index'));
+            if (this.arquivosObrigacoes[idx]) {
+                novo[i] = this.arquivosObrigacoes[idx];
+            }
+        });
+        this.arquivosObrigacoes = novo;
     },
 
     async processarUploadsObrigacoes(obrigacoes, etapaId) {

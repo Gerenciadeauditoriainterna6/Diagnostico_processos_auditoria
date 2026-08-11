@@ -7,6 +7,7 @@ from routes.detalhamento.queries import (
     inserir_etapa,
     buscar_arquivo_etapa
 )
+from utils.storage_utils import excluir_arquivo_storage
 import base64, json, io
 
 detalhamento_bp = Blueprint('detalhamento', __name__)
@@ -419,3 +420,74 @@ def api_arquivo_excluir():
         return jsonify({'success': True})
     
     return jsonify({'success': False, 'error': 'Caminho inválido'}), 400
+
+@detalhamento_bp.route('/api/obrigacao/excluir', methods=['DELETE'])
+def api_excluir_obrigacao():
+    """Exclui uma obrigação regulatória da etapa"""
+    from database import engine
+    from sqlalchemy import text
+    import json
+    from utils.storage_utils import excluir_arquivo_storage
+    from urllib.parse import urlparse, unquote
+    import re
+    
+    try:
+        data = request.json
+        etapa_id = data.get('etapa_id')
+        indice_obrigacao = data.get('indice')
+        arquivo_url = data.get('arquivo_url')
+        
+        if not etapa_id:
+            return jsonify({'success': False, 'error': 'ID da etapa é obrigatório'}), 400
+        if indice_obrigacao is None:
+            return jsonify({'success': False, 'error': 'Índice da obrigação é obrigatório'}), 400
+        
+        print(f"🗑️ Excluindo obrigação {indice_obrigacao} da etapa {etapa_id}")
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT obrigacoes_regulatorias FROM etapas_processo WHERE id = :eid
+            """), {'eid': etapa_id}).fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'error': 'Etapa não encontrada'}), 404
+            
+            obrigacoes = json.loads(result[0]) if result[0] else []
+            
+            if indice_obrigacao >= len(obrigacoes):
+                return jsonify({'success': False, 'error': 'Obrigação não encontrada'}), 404
+            
+            obrigacao_removida = obrigacoes.pop(indice_obrigacao)
+            
+            # Excluir arquivo do storage
+            url_para_excluir = arquivo_url or obrigacao_removida.get('arquivo_url')
+            if url_para_excluir and url_para_excluir.strip():
+                caminho = None
+                bucket = 'detalhamento_etapas'
+                
+                if url_para_excluir.startswith('http'):
+                    parsed = urlparse(url_para_excluir)
+                    path = unquote(parsed.path)
+                    match = re.search(r'/(?:sign|public|authenticated)/([^/]+)/(.+)', path)
+                    if match:
+                        bucket = match.group(1)
+                        caminho = match.group(2).split('?')[0]
+                else:
+                    caminho = url_para_excluir
+                
+                if caminho:
+                    print(f"📎 Excluindo arquivo: {caminho}")
+                    excluir_arquivo_storage(caminho, bucket)
+            
+            # Atualizar banco
+            conn.execute(text("""
+                UPDATE etapas_processo SET obrigacoes_regulatorias = :obrig, updated_at = NOW()
+                WHERE id = :eid
+            """), {'obrig': json.dumps(obrigacoes, ensure_ascii=False), 'eid': etapa_id})
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Obrigação excluída', 'total_restantes': len(obrigacoes)})
+            
+    except Exception as e:
+        print(f"❌ Erro ao excluir obrigação: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
