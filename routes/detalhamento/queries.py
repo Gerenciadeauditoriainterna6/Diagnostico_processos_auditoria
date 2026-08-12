@@ -370,38 +370,39 @@ def buscar_risco_etapa_por_id(risco_id):
                consequencia, impacto, probabilidade, magnitude,
                impacto_aceitavel, probabilidade_aceitavel, tratamento, 
                origem, desc_tratamento, motivo_classificacao, financeiro,
-               info_adicional, ativo, causas, prazo_implantacao
+               info_adicional, ativo, causas, prazo_implantacao, descricao_prazo
         FROM riscos_etapa
         WHERE id = :risco_id
     """)
     
     with engine.connect() as conn:
-        result = conn.execute(query, {'risco_id': risco_id}).fetchone()
+        result = conn.execute(query, {'risco_id': risco_id}).mappings().fetchone()
         
         if not result:
             return None
         
         return {
-            'id': result[0],
-            'etapa_id': result[1],
-            'nome_risco': result[2] or '',
-            'categoria': result[3] or '',
-            'fator_risco': result[4] or '',
-            'consequencia': result[5] or '',
-            'impacto': result[6] or 'Médio',
-            'probabilidade': result[7] or 'Médio',
-            'magnitude': result[8] or 0,
-            'impacto_aceitavel': result[9] or 'Médio',
-            'probabilidade_aceitavel': result[10] or 'Médio',
-            'tratamento': result[11] or '',
-            'origem': result[12] or '',
-            'desc_tratamento': result[13] or '',
-            'motivo_classificacao': result[14] or '',
-            'financeiro': result[15] or False,
-            'info_adicional': result[16] or '',
-            'ativo': result[17] if result[17] is not None else True,
-            'causas': [c.strip() for c in result[18].split(',')] if result[18] else [],
-            'prazo_implantacao': result[19] or ''
+            'id': result['id'],
+            'etapa_id': result['etapa_id'],
+            'nome_risco': result['nome_risco'] or '',
+            'categoria': result['categoria'] or '',
+            'fator_risco': result['fator_risco'] or '',
+            'consequencia': result['consequencia'] or '',
+            'impacto': result['impacto'] or 'Médio',
+            'probabilidade': result['probabilidade'] or 'Médio',
+            'magnitude': result['magnitude'] or 0,
+            'impacto_aceitavel': result['impacto_aceitavel'] or 'Médio',
+            'probabilidade_aceitavel': result['probabilidade_aceitavel'] or 'Médio',
+            'tratamento': result['tratamento'] or '',
+            'origem': result['origem'] or '',
+            'desc_tratamento': result['desc_tratamento'] or '',
+            'motivo_classificacao': result['motivo_classificacao'] or '',
+            'financeiro': result['financeiro'] or False,
+            'info_adicional': result['info_adicional'] or '',
+            'ativo': result['ativo'] if result['ativo'] is not None else True,
+            'causas': [c.strip() for c in result['causas'].split(',')] if result['causas'] else [],
+            'prazo_implantacao': result['prazo_implantacao'] or '',
+            'descricao_prazo': result['descricao_prazo'] or '',
         }
 
 

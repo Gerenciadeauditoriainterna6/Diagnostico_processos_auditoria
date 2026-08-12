@@ -109,7 +109,7 @@ const ModalRiscoEtapaModule = {
             probabilidade_aceitavel: document.getElementById('apetite_probabilidade')?.value || '',
             tratamento: document.getElementById('risco_tratamento')?.value || '',
             desc_tratamento: document.getElementById('risco_desc_tratamento')?.value || '',
-            descricao_prazo: document.getElementById('risco_prazo_implantacao')?.value || '',
+            descricao_prazo: document.getElementById('risco_descricao_prazo')?.value || '',
         };
         
         const categoriasSelecionadas = [];
@@ -318,12 +318,12 @@ const ModalRiscoEtapaModule = {
             this.setValueIfExists('risco_consequencia', risco.consequencia || '');
             this.setValueIfExists('risco_info_adicional', risco.info_adicional || '');
             this.setValueIfExists('risco_origem', risco.origem || '');
-            this.setValueIfExists('risco_financeiro', risco.impacto_financeiro ? 'true' : 'false');
+            this.setValueIfExists('risco_financeiro', risco.financeiro ? 'true' : 'false');
             this.setValueIfExists('apetite_impacto', (risco.impacto_aceitavel || '').toUpperCase());
             this.setValueIfExists('apetite_probabilidade', (risco.probabilidade_aceitavel || '').toUpperCase());
             this.setValueIfExists('risco_desc_tratamento', risco.desc_tratamento || '');
             this.setValueIfExists('risco_motivo', risco.motivo_classificacao || '');
-            this.setValueIfExists('risco_prazo_implantacao', risco.prazo_implantacao || '');
+            this.setValueIfExists('risco_descricao_prazo', risco.descricao_prazo || '');
             this.setValueIfExists('risco_impacto', (risco.impacto || '').toUpperCase());
             this.setValueIfExists('risco_probabilidade', (risco.probabilidade || '').toUpperCase());
             this.setValueIfExists('risco_tratamento', (risco.tratamento || '').toUpperCase());
@@ -512,7 +512,7 @@ const ModalRiscoEtapaModule = {
         this.setValueIfExists('risco_financeiro', 'false');
         this.setValueIfExists('risco_desc_tratamento', '');
         this.setValueIfExists('risco_motivo', '');
-        this.setValueIfExists('risco_prazo_implantacao', '');
+        this.setValueIfExists('risco_descricao_prazo', '');
         this.setValueIfExists('risco_impacto', '');
         this.setValueIfExists('risco_probabilidade', '');
         this.setValueIfExists('risco_tratamento', '');
