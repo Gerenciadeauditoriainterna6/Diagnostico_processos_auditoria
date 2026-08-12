@@ -6,38 +6,43 @@ const EtapasRiscosModule = {
     init() {
         this.container = document.getElementById('etapas-container');
         
-        // ⭐ Delegação de eventos para os cards de risco (criados dinamicamente)
         document.addEventListener('click', (e) => {
             // Botão Editar
             const btnEdit = e.target.closest('.btn-edit-icon');
             if (btnEdit) {
+                e.stopPropagation();  // ⭐ Impede que o card expanda
                 const riscoId = btnEdit.dataset.riscoId;
                 const etapaId = btnEdit.dataset.etapaId;
                 const codigo = btnEdit.dataset.codigo;
                 const nome = btnEdit.dataset.nome;
-                ModalRiscoEtapaModule.editar(riscoId, etapaId, codigo, nome, this.auditoriaIdAtual);
+                ModalRiscoEtapaModule.editar(riscoId, etapaId, codigo, nome, EtapasRiscosModule.auditoriaIdAtual);
+                return;  // ⭐ Sair para não verificar outros botões
             }
             
             // Botão Excluir
             const btnDelete = e.target.closest('.btn-delete-icon');
             if (btnDelete) {
+                e.stopPropagation();  // ⭐
                 const riscoId = btnDelete.dataset.riscoId;
                 const nomeRisco = btnDelete.dataset.nomeRisco;
                 const etapaId = btnDelete.dataset.etapaId;
                 const codigo = btnDelete.dataset.codigo;
                 const nome = btnDelete.dataset.nome;
-                ModalRiscoEtapaModule.excluir(riscoId, nomeRisco, etapaId, codigo, nome, this.auditoriaIdAtual);
+                ModalRiscoEtapaModule.excluir(riscoId, nomeRisco, etapaId, codigo, nome, EtapasRiscosModule.auditoriaIdAtual);
+                return;
             }
             
             // Botão Toggle Status
             const btnToggle = e.target.closest('.btn-toggle-status');
             if (btnToggle) {
+                e.stopPropagation();  // ⭐
                 const riscoId = btnToggle.dataset.riscoId;
                 const novoStatus = btnToggle.dataset.novoStatus === 'true';
                 const etapaId = btnToggle.dataset.etapaId;
                 const codigo = btnToggle.dataset.codigo;
                 const nome = btnToggle.dataset.nome;
-                this.alternarStatusRisco(riscoId, novoStatus, etapaId, codigo, nome);
+                EtapasRiscosModule.alternarStatusRisco(riscoId, novoStatus, etapaId, codigo, nome);
+                return;
             }
         });
     },
@@ -255,101 +260,68 @@ const EtapasRiscosModule = {
                 const consequencia = (risco.consequencia || '').toUpperCase();
 
                 riscosHtml += `
-                    <div class="risco-card ${badgeClass}" data-risco-id="${risco.id}">
-                        <div class="risco-header">
-                            <div class="risco-info">
-                                <span class="risco-icon">${badgeIcon}</span>
-                                <strong class="risco-nome">${escapeHtml(risco.nome_risco)}</strong>
-                                <span class="risco-score">Magnitude: ${risco.magnitude}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="risco-actions">
-                                <button class="btn-edit-icon" data-risco-id="${risco.id}" data-etapa-id="${etapaId}" data-codigo="${codigoEtapa}" data-nome="${escapeHtml(nomeEtapa)}">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
-                                <button class="btn-delete-icon" data-risco-id="${risco.id}" data-nome-risco="${escapeHtml(risco.nome_risco)}" data-etapa-id="${etapaId}" data-codigo="${codigoEtapa}" data-nome="${escapeHtml(nomeEtapa)}">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                                <button class="btn-toggle-status" data-risco-id="${risco.id}" data-novo-status="${!isAtivo}" data-etapa-id="${etapaId}" data-codigo="${codigoEtapa}" data-nome="${escapeHtml(nomeEtapa)}">
-                                    <i class="fas ${toggleIcon}"></i>
-                                </button>
-                            </div>
+                    <div class="risco-mini-card ${badgeClass}" data-risco-id="${risco.id}" 
+                        onclick="EtapasRiscosModule.toggleDetalhesRisco(this)" 
+                        title="Clique para ver detalhes">
+                        
+                        <!-- Indicador de severidade + nome -->
+                        <div class="mini-card-top">
+                            <span class="mini-icone">${badgeIcon}</span>
+                            <span class="mini-nome">${escapeHtml(risco.nome_risco)}</span>
                         </div>
-                        <div class="risco-detalhes">
-                            ${risco.categoria ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Categorias:</span>
-                                <div class="detalhe-valor tags-container">${categoriasHtml || '-'}</div>
+                        
+                        <!-- Magnitude + Status -->
+                        <div class="mini-card-middle">
+                            <span class="mini-magnitude">Magnitude: ${risco.magnitude}</span>
+                            ${statusBadge}
+                        </div>
+                        
+                        <!-- Categorias (resumido) -->
+                        ${categoriasLista.length > 0 ? `
+                        <div class="mini-card-tags">
+                            ${categoriasLista.slice(0, 2).map(cat => 
+                                `<span class="risco-categoria-tag">${escapeHtml(cat)}</span>`
+                            ).join('')}
+                            ${categoriasLista.length > 2 ? `<span class="mini-mais-tags">+${categoriasLista.length - 2}</span>` : ''}
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Botões de ação -->
+                        <div class="mini-card-actions">
+                            <button class="btn-edit-icon" 
+                                data-risco-id="${risco.id}" data-etapa-id="${etapaId}" 
+                                data-codigo="${codigoEtapa}" data-nome="${escapeHtml(nomeEtapa)}" 
+                                title="Editar">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button class="btn-delete-icon" 
+                                data-risco-id="${risco.id}" data-nome-risco="${escapeHtml(risco.nome_risco)}" 
+                                data-etapa-id="${etapaId}" data-codigo="${codigoEtapa}" 
+                                data-nome="${escapeHtml(nomeEtapa)}" title="Excluir">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <button class="btn-toggle-status" 
+                                data-risco-id="${risco.id}" data-novo-status="${!isAtivo}" 
+                                data-etapa-id="${etapaId}" data-codigo="${codigoEtapa}" 
+                                data-nome="${escapeHtml(nomeEtapa)}" title="${isAtivo ? 'Desativar' : 'Ativar'}">
+                                <i class="fas ${toggleIcon}"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Detalhes (escondidos por padrão, mostram ao clicar) -->
+                        <div class="mini-card-detalhes" style="display: none;">
+                            <div class="mini-detalhe-grid">
+                                ${risco.categoria ? `<div class="mini-detalhe"><strong>Categorias:</strong> ${categoriasHtml}</div>` : ''}
+                                ${risco.causas && risco.causas.length > 0 ? `<div class="mini-detalhe"><strong>Causas:</strong> ${causasHtml}</div>` : ''}
+                                <div class="mini-detalhe"><strong>Fator de Risco:</strong> ${escapeHtml(fatorRisco) || '-'}</div>
+                                <div class="mini-detalhe"><strong>Consequência:</strong> ${escapeHtml(consequencia) || '-'}</div>
+                                <div class="mini-detalhe"><strong>Origem:</strong> ${escapeHtml(origem) || '-'}</div>
+                                <div class="mini-detalhe"><strong>Impacto:</strong> ${impacto} | <strong>Prob:</strong> ${probabilidade}</div>
+                                <div class="mini-detalhe"><strong>Motivo:</strong> ${escapeHtml(risco.motivo_classificacao || '').toUpperCase() || '-'}</div>
+                                <div class="mini-detalhe"><strong>Apetite:</strong> I: ${escapeHtml(risco.impacto_aceitavel || '-')} | P: ${escapeHtml(risco.probabilidade_aceitavel || '-')}</div>
+                                ${risco.tratamento ? `<div class="mini-detalhe"><strong>Tratamento:</strong> ${tratamento}</div>` : ''}
+                                ${risco.financeiro !== null ? `<div class="mini-detalhe"><strong>Financeiro:</strong> ${risco.financeiro ? 'SIM' : 'NÃO'}</div>` : ''}
                             </div>
-                            ` : ''}
-                            ${risco.causas && risco.causas.length > 0 ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Causas:</span>
-                                <div class="detalhe-valor tags-container">${causasHtml || '-'}</div>
-                            </div>
-                            ` : ''}
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Fator de Risco:</span>
-                                <span class="detalhe-valor">${escapeHtml(fatorRisco) || '-'}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Consequência:</span>
-                                <span class="detalhe-valor">${escapeHtml(consequencia) || '-'}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Origem:</span>
-                                <span class="detalhe-valor">${escapeHtml(origem) || '-'}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Impacto Financeiro:</span>
-                                <span class="detalhe-valor">${impacto}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Probabilidade:</span>
-                                <span class="detalhe-valor">${probabilidade}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Motivo da Classificação:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.motivo_classificacao || '').toUpperCase() || '-'}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Impacto Financeiro do Apetite:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.impacto_aceitavel || '').toUpperCase() || '-'}</span>
-                            </div>
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Probabilidade do Apetite:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.probabilidade_aceitavel || '').toUpperCase() || '-'}</span>
-                            </div>
-                            ${risco.tratamento ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Tratamento:</span>
-                                <span class="detalhe-valor">${tratamento}</span>
-                            </div>
-                            ` : ''}
-                            ${risco.desc_tratamento ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Descrição do Tratamento:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.desc_tratamento || '').toUpperCase() || '-'}</span>
-                            </div>
-                            ` : ''}
-                            ${risco.info_adicional ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Informações Adicionais:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.info_adicional || '').toUpperCase() || '-'}</span>
-                            </div>
-                            ` : ''}
-                            ${risco.financeiro !== null ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Impacta Financeiramente:</span>
-                                <span class="detalhe-valor">${risco.financeiro ? 'SIM' : 'NÃO'}</span>
-                            </div>
-                            ` : ''}
-                            ${risco.prazo_implantacao ? `
-                            <div class="risco-detalhe">
-                                <span class="detalhe-label">Prazo para Implantação:</span>
-                                <span class="detalhe-valor">${escapeHtml(risco.prazo_implantacao || '').toUpperCase() || '-'}</span>
-                            </div>
-                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -473,6 +445,20 @@ const EtapasRiscosModule = {
         } catch (error) {
             console.error('❌ Erro ao alterar status:', error);
             window.mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
+        }
+    },
+
+    toggleDetalhesRisco(card) {
+        // Pega a div de detalhes dentro do card clicado
+        const detalhes = card.querySelector('.mini-card-detalhes');
+        
+        if (detalhes) {
+            // Se está escondido, mostra. Se está visível, esconde.
+            if (detalhes.style.display === 'none') {
+                detalhes.style.display = 'block';
+            } else {
+                detalhes.style.display = 'none';
+            }
         }
     },
 
