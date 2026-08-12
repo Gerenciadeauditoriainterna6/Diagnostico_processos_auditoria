@@ -336,41 +336,7 @@
     cursor: pointer;
 }
 
-/* Botão Cancelar (vermelho) - mesmo padrão do areas.html */
-.btn-cancelar-modal {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-}
 
-.btn-cancelar-modal:hover {
-    background: #c82333;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* Botão Salvar Risco (verde) - mesmo padrão do areas.html */
-.btn-salvar-risco {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.btn-salvar-risco:hover {
-    background: #218838;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
 
 /* ===== MODAL DE VISUALIZAÇÃO DE RISCO - CORREÇÃO DEFINITIVA ===== */
 #modal-visualizar-risco {

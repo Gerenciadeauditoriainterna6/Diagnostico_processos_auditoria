@@ -270,7 +270,7 @@ def api_upload_anexo(processo_id):
     nome_unico = f"{uuid.uuid4()}.{extensao}" if extensao else str(uuid.uuid4())
     
     # Caminho no storage
-    caminho = f"processo_{processo_id}/{nome_unico}"
+    caminho = f"processo_id_{processo_id}/{nome_unico}"
     
     # Upload
     url = upload_arquivo_storage(arquivo, caminho, 'fluxo_processo', arquivo.content_type)
