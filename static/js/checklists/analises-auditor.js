@@ -329,6 +329,310 @@ export function setupFileUploadEvidenciaAuditor() {
 }
 
 // ============================================================
+// FUNÇÕES DE RISCOS E CONTROLES
+// ============================================================
+
+export function renderizarRiscosControles(analise) {
+    const riscosControles = analise.riscos_controles || [];
+    
+    if (riscosControles.length === 0) {
+        return `
+            <div style="text-align: center; padding: 15px; color: #999; font-size: 13px;">
+                Nenhum risco ou controle registrado nesta análise.
+            </div>
+        `;
+    }
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">';
+    
+    riscosControles.forEach((item, index) => {
+        html += `
+            <div style="background: #fafbfc; border: 1px solid #e8ecf0; border-radius: 10px; padding: 12px 15px;">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+                    <!-- ⭐ ICONE NO LUGAR DO R1, R2... -->
+                    <i class="fas fa-exclamation-triangle" style="color: #fd6a14; font-size: 14px; margin-top: 2px; flex-shrink: 0;"></i>
+                    <span style="font-size: 13px; color: #333; font-weight: 500;">${escapeHtml(item.risco)}</span>
+                </div>
+                ${item.controles && item.controles.length > 0 ? `
+                    <div style="margin-left: 24px; display: flex; flex-direction: column; gap: 4px;">
+                        ${item.controles.map((controle) => `
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555;">
+                                <i class="fas fa-shield-alt" style="color: #0b5b99; font-size: 10px;"></i>
+                                <span>${escapeHtml(controle)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div style="margin-left: 24px; font-size: 11px; color: #999; font-style: italic;">Nenhum controle sugerido</div>
+                `}
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+export function toggleEditorRiscos(analiseId) {
+    const editorDiv = document.getElementById(`editor-riscos-${analiseId}`);
+    if (!editorDiv) return;
+    
+    if (editorDiv.style.display === 'block') {
+        editorDiv.style.display = 'none';
+        return;
+    }
+    
+    const analise = analisesAuditorList.find(a => a.id === analiseId);
+    if (!analise) return;
+    
+    const riscosControles = analise.riscos_controles || [];
+    
+    let html = `
+        <div style="background: #fafbfc; border-radius: 10px; padding: 15px; border: 1px solid #e8ecf0;">
+            <h5 style="margin-bottom: 12px; color: #184145;">Editar Riscos e Controles</h5>
+            <div id="lista-riscos-${analiseId}">
+    `;
+    
+    if (riscosControles.length === 0) {
+        html += `<div style="text-align: center; color: #999; padding: 10px; font-size: 13px;">Nenhum risco cadastrado. Adicione abaixo.</div>`;
+    }
+    
+    html += `
+            </div>
+            <button class="btn-adicionar-risco" data-analise="${analiseId}" style="margin-top: 10px; background: #fd6a14; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                <i class="fas fa-plus"></i> Adicionar Risco
+            </button>
+            <div style="margin-top: 15px; text-align: right; border-top: 1px solid #e0e0e0; padding-top: 12px;">
+                <button class="btn-cancelar-editor" data-analise="${analiseId}" style="background: #6c757d; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-right: 8px;">
+                    Cancelar
+                </button>
+                <button class="btn-salvar-riscos" data-analise="${analiseId}" style="background: #184145; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    editorDiv.innerHTML = html;
+    editorDiv.style.display = 'block';
+    
+    // ⭐ Vincular botões principais (só uma vez)
+    const btnAddRisco = editorDiv.querySelector('.btn-adicionar-risco');
+    if (btnAddRisco) btnAddRisco.addEventListener('click', () => adicionarRisco(analiseId));
+    
+    const btnCancelar = editorDiv.querySelector('.btn-cancelar-editor');
+    if (btnCancelar) btnCancelar.addEventListener('click', () => toggleEditorRiscos(analiseId));
+    
+    const btnSalvar = editorDiv.querySelector('.btn-salvar-riscos');
+    if (btnSalvar) btnSalvar.addEventListener('click', () => salvarRiscosControles(analiseId));
+    
+    // ⭐ Preencher riscos existentes (cada um vincula seus próprios eventos)
+    riscosControles.forEach((item, index) => {
+        adicionarRiscoNaLista(analiseId, index, item.risco, item.controles || []);
+    });
+    
+    // ❌ REMOVA TODO O BLOCO ABAIXO (duplicação):
+    // editorDiv.querySelectorAll('.btn-remover-risco')...
+    // editorDiv.querySelectorAll('.btn-adicionar-controle')...
+    // editorDiv.querySelectorAll('.btn-remover-controle')...
+}
+
+export function adicionarRisco(analiseId) {
+    if (!window.contadorRiscosTemp) window.contadorRiscosTemp = {};
+    if (!window.contadorRiscosTemp[analiseId]) window.contadorRiscosTemp[analiseId] = 0;
+    const index = window.contadorRiscosTemp[analiseId];
+    window.contadorRiscosTemp[analiseId]++;
+    adicionarRiscoNaLista(analiseId, index, '', []);
+}
+
+export function adicionarRiscoNaLista(analiseId, index, riscoTexto, controles) {
+    const lista = document.getElementById(`lista-riscos-${analiseId}`);
+    if (!lista) return;
+    
+    const emptyMsg = lista.querySelector('div[style*="color: #999"]');
+    if (emptyMsg) emptyMsg.remove();
+    
+    if (!window.contadorRiscosTemp) window.contadorRiscosTemp = {};
+    if (!window.contadorRiscosTemp[analiseId] || window.contadorRiscosTemp[analiseId] <= index) {
+        window.contadorRiscosTemp[analiseId] = index + 1;
+    }
+    
+    const div = document.createElement('div');
+    div.id = `risco-item-${analiseId}-${index}`;
+    div.dataset.riscoIndex = index;
+    div.style.cssText = 'background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;';
+    div.innerHTML = `
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+            <i class="fas fa-exclamation-triangle" style="color: #fd6a14; font-size: 14px; flex-shrink: 0;"></i>
+            <input type="text" class="risco-input" data-analise="${analiseId}" data-index="${index}" 
+                placeholder="Descreva o risco identificado..." 
+                value="${escapeHtml(riscoTexto)}"
+                style="flex: 1; padding: 6px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px;">
+            <button class="btn-remover-risco" data-analise="${analiseId}" data-index="${index}" 
+                style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 14px;">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+        <div id="controles-risco-${analiseId}-${index}" class="controles-container" 
+            data-analise="${analiseId}" data-risco="${index}" 
+            style="margin-left: 24px;">
+            ${controles.map((c, cIndex) => `
+                <div class="controle-item" data-controle="${cIndex}" style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
+                    <i class="fas fa-shield-alt" style="color: #0b5b99; font-size: 10px;"></i>
+                    <input type="text" class="controle-input" data-analise="${analiseId}" data-risco="${index}" data-controle="${cIndex}"
+                        value="${escapeHtml(c)}"
+                        placeholder="Descreva o controle sugerido..."
+                        style="flex: 1; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px;">
+                    <button class="btn-remover-controle" data-analise="${analiseId}" data-risco="${index}" data-controle="${cIndex}"
+                        style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 12px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn-adicionar-controle" data-analise="${analiseId}" data-risco="${index}"
+            style="margin-left: 24px; background: none; border: 1px dashed #0b5b99; color: #0b5b99; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+            <i class="fas fa-plus"></i> Controle
+        </button>
+    `;
+    
+    lista.appendChild(div);
+    
+    // ⭐ Vincular eventos
+    const btnRemoverRisco = div.querySelector('.btn-remover-risco');
+    if (btnRemoverRisco) {
+        btnRemoverRisco.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.index);
+            removerRisco(analiseId, idx);
+        });
+    }
+    
+    const btnAddControle = div.querySelector('.btn-adicionar-controle');
+    if (btnAddControle) {
+        btnAddControle.addEventListener('click', function() {
+            const riscoIdx = parseInt(this.dataset.risco);
+            adicionarControle(analiseId, riscoIdx);
+        });
+    }
+    
+    // ⭐ Vincula remover controle
+    div.querySelectorAll('.btn-remover-controle').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const riscoIdx = parseInt(this.dataset.risco);
+            const controleIdx = parseInt(this.dataset.controle);
+            // ⭐ Remove APENAS o elemento pai (o controle específico)
+            this.closest('.controle-item').remove();
+        });
+    });
+}
+
+export function removerRisco(analiseId, index) {
+    const item = document.getElementById(`risco-item-${analiseId}-${index}`);
+    if (item) item.remove();
+}
+
+export function adicionarControle(analiseId, riscoIndex) {
+    const key = `${analiseId}-${riscoIndex}`;
+    if (!window.contadorControlesTemp) window.contadorControlesTemp = {};
+    if (!window.contadorControlesTemp[key]) window.contadorControlesTemp[key] = 0;
+    const cIndex = window.contadorControlesTemp[key];
+    window.contadorControlesTemp[key]++;
+    
+    const container = document.getElementById(`controles-risco-${analiseId}-${riscoIndex}`);
+    if (!container) return;
+    
+    const div = document.createElement('div');
+    div.className = 'controle-item';
+    div.dataset.controle = cIndex;  // ⭐ data-controle (não data-controle-index)
+    div.style.cssText = 'display: flex; gap: 6px; align-items: center; margin-bottom: 4px;';
+    div.innerHTML = `
+        <i class="fas fa-shield-alt" style="color: #0b5b99; font-size: 10px;"></i>
+        <input type="text" class="controle-input" data-analise="${analiseId}" data-risco="${riscoIndex}" data-controle="${cIndex}"
+            placeholder="Descreva o controle sugerido..."
+            style="flex: 1; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px;">
+        <button class="btn-remover-controle" data-analise="${analiseId}" data-risco="${riscoIndex}" data-controle="${cIndex}"
+            style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 12px;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    container.appendChild(div);
+    
+    // ⭐ Vincula remover - remove APENAS o próprio controle
+    const btnRemover = div.querySelector('.btn-remover-controle');
+    if (btnRemover) {
+        btnRemover.addEventListener('click', function() {
+            // Remove apenas o elemento pai (o controle específico)
+            this.closest('.controle-item').remove();
+        });
+    }
+}
+
+export function removerControle(analiseId, riscoIndex, controleIndex) {
+    const container = document.getElementById(`controles-risco-${analiseId}-${riscoIndex}`);
+    if (!container) return;
+    
+    // ⭐ Buscar TODOS os controles deste risco
+    const controles = container.querySelectorAll('.controle-item');
+    
+    // ⭐ Encontrar o controle específico pelo data-controle
+    controles.forEach(controle => {
+        if (controle.dataset.controleIndex === String(controleIndex)) {
+            controle.remove();
+        }
+    });
+}
+
+export async function salvarRiscosControles(analiseId) {
+    console.log('💾 Salvando riscos e controles da análise:', analiseId);
+    
+    const riscosContainer = document.getElementById(`lista-riscos-${analiseId}`);
+    if (!riscosContainer) return;
+    
+    const riscos = [];
+    const riscoInputs = riscosContainer.querySelectorAll('.risco-input');
+    
+    riscoInputs.forEach(input => {
+        const riscoTexto = input.value.trim();
+        const riscoIndex = input.dataset.index;
+        if (!riscoTexto) return;
+        
+        const controlesContainer = document.getElementById(`controles-risco-${analiseId}-${riscoIndex}`);
+        const controles = [];
+        
+        if (controlesContainer) {
+            controlesContainer.querySelectorAll('.controle-input').forEach(cInput => {
+                const controleTexto = cInput.value.trim();
+                if (controleTexto) controles.push(controleTexto);
+            });
+        }
+        
+        riscos.push({ risco: riscoTexto, controles: controles });
+    });
+    
+    try {
+        const response = await fetchComAutenticacao(`/api/analise-auditor/${analiseId}/riscos-controles`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ riscos_controles: riscos })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarToast('✅ Riscos e controles salvos!', 'success');
+            toggleEditorRiscos(analiseId);
+            await carregarAnalisesAuditor();
+        } else {
+            mostrarToast('❌ Erro: ' + (data.error || 'Tente novamente'), 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        mostrarToast('❌ Erro de conexão', 'error');
+    }
+}
+
+// ============================================================
 // ANÁLISES DO AUDITOR - RENDERIZAÇÃO
 // ============================================================
 
@@ -508,6 +812,18 @@ export async function renderizarAnalisesAuditor() {
                     </div>
                 </div>
                 ` : ''}
+
+                <!-- ⭐ NOVA SEÇÃO: Riscos e Controles -->
+                <div class="analise-card-section" style="border-left: 3px solid #fd6a14; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0;"><i class="fas fa-exclamation-triangle"></i> Riscos Identificados e Controles Sugeridos</h4>
+                        <button class="btn-primary" onclick="event.stopPropagation(); window.toggleEditorRiscos(${analise.id})" style="font-size: 12px; padding: 6px 12px;">
+                            <i class="fas fa-plus"></i> Gerenciar
+                        </button>
+                    </div>
+                    ${renderizarRiscosControles(analise)}
+                    <div id="editor-riscos-${analise.id}" style="display: none; margin-top: 12px;"></div>
+                </div>
 
             </div>
         </div>`;

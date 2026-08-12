@@ -6,6 +6,7 @@ from database import engine
 from sqlalchemy import text
 from utils import upload_arquivo_storage, excluir_arquivo_storage, extrair_caminho_da_url
 import base64
+import json
 import uuid
 from datetime import datetime
 import io
@@ -900,4 +901,34 @@ def api_remover_evidencia_analise_auditado(analise_id):
         print(f"❌ Erro ao remover evidência: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@analise_bp.route('/analise-auditor/<int:analise_id>/riscos-controles', methods=['PUT'])
+def api_salvar_riscos_controles(analise_id):
+    """Salva os riscos e controles de uma análise do auditor"""
+    from flask import jsonify, request, session
+    import json
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    riscos_controles = data.get('riscos_controles', [])
+    
+    try:
+        # Chama o service para atualizar
+        resultado = AnaliseService.atualizar(analise_id, {
+            'riscos_controles': json.dumps(riscos_controles)
+        })
+        
+        if resultado:
+            return jsonify({
+                'success': True,
+                'message': 'Riscos e controles salvos com sucesso'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Análise não encontrada'}), 404
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar riscos/controles: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

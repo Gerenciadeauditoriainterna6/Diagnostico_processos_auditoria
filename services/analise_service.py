@@ -10,7 +10,7 @@ class AnaliseService:
     CAMPOS_PERMITIDOS = [
         'analise_critica', 'sugestao_melhoria', 'necessidade_implantacao',
         'ganho_previsto', 'observacoes', 'sugestao_sera_implantada',
-        'plano_de_acao_implantado', 'data_execucao_plano_acao', 'status'
+        'plano_de_acao_implantado', 'data_execucao_plano_acao', 'status', 'riscos_controles'
     ]
     
     @staticmethod
@@ -48,7 +48,8 @@ class AnaliseService:
                     ep.codigo_etapa,
                     ep.nome_etapa,
                     ac.evidencia_url,
-                    ac.evidencia_nome
+                    ac.evidencia_nome,
+                    ac.riscos_controles
                 FROM analises_criticas ac
                 LEFT JOIN etapas_processo ep ON ac.etapa_id = ep.id
                 WHERE ac.processo_id = :processo_id
@@ -71,7 +72,7 @@ class AnaliseService:
                         'tamanho_bytes': 0,  # Não temos essa info
                         'content_type': 'application/pdf'  # Assumindo PDF
                     })
-                
+                import json
                 analises.append({
                     'id': row[0],
                     'processo_id': row[1],
@@ -94,7 +95,9 @@ class AnaliseService:
                     'nome_etapa': row[18] or '',
                     'evidencia_url': row[19],  # ⭐ MANTER PARA COMPATIBILIDADE
                     'evidencia_nome': row[20],  # ⭐ MANTER PARA COMPATIBILIDADE
-                    'evidencias': evidencias  # ⭐ NOVO: ARRAY DE EVIDÊNCIAS
+                    'evidencias': evidencias, # ⭐ NOVO: ARRAY DE EVIDÊNCIAS
+                    # Se já for lista, usa direto. Se for string JSON, converte.
+                    'riscos_controles': row[21] if isinstance(row[21], list) else (json.loads(row[21]) if row[21] else [])
                 })
             
             return analises
@@ -186,7 +189,7 @@ class AnaliseService:
                     sugestao_sera_implantada, plano_de_acao_implantado,
                     data_execucao_plano_acao, status,
                     created_by, created_at, updated_at,
-                    evidencia_url, evidencia_nome
+                    evidencia_url, evidencia_nome, riscos_controles
                 FROM analises_criticas
                 WHERE id = :id
             """)
@@ -195,7 +198,8 @@ class AnaliseService:
             
             if not result:
                 return None
-            
+
+            import json
             return {
                 'id': result[0],
                 'processo_id': result[1],
@@ -215,7 +219,8 @@ class AnaliseService:
                 'created_at': result[15].isoformat() if result[15] else None,
                 'updated_at': result[16].isoformat() if result[16] else None,
                 'evidencia_url': result[17],
-                'evidencia_nome': result[18]
+                'evidencia_nome': result[18],
+                'riscos_controles': result[19] if isinstance(result[19], list) else (json.loads(result[19]) if result[19] else [])
             }
     
     @classmethod

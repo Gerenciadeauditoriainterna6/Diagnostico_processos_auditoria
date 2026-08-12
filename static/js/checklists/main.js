@@ -45,6 +45,17 @@ import {
     removerEvidenciaAnaliseAuditor
 } from './analises-auditor.js';
 
+import * as analisesAuditor from './analises-auditor.js';
+
+window.toggleEditorRiscos = analisesAuditor.toggleEditorRiscos;
+window.adicionarRisco = analisesAuditor.adicionarRisco;
+window.adicionarRiscoNaLista = analisesAuditor.adicionarRiscoNaLista;
+window.removerRisco = analisesAuditor.removerRisco;
+window.adicionarControle = analisesAuditor.adicionarControle;
+window.removerControle = analisesAuditor.removerControle;
+window.salvarRiscosControles = analisesAuditor.salvarRiscosControles;
+window.renderizarRiscosControles = analisesAuditor.renderizarRiscosControles;
+
 import { 
     salvarHistoricoAndamento,
     salvarFollowUp,
