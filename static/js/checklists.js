@@ -4,7 +4,7 @@ let arquivoSelecionadoAuditor = null;
 let anexoExistenteNomeAuditor = null;  
 let auditoriaIdAtual = null;
 let processoIdAtual = null;
-let analisesAuditorList = [];
+
 
 // Variáveis para análises do auditado
 let analisesAuditadoList = [];
@@ -61,14 +61,6 @@ function converterParaBase64(file) {
         reader.readAsDataURL(file);
     });
 }
-
-
-
-
-
-
-
-
 
 // ============================================================
 // ABRIR MODAL - NOVA ANÁLISE DO AUDITADO
@@ -1967,176 +1959,6 @@ window.fecharModalAnaliseAuditado = function() {
 
 
 
-
-
-// ============================================================
-// ANÁLISES DO AUDITOR - RENDERIZAÇÃO
-// ============================================================
-
-async function renderizarAnalisesAuditor() {
-    const container = document.getElementById('analises-auditor-container');
-    
-    if (analisesAuditorList.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditor cadastrada.<br><br>
-            <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()"><i class="fas fa-plus"></i> Nova Análise</button></div>`;
-        return;
-    }
-    
-    const analisesComDados = [];
-    for (const analise of analisesAuditorList) {
-        const historico = await carregarHistoricoAndamento(analise.id);
-        const followUps = await carregarFollowUps(analise.id);
-        analisesComDados.push({ ...analise, historico, followUps });
-    }
-    
-    let html = '';
-    analisesComDados.forEach((analise, index) => {
-        const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
-        const prazoExpirado = analise.sugestao_sera_implantada === true &&
-                            !analise.plano_de_acao_implantado && 
-                            analise.data_conclusao_prevista && 
-                            new Date(analise.data_conclusao_prevista) < new Date();
-        
-        // ⭐ NOVO: Verificar se tem evidências
-        const temEvidencia = analise.evidencias && analise.evidencias.length > 0;
-        
-        // ⭐⭐⭐ MELHORIA: Verificar se TEM sugestão de melhoria ⭐⭐⭐
-        const valoresSemSugestao = ['', ' ', 'null', 'undefined', 'inexistente', 'INEXISTENTE', 'não se aplica', 'NÃO SE APLICA', 'NÃO APLICÁVEL NO MOMENTO'];
-        const temSugestaoMelhoria = analise.sugestao_melhoria && 
-                                typeof analise.sugestao_melhoria === 'string' && 
-                                !valoresSemSugestao.includes(analise.sugestao_melhoria.trim().toLowerCase());
-        
-        // ⭐ BADGE - APENAS SE HOUVER SUGESTÃO DE MELHORIA
-        let badgeHtml = '';
-        if (temSugestaoMelhoria) {
-            if (analise.sugestao_sera_implantada === true) {
-                badgeHtml = '<span class="analise-auditor-badge badge-implantada"><i class="fas fa-check-circle"></i>Sugestão de melhoria será implantada</span>';
-            } else if (analise.sugestao_sera_implantada === false) {
-                badgeHtml = '<span class="analise-auditor-badge badge-nao-implantada"><i class="fas fa-times-circle"></i> Sugestão de melhoria não será implantada</span>';
-            } else {
-                // Só mostra "aguardando avaliação" se tiver sugestão
-                badgeHtml = '<span class="analise-auditor-badge badge-pendente"><i class="fas fa-clock"></i> Sugestão de melhorias aguardando avaliação</span>';
-            }
-        }
-        // Se não tiver sugestão ou for "NÃO APLICÁVEL NO MOMENTO", badgeHtml permanece vazio
-        
-        html += `<div class="analise-auditor-card" data-analise-id="${analise.id}">
-            <div class="analise-auditor-header" onclick="toggleAnaliseAuditorCard(this)">
-                <div class="analise-auditor-header-left">
-                    <span class="analise-auditor-titulo"><i class="fas fa-file-alt"></i> Análise ${index + 1}</span>
-                    <span class="analise-auditor-data"><i class="far fa-calendar-alt"></i> ${new Date(analise.created_at).toLocaleDateString('pt-BR')}</span>
-                    ${badgeHtml}
-                    ${temEvidencia ? '<span style="color: #0b5b99; font-size: 12px;"><i class="fas fa-paperclip"></i> Evidência</span>' : ''}
-                </div>
-                <div class="analise-auditor-actions" onclick="event.stopPropagation()">
-                    <button class="btn-edit-analise-auditor" onclick="editarAnaliseAuditor(${analise.id})" title="Editar análise"><i class="fas fa-pencil-alt"></i></button>
-                    <button class="btn-delete-analise-auditor" onclick="excluirAnaliseAuditor(${analise.id})" title="Excluir análise"><i class="fas fa-trash-alt"></i></button>
-                    <i class="fas fa-chevron-down" style="color: white; margin-left: 5px;"></i>
-                </div>
-            </div>
-            <div class="analise-auditor-body">
-                <div class="analise-grid">
-                    <div class="analise-card-section"><h4><i class="fas fa-clipboard-list"></i> Ponto de Auditoria</h4><div class="analise-texto">${escapeHtml(analise.analise_critica) || '-'}</div></div>
-                    <div class="analise-card-section"><h4><i class="fas fa-lightbulb"></i> Sugestão de Melhoria</h4><div class="analise-texto">${escapeHtml(analise.sugestao_melhoria) || '-'}</div></div>
-                </div>
-                
-                <!-- ⭐ NOVO: Exibir evidências -->
-                ${temEvidencia ? `
-                <div class="analise-card-section" style="margin-top: 20px; border-left: 3px solid #0b5b99; background: #f0f7ff;">
-                    <h4><i class="fas fa-paperclip"></i> Evidências da Análise</h4>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
-                        ${analise.evidencias.map(ev => `
-                            <div style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                                <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
-                                <span style="font-size: 13px;">${escapeHtml(ev.nome_arquivo)}</span>
-                                <button class="btn-download-anexo" onclick="event.stopPropagation(); baixarEvidenciaAnaliseAuditor(${ev.id}, '${escapeHtml(ev.nome_arquivo)}')" style="padding: 4px 10px; font-size: 11px; background: #0b5b99; border-radius: 6px; border: none; color: white; cursor: pointer;">
-                                    <i class="fas fa-download"></i>
-                                </button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${analise.plano ? `
-                <div class="analise-card-section plano-acao-card">
-                    <h4><i class="fas fa-clipboard-check"></i> Plano de Ação 5W2H</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; background: white; padding: 12px; border-radius: 8px;">
-                        <div><strong>O que?</strong> ${escapeHtml(analise.plano.oque || '-')}</div>
-                        <div><strong>Por que?</strong> ${escapeHtml(analise.plano.por_que || '-')}</div>
-                        <div><strong>Onde?</strong> ${escapeHtml(analise.plano.onde || '-')}</div>
-                        <div><strong>Quando?</strong> ${analise.plano.data_prevista ? formatarData(analise.plano.data_prevista) : '-'}</div>
-                        <div><strong>Quem?</strong> ${escapeHtml(analise.plano.quem || '-')}</div>
-                        <div><strong>Como?</strong> ${escapeHtml(analise.plano.como || '-')}</div>
-                    </div>
-                    ${analise.plano.comentario ? `
-                        <div style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px; font-size: 12px; color: #666;">
-                            <strong>Comentário:</strong> ${escapeHtml(analise.plano.comentario)}
-                        </div>
-                    ` : ''}
-                    ${analise.plano.quanto_custa ? `
-                        <div style="margin-top: 8px; font-size: 13px;">
-                            <strong>Quanto custa?</strong> R$ ${parseFloat(analise.plano.quanto_custa).toFixed(2)}
-                        </div>
-                    ` : ''}
-                </div>
-                ` : ''}
-                
-                <div class="analise-grid">
-                    <div class="analise-card-section"><h4><i class="fas fa-tasks"></i> Necessidade para Implantação</h4><div class="analise-texto">${escapeHtml(analise.necessidade_implantacao) || '-'}</div></div>
-                    <div class="analise-card-section"><h4><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
-                </div>
-                ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
-                
-                <!-- ⭐ BOTÃO DE CONFIRMAÇÃO DE IMPLANTAÇÃO -->
-                ${analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado ? `
-                <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99; border-radius: 12px;">
-                    <div style="padding: 15px;">
-                        <i class="fas fa-check-circle" style="color: #0b5b99; font-size: 24px;"></i>
-                        <p style="margin: 10px 0; color: #0b5b99; font-weight: 500;">Esta melhoria está aguardando confirmação de implantação</p>
-                        <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="background: #0b5b99; border-radius: 30px;">
-                            <i class="fas fa-check-circle"></i> Confirmar Implantação
-                        </button>
-                    </div>
-                </div>
-                ` : ''}
-                
-                <!-- ⭐ BOTÃO DE PRAZO EXPIRADO -->
-                ${prazoExpirado ? `
-                <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 12px;">
-                    <div style="padding: 15px;">
-                        <i class="fas fa-clock" style="color: #856404; font-size: 24px;"></i>
-                        <p style="margin: 10px 0; color: #856404; font-weight: 500;">Prazo de implantação expirado em ${formatarData(analise.data_conclusao_prevista)}</p>
-                        <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="background: #856404; border-radius: 30px;">
-                            <i class="fas fa-check-circle"></i> Confirmar Situação
-                        </button>
-                    </div>
-                </div>
-                ` : ''}
-                
-                <!-- ⭐ FOLLOW-UPS (APENAS SE IMPLANTADA) -->
-                ${analise.plano_de_acao_implantado === true ? `
-                <div class="analise-card-section" style="margin-top: 20px;">
-                    <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
-                    <div class="followups-container">
-                        ${renderizarListaFollowUps(analise.followUps)}
-                    </div>
-                </div>
-                ` : ''}
-                
-                <div class="analise-card-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h4><i class="fas fa-history"></i> Histórico de Andamento</h4>
-                        ${analise.sugestao_sera_implantada === true ? `<button class="btn-registrar-andamento" onclick="event.stopPropagation(); abrirModalHistoricoAndamento(${analise.id})"><i class="fas fa-plus"></i> Registrar</button>` : ''}
-                    </div>
-                    <div class="historico-container">${renderizarListaHistorico(analise.historico)}</div>
-                </div>
-            </div>
-        </div>`;
-    });
-    container.innerHTML = html;
-}
-
 function renderizarListaHistorico(historico) {
     if (!historico || historico.length === 0) return '<div style="color: #999; font-size: 12px; text-align: center; padding: 10px;">Nenhum registro de andamento</div>';
     let html = '';
@@ -2584,44 +2406,7 @@ async function criarFollowUpsAutomaticos(analiseId, dataImplantacaoEfetiva) {
     } catch (error) { console.error('❌ Erro ao criar follow-ups:', error); }
 }
 
-// ============================================================
-// CARREGAR ANÁLISES DO AUDITOR
-// ============================================================
 
-async function carregarAnalisesAuditor() {
-    if (!processoIdAtual) return;
-    const container = document.getElementById('analises-auditor-container');
-    container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin"></i> Carregando análises...</div>';
-    try {
-        const response = await fetchComAutenticacao(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
-        const data = await response.json();
-        if (data.success && data.analises && data.analises.length > 0) {
-            // ⭐ BUSCAR PLANO DE AÇÃO PARA CADA ANÁLISE
-            for (const analise of data.analises) {
-                if (analise.sugestao_sera_implantada === true) {
-                    try {
-                        const planoResponse = await fetchComAutenticacao(`/api/planos-acao/${analise.id}`);
-                        const planoData = await planoResponse.json();
-                        if (planoData.success && planoData.plano) {
-                            analise.plano = planoData.plano;
-                        }
-                    } catch (err) {
-                        console.warn(`⚠️ Erro ao carregar plano da análise ${analise.id}:`, err);
-                    }
-                }
-            }
-            
-            analisesAuditorList = data.analises;
-            renderizarAnalisesAuditor();
-        } else {
-            container.innerHTML = `<div style="text-align: center; padding: 40px; color: #999;">Nenhuma análise do auditor cadastrada.<br><br>
-                <button class="btn-primary" onclick="abrirModalNovaAnaliseAuditor()"><i class="fas fa-plus"></i> Nova Análise</button></div>`;
-        }
-    } catch (error) {
-        console.error('❌ Erro ao carregar análises do auditor:', error);
-        container.innerHTML = `<div class="alert-error">❌ Erro ao carregar análises: ${error.message}</div>`;
-    }
-}
 
 async function salvarAnaliseAuditor() {
     if (!processoIdAtual) {
