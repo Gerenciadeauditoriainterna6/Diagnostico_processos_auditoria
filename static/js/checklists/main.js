@@ -16,6 +16,9 @@ import {
     setAuditoriaId
 } from './estado.js';
 
+import { carregarRiscosMapeados } from './riscos_mapeados.js';
+
+
 import { mostrarToast } from './utils.js';
 
 import { 
@@ -160,6 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await carregarProgressoChecklists();
             await carregarAnalisesAuditado();
             await carregarAnalisesAuditor();
+            await carregarRiscosMapeados();
         } else {
             document.getElementById('conteudo-principal').style.display = 'none';
         }

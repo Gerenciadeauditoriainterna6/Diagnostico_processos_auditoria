@@ -932,3 +932,92 @@ def api_salvar_riscos_controles(analise_id):
     except Exception as e:
         print(f"❌ Erro ao salvar riscos/controles: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@analise_bp.route('/processo/<int:processo_id>/riscos-mapeados', methods=['GET'])
+def api_riscos_mapeados(processo_id):
+    """Retorna riscos das etapas do processo para parecer do auditor"""
+    from flask import jsonify, session
+    from database import engine
+    from sqlalchemy import text
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        with engine.connect() as conn:
+            # Buscar riscos das etapas do processo
+            query = text("""
+                SELECT 
+                    re.id,
+                    re.nome_risco,
+                    re.categoria,
+                    re.fator_risco,
+                    re.consequencia,
+                    re.origem,
+                    re.impacto,
+                    re.probabilidade,
+                    re.magnitude,
+                    re.tratamento,
+                    re.desc_tratamento,
+                    re.parecer_auditor,  -- ⭐ ADICIONAR
+                    ep.id as etapa_id,
+                    ep.codigo_etapa,
+                    ep.nome_etapa
+                FROM riscos_etapa re
+                JOIN etapas_processo ep ON re.etapa_id = ep.id
+                WHERE ep.processo_id = :processo_id
+                AND (re.ativo IS NULL OR re.ativo = true)
+                ORDER BY ep.codigo_etapa, re.id
+            """)
+            riscos_etapas = conn.execute(query, {'processo_id': processo_id}).mappings().fetchall()
+            
+            return jsonify({
+                'success': True,
+                'riscos_etapas': [dict(r) for r in riscos_etapas]
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos mapeados: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@analise_bp.route('/risco-etapa/<int:risco_id>/parecer', methods=['PUT'])
+def api_salvar_parecer_risco(risco_id):
+    """Salva o parecer do auditor sobre um risco de etapa"""
+    from flask import jsonify, request, session
+    from database import engine
+    from sqlalchemy import text
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    parecer = data.get('parecer', '')
+    
+    try:
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE riscos_etapa 
+                SET parecer_auditor = :parecer,
+                    updated_at = NOW()
+                WHERE id = :risco_id
+                RETURNING id
+            """)
+            
+            result = conn.execute(query, {
+                'parecer': parecer,
+                'risco_id': risco_id
+            })
+            
+            if result.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Parecer salvo com sucesso'
+            })
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar parecer: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
