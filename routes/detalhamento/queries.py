@@ -285,3 +285,318 @@ def remover_manual_etapa(etapa_id):
             manual_em_andamento = FALSE, updated_at = NOW() WHERE id = :eid
         """), {'eid': etapa_id})
         conn.commit()
+
+def inserir_risco_etapa(dados):
+    """Insere um novo risco de etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        INSERT INTO riscos_etapa (
+            etapa_id, auditoria_id, nome_risco, categoria,
+            fator_risco, consequencia, impacto, probabilidade,
+            magnitude, impacto_aceitavel,
+            probabilidade_aceitavel, tratamento, origem, causas,
+            desc_tratamento, financeiro, info_adicional, 
+            motivo_classificacao, prazo_implantacao, descricao_prazo, 
+            ativo, created_at
+        ) VALUES (
+            :etapa_id, :auditoria_id, :nome_risco, :categoria,
+            :fator_risco, :consequencia, :impacto, :probabilidade,
+            :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, 
+            :tratamento, :origem, :causas,
+            :desc_tratamento, :financeiro, :info_adicional,
+            :motivo_classificacao, :prazo_implantacao, :descricao_prazo,
+            :ativo, NOW()
+        )
+        RETURNING id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, dados)
+        novo_id = result.fetchone()[0]
+        conn.commit()
+        return novo_id
+
+
+def atualizar_risco_etapa(risco_id, dados):
+    """Atualiza um risco de etapa existente"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        UPDATE riscos_etapa
+        SET nome_risco = :nome_risco,
+            categoria = :categoria,
+            fator_risco = :fator_risco,
+            consequencia = :consequencia,
+            impacto = :impacto,
+            probabilidade = :probabilidade,
+            magnitude = :magnitude,
+            impacto_aceitavel = :impacto_aceitavel,
+            probabilidade_aceitavel = :probabilidade_aceitavel,
+            tratamento = :tratamento,
+            origem = :origem,
+            desc_tratamento = :desc_tratamento,
+            financeiro = :financeiro,
+            info_adicional = :info_adicional,
+            motivo_classificacao = :motivo_classificacao,
+            prazo_implantacao = :prazo_implantacao,
+            descricao_prazo = :descricao_prazo,
+            causas = :causas,
+            ativo = :ativo,
+            updated_at = NOW()
+        WHERE id = :risco_id
+    """)
+    
+    dados['risco_id'] = risco_id
+    
+    with engine.connect() as conn:
+        conn.execute(query, dados)
+        conn.commit()
+        return risco_id
+
+# routes/detalhamento/queries.py
+
+# ⭐ Adicione no final do arquivo:
+
+def buscar_risco_etapa_por_id(risco_id):
+    """Busca um risco de etapa específico pelo ID"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT id, etapa_id, nome_risco, categoria, fator_risco,
+               consequencia, impacto, probabilidade, magnitude,
+               impacto_aceitavel, probabilidade_aceitavel, tratamento, 
+               origem, desc_tratamento, motivo_classificacao, financeiro,
+               info_adicional, ativo, causas, prazo_implantacao
+        FROM riscos_etapa
+        WHERE id = :risco_id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'risco_id': risco_id}).fetchone()
+        
+        if not result:
+            return None
+        
+        return {
+            'id': result[0],
+            'etapa_id': result[1],
+            'nome_risco': result[2] or '',
+            'categoria': result[3] or '',
+            'fator_risco': result[4] or '',
+            'consequencia': result[5] or '',
+            'impacto': result[6] or 'Médio',
+            'probabilidade': result[7] or 'Médio',
+            'magnitude': result[8] or 0,
+            'impacto_aceitavel': result[9] or 'Médio',
+            'probabilidade_aceitavel': result[10] or 'Médio',
+            'tratamento': result[11] or '',
+            'origem': result[12] or '',
+            'desc_tratamento': result[13] or '',
+            'motivo_classificacao': result[14] or '',
+            'financeiro': result[15] or False,
+            'info_adicional': result[16] or '',
+            'ativo': result[17] if result[17] is not None else True,
+            'causas': [c.strip() for c in result[18].split(',')] if result[18] else [],
+            'prazo_implantacao': result[19] or ''
+        }
+
+
+def alternar_status_risco_etapa(risco_id, ativo):
+    """Alterna o status (ativo/inativo) de um risco de etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        UPDATE riscos_etapa 
+        SET ativo = :ativo, updated_at = NOW()
+        WHERE id = :risco_id
+        RETURNING id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {
+            'ativo': ativo,
+            'risco_id': risco_id
+        })
+        
+        if result.rowcount == 0:
+            return False
+        
+        conn.commit()
+        return True
+
+
+def buscar_riscos_etapa(etapa_id, apenas_ativos=True):
+    """
+    Busca riscos de uma etapa
+    
+    Args:
+        etapa_id: ID da etapa
+        apenas_ativos: Se True, retorna apenas riscos ativos. Se False, retorna todos.
+    """
+    from database import engine
+    from sqlalchemy import text
+    
+    if apenas_ativos:
+        query = text("""
+            SELECT id, nome_risco, categoria, fator_risco, consequencia,
+                   impacto, probabilidade, magnitude, impacto_aceitavel, 
+                   probabilidade_aceitavel, tratamento,
+                   origem, desc_tratamento, motivo_classificacao, 
+                   financeiro, info_adicional, ativo, causas, prazo_implantacao
+            FROM riscos_etapa
+            WHERE etapa_id = :etapa_id AND (ativo IS NULL OR ativo = true)
+            ORDER BY id
+        """)
+    else:
+        query = text("""
+            SELECT id, nome_risco, categoria, fator_risco, consequencia,
+                   impacto, probabilidade, magnitude, impacto_aceitavel, 
+                   probabilidade_aceitavel, tratamento,
+                   origem, desc_tratamento, motivo_classificacao, 
+                   financeiro, info_adicional, ativo, causas, prazo_implantacao
+            FROM riscos_etapa
+            WHERE etapa_id = :etapa_id
+            ORDER BY id
+        """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'etapa_id': etapa_id}).fetchall()
+        
+        riscos = []
+        for row in result:
+            riscos.append({
+                'id': row[0],
+                'nome_risco': row[1] or '',
+                'categoria': row[2] or '',
+                'fator_risco': row[3] or '',
+                'consequencia': row[4] or '',
+                'impacto': row[5] or 'Médio',
+                'probabilidade': row[6] or 'Médio',
+                'magnitude': row[7] or 0,
+                'impacto_aceitavel': row[8] or 'Médio',
+                'probabilidade_aceitavel': row[9] or 'Médio',
+                'tratamento': row[10] or '',
+                'origem': row[11] or '',
+                'desc_tratamento': row[12] or '',
+                'motivo_classificacao': row[13] or '',
+                'financeiro': row[14] or False,
+                'info_adicional': row[15] or '',
+                'ativo': row[16] if row[16] is not None else True,
+                'causas': [c.strip() for c in row[17].split(',')] if row[17] else [],
+                'prazo_implantacao': row[18] or ''
+            })
+        
+        return riscos
+
+
+def contar_riscos_etapa(etapa_id, apenas_ativos=True):
+    """Conta o número de riscos de uma etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    if apenas_ativos:
+        query = text("""
+            SELECT COUNT(*) 
+            FROM riscos_etapa 
+            WHERE etapa_id = :etapa_id 
+            AND (ativo IS NULL OR ativo = true)
+        """)
+    else:
+        query = text("""
+            SELECT COUNT(*) 
+            FROM riscos_etapa 
+            WHERE etapa_id = :etapa_id
+        """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+        return result[0] if result[0] else 0
+
+
+def excluir_risco_etapa(risco_id):
+    """Exclui um risco de etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("DELETE FROM riscos_etapa WHERE id = :risco_id")
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'risco_id': risco_id})
+        conn.commit()
+        return result.rowcount > 0
+
+
+def inserir_risco_etapa(dados):
+    """Insere um novo risco de etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        INSERT INTO riscos_etapa (
+            etapa_id, auditoria_id, nome_risco, categoria,
+            fator_risco, consequencia, impacto, probabilidade,
+            magnitude, impacto_aceitavel,
+            probabilidade_aceitavel, tratamento, origem, causas,
+            desc_tratamento, financeiro, info_adicional, 
+            motivo_classificacao, prazo_implantacao, descricao_prazo, 
+            ativo, created_at
+        ) VALUES (
+            :etapa_id, :auditoria_id, :nome_risco, :categoria,
+            :fator_risco, :consequencia, :impacto, :probabilidade,
+            :magnitude, :impacto_aceitavel, :probabilidade_aceitavel, 
+            :tratamento, :origem, :causas,
+            :desc_tratamento, :financeiro, :info_adicional,
+            :motivo_classificacao, :prazo_implantacao, :descricao_prazo,
+            :ativo, NOW()
+        )
+        RETURNING id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, dados)
+        novo_id = result.fetchone()[0]
+        conn.commit()
+        return novo_id
+
+
+def atualizar_risco_etapa(risco_id, dados):
+    """Atualiza um risco de etapa existente"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        UPDATE riscos_etapa
+        SET nome_risco = :nome_risco,
+            categoria = :categoria,
+            fator_risco = :fator_risco,
+            consequencia = :consequencia,
+            impacto = :impacto,
+            probabilidade = :probabilidade,
+            magnitude = :magnitude,
+            impacto_aceitavel = :impacto_aceitavel,
+            probabilidade_aceitavel = :probabilidade_aceitavel,
+            tratamento = :tratamento,
+            origem = :origem,
+            desc_tratamento = :desc_tratamento,
+            financeiro = :financeiro,
+            info_adicional = :info_adicional,
+            motivo_classificacao = :motivo_classificacao,
+            prazo_implantacao = :prazo_implantacao,
+            descricao_prazo = :descricao_prazo,
+            causas = :causas,
+            ativo = :ativo,
+            updated_at = NOW()
+        WHERE id = :risco_id
+    """)
+    
+    dados['risco_id'] = risco_id
+    
+    with engine.connect() as conn:
+        conn.execute(query, dados)
+        conn.commit()
+        return risco_id

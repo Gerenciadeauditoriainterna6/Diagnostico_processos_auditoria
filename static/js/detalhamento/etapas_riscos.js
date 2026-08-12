@@ -1,6 +1,7 @@
 const EtapasRiscosModule = {
     
     container: null,
+    auditoriaIdAtual: null,
     
     init() {
         this.container = document.getElementById('etapas-container');
@@ -14,7 +15,7 @@ const EtapasRiscosModule = {
                 const etapaId = btnEdit.dataset.etapaId;
                 const codigo = btnEdit.dataset.codigo;
                 const nome = btnEdit.dataset.nome;
-                ModalRiscoEtapaModule.editar(riscoId, etapaId, codigo, nome);
+                ModalRiscoEtapaModule.editar(riscoId, etapaId, codigo, nome, this.auditoriaIdAtual);
             }
             
             // Botão Excluir
@@ -25,7 +26,7 @@ const EtapasRiscosModule = {
                 const etapaId = btnDelete.dataset.etapaId;
                 const codigo = btnDelete.dataset.codigo;
                 const nome = btnDelete.dataset.nome;
-                ModalRiscoEtapaModule.excluir(riscoId, nomeRisco, etapaId, codigo, nome);
+                ModalRiscoEtapaModule.excluir(riscoId, nomeRisco, etapaId, codigo, nome, this.auditoriaIdAtual);
             }
             
             // Botão Toggle Status
@@ -49,6 +50,8 @@ const EtapasRiscosModule = {
     
     async carregarEtapas(auditoriaId) {
         console.log('📋 Carregando etapas para auditoria:', auditoriaId);
+
+        this.auditoriaIdAtual = auditoriaId
 
         this.container.innerHTML = `
             <div style="text-align: center; padding: 60px 20px;">
@@ -137,7 +140,7 @@ const EtapasRiscosModule = {
                                         </span>
                                     </div>
                                     <div class="etapa-actions">
-                                        <button class="btn-add-risco" onclick="event.stopPropagation(); ModalRiscoEtapaModule.abrir(${etapa.id}, '${etapa.codigo_etapa}', '${escapeHtml(etapa.nome_etapa)}')">
+                                        <button class="btn-add-risco" onclick="event.stopPropagation(); ModalRiscoEtapaModule.abrir(${etapa.id}, '${etapa.codigo_etapa}', '${escapeHtml(etapa.nome_etapa)}', ${this.auditoriaIdAtual})">
                                             <i class="fas fa-plus"></i> Adicionar Risco
                                         </button>
                                         <i class="fas fa-chevron-down etapa-arrow"></i>

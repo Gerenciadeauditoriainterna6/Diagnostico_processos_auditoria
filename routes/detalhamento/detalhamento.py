@@ -491,3 +491,237 @@ def api_excluir_obrigacao():
     except Exception as e:
         print(f"❌ Erro ao excluir obrigação: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@detalhamento_bp.route('/api/risco-etapa/<int:risco_id>', methods=['GET'])
+def api_risco_etapa_detalhes(risco_id):
+    """Retorna os dados de um risco específico para edição"""
+    from .queries import buscar_risco_etapa_por_id
+    from flask import jsonify
+    
+    try:
+        risco = buscar_risco_etapa_por_id(risco_id)
+        
+        if not risco:
+            return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+        
+        return jsonify({'success': True, 'risco': risco})
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/risco-etapa/<int:risco_id>/status', methods=['PUT'])
+def api_alternar_status_risco(risco_id):
+    """Alterna o status (ativo/inativo) de um risco"""
+    from .queries import alternar_status_risco_etapa
+    from flask import jsonify, request
+    
+    try:
+        data = request.json
+        novo_status = data.get('ativo')
+        
+        if novo_status is None:
+            return jsonify({'success': False, 'error': 'Status não informado'}), 400
+        
+        sucesso = alternar_status_risco_etapa(risco_id, novo_status)
+        
+        if not sucesso:
+            return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+        
+        status_texto = 'ativado' if novo_status else 'desativado'
+        return jsonify({
+            'success': True, 
+            'message': f'Risco {status_texto} com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao alternar status do risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/risco-etapa/<int:risco_id>', methods=['DELETE'])
+def api_excluir_risco_etapa(risco_id):
+    """Exclui um risco de etapa"""
+    from .queries import excluir_risco_etapa
+    from flask import jsonify
+    
+    try:
+        sucesso = excluir_risco_etapa(risco_id)
+        
+        if not sucesso:
+            return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Risco excluído com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao excluir risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/risco-etapa', methods=['POST'])
+@detalhamento_bp.route('/api/risco-etapa/<int:risco_id>', methods=['PUT'])
+def api_risco_etapa_salvar(risco_id=None):
+    """
+    Salva um novo risco de etapa (POST) ou atualiza existente (PUT)
+    """
+    from .queries import inserir_risco_etapa, atualizar_risco_etapa
+    from flask import jsonify, request
+    
+    data = request.json
+    is_edicao = risco_id is not None
+    
+    # Extrair dados do formulário
+    etapa_id = data.get('etapa_id')
+    auditoria_id = data.get('auditoria_id')
+    
+    nome_risco = data.get('nome_risco', '')
+    categoria = data.get('categoria', '')
+    fator_risco = data.get('fator_risco', '')
+    consequencia = data.get('consequencia', '')
+    origem = data.get('origem', '')
+    impacto_aceitavel = data.get('impacto_aceitavel', '') or data.get('apetite_impacto', '')
+    probabilidade_aceitavel = data.get('probabilidade_aceitavel', '') or data.get('apetite_probabilidade', '')
+    impacto = data.get('impacto', '')
+    probabilidade = data.get('probabilidade', '')
+    motivo_classificacao = data.get('motivo_classificacao', '') or data.get('motivo', '')
+    info_adicional = data.get('info_adicional', '')
+    financeiro = data.get('financeiro', False)
+    ativo = data.get('ativo', True)
+    tratamento = data.get('tratamento', '')
+    desc_tratamento = data.get('desc_tratamento', '')
+    prazo_implantacao = data.get('prazo_implantacao') or None
+    descricao_prazo = data.get('descricao_prazo', '')
+    
+    causas = data.get('causas', [])
+    if isinstance(causas, list):
+        causas_str = ', '.join(causas)
+    else:
+        causas_str = causas
+    
+    # Validações
+    if not etapa_id:
+        return jsonify({'success': False, 'error': 'Etapa é obrigatória'}), 400
+    if not nome_risco:
+        return jsonify({'success': False, 'error': 'Nome do risco é obrigatório'}), 400
+    if not impacto or not probabilidade:
+        return jsonify({'success': False, 'error': 'Impacto e Probabilidade são obrigatórios'}), 400
+    
+    # Calcular magnitude
+    MAPA_RISCO = {
+        ("MUITO ALTO", "MUITO ALTO"): 15, ("ALTO", "MUITO ALTO"): 14,
+        ("MÉDIO", "MUITO ALTO"): 13, ("BAIXO", "MUITO ALTO"): 12,
+        ("MUITO ALTO", "ALTO"): 11, ("ALTO", "ALTO"): 10,
+        ("MÉDIO", "ALTO"): 9, ("BAIXO", "ALTO"): 8,
+        ("MUITO ALTO", "MÉDIO"): 7, ("ALTO", "MÉDIO"): 6,
+        ("MÉDIO", "MÉDIO"): 5, ("BAIXO", "MÉDIO"): 4,
+        ("MUITO ALTO", "BAIXO"): 3, ("ALTO", "BAIXO"): 2,
+        ("MÉDIO", "BAIXO"): 1, ("BAIXO", "BAIXO"): 0
+    }
+    
+    impacto = impacto.upper()
+    probabilidade = probabilidade.upper()
+    magnitude = MAPA_RISCO.get((impacto, probabilidade), 0)
+    
+    dados_query = {
+        'etapa_id': etapa_id,
+        'auditoria_id': auditoria_id,
+        'nome_risco': nome_risco,
+        'categoria': categoria,
+        'fator_risco': fator_risco,
+        'consequencia': consequencia,
+        'impacto': impacto,
+        'probabilidade': probabilidade,
+        'magnitude': magnitude,
+        'impacto_aceitavel': impacto_aceitavel,
+        'probabilidade_aceitavel': probabilidade_aceitavel,
+        'tratamento': tratamento,
+        'origem': origem,
+        'desc_tratamento': desc_tratamento,
+        'financeiro': financeiro,
+        'info_adicional': info_adicional,
+        'motivo_classificacao': motivo_classificacao,
+        'prazo_implantacao': prazo_implantacao,
+        'descricao_prazo': descricao_prazo,
+        'causas': causas_str,
+        'ativo': ativo
+    }
+    
+    try:
+        if is_edicao:
+            resultado_id = atualizar_risco_etapa(risco_id, dados_query)
+            print(f"✏️ Risco de etapa {risco_id} atualizado!")
+            mensagem = 'Risco atualizado com sucesso'
+        else:
+            resultado_id = inserir_risco_etapa(dados_query)
+            print(f"✅ Novo risco de etapa criado! ID: {resultado_id}")
+            mensagem = 'Risco criado com sucesso'
+        
+        return jsonify({
+            'success': True,
+            'message': mensagem,
+            'risco_id': resultado_id
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao salvar risco de etapa: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/etapa/<int:etapa_id>/riscos', methods=['GET'])
+def api_etapa_riscos(etapa_id):
+    """Retorna riscos ativos de uma etapa"""
+    from .queries import buscar_riscos_etapa
+    from flask import jsonify
+    
+    try:
+        riscos = buscar_riscos_etapa(etapa_id, apenas_ativos=True)
+        return jsonify({'success': True, 'riscos': riscos})
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos da etapa: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/etapa/<int:etapa_id>/riscos/todos', methods=['GET'])
+def api_etapa_riscos_todos(etapa_id):
+    """Retorna TODOS os riscos (ativos e inativos) - usado para edição"""
+    from .queries import buscar_riscos_etapa
+    from flask import jsonify
+    
+    try:
+        riscos = buscar_riscos_etapa(etapa_id, apenas_ativos=False)
+        return jsonify({'success': True, 'riscos': riscos})
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos da etapa: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/etapa/<int:etapa_id>/riscos/count', methods=['GET'])
+def api_etapa_riscos_count(etapa_id):
+    """Retorna a quantidade de riscos ativos de uma etapa"""
+    from .queries import contar_riscos_etapa
+    from flask import jsonify
+    
+    try:
+        total = contar_riscos_etapa(etapa_id, apenas_ativos=True)
+        return jsonify({'success': True, 'total': total})
+    except Exception as e:
+        print(f"❌ Erro ao contar riscos da etapa {etapa_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/detalhamento_riscos')
+def detalhamento_riscos():
+    """Página de riscos das etapas"""
+    from flask import session, redirect, url_for, render_template
+    
+    if not session.get('autenticado'):
+        return redirect(url_for('login'))
+    
+    from logic import carregar_areas_banco
+    areas = carregar_areas_banco()
+    
+    return render_template('detalhamento/detalhamento_riscos.html', areas=areas)

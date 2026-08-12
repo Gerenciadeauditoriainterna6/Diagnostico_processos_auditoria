@@ -12,7 +12,7 @@
 
 {% block content %}
 
-< class="riscos-container">
+<div class="riscos-container">
     <div class="page-header">
         <h1><i class="fas fa-exclamation-triangle"></i> Riscos das Etapas</h1>
         <p>Cadastre e gerencie os riscos identificados em cada etapa do processo</p>
@@ -46,8 +46,8 @@
         </div>
     </div>
 
-    <!-- Remova TODO o <div id="modal-risco-etapa"> ... </div> e troque por: -->
-    {% include 'partials/components/modal_risco_form.html' %}
+    <!-- ⭐ Modal de Risco da Etapa (partial separado) -->
+    {% include 'detalhamento/partials/modals/modal_risco_etapa.html' %}
     
 </div>
 {% endblock %}
@@ -55,8 +55,7 @@
 {% block scripts %}
 {{ super() }}
 
-<!-- Componentes -->
-<script src="{{ url_for('static', filename='js/components/risco_modal.js') }}"></script>
+<!-- Utilitários -->
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 
 <!-- Módulos dos Riscos das Etapas -->
