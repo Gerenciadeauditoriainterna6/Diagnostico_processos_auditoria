@@ -115,8 +115,8 @@ const RiscoModal = {
         document.getElementById('modal-prazo-implantacao').value = '';
         document.getElementById('apetite_impacto').value = '';
         document.getElementById('apetite_probabilidade').value = '';
-        document.getElementById('modal-score-preview').innerHTML = '<strong>Risco Bruto:</strong> Selecione impacto e probabilidade';
-        document.getElementById('apetite-score-preview').innerHTML = '<strong>Apetite ao Risco:</strong> Selecione impacto e probabilidade aceitável';
+        document.getElementById('modal-score-preview').innerHTML = '<strong>Risco bruto:</strong> Selecione o impacto e probabilidade';
+        document.getElementById('apetite-score-preview').innerHTML = '<strong>Risco residual:</strong> Selecione o apetite ao impacto e probabilidade';
         
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
         document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);

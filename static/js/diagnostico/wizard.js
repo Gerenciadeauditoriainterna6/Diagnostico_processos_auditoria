@@ -122,6 +122,11 @@ const WizardModule = {
         // Mostra a etapa desejada
         const el = document.getElementById(this.getEtapaId(etapa));
         if (el) el.style.display = 'block';
+
+        const wizardBody = document.querySelector('.modal-wizard-body');
+        if (wizardBody) {
+            wizardBody.scrollTop = 0;
+        }
         
         this.etapaAtual = etapa;
         this.atualizarProgresso(etapa);
