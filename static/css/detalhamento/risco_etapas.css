@@ -121,26 +121,35 @@
 
 /* Cards de Processo */
 .processo-card {
-    background: white;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: #ffffff;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e8ecf0;
     overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.processo-card:hover {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10);
+    border-color: #d0d8e0;
 }
 
 .processo-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    background: #f8f9fa;
+    padding: 16px 20px;
+    background: #fafbfc;
     cursor: pointer;
-    border-left: 4px solid #fd6a14;
+    transition: all 0.2s ease;
+    user-select: none;
 }
 
 .processo-header:hover {
-    background: #eef2f3;
+    background: #f0f4f7;
 }
+
 
 .processo-info {
     display: flex;
@@ -149,48 +158,84 @@
     flex-wrap: wrap;
 }
 
-.processo-info i {
-    color: #fd6a14;
+.processo-info > i {
+    color: #0b5b99;
+    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(11, 91, 153, 0.08);
+    border-radius: 10px;
 }
 
 .processo-info strong {
     color: #184145;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(24, 65, 69, 0.06);
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+.processo-info span {
+    color: #6c757d;
     font-size: 14px;
+    font-weight: 500;
 }
 
 .processo-arrow {
-    transition: transform 0.2s;
-    color: #666;
+    transition: transform 0.3s ease;
+    color: #6c757d;
+    font-size: 14px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.03);
 }
 
 .processo-arrow.open {
     transform: rotate(180deg);
+    background: rgba(11, 91, 153, 0.1);
+    color: #0b5b99;
 }
 
 .processo-body {
     padding: 20px;
+    background: #fafbfc;
 }
 
 .etapa-card {
-    background: #f8f9fa;
-    border-radius: 10px;
-    margin-bottom: 15px;
+    background: #ffffff;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e8ecf0;
     overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.etapa-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-color: #d0d8e0;
 }
 
 .etapa-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
+    padding: 14px 18px;
     cursor: pointer;
-    border-left: 3px solid #fd6a14;
-    flex-wrap: wrap;
-    gap: 8px;
+    user-select: none;
+    transition: background 0.15s ease;
+    gap: 12px;
 }
 
 .etapa-header:hover {
-    background: #eef2f3;
+    background: #f8fafb;
 }
 
 .etapa-info {
@@ -200,9 +245,24 @@
     flex-wrap: wrap;
 }
 
+.etapa-info > i {
+    color: #fd6a14;
+    font-size: 14px;
+}
+
 .etapa-info strong {
     color: #fd6a14;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(253, 106, 20, 0.08);
+    padding: 3px 8px;
+    border-radius: 5px;
+}
+
+.etapa-info span {
+    color: #184145;
     font-size: 13px;
+    font-weight: 500;
 }
 
 .etapa-actions {
@@ -212,33 +272,52 @@
 }
 
 .etapa-arrow {
-    transition: transform 0.2s;
-    color: #666;
-    margin-left: 10px;
+    transition: transform 0.3s ease;
+    color: #6c757d;
+    font-size: 12px;
 }
 
 .etapa-arrow.open {
     transform: rotate(180deg);
+    color: #0b5b99;
 }
 
 .etapa-body {
-    padding: 15px;
-    border-top: 1px solid #e0e0e0;
+    padding: 16px 18px;
+    border-top: 1px solid #f0f3f5;
+    background: #fcfdfd;
 }
 
 .btn-add-risco {
-    background: #184145;
-    color: white;
+    background: #0b5b99;
+    color: #ffffff;
     border: none;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
-    transition: all 0.2s;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 2px 6px rgba(11, 91, 153, 0.2);
 }
 
 .btn-add-risco:hover {
-    background: #0b5b99;
+    background: #0a4f85;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(11, 91, 153, 0.3);
+}
+
+.btn-add-risco:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(11, 91, 153, 0.2);
+}
+
+.btn-add-risco i {
+    font-size: 10px;
 }
 
 .empty-etapas {
@@ -257,35 +336,46 @@
 
 /* Cards de Risco */
 .risco-card {
-    background: white;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    padding: 12px;
-    border-left: 4px solid;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: #ffffff;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    padding: 16px 18px;
+    border: 1px solid #e8ecf0;
+    border-left: 5px solid;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+}
+
+.risco-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border-color: #d0d8e0;
 }
 
 .risco-card.risco-baixo {
     border-left-color: #28a745;
+    background: linear-gradient(90deg, rgba(40, 167, 69, 0.03) 0%, #ffffff 10%);
 }
 
 .risco-card.risco-medio {
     border-left-color: #ffc107;
+    background: linear-gradient(90deg, rgba(255, 193, 7, 0.04) 0%, #ffffff 10%);
 }
 
 .risco-card.risco-alto {
     border-left-color: #fd7e14;
+    background: linear-gradient(90deg, rgba(253, 126, 20, 0.04) 0%, #ffffff 10%);
 }
 
 .risco-card.risco-critico {
     border-left-color: #dc3545;
+    background: linear-gradient(90deg, rgba(220, 53, 69, 0.04) 0%, #ffffff 10%);
 }
 
 .risco-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
     gap: 10px;
 }
@@ -298,58 +388,61 @@
 }
 
 .risco-icon {
-    font-size: 16px;
+    font-size: 20px;
 }
 
 .risco-nome {
     color: #184145;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
 }
 
 .risco-score {
-    background: #f8f9fa;
-    padding: 2px 8px;
-    border-radius: 12px;
+    background: #f0f3f5;
+    color: #184145;
+    padding: 3px 10px;
+    border-radius: 20px;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .risco-actions {
     display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
+    gap: 4px;
 }
 
 .risco-detalhes {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #f0f0f0;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f3f5;
 }
 
 .risco-detalhe {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
 
 .detalhe-label {
     font-size: 10px;
-    font-weight: 600;
-    color: #666;
+    font-weight: 700;
+    color: #6c757d;
     text-transform: uppercase;
+    letter-spacing: 0.8px;
 }
 
 .detalhe-valor {
     font-size: 12px;
     color: #333;
-    background: #f8f9fa;
-    padding: 4px 8px;
-    border-radius: 6px;
+    background: #f8fafb;
+    padding: 5px 10px;
+    border-radius: 7px;
     word-break: break-word;
+    border: 1px solid #f0f3f5;
+    line-height: 1.4;
 }
 
 .empty-riscos,
@@ -765,24 +858,35 @@
 }
 
 .btn-edit-icon,
-.btn-delete-icon {
-    background: none;
+.btn-delete-icon,
+.btn-toggle-status {
+    width: 32px;
+    height: 32px;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background: transparent;
     color: #6c757d;
+    font-size: 13px;
 }
 
 .btn-edit-icon:hover {
-    color: #ffc107;
-    background: rgba(255, 193, 7, 0.1);
+    background: rgba(11, 91, 153, 0.1);
+    color: #0b5b99;
 }
 
 .btn-delete-icon:hover {
-    color: #dc3545;
     background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.btn-toggle-status:hover {
+    background: rgba(24, 65, 69, 0.1);
+    color: #184145;
 }
 
 .tags-container {
