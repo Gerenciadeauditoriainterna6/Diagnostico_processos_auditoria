@@ -601,3 +601,106 @@ def atualizar_risco_etapa(risco_id, dados):
         conn.execute(query, dados)
         conn.commit()
         return risco_id
+
+def buscar_riscos_processo_vinculados(etapa_id):
+    """Busca os IDs dos riscos do processo vinculados à etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT riscos_processo_ids 
+        FROM etapas_processo 
+        WHERE id = :etapa_id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
+        if result and result[0]:
+            return [x.strip() for x in result[0].split(',') if x.strip()]
+        return []
+
+
+def buscar_riscos_processo_por_ids(lista_ids):
+    """Busca os dados dos riscos do processo pelos IDs"""
+    from database import engine
+    from sqlalchemy import text
+    
+    if not lista_ids:
+        return []
+    
+    query = text("""
+        SELECT id, nome_risco, categoria, impacto, probabilidade, score_risco
+        FROM riscos
+        WHERE id IN :ids
+        ORDER BY id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'ids': tuple(lista_ids)}).mappings().fetchall()
+        return [dict(r) for r in result]
+
+
+def vincular_risco_processo(etapa_id, risco_id):
+    """Vincula um risco do processo à etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    # Buscar IDs atuais
+    ids_atuais = buscar_riscos_processo_vinculados(etapa_id)
+    
+    # Adicionar novo ID se não existir
+    if str(risco_id) not in ids_atuais:
+        ids_atuais.append(str(risco_id))
+    
+    novo_valor = ', '.join(ids_atuais)
+    
+    query = text("""
+        UPDATE etapas_processo 
+        SET riscos_processo_ids = :ids
+        WHERE id = :etapa_id
+    """)
+    
+    with engine.connect() as conn:
+        conn.execute(query, {'ids': novo_valor, 'etapa_id': etapa_id})
+        conn.commit()
+        return True
+
+def desvincular_risco_processo(etapa_id, risco_id):
+    """Desvincula um risco do processo da etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    ids_atuais = buscar_riscos_processo_vinculados(etapa_id)
+    
+    # Remover o ID
+    ids_atuais = [x for x in ids_atuais if x != str(risco_id)]
+    
+    novo_valor = ', '.join(ids_atuais) if ids_atuais else None
+    
+    query = text("""
+        UPDATE etapas_processo 
+        SET riscos_processo_ids = :ids
+        WHERE id = :etapa_id
+    """)
+    
+    with engine.connect() as conn:
+        conn.execute(query, {'ids': novo_valor, 'etapa_id': etapa_id})
+        conn.commit()
+        return True
+
+
+def buscar_riscos_processo_disponiveis(processo_id):
+    """Busca riscos do processo disponíveis para vincular"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT id, nome_risco, categoria, impacto, probabilidade
+        FROM riscos
+        WHERE processo_id = :processo_id
+        ORDER BY id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'processo_id': processo_id}).mappings().fetchall()
+        return [dict(r) for r in result]

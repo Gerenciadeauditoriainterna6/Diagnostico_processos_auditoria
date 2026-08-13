@@ -107,3 +107,16 @@ function formatarDataBR(data) {
     if (isNaN(d.getTime())) return data;
     return d.toLocaleDateString('pt-BR');
 }
+
+function spinnerHTML(mensagem = 'Carregando...') {
+    return `
+        <div style="text-align: center; padding: 20px;">
+            <div class="dot-spinner">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <p style="margin-top: 15px; color: #666; font-size: 12px;">${mensagem}</p>
+        </div>
+    `;
+}
