@@ -4,6 +4,13 @@ const EtapasRiscosModule = {
     auditoriaIdAtual: null,
     
     init() {
+
+        if (this._inicializado) {
+            console.log('⚠️ init() já foi chamado! Ignorando...');
+            return;
+        }
+        this._inicializado = true;  // Marca como inicializado
+        
         this.container = document.getElementById('etapas-container');
         
         document.addEventListener('click', (e) => {
@@ -42,6 +49,23 @@ const EtapasRiscosModule = {
                 const codigo = btnToggle.dataset.codigo;
                 const nome = btnToggle.dataset.nome;
                 EtapasRiscosModule.alternarStatusRisco(riscoId, novoStatus, etapaId, codigo, nome);
+                return;
+            }
+
+            const btnVincular = e.target.closest('.btn-vincular-risco-processo');
+            if (btnVincular) {
+                e.stopPropagation();
+                const etapaId = btnVincular.dataset.etapa;
+                const processoId = btnVincular.dataset.processo;
+                EtapasRiscosModule.abrirDropdownVincular(etapaId, processoId);
+                return;
+            }
+
+            const btnConfirmar = e.target.closest('.btn-confirmar-vincular');
+            if (btnConfirmar) {
+                e.stopPropagation();
+                const etapaId = btnConfirmar.dataset.etapa;
+                EtapasRiscosModule.confirmarVinculacao(etapaId);
                 return;
             }
         });
@@ -134,7 +158,7 @@ const EtapasRiscosModule = {
                         const totalRiscos = mapaContagens[etapa.id] || 0;
 
                         htmlFinal += `
-                            <div class="etapa-card" data-etapa-id="${etapa.id}">
+                            <div class="etapa-card" data-etapa-id="${etapa.id}" data-processo-id="${processo.id}">
                                 <div class="etapa-header" onclick="EtapasRiscosModule.toggleEtapa(this)">
                                     <div class="etapa-info">
                                         <i class="fas fa-step-forward"></i>
@@ -152,8 +176,28 @@ const EtapasRiscosModule = {
                                     </div>
                                 </div>
                                 <div class="etapa-body" style="display: none;">
+                                    <!-- ⭐ APENAS UM riscos-container -->
                                     <div class="riscos-container" id="riscos-etapa-${etapa.id}">
                                         <div class="loading-small">Carregando riscos...</div>
+                                    </div>
+                                    
+                                    <!-- ⭐ Riscos do Processo Vinculados -->
+                                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e0e0e0;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <h5 style="color: #184145; font-size: 13px; margin: 0;">
+                                                <i class="fas fa-link"></i> Riscos mapeados na Matriz de Panorama
+                                            </h5>
+                                            <button class="btn-vincular-risco-processo" data-etapa="${etapa.id}" data-processo="${processo.id}" 
+                                                style="background: #0b5b99; color: white; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px;">
+                                                <i class="fas fa-plus"></i> Vincular Risco
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Dropdown (escondido) -->
+                                        <div id="dropdown-vincular-${etapa.id}" style="display: none; margin-bottom: 10px;"></div>
+                                        
+                                        <!-- Riscos vinculados -->
+                                        <div id="riscos-processo-${etapa.id}"></div>
                                     </div>
                                 </div>
                             </div>
@@ -370,6 +414,10 @@ const EtapasRiscosModule = {
                 const nomeEtapa = etapaCard.querySelector('.etapa-info span')?.textContent || '';
                 this.carregarRiscosDaEtapa(etapaId, codigoEtapa, nomeEtapa);
             }
+            
+            // ⭐ NOVO: Carregar riscos do processo vinculados
+            this.carregarRiscosProcessoVinculados(etapaId);
+            
         } else {
             body.style.display = 'none';
             if (arrow) arrow.classList.remove('open');
@@ -461,5 +509,169 @@ const EtapasRiscosModule = {
             }
         }
     },
+
+    // ============================================================
+    // FUNÇÃO: Carregar riscos do processo vinculados à etapa
+    // ============================================================
+
+    async carregarRiscosProcessoVinculados(etapaId) {
+        const container = document.getElementById(`riscos-processo-${etapaId}`);
+        if (!container) return;
+
+        // ⭐ USAR FUNÇÃO GLOBAL DO SPINNER
+        container.innerHTML = spinnerHTML('Carregando riscos do processo...');
+
+        const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos-processo`);
+        const data = await response.json();
+
+        if (!data.success || !data.riscos || data.riscos.length === 0) {
+            container.innerHTML = '<div style="font-size: 12px; color: #999; text-align: center; padding: 15px;">Nenhum risco do processo vinculado.</div>';
+            return;
+        }
+
+        let html = '';
+        data.riscos.forEach(risco => {
+            html += `
+                <div class="risco-processo-vinculado" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #e8f4f8; border-radius: 6px; margin-bottom: 6px;">
+                    <i class="fas fa-link" style="color: #0b5b99;"></i>
+                    <span style="font-size: 12px; flex: 1;">${escapeHtml(risco.nome_risco)}</span>
+                    <button class="btn-desvincular-risco" data-etapa="${etapaId}" data-risco="${risco.id}" 
+                        style="background: none; border: none; color: #dc3545; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+        container.querySelectorAll('.btn-desvincular-risco').forEach(btn => {
+            btn.addEventListener('click', () => this.desvincularRiscoProcesso(btn.dataset.etapa, btn.dataset.risco));
+        });
+    },
+
+    async desvincularRiscoProcesso(etapaId, riscoId) {
+        if (!confirm('Desvincular este risco do processo?')) return;
+        
+        try {
+            const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/desvincular-risco/${riscoId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                mostrarToast('✅ Risco desvinculado!', 'success');
+                // Recarregar a lista
+                this.carregarRiscosProcessoVinculados(etapaId);
+            } else {
+                mostrarToast('❌ Erro ao desvincular', 'error');
+            }
+        } catch (error) {
+            console.error('❌ Erro:', error);
+            mostrarToast('❌ Erro de conexão', 'error');
+        }
+    },
+
+    async abrirDropdownVincular(etapaId, processoId) {
+        const dropdown = document.getElementById(`dropdown-vincular-${etapaId}`);
+        if (!dropdown) return;
+
+        // Se já está aberto, fecha
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        // Mostrar spinner
+        dropdown.style.display = 'block';
+        dropdown.innerHTML = spinnerHTML('Carregando riscos disponíveis...');
+
+        // Buscar riscos disponiveis
+        const response = await fetchComAutenticacao(`/api/processo/${processoId}/riscos-disponiveis`);
+        const data = await response.json();
+
+        if (!data.success || !data.riscos || data.riscos.length === 0) {
+            dropdown.innerHTML = '<div style="font-size: 12px; color: #999; text-align: center; padding: 15px;">Nenhum risco disponível para vincular.</div>';
+            return;
+        }
+
+        // Montar lista com checkboxes
+        let html = '<div style="max-height: 200px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 6px;">';
+
+        data.riscos.forEach(risco => {
+            html += `
+                <label style="display: flex; align-items: center; gap: 8px; padding: 6px; cursor: pointer; font-size: 12px;">
+                    <input type="checkbox" class="check-risco-vincular" value="${risco.id}">
+                    <span>${escapeHtml(risco.nome_risco)}</span>
+                </label>
+            `;
+        });
+        
+        html += `
+            </div>
+            <div style="text-align: right; margin-top: 8px;">
+                <button class="btn-confirmar-vincular" data-etapa="${etapaId}" 
+                    style="background: #0b5b99; color: white; border: none; padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: 11px;">
+                    <i class="fas fa-check"></i> Confirmar
+                </button>
+            </div>
+        `;
+        
+        dropdown.innerHTML = html;
+    },
+
+    async confirmarVinculacao(etapaId) {
+        // 1. Pegar todos os checkboxes marcados
+        const checkboxes = document.querySelectorAll(`#dropdown-vincular-${etapaId} .check-risco-vincular:checked`);
+        
+        // 2. Se nenhum marcado, avisar
+        if (checkboxes.length === 0) {
+            mostrarToast('⚠️ Selecione pelo menos um risco', 'warning');
+            return;
+        }
+        
+        // 3. Para cada checkbox marcado, vincular
+        let vinculados = 0;
+        let erros = 0;
+        
+        for (const checkbox of checkboxes) {
+            const riscoId = checkbox.value;
+            
+            try {
+                const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/vincular-risco`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ risco_id: parseInt(riscoId) })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    vinculados++;
+                } else {
+                    erros++;
+                }
+            } catch (error) {
+                erros++;
+            }
+        }
+        
+        // 4. Mensagem final
+        if (erros === 0) {
+            mostrarToast(`✅ ${vinculados} risco(s) vinculados!`, 'success');
+        } else {
+            mostrarToast(`⚠️ ${vinculados} vinculados, ${erros} com erro`, 'warning');
+        }
+        
+        // 5. Fechar dropdown
+        const dropdown = document.getElementById(`dropdown-vincular-${etapaId}`);
+        if (dropdown) dropdown.style.display = 'none';
+        
+        // 6. Recarregar lista de vinculados
+        this.carregarRiscosProcessoVinculados(etapaId);
+    },
+
+
 
 };
