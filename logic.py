@@ -4405,7 +4405,7 @@ def limpar_binario(dados):
     return texto
 
 def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditoria_id, processo_id,
-                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False, titulo_auditoria=None):
+                                     usuario_nome='Auditor', orientacao="RETRATO", incluir_abr=False, titulo_auditoria=None, incluir_checklists=True):
     """
     Gera relatório de Parecer da Auditoria para um processo específico
     Inclui análises do auditado (etapas) e análises do auditor (checklists)
@@ -4635,24 +4635,6 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     header_data = []
     tem_logo = os.path.exists(logo_auditoria_path)
 
-    # if tem_logo:
-    #     img_central = Image(logo_auditoria_path, width=2*cm, height=2*cm)
-        
-    #     header_data = [[img_central]]
-        
-    #     header_table = Table(header_data, colWidths=[16*cm])
-    #     header_table.setStyle(TableStyle([
-    #         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-    #         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    #         ('BOTTOMPADDING', (0, 0), (-1, -1), -5),
-    #     ]))
-    #     story.append(header_table)
-    #     story.append(Spacer(1, 10))
-    
-    # story.append(Paragraph("MAPA", titulo_style0))
-    # story.append(Spacer(0, -20))
-    # story.append(Paragraph("Mapeamento, Auditoria e Processos Avaliados", paragraph_style))
-    # story.append(Spacer(1, 2))
     # ===== TÍTULO =====
     story.append(Paragraph("PARECER DA AUDITORIA INTERNA", titulo_style))
     story.append(Spacer(1, 5))
@@ -5405,32 +5387,33 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             if etapa_idx < len(etapas) - 1:
                 story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#CCCCCC"), spaceBefore=5, spaceAfter=5))
 
-    # ===== SEÇÃO 2: ANÁLISES DO AUDITOR =====
-    story.append(PageBreak())
-    story.append(Paragraph("2. MATRIZES DE EFICÁCIA", secao_style))
-    story.append(Spacer(1, 2))
+    if incluir_checklists:
+        # ===== SEÇÃO 2: CHECKLISTS =====
+        story.append(PageBreak())
+        story.append(Paragraph("2. MATRIZES DE EFICÁCIA", secao_style))
+        story.append(Spacer(1, 2))
 
-    # ===== SEÇÃO 2.1: MATRIZES DE CHECKLIST =====
-    adicionar_checklist_simples(
-        checklist_data.get('governanca'), 
-        "MATRIZ DE GOVERNANÇA - RESPOSTAS",
-        perguntas_governanca
-    )
-    story.append(PageBreak())
-    
-    adicionar_checklist_simples(
-        checklist_data.get('riscos'), 
-        "MATRIZ DE RISCOS - RESPOSTAS",
-        perguntas_riscos
-    )
-    story.append(PageBreak())
-    
-    
-    adicionar_checklist_simples(
-        checklist_data.get('controles'), 
-        "MATRIZ DE CONTROLES - RESPOSTAS",
-        perguntas_controles
-    )
+        # ===== SEÇÃO 2.1: MATRIZES DE CHECKLIST =====
+        adicionar_checklist_simples(
+            checklist_data.get('governanca'), 
+            "MATRIZ DE GOVERNANÇA - RESPOSTAS",
+            perguntas_governanca
+        )
+        story.append(PageBreak())
+        
+        adicionar_checklist_simples(
+            checklist_data.get('riscos'), 
+            "MATRIZ DE RISCOS - RESPOSTAS",
+            perguntas_riscos
+        )
+        story.append(PageBreak())
+        
+        
+        adicionar_checklist_simples(
+            checklist_data.get('controles'), 
+            "MATRIZ DE CONTROLES - RESPOSTAS",
+            perguntas_controles
+        )
     
 
     # ====== SEÇÃO 3 ANÁLISES DO AUDITOR ======
