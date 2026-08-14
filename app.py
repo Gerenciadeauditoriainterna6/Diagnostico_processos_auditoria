@@ -32,8 +32,10 @@ from utils import (
     extrair_caminho_da_url
 )
 
-from logic import (validar_login_no_banco, gerar_relatorio_parecer_auditoria, listar_areas,
+from logic import (validar_login_no_banco, listar_areas,
                    listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
+
+from services.relatorios.parecer import gerar_relatorio_parecer_auditoria
 
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
