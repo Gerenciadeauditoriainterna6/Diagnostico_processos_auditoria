@@ -32,8 +32,10 @@ from utils import (
     extrair_caminho_da_url
 )
 
-from logic import (validar_login_no_banco, gerar_relatorio_parecer_auditoria, listar_areas,
+from logic import (validar_login_no_banco, listar_areas,
                    listar_funcionarios_area, gerar_validacao_relatorio_detalhamento, gerar_validacao_relatorio_panorama)
+
+from services.relatorios.parecer import gerar_relatorio_parecer_auditoria
 
 # ============================================================
 # CARREGAR CONFIGURAÇÕES
@@ -4487,7 +4489,8 @@ def gerar_parecer():
         auditoria_id = data.get('auditoria_id')
         processo_id = data.get('processo_id')
         orientacao = data.get('orientacao', 'RETRATO')
-        incluir_abr = data.get('incluir_abr', False)  # ⭐ NOVO PARÂMETRO
+        incluir_abr = data.get('incluir_abr', False)
+        incluir_checklists = data.get('incluir_checklists', True)
         
         # Verificar permissão para ABR
         perfil = session.get('usuario_perfil', 'usuario')
@@ -4526,7 +4529,8 @@ def gerar_parecer():
             processo_id=processo_id,
             usuario_nome=usuario_nome,
             orientacao=orientacao,
-            incluir_abr=incluir_abr  # ⭐ NOVO PARÂMETRO
+            incluir_abr=incluir_abr,
+            incluir_checklists=incluir_checklists
         )
         
         # Criar resposta com o PDF

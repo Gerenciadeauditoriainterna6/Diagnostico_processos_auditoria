@@ -60,6 +60,39 @@
             </div>
         </div>
 
+        <div class="form-group" id="checkbox-abr-container" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input
+                    type="checkbox"
+                    id="incluir_abr"
+                    name="incluir_abr"
+                    value="true">
+                <label for="incluir_abr" style="margin: 0;">
+                    <strong>Incluir seção ABR - Auditoria Baseada em Risco</strong>
+                    <span style="font-weight: normal; color: #666; font-size: 12px; display: block; margin-top: 2px;">
+                        (Disponível apenas para administradores)
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group" id="checkbox-checklists-container" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input
+                    type="checkbox"
+                    id="incluir_checklists"
+                    name="incluir_checklists"
+                    value="true"
+                    checked> 
+                <label for="incluir_checklists" style="margin: 0;">
+                    <strong>Incluir Checklists de Eficácia?</strong>
+                    <span style="font-weight: normal; color: #666; font-size: 12px; display: block; margin-top: 2px;">
+                        (Desmarque para gerar o relatório sem os checklists)
+                    </span>
+                </label>
+            </div>
+        </div>
+
         <div class="form-row orientacao-row">
             <div class="form-group">
                 <label><i class="fas fa-arrows-alt"></i> Orientação do Documento</label>
@@ -97,21 +130,6 @@
             </button>
         </div>
 
-        <div class="form-group" id="checkbox-abr-container" style="display: none;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <input
-                    type="checkbox"
-                    id="incluir_abr"
-                    name="incluir_abr"
-                    value="true">
-                <label for="incluir_abr" style="margin: 0;">
-                    <strong>Incluir seção ABR - Auditoria Baseada em Risco</strong>
-                    <span style="font-weight: normal; color: #666; font-size: 12px; display: block; margin-top: 2px;">
-                        (Disponível apenas para administradores)
-                    </span>
-                </label>
-            </div>
-        </div>
 
         <div id="resultado-relatorio" style="display: none; margin-top: 20px;">
             <div class="alert-success">
@@ -979,6 +997,7 @@
                 nomeBase = `parecer_auditoria_processo_${processoId}`;
                 bodyData.processo_id = processoId;
                 if (incluirABR) bodyData.incluir_abr = true;
+                bodyData.incluir_checklists = document.getElementById('incluir_checklists')?.checked ?? true;
                 break;
             
             case 'followup':
@@ -1186,12 +1205,15 @@
                 const selectProcesso = document.getElementById('processo_relatorio');
                 const checkboxAbr = document.getElementById('checkbox-abr-container');
                 const checkboxIncluirAbr = document.getElementById('incluir_abr');
+                const checkboxChecklists = document.getElementById('checkbox-checklists-container');
                 
                 // Mostrar/esconder checkbox ABR (apenas para parecer)
                 if (tipoSelecionado === 'parecer') {
                     checkboxAbr.style.display = 'block';
+                    checkboxChecklists.style.display = 'block';
                 } else {
                     checkboxAbr.style.display = 'none';
+                    checkboxChecklists.style.display= 'none';
                     if (checkboxIncluirAbr) checkboxIncluirAbr.checked = false;
                 }
                 
