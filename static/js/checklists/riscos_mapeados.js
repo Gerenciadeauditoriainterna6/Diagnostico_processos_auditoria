@@ -64,6 +64,30 @@ export async function carregarRiscosMapeados() {
             `;
             
             etapa.riscos.forEach(risco => {
+                // ⭐ Pegar controles do risco
+                const controles = risco.controles || [];
+                
+                // ⭐ Montar HTML dos controles
+                let controlesHtml = '';
+                if (controles.length > 0) {
+                    controlesHtml = `
+                        <div style="margin-left: 24px; margin-bottom: 8px;">
+                            ${controles.map(controle => `
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                    <i class="fas fa-shield-alt" style="color: #0b5b99; font-size: 10px;"></i>
+                                    <span style="font-size: 11px; color: #666;">${escapeHtml(controle.nome_controle || '')}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    controlesHtml = `
+                        <div style="margin-left: 24px; margin-bottom: 8px;">
+                            <span style="font-size: 11px; color: #999; font-style: italic;">Nenhum controle informado</span>
+                        </div>
+                    `;
+                }
+                
                 html += `
                     <div style="background: #ffffff; border: 1px solid #e8ecf0; border-left: 4px solid #fd6a14; border-radius: 10px; padding: 15px; margin-bottom: 8px; margin-left: 20px;">
                         <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
@@ -71,15 +95,10 @@ export async function carregarRiscosMapeados() {
                             <span style="font-size: 13px; color: #333; font-weight: 500;">${escapeHtml(risco.nome_risco || '')}</span>
                         </div>
                         
-                        ${risco.desc_tratamento ? `
-                        <div style="margin-left: 24px; margin-bottom: 8px;">
-                            <span style="font-size: 11px; color: #666;">🛡️ Controle: ${escapeHtml(risco.desc_tratamento)}</span>
-                        </div>
-                        ` : ''}
+                        ${controlesHtml}
                         
                         <div style="margin-left: 24px;">
                             <label style="font-size: 11px; color: #666; font-weight: 600;">Parecer do Auditor:</label>
-                            <!-- ⭐ AQUI: O textarea já vem preenchido com o parecer salvo -->
                             <textarea class="parecer-risco-etapa" data-risco-id="${risco.id}" 
                                 placeholder="Digite seu parecer sobre este risco..."
                                 style="width: 100%; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px; margin-top: 4px; resize: vertical;" rows="2">${escapeHtml(risco.parecer_auditor || '')}</textarea>

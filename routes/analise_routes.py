@@ -959,7 +959,7 @@ def api_riscos_mapeados(processo_id):
                     re.magnitude,
                     re.tratamento,
                     re.desc_tratamento,
-                    re.parecer_auditor,  -- ⭐ ADICIONAR
+                    re.parecer_auditor,
                     ep.id as etapa_id,
                     ep.codigo_etapa,
                     ep.nome_etapa
@@ -971,9 +971,28 @@ def api_riscos_mapeados(processo_id):
             """)
             riscos_etapas = conn.execute(query, {'processo_id': processo_id}).mappings().fetchall()
             
+            # ⭐ Converter para dicionário e adicionar controles
+            riscos_formatados = []
+            for risco in riscos_etapas:
+                risco_dict = dict(risco)
+                
+                # ⭐ Buscar controles deste risco
+                query_controles = text("""
+                    SELECT 
+                        ce.id,
+                        ce.nome_controle
+                    FROM controles_etapa ce
+                    WHERE ce.risco_id = :risco_id
+                    ORDER BY ce.id
+                """)
+                controles_raw = conn.execute(query_controles, {'risco_id': risco['id']}).mappings().fetchall()
+                
+                risco_dict['controles'] = [dict(c) for c in controles_raw]
+                riscos_formatados.append(risco_dict)
+            
             return jsonify({
                 'success': True,
-                'riscos_etapas': [dict(r) for r in riscos_etapas]
+                'riscos_etapas': riscos_formatados
             })
             
     except Exception as e:
