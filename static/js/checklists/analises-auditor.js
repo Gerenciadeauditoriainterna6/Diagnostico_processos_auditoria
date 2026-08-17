@@ -816,7 +816,7 @@ export async function renderizarAnalisesAuditor() {
                 <!-- ⭐ NOVA SEÇÃO: Riscos e Controles -->
                 <div class="analise-card-section" style="border-left: 3px solid #fd6a14; margin-top: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="margin: 0;"><i class="fas fa-exclamation-triangle"></i> Riscos Identificados pelo Auditor e Controles Sugeridos</h4>
+                        <h4 style="margin: 0;"><i class="fas fa-exclamation-triangle"></i> Riscos Identificados e Controles Sugeridos pelo Auditor</h4>
                         <button class="btn-primary" onclick="event.stopPropagation(); window.toggleEditorRiscos(${analise.id})" style="font-size: 12px; padding: 6px 12px;">
                             <i class="fas fa-plus"></i> Gerenciar
                         </button>
