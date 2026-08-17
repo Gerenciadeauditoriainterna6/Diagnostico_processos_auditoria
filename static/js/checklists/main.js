@@ -16,6 +16,9 @@ import {
     setAuditoriaId
 } from './estado.js';
 
+import { carregarRiscosMapeados } from './riscos_mapeados.js';
+
+
 import { mostrarToast } from './utils.js';
 
 import { 
@@ -44,6 +47,17 @@ import {
     baixarEvidenciaAnaliseAuditor,
     removerEvidenciaAnaliseAuditor
 } from './analises-auditor.js';
+
+import * as analisesAuditor from './analises-auditor.js';
+
+window.toggleEditorRiscos = analisesAuditor.toggleEditorRiscos;
+window.adicionarRisco = analisesAuditor.adicionarRisco;
+window.adicionarRiscoNaLista = analisesAuditor.adicionarRiscoNaLista;
+window.removerRisco = analisesAuditor.removerRisco;
+window.adicionarControle = analisesAuditor.adicionarControle;
+window.removerControle = analisesAuditor.removerControle;
+window.salvarRiscosControles = analisesAuditor.salvarRiscosControles;
+window.renderizarRiscosControles = analisesAuditor.renderizarRiscosControles;
 
 import { 
     salvarHistoricoAndamento,
@@ -149,6 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await carregarProgressoChecklists();
             await carregarAnalisesAuditado();
             await carregarAnalisesAuditor();
+            await carregarRiscosMapeados();
         } else {
             document.getElementById('conteudo-principal').style.display = 'none';
         }

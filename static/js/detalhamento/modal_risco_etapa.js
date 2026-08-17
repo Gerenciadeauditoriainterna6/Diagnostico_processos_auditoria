@@ -301,6 +301,8 @@ const ModalRiscoEtapaModule = {
         this.codigoEtapaAtual = codigoEtapa;
         this.nomeEtapaAtual = nomeEtapa;
 
+        this.carregarObjetivoEtapa(etapaId);
+
         try {
             const response = await window.fetchComAutenticacao(`/api/risco-etapa/${riscoId}`);
             const data = await response.json();

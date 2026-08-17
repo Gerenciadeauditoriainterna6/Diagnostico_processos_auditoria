@@ -725,3 +725,88 @@ def detalhamento_riscos():
     areas = carregar_areas_banco()
     
     return render_template('detalhamento/detalhamento_riscos.html', areas=areas)
+
+# routes/detalhamento/detalhamento.py
+
+@detalhamento_bp.route('/api/etapa/<int:etapa_id>/riscos-processo', methods=['GET'])
+def api_riscos_processo_vinculados(etapa_id):
+    """Retorna riscos do processo vinculados à etapa"""
+    from flask import jsonify, session
+    from .queries import buscar_riscos_processo_vinculados, buscar_riscos_processo_por_ids
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        ids_vinculados = buscar_riscos_processo_vinculados(etapa_id)
+        
+        if not ids_vinculados:
+            return jsonify({'success': True, 'riscos': []})
+        
+        riscos = buscar_riscos_processo_por_ids(ids_vinculados)
+        
+        return jsonify({'success': True, 'riscos': riscos})
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos vinculados: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/etapa/<int:etapa_id>/vincular-risco', methods=['POST'])
+def api_vincular_risco_processo(etapa_id):
+    """Vincula um risco do processo à etapa"""
+    from flask import jsonify, request, session
+    from .queries import vincular_risco_processo
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    data = request.json
+    risco_id = data.get('risco_id')
+    
+    if not risco_id:
+        return jsonify({'success': False, 'error': 'risco_id é obrigatório'}), 400
+    
+    try:
+        vincular_risco_processo(etapa_id, risco_id)
+        return jsonify({'success': True, 'message': 'Risco vinculado com sucesso'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao vincular risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/etapa/<int:etapa_id>/desvincular-risco/<int:risco_id>', methods=['DELETE'])
+def api_desvincular_risco_processo(etapa_id, risco_id):
+    """Desvincula um risco do processo da etapa"""
+    from flask import jsonify, session
+    from .queries import desvincular_risco_processo
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        desvincular_risco_processo(etapa_id, risco_id)
+        return jsonify({'success': True, 'message': 'Risco desvinculado com sucesso'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao desvincular risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/processo/<int:processo_id>/riscos-disponiveis', methods=['GET'])
+def api_riscos_processo_disponiveis(processo_id):
+    """Retorna riscos do processo disponíveis para vincular"""
+    from flask import jsonify, session
+    from .queries import buscar_riscos_processo_disponiveis
+    
+    if not session.get('autenticado'):
+        return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    
+    try:
+        riscos = buscar_riscos_processo_disponiveis(processo_id)
+        return jsonify({'success': True, 'riscos': riscos})
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar riscos disponíveis: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
