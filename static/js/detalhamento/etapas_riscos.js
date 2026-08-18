@@ -619,15 +619,21 @@ const EtapasRiscosModule = {
             return;
         }
 
+        const responseVinculados = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos-processo`);
+        const dataVinculados = await responseVinculados.json();
+        const idsVinculados = (dataVinculados.riscos || []).map(r => r.id);
+
         // 5. montar checkboxes
         let html = '';
         data.riscos.forEach(risco => {
+            const isVinculado = idsVinculados.includes(risco.id);
+
             html += `
                     <label style="display: flex; align-items: flex-start; gap: 10px; padding: 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0;">
-                        <input type="checkbox" class="check-risco-vincular" value="${risco.id}" style="margin-top: 3px;">
+                        <input type="checkbox" class="check-risco-vincular" value="${risco.id}" ${isVinculado ? 'checked' : ''} style="margin-top: 3px;">
                         <div>
                             <span style="font-size: 13px; font-weight: 500;">${escapeHtml(risco.nome_risco)}</span>
-                            ${risco.categoria ? `<span class="risco-categoria-tag" style="margin-left: 6px;">${escapeHtml(risco.categoria)}</span>` : ''}
+                            ${isVinculado ? '<span style="color: #28a745; font-size: 11px;"> ✓ Já vinculado</span>' : ''}
                         </div>
                     </label>
                 `;
