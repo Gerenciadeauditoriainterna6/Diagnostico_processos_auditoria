@@ -629,7 +629,24 @@ def buscar_riscos_processo_por_ids(lista_ids):
         return []
     
     query = text("""
-        SELECT id, nome_risco, categoria, impacto, probabilidade, score_risco
+        SELECT 
+            id,
+            nome_risco,
+            fator_risco,
+            melhoria,
+            impacto,
+            probabilidade,
+            apetite_impacto,
+            motivo_risco,
+            validacao_gerencia,
+            validacao_superintendencia,
+            score_risco,
+            categoria,
+            causas,
+            tratamento_risco,
+            descricao_tratamento,
+            prazo_implantacao,
+            apetite_probabilidade
         FROM riscos
         WHERE id IN :ids
         ORDER BY id

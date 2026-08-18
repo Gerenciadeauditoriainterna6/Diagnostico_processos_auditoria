@@ -76,6 +76,29 @@ const EtapasRiscosModule = {
                 return;
             }
 
+            // ⭐ Clique no card do risco do processo (expande detalhes)
+            const cardRiscoProcesso = e.target.closest('.risco-mini-card.risco-processo');
+            if (cardRiscoProcesso) {
+                // Verificar se o clique foi no botão desvincular (para NÃO expandir)
+                if (e.target.closest('.btn-desvincular-risco')) {
+                    return; // Sai - o botão tem seu próprio evento
+                }
+                
+                EtapasRiscosModule.toggleDetalhesRisco(cardRiscoProcesso);
+                return;
+            }
+
+            // ⭐ Clique no card do risco da ETAPA (expande detalhes)
+            const cardRiscoEtapa = e.target.closest('.risco-mini-card:not(.risco-processo)');
+            if (cardRiscoEtapa) {
+                // Se clicou num botão, NÃO expande
+                if (e.target.closest('.btn-edit-icon, .btn-delete-icon, .btn-toggle-status')) {
+                    return;
+                }
+                EtapasRiscosModule.toggleDetalhesRisco(cardRiscoEtapa);
+                return;
+            }
+
             
         });
     },
@@ -179,11 +202,10 @@ const EtapasRiscosModule = {
                                     </div>
                                     <div class="etapa-actions">
                                         <button class="btn-add-risco" onclick="event.stopPropagation(); ModalRiscoEtapaModule.abrir(${etapa.id}, '${etapa.codigo_etapa}', '${escapeHtml(etapa.nome_etapa)}', ${this.auditoriaIdAtual})">
-                                            <i class="fas fa-plus"></i> Adicionar Risco
+                                            <i class="fas fa-plus"></i> Adicionar Risco da Etapa
                                         </button>
-                                        <button class="btn-vincular-risco" data-etapa="${etapa.id}" data-processo="${processo.id}" 
-                                            style="background: #0b5b99; color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;">
-                                            <i class="fas fa-link"></i> Vincular
+                                        <button class="btn-vincular-risco" data-etapa="${etapa.id}" data-processo="${processo.id}">
+                                            <i class="fas fa-link"></i> Vincular Risco (Matriz Panorama)
                                         </button>
                                         <i class="fas fa-chevron-down etapa-arrow"></i>
                                     </div>
@@ -309,7 +331,6 @@ const EtapasRiscosModule = {
 
                 riscosHtml += `
                     <div class="risco-mini-card ${badgeClass}" data-risco-id="${risco.id}" 
-                        onclick="EtapasRiscosModule.toggleDetalhesRisco(this)" 
                         title="Clique para ver detalhes">
                         
                         <!-- Indicador de severidade + nome -->
@@ -385,7 +406,7 @@ const EtapasRiscosModule = {
                     badgeClass = 'risco-baixo';
                     badgeIcon = '🟢';
                 } else if (score <= 7) {
-                    badgeclass = 'risco-medio';
+                    badgeClass = 'risco-medio';
                     badgeIcon = '🟡';
                 } else if (score <= 11) {
                     badgeClass = 'risco-alto';
@@ -401,21 +422,39 @@ const EtapasRiscosModule = {
                             <span class="mini-icone">${badgeIcon}</span>
                             <span class="mini-nome">${escapeHtml(risco.nome_risco)}</span>
                         </div>
-                        
+                                                
                         <div class="mini-card-middle">
-                            <span class="badge-processo"><i class="fas fa-project-diagram"></i> PROCESSO</span>
-                            <span class="mini-magnitude">Score: ${score}</span>
+                            <span class="mini-magnitude">Score: ${risco.score_risco || 0}</span>
                         </div>
-                        
+
                         ${risco.categoria ? `
                         <div class="mini-card-tags">
                             <span class="risco-categoria-tag">${escapeHtml(risco.categoria)}</span>
                         </div>
                         ` : ''}
+
+                        <!-- Detalhes (escondidos por padrão, mostram ao clicar) -->
+                        <div class="mini-card-detalhes" style="display: none;">
+                            <div class="mini-detalhe-grid">
+                                ${risco.fator_risco ? `<div class="mini-detalhe"><strong>Fator de Risco:</strong> ${escapeHtml(risco.fator_risco)}</div>` : ''}
+                                ${risco.categoria ? `<div class="mini-detalhe"><strong>Categoria:</strong> ${escapeHtml(risco.categoria)}</div>` : ''}
+                                ${risco.causas ? `<div class="mini-detalhe"><strong>Categoria de Causas:</strong> ${escapeHtml(risco.causas)}</div>` : ''}
+                                ${risco.melhoria ? `<div class="mini-detalhe"><strong>Melhoria:</strong> ${escapeHtml(risco.melhoria)}</div>` : ''}
+                                ${risco.impacto ? `<div class="mini-detalhe"><strong>Impacto:</strong> ${escapeHtml(risco.impacto)}</div>` : ''}
+                                ${risco.probabilidade ? `<div class="mini-detalhe"><strong>Probabilidade:</strong> ${escapeHtml(risco.probabilidade)}</div>` : ''}
+                                ${risco.motivo_risco ? `<div class="mini-detalhe"><strong>Motivo:</strong> ${escapeHtml(risco.motivo_risco)}</div>` : ''}
+                                ${risco.tratamento_risco ? `<div class="mini-detalhe"><strong>Tratamento:</strong> ${escapeHtml(risco.tratamento_risco)}</div>` : ''}
+                                ${risco.descricao_tratamento ? `<div class="mini-detalhe"><strong>Descrição do Tratamento:</strong> ${escapeHtml(risco.descricao_tratamento)}</div>` : ''}
+                                ${risco.apetite_impacto ? `<div class="mini-detalhe"><strong>Apetite Impacto:</strong> ${escapeHtml(risco.apetite_impacto)}</div>` : ''}
+                                ${risco.apetite_probabilidade ? `<div class="mini-detalhe"><strong>Apetite Probabilidade:</strong> ${escapeHtml(risco.apetite_probabilidade)}</div>` : ''}
+                                ${risco.prazo_implantacao ? `<div class="mini-detalhe"><strong>Prazo:</strong> ${escapeHtml(risco.prazo_implantacao)}</div>` : ''}
+                                
+                            </div>
+                        </div>
                         
                         <div class="mini-card-actions">
                             <button class="btn-desvincular-risco" data-etapa="${etapaId}" data-risco="${risco.id}" 
-                                title="Desvincular da etapa" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 4px 8px; border-radius: 4px;">
+                                title="Desvincular da etapa">
                                 <i class="fas fa-unlink"></i>
                             </button>
                         </div>
@@ -426,7 +465,8 @@ const EtapasRiscosModule = {
             container.innerHTML = riscosHtml;
 
             container.querySelectorAll('.btn-desvincular-risco').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
                     const riscoId = this.dataset.risco;
                     const etapaId = this.dataset.etapa;
                     EtapasRiscosModule.desvincularRiscoProcesso(etapaId, riscoId);
