@@ -1286,6 +1286,30 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
+/* Riscos do Processo (Matriz de Panorama) */
+.risco-mini-card.risco-processo {
+    background: #f0f7ff;
+}
+
+.risco-mini-card.risco-processo:hover {
+    background: #e0efff;
+    box-shadow: 0 4px 16px rgba(11, 91, 153, 0.15);
+}
+
+.badge-processo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #0b5b99;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .risco-mini-card:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     border-color: #c0c8d0;
