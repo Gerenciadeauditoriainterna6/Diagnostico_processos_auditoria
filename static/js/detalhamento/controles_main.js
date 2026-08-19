@@ -57,6 +57,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Configurar modal
     setupModalControle();
+
+    document.getElementById('btn-fechar-modal-ajuda')?.addEventListener('click', () => {
+        document.getElementById('modal-ajuda').style.display = 'none';
+    });
+
+    document.getElementById('btn-fechar-modal-ajuda-rodape')?.addEventListener('click', () => {
+        document.getElementById('modal-ajuda').style.display = 'none';
+    });
     
     // Tecla ESC
     document.addEventListener('keydown', handleEscKey);
@@ -144,6 +152,21 @@ document.addEventListener('DOMContentLoaded', function() {
             excluirControle(controleId, nomeControle, riscoId, etapaId);
             return;
         }
+        
+        const btnAjuda = e.target.closest('.help-icon');
+        if (btnAjuda) {
+            e.stopPropagation();
+            const texto = btnAjuda.getAttribute('data-ajuda');
+            const titulo = btnAjuda.closest('label')?.textContent?.trim() || 'Ajuda';
+            
+            // ⭐ FORMATAR o texto
+            const textoFormatado = formatarTextoAjuda(texto);
+            
+            document.getElementById('modal-ajuda-titulo').innerHTML = `<i class="fas fa-question-circle"></i> ${titulo}`;
+            document.getElementById('modal-ajuda-texto').innerHTML = textoFormatado;  // ⭐ innerHTML
+            document.getElementById('modal-ajuda').style.display = 'flex';
+            return;
+        }
 
     })
     
@@ -187,3 +210,19 @@ window.excluirControle = (controleId, nomeControle, riscoId, etapaId) => {
         module.excluirControle(controleId, nomeControle, riscoId, etapaId);
     });
 };
+
+function formatarTextoAjuda(texto) {
+    // Divide por linhas
+    const linhas = texto.split('\n');
+    
+    // Para cada linha, coloca em negrito o que vem antes do ':'
+    const linhasFormatadas = linhas.map(linha => {
+        if (linha.includes(':')) {
+            const [antes, ...depois] = linha.split(':');
+            return `<strong>${antes}:</strong>${depois.join(':')}`;
+        }
+        return linha;
+    });
+    
+    return linhasFormatadas.join('<br>');
+}

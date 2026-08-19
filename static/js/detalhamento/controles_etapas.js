@@ -166,9 +166,17 @@ export async function carregarRiscosDaEtapa(etapaId) {
         const response = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos`);
         const data = await response.json();
 
+        const responseProcesso = await fetchComAutenticacao(`/api/etapa/${etapaId}/riscos-processo`);
+        const dataProcesso = await responseProcesso.json();
+        const riscosProcesso = dataProcesso.success ? (dataProcesso.riscos || []) : [];
+
         console.log(`📦 Riscos encontrados:`, data);
 
-        if (!data.success || !data.riscos || data.riscos.length === 0) {
+        // Verificar se TEM riscos da etapa OU do processo
+        const temRiscosEtapa = data.success && data.riscos && data.riscos.length > 0;
+        const temRiscosProcesso = riscosProcesso.length > 0;
+
+        if (!temRiscosEtapa && !temRiscosProcesso) {
             container.innerHTML = `
                 <div class="empty-riscos">
                     <i class="fas fa-info-circle"></i> Nenhum risco cadastrado para esta etapa.
@@ -178,16 +186,35 @@ export async function carregarRiscosDaEtapa(etapaId) {
         }
 
         const promessasContagem = [];
-        for (const risco of data.riscos) {
-            const promessa = fetchComAutenticacao(`/api/risco/${risco.id}/controles/count`)
-                .then(res => res.json())
-                .then(data => ({
-                    id: risco.id,
-                    total: data.success ? data.total : 0
-                }))
-                .catch(() => ({ id: risco.id, total: 0 }));
-            promessasContagem.push(promessa);
+        if (temRiscosEtapa) {
+            for (const risco of data.riscos) {
+                const promessa = fetchComAutenticacao(`/api/risco/${risco.id}/controles/count`)
+                    .then(res => res.json())
+                    .then(data => ({
+                        id: risco.id,
+                        total: data.success ? data.total : 0
+                    }))
+                    .catch(() => ({ id: risco.id, total: 0 }));
+                promessasContagem.push(promessa);
+            }
         }
+
+        if (temRiscosProcesso) {
+            for (const risco of riscosProcesso) {
+                const promessa = fetchComAutenticacao(`/api/risco/${risco.id}/controles/count`)
+                    .then(res => res.json())
+                    .then(data => ({
+                        id: risco.id,
+                        total: data.success ? data.total : 0
+                    }))
+                    .catch(() => ({ id: risco.id, total: 0 }));
+                promessasContagem.push(promessa);
+            }
+        }
+        
+
+        // ⭐ Buscar contagem de controles dos riscos do processo
+        
 
         const contagens = await Promise.all(promessasContagem);
         const mapaContagens = {};
@@ -246,7 +273,47 @@ export async function carregarRiscosDaEtapa(etapaId) {
                         title="Adicionar Controle">
                         <i class="fas fa-plus"></i>
                     </button>
-                    <i class="fas fa-chevron-down" style="color: #999;"></i>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="controles-lista" id="controles-risco-${risco.id}">
+                    <div class="loading-small">Carregando controles...</div>
+                </div>
+            `;
+        }
+
+        for (const risco of riscosProcesso) {
+            const totalControles = mapaContagens[risco.id] || 0;
+            // Determinar severidade pelo score
+            const score = risco.score_risco || 0;
+            let badgeClass = '';
+            
+            if (score <= 3) {
+                badgeClass = 'risco-baixo';
+            } else if (score <= 7) {
+                badgeClass = 'risco-medio';
+            } else if (score <= 11) {
+                badgeClass = 'risco-alto';
+            } else {
+                badgeClass = 'risco-critico';
+            }
+            
+            riscosHtml += `
+                <div class="risco-linha risco-processo ${badgeClass}" data-risco-id="${risco.id}" onclick="toggleRisco(this, event)">
+                    <span class="risco-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                    <span class="risco-nome" title="${escapeHtml(risco.nome_risco)}">${escapeHtml(risco.nome_risco)}</span>
+                    <span class="badge-processo"><i class="fas fa-project-diagram"></i> MATRIZ PANORAMA</span>
+                    <span class="badge-controles" title="${totalControles} controle(s)">
+                        <i class="fas fa-shield-alt"></i> ${totalControles}
+                    </span>
+                    <button class="btn-add-controle" 
+                        data-risco-id="${risco.id}" 
+                        data-risco-nome="${escapeHtml(risco.nome_risco)}" 
+                        data-etapa-id="${etapaId}" 
+                        data-fator="${escapeHtml(risco.fator_risco || '')}"
+                        title="Adicionar Controle">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="controles-lista" id="controles-risco-${risco.id}">
                     <div class="loading-small">Carregando controles...</div>
@@ -369,6 +436,7 @@ export function toggleEtapa(header) {
 
         const riscosContainer = body.querySelector('.riscos-container');
         if (riscosContainer && riscosContainer.innerHTML.includes('Carregando riscos')) {
+            riscosContainer.innerHTML = spinnerHTML('Carregando riscos...');
             carregarRiscosDaEtapa(etapaId);
         }
     } else {
@@ -390,6 +458,8 @@ export function toggleRisco(riscoCard, event) {
     if (controlesLista && controlesLista.classList.contains('controles-lista')) {
         // Alternar visibilidade
         controlesLista.classList.toggle('visivel');
+
+        riscoCard.classList.toggle('expandido')
         
         // Se expandiu, carregar controles
         if (controlesLista.classList.contains('visivel')) {
@@ -398,6 +468,7 @@ export function toggleRisco(riscoCard, event) {
             const etapaId = etapaCard ? etapaCard.dataset.etapaId : null;
             
             if (controlesLista.innerHTML.includes('Carregando controles')) {
+                controlesLista.innerHTML = spinnerHTML('Carregando controles...')
                 carregarControlesDoRisco(riscoId, etapaId);
             }
         }

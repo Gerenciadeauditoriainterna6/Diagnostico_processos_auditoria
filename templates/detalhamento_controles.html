@@ -5,6 +5,8 @@
 {% block styles %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/detalhamento/controles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/spinner.css') }}">
+
 
 {% endblock %}
 
@@ -73,7 +75,22 @@
             <div class="form-group">
                 <label>
                     <i class="fas fa-shield-alt"></i> Ação de Controle *
-                    <span class="help-icon" data-tooltip="AÇÃO DE CONTROLE REALIZADA PARA  MITIGAR O FATOR DE RISCOS, baseado em Politicas e Procedimentos. Ele pode ser uma Ação de: Revisão, Recálculo, Reconciliação, Autorização, Aprovação Conferência, Verificação e Revisão do desempenho operacional, da segurança dos bens e da segregação de responsabilidades.">
+                    <span class="help-icon" data-tooltip="Clique para ver mais informações."
+                        data-ajuda="Segregação de funções: quem solicita uma compra não é a mesma pessoa que aprova e efetua o pagamento.
+                        Aprovação formal: toda despesa precisa ser autorizada por responsável previamente definido.
+                        Conferência documental: verificar se a documentação apresentada está completa e válida.
+                        Conciliação e Verificação: comparar informações de diferentes fontes para identificar divergências.
+                        Monitoramento: acompanhar indicadores e relatórios para identificar situações anormais.
+                        Revisão independente: uma segunda pessoa revisa uma atividade antes de sua conclusão.
+                        Controle de acesso: limitar usuários que podem visualizar, alterar ou excluir informações.
+                        Rastreabilidade: manter registros que permitam identificar quem realizou cada operação.
+                        Inventário: comparar estoque físico com os registros do sistema.
+                        Auditoria periódica: realizar verificações independentes para avaliar se os controles estão funcionando.
+                        Plano de ação: estabelecer responsáveis e prazos para corrigir problemas identificados.
+                        Treinamento: capacitar os colaboradores sobre procedimentos, normas e controles.
+                        Atualização de procedimentos: revisar normas e fluxos quando forem identificadas falhas ou mudanças no processo.
+                        Notificação: serve para sinalizar que um evento ou prazo precisa de atenção.
+                        Recálculo: calcular algo de novo, corrigir valores, atualizar uma rota ou ajustar contas financeiras e tributárias.">
                         <i class="fas fa-question-circle"></i>
                     </span>
                 </label>
@@ -187,6 +204,22 @@
         <div class="modal-footer">
             <button type="button" class="btn-secondary" id="btn-cancelar-modal-controle">Cancelar</button>
             <button type="button" class="btn-primary" id="btn-salvar-modal-controle">Salvar Controle</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE AJUDA -->
+    <div id="modal-ajuda" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="modal-ajuda-titulo"><i class="fas fa-question-circle"></i> Ajuda</h3>
+                <button class="modal-close" id="btn-fechar-modal-ajuda">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-ajuda-texto" style="font-size: 13px; line-height: 1.6; white-space: pre-line;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="btn-fechar-modal-ajuda-rodape">Fechar</button>
+            </div>
         </div>
     </div>
 </div>

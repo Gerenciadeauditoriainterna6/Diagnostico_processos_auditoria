@@ -262,6 +262,7 @@
 
 .etapa-arrow.open {
     transform: rotate(180deg);
+    color: #17a2b8;
 }
 
 .etapa-body {
@@ -349,6 +350,24 @@
 .btn-edit-icon:hover {
     background: #fff3cd;
     color: #856404;
+    transform: scale(1.05);
+}
+
+.btn-view-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    color: #0b5b99;
+}
+
+.btn-view-icon:hover {
+    background: #b8e0ff;
+    color: #09497a;
+    transform: scale(1.05);
 }
 
 .btn-delete-icon {
@@ -365,6 +384,7 @@
 .btn-delete-icon:hover {
     background: #f8d7da;
     color: #c82333;
+    transform: scale(1.05);
 }
 
 /* Conteúdo do risco expansível */
@@ -499,7 +519,7 @@
 }
 
 .btn-add-controle:hover {
-    background: #0b5b99;
+    background: #17a2b8;
 }
 
 /* Spinner */
@@ -717,18 +737,21 @@
     transform: translateX(-50%);
     background: #333;
     color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    max-width: 300px;
-    min-width: 200px;
-    text-align: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 11px;
+    max-width: 800px;
+    width: max-content;
+    max-height: 800px;
+    overflow-y: auto;
     white-space: normal;
     word-wrap: break-word;
-    line-height: 1.4;
+    line-height: 1.5;
     z-index: 100001;
     margin-bottom: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    text-align: left;
+    cursor: pointer;
 }
 
 .help-icon:hover::before {
@@ -742,6 +765,7 @@
     border-color: #333 transparent transparent transparent;
     margin-bottom: 2px;
     z-index: 100001;
+    cursor: pointer;
 }
 
 
@@ -1078,7 +1102,7 @@
     padding: 10px 14px;
     background: white;
     border: 1px solid #e8ecf0;
-    border-left: 4px solid;
+    border-left: 6px solid;
     border-radius: 8px;
     cursor: pointer;
     margin-bottom: 6px;
@@ -1105,15 +1129,15 @@
     flex: 1;
     font-size: 13px;
     font-weight: 500;
-    color: #333;
+    color: #6c757d;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .risco-linha .badge-controles {
-    background: #e8f4f8;
-    color: #0b5b99;
+    background: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 11px;
@@ -1146,12 +1170,14 @@
 }
 
 .controle-linha .controle-icon {
-    color: #0b5b99;
+    color: #17a2b8;
     font-size: 12px;
 }
 
 .controle-linha .controle-nome {
     flex: 1;
+    color: #6c757d;
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1163,8 +1189,8 @@
 }
 
 .risco-linha.risco-processo {
-    background: #f0f7ff;
-    border-left-color: #0b5b99;
+    background: #e5f1ff;
+    
 }
 
 .risco-linha.risco-processo .badge-processo {
@@ -1177,4 +1203,15 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
+}
+
+.risco-linha > .fa-chevron-down {
+    transition: transform 0.3s ease;
+    color: #666;
+
+}
+
+.risco-linha.expandido > .fa-chevron-down {
+    transform: rotate(180deg);
+    color: #17a2b8;
 }

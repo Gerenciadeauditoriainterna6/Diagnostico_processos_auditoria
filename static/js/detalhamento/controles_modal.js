@@ -1,6 +1,9 @@
 let etapaIdAtualControle = null;
 let riscoIdAtual = null;
 let controleIdEditando = null;
+const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select');
+
+import { carregarControlesDoRisco, atualizarBadgeControles, atualizarBadgeEtapaControles } from './controles_etapas.js';
 
 export function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
     etapaIdAtualControle = etapaId;

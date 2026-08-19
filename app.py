@@ -3414,8 +3414,21 @@ def api_etapa_controles_count(etapa_id):
         with engine.connect() as conn:
             query = text("""
                 SELECT COUNT(*) FROM controles_etapa ce
-                JOIN riscos_etapa re ON ce.risco_id = re.id
-                WHERE re.etapa_id = :etapa_id AND re.ativo = true
+                WHERE ce.risco_id IN (
+                    -- Riscos da etapa (riscos_etapa)
+                    SELECT re.id 
+                    FROM riscos_etapa re 
+                    WHERE re.etapa_id = :etapa_id AND re.ativo = true
+                    
+                    UNION
+                    
+                    -- Riscos do processo vinculados (tabela riscos)
+                    SELECT CAST(unnest(string_to_array(ep.riscos_processo_ids, ', ')) AS bigint)
+                    FROM etapas_processo ep
+                    WHERE ep.id = :etapa_id
+                    AND ep.riscos_processo_ids IS NOT NULL
+                    AND ep.riscos_processo_ids != ''
+                )
             """)
             result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
             return jsonify({'success': True, 'total': result[0]})
