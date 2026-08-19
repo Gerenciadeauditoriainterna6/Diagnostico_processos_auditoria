@@ -3,12 +3,16 @@
 // ============================================================
 
 import { 
-    carregarEtapas
+    carregarEtapas,
+    excluirControle
 } from './controles_etapas.js';
 
 import { 
-    setupModalControle,
-    fecharModalControle
+    abrirModalControle,
+    visualizarControle,
+    editarControle,
+    fecharModalControle,
+    setupModalControle
 } from './controles_modal.js';
 
 // ====== ELEMENTOS DO DOM ======
@@ -95,6 +99,54 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    document.addEventListener('click', (e) => {
+        // Botão Adicionar Controle
+        const btnAddControle = e.target.closest('.btn-add-controle');
+        if (btnAddControle) {
+            e.stopPropagation();
+            const riscoId = btnAddControle.dataset.riscoId;
+            const riscoNome = btnAddControle.dataset.riscoNome;
+            const etapaId = btnAddControle.dataset.etapaId;
+            const fatorRisco = btnAddControle.dataset.fator || '';
+            abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco);
+            return;
+        }
+        
+        // Botão Visualizar Controle
+        const btnView = e.target.closest('.btn-view-icon');
+        if (btnView) {
+            e.stopPropagation();
+            const controleId = btnView.dataset.controleId;
+            const riscoId = btnView.dataset.riscoId;
+            visualizarControle(controleId, riscoId);
+            return;
+        }
+        
+        // Botão Editar Controle
+        const btnEditControle = e.target.closest('.btn-edit-icon');
+        if (btnEditControle) {
+            e.stopPropagation();
+            const controleId = btnEditControle.dataset.controleId;
+            const riscoId = btnEditControle.dataset.riscoId;
+            editarControle(controleId, riscoId);
+            return;
+        }
+        
+        // Botão Excluir Controle
+        const btnDeleteControle = e.target.closest('.btn-delete-icon');
+        if (btnDeleteControle) {
+            e.stopPropagation();
+            const controleId = btnDeleteControle.dataset.controleId;
+            const nomeControle = btnDeleteControle.dataset.controleNome;
+            const riscoId = btnDeleteControle.dataset.riscoId;
+            const etapaId = btnDeleteControle.dataset.etapaId;
+            excluirControle(controleId, nomeControle, riscoId, etapaId);
+            return;
+        }
+
+    })
+    
     
     console.log('✅ Todos os eventos configurados!');
 });

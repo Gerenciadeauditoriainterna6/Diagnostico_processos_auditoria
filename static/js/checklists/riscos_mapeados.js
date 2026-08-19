@@ -98,7 +98,10 @@ export async function carregarRiscosMapeados() {
                         ${controlesHtml}
                         
                         <div style="margin-left: 24px;">
-                            <label style="font-size: 11px; color: #666; font-weight: 600;">Parecer do Auditor:</label>
+                            <label style="font-size: 11px; color: #666; font-weight: 600;">Parecer do Auditor:
+                                <p>Lembre-se de informar, no parecer do auditor, uma ação de controle sugerida.</p>
+                            </label>
+                            
                             <textarea class="parecer-risco-etapa" data-risco-id="${risco.id}" 
                                 placeholder="Digite seu parecer sobre este risco..."
                                 style="width: 100%; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px; margin-top: 4px; resize: vertical;" rows="2">${escapeHtml(risco.parecer_auditor || '')}</textarea>

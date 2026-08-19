@@ -15,6 +15,38 @@ export function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '')
     }
     
     limparFormularioControle();
+
+    // ⭐ HABILITAR TODOS OS CAMPOS
+    const campos = [
+        'controle_nome',
+        'controle_causa_motivo',
+        'controle_como_executado',
+        'controle_objetivo',
+        'controle_periodicidade',
+        'controle_evidencia',
+        'controle_local_evidencia',
+        'controle_forma_execucao',
+        'controle_natureza',
+        'controle_lgpd',
+        'controle_status',
+        'controle_frequencia_evidencia',
+        'controle_responsaveis'
+    ];
+
+    campos.forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) {
+            campo.disabled = false;
+            campo.style.background = '';
+            campo.style.color = '';
+        }
+    });
+
+    // ⭐ MOSTRAR BOTÃO SALVAR
+    const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+    if (btnSalvar) {
+        btnSalvar.style.display = 'inline-flex';
+    }
     
     if (fatorRisco) {
         document.getElementById('controle_causa_motivo').value = fatorRisco;
@@ -62,6 +94,38 @@ export async function editarControle(controleId, riscoId) {
         const modalTitle = document.getElementById('modal-controle-title');
         if (modalTitle) {
             modalTitle.innerHTML = `<i class="fas fa-shield-alt"></i> Editar Controle - ${riscoNome}`;
+        }
+
+        // ⭐ RE-HABILITAR TODOS OS CAMPOS
+        const campos = [
+            'controle_nome',
+            'controle_causa_motivo',
+            'controle_como_executado',
+            'controle_objetivo',
+            'controle_periodicidade',
+            'controle_evidencia',
+            'controle_local_evidencia',
+            'controle_forma_execucao',
+            'controle_natureza',
+            'controle_lgpd',
+            'controle_status',
+            'controle_frequencia_evidencia',
+            'controle_responsaveis'
+        ];
+
+        campos.forEach(id => {
+            const campo = document.getElementById(id);
+            if (campo) {
+                campo.disabled = false;
+                campo.style.background = '';
+                campo.style.color = '';
+            }
+        });
+
+        // ⭐ MOSTRAR BOTÃO SALVAR
+        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+        if (btnSalvar) {
+            btnSalvar.style.display = 'inline-flex';
         }
         
         const modal = document.getElementById('modal-controle');
@@ -214,4 +278,82 @@ export function setupModalControle() {
     }
     
     console.log('✅ Modal de controle configurado!');
+}
+
+export async function visualizarControle(controleId, riscoId) {
+    try {
+        const response = await fetchComAutenticacao(`/api/controle-etapa/${controleId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            mostrarToast('❌ Erro ao carregar dados do controle', 'error');
+            return;
+        }
+
+        const controle = data.controle;
+
+        // Preencher campos
+        document.getElementById('controle_nome').value = controle.nome_controle || '';
+        document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
+        document.getElementById('controle_como_executado').value = controle.como_executado || '';
+        document.getElementById('controle_objetivo').value = controle.objetivo_controle || '';
+        document.getElementById('controle_periodicidade').value = controle.periodicidade_execucao || '';
+        document.getElementById('controle_evidencia').value = controle.evidencia_realizacao || '';
+        document.getElementById('controle_local_evidencia').value = controle.local_evidencia || '';
+        document.getElementById('controle_forma_execucao').value = controle.forma_execucao || '';
+        document.getElementById('controle_natureza').value = controle.natureza || '';
+        document.getElementById('controle_lgpd').value = controle.lgpd || '';
+        document.getElementById('controle_status').value = controle.status_controle || '';
+        document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
+        document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
+
+        // MUDAR TÍTULO
+        const modalTitle = document.getElementById('modal-controle-title');
+        if (modalTitle) {
+            modalTitle.innerHTML = `<i class="fas fa-eye"></i> Visualizar Controle`;
+        }
+
+        // DESABILITAR TODOS OS CAMPOS
+        const campos = [
+            'controle_nome',
+            'controle_causa_motivo',
+            'controle_como_executado',
+            'controle_objetivo',
+            'controle_periodicidade',
+            'controle_evidencia',
+            'controle_local_evidencia',
+            'controle_forma_execucao',
+            'controle_natureza',
+            'controle_lgpd',
+            'controle_status',
+            'controle_frequencia_evidencia',
+            'controle_responsaveis'
+        ];
+
+        campos.forEach(id => {
+            const campo = document.getElementById(id);
+            if (campo) {
+                campo.disabled = true;
+                campo.style.background = '#f5f5f5';
+                campo.style.color = '#555';
+            }
+        });
+
+        // ESCONDER BOTÃO SALVAR
+        const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+        if (btnSalvar) {
+            btnSalvar.style.display = 'none';
+        }
+
+        // MOSTRAR MODAL
+        const modal = document.getElementById('modal-controle');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar controle:', error);
+        mostrarToast('❌ Erro ao carregar dados do controle', 'error');
+    }
 }

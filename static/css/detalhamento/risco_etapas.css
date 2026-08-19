@@ -200,8 +200,8 @@
 
 .processo-arrow.open {
     transform: rotate(180deg);
-    background: rgba(11, 91, 153, 0.1);
-    color: #0b5b99;
+    background: rgba(140, 59, 11, 0.1);
+    color: #fd6a14; 
 }
 
 .processo-body {
