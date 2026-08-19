@@ -102,7 +102,7 @@ export async function carregarRiscosMapeados() {
                                 <p>Lembre-se de informar, no parecer do auditor, uma ação de controle sugerida.</p>
                             </label>
                             
-                            <textarea class="parecer-risco-etapa" data-risco-id="${risco.id}" 
+                            <textarea class="parecer-risco-etapa auto-resize" data-risco-id="${risco.id}" 
                                 placeholder="Digite seu parecer sobre este risco..."
                                 style="width: 100%; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px; margin-top: 4px; resize: vertical;" rows="2">${escapeHtml(risco.parecer_auditor || '')}</textarea>
                         </div>
@@ -114,6 +114,16 @@ export async function carregarRiscosMapeados() {
         }
         
         container.innerHTML = html;
+        container.querySelectorAll('.parecer-risco-etapa').forEach(textarea => {
+            const ajustarAltura = () => {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            };
+
+            textarea.addEventListener('input', ajustarAltura);
+
+            ajustarAltura();
+        })
         
         // ⭐ Mostrar botão salvar
         if (btnSalvarContainer) btnSalvarContainer.style.display = 'block';
