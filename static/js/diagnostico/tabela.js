@@ -187,8 +187,8 @@ const TabelaModule = {
             // Para não-admin, mostra botão de editar normal
             return `
                 <div class="btn-group">
-                    <button class="btn-editar-processo" data-editar="${processo.id}">
-                        <i class="fas fa-pencil-alt"></i> Editar
+                    <button class="btn-edit-processo" data-editar="${processo.id}">
+                        <i class="fas fa-pencil-alt"></i>
                     </button>
                 </div>
             `;
