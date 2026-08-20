@@ -773,7 +773,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         riscos_controles = analise.get('riscos_controles', [])
 
         if riscos_controles:
-            story.append(Paragraph("<b>3.1 RISCOS IDENTIFICADOS E CONTROLES SUGERIDOS</b>", secao_style))
+            story.append(Paragraph("<b>RISCOS IDENTIFICADOS E CONTROLES SUGERIDOS</b>", secao_style))
             
             for risco in riscos_controles:
                 # Pega o nome do risco (pode ser dict ou string)
@@ -1087,7 +1087,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             # ⭐ NOVO: Riscos da Etapa com Parecer
             if etapa.get('riscos_etapa'):
                 story.append(Spacer(1, 2))
-                story.append(Paragraph("<b>RISCOS MAPEADOS E PARECER DO AUDITOR</b>", card_subtitulo_style))
+                story.append(Paragraph("<b>RISCOS MAPEADOS PELO AUDITADO E PARECER DO AUDITOR</b>", card_subtitulo_style))
                 story.append(Spacer(1, 20))
                 
                 for risco in etapa['riscos_etapa']:

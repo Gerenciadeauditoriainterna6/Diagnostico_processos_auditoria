@@ -51,8 +51,7 @@ const ModalRiscoEtapaModule = {
         
         document.getElementById('risco_impacto')?.addEventListener('change', () => this.atualizarScoreRisco());
         document.getElementById('risco_probabilidade')?.addEventListener('change', () => this.atualizarScoreRisco());
-        document.getElementById('apetite_impacto')?.addEventListener('change', () => this.atualizarScoreApetite());
-        document.getElementById('apetite_probabilidade')?.addEventListener('change', () => this.atualizarScoreApetite());
+
         
         document.getElementById('check-outra-categoria-risco')?.addEventListener('change', function() {
             const container = document.getElementById('outra-categoria-risco-container');
@@ -105,11 +104,6 @@ const ModalRiscoEtapaModule = {
             impacto: document.getElementById('risco_impacto')?.value || '',
             probabilidade: document.getElementById('risco_probabilidade')?.value || '',
             motivo_classificacao: document.getElementById('risco_motivo')?.value || '',
-            impacto_aceitavel: document.getElementById('apetite_impacto')?.value || '',
-            probabilidade_aceitavel: document.getElementById('apetite_probabilidade')?.value || '',
-            tratamento: document.getElementById('risco_tratamento')?.value || '',
-            desc_tratamento: document.getElementById('risco_desc_tratamento')?.value || '',
-            descricao_prazo: document.getElementById('risco_descricao_prazo')?.value || '',
         };
         
         const categoriasSelecionadas = [];
@@ -260,7 +254,6 @@ const ModalRiscoEtapaModule = {
 
         this.limpar();
         this.atualizarScoreRisco();
-        this.atualizarScoreApetite();
         
         // ⭐ Carregar objetivo da etapa
         this.carregarObjetivoEtapa(etapaId);
@@ -321,14 +314,10 @@ const ModalRiscoEtapaModule = {
             this.setValueIfExists('risco_info_adicional', risco.info_adicional || '');
             this.setValueIfExists('risco_origem', risco.origem || '');
             this.setValueIfExists('risco_financeiro', risco.financeiro ? 'true' : 'false');
-            this.setValueIfExists('apetite_impacto', (risco.impacto_aceitavel || '').toUpperCase());
-            this.setValueIfExists('apetite_probabilidade', (risco.probabilidade_aceitavel || '').toUpperCase());
-            this.setValueIfExists('risco_desc_tratamento', risco.desc_tratamento || '');
             this.setValueIfExists('risco_motivo', risco.motivo_classificacao || '');
-            this.setValueIfExists('risco_descricao_prazo', risco.descricao_prazo || '');
             this.setValueIfExists('risco_impacto', (risco.impacto || '').toUpperCase());
             this.setValueIfExists('risco_probabilidade', (risco.probabilidade || '').toUpperCase());
-            this.setValueIfExists('risco_tratamento', (risco.tratamento || '').toUpperCase());
+     
 
             // Status ativo/inativo
             if (risco.ativo !== undefined) {
@@ -452,7 +441,6 @@ const ModalRiscoEtapaModule = {
             }
 
             this.atualizarScoreRisco();
-            this.atualizarScoreApetite();
 
             // Título
             const tituloElement = document.getElementById('modal-risco-title');
@@ -512,14 +500,12 @@ const ModalRiscoEtapaModule = {
         this.setValueIfExists('risco_info_adicional', '');
         this.setValueIfExists('risco_origem', '');
         this.setValueIfExists('risco_financeiro', 'false');
-        this.setValueIfExists('risco_desc_tratamento', '');
+
         this.setValueIfExists('risco_motivo', '');
-        this.setValueIfExists('risco_descricao_prazo', '');
+
         this.setValueIfExists('risco_impacto', '');
         this.setValueIfExists('risco_probabilidade', '');
-        this.setValueIfExists('risco_tratamento', '');
-        this.setValueIfExists('apetite_impacto', '');
-        this.setValueIfExists('apetite_probabilidade', '');
+
         
         // Resetar radio button para "Ativo"
         const radioAtivo = document.querySelector('input[name="risco_ativo"][value="true"]');
@@ -552,7 +538,7 @@ const ModalRiscoEtapaModule = {
         this.setValueIfExists('outra-categoria-causa-texto', '');
         
         this.atualizarScoreRisco();
-        this.atualizarScoreApetite();
+    
     },
 
     atualizarScoreRisco() {
@@ -575,25 +561,6 @@ const ModalRiscoEtapaModule = {
         return score;
     },
 
-    atualizarScoreApetite() {
-        const impacto = document.getElementById('apetite_impacto')?.value || '';
-        const prob = document.getElementById('apetite_probabilidade')?.value || '';
-        
-        if (!impacto || !prob) {
-            const preview = document.getElementById('apetite-score-preview');
-            if (preview) {
-                preview.innerHTML = `<strong>Risco residual:</strong> <span id="preview-apetite-score">-</span>`;
-            }
-            return 0;
-        }
-        
-        const score = calcularScoreRisco(impacto, prob);
-        const preview = document.getElementById('apetite-score-preview');
-        if (preview) {
-            preview.innerHTML = `<strong>Risco residual:</strong> <span id="preview-apetite-score">${score}</span> (${this.getNivelRisco(score)})`;
-        }
-        return score;
-    },
     
     getNivelRisco(score) {
         if (score <= 3) return 'BAIXO';

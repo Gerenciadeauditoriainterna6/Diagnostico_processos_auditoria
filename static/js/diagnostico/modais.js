@@ -247,31 +247,8 @@ const ModaisModule = {
         document.getElementById('vis-categorias').textContent = (risco.categorias || []).join(', ') || '-';
         document.getElementById('vis-impacto').textContent = risco.impacto || '-';
         document.getElementById('vis-probabilidade').textContent = risco.probabilidade || '-';
-        document.getElementById('vis-apetite-impacto').textContent = risco.apetite_impacto || '-';
-        document.getElementById('vis-apetite-probabilidade').textContent = risco.apetite_probabilidade || '-';
-        document.getElementById('vis-score').textContent = risco.score_risco || '-';
         document.getElementById('vis-motivo_risco').textContent = risco.motivo_risco || '-';
-        document.getElementById('vis-como-tratar').textContent = risco.como_tratar || '-';
-        document.getElementById('vis-desc-tratamento').textContent = risco.desc_tratamento || '-';
-        document.getElementById('vis-prazo-implantacao').textContent = risco.prazo_implantacao || '-';
         
-        // Score do apetite
-        const mapa = {
-            "MUITO ALTO,MUITO ALTO": 15, "ALTO,MUITO ALTO": 14,
-            "MÉDIO,MUITO ALTO": 13, "BAIXO,MUITO ALTO": 12,
-            "MUITO ALTO,ALTO": 11, "ALTO,ALTO": 10,
-            "MÉDIO,ALTO": 9, "BAIXO,ALTO": 8,
-            "MUITO ALTO,MÉDIO": 7, "ALTO,MÉDIO": 6,
-            "MÉDIO,MÉDIO": 5, "BAIXO,MÉDIO": 4,
-            "MUITO ALTO,BAIXO": 3, "ALTO,BAIXO": 2,
-            "MÉDIO,BAIXO": 1, "BAIXO,BAIXO": 0
-        };
-        const impactoApetite = (risco.apetite_impacto || '').toUpperCase().trim();
-        const probApetite = (risco.apetite_probabilidade || '').toUpperCase().trim();
-        
-        document.getElementById('vis-score-apetite').textContent = 
-            (impactoApetite && probApetite && mapa[`${impactoApetite},${probApetite}`] !== undefined) 
-            ? mapa[`${impactoApetite},${probApetite}`] : '-';
     },
 
     async carregarAnexosVisualizacao(processoId) {

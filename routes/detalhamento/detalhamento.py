@@ -810,3 +810,43 @@ def api_riscos_processo_disponiveis(processo_id):
     except Exception as e:
         print(f"❌ Erro ao buscar riscos disponíveis: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@detalhamento_bp.route('/api/controle-etapa/salvar', methods=['POST'])
+def api_controle_etapa_salvar():
+    """Salva um controle de etapa"""
+    from flask import jsonify, request
+    from .queries import salvar_controle_etapa
+    
+    data = request.json
+    
+    # Validação básica
+    if not data.get('risco_id'):
+        return jsonify({'success': False, 'error': 'ID do risco é obrigatório'}), 400
+    
+    if not data.get('nome_controle'):
+        return jsonify({'success': False, 'error': 'Nome do controle é obrigatório'}), 400
+    
+    resultado = salvar_controle_etapa(data)
+    
+    if resultado.get('success'):
+        return jsonify(resultado)
+    else:
+        return jsonify(resultado), 500
+
+@detalhamento_bp.route('/api/controle-etapa/<int:controle_id>', methods=['GET'])
+def api_controle_etapa_detalhes(controle_id):
+    """Retorna os dados de um controle específico para edição"""
+    from flask import jsonify
+    from .queries import buscar_controle_etapa_por_id
+    
+    try:
+        controle = buscar_controle_etapa_por_id(controle_id)
+        
+        if not controle:
+            return jsonify({'success': False, 'error': 'Controle não encontrado'}), 404
+        
+        return jsonify({'success': True, 'controle': controle})
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar controle: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

@@ -41,8 +41,7 @@ const RiscoModal = {
         // Scores
         document.getElementById('modal-impacto')?.addEventListener('change', () => this.atualizarScorePreview());
         document.getElementById('modal-probabilidade')?.addEventListener('change', () => this.atualizarScorePreview());
-        document.getElementById('apetite_impacto')?.addEventListener('change', () => this.atualizarScorePreview());
-        document.getElementById('apetite_probabilidade')?.addEventListener('change', () => this.atualizarScorePreview());
+
         
         // Checkbox "Outra" - Categoria Risco
         document.getElementById('check-outra-categoria-risco')?.addEventListener('change', function() {
@@ -110,13 +109,8 @@ const RiscoModal = {
         document.getElementById('modal-impacto').value = '';
         document.getElementById('modal-probabilidade').value = '';
         document.getElementById('modal-motivo_risco').value = '';
-        document.getElementById('modal-como-tratar').value = '';
-        document.getElementById('modal-desc-tratamento').value = '';
-        document.getElementById('modal-prazo-implantacao').value = '';
-        document.getElementById('apetite_impacto').value = '';
-        document.getElementById('apetite_probabilidade').value = '';
         document.getElementById('modal-score-preview').innerHTML = '<strong>Risco bruto:</strong> Selecione o impacto e probabilidade';
-        document.getElementById('apetite-score-preview').innerHTML = '<strong>Risco residual:</strong> Selecione o apetite ao impacto e probabilidade';
+
         
         document.querySelectorAll('#categorias-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
         document.querySelectorAll('#causa-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -169,11 +163,7 @@ const RiscoModal = {
             motivo_risco: document.getElementById('modal-motivo_risco').value.trim(),
             categorias: categorias,
             categoria_causa: causas,
-            como_tratar: document.getElementById('modal-como-tratar').value,
-            desc_tratamento: document.getElementById('modal-desc-tratamento').value.trim(),
-            prazo_implantacao: document.getElementById('modal-prazo-implantacao').value.trim(),
-            apetite_impacto: document.getElementById('apetite_impacto').value,
-            apetite_probabilidade: document.getElementById('apetite_probabilidade').value
+
         };
         
         if (riscoId) dados.id = parseInt(riscoId);
@@ -197,18 +187,8 @@ const RiscoModal = {
         document.getElementById('modal-impacto').value = risco.impacto || '';
         document.getElementById('modal-probabilidade').value = risco.probabilidade || '';
         document.getElementById('modal-motivo_risco').value = risco.motivo_risco || '';
-        document.getElementById('modal-desc-tratamento').value = risco.desc_tratamento || '';
-        document.getElementById('modal-prazo-implantacao').value = risco.prazo_implantacao || '';
-        document.getElementById('apetite_impacto').value = risco.apetite_impacto || '';
-        document.getElementById('apetite_probabilidade').value = risco.apetite_probabilidade || '';
+ 
         
-        // Tratamento
-        const mapaTratamento = {
-            'ACEITAR': 'Aceitar', 'MITIGAR': 'Mitigar',
-            'COMPARTILHAR': 'Compartilhar', 'COMPARTILHAR (TRANSFERIR)': 'Compartilhar',
-            'EVITAR': 'Evitar'
-        };
-        document.getElementById('modal-como-tratar').value = mapaTratamento[(risco.como_tratar || '').toUpperCase()] || '';
         
         // Categorias (checkboxes + outras)
         const categoriasSalvas = risco.categorias || [];
@@ -259,8 +239,7 @@ const RiscoModal = {
     atualizarScorePreview() {
         const impacto = document.getElementById('modal-impacto').value;
         const probabilidade = document.getElementById('modal-probabilidade').value;
-        const apetiteImpacto = document.getElementById('apetite_impacto').value;
-        const apetiteProbabilidade = document.getElementById('apetite_probabilidade').value;
+
         
         const mapa = {
             "MUITO ALTO,MUITO ALTO": 15, "ALTO,MUITO ALTO": 14,
@@ -274,19 +253,13 @@ const RiscoModal = {
         };
         
         const preview = document.getElementById('modal-score-preview');
-        const apetitePreview = document.getElementById('apetite-score-preview');
-        
+                
         if (!impacto || !probabilidade) {
             preview.innerHTML = '<strong>Risco Bruto:</strong> Selecione impacto e probabilidade';
         } else {
             preview.innerHTML = `<strong>Risco Bruto: ${mapa[`${impacto},${probabilidade}`] || 0}</strong>`;
         }
         
-        if (!apetiteImpacto || !apetiteProbabilidade) {
-            apetitePreview.innerHTML = '<strong>Risco Residual:</strong> Selecione o apetite';
-        } else {
-            apetitePreview.innerHTML = `<strong>Risco Residual: ${mapa[`${apetiteImpacto},${apetiteProbabilidade}`] || 0}</strong>`;
-        }
     },
     
     // ============================================================

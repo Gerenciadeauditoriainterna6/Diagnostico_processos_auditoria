@@ -5,7 +5,7 @@
             <label for="{{ prefix }}_area_select">
                 <i class="fas fa-building"></i> Área:
             </label>
-            <select id="{{ prefix }}_area_select" class="form-control">
+            <select id="{{ prefix }}_area_select" class="form-control" disabled>
                 <option value="">Selecione uma área...</option>
                 {% for nome, id in areas.items() %}
                 <option value="{{ id }}">{{ nome }}</option>

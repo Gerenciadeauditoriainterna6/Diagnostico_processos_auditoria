@@ -980,7 +980,8 @@ def api_riscos_mapeados(processo_id):
                 query_controles = text("""
                     SELECT 
                         ce.id,
-                        ce.nome_controle
+                        ce.nome_controle,
+                        ce.descricao_tratamento
                     FROM controles_etapa ce
                     WHERE ce.risco_id = :risco_id
                     ORDER BY ce.id
