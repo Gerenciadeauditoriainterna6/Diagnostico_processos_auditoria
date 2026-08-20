@@ -815,7 +815,7 @@ textarea.form-control {
 /* ETAPAS (AGRUPADOR) */
 /* ============================================ */
 
-.analise-etapa-card {
+.analise-etapa-card, .etapa-riscos-card {
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 16px;
@@ -823,7 +823,7 @@ textarea.form-control {
     overflow: hidden;
 }
 
-.analise-etapa-header {
+.analise-etapa-header, .etapa-header-riscos {
     background: #f8f9fa;
     padding: 14px 20px;
     cursor: pointer;
@@ -833,6 +833,8 @@ textarea.form-control {
     transition: all 0.2s;
     border-bottom: 1px solid #e0e0e0;
 }
+
+
 
 .analise-etapa-header:hover {
     background: #e9ecef;
@@ -1406,23 +1408,62 @@ textarea.form-control {
 }
 
 /* Tooltip */
-    .help-icon:hover::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        background: #333;
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        max-width: 350px;
-        min-width: 250px;
-        text-align: center;
-        white-space: normal;
-        word-wrap: break-word;
-        word-break: break-word;
-        line-height: 1.4;
-        z-index: 9999;
-        margin-top: 20px;
-        margin-left: 5px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
+.help-icon:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    max-width: 350px;
+    min-width: 250px;
+    text-align: center;
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.4;
+    z-index: 9999;
+    margin-top: 20px;
+    margin-left: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.etapa-riscos-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.etapa-header-riscos {
+    background: #f8f9fa;
+    padding: 14px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.etapa-header-riscos:hover {
+    background: #eef2f3;
+}
+
+.etapa-header-riscos-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.etapa-header-riscos-left strong {
+    color: #184145;
+    font-size: 13px;
+}
+
+.etapa-riscos-body {
+    padding: 15px 20px;
+    background: #fafbfc;
+}

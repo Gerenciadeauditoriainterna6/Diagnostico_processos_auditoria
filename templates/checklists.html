@@ -130,11 +130,17 @@
         </div>
 
         <!-- SEÇÃO 2.5: RISCOS MAPEADOS E PARECER DO AUDITOR (NOVA) -->
+    
         <div class="form-section" id="secao-riscos-mapeados" style="display: none;">
-            <h3><i class="fas fa-exclamation-triangle"></i> Riscos Mapeados pelo Auditado</h3>
-            <p class="text-muted" style="margin-bottom: 20px;">Riscos identificados pelo auditado na matriz de detalhamento, com parecer do auditor</p>
+            <div class="secao-riscos-header" id="header-secao-riscos" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0;"><i class="fas fa-exclamation-triangle"></i> Riscos Mapeados pelo Auditado</h3>
+                    <p class="text-muted" style="margin: 5px 0 0 0;">Riscos identificados pelo auditado na matriz de detalhamento, com parecer do auditor</p>
+                </div>
+                
+            </div>
             
-            <div id="riscos-mapeados-container" style="min-height: 100px;">
+            <div id="riscos-mapeados-container" style="min-height: 100px; margin-top: 20px;">
                 <div style="text-align: center; padding: 40px; color: #999;">
                     <i class="fas fa-spinner fa-spin"></i> Carregando riscos...
                 </div>
@@ -405,72 +411,9 @@
             </div>
         </div>
     </div>
-    <!-- MODAL PARA REGISTRAR ANDAMENTO -->
-    <div id="modal-historico-andamento" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-history"></i> Registrar Andamento</h3>
-                <button class="modal-fechar" onclick="fecharModalHistorico()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="historico-analise-id">
-                
-                <div class="form-group">
-                    <label><i class="fas fa-chart-line"></i> Status</label>
-                    <select id="historico-status" class="form-control">
-                        <option value="Em andamento">🔄 Em andamento</option>
-                        <option value="Parcialmente implementado">📊 Parcialmente implementado</option>
-                        <option value="Concluído">✅ Concluído</option>
-                        <option value="Atrasado">⚠️ Atrasado</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-comment"></i> Comentário</label>
-                    <textarea id="historico-comentario" class="form-control" rows="4" placeholder="Descreva o andamento da implementação..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="fecharModalHistorico()">Cancelar</button>
-                <button id="btn-salvar-historico" class="btn-primary">
-                    <i class="fas fa-save"></i> Salvar
-                </button>
-            </div>
-        </div>
-    </div>
+    
 
-    <!-- MODAL PARA REGISTRAR FOLLOW-UP -->
-    <div id="modal-follow-up" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h3 id="modal-followup-titulo"><i class="fas fa-search"></i> Registrar Follow-up</h3>
-                <button class="modal-fechar" onclick="fecharModalFollowUp()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="followup-id">
-                
-                <div class="form-group">
-                    <label><i class="fas fa-check-circle"></i> Status</label>
-                    <select id="followup-status" class="form-control">
-                        <option value="Aderente">✅ Aderente</option>
-                        <option value="Nao aderente">❌ Não aderente</option>
-                        <option value="Parcialmente aderente">🟡 Parcialmente aderente</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-comment"></i> Comentário</label>
-                    <textarea id="followup-comentario" class="form-control" rows="4" placeholder="Descreva o resultado do follow-up..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="fecharModalFollowUp()">Cancelar</button>
-                <button id="btn-salvar-followup" class="btn-primary">
-                    <i class="fas fa-save"></i> Salvar
-                </button>
-            </div>
-        </div>
-    </div>
+    
     <!-- MODAL PARA CONFIRMAR IMPLANTAÇÃO EFETIVA -->
     <div id="modal-confirmar-implantacao" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 450px;">

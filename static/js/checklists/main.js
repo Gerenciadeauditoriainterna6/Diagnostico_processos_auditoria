@@ -21,6 +21,7 @@ import { carregarRiscosMapeados } from './riscos_mapeados.js';
 
 import { mostrarToast } from './utils.js';
 
+
 import { 
     carregarAnalisesAuditado,
     salvarAnaliseAuditado,
@@ -189,5 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupFileUploadEvidenciaAuditor();
     setupFileUploadEvidenciaAuditado();
+
+    
 
 });

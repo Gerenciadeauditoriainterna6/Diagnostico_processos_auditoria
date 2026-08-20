@@ -1360,142 +1360,7 @@ def detalhamento_etapas():
     
     return render_template('detalhamento/detalhamento_etapas.html')
 
-@app.route('/api/controle-etapa/salvar', methods=['POST'])
-def api_controle_etapa_salvar():
-    """Salva um novo controle de etapa ou atualiza existente"""
-    from database import engine
-    from sqlalchemy import text
-    
-    data = request.json
-    controle_id = data.get('id')
-    risco_id = data.get('risco_id')
-    auditoria_id = data.get('auditoria_id')
-    
-    
-    # Dados do controle
-    nome_controle = data.get('nome_controle', '')
-    como_executado = data.get('como_executado', '')
-    objetivo_controle = data.get('objetivo_controle', '')
-    periodicidade_execucao = data.get('periodicidade_execucao', '')
-    natureza = data.get('natureza', '')
-    forma_execucao = data.get('forma_execucao', '')
-    status_controle = data.get('status_controle', '')
-    evidencia_realizacao = data.get('evidencia_realizacao', '')
-    responsaveis_tratamento = data.get('responsaveis_tratamento', '')
-    risco_avaliacao = data.get('risco_avaliacao', '')
-    causa_motivo = data.get('causa_motivo', '')
-    frequencia_evidencia = data.get('frequencia_evidencia', '')
-    local_evidencia = data.get('local_evidencia', '')
-    lgpd = data.get('lgpd', '')
-    
-    # Validação básica
-    if not risco_id:
-        return jsonify({'success': False, 'error': 'ID do risco é obrigatório'}), 400
-    
-    if not nome_controle:
-        return jsonify({'success': False, 'error': 'Nome do controle é obrigatório'}), 400
-    
-    try:
-        with engine.connect() as conn:
-            if controle_id:
-                # EDIÇÃO: atualizar controle existente
-                query = text("""
-                    UPDATE controles_etapa
-                    SET nome_controle = :nome_controle,
-                        como_executado = :como_executado,
-                        objetivo_controle = :objetivo_controle,
-                        periodicidade_execucao = :periodicidade_execucao,
-                        natureza = :natureza,
-                        forma_execucao = :forma_execucao,
-                        status_controle = :status_controle,
-                        evidencia_realizacao = :evidencia_realizacao,
-                        local_evidencia = :local_evidencia,
-                        lgpd = :lgpd,
-                        responsaveis_tratamento = :responsaveis_tratamento,
-                        risco_avaliacao = :risco_avaliacao,
-                        causa_motivo = :causa_motivo,
-                        frequencia_evidencia = :frequencia_evidencia,
-                        updated_at = CURRENT_DATE
-                    WHERE id = :controle_id
-                """)
-                
-                conn.execute(query, {
-                    'controle_id': controle_id,
-                    'nome_controle': nome_controle,
-                    'como_executado': como_executado,
-                    'objetivo_controle': objetivo_controle,
-                    'periodicidade_execucao': periodicidade_execucao,
-                    'natureza': natureza,
-                    'forma_execucao': forma_execucao,
-                    'status_controle': status_controle,
-                    'evidencia_realizacao': evidencia_realizacao,
-                    'local_evidencia': local_evidencia,     
-                    'lgpd': lgpd,                            
-                    'frequencia_evidencia': frequencia_evidencia,
-                    'responsaveis_tratamento': responsaveis_tratamento,
-                    'risco_avaliacao': risco_avaliacao,
-                    'causa_motivo': causa_motivo
-                })
-                
-                print(f"✏️ Controle {controle_id} atualizado!")
-                
-            else:
-                # NOVO CONTROLE: inserir
-                query = text("""
-                    INSERT INTO controles_etapa (
-                        risco_id, auditoria_id, nome_controle,
-                        como_executado, objetivo_controle,
-                        periodicidade_execucao, natureza, forma_execucao,
-                        status_controle, evidencia_realizacao,
-                        responsaveis_tratamento, risco_avaliacao, causa_motivo,
-                        local_evidencia, lgpd,
-                        frequencia_evidencia, created_at, updated_at
-                    ) VALUES (
-                        :risco_id, :auditoria_id, :nome_controle,
-                        :como_executado, :objetivo_controle,
-                        :periodicidade_execucao, :natureza, :forma_execucao,
-                        :status_controle, :evidencia_realizacao,
-                        :responsaveis_tratamento, :risco_avaliacao, :causa_motivo,
-                        :local_evidencia, :lgpd,
-                        :frequencia_evidencia, CURRENT_TIMESTAMP, CURRENT_DATE
-                    )
-                    RETURNING id
-                """)
-                
-                result = conn.execute(query, {
-                    'risco_id': risco_id,
-                    'auditoria_id': auditoria_id,
-                    'nome_controle': nome_controle,
-                    'como_executado': como_executado,
-                    'objetivo_controle': objetivo_controle,
-                    'periodicidade_execucao': periodicidade_execucao,
-                    'natureza': natureza,
-                    'forma_execucao': forma_execucao,
-                    'status_controle': status_controle,
-                    'evidencia_realizacao': evidencia_realizacao,
-                    'responsaveis_tratamento': responsaveis_tratamento,
-                    'local_evidencia': local_evidencia,
-                    'lgpd': lgpd,
-                    'risco_avaliacao': risco_avaliacao,
-                    'causa_motivo': causa_motivo,
-                    'frequencia_evidencia': frequencia_evidencia
-                })
-                
-                novo_id = result.fetchone()[0]
-                print(f"✅ Novo controle criado! ID: {novo_id}")
-            
-            conn.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Controle salvo com sucesso',
-                'controle_id': controle_id or novo_id
-            })
-            
-    except Exception as e:
-        print(f"❌ Erro ao salvar controle: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500   
-    
+   
 @app.route('/api/controle-etapa/<int:controle_id>', methods=['DELETE'])
 def api_controle_etapa_excluir(controle_id):
     """Remove um controle (soft delete)"""
@@ -1513,53 +1378,6 @@ def api_controle_etapa_excluir(controle_id):
             return jsonify({'success': True, 'message': 'Controle excluído com sucesso'})
     except Exception as e:
         print(f"❌ Erro ao excluir controle: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/controle-etapa/<int:controle_id>', methods=['GET'])
-def api_controle_etapa_detalhes(controle_id):
-    """Retorna os dados de um controle específico para edição"""
-    from database import engine
-    from sqlalchemy import text
-    
-    try:
-        with engine.connect() as conn:
-            query = text("""
-                SELECT id, risco_id, nome_controle, como_executado, objetivo_controle,
-                       periodicidade_execucao, natureza, forma_execucao, status_controle,
-                       evidencia_realizacao, responsaveis_tratamento, risco_avaliacao, causa_motivo,
-                       frequencia_evidencia, local_evidencia, lgpd
-                FROM controles_etapa
-                WHERE id = :controle_id
-            """)
-            
-            result = conn.execute(query, {'controle_id': controle_id}).fetchone()
-            
-            if not result:
-                return jsonify({'success': False, 'error': 'Controle não encontrado'}), 404
-            
-            controle = {
-                'id': result[0],
-                'risco_id': result[1],
-                'nome_controle': result[2] or '',
-                'como_executado': result[3] or '',
-                'objetivo_controle': result[4] or '',
-                'periodicidade_execucao': result[5] or '',
-                'natureza': result[6] or '',
-                'forma_execucao': result[7] or '',
-                'status_controle': result[8] or '',
-                'evidencia_realizacao': result[9] or '',
-                'responsaveis_tratamento': result[10] or '',
-                'risco_avaliacao': result[11] or '',
-                'causa_motivo': result[12] or '',
-                'frequencia_evidencia': result[13] or '',
-                'local_evidencia': result[14] or '',
-                'lgpd': result[15] or ''
-            }
-            
-            return jsonify({'success': True, 'controle': controle})
-            
-    except Exception as e:
-        print(f"❌ Erro ao buscar controle: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     
 # ============================================================
@@ -2832,162 +2650,7 @@ def api_processo_riscos(processo_id):
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     
-def api_salvar_processo_riscos():
-    from database import engine
-    from sqlalchemy import text
-    
-    data = request.json
-    processo_id = data.get('processo_id')
-    riscos = data.get('riscos', [])
-    
-    if not processo_id:
-        return jsonify({'success': False, 'error': 'ID do processo é obrigatório'}), 400
-    
-    # Mapa de risco para calcular score
-    MAPA_RISCO = {
-        ("MUITO ALTO", "MUITO ALTO"): 15, ("ALTO", "MUITO ALTO"): 14,
-        ("MÉDIO", "MUITO ALTO"): 13, ("BAIXO", "MUITO ALTO"): 12,
-        ("MUITO ALTO", "ALTO"): 11, ("ALTO", "ALTO"): 10,
-        ("MÉDIO", "ALTO"): 9, ("BAIXO", "ALTO"): 8,
-        ("MUITO ALTO", "MÉDIO"): 7, ("ALTO", "MÉDIO"): 6,
-        ("MÉDIO", "MÉDIO"): 5, ("BAIXO", "MÉDIO"): 4,
-        ("MUITO ALTO", "BAIXO"): 3, ("ALTO", "BAIXO"): 2,
-        ("MÉDIO", "BAIXO"): 1, ("BAIXO", "BAIXO"): 0
-    }
-    
-    def calcular_score(impacto, probabilidade):
-        return MAPA_RISCO.get((impacto.upper().strip(), probabilidade.upper().strip()), 0)
-    
-    try:
-        with engine.connect() as conn:
-            # ⭐ PEGAR TODOS OS IDs DOS RISCOS EXISTENTES NO BANCO
-            select_existing = text("SELECT id FROM riscos WHERE processo_id = :processo_id")
-            existing_ids = [row[0] for row in conn.execute(select_existing, {'processo_id': processo_id}).fetchall()]
-            
-            # ⭐ IDs QUE VIERAM DO FRONTEND (para saber quais manter)
-            received_ids = [r.get('id') for r in riscos if r.get('id')]
-            
-            # ⭐ RISCOS QUE FORAM REMOVIDOS (estão no banco mas não vieram no frontend)
-            ids_to_delete = [id for id in existing_ids if id not in received_ids]
-            
-            # ⭐ DELETAR RISCOS REMOVIDOS PELO USUÁRIO
-            if ids_to_delete:
-                delete_query = text("DELETE FROM riscos WHERE id = ANY(:ids)")
-                conn.execute(delete_query, {'ids': ids_to_delete})
-                print(f"🗑️ {len(ids_to_delete)} riscos removidos: {ids_to_delete}")
-            
-            # ⭐ UPSERT: ATUALIZAR OU INSERIR CADA RISCO
-            for risco in riscos:
-                impacto = risco.get('impacto', 'Médio').upper().strip()
-                probabilidade = risco.get('probabilidade', 'Médio').upper().strip()
-                score = calcular_score(impacto, probabilidade)
-                
-                # Converter arrays para strings separadas por vírgula
-                categorias = risco.get('categorias', [])
-                categoria_str = ', '.join([c.upper().strip() for c in categorias if c]) if categorias else None
-                
-                causas = risco.get('categoria_causa', [])
-                causas_str = ', '.join([c.upper().strip() for c in causas if c]) if causas else None
-                
-                risco_id = risco.get('id')
-                
-                if risco_id and risco_id in existing_ids:
-                    # ⭐ UPDATE: Atualizar risco existente (preserva created_at, validações, etc.)
-                    update_query = text("""
-                        UPDATE riscos SET
-                            nome_risco = UPPER(:nome_risco),
-                            fator_risco = UPPER(:fator_risco),
-                            melhoria = UPPER(:melhoria),
-                            impacto = UPPER(:impacto),
-                            probabilidade = UPPER(:probabilidade),
-                            motivo_risco = UPPER(:motivo_risco),
-                            categoria = UPPER(:categoria),
-                            causas = UPPER(:causas),
-                            score_risco = :score_risco,
-                            tratamento_risco = UPPER(:tratamento_risco),
-                            descricao_tratamento = UPPER(:descricao_tratamento),
-                            prazo_implantacao = UPPER(:prazo_implantacao),
-                            apetite_impacto = UPPER(:apetite_impacto),
-                            apetite_probabilidade = UPPER(:apetite_probabilidade)
-                        WHERE id = :risco_id AND processo_id = :processo_id
-                    """)
-                    
-                    conn.execute(update_query, {
-                        'risco_id': risco_id,
-                        'processo_id': processo_id,
-                        'nome_risco': risco.get('nome_risco', '').upper().strip(),
-                        'fator_risco': risco.get('fator_risco', '').upper().strip(),
-                        'melhoria': risco.get('melhoria', '').upper().strip(),
-                        'impacto': impacto,
-                        'probabilidade': probabilidade,
-                        'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
-                        'categoria': categoria_str,
-                        'causas': causas_str,
-                        'score_risco': score,
-                        'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
-                        'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
-                        'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
-                        'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
-                        'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
-                    })
-                    print(f"✏️ Risco {risco_id} atualizado")
-                    
-                else:
-                    # ⭐ INSERT: Criar novo risco
-                    insert_query = text("""
-                        INSERT INTO riscos (
-                            processo_id, nome_risco, fator_risco, melhoria, 
-                            impacto, probabilidade, motivo_risco, 
-                            categoria, causas, score_risco,
-                            tratamento_risco, descricao_tratamento, prazo_implantacao,
-                            apetite_impacto, apetite_probabilidade
-                        )
-                        VALUES (
-                            :processo_id, UPPER(:nome_risco), UPPER(:fator_risco), UPPER(:melhoria), 
-                            UPPER(:impacto), UPPER(:probabilidade), UPPER(:motivo_risco), 
-                            UPPER(:categoria), UPPER(:causas), :score_risco,
-                            UPPER(:tratamento_risco), UPPER(:descricao_tratamento), UPPER(:prazo_implantacao),
-                            UPPER(:apetite_impacto), UPPER(:apetite_probabilidade)
-                        )
-                        RETURNING id
-                    """)
-                    
-                    result = conn.execute(insert_query, {
-                        'processo_id': processo_id,
-                        'nome_risco': risco.get('nome_risco', '').upper().strip(),
-                        'fator_risco': risco.get('fator_risco', '').upper().strip(),
-                        'melhoria': risco.get('melhoria', '').upper().strip(),
-                        'impacto': impacto,
-                        'probabilidade': probabilidade,
-                        'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
-                        'categoria': categoria_str,
-                        'causas': causas_str,
-                        'score_risco': score,
-                        'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
-                        'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
-                        'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
-                        'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
-                        'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
-                    })
-                    
-                    new_id = result.fetchone()[0]
-                    print(f"➕ Novo risco {new_id} inserido")
-                    
-                    # ⭐ ATUALIZAR O ID NO OBJETO RISCO (para o frontend)
-                    risco['id'] = new_id
-            
-            conn.commit()
-            
-            # ⭐ RETORNAR OS RISCOS COM OS IDs ATUALIZADOS
-            return jsonify({
-                'success': True, 
-                'message': f'{len(riscos)} riscos salvos',
-                'riscos': riscos
-            })
-            
-    except Exception as e:
-        print(f"❌ Erro ao salvar riscos: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+
     
 @app.route('/api/processos-por-auditoria')
 def api_processos_por_auditoria():
@@ -3414,8 +3077,21 @@ def api_etapa_controles_count(etapa_id):
         with engine.connect() as conn:
             query = text("""
                 SELECT COUNT(*) FROM controles_etapa ce
-                JOIN riscos_etapa re ON ce.risco_id = re.id
-                WHERE re.etapa_id = :etapa_id AND re.ativo = true
+                WHERE ce.risco_id IN (
+                    -- Riscos da etapa (riscos_etapa)
+                    SELECT re.id 
+                    FROM riscos_etapa re 
+                    WHERE re.etapa_id = :etapa_id AND re.ativo = true
+                    
+                    UNION
+                    
+                    -- Riscos do processo vinculados (tabela riscos)
+                    SELECT CAST(unnest(string_to_array(ep.riscos_processo_ids, ', ')) AS bigint)
+                    FROM etapas_processo ep
+                    WHERE ep.id = :etapa_id
+                    AND ep.riscos_processo_ids IS NOT NULL
+                    AND ep.riscos_processo_ids != ''
+                )
             """)
             result = conn.execute(query, {'etapa_id': etapa_id}).fetchone()
             return jsonify({'success': True, 'total': result[0]})

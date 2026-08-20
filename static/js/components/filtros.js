@@ -21,6 +21,8 @@ const FiltrosModule = {
         
         this.areaSelect.addEventListener('change', () => this.aoMudarArea());
         this.auditoriaSelect.addEventListener('change', () => this.aoMudarAuditoria());
+
+        this.areaSelect.disabled = false;
     },
     
     async aoMudarArea() {

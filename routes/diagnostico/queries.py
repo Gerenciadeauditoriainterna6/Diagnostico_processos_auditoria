@@ -3,6 +3,8 @@
 
 from database import engine
 from sqlalchemy import text
+from flask import request, jsonify
+import json
 
 
 def buscar_auditorias_por_area(area_id):
@@ -621,3 +623,142 @@ def buscar_risco_por_id(risco_id):
             'apetite_impacto': row[13] or 'Médio',
             'apetite_probabilidade': row[14] or 'Médio'
         }
+
+def salvar_processo_riscos(data):
+    """Salva riscos do processo no banco"""
+    from database import engine
+    from sqlalchemy import text
+    
+    processo_id = data.get('processo_id')
+    riscos = data.get('riscos', [])
+    
+    if not processo_id:
+        return {'success': False, 'error': 'ID do processo é obrigatório'}
+    
+    MAPA_RISCO = {
+        ("MUITO ALTO", "MUITO ALTO"): 15, ("ALTO", "MUITO ALTO"): 14,
+        ("MÉDIO", "MUITO ALTO"): 13, ("BAIXO", "MUITO ALTO"): 12,
+        ("MUITO ALTO", "ALTO"): 11, ("ALTO", "ALTO"): 10,
+        ("MÉDIO", "ALTO"): 9, ("BAIXO", "ALTO"): 8,
+        ("MUITO ALTO", "MÉDIO"): 7, ("ALTO", "MÉDIO"): 6,
+        ("MÉDIO", "MÉDIO"): 5, ("BAIXO", "MÉDIO"): 4,
+        ("MUITO ALTO", "BAIXO"): 3, ("ALTO", "BAIXO"): 2,
+        ("MÉDIO", "BAIXO"): 1, ("BAIXO", "BAIXO"): 0
+    }
+    
+    def calcular_score(impacto, probabilidade):
+        return MAPA_RISCO.get((impacto.upper().strip(), probabilidade.upper().strip()), 0)
+    
+    try:
+        with engine.connect() as conn:
+            select_existing = text("SELECT id FROM riscos WHERE processo_id = :processo_id")
+            existing_ids = [row[0] for row in conn.execute(select_existing, {'processo_id': processo_id}).fetchall()]
+            
+            received_ids = [r.get('id') for r in riscos if r.get('id')]
+            ids_to_delete = [id for id in existing_ids if id not in received_ids]
+            
+            for risco in riscos:
+                impacto = risco.get('impacto', 'Médio').upper().strip()
+                probabilidade = risco.get('probabilidade', 'Médio').upper().strip()
+                score = calcular_score(impacto, probabilidade)
+                
+                categorias = risco.get('categorias', [])
+                categoria_str = ', '.join([c.upper().strip() for c in categorias if c]) if categorias else None
+                
+                causas = risco.get('categoria_causa', [])
+                causas_str = ', '.join([c.upper().strip() for c in causas if c]) if causas else None
+                
+                risco_id = risco.get('id')
+                
+                if risco_id and risco_id in existing_ids:
+                    update_query = text("""
+                        UPDATE riscos SET
+                            nome_risco = UPPER(:nome_risco),
+                            fator_risco = UPPER(:fator_risco),
+                            melhoria = UPPER(:melhoria),
+                            impacto = UPPER(:impacto),
+                            probabilidade = UPPER(:probabilidade),
+                            motivo_risco = UPPER(:motivo_risco),
+                            categoria = UPPER(:categoria),
+                            causas = UPPER(:causas),
+                            score_risco = :score_risco,
+                            tratamento_risco = UPPER(:tratamento_risco),
+                            descricao_tratamento = UPPER(:descricao_tratamento),
+                            prazo_implantacao = UPPER(:prazo_implantacao),
+                            apetite_impacto = UPPER(:apetite_impacto),
+                            apetite_probabilidade = UPPER(:apetite_probabilidade)
+                        WHERE id = :risco_id AND processo_id = :processo_id
+                    """)
+                    
+                    conn.execute(update_query, {
+                        'risco_id': risco_id,
+                        'processo_id': processo_id,
+                        'nome_risco': risco.get('nome_risco', '').upper().strip(),
+                        'fator_risco': risco.get('fator_risco', '').upper().strip(),
+                        'melhoria': risco.get('melhoria', '').upper().strip(),
+                        'impacto': impacto,
+                        'probabilidade': probabilidade,
+                        'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
+                        'categoria': categoria_str,
+                        'causas': causas_str,
+                        'score_risco': score,
+                        'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
+                        'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
+                        'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
+                        'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
+                        'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
+                    })
+                    print(f"✏️ Risco {risco_id} atualizado")
+                    
+                else:
+                    insert_query = text("""
+                        INSERT INTO riscos (
+                            processo_id, nome_risco, fator_risco, melhoria, 
+                            impacto, probabilidade, motivo_risco, 
+                            categoria, causas, score_risco,
+                            tratamento_risco, descricao_tratamento, prazo_implantacao,
+                            apetite_impacto, apetite_probabilidade
+                        )
+                        VALUES (
+                            :processo_id, UPPER(:nome_risco), UPPER(:fator_risco), UPPER(:melhoria), 
+                            UPPER(:impacto), UPPER(:probabilidade), UPPER(:motivo_risco), 
+                            UPPER(:categoria), UPPER(:causas), :score_risco,
+                            UPPER(:tratamento_risco), UPPER(:descricao_tratamento), UPPER(:prazo_implantacao),
+                            UPPER(:apetite_impacto), UPPER(:apetite_probabilidade)
+                        )
+                        RETURNING id
+                    """)
+                    
+                    result = conn.execute(insert_query, {
+                        'processo_id': processo_id,
+                        'nome_risco': risco.get('nome_risco', '').upper().strip(),
+                        'fator_risco': risco.get('fator_risco', '').upper().strip(),
+                        'melhoria': risco.get('melhoria', '').upper().strip(),
+                        'impacto': impacto,
+                        'probabilidade': probabilidade,
+                        'motivo_risco': risco.get('motivo_risco', '').upper().strip(),
+                        'categoria': categoria_str,
+                        'causas': causas_str,
+                        'score_risco': score,
+                        'tratamento_risco': risco.get('como_tratar', '').upper().strip(),
+                        'descricao_tratamento': risco.get('desc_tratamento', '').upper().strip(),
+                        'prazo_implantacao': risco.get('prazo_implantacao', '').upper().strip() or None,
+                        'apetite_impacto': risco.get('apetite_impacto', 'Médio').upper().strip(),
+                        'apetite_probabilidade': risco.get('apetite_probabilidade', 'Médio').upper().strip()
+                    })
+                    
+                    new_id = result.fetchone()[0]
+                    print(f"➕ Novo risco {new_id} inserido")
+                    risco['id'] = new_id
+            
+            conn.commit()
+            
+            return {
+                'success': True,
+                'message': f'{len(riscos)} riscos salvos',
+                'riscos': riscos
+            }
+            
+    except Exception as e:
+        print(f"❌ Erro ao salvar riscos: {e}")
+        return {'success': False, 'error': str(e)}

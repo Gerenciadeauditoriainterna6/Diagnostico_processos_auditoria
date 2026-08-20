@@ -43,6 +43,8 @@ const FiltrosModule = {
         this.auditoriaSelect.addEventListener('change', () => {
             this.aoMudarAuditoria();
         });
+
+        this.areaSelect.disabled = false;
         
         console.log('✅ FiltrosModule: inicializado');
     },

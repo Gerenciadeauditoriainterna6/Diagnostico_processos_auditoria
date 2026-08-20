@@ -464,10 +464,10 @@ export function adicionarRiscoNaLista(analiseId, index, riscoTexto, controles) {
     div.innerHTML = `
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
             <i class="fas fa-exclamation-triangle" style="color: #fd6a14; font-size: 14px; flex-shrink: 0;"></i>
-            <input type="text" class="risco-input" data-analise="${analiseId}" data-index="${index}" 
+            <textarea class="risco-input" data-analise="${analiseId}" data-index="${index}" 
                 placeholder="Descreva o risco identificado..." 
-                value="${escapeHtml(riscoTexto)}"
-                style="flex: 1; padding: 6px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px;">
+                style="flex: 1; padding: 6px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 12px; resize: vertical; min-height: 60px; font-family: inherit;"
+            >${escapeHtml(riscoTexto)}</textarea>
             <button class="btn-remover-risco" data-analise="${analiseId}" data-index="${index}" 
                 style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 14px;">
                 <i class="fas fa-trash-alt"></i>
@@ -479,10 +479,10 @@ export function adicionarRiscoNaLista(analiseId, index, riscoTexto, controles) {
             ${controles.map((c, cIndex) => `
                 <div class="controle-item" data-controle="${cIndex}" style="display: flex; gap: 6px; align-items: center; margin-bottom: 4px;">
                     <i class="fas fa-shield-alt" style="color: #0b5b99; font-size: 10px;"></i>
-                    <input type="text" class="controle-input" data-analise="${analiseId}" data-risco="${index}" data-controle="${cIndex}"
-                        value="${escapeHtml(c)}"
+                    <textarea class="controle-input" data-analise="${analiseId}" data-risco="${index}" data-controle="${cIndex}"
                         placeholder="Descreva o controle sugerido..."
-                        style="flex: 1; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px;">
+                        style="flex: 1; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px; resize: vertical; min-height: 50px; font-family: inherit; line-height: 1.4;"
+                    >${escapeHtml(c)}</textarea>
                     <button class="btn-remover-controle" data-analise="${analiseId}" data-risco="${index}" data-controle="${cIndex}"
                         style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 12px;">
                         <i class="fas fa-times"></i>
@@ -547,9 +547,10 @@ export function adicionarControle(analiseId, riscoIndex) {
     div.style.cssText = 'display: flex; gap: 6px; align-items: center; margin-bottom: 4px;';
     div.innerHTML = `
         <i class="fas fa-shield-alt" style="color: #0b5b99; font-size: 10px;"></i>
-        <input type="text" class="controle-input" data-analise="${analiseId}" data-risco="${riscoIndex}" data-controle="${cIndex}"
+        <textarea class="controle-input auto-resize" data-analise="${analiseId}" data-risco="${riscoIndex}" data-controle="${cIndex}"
             placeholder="Descreva o controle sugerido..."
-            style="flex: 1; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px;">
+            style="flex: 1; padding: 5px 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px; resize: vertical; min-height: 50px; max-height: 150px; font-family: inherit; line-height: 1.4; overflow: hidden;"
+        ></textarea>
         <button class="btn-remover-controle" data-analise="${analiseId}" data-risco="${riscoIndex}" data-controle="${cIndex}"
             style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 12px;">
             <i class="fas fa-times"></i>
@@ -816,7 +817,7 @@ export async function renderizarAnalisesAuditor() {
                 <!-- ⭐ NOVA SEÇÃO: Riscos e Controles -->
                 <div class="analise-card-section" style="border-left: 3px solid #fd6a14; margin-top: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="margin: 0;"><i class="fas fa-exclamation-triangle"></i> Riscos Identificados pelo Auditor e Controles Sugeridos</h4>
+                        <h4 style="margin: 0;"><i class="fas fa-exclamation-triangle"></i> Riscos Identificados e Controles Sugeridos pelo Auditor</h4>
                         <button class="btn-primary" onclick="event.stopPropagation(); window.toggleEditorRiscos(${analise.id})" style="font-size: 12px; padding: 6px 12px;">
                             <i class="fas fa-plus"></i> Gerenciar
                         </button>

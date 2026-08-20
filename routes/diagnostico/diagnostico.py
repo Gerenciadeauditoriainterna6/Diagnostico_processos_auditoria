@@ -5,7 +5,7 @@ from flask import session, request, jsonify, Blueprint
 from routes.diagnostico.queries import (
     buscar_auditorias_por_area, buscar_processos_por_area, 
     buscar_riscos_por_processo, buscar_score_maximo_e_qtd_riscos_por_processo,
-    buscar_funcionarios_por_area
+    buscar_funcionarios_por_area, salvar_processo_riscos
     )
 import uuid
 
@@ -341,3 +341,17 @@ def api_risco_dados(risco_id):
     if risco:
         return jsonify({'success': True, 'risco': risco})
     return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+
+@diagnostico_bp.route('/api/processo/salvar-riscos', methods=['POST'])
+def api_salvar_processo_riscos():
+    """Rota para salvar riscos do processo"""
+    from flask import jsonify, request
+    from .queries import salvar_processo_riscos
+    
+    data = request.json
+    resultado = salvar_processo_riscos(data)
+    
+    if resultado.get('success'):
+        return jsonify(resultado)
+    else:
+        return jsonify(resultado), 500
