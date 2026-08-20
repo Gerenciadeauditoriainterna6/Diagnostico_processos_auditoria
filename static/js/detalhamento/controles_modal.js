@@ -53,6 +53,7 @@ export function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '')
     
     if (fatorRisco) {
         document.getElementById('controle_causa_motivo').value = fatorRisco;
+        document.getElementById('controle_causa_motivo').disabled = true;
     }
     
     const modal = document.getElementById('modal-controle');
@@ -90,6 +91,15 @@ export async function editarControle(controleId, riscoId) {
         document.getElementById('controle_status').value = controle.status_controle || '';
         document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
         document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
+        
+        document.getElementById('controle_apetite_impacto').value = controle.apetite_impacto || '';
+        document.getElementById('controle_apetite_probabilidade').value = controle.apetite_probabilidade || '';
+
+        document.getElementById('controle_tratamento_risco').value = controle.tratamento_risco || '';
+        document.getElementById('controle_descricao_tratamento').value = controle.descricao_tratamento || '';
+        document.getElementById('controle_prazo_implantacao').value = controle.prazo_implantacao || '';
+        
+        calcularScoreResidual();
         
         const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
         const riscoNome = riscoCard ? riscoCard.getAttribute('data-risco-nome') : 'Controle';
@@ -166,6 +176,13 @@ export function limparFormularioControle() {
     document.getElementById('controle_forma_execucao').value = '';
     document.getElementById('controle_status').value = '';
     document.getElementById('controle_frequencia_evidencia').value = '';
+
+    document.getElementById('controle_apetite_impacto').value = '';
+    document.getElementById('controle_apetite_probabilidade').value = '';
+    document.getElementById('controle_tratamento_risco').value = '';
+    document.getElementById('controle_descricao_tratamento').value = '';
+    document.getElementById('controle_prazo_implantacao').value = '';
+
     controleIdEditando = null;
 }
 
@@ -173,10 +190,14 @@ export async function salvarControle() {
     console.log('💾 Iniciando salvamento do controle...');
     
     const nomeControle = document.getElementById('controle_nome').value.trim().toUpperCase();
+    console.log('📝 Nome do controle:', nomeControle);
+    
     if (!nomeControle) {
         mostrarToast('❌ O nome do controle é obrigatório!', 'error');
         return;
     }
+    
+    console.log('📦 Montando dados...');
     
     const dados = {
         id: controleIdEditando,
@@ -194,8 +215,16 @@ export async function salvarControle() {
         status_controle: document.getElementById('controle_status').value.toUpperCase(),
         frequencia_evidencia: document.getElementById('controle_frequencia_evidencia').value.toUpperCase(),
         responsaveis_tratamento: document.getElementById('controle_responsaveis').value.trim().toUpperCase(),
-        auditoria_id: filtroAuditoriaSelect.value || null
+        auditoria_id: filtroAuditoriaSelect.value || null,
+        
+        apetite_impacto: document.getElementById('controle_apetite_impacto').value.toUpperCase(),
+        apetite_probabilidade: document.getElementById('controle_apetite_probabilidade').value.toUpperCase(),
+        tratamento_risco: document.getElementById('controle_tratamento_risco').value.toUpperCase(),
+        descricao_tratamento: document.getElementById('controle_descricao_tratamento').value.trim().toUpperCase(),
+        prazo_implantacao: document.getElementById('controle_prazo_implantacao').value.trim().toUpperCase()
     };
+    
+    console.log('📤 Dados a enviar:', JSON.stringify(dados, null, 2));
     
     try {
         const btnSalvar = document.getElementById('btn-salvar-modal-controle');
@@ -203,15 +232,32 @@ export async function salvarControle() {
         btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
         btnSalvar.disabled = true;
         
+        console.log('📡 Enviando requisição para /api/controle-etapa/salvar...');
+        
         const response = await fetchComAutenticacao('/api/controle-etapa/salvar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dados)
         });
         
-        const resultado = await response.json();
+        console.log('📥 Resposta recebida! Status:', response.status);
+        console.log('📥 Content-Type:', response.headers.get('content-type'));
+        
+        const textoResposta = await response.text();
+        console.log('📥 Resposta crua:', textoResposta);
+        
+        let resultado;
+        try {
+            resultado = JSON.parse(textoResposta);
+        } catch (e) {
+            console.error('❌ Resposta não é JSON:', textoResposta);
+            throw new Error('Resposta inválida do servidor');
+        }
+        
+        console.log('📦 Resultado parseado:', resultado);
         
         if (resultado.success) {
+            console.log('✅ Sucesso! Fechando modal e recarregando...');
             mostrarToast('✅ Controle salvo com sucesso!', 'success');
             fecharModalControle();
             
@@ -223,6 +269,7 @@ export async function salvarControle() {
             }
             
         } else {
+            console.error('❌ Erro do servidor:', resultado.error);
             mostrarToast('❌ Erro ao salvar: ' + (resultado.error || 'Tente novamente'), 'error');
         }
         
@@ -230,7 +277,8 @@ export async function salvarControle() {
         btnSalvar.disabled = false;
         
     } catch (error) {
-        console.error('❌ Erro na requisição:', error);
+        console.error('❌ ERRO COMPLETO:', error);
+        console.error('❌ Stack:', error.stack);
         mostrarToast('❌ Erro de conexão. Tente novamente.', 'error');
         
         const btnSalvar = document.getElementById('btn-salvar-modal-controle');
@@ -246,6 +294,9 @@ export function setupModalControle() {
     const btnFechar = document.getElementById('btn-fechar-modal-controle');
     const btnCancelar = document.getElementById('btn-cancelar-modal-controle');
     const btnSalvar = document.getElementById('btn-salvar-modal-controle');
+
+    document.getElementById('controle_apetite_impacto')?.addEventListener('change', calcularScoreResidual);
+    document.getElementById('controle_apetite_probabilidade')?.addEventListener('change', calcularScoreResidual);
     
     console.log('🔧 Configurando modal de controle...');
     
@@ -268,18 +319,7 @@ export function setupModalControle() {
             fecharModalControle();
         };
     }
-    
-
-    
-    // 5. Botão Salvar - Usando onclick diretamente
-    if (btnSalvar) {
-        btnSalvar.onclick = function(e) {
-            e.preventDefault();
-            console.log('💾 Salvando controle...');
-            salvarControle();
-        };
-    }
-    
+        
     console.log('✅ Modal de controle configurado!');
 }
 
@@ -310,6 +350,14 @@ export async function visualizarControle(controleId, riscoId) {
         document.getElementById('controle_frequencia_evidencia').value = controle.frequencia_evidencia || '';
         document.getElementById('controle_responsaveis').value = controle.responsaveis_tratamento || '';
 
+        document.getElementById('controle_apetite_impacto').value = controle.apetite_impacto || '';
+        document.getElementById('controle_apetite_probabilidade').value = controle.apetite_probabilidade || '';
+        document.getElementById('controle_tratamento_risco').value = controle.tratamento_risco || '';
+        document.getElementById('controle_descricao_tratamento').value = controle.descricao_tratamento || '';
+        document.getElementById('controle_prazo_implantacao').value = controle.prazo_implantacao || '';
+
+        calcularScoreResidual();
+
         // MUDAR TÍTULO
         const modalTitle = document.getElementById('modal-controle-title');
         if (modalTitle) {
@@ -330,7 +378,13 @@ export async function visualizarControle(controleId, riscoId) {
             'controle_lgpd',
             'controle_status',
             'controle_frequencia_evidencia',
-            'controle_responsaveis'
+            'controle_responsaveis',
+
+            'controle_apetite_impacto',
+            'controle_apetite_probabilidade',
+            'controle_tratamento_risco',
+            'controle_descricao_tratamento',
+            'controle_prazo_implantacao'
         ];
 
         campos.forEach(id => {
@@ -359,4 +413,35 @@ export async function visualizarControle(controleId, riscoId) {
         console.error('❌ Erro ao carregar controle:', error);
         mostrarToast('❌ Erro ao carregar dados do controle', 'error');
     }
+}
+
+function calcularScoreResidual() {
+    const impacto = document.getElementById('controle_apetite_impacto').value;
+    const probabilidade = document.getElementById('controle_apetite_probabilidade').value;
+    
+    const preview = document.getElementById('controle-score-residual');
+    
+    if (!impacto || !probabilidade) {
+        if (preview) preview.innerHTML = '<strong>Risco Residual:</strong> -';
+        return 0;
+    }
+    
+    const mapa = {
+        "MUITO ALTO,MUITO ALTO": 15, "ALTO,MUITO ALTO": 14,
+        "MÉDIO,MUITO ALTO": 13, "BAIXO,MUITO ALTO": 12,
+        "MUITO ALTO,ALTO": 11, "ALTO,ALTO": 10,
+        "MÉDIO,ALTO": 9, "BAIXO,ALTO": 8,
+        "MUITO ALTO,MÉDIO": 7, "ALTO,MÉDIO": 6,
+        "MÉDIO,MÉDIO": 5, "BAIXO,MÉDIO": 4,
+        "MUITO ALTO,BAIXO": 3, "ALTO,BAIXO": 2,
+        "MÉDIO,BAIXO": 1, "BAIXO,BAIXO": 0
+    };
+    
+    const score = mapa[`${impacto},${probabilidade}`] || 0;
+    
+    if (preview) {
+        preview.innerHTML = `<strong>Risco Residual: ${score}</strong>`;
+    }
+    
+    return score;
 }

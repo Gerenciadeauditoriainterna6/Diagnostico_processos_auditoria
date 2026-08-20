@@ -59,6 +59,58 @@
         <div class="modal-body">
             <input type="hidden" id="controle_id">
             <input type="hidden" id="controle_risco_id">
+
+            <!-- ⭐ APETITE AO RISCO (RISCO RESIDUAL) -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-sack-dollar"></i> Apetite Impacto Financeiro</label>
+                    <select id="controle_apetite_impacto" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="BAIXO">BAIXO</option>
+                        <option value="MÉDIO">MÉDIO</option>
+                        <option value="ALTO">ALTO</option>
+                        <option value="MUITO ALTO">MUITO ALTO</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-chart-simple"></i> Apetite Probabilidade</label>
+                    <select id="controle_apetite_probabilidade" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="BAIXO">BAIXO</option>
+                        <option value="MÉDIO">MÉDIO</option>
+                        <option value="ALTO">ALTO</option>
+                        <option value="MUITO ALTO">MUITO ALTO</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ⭐ Score do Risco Residual -->
+            <div id="controle-score-residual" class="score-preview" style="margin: -17px 0 18px 0; font-weight: 600; font-size: 14px; color:#184145">
+                <strong>Risco Residual:</strong> -
+            </div>
+
+            <!-- ⭐ TRATAMENTO DO RISCO -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-handshake"></i> Categoria de Tratamento do Risco</label>
+                    <select id="controle_tratamento_risco" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="ACEITAR">ACEITAR</option>
+                        <option value="MITIGAR">MITIGAR</option>
+                        <option value="COMPARTILHAR">COMPARTILHAR</option>
+                        <option value="EVITAR">EVITAR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Prazo para Implantação</label>
+                    <input type="text" id="controle_prazo_implantacao" class="form-control" placeholder="O que falta para implantar?...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-file-alt"></i> Descrição do Tratamento</label>
+                <textarea id="controle_descricao_tratamento" class="form-control" rows="2" placeholder="Descreva como o tratamento será aplicado..."></textarea>
+            </div>
             
             <!-- 3. Fator de Risco (Causa/Motivo) -->
             <div class="form-group">

@@ -80,7 +80,7 @@ export async function carregarEtapas(auditoriaId) {
                     <div class="processo-header" onclick="toggleProcesso(this)">
                         <div class="processo-info">
                             <i class="fas fa-folder-open"></i>
-                            <strong>${processo.codigo_processo}</strong>
+                            <strong>Processo: ${processo.codigo_processo}</strong>
                             <span>${processo.nome_processo}</span>
                         </div>
                         <i class="fas fa-chevron-down processo-arrow"></i>
@@ -96,7 +96,7 @@ export async function carregarEtapas(auditoriaId) {
                             <div class="etapa-header" onclick="toggleEtapa(this)">
                                 <div class="etapa-info">
                                     <i class="fas fa-step-forward"></i>
-                                    <strong>${etapa.codigo_etapa}</strong>
+                                    <strong>Etapa: ${etapa.codigo_etapa}</strong>
                                     <span id="nome-etapa">${limitarTexto(etapa.nome_etapa, 80)}</span>
                                 </div>
                                 <div class="etapa-actions">

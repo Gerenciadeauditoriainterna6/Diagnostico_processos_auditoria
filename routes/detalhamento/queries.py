@@ -721,3 +721,197 @@ def buscar_riscos_processo_disponiveis(processo_id):
     with engine.connect() as conn:
         result = conn.execute(query, {'processo_id': processo_id}).mappings().fetchall()
         return [dict(r) for r in result]
+
+
+
+def salvar_controle_etapa(data):
+    """Salva um controle de etapa (insert ou update)"""
+    from database import engine
+    from sqlalchemy import text
+    
+    controle_id = data.get('id')
+    risco_id = data.get('risco_id')
+    auditoria_id = data.get('auditoria_id')
+    
+    nome_controle = data.get('nome_controle', '')
+    como_executado = data.get('como_executado', '')
+    objetivo_controle = data.get('objetivo_controle', '')
+    periodicidade_execucao = data.get('periodicidade_execucao', '')
+    natureza = data.get('natureza', '')
+    forma_execucao = data.get('forma_execucao', '')
+    status_controle = data.get('status_controle', '')
+    evidencia_realizacao = data.get('evidencia_realizacao', '')
+    responsaveis_tratamento = data.get('responsaveis_tratamento', '')
+    risco_avaliacao = data.get('risco_avaliacao', '')
+    causa_motivo = data.get('causa_motivo', '')
+    frequencia_evidencia = data.get('frequencia_evidencia', '')
+    local_evidencia = data.get('local_evidencia', '')
+    lgpd = data.get('lgpd', '')
+    
+    # ⭐ NOVOS CAMPOS
+    apetite_impacto = data.get('apetite_impacto', '')
+    apetite_probabilidade = data.get('apetite_probabilidade', '')
+    tratamento_risco = data.get('tratamento_risco', '')
+    descricao_tratamento = data.get('descricao_tratamento', '')
+    prazo_implantacao = data.get('prazo_implantacao', '')
+    
+    try:
+        with engine.connect() as conn:
+            if controle_id:
+                query = text("""
+                    UPDATE controles_etapa
+                    SET nome_controle = :nome_controle,
+                        como_executado = :como_executado,
+                        objetivo_controle = :objetivo_controle,
+                        periodicidade_execucao = :periodicidade_execucao,
+                        natureza = :natureza,
+                        forma_execucao = :forma_execucao,
+                        status_controle = :status_controle,
+                        evidencia_realizacao = :evidencia_realizacao,
+                        local_evidencia = :local_evidencia,
+                        lgpd = :lgpd,
+                        responsaveis_tratamento = :responsaveis_tratamento,
+                        risco_avaliacao = :risco_avaliacao,
+                        causa_motivo = :causa_motivo,
+                        frequencia_evidencia = :frequencia_evidencia,
+                        apetite_impacto = :apetite_impacto,
+                        apetite_probabilidade = :apetite_probabilidade,
+                        tratamento_risco = :tratamento_risco,
+                        descricao_tratamento = :descricao_tratamento,
+                        prazo_implantacao = :prazo_implantacao,
+                        updated_at = CURRENT_DATE
+                    WHERE id = :controle_id
+                """)
+                
+                conn.execute(query, {
+                    'controle_id': controle_id,
+                    'nome_controle': nome_controle,
+                    'como_executado': como_executado,
+                    'objetivo_controle': objetivo_controle,
+                    'periodicidade_execucao': periodicidade_execucao,
+                    'natureza': natureza,
+                    'forma_execucao': forma_execucao,
+                    'status_controle': status_controle,
+                    'evidencia_realizacao': evidencia_realizacao,
+                    'local_evidencia': local_evidencia,
+                    'lgpd': lgpd,
+                    'responsaveis_tratamento': responsaveis_tratamento,
+                    'risco_avaliacao': risco_avaliacao,
+                    'causa_motivo': causa_motivo,
+                    'frequencia_evidencia': frequencia_evidencia,
+                    'apetite_impacto': apetite_impacto,
+                    'apetite_probabilidade': apetite_probabilidade,
+                    'tratamento_risco': tratamento_risco,
+                    'descricao_tratamento': descricao_tratamento,
+                    'prazo_implantacao': prazo_implantacao
+                })
+
+                conn.commit()
+                
+                return {'success': True, 'message': 'Controle atualizado', 'controle_id': controle_id}
+                
+            else:
+                query = text("""
+                    INSERT INTO controles_etapa (
+                        risco_id, auditoria_id, nome_controle,
+                        como_executado, objetivo_controle,
+                        periodicidade_execucao, natureza, forma_execucao,
+                        status_controle, evidencia_realizacao,
+                        responsaveis_tratamento, risco_avaliacao, causa_motivo,
+                        local_evidencia, lgpd,
+                        frequencia_evidencia,
+                        apetite_impacto, apetite_probabilidade,
+                        tratamento_risco, descricao_tratamento, prazo_implantacao,
+                        created_at, updated_at
+                    ) VALUES (
+                        :risco_id, :auditoria_id, :nome_controle,
+                        :como_executado, :objetivo_controle,
+                        :periodicidade_execucao, :natureza, :forma_execucao,
+                        :status_controle, :evidencia_realizacao,
+                        :responsaveis_tratamento, :risco_avaliacao, :causa_motivo,
+                        :local_evidencia, :lgpd,
+                        :frequencia_evidencia,
+                        :apetite_impacto, :apetite_probabilidade,
+                        :tratamento_risco, :descricao_tratamento, :prazo_implantacao,
+                        CURRENT_TIMESTAMP, CURRENT_DATE
+                    )
+                    RETURNING id
+                """)
+                
+                result = conn.execute(query, {
+                    'risco_id': risco_id,
+                    'auditoria_id': auditoria_id,
+                    'nome_controle': nome_controle,
+                    'como_executado': como_executado,
+                    'objetivo_controle': objetivo_controle,
+                    'periodicidade_execucao': periodicidade_execucao,
+                    'natureza': natureza,
+                    'forma_execucao': forma_execucao,
+                    'status_controle': status_controle,
+                    'evidencia_realizacao': evidencia_realizacao,
+                    'responsaveis_tratamento': responsaveis_tratamento,
+                    'risco_avaliacao': risco_avaliacao,
+                    'causa_motivo': causa_motivo,
+                    'local_evidencia': local_evidencia,
+                    'lgpd': lgpd,
+                    'frequencia_evidencia': frequencia_evidencia,
+                    'apetite_impacto': apetite_impacto,
+                    'apetite_probabilidade': apetite_probabilidade,
+                    'tratamento_risco': tratamento_risco,
+                    'descricao_tratamento': descricao_tratamento,
+                    'prazo_implantacao': prazo_implantacao
+                })
+                
+                novo_id = result.fetchone()[0]
+                conn.commit()
+                return {'success': True, 'message': 'Controle criado', 'controle_id': novo_id}
+                
+    except Exception as e:
+        print(f"❌ Erro ao salvar controle: {e}")
+        return {'success': False, 'error': str(e)}
+
+def buscar_controle_etapa_por_id(controle_id):
+    """Busca um controle de etapa pelo ID"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT id, risco_id, nome_controle, como_executado, objetivo_controle,
+               periodicidade_execucao, natureza, forma_execucao, status_controle,
+               evidencia_realizacao, responsaveis_tratamento, risco_avaliacao, causa_motivo,
+               frequencia_evidencia, local_evidencia, lgpd,
+               apetite_impacto, apetite_probabilidade,
+               tratamento_risco, descricao_tratamento, prazo_implantacao
+        FROM controles_etapa
+        WHERE id = :controle_id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'controle_id': controle_id}).fetchone()
+        
+        if not result:
+            return None
+        
+        return {
+            'id': result[0],
+            'risco_id': result[1],
+            'nome_controle': result[2] or '',
+            'como_executado': result[3] or '',
+            'objetivo_controle': result[4] or '',
+            'periodicidade_execucao': result[5] or '',
+            'natureza': result[6] or '',
+            'forma_execucao': result[7] or '',
+            'status_controle': result[8] or '',
+            'evidencia_realizacao': result[9] or '',
+            'responsaveis_tratamento': result[10] or '',
+            'risco_avaliacao': result[11] or '',
+            'causa_motivo': result[12] or '',
+            'frequencia_evidencia': result[13] or '',
+            'local_evidencia': result[14] or '',
+            'lgpd': result[15] or '',
+            'apetite_impacto': result[16] or '',
+            'apetite_probabilidade': result[17] or '',
+            'tratamento_risco': result[18] or '',
+            'descricao_tratamento': result[19] or '',
+            'prazo_implantacao': result[20] or ''
+        }

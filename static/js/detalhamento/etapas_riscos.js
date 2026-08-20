@@ -443,11 +443,6 @@ const EtapasRiscosModule = {
                                 ${risco.impacto ? `<div class="mini-detalhe"><strong>Impacto:</strong> ${escapeHtml(risco.impacto)}</div>` : ''}
                                 ${risco.probabilidade ? `<div class="mini-detalhe"><strong>Probabilidade:</strong> ${escapeHtml(risco.probabilidade)}</div>` : ''}
                                 ${risco.motivo_risco ? `<div class="mini-detalhe"><strong>Motivo:</strong> ${escapeHtml(risco.motivo_risco)}</div>` : ''}
-                                ${risco.tratamento_risco ? `<div class="mini-detalhe"><strong>Tratamento:</strong> ${escapeHtml(risco.tratamento_risco)}</div>` : ''}
-                                ${risco.descricao_tratamento ? `<div class="mini-detalhe"><strong>Descrição do Tratamento:</strong> ${escapeHtml(risco.descricao_tratamento)}</div>` : ''}
-                                ${risco.apetite_impacto ? `<div class="mini-detalhe"><strong>Apetite Impacto:</strong> ${escapeHtml(risco.apetite_impacto)}</div>` : ''}
-                                ${risco.apetite_probabilidade ? `<div class="mini-detalhe"><strong>Apetite Probabilidade:</strong> ${escapeHtml(risco.apetite_probabilidade)}</div>` : ''}
-                                ${risco.prazo_implantacao ? `<div class="mini-detalhe"><strong>Prazo:</strong> ${escapeHtml(risco.prazo_implantacao)}</div>` : ''}
                                 
                             </div>
                         </div>

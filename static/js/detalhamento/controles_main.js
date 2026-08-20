@@ -12,7 +12,8 @@ import {
     visualizarControle,
     editarControle,
     fecharModalControle,
-    setupModalControle
+    setupModalControle,
+    salvarControle
 } from './controles_modal.js';
 
 // ====== ELEMENTOS DO DOM ======
@@ -138,6 +139,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const controleId = btnEditControle.dataset.controleId;
             const riscoId = btnEditControle.dataset.riscoId;
             editarControle(controleId, riscoId);
+            return;
+        }
+
+        // ⭐ Botão Salvar Controle
+        const btnSalvarControle = e.target.closest('#btn-salvar-modal-controle');
+        if (btnSalvarControle) {
+            e.preventDefault();
+            salvarControle();  // ⭐ Importado no topo do controles_main.js
             return;
         }
         
