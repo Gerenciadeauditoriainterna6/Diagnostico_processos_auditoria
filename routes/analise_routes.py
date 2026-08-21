@@ -935,7 +935,7 @@ def api_salvar_riscos_controles(analise_id):
 
 @analise_bp.route('/processo/<int:processo_id>/riscos-mapeados', methods=['GET'])
 def api_riscos_mapeados(processo_id):
-    """Retorna riscos das etapas do processo para parecer do auditor"""
+    """Retorna riscos das etapas E riscos do processo vinculados"""
     from flask import jsonify, session
     from database import engine
     from sqlalchemy import text
@@ -945,8 +945,8 @@ def api_riscos_mapeados(processo_id):
     
     try:
         with engine.connect() as conn:
-            # Buscar riscos das etapas do processo
-            query = text("""
+            # ⭐ 1. Buscar riscos das ETAPAS (riscos_etapa)
+            query_etapas = text("""
                 SELECT 
                     re.id,
                     re.nome_risco,
@@ -969,14 +969,40 @@ def api_riscos_mapeados(processo_id):
                 AND (re.ativo IS NULL OR re.ativo = true)
                 ORDER BY ep.codigo_etapa, re.id
             """)
-            riscos_etapas = conn.execute(query, {'processo_id': processo_id}).mappings().fetchall()
+            riscos_etapas = conn.execute(query_etapas, {'processo_id': processo_id}).mappings().fetchall()
             
-            # ⭐ Converter para dicionário e adicionar controles
+            # ⭐ 2. Buscar riscos do PROCESSO vinculados (tabela riscos)
+            query_vinculados = text("""
+                SELECT 
+                    r.id,
+                    r.nome_risco,
+                    r.categoria,
+                    r.fator_risco,
+                    r.melhoria as consequencia,
+                    r.impacto,
+                    r.probabilidade,
+                    r.score_risco as magnitude,
+                    r.tratamento_risco as tratamento,
+                    r.descricao_tratamento as desc_tratamento,
+                    NULL as parecer_auditor,
+                    ep.id as etapa_id,
+                    ep.codigo_etapa,
+                    ep.nome_etapa
+                FROM riscos r
+                JOIN etapas_processo ep ON ep.riscos_processo_ids LIKE '%' || r.id || '%'
+                WHERE ep.processo_id = :processo_id
+                ORDER BY ep.codigo_etapa, r.id
+            """)
+            riscos_vinculados = conn.execute(query_vinculados, {'processo_id': processo_id}).mappings().fetchall()
+            
+            # ⭐ 3. Juntar os dois
+            todos_riscos = list(riscos_etapas) + list(riscos_vinculados)
+            
+            # ⭐ 4. Buscar controles para cada risco
             riscos_formatados = []
-            for risco in riscos_etapas:
+            for risco in todos_riscos:
                 risco_dict = dict(risco)
                 
-                # ⭐ Buscar controles deste risco
                 query_controles = text("""
                     SELECT 
                         ce.id,
@@ -989,6 +1015,7 @@ def api_riscos_mapeados(processo_id):
                 controles_raw = conn.execute(query_controles, {'risco_id': risco['id']}).mappings().fetchall()
                 
                 risco_dict['controles'] = [dict(c) for c in controles_raw]
+                risco_dict['origem_risco'] = 'etapa' if risco['id'] in [r['id'] for r in riscos_etapas] else 'processo'
                 riscos_formatados.append(risco_dict)
             
             return jsonify({
