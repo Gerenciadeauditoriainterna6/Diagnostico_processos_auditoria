@@ -379,7 +379,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 query_controles = text("""
                     SELECT 
                         ce.id,
-                        ce.nome_controle
+                        ce.nome_controle,
+                        ce.descricao_tratamento
                     FROM controles_etapa ce
                     WHERE ce.risco_id = :risco_id
                     ORDER BY ce.id
@@ -390,7 +391,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 for c in controles_raw:
                     controles_list.append({
                         'id': c._mapping['id'],
-                        'nome_controle': c._mapping['nome_controle'] or ''
+                        'nome_controle': c._mapping['nome_controle'] or '',
+                        'descricao_tratamento': c._mapping['descricao_tratamento'] or ''
                     })
                 
                 # ⭐ Adicionar risco COM seus controles
