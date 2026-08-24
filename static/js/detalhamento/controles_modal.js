@@ -5,12 +5,50 @@ const filtroAuditoriaSelect = document.getElementById('filtro_auditoria_select')
 
 import { carregarControlesDoRisco, atualizarBadgeControles, atualizarBadgeEtapaControles } from './controles_etapas.js';
 
-export function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
+export async function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco = '') {
     etapaIdAtualControle = etapaId;
     riscoIdAtual = riscoId;
     controleIdEditando = null;
     
     console.log(`📝 Abrindo modal para adicionar controle no risco: ${riscoNome}`);
+    
+    try {
+        const response = await fetchComAutenticacao(`/api/risco-etapa/${riscoId}/basico`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const impacto = data.impacto || 'Não informado';
+            const probabilidade = data.probabilidade || 'Não informado';
+
+            document.getElementById('info-risco-impacto').textContent = data.impacto || 'Não informado';
+            document.getElementById('info-risco-probabilidade').textContent = data.probabilidade || 'Não informado';
+
+            calcularRiscoBruto(impacto, probabilidade);
+
+        }
+
+        function calcularRiscoBruto(impacto, probabilidade) {
+            const mapa = {
+                "MUITO ALTO,MUITO ALTO": 15, "ALTO,MUITO ALTO": 14,
+                "MÉDIO,MUITO ALTO": 13, "BAIXO,MUITO ALTO": 12,
+                "MUITO ALTO,ALTO": 11, "ALTO,ALTO": 10,
+                "MÉDIO,ALTO": 9, "BAIXO,ALTO": 8,
+                "MUITO ALTO,MÉDIO": 7, "ALTO,MÉDIO": 6,
+                "MÉDIO,MÉDIO": 5, "BAIXO,MÉDIO": 4,
+                "MUITO ALTO,BAIXO": 3, "ALTO,BAIXO": 2,
+                "MÉDIO,BAIXO": 1, "BAIXO,BAIXO": 0
+            };
+
+            const score = mapa[`${impacto},${probabilidade}`] || 0;
+            
+            const scoreElement = document.getElementById('info-risco-score-bruto');
+            if (scoreElement) {
+                scoreElement.innerHTML = `Risco Bruto: <strong>${score}</strong>`;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro ao buscar dados do risco:', error);
+    }
     
     const modalTitle = document.getElementById('modal-controle-title');
     if (modalTitle) {
@@ -73,10 +111,28 @@ export async function editarControle(controleId, riscoId) {
             return;
         }
         
+        
         const controle = data.controle;
         
         controleIdEditando = controleId;
         riscoIdAtual = riscoId;
+
+        try {
+            const responseRisco = await fetchComAutenticacao(`/api/risco-etapa/${riscoId}/basico`);
+            const dataRisco = await responseRisco.json();
+            
+            if (dataRisco.success) {
+                const impacto = dataRisco.impacto || 'Não informado';
+                const probabilidade = dataRisco.probabilidade || 'Não informado';
+                
+                document.getElementById('info-risco-impacto').textContent = impacto;
+                document.getElementById('info-risco-probabilidade').textContent = probabilidade;
+                
+                calcularRiscoBruto(impacto, probabilidade);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao buscar dados do risco:', error);
+        }
         
         document.getElementById('controle_nome').value = controle.nome_controle || '';
         document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
@@ -123,7 +179,12 @@ export async function editarControle(controleId, riscoId) {
             'controle_lgpd',
             'controle_status',
             'controle_frequencia_evidencia',
-            'controle_responsaveis'
+            'controle_responsaveis',
+            'controle_apetite_impacto',
+            'controle_apetite_probabilidade',
+            'controle_tratamento_risco',
+            'controle_descricao_tratamento',
+            'controle_prazo_implantacao'
         ];
 
         campos.forEach(id => {
@@ -335,6 +396,23 @@ export async function visualizarControle(controleId, riscoId) {
 
         const controle = data.controle;
 
+        try {
+            const responseRisco = await fetchComAutenticacao(`/api/risco-etapa/${riscoId}/basico`);
+            const dataRisco = await responseRisco.json();
+            
+            if (dataRisco.success) {
+                const impacto = dataRisco.impacto || 'Não informado';
+                const probabilidade = dataRisco.probabilidade || 'Não informado';
+                
+                document.getElementById('info-risco-impacto').textContent = impacto;
+                document.getElementById('info-risco-probabilidade').textContent = probabilidade;
+                
+                calcularRiscoBruto(impacto, probabilidade);
+            }
+        } catch (error) {
+            console.error('❌ Erro ao buscar dados do risco:', error);
+        }
+
         // Preencher campos
         document.getElementById('controle_nome').value = controle.nome_controle || '';
         document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
@@ -444,4 +522,24 @@ function calcularScoreResidual() {
     }
     
     return score;
+}
+
+function calcularRiscoBruto(impacto, probabilidade) {
+    const mapa = {
+        "MUITO ALTO,MUITO ALTO": 15, "ALTO,MUITO ALTO": 14,
+        "MÉDIO,MUITO ALTO": 13, "BAIXO,MUITO ALTO": 12,
+        "MUITO ALTO,ALTO": 11, "ALTO,ALTO": 10,
+        "MÉDIO,ALTO": 9, "BAIXO,ALTO": 8,
+        "MUITO ALTO,MÉDIO": 7, "ALTO,MÉDIO": 6,
+        "MÉDIO,MÉDIO": 5, "BAIXO,MÉDIO": 4,
+        "MUITO ALTO,BAIXO": 3, "ALTO,BAIXO": 2,
+        "MÉDIO,BAIXO": 1, "BAIXO,BAIXO": 0
+    };
+    
+    const score = mapa[`${impacto},${probabilidade}`] || 0;
+    
+    const scoreElement = document.getElementById('info-risco-score-bruto');
+    if (scoreElement) {
+        scoreElement.innerHTML = `Risco Bruto: <strong>${score}</strong>`;
+    }
 }

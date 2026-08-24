@@ -915,3 +915,25 @@ def buscar_controle_etapa_por_id(controle_id):
             'descricao_tratamento': result[19] or '',
             'prazo_implantacao': result[20] or ''
         }
+
+def buscar_risco_etapa_basico(risco_id):
+    """Busca impacto e probabilidade de um risco da etapa"""
+    from database import engine
+    from sqlalchemy import text
+    
+    query = text("""
+        SELECT impacto, probabilidade
+        FROM riscos_etapa
+        WHERE id = :risco_id
+    """)
+    
+    with engine.connect() as conn:
+        result = conn.execute(query, {'risco_id': risco_id}).fetchone()
+        
+        if not result:
+            return None
+        
+        return {
+            'impacto': result[0] or '',
+            'probabilidade': result[1] or ''
+        }

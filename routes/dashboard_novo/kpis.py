@@ -231,13 +231,9 @@ class NovoDashboardKPIs:
             # 7. Total de Controles (com status preenchido)
             # ==========================================
             sql_controles = """
-                SELECT COUNT(DISTINCT ce.id)
+                SELECT COUNT(*)
                 FROM controles_etapa ce
-                JOIN riscos_etapa re ON ce.risco_id = re.id
-                JOIN etapas_processo ep ON re.etapa_id = ep.id
-                JOIN processos p ON ep.processo_id = p.id
-                JOIN auditorias a ON p.auditoria_id = a.id
-                WHERE ce.status_controle IS NOT NULL 
+                WHERE ce.status_controle IS NOT NULL
                 AND ce.status_controle != ''
             """
             params_controles = {}
@@ -767,21 +763,14 @@ class NovoDashboardKPIs:
                     ce.natureza,
                     COUNT(*) as quantidade
                 FROM controles_etapa ce
-                JOIN riscos_etapa re ON ce.risco_id = re.id
-                JOIN auditorias a ON re.auditoria_id = a.id
                 WHERE ce.status_controle IS NOT NULL
                 AND ce.natureza IS NOT NULL
                 AND ce.natureza != ''
+
             """
             params = {}
             
-            if area_id is not None:
-                sql += " AND a.id_area = :area_id"
-                params['area_id'] = area_id
-            if auditoria_id is not None:
-                sql += " AND a.id = :auditoria_id"
-                params['auditoria_id'] = auditoria_id
-            
+
             sql += " GROUP BY ce.natureza"
             
             result = conn.execute(text(sql), params).fetchall()
