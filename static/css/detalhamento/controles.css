@@ -118,20 +118,6 @@
     overflow: hidden;
 }
 
-/* .processo-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: #f8f9fa;
-    cursor: pointer;
-    border-left: 4px solid #17a2b8;
-}
-
-.processo-header:hover {
-    background: #eef2f3;
-} */
-
 .processo-header {
     display: flex;
     justify-content: space-between;
@@ -1214,4 +1200,46 @@
 .risco-linha.expandido > .fa-chevron-down {
     transform: rotate(180deg);
     color: #17a2b8;
+}
+
+/* Informações do risco da etapa */
+.risco-info-box {
+    background: #f0f7ff;
+    border: 1px solid #d0e4f0;
+    border-left: 4px solid #0b5b99;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+}
+
+.risco-info-box .risco-info-titulo {
+    font-size: 12px;
+    font-weight: 600;
+    color: #184145;
+    margin-bottom: 8px;
+}
+
+.risco-info-box .risco-info-dados {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.risco-info-box .risco-info-item {
+    font-size: 12px;
+    color: #666;
+}
+
+.risco-info-box .risco-info-item strong {
+    color: #0b5b99;
+    font-size: 13px;
+}
+
+.risco-info-box .risco-score-bruto {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #d0e4f0;
+    font-size: 12px;
+    color: #184145;
+    font-weight: 600;
 }

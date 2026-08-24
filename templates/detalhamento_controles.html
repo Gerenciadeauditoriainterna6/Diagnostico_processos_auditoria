@@ -56,14 +56,31 @@
             </h3>
             <button type="button" class="modal-close" id="btn-fechar-modal-controle">&times;</button>
         </div>
+
+        
+
         <div class="modal-body">
             <input type="hidden" id="controle_id">
             <input type="hidden" id="controle_risco_id">
 
+            <!-- ⭐ DADOS DO RISCO DA ETAPA -->
+            <div class="risco-info-box">
+                <div class="risco-info-titulo">
+                    <i class="fas fa-info-circle"></i> Dados do Risco da Etapa
+                </div>
+                <div class="risco-info-dados">
+                    <span class="risco-info-item">Impacto: <strong id="info-risco-impacto">-</strong></span>
+                    <span class="risco-info-item">Probabilidade: <strong id="info-risco-probabilidade">-</strong></span>
+                </div>
+                <div class="risco-score-bruto" id="info-risco-score-bruto">
+                    Risco Bruto: -
+                </div>
+            </div>
+
             <!-- ⭐ APETITE AO RISCO (RISCO RESIDUAL) -->
             <div class="form-row">
                 <div class="form-group">
-                    <label><i class="fas fa-sack-dollar"></i> Apetite Impacto Financeiro</label>
+                    <label><i class="fas fa-sack-dollar"></i> Apetite Impacto</label>
                     <select id="controle_apetite_impacto" class="form-control">
                         <option value="">Selecione...</option>
                         <option value="BAIXO">BAIXO</option>

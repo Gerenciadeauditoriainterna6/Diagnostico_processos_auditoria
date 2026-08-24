@@ -850,3 +850,22 @@ def api_controle_etapa_detalhes(controle_id):
     except Exception as e:
         print(f"❌ Erro ao buscar controle: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@detalhamento_bp.route('/api/risco-etapa/<int:risco_id>/basico', methods=['GET'])
+def api_risco_etapa_basico(risco_id):
+    """Retorna impacto e probabilidade do risco da etapa"""
+    from flask import jsonify
+    from .queries import buscar_risco_etapa_basico
+    
+    try:
+        risco = buscar_risco_etapa_basico(risco_id)
+        
+        if not risco:
+            return jsonify({'success': False, 'error': 'Risco não encontrado'}), 404
+        
+        return jsonify({'success': True, **risco})
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar risco: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
