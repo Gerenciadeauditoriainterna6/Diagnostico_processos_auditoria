@@ -410,6 +410,54 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 'analises_auditado': analises_auditado_list,
                 'riscos_etapa': riscos_etapa_list,
             })
+
+            # ⭐ Buscar riscos do PROCESSO vinculados à etapa
+            query_riscos_processo = text("""
+                SELECT 
+                    r.id,
+                    r.nome_risco,
+                    r.descricao_tratamento as desc_tratamento,
+                    NULL as parecer_auditor
+                FROM riscos r
+                WHERE r.id IN (
+                    SELECT CAST(unnest(string_to_array(ep.riscos_processo_ids, ', ')) AS bigint)
+                    FROM etapas_processo ep
+                    WHERE ep.id = :etapa_id
+                )
+                ORDER BY r.id
+            """)
+            riscos_processo_raw = conn.execute(query_riscos_processo, {"etapa_id": etapa_id}).fetchall()
+
+            for r in riscos_processo_raw:
+                risco_id = r._mapping['id']
+                
+                # Buscar controles deste risco do processo
+                query_controles = text("""
+                    SELECT 
+                        ce.id,
+                        ce.nome_controle,
+                        ce.descricao_tratamento
+                    FROM controles_etapa ce
+                    WHERE ce.risco_id = :risco_id
+                    ORDER BY ce.id
+                """)
+                controles_raw = conn.execute(query_controles, {"risco_id": risco_id}).fetchall()
+                
+                controles_list = []
+                for c in controles_raw:
+                    controles_list.append({
+                        'id': c._mapping['id'],
+                        'nome_controle': c._mapping['nome_controle'] or '',
+                        'descricao_tratamento': c._mapping['descricao_tratamento'] or ''
+                    })
+                
+                riscos_etapa_list.append({
+                    'id': risco_id,
+                    'nome_risco': r._mapping['nome_risco'] or '',
+                    'parecer_auditor': '',
+                    'controles': controles_list,
+                    'origem': 'processo'  # ⭐ Para diferenciar
+                })
         
         # ===== 2. BUSCAR ANÁLISES DO AUDITOR PARA O PROCESSO =====
         query_analises_auditor = text("""
@@ -1091,18 +1139,28 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 story.append(Spacer(1, 20))
                 
                 for risco in etapa['riscos_etapa']:
-                    story.append(Paragraph(f"<b>RISCO:</b> {risco['nome_risco']}", normal_style))
+                    is_processo = risco.get('origem') == 'processo'
+                    if is_processo:
+                        story.append(Paragraph(f"<b>RISCO (MATRIZ PANORAMA):</b> {risco['nome_risco']}", normal_style))
+                    else:
+                        story.append(Paragraph(f"<b>RISCO:</b> {risco['nome_risco']}", normal_style))
+                    
 
                     # ⭐ MOSTRAR CONTROLES
                     if risco.get('controles'):
                         for controle in risco['controles']:
                             story.append(Paragraph(f"<b>CONTROLE:</b> {controle['nome_controle']}", normal_style))
+                            if controle.get('descricao_tratamento'):
+                                story.append(Paragraph(f"<b>DESCRIÇÃO DO TRATAMENTO:</b> {controle['descricao_tratamento']}", normal_style))
+                            else:
+                                story.append(Paragraph("<i>Nenhuma descrição de tratamento informada!</i>", normal_style))
+
                     else:
                         story.append(Paragraph("<i>Nenhum controle informado</i>", normal_style))
                     
                     if risco['parecer_auditor']:
                         story.append(Spacer(1, 6))
-                        story.append(Paragraph(f"<b>PARECER:</b> {risco['parecer_auditor']}", normal_style))
+                        story.append(Paragraph(f"<b>PARECER DO AUDITOR:</b> {risco['parecer_auditor']}", normal_style))
                         story.append(Spacer(1, 6))
                     else:
                         story.append(Paragraph("<i>Sem parecer do auditor</i>", normal_style))
