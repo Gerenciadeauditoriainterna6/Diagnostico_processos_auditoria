@@ -68,7 +68,11 @@ export async function carregarRiscosMapeados() {
             `;
             
             // ⭐ ADICIONAR RISCOS DENTRO DO CORPO
+         
             etapa.riscos.forEach(risco => {
+                // ⭐ Verificar origem do risco
+                const isProcesso = risco.origem_risco === 'processo';
+                
                 const controles = risco.controles || [];
                 
                 let controlesHtml = '';
@@ -82,10 +86,10 @@ export async function carregarRiscosMapeados() {
                                         <span style="font-size: 14px; color: #666;">${escapeHtml(controle.nome_controle || '')}</span>
                                     </div>
                                     ${controle.descricao_tratamento ? `
-                                    <span style="font-size: 12px; color: #999; margin-left: 16px;">
-                                    Tratamento do risco: ${escapeHtml(controle.descricao_tratamento)}
+                                    <span style="font-size: 12px; color: #999; margin-left: 18px;">
+                                        Tratamento do risco: ${escapeHtml(controle.descricao_tratamento)}
                                     </span>
-                                    ` : '<span style="font-size: 12px; color: #999; margin-left: 16px;">Não há descrição do tratamento do risco para este controle</span>'}
+                                    ` : '<span style="font-size: 12px; color: #999; margin-left: 18px;">Não há descrição do tratamento do risco para este controle</span>'}
                                 </div>
                             `).join('')}
                         </div>
@@ -99,7 +103,15 @@ export async function carregarRiscosMapeados() {
                 }
                 
                 html += `
-                    <div style="background: #ffffff; border: 1px solid #e8ecf0; border-left: 4px solid #fd6a14; border-radius: 10px; padding: 15px; margin-bottom: 8px; margin-left: 20px;">
+                    <div style="background: ${isProcesso ? '#f0f7ff' : '#ffffff'}; border: 1px solid #e8ecf0; border-left: 4px solid ${isProcesso ? '#0b5b99' : '#fd6a14'}; border-radius: 10px; padding: 15px; margin-bottom: 8px; margin-left: 20px;">
+                        ${isProcesso ? `
+                        <div style="margin-bottom: 10px;">
+                            <span style="background: #0b5b99; color: white; padding: 2px 10px; border-radius: 10px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                                <i class="fas fa-project-diagram"></i> MATRIZ PANORAMA
+                            </span>
+                        </div>
+                        ` : ''}
+                        
                         <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
                             <i class="fas fa-exclamation-triangle" style="color: #fd6a14; font-size: 14px; margin-top: 2px;"></i>
                             <span style="font-size: 14px; color: #333; font-weight: 500;">${escapeHtml(risco.nome_risco || '')}</span>
