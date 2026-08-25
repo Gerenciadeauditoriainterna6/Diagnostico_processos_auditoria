@@ -33,7 +33,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         fontSize=18,
         fontName='Helvetica-Bold',
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#000000'),
+        textColor=colors.HexColor('#184145'),
         spaceAfter=5,
         leading=28
     )
@@ -44,7 +44,7 @@ def criar_pagina_capa(story, pagesize, titulo_relatorio, subtitulo_relatorio=Non
         fontSize=14,
         fontName='Helvetica',
         alignment=TA_CENTER,
-        textColor=colors.HexColor('#000000'),
+        textColor=colors.HexColor('#184145'),
         spaceAfter=20,
         leading=15
     )
