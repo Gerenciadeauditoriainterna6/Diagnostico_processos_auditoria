@@ -229,6 +229,10 @@ def configurar_auditoria():
     """
     Configura variáveis no PostgreSQL para auditoria E RENOVA A SESSÃO
     """
+
+    if request.endpoint in ['login', 'static', 'ping', 'cadastro']:
+        return
+
     # ⭐⭐⭐ NOVO: RENOVAR SESSÃO A CADA REQUISIÇÃO ⭐⭐⭐
     if session.get('autenticado'):
         # Renova o tempo de vida da sessão
