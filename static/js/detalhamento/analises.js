@@ -98,31 +98,75 @@ const AnalisesModule = {
         const tempId = document.getElementById('analise-temp-id').value;
         const etapaId = document.getElementById('modal-etapa-id').value;
 
+        console.log('🔍 _processarSalvamento:');
+        console.log('   analiseId:', analiseId);
+        console.log('   tempId:', tempId);
+        console.log('   etapaId:', etapaId);
+        console.log('   temporarias ANTES:', this.temporarias);
+
+        // ⭐ CASO 1: Editando análise existente (já salva no banco)
         if (analiseId && analiseId !== '') {
-            this.salvarNoBanco(analiseId, analiseData, etapaId);
-        } else if (tempId && tempId !== '') {
+            // Buscar a análise existente para obter o etapa_id CORRETO
+            const analiseExistente = this.existentes.find(a => a.id == analiseId);
+            const etapaCorreta = analiseExistente?.etapa_id || etapaId;
+            
+            console.log('   ✅ Análise existente - etapa correta:', etapaCorreta);
+            
+            this.salvarNoBanco(analiseId, analiseData, etapaCorreta);
+            return; // Importante: sair da função
+        }
+        
+        // ⭐ CASO 2: Atualizando análise temporária
+        if (tempId && tempId !== '') {
             const tempIndex = parseInt(tempId);
             if (tempIndex >= 0 && tempIndex < this.temporarias.length) {
-                this.temporarias[tempIndex] = { ...this.temporarias[tempIndex], ...analiseData, _temporaria: true };
+                this.temporarias[tempIndex] = { 
+                    ...this.temporarias[tempIndex], 
+                    ...analiseData, 
+                    _temporaria: true 
+                };
                 window.mostrarToast('✅ Análise atualizada!', 'success');
                 this.esconderForm();
                 this.renderizar();
                 this.resetarEvidencia();
+            } else {
+                console.warn('⚠️ Índice de temporária inválido:', tempIndex);
             }
-        } else if (!etapaId || etapaId === '') {
-            this.temporarias.push({ ...analiseData, _temporaria: true, _id: Date.now() });
+            return;
+        }
+        
+        // ⭐ CASO 3: Nova análise temporária (sem etapa definida)
+        if (!etapaId || etapaId === '') {
+            this.temporarias.push({ 
+                ...analiseData, 
+                _temporaria: true, 
+                _id: Date.now() 
+            });
             window.mostrarToast('✅ Análise adicionada!', 'success');
             this.esconderForm();
             this.renderizar();
             this.resetarEvidencia();
-        } else {
-            this.salvarNoBanco(null, analiseData, etapaId);
+            return;
         }
+        
+        // ⭐ CASO 4: Nova análise com etapa definida (salva direto no banco)
+        this.salvarNoBanco(null, analiseData, etapaId);
+
+        console.log('   temporarias DEPOIS:', this.temporarias);
     },
 
     async salvarNoBanco(analiseId, analiseData, etapaId) {
-        if (!etapaId) return;
-
+        console.log('💾 salvarNoBanco chamado:');
+        console.log('   analiseId:', analiseId);
+        console.log('   etapaId:', etapaId);
+        console.log('   analiseData:', analiseData);
+        
+        if (!etapaId) {
+            console.error('❌ etapaId vazio! Não é possível salvar.');
+            window.mostrarToast('❌ Erro: Etapa não identificada', 'error');
+            return;
+        }
+        
         const payload = {
             id: analiseId || null,
             etapa_id: parseInt(etapaId),
@@ -133,22 +177,30 @@ const AnalisesModule = {
             necessidade_implantacao: analiseData.necessidade_implantacao,
             ganho_previsto: analiseData.ganho_previsto
         };
-
+        
+        // Adicionar evidência se existir
         if (analiseData.evidencia_base64 && analiseData.evidencia_nome) {
             payload.evidencia_base64 = analiseData.evidencia_base64;
             payload.evidencia_nome = analiseData.evidencia_nome;
         }
+        
+        // Adicionar flag de remoção de evidência
         if (analiseData.remover_evidencia) {
             payload.remover_evidencia = true;
         }
-
+        
+        console.log('📤 Payload a enviar:', payload);
+        
         try {
             const response = await window.fetchComAutenticacao('/api/analise/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            
             const data = await response.json();
+            console.log('📥 Resposta da API:', data);
+            
             if (data.success) {
                 window.mostrarToast('✅ Análise salva!', 'success');
                 this.esconderForm();
@@ -158,6 +210,7 @@ const AnalisesModule = {
                 window.mostrarToast('❌ Erro: ' + (data.error || 'Tente novamente'), 'error');
             }
         } catch (error) {
+            console.error('❌ Erro de conexão:', error);
             window.mostrarToast('❌ Erro de conexão', 'error');
         }
     },
@@ -238,40 +291,59 @@ const AnalisesModule = {
     // CARREGAR
     // ============================================================
     async carregar(etapaId) {
+        console.log('📥 Carregando análises da etapa:', etapaId);
+        
+        // ⭐ Guardar etapa atual
+        this.etapaIdAtual = etapaId;
+        
         if (!etapaId) {
             this.existentes = [];
             this.renderizar();
             return;
         }
+        
         try {
             const response = await window.fetchComAutenticacao(`/api/etapa/${etapaId}/analises`);
             const data = await response.json();
+            
+            console.log('📥 Resposta da API:', data);
+            
             if (data.success) {
                 this.existentes = data.analises || [];
+                
+                // ⭐ Verificar se cada análise tem etapa_id
+                this.existentes.forEach(a => {
+                    console.log(`   Análise ${a.id}: etapa_id = ${a.etapa_id}`);
+                });
+                
+                this.renderizar();
+            }
+        } catch (error) {
+            console.error('❌ Erro ao carregar análises:', error);
+        }
+    },
+
+    async carregar(etapaId) {
+        console.log('📥 Carregando análises da etapa:', etapaId);
+        
+        if (!etapaId) {
+            this.existentes = [];
+            this.renderizar();
+            return;
+        }
+        
+        try {
+            const response = await window.fetchComAutenticacao(`/api/etapa/${etapaId}/analises`);
+            const data = await response.json();
+            console.log('📥 Resposta:', data);
+            
+            if (data.success) {
+                this.existentes = data.analises || [];
+                console.log('📥 Análises carregadas:', this.existentes);
                 this.renderizar();
             }
         } catch (error) {
             console.error('Erro ao carregar análises:', error);
-        }
-    },
-
-    async carregarResumo(etapaId) {
-        try {
-            const response = await window.fetchComAutenticacao(`/api/etapa/${etapaId}/analises`);
-            const data = await response.json();
-            const container = document.getElementById(`analises-resumo-${etapaId}`);
-            if (!container) return;
-            if (data.success && data.analises?.length > 0) {
-                container.innerHTML = data.analises.map(a => `
-                    <span style="display:inline-block;margin:4px 8px 4px 0;padding:4px 12px;background:#f0f4f8;border-radius:20px;font-size:12px;">
-                        ${escapeHtml(a.analise_critica?.substring(0, 60) || 'Sem análise')}
-                    </span>
-                `).join('');
-            } else {
-                container.innerHTML = '<span style="color:#999;">Nenhuma análise</span>';
-            }
-        } catch (error) {
-            // silencioso
         }
     },
 
@@ -324,13 +396,24 @@ const AnalisesModule = {
         this.resetarEvidencia();
 
         if (modo === 'editar' && index !== null) {
-            const analise = isTemporaria ? this.temporarias[index - this.existentes.length] : this.existentes[index];
+            // ⭐ MODO EDIÇÃO: Preenche campos
+            const analise = isTemporaria 
+                ? this.temporarias[index - this.existentes.length] 
+                : this.existentes[index];
+                
             if (analise) {
                 document.getElementById('analise-id').value = analise.id || '';
+                document.getElementById('analise-temp-id').value = isTemporaria ? (index - this.existentes.length) : '';
                 document.getElementById('analise-texto').value = analise.analise_critica || '';
                 document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
                 document.getElementById('analise-necessidade').value = analise.necessidade_implantacao || '';
                 document.getElementById('analise-ganho').value = analise.ganho_previsto || '';
+                
+                // ⭐ Limpar radio buttons de sugestão
+                const radios = document.querySelectorAll('#form-analise input[name="sugestao-status-auditado-radio"]');
+                radios.forEach(radio => {
+                    radio.checked = (radio.value === String(analise.sugestao_sera_implantada));
+                });
                 
                 // ⭐ Carregar evidência existente
                 if (analise.evidencia_url && analise.evidencia_nome) {
@@ -343,7 +426,29 @@ const AnalisesModule = {
                 }
             }
         } else {
-            // Limpar campos...
+            // ⭐ MODO NOVO: Limpar todos os campos
+            document.getElementById('analise-id').value = '';
+            document.getElementById('analise-temp-id').value = '';
+            document.getElementById('analise-texto').value = '';
+            document.getElementById('analise-sugestao').value = '';
+            document.getElementById('analise-necessidade').value = '';
+            document.getElementById('analise-ganho').value = '';
+            
+            // Limpar radio buttons
+            const radios = document.querySelectorAll('#form-analise input[name="sugestao-status-auditado-radio"]');
+            radios.forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // Limpar evidência
+            const infoDiv = document.getElementById('analise_evidencia_info');
+            const nomeSpan = document.getElementById('analise_evidencia_nome');
+            if (infoDiv) infoDiv.style.display = 'none';
+            if (nomeSpan) nomeSpan.textContent = '';
+            
+            this.evidenciaExistente = null;
+            this.evidenciaNomeExistente = null;
+            this.evidenciaArquivo = null;
         }
         
         this.setupEvidenciaUpload();
