@@ -75,7 +75,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         fontSize=16,
         alignment=1,
         spaceAfter=20,
-        textColor=colors.HexColor('#000000')
+        textColor=colors.HexColor('#184145')
     )
 
     titulo_style0 = ParagraphStyle(
@@ -103,9 +103,9 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         spaceAfter=5,
         alignment=TA_CENTER,
         spaceBefore=15,
-        textColor=colors.HexColor('#184145'),
+        textColor=colors.HexColor('#0b5b99'),
         underline=True,
-        underlineColor=colors.HexColor('#184145'),
+        underlineColor=colors.HexColor('#0b5b99'),
         underlineWidth=1.5,  # ⭐ Mais fino para ficar elegante
         underlineOffset=2
     )
@@ -116,7 +116,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         fontSize=12,
         spaceAfter=8,
         spaceBefore=10,
-        textColor=colors.HexColor('#0b5b99')
+        textColor=colors.HexColor('#184145')
     )
 
     card_texto_style = ParagraphStyle(
@@ -134,7 +134,8 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
             fontSize=12,
             leading=10,
             leftIndent=0,
-            alignment=TA_JUSTIFY
+            alignment=TA_JUSTIFY,
+            textColor=colors.HexColor('#184145')
         )
 
     card_texto_style_secao3 = ParagraphStyle(
@@ -142,9 +143,10 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         parent=normal_style,
         fontSize=10,
         leading=10,
-        leftIndent=10,
-        alignment=TA_CENTER,
-        spaceAfter=12
+        leftIndent=0,
+        alignment=TA_LEFT,
+        spaceAfter=12,
+        textColor=colors.HexColor('#184145')
     )
 
     card_subtitulo_style_center = ParagraphStyle(
@@ -823,7 +825,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         riscos_controles = analise.get('riscos_controles', [])
 
         if riscos_controles:
-            story.append(Paragraph("<b>RISCOS IDENTIFICADOS E CONTROLES SUGERIDOS</b>", secao_style))
+            story.append(Paragraph("<b>RISCOS IDENTIFICADOS E CONTROLES SUGERIDOS</b>", card_texto_style_secao3))
             
             for risco in riscos_controles:
                 # Pega o nome do risco (pode ser dict ou string)
@@ -1104,7 +1106,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
         story.append(Spacer(1, 10))
     
     # ===== SEÇÃO 1: ANÁLISES DO AUDITADO (POR ETAPA) =====
-    story.append(Paragraph("1. ANÁLISES DO AUDITADO", secao_style))
+    story.append(Paragraph("ANÁLISES DO AUDITADO", secao_style))
     story.append(Paragraph("Análises realizadas pelo auditado durante o detalhamento das etapas", normal_style))
     story.append(Spacer(1, 10))
     
@@ -1196,7 +1198,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     if incluir_checklists:
         # ===== SEÇÃO 2: CHECKLISTS =====
         story.append(PageBreak())
-        story.append(Paragraph("2. MATRIZES DE EFICÁCIA", secao_style))
+        story.append(Paragraph("MATRIZES DE EFICÁCIA", secao_style))
         story.append(Spacer(1, 2))
 
         # ===== SEÇÃO 2.1: MATRIZES DE CHECKLIST =====
@@ -1225,7 +1227,7 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
     # ====== SEÇÃO 3 ANÁLISES DO AUDITOR ======
 
     story.append(PageBreak())
-    story.append(Paragraph("3. ANÁLISES E PARECER DO AUDITOR", secao_style))
+    story.append(Paragraph("ANÁLISES E PARECER DO AUDITOR", secao_style))
     story.append(Spacer(1, 10)) 
 
     if not analises_auditor_list:
