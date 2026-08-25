@@ -1255,7 +1255,13 @@ def checklists():
 def relatorios():
     if not session.get('autenticado'):
         return redirect(url_for('login'))
-    return render_template('relatorios.html')
+    
+    # ⭐ Passar variáveis da sessão para o template
+    return render_template(
+        'relatorios.html',
+        usuario_perfil=session.get('usuario_perfil', ''),
+        usuario_nome=session.get('usuario_nome', '')
+    )
 
 @app.route('/areas')
 def areas():

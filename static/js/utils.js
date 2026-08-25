@@ -120,3 +120,61 @@ function spinnerHTML(mensagem = 'Carregando...') {
         </div>
     `;
 }
+
+function mostrarToast(mensagem, tipo = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 999999;
+                pointer-events: none;
+            `;
+            document.body.appendChild(toastContainer);
+        }
+        
+        const cores = {
+            success: { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '✅' },
+            error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '❌' },
+            warning: { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '⚠️' },
+            info: { bg: '#d1ecf1', border: '#17a2b8', text: '#0c5460', icon: 'ℹ️' }
+        };
+        
+        const cor = cores[tipo] || cores.info;
+        
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${cor.bg};
+            border-left: 4px solid ${cor.border};
+            color: ${cor.text};
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            z-index: 999999;
+            position: relative;
+        `;
+        toast.innerHTML = `
+            <span style="font-size: 18px;">${cor.icon}</span>
+            <span style="flex: 1;">${mensagem}</span>
+            <span style="cursor: pointer; opacity: 0.7; font-size: 18px;" onclick="this.parentElement.remove()">✕</span>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast && toast.parentElement) {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
