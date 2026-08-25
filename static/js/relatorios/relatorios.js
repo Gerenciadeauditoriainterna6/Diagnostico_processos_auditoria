@@ -20,7 +20,7 @@ const RelatoriosModule = (() => {
         const area = AreasModule.getAreaSelecionada();
         const auditoria = AuditoriasModule.getAuditoriaSelecionada();
         const processo = ProcessosModule.getProcessoSelecionado();
-        const orientacao = document.querySelector('input[name="orientacao"]:checked')?.value || 'RETRATO';
+        const orientacao = OrientacaoModule.getOrientacaoSelecionada();
         const tipoRelatorio = document.getElementById('tipo_relatorio')?.value;
         
         return {

@@ -31,6 +31,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         ConclusoesModule.init();
         console.log('   ✅ ConclusoesModule inicializado');
     }
+
+    if (typeof OrientacaoModule !== 'undefined') {
+        OrientacaoModule.init();
+        console.log('   ✅ OrientacaoModule inicializado');
+    }
     
     if (typeof RelatoriosModule !== 'undefined') {
         RelatoriosModule.init();

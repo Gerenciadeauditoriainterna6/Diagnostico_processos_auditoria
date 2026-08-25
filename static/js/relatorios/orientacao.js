@@ -1,6 +1,6 @@
 // ============================================================
 // OrientacaoModule.js
-// Módulo para gerenciar cards de orientação (retrato/paisagem)
+// Descrição: Gerencia cards de orientação (retrato/paisagem)
 // ============================================================
 
 const OrientacaoModule = (() => {
@@ -15,17 +15,30 @@ const OrientacaoModule = (() => {
     // ============================================================
     
     function configurarEventos() {
-        cards.forEach(card => {
+        console.log('🔄 Configurando eventos dos cards de orientação');
+        console.log('   Cards encontrados:', cards.length);
+        
+        cards.forEach((card, index) => {
+            console.log(`   Card ${index}:`, card.dataset.orientacao);
+            
             card.addEventListener('click', () => {
+                console.log('👆 Card clicado:', card.dataset.orientacao);
+                
                 const radio = card.querySelector('input[type="radio"]');
                 
                 if (radio) {
                     // Marcar o radio button
                     radio.checked = true;
+                    console.log('✅ Radio marcado:', radio.value);
                     
                     // Atualizar classes visuais
-                    cards.forEach(c => c.classList.remove('active'));
+                    cards.forEach(c => {
+                        c.classList.remove('active');
+                    });
                     card.classList.add('active');
+                    console.log('✅ Classe active adicionada ao card');
+                } else {
+                    console.error('❌ Radio button não encontrado no card');
                 }
             });
         });
@@ -36,10 +49,12 @@ const OrientacaoModule = (() => {
     // ============================================================
     
     function init() {
-        console.log('🔄 Inicializando OrientacaoModule...');
+        console.log('📌 OrientacaoModule inicializado');
         
         // Buscar todos os cards de orientação
         cards = document.querySelectorAll('.orientacao-card');
+        
+        console.log('   Cards encontrados:', cards.length);
         
         if (cards.length === 0) {
             console.warn('⚠️ Nenhum card de orientação encontrado');
@@ -48,26 +63,22 @@ const OrientacaoModule = (() => {
         
         // Configurar eventos
         configurarEventos();
-        
-        console.log('✅ OrientacaoModule inicializado');
     }
     
     function getOrientacaoSelecionada() {
         const radioSelecionado = document.querySelector('input[name="orientacao"]:checked');
-        return radioSelecionado?.value || 'RETRATO';
-    }
-    
-    function getCards() {
-        return cards;
+        const orientacao = radioSelecionado?.value || 'RETRATO';
+        
+        console.log('🔄 Orientação atual:', orientacao);
+        return orientacao;
     }
     
     // ============================================================
-    // RETORNO PÚBLICO (API do módulo)
+    // RETORNO PÚBLICO
     // ============================================================
     
     return {
         init: init,
-        getOrientacaoSelecionada: getOrientacaoSelecionada,
-        getCards: getCards
+        getOrientacaoSelecionada: getOrientacaoSelecionada
     };
 })();
