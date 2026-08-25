@@ -1139,23 +1139,28 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                 story.append(Spacer(1, 2))
                 story.append(Paragraph("<b>RISCOS MAPEADOS PELO AUDITADO E PARECER DO AUDITOR</b>", card_subtitulo_style))
                 story.append(Spacer(1, 20))
+
+                contador_risco = 1
+                total_riscos = len(etapa['riscos_etapa'])
                 
-                for risco in etapa['riscos_etapa']:
+                for i, risco in enumerate(etapa['riscos_etapa']):
                     is_processo = risco.get('origem') == 'processo'
+
                     if is_processo:
-                        story.append(Paragraph(f"<b>RISCO (MATRIZ PANORAMA):</b> {risco['nome_risco']}", normal_style))
+                        story.append(Paragraph(f"<b>RISCO {contador_risco} (MATRIZ PANORAMA):</b> {risco['nome_risco']}", normal_style))
                     else:
-                        story.append(Paragraph(f"<b>RISCO:</b> {risco['nome_risco']}", normal_style))
+                        story.append(Paragraph(f"<b>RISCO {contador_risco}:</b> {risco['nome_risco']}", normal_style))
                     
 
                     # ⭐ MOSTRAR CONTROLES
                     if risco.get('controles'):
                         for controle in risco['controles']:
-                            story.append(Paragraph(f"<b>CONTROLE:</b> {controle['nome_controle']}", normal_style))
                             if controle.get('descricao_tratamento'):
                                 story.append(Paragraph(f"<b>DESCRIÇÃO DO TRATAMENTO:</b> {controle['descricao_tratamento']}", normal_style))
                             else:
                                 story.append(Paragraph("<i>Nenhuma descrição de tratamento informada!</i>", normal_style))
+                                
+                            story.append(Paragraph(f"<b>CONTROLE:</b> {controle['nome_controle']}", normal_style))
 
                     else:
                         story.append(Paragraph("<i>Nenhum controle informado</i>", normal_style))
@@ -1163,11 +1168,24 @@ def gerar_relatorio_parecer_auditoria(area_id, area_nome, gestor, cargo, auditor
                     if risco['parecer_auditor']:
                         story.append(Spacer(1, 6))
                         story.append(Paragraph(f"<b>PARECER DO AUDITOR:</b> {risco['parecer_auditor']}", normal_style))
-                        story.append(Spacer(1, 6))
+                        story.append(Spacer(1, 10))
+                        
                     else:
                         story.append(Paragraph("<i>Sem parecer do auditor</i>", normal_style))
                     
                     story.append(Spacer(1, 5))
+                    
+                    # ⭐⭐⭐ SEPARADOR ENTRE RISCOS (exceto após o último) ⭐⭐⭐
+                    if i < total_riscos - 1:
+                        story.append(HRFlowable(
+                            width="100%", 
+                            thickness=1, 
+                            color=colors.HexColor("#CCCCCC"), 
+                            spaceBefore=5, 
+                            spaceAfter=5
+                        ))
+                    
+                    contador_risco += 1
             else:
                 story.append(Paragraph("<i>Nenhum risco mapeado para esta etapa.</i>", normal_style))
 
