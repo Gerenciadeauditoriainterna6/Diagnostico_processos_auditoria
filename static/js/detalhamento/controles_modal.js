@@ -380,6 +380,12 @@ export function setupModalControle() {
             fecharModalControle();
         };
     }
+    
+    document.getElementById('btn-fechar-modal-matriz')?.addEventListener('click', fecharModalMatriz);
+    document.getElementById('btn-fechar-modal-matriz-rodape')?.addEventListener('click', fecharModalMatriz);
+    document.querySelectorAll('.btn-ver-matriz').forEach(btn => {
+        btn.addEventListener('click', abrirModalMatriz);
+    });
         
     console.log('✅ Modal de controle configurado!');
 }
@@ -543,3 +549,12 @@ function calcularRiscoBruto(impacto, probabilidade) {
         scoreElement.innerHTML = `Risco Bruto: <strong>${score}</strong>`;
     }
 }
+
+function abrirModalMatriz() {
+    document.getElementById('modal-matriz-calor').style.display = 'flex';
+}
+
+function fecharModalMatriz() {
+    document.getElementById('modal-matriz-calor').style.display = 'none';
+}
+
