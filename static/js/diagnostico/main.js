@@ -50,6 +50,13 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('   ✅ Etapa4Module inicializado');
     }
 
+    if (typeof Etapa5Module !== 'undefined') {
+        Etapa5Module.init();
+        console.log('   ✅ Etapa5Module inicializado');
+    } else {
+        console.warn('   ⚠️ Etapa5Module não encontrado');
+    }
+
     if (typeof AnexosModule !== 'undefined') {
         AnexosModule.init();
     }

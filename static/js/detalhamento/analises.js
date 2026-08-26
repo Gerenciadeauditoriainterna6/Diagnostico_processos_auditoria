@@ -1,5 +1,5 @@
 // ============================================================
-// analises.js - MÓDULO DE ANÁLISES CRÍTICAS
+// analises.js - MÓDULO DE ANÁLISES CRÍTICAS DO MODAL DE CADASTRO DA ETAPA
 // ============================================================
 
 const AnalisesModule = {
@@ -13,6 +13,7 @@ const AnalisesModule = {
 
     init() {
         console.log('📌 AnalisesModule: inicializado');
+        this.configurarCheckboxNaoHaAnalise();
     },
 
     // ============================================================
@@ -72,6 +73,13 @@ const AnalisesModule = {
             ganho_previsto: document.getElementById('analise-ganho').value,
             sugestao_sera_implantada: sugestaoSeraImplantada
         };
+
+        // Se não tem N/A, pelo menos análise deve estar preenchida
+        const checkboxNaoHa = document.getElementById('analise-nao-ha');
+        if (!checkboxNaoHa?.checked && !analiseData.analise_critica.trim()) {
+            window.mostrarToast('⚠️ Preencha a análise ou marque "Não há análise"', 'warning');
+            return;
+        }
 
         if (removerEvidencia) {
             analiseData.remover_evidencia = true;
@@ -395,6 +403,8 @@ const AnalisesModule = {
         form.style.display = 'block';
         this.resetarEvidencia();
 
+        this.limparCheckboxNaoHaAnalise();
+
         if (modo === 'editar' && index !== null) {
             // ⭐ MODO EDIÇÃO: Preenche campos
             const analise = isTemporaria 
@@ -408,6 +418,14 @@ const AnalisesModule = {
                 document.getElementById('analise-sugestao').value = analise.sugestao_melhoria || '';
                 document.getElementById('analise-necessidade').value = analise.necessidade_implantacao || '';
                 document.getElementById('analise-ganho').value = analise.ganho_previsto || '';
+
+                if (analise.analise_critica === 'N/A') {
+                    const checkbox = document.getElementById('analise-nao-ha');
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        this.preencherComNA();
+                    }
+                }
                 
                 // ⭐ Limpar radio buttons de sugestão
                 const radios = document.querySelectorAll('#form-analise input[name="sugestao-status-auditado-radio"]');
@@ -551,6 +569,75 @@ const AnalisesModule = {
         this.evidenciaArquivo = null;
         this.evidenciaExistente = null;
         this.evidenciaNomeExistente = null;
-    }
+        this.limparCheckboxNaoHaAnalise();
+    },
+
+    // ============================================================
+    // CHECKBOX "NÃO HÁ ANÁLISE"
+    // ============================================================
+
+    configurarCheckboxNaoHaAnalise() {
+        const checkbox = document.getElementById('analise-nao-ha');
+        if (!checkbox) return;
+        
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                this.preencherComNA();
+            } else {
+                this.limparCamposNA();
+            }
+        });
+    },
+
+    preencherComNA() {
+        const campos = [
+            'analise-texto',
+            'analise-sugestao',
+            'analise-necessidade',
+            'analise-ganho'
+        ];
+        
+        campos.forEach(id => {
+            const campo = document.getElementById(id);
+            if (campo) {
+                campo.value = 'N/A';
+                campo.disabled = true;
+                campo.style.background = '#e9ecef';
+                campo.style.cursor = 'not-allowed';
+            }
+        });
+        
+        console.log('✅ Campos preenchidos com N/A');
+    },
+
+    limparCamposNA() {
+        const campos = [
+            'analise-texto',
+            'analise-sugestao',
+            'analise-necessidade',
+            'analise-ganho'
+        ];
+        
+        campos.forEach(id => {
+            const campo = document.getElementById(id);
+            if (campo) {
+                campo.value = '';
+                campo.disabled = false;
+                campo.style.background = '';
+                campo.style.cursor = '';
+            }
+        });
+        
+        console.log('✅ Campos liberados');
+    },
+
+    limparCheckboxNaoHaAnalise() {
+        const checkbox = document.getElementById('analise-nao-ha');
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+        
+        this.limparCamposNA();
+    },
 
 };

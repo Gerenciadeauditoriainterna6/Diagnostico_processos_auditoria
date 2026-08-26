@@ -32,7 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnVoltar) {
         btnVoltar.addEventListener('click', async (e) => {
             e.preventDefault();
-            await salvarEstado();
+
+            // Loading ao salvar estado
+            LoadingModule.mostrar('Salvando estado...');
+
+            try {
+                await salvarEstado();
+            } finally {
+                LoadingModule.ocultar();
+            }
+            
             window.location.href = '/detalhamento';
         });
     }
@@ -40,7 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botão Nova Etapa
     const btnNovaEtapa = document.getElementById('btn-nova-etapa');
     if (btnNovaEtapa && typeof ModalEtapaModule !== 'undefined') {
-        btnNovaEtapa.addEventListener('click', () => ModalEtapaModule.nova());
+        btnNovaEtapa.addEventListener('click', () => {
+            // ⭐ Loading automático
+            LoadingModule.executarComLoading(
+                () => ModalEtapaModule.nova(),
+                'Preparando nova etapa...'
+            );
+        });
     }
 
     // Botão Nova Análise
@@ -58,7 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botão Salvar Análise
     const btnSalvarAnalise = document.getElementById('btn-salvar-analise');
     if (btnSalvarAnalise && typeof AnalisesModule !== 'undefined') {
-        btnSalvarAnalise.addEventListener('click', () => AnalisesModule.salvar());
+        btnSalvarAnalise.addEventListener('click', () => {
+            // ⭐ Loading ao salvar análise
+            LoadingModule.executarComLoading(
+                () => AnalisesModule.salvar(),
+                'Salvando análise...'
+            );
+        });
     }
 
     // Botão Adicionar Obrigação (delegação - funciona mesmo se criado depois)

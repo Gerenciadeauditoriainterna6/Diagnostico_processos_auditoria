@@ -105,7 +105,7 @@ const Etapa1Module = {
         this.areaSelect.value = '';
         this.auditoriaSelect.innerHTML = '<option value="">Selecine uma área primeiro...</option>';
         this.auditoriaSelect.disabled = true;
-        this.auditoria.Inner.style.display = 'none';
+        this.auditoriaInner.style.display = 'none';
         this.btnProximo.disabled = true;
     },
 

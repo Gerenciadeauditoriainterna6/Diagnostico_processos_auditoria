@@ -24,18 +24,22 @@
                             <input type="text" id="modal-codigo-etapa" class="form-control" disabled>
                         </div>
                         <div class="form-group">
-                            <label><i class="fas fa-tag"></i> Nome da Etapa *</label>
+                            <label><i class="fas fa-tag"></i> Etapa <span style="color: red">*</span></label>
                             <input type="text" id="modal-nome-etapa" class="form-control" placeholder="Ex: Análise inicial">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label><i class="fas fa-align-left"></i> Descrição da Etapa</label>
-                        <textarea id="modal-descricao-etapa" class="form-control" rows="2" placeholder="Descreva o que acontece nesta etapa..."></textarea>
+                        <label><i class="fas fa-align-left"></i> Descrição da Etapa (O que é feito?) </label>
+                        <textarea id="modal-descricao-etapa" class="form-control" rows="2" placeholder="Descreva o que é a etapa..."></textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label><i class="fas fa-cogs"></i> Como é feito?</label>
-                            <textarea id="modal-como-feito" class="form-control" rows="2" placeholder="Descreva como a etapa é executada..."></textarea>
+                            <label><i class="fas fa-align-left"></i> Descrição da etapa (Como é feito?)
+                                <span class="help-icon" data-tooltip="Descreva detalhadamente, o que é feito nesta etapa.">
+                                    <i class="fas fa-question-circle"></i>
+                                </span>
+                            </label>
+                            <textarea id="modal-como-feito" class="form-control" rows="2" placeholder="Descreva minuciosamente como é feito esta etapa..."></textarea>
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-bullseye"></i> Objetivo da Etapa
@@ -264,6 +268,19 @@
                     <div id="form-analise" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
                         <input type="hidden" id="analise-id">
                         <input type="hidden" id="analise-temp-id">
+
+                        <!-- CHECKBOX: "Não há análise" -->
+                        <div class="form-group" style="margin-bottom: 15px; padding: 12px; background: #f0f4f8; border-radius: 8px; border: 1px solid #d0d8e0;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
+                                <input type="checkbox" id="analise-nao-ha" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 600; color: #184145;">
+                                    <i class="fas fa-check-circle"></i> Não há análise para esta etapa
+                                </span>
+                            </label>
+                            <small style="display: block; margin-top: 5px; color: #666; font-size: 12px;">
+                                Ao marcar, todos os campos serão preenchidos com "N/A" automaticamente.
+                            </small>
+                        </div>
                         
                         <div class="form-group">
                             <label><span class="cor-ponto-de-auditoria">Análise</span>
@@ -271,7 +288,7 @@
                                     <i class="fas fa-question-circle"></i>
                                 </span>
                             </label>
-                            <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva o ponto de auditoria..."></textarea>
+                            <textarea id="analise-texto" class="form-control" rows="3" placeholder="Descreva o problema encontrado..."></textarea>
                         </div>
                         <div class="form-group">
                             <label><span class="cor-sugestao-de-melhoria">Sugestão de Melhoria</span>
