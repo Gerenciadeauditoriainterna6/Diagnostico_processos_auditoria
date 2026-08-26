@@ -15,50 +15,63 @@ const TabelaEtapasModule = {
     // CARREGAR DADOS DO PROCESSO
     // ============================================================
     async carregarDadosProcesso() {
-        const params = new URLSearchParams(window.location.search);
-        const processoId = params.get('processo_id');
-        const processoCodigo = params.get('processo_codigo');
-
-        if (!processoId) {
-            document.getElementById('processo-info').innerHTML = '<span class="alert-error">❌ Nenhum processo selecionado.</span>';
-            return;
-        }
-
-        this.processoAtualId = processoId;
-        this.processoAtualCodigo = processoCodigo;
-
-        let auditoriaId = null;
+        // ⭐ Loading global
+        LoadingModule.mostrar('Carregando dados do processo...');
+        
         try {
-            const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados`);
-            const data = await response.json();
-            if (data.success) {
-                auditoriaId = data.auditoria_id;
+            const params = new URLSearchParams(window.location.search);
+            const processoId = params.get('processo_id');
+            const processoCodigo = params.get('processo_codigo');
+
+            if (!processoId) {
+                document.getElementById('processo-info').innerHTML = '<span class="alert-error">❌ Nenhum processo selecionado.</span>';
+                return;
             }
-        } catch (error) {
-            console.error('Erro ao buscar processo:', error);
-        }
 
-        document.getElementById('modal-processo-id').value = processoId;
+            this.processoAtualId = processoId;
+            this.processoAtualCodigo = processoCodigo;
 
-        const container = document.getElementById('etapas-container');
-
-        if (auditoriaId) {
-            container.innerHTML = this._spinnerHTML('Verificando permissão...');
+            let auditoriaId = null;
             try {
-                const resp = await window.fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
-                const dados = await resp.json();
-                if (dados.autorizado) {
-                    await this.carregarEtapas();
-                } else {
-                    container.innerHTML = '<div class="alert-error"><i class="fas fa-lock"></i> Sem permissão.</div>';
-                    const btn = document.getElementById('btn-nova-etapa');
-                    if (btn) btn.style.display = 'none';
+                const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados`);
+                const data = await response.json();
+                if (data.success) {
+                    auditoriaId = data.auditoria_id;
                 }
             } catch (error) {
-                container.innerHTML = '<div class="alert-error">Erro ao verificar permissão.</div>';
+                console.error('Erro ao buscar processo:', error);
             }
-        } else {
-            await this.carregarEtapas();
+
+            document.getElementById('modal-processo-id').value = processoId;
+
+            const container = document.getElementById('etapas-container');
+
+            if (auditoriaId) {
+                // ⭐ Removido spinner inline, usando LoadingModule
+                try {
+                    const resp = await window.fetchComAutenticacao(`/api/auditoria/${auditoriaId}/responsavel`);
+                    const dados = await resp.json();
+                    if (dados.autorizado) {
+                        await this.carregarEtapas();
+                    } else {
+                        container.innerHTML = '<div class="alert-error"><i class="fas fa-lock"></i> Sem permissão.</div>';
+                        const btn = document.getElementById('btn-nova-etapa');
+                        if (btn) btn.style.display = 'none';
+                    }
+                } catch (error) {
+                    container.innerHTML = '<div class="alert-error">Erro ao verificar permissão.</div>';
+                }
+            } else {
+                await this.carregarEtapas();
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar dados do processo:', error);
+            mostrarToast('Erro ao carregar dados', 'error');
+            
+        } finally {
+            // ⭐ SEMPRE esconder loading
+            LoadingModule.ocultar();
         }
     },
 
@@ -66,10 +79,14 @@ const TabelaEtapasModule = {
     // CARREGAR ETAPAS
     // ============================================================
     async carregarEtapas() {
-        const container = document.getElementById('etapas-container');
-        container.innerHTML = this._spinnerHTML('Carregando etapas...');
-
+        // ⭐ Loading global
+        LoadingModule.mostrar('Carregando etapas...');
+        
         try {
+            const container = document.getElementById('etapas-container');
+            
+            // ⭐ Removido spinner inline
+
             const response = await window.fetchComAutenticacao(`/api/processo/${this.processoAtualId}/etapas`);
             const data = await response.json();
 
@@ -81,13 +98,19 @@ const TabelaEtapasModule = {
                 if (data.etapas.length === 0) {
                     container.innerHTML = '<div class="empty-message">Nenhuma etapa. Clique em "Nova Etapa".</div>';
                 } else {
-                    this.renderizar(data.etapas);
+                    await this.renderizar(data.etapas);
                 }
             } else {
                 container.innerHTML = `<div class="empty-message">❌ ${data.error || 'Erro'}</div>`;
             }
+            
         } catch (error) {
+            console.error('❌ Erro ao carregar etapas:', error);
             container.innerHTML = '<div class="empty-message">❌ Erro de conexão.</div>';
+            
+        } finally {
+            // ⭐ SEMPRE esconder loading
+            LoadingModule.ocultar();
         }
     },
 
@@ -157,21 +180,5 @@ const TabelaEtapasModule = {
 
         container.innerHTML = cardsHtml.join('');
     },
-
-    // ============================================================
-    // SPINNER HTML
-    // ============================================================
-    _spinnerHTML(mensagem) {
-        return `
-            <div style="text-align: center; padding: 60px 20px;">
-                <div class="dot-spinner">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-                <p style="margin-top: 25px; color: #666; font-size: 14px;">${mensagem}</p>
-            </div>
-        `;
-    }
 
 };

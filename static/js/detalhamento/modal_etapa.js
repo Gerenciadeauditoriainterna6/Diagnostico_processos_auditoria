@@ -25,38 +25,57 @@ const ModalEtapaModule = {
     // NOVA ETAPA
     // ============================================================
     async nova() {
-        this.limparFormulario();
-        document.getElementById('modal-etapa-title').innerHTML = '<i class="fas fa-plus-circle"></i> Nova Etapa';
-        ManualModule.setEtapaId(null);
-        await this.gerarCodigo();
-        await ExecutoresModule.carregar(TabelaEtapasModule.processoAtualId);  // ← Corrigido
-        ExecutoresModule.limpar();
-        // ExecutoresModule.setupSearch();  // ← setupSearch não existe, é setupSearch dentro de setupExecutoresSelector
-        AutoSaveModule.setup();
+        console.log('📌 Abrindo modal de nova etapa...');
+        
+        // ⭐ Loading global
+        LoadingModule.mostrar('Preparando cadastro de nova etapa...');
+        
+        try {
+            this.limparFormulario();
+            document.getElementById('modal-etapa-title').innerHTML = '<i class="fas fa-plus-circle"></i> Nova Etapa';
+            ManualModule.setEtapaId(null);
+            await this.gerarCodigo();
+            await ExecutoresModule.carregar(TabelaEtapasModule.processoAtualId);
+            ExecutoresModule.limpar();
+            AutoSaveModule.setup();
 
-        ObrigacoesModule.inicializarObrigacoes('[]');  // ← Corrigido
-        AnalisesModule.temporarias = [];
-        AnalisesModule.existentes = [];
-        AnalisesModule.renderizar();
-        AnalisesModule.esconderForm();
+            ObrigacoesModule.inicializarObrigacoes('[]');
+            AnalisesModule.temporarias = [];
+            AnalisesModule.existentes = [];
+            AnalisesModule.renderizar();
+            AnalisesModule.esconderForm();
 
-        ManualModule.resetarInterface();
-        AutoSaveModule.carregarRascunho();
-        document.getElementById('modal-etapa').style.display = 'flex';
+            ManualModule.resetarInterface();
+            AutoSaveModule.carregarRascunho();
+            document.getElementById('modal-etapa').style.display = 'flex';
+            
+        } catch (error) {
+            console.error('❌ Erro ao abrir nova etapa:', error);
+            window.mostrarToast('Erro ao abrir nova etapa', 'error');
+            
+        } finally {
+            // ⭐ SEMPRE esconder loading
+            LoadingModule.ocultar();
+        }
     },
 
     // ============================================================
     // EDITAR ETAPA
     // ============================================================
     async editar(etapaId) {
-        this.limparFormulario();
-        AutoSaveModule.desabilitar();
-        AutoSaveModule.limparRascunho();
-        AnalisesModule.temporarias = [];
-
-        ManualModule.setEtapaId(etapaId);
-
+        console.log('📌 Abrindo modal de edição...');
+        
+        // ⭐ Loading global
+        LoadingModule.mostrar('Carregando dados da etapa para edição...');
+        
         try {
+            this.limparFormulario();
+            AutoSaveModule.desabilitar();
+            AutoSaveModule.limparRascunho();
+            AnalisesModule.temporarias = [];
+
+            ManualModule.setEtapaId(etapaId);
+
             const response = await window.fetchComAutenticacao(`/api/etapa/${etapaId}`);
             const data = await response.json();
 
@@ -88,10 +107,17 @@ const ModalEtapaModule = {
                 ManualModule.atualizarInterface(etapa);
 
                 document.getElementById('modal-etapa').style.display = 'flex';
+            } else {
+                window.mostrarToast('❌ Erro: ' + (data.error || 'Erro ao carregar etapa'), 'error');
             }
+            
         } catch (error) {
-            console.error('Erro ao carregar etapa:', error);
+            console.error('❌ Erro ao carregar etapa:', error);
             window.mostrarToast('Erro ao carregar dados da etapa', 'error');
+            
+        } finally {
+            // ⭐ SEMPRE esconder loading
+            LoadingModule.ocultar();
         }
     },
 
@@ -129,33 +155,38 @@ const ModalEtapaModule = {
         const nomeEtapa = document.getElementById('modal-nome-etapa').value.trim();
         if (!nomeEtapa) return;
 
-        const etapaId = document.getElementById('modal-etapa-id').value || null;
-        const obrigacoes = await ObrigacoesModule.coletarObrigacoes();
-        const obrigacoesProcessadas = await ObrigacoesModule.processarUploadsObrigacoes(obrigacoes, etapaId);
-
-        const payload = {
-            id: etapaId,
-            processo_id: TabelaEtapasModule.processoAtualId,
-            auditoria_id: null,
-            codigo_etapa: document.getElementById('modal-codigo-etapa')?.value || '',
-            nome_etapa: nomeEtapa,
-            descricao_etapa: document.getElementById('modal-descricao-etapa')?.value || '',
-            como_e_feito: document.getElementById('modal-como-feito')?.value || '',
-            objetivo_etapa: document.getElementById('modal-objetivo-etapa')?.value || '',
-            status_etapa: document.getElementById('modal-status-etapa')?.value || 'ATIVA',
-            politica_interna: document.getElementById('modal-politica-interna')?.value || '',
-            obrigacoes_regulatorias: JSON.stringify(obrigacoesProcessadas),
-            executores_etapa: ExecutoresModule.getSelectedIds().join(','),
-            manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false
-        };
+        // ⭐ Loading global
+        LoadingModule.mostrar('Salvando etapa...');
 
         try {
+            const etapaId = document.getElementById('modal-etapa-id').value || null;
+            const obrigacoes = await ObrigacoesModule.coletarObrigacoes();
+            const obrigacoesProcessadas = await ObrigacoesModule.processarUploadsObrigacoes(obrigacoes, etapaId);
+
+            const payload = {
+                id: etapaId,
+                processo_id: TabelaEtapasModule.processoAtualId,
+                auditoria_id: null,
+                codigo_etapa: document.getElementById('modal-codigo-etapa')?.value || '',
+                nome_etapa: nomeEtapa,
+                descricao_etapa: document.getElementById('modal-descricao-etapa')?.value || '',
+                como_e_feito: document.getElementById('modal-como-feito')?.value || '',
+                objetivo_etapa: document.getElementById('modal-objetivo-etapa')?.value || '',
+                status_etapa: document.getElementById('modal-status-etapa')?.value || 'ATIVA',
+                politica_interna: document.getElementById('modal-politica-interna')?.value || '',
+                obrigacoes_regulatorias: JSON.stringify(obrigacoesProcessadas),
+                executores_etapa: ExecutoresModule.getSelectedIds().join(','),
+                manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false
+            };
+
             const response = await window.fetchComAutenticacao('/api/etapa/salvar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            
             const data = await response.json();
+            
             if (data.success) {
                 if (AnalisesModule.temporarias.length > 0) {
                     await AnalisesModule.salvarTemporarias(data.etapa_id);
@@ -169,8 +200,14 @@ const ModalEtapaModule = {
             } else {
                 window.mostrarToast('❌ Erro: ' + (data.error || 'Desconhecido'), 'error');
             }
+            
         } catch (error) {
+            console.error('❌ Erro ao salvar:', error);
             window.mostrarToast('❌ Erro de conexão', 'error');
+            
+        } finally {
+            // ⭐ SEMPRE esconder loading
+            LoadingModule.ocultar();
         }
     },
 

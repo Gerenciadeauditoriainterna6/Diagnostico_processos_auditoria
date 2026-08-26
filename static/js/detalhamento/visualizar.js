@@ -24,7 +24,9 @@ const VisualizarModule = {
         if (!modal || !body) return;
 
         modal.style.display = 'flex';
-        body.innerHTML = this._spinnerHTML('Carregando visualização...');
+        
+        // ⭐ Loading global (substitui o spinner inline)
+        LoadingModule.mostrar('Carregando visualização...');
 
         try {
             const [respEtapa, respAnalises] = await Promise.all([
@@ -40,6 +42,9 @@ const VisualizarModule = {
             }
         } catch (error) {
             body.innerHTML = '<div class="alert-error">Erro ao carregar dados da etapa.</div>';
+        } finally {
+            // ⭐ SEMPRE esconder loading
+            LoadingModule.ocultar();
         }
     },
 
@@ -233,14 +238,5 @@ const VisualizarModule = {
             </div>
         `;
     },
-
-    _spinnerHTML(mensagem) {
-        return `
-            <div style="text-align:center;padding:60px 20px;">
-                <div class="dot-spinner"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-                <p style="margin-top:25px;color:#666;font-size:14px;">${mensagem}</p>
-            </div>
-        `;
-    }
 
 };
