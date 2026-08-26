@@ -2,33 +2,37 @@
 <div id="info-basicas-section" class="form-section" style="display: none;">
     <input type="hidden" id="id_area_selecionado" name="id_area_selecionado">
     <h3>2. Informações Iniciais</h3>
-    <small style="display: block; margin-bottom: 10px; font-size: 16px;">Informe os processos e/ou atividades executadas por cada funcionário. <span style="font-size: 18px; color: #ff0000; font-weight: bold;">*IMPORTANTE</span></small>
-    <small style="display: block; margin-bottom: 0px; font-size: 16px;">Solicite ao auditado, que desenhe o fluxo do processo e anexe o arquivo na tela da Matriz de Panorama. <span style="font-size: 18px; color: #ff0000; font-weight: bold;">*IMPORTANTE</span></small>
-    <small style="display: block; margin-bottom: 30px; font-size: 14px;">**Solicite também ao auditado para assinar e datar o fluxo.</small>
-
-    <div class="form-group">
-        <label for="entrevistado_processo">
-            <i class="fas fa-user"></i> Nome do Entrevistado
-        </label>
-        <input type="text" id="entrevistado_processo" class="form-control" 
-            placeholder="Digite o nome do entrevistado..." required>
-    </div>
-
     
-
-    <!-- Botão Adicionar Processo -->
-    <button type="button" id="btn-adicionar-processo" class="btn-outline" style="margin-top:15px;">
-        <i class="fas fa-plus"></i> Adicionar Processo
-    </button>
-
-    <!-- Container dos Processos -->
-    <div id="processos-executores-container" style="display: none;">
-        <div class="section-title" style="margin-top:15px;">
-            <i class="fas fa-tasks"></i> Processos
+    <!-- ⭐ Container para loading inline -->
+    <div id="etapa2-loading" style="display: none;"></div>
+    
+    <!-- Conteúdo normal da etapa 2 -->
+    <div id="etapa2-conteudo">
+        <small style="display: block; margin-bottom: 10px; font-size: 16px;">Informe os processos e/ou atividades executadas por cada funcionário.</small>
+        
+        <!-- Resto do conteúdo existente... -->
+        <div class="form-group">
+            <label for="entrevistado_processo">
+                <i class="fas fa-user"></i> Nome do Entrevistado
+            </label>
+            <input type="text" id="entrevistado_processo" class="form-control" 
+                placeholder="Digite o nome do entrevistado..." required>
         </div>
-        <div id="processos-executores-lista"></div>
+        
+        <!-- Botão Adicionar Processo -->
+        <button type="button" id="btn-adicionar-processo" class="btn-outline" style="margin-top:15px;">
+            <i class="fas fa-plus"></i> Adicionar Processo
+        </button>
+        
+        <!-- Container dos Processos -->
+        <div id="processos-executores-container" style="display: none;">
+            <div class="section-title" style="margin-top:15px;">
+                <i class="fas fa-tasks"></i> Processos
+            </div>
+            <div id="processos-executores-lista"></div>
+        </div>
     </div>
-
+    
     <div class="wizard-buttons">
         <button type="button" class="btn-secondary" id="btn-voltar-etapa1">← Voltar</button>
         <button type="button" class="btn-primary" id="btn-proximo-etapa3" disabled>

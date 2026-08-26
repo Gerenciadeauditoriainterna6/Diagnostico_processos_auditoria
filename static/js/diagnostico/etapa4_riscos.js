@@ -219,12 +219,19 @@ const Etapa4Module = {
         this.processoInfo.innerHTML = `
             <strong><i class="fas fa-tag"></i> ${proc.codigo_processo} - ${proc.nome_processo}</strong>
         `;
+
+        // ⭐ Preencher objetivo do processo (vem da API)
+        const objetivoTexto = document.getElementById('etapa4-objetivo-texto');
+        if (objetivoTexto) {
+            objetivoTexto.textContent = proc.objetivo || 'Não informado';
+        }
         
         this.listaContainer.style.display = 'none';
         this.kanbanContainer.style.display = 'block';
         
         this.carregarRiscos();
     },
+
     
     // ============================================================
     // CARREGAR RISCOS (KANBAN)

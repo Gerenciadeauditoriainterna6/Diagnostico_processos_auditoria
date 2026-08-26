@@ -100,21 +100,37 @@ const Etapa2Module = {
     async aoEntrar() {
         console.log('👋 Etapa 2 ativada');
         
-        await this.buscarUltimoSequencial();
-        await this.carregarFuncionarios();
+        // ⭐ Usar spinnerHTML do utils.js
+        const loadingContainer = document.getElementById('etapa2-loading');
+        const conteudo = document.getElementById('etapa2-conteudo');
         
-        if (WizardModule.isEdicao()) {
-            await this.carregarDadosEdicao();
-            // ⭐ Esconder botão "Adicionar Processo"
-            const btnAdd = document.getElementById('btn-adicionar-processo');
-            if (btnAdd) btnAdd.style.display = 'none';
-        } else {
-            this.processos = [];
-            const btnAdd = document.getElementById('btn-adicionar-processo');
-            if (btnAdd) btnAdd.style.display = 'inline-block';
+        if (loadingContainer && conteudo) {
+            // Mostrar spinner
+            loadingContainer.innerHTML = spinnerHTML('Carregando informações...');
+            loadingContainer.style.display = 'block';
+            conteudo.style.display = 'none';
         }
         
-        this.renderizarTudo();
+        try {
+            // Sua lógica de carregamento
+            if (WizardModule.isEdicao()) {
+                await this.carregarDadosEdicao();
+            } else {
+                this.resetar();
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar etapa 2:', error);
+            window.mostrarToast('Erro ao carregar dados', 'error');
+            
+        } finally {
+            // Esconder spinner
+            if (loadingContainer && conteudo) {
+                loadingContainer.style.display = 'none';
+                loadingContainer.innerHTML = '';
+                conteudo.style.display = 'block';
+            }
+        }
     },
     
     // ============================================================

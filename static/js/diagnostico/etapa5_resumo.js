@@ -33,17 +33,53 @@ const Etapa5Module = {
     
     async aoEntrar() {
         console.log('👋 Etapa 5 ativada');
-        await this.carregarResumo();
+        
+        // ⭐ Mostrar loading
+        this.mostrarLoading('Carregando resumo...');
+        
+        try {
+            await this.carregarResumo();
+        } catch (error) {
+            console.error('❌ Erro ao carregar resumo:', error);
+            window.mostrarToast('Erro ao carregar resumo', 'error');
+        } finally {
+            // ⭐ Esconder loading
+            this.esconderLoading();
+        }
+    },
+
+    mostrarLoading(mensagem) {
+        const loadingContainer = document.getElementById('etapa5-loading');
+        const conteudo = document.getElementById('etapa5-conteudo');
+        
+        if (loadingContainer && conteudo) {
+            loadingContainer.innerHTML = spinnerHTML(mensagem);
+            loadingContainer.style.display = 'block';
+            conteudo.style.display = 'none';
+        }
+    },
+    
+    esconderLoading() {
+        const loadingContainer = document.getElementById('etapa5-loading');
+        const conteudo = document.getElementById('etapa5-conteudo');
+        
+        if (loadingContainer && conteudo) {
+            loadingContainer.style.display = 'none';
+            loadingContainer.innerHTML = '';
+            conteudo.style.display = 'block';
+        }
     },
     
     async carregarResumo() {
         try {
             const areaId = document.getElementById('id_area_selecionado')?.value ||
-                          document.getElementById('area_select')?.value;
+                        document.getElementById('area_select')?.value;
             const auditoriaId = document.getElementById('auditoria_select')?.value;
-            const entrevistado = document.getElementById('entrevistado_processo')?.value || '';
             
-            // Buscar processos
+            // ⭐ 1. Primeiro, tentar pegar do DOM
+            let entrevistado = document.getElementById('entrevistado_processo')?.value || '';
+            
+            // ⭐ 2. Buscar processos
             const idsSalvos = JSON.parse(sessionStorage.getItem('processos_salvos_ids') || '[]');
             let processos = [];
             
@@ -53,12 +89,25 @@ const Etapa5Module = {
                 if (data.success) processos = data.processos;
             }
             
+            // ⭐ 3. Se for edição, buscar dados completos do processo
             if (WizardModule.isEdicao()) {
                 const procId = WizardModule.getProcessoId();
                 const response = await window.fetchComAutenticacao(`/api/processo/${procId}/dados`);
                 const data = await response.json();
+                
                 if (data.success) {
                     processos = [{ ...data, id: procId }];
+                    
+                    // ⭐ 4. Se entrevistado está vazio, buscar da API
+                    if (!entrevistado) {
+                        entrevistado = data.entrevistado || 
+                                    data.entrevistado_processo || 
+                                    data.nome_entrevistado || '';
+                    }
+                    
+                    // ⭐ DEBUG: Ver o que a API retorna
+                    console.log('🔍 Dados do processo:', data);
+                    console.log('🔍 Entrevistado:', entrevistado);
                 }
             }
             
@@ -141,11 +190,38 @@ const Etapa5Module = {
     },
     
     finalizar() {
-        window.mostrarToast('✅ Cadastro finalizado com sucesso!', 'success');
-        sessionStorage.removeItem('processos_salvos_ids');
+        console.log('🎉 Finalizando cadastro...');
         
-        if (typeof WizardModule !== 'undefined') WizardModule.fechar();
-        if (typeof TabelaModule !== 'undefined') TabelaModule.recarregar();
+        // Mostrar loading
+        LoadingModule.mostrar('Finalizando cadastro...');
+        
+        try {
+            // Mostrar toast de sucesso
+            window.mostrarToast('✅ Cadastro finalizado com sucesso!', 'success');
+            
+            // Limpar sessionStorage
+            sessionStorage.removeItem('processos_salvos_ids');
+            sessionStorage.removeItem('modo_edicao');
+            sessionStorage.removeItem('processo_id');
+            
+            // ⭐ Fechar o modal do wizard
+            if (typeof WizardModule !== 'undefined') {
+                WizardModule.fechar();
+            }
+            
+            // Recarregar tabela (se existir)
+            if (typeof TabelaModule !== 'undefined') {
+                TabelaModule.recarregar();
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao finalizar:', error);
+            window.mostrarToast('Erro ao finalizar', 'error');
+            
+        } finally {
+            // Esconder loading
+            LoadingModule.ocultar();
+        }
     }
     
 };
