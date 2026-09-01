@@ -27,7 +27,6 @@ const ModalEtapaModule = {
     async nova() {
         console.log('📌 Abrindo modal de nova etapa...');
         
-        // ⭐ Loading global
         LoadingModule.mostrar('Preparando cadastro de nova etapa...');
         
         try {
@@ -44,6 +43,11 @@ const ModalEtapaModule = {
             AnalisesModule.existentes = [];
             AnalisesModule.renderizar();
             AnalisesModule.esconderForm();
+            
+            // ⭐ Limpar Política Interna
+            if (typeof PoliticaInternaModule !== 'undefined') {
+                PoliticaInternaModule.limpar();
+            }
 
             ManualModule.resetarInterface();
             AutoSaveModule.carregarRascunho();
@@ -54,7 +58,6 @@ const ModalEtapaModule = {
             window.mostrarToast('Erro ao abrir nova etapa', 'error');
             
         } finally {
-            // ⭐ SEMPRE esconder loading
             LoadingModule.ocultar();
         }
     },
@@ -65,8 +68,7 @@ const ModalEtapaModule = {
     async editar(etapaId) {
         console.log('📌 Abrindo modal de edição...');
         
-        // ⭐ Loading global
-        LoadingModule.mostrar('Carregando dados da etapa para edição...');
+        LoadingModule.mostrar('Carregando dados da etapa...');
         
         try {
             this.limparFormulario();
@@ -89,7 +91,20 @@ const ModalEtapaModule = {
                 document.getElementById('modal-como-feito').value = etapa.como_e_feito;
                 document.getElementById('modal-objetivo-etapa').value = etapa.objetivo_etapa;
                 document.getElementById('modal-status-etapa').value = etapa.status_etapa;
-                document.getElementById('modal-politica-interna').value = etapa.politica_interna;
+                document.getElementById('modal-politica-interna').value = etapa.politica_interna || '';
+
+                // ⭐ NOVO: Carregar arquivo da política interna
+                if (typeof PoliticaInternaModule !== 'undefined') {
+                    console.log('📎 Carregando política interna:', {
+                        url: etapa.politica_interna_url,
+                        nome: etapa.politica_interna_nome
+                    });
+                    
+                    await PoliticaInternaModule.carregarPoliticaInterna(
+                        etapa.politica_interna_url || '',
+                        etapa.politica_interna_nome || ''
+                    );
+                }
 
                 ObrigacoesModule.inicializarObrigacoes(etapa.obrigacoes_regulatorias);
                 await ExecutoresModule.carregar(TabelaEtapasModule.processoAtualId);
@@ -116,11 +131,9 @@ const ModalEtapaModule = {
             window.mostrarToast('Erro ao carregar dados da etapa', 'error');
             
         } finally {
-            // ⭐ SEMPRE esconder loading
             LoadingModule.ocultar();
         }
     },
-
     // ============================================================
     // EXCLUIR ETAPA
     // ============================================================
@@ -160,6 +173,11 @@ const ModalEtapaModule = {
 
         try {
             const etapaId = document.getElementById('modal-etapa-id').value || null;
+            // ⭐ Processar upload da política interna
+            let politicaInternaArquivo = null;
+            if (typeof PoliticaInternaModule !== 'undefined') {
+                politicaInternaArquivo = await PoliticaInternaModule.processarUpload(etapaId);
+            }
             const obrigacoes = await ObrigacoesModule.coletarObrigacoes();
             const obrigacoesProcessadas = await ObrigacoesModule.processarUploadsObrigacoes(obrigacoes, etapaId);
 
@@ -176,7 +194,9 @@ const ModalEtapaModule = {
                 politica_interna: document.getElementById('modal-politica-interna')?.value || '',
                 obrigacoes_regulatorias: JSON.stringify(obrigacoesProcessadas),
                 executores_etapa: ExecutoresModule.getSelectedIds().join(','),
-                manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false
+                manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false,
+                politica_interna_url: politicaInternaArquivo?.url || '',
+                politica_interna_nome: politicaInternaArquivo?.nome || ''
             };
 
             const response = await window.fetchComAutenticacao('/api/etapa/salvar', {

@@ -102,12 +102,16 @@ def api_salvar_etapa():
         if etapa_id:
             # EDIÇÃO
             params = {
-                'etapa_id': etapa_id, 'nome_etapa': data['nome_etapa'],
+                'etapa_id': etapa_id, 
+                'nome_etapa': data['nome_etapa'],
                 'descricao_etapa': data.get('descricao_etapa', ''),
                 'como_e_feito': data.get('como_e_feito', ''),
                 'objetivo_etapa': data.get('objetivo_etapa', ''),
                 'status_etapa': data.get('status_etapa', 'ATIVA'),
                 'politica_interna': data.get('politica_interna', ''),
+                # ⭐ NOVO: Campos de arquivo da política interna
+                'politica_interna_url': data.get('politica_interna_url', ''),
+                'politica_interna_nome': data.get('politica_interna_nome', ''),
                 'obrigacoes_regulatorias': obrigacoes_str,
                 'executores_etapa': data.get('executores_etapa', ''),
                 'manual_em_andamento': data.get('manual_em_andamento', False),
@@ -141,13 +145,18 @@ def api_salvar_etapa():
                 codigo_etapa = f"{codigo_base}.{proximo}"
             
             novo_id = inserir_etapa({
-                'processo_id': processo_id, 'auditoria_id': auditoria_id,
-                'codigo_etapa': codigo_etapa, 'nome_etapa': data['nome_etapa'],
+                'processo_id': processo_id, 
+                'auditoria_id': auditoria_id,
+                'codigo_etapa': codigo_etapa, 
+                'nome_etapa': data['nome_etapa'],
                 'descricao_etapa': data.get('descricao_etapa', ''),
                 'como_e_feito': data.get('como_e_feito', ''),
                 'objetivo_etapa': data.get('objetivo_etapa', ''),
                 'status_etapa': data.get('status_etapa', 'ATIVA'),
                 'politica_interna': data.get('politica_interna', ''),
+                # ⭐ NOVO: Campos de arquivo da política interna
+                'politica_interna_url': data.get('politica_interna_url', ''),
+                'politica_interna_nome': data.get('politica_interna_nome', ''),
                 'obrigacoes_regulatorias': obrigacoes_str,
                 'executores_etapa': data.get('executores_etapa', ''),
                 'diagrama_bpmn': diagrama_bytes,
@@ -285,14 +294,26 @@ def api_upload_detalhamento():
         unique_id = str(uuid.uuid4())[:8]
         nome_limpo = ''.join(c for c in arquivo.filename if c.isalnum() or c in ' ._-').replace(' ', '_')
         
-        pasta = 'manuais' if tipo == 'manual' else 'obrigacoes'
+        # ⭐ Determinar pasta baseada no tipo
+        if tipo == 'manual':
+            pasta = 'manuais'
+        elif tipo == 'politica_interna':
+            pasta = 'politicas_internas'
+        else:
+            pasta = 'obrigacoes'
+        
         caminho = f"{pasta}/etapa_id_{etapa_id}/{timestamp}_{unique_id}_{nome_limpo}"
         
         from utils.storage_utils import upload_arquivo_storage
         url_arquivo = upload_arquivo_storage(arquivo, caminho, "detalhamento_etapas", "application/pdf")
         
         if url_arquivo:
-            return jsonify({'success': True, 'url': url_arquivo, 'nome_arquivo': arquivo.filename, 'tamanho': tamanho})
+            return jsonify({
+                'success': True, 
+                'url': url_arquivo, 
+                'nome_arquivo': arquivo.filename, 
+                'tamanho': tamanho
+            })
         
         return jsonify({'success': False, 'error': 'Erro no upload'}), 500
         

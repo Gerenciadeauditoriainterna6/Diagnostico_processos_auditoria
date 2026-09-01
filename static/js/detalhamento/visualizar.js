@@ -139,16 +139,6 @@ const VisualizarModule = {
                             </div>
                         </div>
                         
-                        <!-- Política Interna -->
-                        <div class="vis-card">
-                            <div class="vis-card-header">
-                                <i class="fas fa-gavel"></i> Política Interna
-                            </div>
-                            <div class="vis-card-body">
-                                ${escapeHtml(etapa.politica_interna) || '<span class="vis-nao-informado">Não informado</span>'}
-                            </div>
-                        </div>
-                        
                         <!-- Manual -->
                         <div class="vis-card">
                             <div class="vis-card-header">
@@ -167,6 +157,30 @@ const VisualizarModule = {
                                 ` : ''}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="vis-card vis-card-full">
+                    <div class="vis-card-header">
+                        <i class="fas fa-gavel"></i> Política Interna
+                    </div>
+                    <div class="vis-card-body">
+                        ${escapeHtml(etapa.politica_interna) || '<span class="vis-nao-informado">Não informado</span>'}
+                        
+                        ${etapa.politica_interna_url && etapa.politica_interna_url.trim() !== '' ? `
+                            <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #184145;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 18px;"></i>
+                                        <span style="font-size: 13px; color: #333;">${escapeHtml(etapa.politica_interna_nome || 'Documento da Política Interna')}</span>
+                                    </div>
+                                    <button onclick="PoliticaInternaModule.baixarArquivoPorUrl('${etapa.politica_interna_url}', '${escapeHtml(etapa.politica_interna_nome || 'documento.pdf')}')"
+                                        style="background:#0b5b99;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;">
+                                        <i class="fas fa-download"></i> Baixar
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
                 

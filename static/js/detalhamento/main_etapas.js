@@ -8,13 +8,53 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // 1. INICIALIZAR MÓDULOS
     // ============================================================
-    if (typeof ObrigacoesModule !== 'undefined') ObrigacoesModule.init();
-    if (typeof ExecutoresModule !== 'undefined') ExecutoresModule.init();
-    if (typeof ManualModule !== 'undefined') ManualModule.init();
-    if (typeof AutoSaveModule !== 'undefined') AutoSaveModule.init();
-    if (typeof AnalisesModule !== 'undefined') AnalisesModule.init();
-    if (typeof ModalEtapaModule !== 'undefined') ModalEtapaModule.init();
-    if (typeof VisualizarModule !== 'undefined') VisualizarModule.init();
+    
+    // ⭐ LoadingModule PRIMEIRO
+    if (typeof LoadingModule !== 'undefined') {
+        LoadingModule.init();
+        console.log('   ✅ LoadingModule inicializado');
+    }
+    
+    if (typeof ObrigacoesModule !== 'undefined') {
+        ObrigacoesModule.init();
+        console.log('   ✅ ObrigacoesModule inicializado');
+    }
+    
+    if (typeof ExecutoresModule !== 'undefined') {
+        ExecutoresModule.init();
+        console.log('   ✅ ExecutoresModule inicializado');
+    }
+    
+    if (typeof ManualModule !== 'undefined') {
+        ManualModule.init();
+        console.log('   ✅ ManualModule inicializado');
+    }
+    
+    if (typeof AutoSaveModule !== 'undefined') {
+        AutoSaveModule.init();
+        console.log('   ✅ AutoSaveModule inicializado');
+    }
+    
+    if (typeof AnalisesModule !== 'undefined') {
+        AnalisesModule.init();
+        console.log('   ✅ AnalisesModule inicializado');
+    }
+    
+    if (typeof ModalEtapaModule !== 'undefined') {
+        ModalEtapaModule.init();
+        console.log('   ✅ ModalEtapaModule inicializado');
+    }
+    
+    if (typeof VisualizarModule !== 'undefined') {
+        VisualizarModule.init();
+        console.log('   ✅ VisualizarModule inicializado');
+    }
+    
+    // ⭐ NOVO: PoliticaInternaModule
+    if (typeof PoliticaInternaModule !== 'undefined') {
+        PoliticaInternaModule.init();
+        console.log('   ✅ PoliticaInternaModule inicializado');
+    }
 
     // ============================================================
     // 2. CARREGAR DADOS
