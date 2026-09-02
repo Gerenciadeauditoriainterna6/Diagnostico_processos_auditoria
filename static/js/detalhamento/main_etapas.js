@@ -15,9 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('   ✅ LoadingModule inicializado');
     }
     
-    if (typeof ObrigacoesModule !== 'undefined') {
-        ObrigacoesModule.init();
-        console.log('   ✅ ObrigacoesModule inicializado');
+    if (typeof PoliticasObrigacoesModule !== 'undefined') {
+        PoliticasObrigacoesModule.init();
+        console.log('   ✅ PoliticasObrigacoesModule inicializado');
     }
     
     if (typeof ExecutoresModule !== 'undefined') {
@@ -125,8 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botão Adicionar Obrigação (delegação - funciona mesmo se criado depois)
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('#btn-adicionar-obrigacao');
-        if (btn && typeof ObrigacoesModule !== 'undefined') {
-            ObrigacoesModule.adicionarObrigacao();
+        if (btn && typeof PoliticasObrigacoesModule !== 'undefined') {
+            PoliticasObrigacoesModule.adicionarObrigacao();
         }
     });
 

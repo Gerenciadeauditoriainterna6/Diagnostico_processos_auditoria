@@ -9,6 +9,19 @@ const ModalEtapaModule = {
 
     init() {
         console.log('📌 ModalEtapaModule: inicializado');
+        this.configurarCollapsibles();
+    },
+
+    configurarCollapsibles() {
+        document.querySelectorAll('.collapsible-section').forEach(section => {
+            const header = section.querySelector('.collapsible-header');
+            
+            if (header) {
+                header.addEventListener('click', () => {
+                    section.classList.toggle('collapsed');
+                });
+            }
+        });
     },
 
     configurarEventos() {
@@ -38,7 +51,7 @@ const ModalEtapaModule = {
             ExecutoresModule.limpar();
             AutoSaveModule.setup();
 
-            ObrigacoesModule.inicializarObrigacoes('[]');
+            PoliticasObrigacoesModule.inicializar('[]');
             AnalisesModule.temporarias = [];
             AnalisesModule.existentes = [];
             AnalisesModule.renderizar();
@@ -106,7 +119,7 @@ const ModalEtapaModule = {
                     );
                 }
 
-                ObrigacoesModule.inicializarObrigacoes(etapa.obrigacoes_regulatorias);
+                PoliticasObrigacoesModule.inicializar(etapa.obrigacoes_regulatorias);
                 await ExecutoresModule.carregar(TabelaEtapasModule.processoAtualId);
                 ExecutoresModule.limpar();
 
@@ -178,8 +191,8 @@ const ModalEtapaModule = {
             if (typeof PoliticaInternaModule !== 'undefined') {
                 politicaInternaArquivo = await PoliticaInternaModule.processarUpload(etapaId);
             }
-            const obrigacoes = await ObrigacoesModule.coletarObrigacoes();
-            const obrigacoesProcessadas = await ObrigacoesModule.processarUploadsObrigacoes(obrigacoes, etapaId);
+            const obrigacoes = await PoliticasObrigacoesModule.coletarDados();
+            const obrigacoesProcessadas = await PoliticasObrigacoesModule.processarUploads(obrigacoes, etapaId);
 
             const payload = {
                 id: etapaId,
@@ -192,7 +205,7 @@ const ModalEtapaModule = {
                 objetivo_etapa: document.getElementById('modal-objetivo-etapa')?.value || '',
                 status_etapa: document.getElementById('modal-status-etapa')?.value || 'ATIVA',
                 politica_interna: document.getElementById('modal-politica-interna')?.value || '',
-                obrigacoes_regulatorias: JSON.stringify(obrigacoesProcessadas),
+                obrigacoes_regulatorias: JSON.stringify({ politicas: politicasProcessadas }),
                 executores_etapa: ExecutoresModule.getSelectedIds().join(','),
                 manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false,
                 politica_interna_url: politicaInternaArquivo?.url || '',
@@ -258,17 +271,21 @@ const ModalEtapaModule = {
     // ============================================================
     limparFormulario() {
         ['modal-etapa-id', 'modal-codigo-etapa', 'modal-nome-etapa', 'modal-descricao-etapa',
-         'modal-como-feito', 'modal-objetivo-etapa', 'modal-politica-interna']
+        'modal-como-feito', 'modal-objetivo-etapa', 'modal-politica-interna']
             .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
         const statusSelect = document.getElementById('modal-status-etapa');
         if (statusSelect) statusSelect.value = 'ATIVA';
 
-        if (typeof ExecutoresModule !== 'undefined') ObrigacoesModule.limparObrigacoes();
+        // ⭐ Substituir ObrigacoesModule por PoliticasObrigacoesModule
+        if (typeof PoliticasObrigacoesModule !== 'undefined') {
+            PoliticasObrigacoesModule.limpar();
+        }
+        
         document.querySelectorAll('#modal-etapa .form-group').forEach(g => g.classList.remove('error'));
 
         ManualModule.resetarInterface();
-        if (typeof ObrigacoesModule !== 'undefined') ObrigacoesModule.limparObrigacoes();
+        
         AnalisesModule.temporarias = [];
         AnalisesModule.existentes = [];
         if (typeof AnalisesModule.renderizar === 'function') AnalisesModule.renderizar();

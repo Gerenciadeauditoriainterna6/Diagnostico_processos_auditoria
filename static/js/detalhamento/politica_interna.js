@@ -11,25 +11,10 @@ const PoliticaInternaModule = {
     
     init() {
         console.log('📌 PoliticaInternaModule: inicializado');
-        this.configurarCollapsibles();
+       
         this.configurarEventos();
     },
 
-    configurarCollapsibles() {
-        document.querySelectorAll('.collapsible-section').forEach(section => {
-            const header = section.querySelector('.collapsible-header');
-            
-            if (header) {
-                // Remover evento antigo (se existir)
-                header.removeEventListener('click', () => {});
-                
-                // Adicionar evento
-                header.addEventListener('click', () => {
-                    section.classList.toggle('collapsed');
-                });
-            }
-        });
-    },
     
     configurarEventos() {
         const inputFile = document.getElementById('politica_interna_input');
