@@ -298,7 +298,7 @@ def api_upload_detalhamento():
         if tipo == 'manual':
             pasta = 'manuais'
         elif tipo == 'politica_interna':
-            pasta = 'politicas_internas'
+            pasta = 'politicas'
         else:
             pasta = 'obrigacoes'
         

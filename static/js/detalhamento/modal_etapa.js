@@ -192,7 +192,7 @@ const ModalEtapaModule = {
                 politicaInternaArquivo = await PoliticaInternaModule.processarUpload(etapaId);
             }
             const obrigacoes = await PoliticasObrigacoesModule.coletarDados();
-            const obrigacoesProcessadas = await PoliticasObrigacoesModule.processarUploads(obrigacoes, etapaId);
+            const politicasProcessadas = await PoliticasObrigacoesModule.processarUploads(obrigacoes, etapaId);
 
             const payload = {
                 id: etapaId,
