@@ -233,23 +233,13 @@ const Etapa2Module = {
         if (this.timeoutGerarCodigo) clearTimeout(this.timeoutGerarCodigo);
         
         this.timeoutGerarCodigo = setTimeout(async () => {
-            // Guarda qual input está com foco
-            const focusedInput = document.activeElement;
-            const cursorPosition = focusedInput ? focusedInput.selectionStart : 0;
-            
             await this.gerarCodigoProcesso(proc);
             
-            // ✅ Renderiza mantendo o foco
-            this.renderizarTudo();
-            
-            // Restaura o foco
-            setTimeout(() => {
-                const input = document.querySelector(`.processo-nome-input[data-temp-id="${tempId}"]`);
-                if (input) {
-                    input.focus();
-                    input.setSelectionRange(cursorPosition, cursorPosition);
-                }
-            }, 0);
+            // ⭐ ATUALIZAR APENAS O INPUT DE CÓDIGO (sem renderizar tudo!)
+            const codigoInput = document.querySelector(`.processo-codigo-input[data-temp-id="${tempId}"]`);
+            if (codigoInput) {
+                codigoInput.value = proc.codigo || '';
+            }
             
             this.verificarHabilitarProximo();
         }, 500);
@@ -561,6 +551,45 @@ const Etapa2Module = {
         
         return false;
     },
+
+     // ============================================================
+    // RESETAR (modo novo)
+    // ============================================================
+    resetar() {
+        console.log('🔄 Resetando campos da etapa 2');
+        
+        // Limpar campo de entrevistado
+        if (this.entrevistadoInput) {
+            this.entrevistadoInput.value = '';
+        }
+        
+        // Limpar lista de processos
+        this.processos = [];
+        this.proximoSequencial = 1;
+        
+        // Limpar container de processos
+        const outerContainer = document.getElementById('processos-executores-container');
+        if (outerContainer) {
+            outerContainer.style.display = 'none';
+        }
+        if (this.processosContainer) {
+            this.processosContainer.innerHTML = '';
+        }
+        
+        // ⭐ Carregar funcionários disponíveis
+        this.carregarFuncionarios();
+        
+        // ⭐ Buscar último sequencial
+        this.buscarUltimoSequencial();
+        
+        // Desabilitar botão próximo
+        if (this.btnProximo) {
+            this.btnProximo.disabled = true;
+        }
+        
+        console.log('✅ Campos resetados');
+    },
+    
     
     // ============================================================
     // GETTERS
