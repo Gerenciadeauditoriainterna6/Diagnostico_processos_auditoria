@@ -139,16 +139,6 @@ const VisualizarModule = {
                             </div>
                         </div>
                         
-                        <!-- Política Interna -->
-                        <div class="vis-card">
-                            <div class="vis-card-header">
-                                <i class="fas fa-gavel"></i> Política Interna
-                            </div>
-                            <div class="vis-card-body">
-                                ${escapeHtml(etapa.politica_interna) || '<span class="vis-nao-informado">Não informado</span>'}
-                            </div>
-                        </div>
-                        
                         <!-- Manual -->
                         <div class="vis-card">
                             <div class="vis-card-header">
@@ -167,6 +157,30 @@ const VisualizarModule = {
                                 ` : ''}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="vis-card vis-card-full">
+                    <div class="vis-card-header">
+                        <i class="fas fa-gavel"></i> Política Interna
+                    </div>
+                    <div class="vis-card-body">
+                        ${escapeHtml(etapa.politica_interna) || '<span class="vis-nao-informado">Não informado</span>'}
+                        
+                        ${etapa.politica_interna_url && etapa.politica_interna_url.trim() !== '' ? `
+                            <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #184145;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 18px;"></i>
+                                        <span style="font-size: 13px; color: #333;">${escapeHtml(etapa.politica_interna_nome || 'Documento da Política Interna')}</span>
+                                    </div>
+                                    <button onclick="PoliticaInternaModule.baixarArquivoPorUrl('${etapa.politica_interna_url}', '${escapeHtml(etapa.politica_interna_nome || 'documento.pdf')}')"
+                                        style="background:#0b5b99;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;">
+                                        <i class="fas fa-download"></i> Baixar
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -196,27 +210,95 @@ const VisualizarModule = {
 
     _renderizarObrigacoes(obrigacoesJson) {
         try {
-            const obrigacoes = typeof obrigacoesJson === 'string' ? JSON.parse(obrigacoesJson) : (obrigacoesJson || []);
-            if (obrigacoes.length === 0) return '<span style="color:#999;">Nenhuma obrigação</span>';
-            return obrigacoes.map(o => `
-                <div style="background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:10px;border-left:3px solid #184145;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-                        <div>
-                            <strong>${escapeHtml(o.titulo || 'INEXISTENTE')}</strong>
-                            ${o.orgao_regulador ? `<span style="color:#666;font-size:12px;margin-left:8px;">${escapeHtml(o.orgao_regulador)}</span>` : ''}
-                        </div>
-                        ${o.arquivo_url && o.arquivo_url.trim() !== '' ? `
-                            <button onclick="ObrigacoesModule.baixarArquivoObrigacaoPorUrl('${o.arquivo_url}', '${escapeHtml(o.arquivo_nome || 'documento.pdf')}')"
+            const dados = typeof obrigacoesJson === 'string' ? JSON.parse(obrigacoesJson) : (obrigacoesJson || {});
+            
+            // Verificar se tem políticas (novo formato)
+            const politicas = dados.politicas || [];
+            
+            if (politicas.length === 0) {
+                return '<span style="color:#999;">Nenhuma política ou obrigação cadastrada</span>';
+            }
+            
+            return politicas.map(politica => {
+                const tipoPolitica = politica.tipo === 'externa' 
+                    ? '<span class="vis-badge vis-badge-warning"><i class="fas fa-external-link-alt"></i> Externa</span>'
+                    : '<span class="vis-badge vis-badge-info"><i class="fas fa-building"></i> Interna</span>';
+                
+                const obrigacoesHtml = politica.obrigacoes && politica.obrigacoes.length > 0
+                    ? politica.obrigacoes.map(obrigacao => this._renderizarObrigacao(obrigacao)).join('')
+                    : '<div style="color:#999;font-size:13px;margin-top:8px;">Nenhuma obrigação cadastrada</div>';
+                
+                const arquivoPolitica = politica.arquivo_url && politica.arquivo_url.trim() !== ''
+                    ? `
+                        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                            <i class="fas fa-file-pdf" style="color:#dc3545;"></i>
+                            <span style="font-size:12px;color:#333;">${escapeHtml(politica.arquivo_nome || 'Documento da Política')}</span>
+                            <button onclick="PoliticasObrigacoesModule.baixarArquivoPorUrl('${politica.arquivo_url}', '${escapeHtml(politica.arquivo_nome || 'documento.pdf')}')"
                                 style="background:#0b5b99;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;">
                                 <i class="fas fa-download"></i> Baixar
                             </button>
-                        ` : ''}
+                        </div>
+                    ` : '';
+                
+                return `
+                    <div style="background:#f8f9fa;border-radius:8px;padding:15px;margin-bottom:15px;border-left:3px solid #184145;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                            <strong style="color:#184145;">
+                                <i class="fas fa-file-contract"></i> ${escapeHtml(politica.titulo || 'INEXISTENTE')}
+                            </strong>
+                            ${tipoPolitica}
+                        </div>
+                        
+                        ${arquivoPolitica}
+                        
+                        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e0e0;">
+                            <strong style="font-size:13px;color:#666;">
+                                <i class="fas fa-list-check"></i> Obrigações:
+                            </strong>
+                            <div style="margin-top:8px;">
+                                ${obrigacoesHtml}
+                            </div>
+                        </div>
                     </div>
-                    ${o.documento_necessario ? `<div style="font-size:12px;color:#666;margin-top:5px;"><i class="fas fa-file-alt"></i> ${escapeHtml(o.documento_necessario)}</div>` : ''}
-                    ${o.prazo ? `<div style="font-size:12px;color:#666;margin-top:3px;"><i class="fas fa-calendar-alt"></i> Prazo: ${formatarDataBR(o.prazo)}</div>` : ''}
+                `;
+            }).join('');
+            
+        } catch (e) {
+            console.error('Erro ao renderizar políticas:', e);
+            return '<span style="color:#999;">Erro ao carregar</span>';
+        }
+    },
+
+    // ⭐ Nova função para renderizar uma obrigação individual
+    _renderizarObrigacao(obrigacao) {
+        const arquivoObrigacao = obrigacao.arquivo_url && obrigacao.arquivo_url.trim() !== ''
+            ? `
+                <div style="margin-top:5px;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-file-pdf" style="color:#dc3545;font-size:12px;"></i>
+                    <span style="font-size:12px;color:#333;">${escapeHtml(obrigacao.arquivo_nome || 'Documento')}</span>
+                    <button onclick="PoliticasObrigacoesModule.baixarArquivoPorUrl('${obrigacao.arquivo_url}', '${escapeHtml(obrigacao.arquivo_nome || 'documento.pdf')}')"
+                        style="background:#0b5b99;color:white;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;">
+                        <i class="fas fa-download"></i> Baixar
+                    </button>
                 </div>
-            `).join('');
-        } catch { return '<span>Erro ao carregar</span>'; }
+            ` : '';
+        
+        return `
+            <div style="background:#fff;border-radius:6px;padding:10px;margin-bottom:8px;border:1px solid #e0e0e0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <strong style="font-size:13px;">${escapeHtml(obrigacao.titulo || 'INEXISTENTE')}</strong>
+                    ${obrigacao.obrigatorio ? '<span style="font-size:11px;color:#dc3545;font-weight:600;">Obrigatória</span>' : ''}
+                </div>
+                
+                ${obrigacao.orgao_regulador ? `<div style="font-size:12px;color:#666;margin-top:3px;"><i class="fas fa-building"></i> ${escapeHtml(obrigacao.orgao_regulador)}</div>` : ''}
+                
+                ${obrigacao.documento_necessario ? `<div style="font-size:12px;color:#666;margin-top:3px;"><i class="fas fa-file-alt"></i> ${escapeHtml(obrigacao.documento_necessario)}</div>` : ''}
+                
+                ${obrigacao.prazo ? `<div style="font-size:12px;color:#666;margin-top:3px;"><i class="fas fa-calendar-alt"></i> Prazo: ${formatarDataBR(obrigacao.prazo)}</div>` : ''}
+                
+                ${arquivoObrigacao}
+            </div>
+        `;
     },
 
     _renderizarAnalise(a) {
