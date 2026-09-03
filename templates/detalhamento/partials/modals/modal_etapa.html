@@ -13,7 +13,7 @@
             <!-- SEÇÃO 1: INFORMAÇÕES BÁSICAS (ABERTA POR PADRÃO)           -->
             <!-- ============================================================ -->
             <div class="collapsible-section">
-                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <div class="collapsible-header">
                     <h4><i class="fas fa-info-circle"></i> Informações Básicas</h4>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
@@ -28,11 +28,11 @@
                             <input type="text" id="modal-nome-etapa" class="form-control" placeholder="Ex: Análise inicial">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-align-left"></i> Descrição da Etapa (O que é feito?) </label>
-                        <textarea id="modal-descricao-etapa" class="form-control" rows="2" placeholder="Descreva o que é a etapa..."></textarea>
-                    </div>
                     <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-align-left"></i> Descrição da Etapa (O que é feito?) </label>
+                            <textarea id="modal-descricao-etapa" class="form-control" rows="2" placeholder="Descreva o que é a etapa..."></textarea>
+                        </div>
                         <div class="form-group">
                             <label><i class="fas fa-align-left"></i> Descrição da etapa (Como é feito?)
                                 <span class="help-icon" data-tooltip="Descreva detalhadamente, o que é feito nesta etapa.">
@@ -41,6 +41,18 @@
                             </label>
                             <textarea id="modal-como-feito" class="form-control" rows="2" placeholder="Descreva minuciosamente como é feito esta etapa..."></textarea>
                         </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <!-- STATUS -->
+                        <div class="form-group">
+                            <label><i class="fas fa-circle"></i> Status</label>
+                            <select id="modal-status-etapa" class="form-control">
+                                <option value="ATIVA">ATIVA</option>
+                                <option value="INATIVA">INATIVA</option>
+                            </select>
+                        </div>
+                                            
                         <div class="form-group">
                             <label><i class="fas fa-bullseye"></i> Objetivo da Etapa
                                 <span class="help-icon" data-tooltip="Qual o objetivo desta etapa?">
@@ -50,61 +62,103 @@
                             <textarea id="modal-objetivo-etapa" class="form-control" rows="2" placeholder="Qual o objetivo desta etapa?"></textarea>
                         </div>
                     </div>
+                    
+                    <!-- ============================================================ -->
+                    <!-- SEÇÃO: EXECUTORES                                           -->
+                    <!-- ============================================================ -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label><i class="fas fa-circle"></i> Status</label>
-                            <select id="modal-status-etapa" class="form-control">
-                                <option value="ATIVA">ATIVA</option>
-                                <option value="INATIVA">INATIVA</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-gavel"></i> Política Interna</label>
-                            <textarea id="modal-politica-interna" class="form-control" rows="2" placeholder="Políticas internas aplicáveis..."></textarea>
+                            <label><i class="fas fa-users"></i> Executores da Etapa</label>
+                            <div class="executores-selector">
+                                <div class="selector-trigger">
+                                    <div class="selector-display" id="executores-display">
+                                        <span class="placeholder">Selecione os executores...</span>
+                                    </div>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                                <div class="selector-dropdown" id="executores-dropdown" style="display: none;">
+                                    <div class="dropdown-search">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="executor-search" placeholder="Filtrar executores...">
+                                    </div>
+                                    <div class="dropdown-options" id="executores-options">
+                                        <div class="loading-options">Carregando executores...</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted">Selecione os funcionários que executam esta etapa</small>
+                            <div id="executores-selecionados-info" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>            
 
-            <!-- ============================================================ -->
-            <!-- SEÇÃO 2: EXECUTORES                                           -->
-            <!-- ============================================================ -->
+            <!-- SEÇÃO: POLÍTICA INTERNA -->
             <div class="collapsible-section">
-                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <h4><i class="fas fa-users"></i> Executores da Etapa</h4>
+                <div class="collapsible-header">
+                    <h4><i class="fas fa-gavel"></i> Política GRC</h4>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
                 <div class="collapsible-body">
                     <div class="form-group">
-                        <label><i class="fas fa-users"></i> Executores da Etapa</label>
-                        <div class="executores-selector">
-                            <div class="selector-trigger">
-                                <div class="selector-display" id="executores-display">
-                                    <span class="placeholder">Selecione os executores...</span>
-                                </div>
-                                <i class="fas fa-chevron-down"></i>
+                        <label><i class="fas fa-gavel"></i> Política Gerência de Riscos e Compliance</label>
+                        <textarea id="modal-politica-interna" class="form-control" rows="2" placeholder="Políticas internas da GRC"></textarea>
+                    </div>
+                    
+                    <!-- ⭐ NOVO: Upload de Política Interna -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label><i class="fas fa-file-pdf"></i> Documento da Política GRC</label>
+                        
+                        <div class="custom-file-upload">
+                            <input type="file" id="politica_interna_input" accept=".pdf" style="display: none;">
+                            
+                            <!-- Estado: Nenhum arquivo -->
+                            <div id="politica_interna_nenhum" style="padding: 20px; border: 2px dashed #ccc; border-radius: 12px; text-align: center; background: #fafafa;">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #184145;"></i>
+                                <p style="margin: 8px 0 4px 0; color: #666; font-size: 13px;">
+                                    <strong>Nenhum documento anexado</strong>
+                                </p>
+                                <button type="button" class="btn-primary btn-anexar-politica" style="margin-top: 10px;">
+                                    <i class="fas fa-upload"></i> Anexar arquivo
+                                </button>
                             </div>
-                            <div class="selector-dropdown" id="executores-dropdown" style="display: none;">
-                                <div class="dropdown-search">
-                                    <i class="fas fa-search"></i>
-                                    <input type="text" id="executor-search" placeholder="Filtrar executores...">
-                                </div>
-                                <div class="dropdown-options" id="executores-options">
-                                    <div class="loading-options">Carregando executores...</div>
+                            
+                            <!-- Estado: Arquivo anexado -->
+                            <div id="politica_interna_anexado" style="display: none; padding: 12px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <i class="fas fa-file-pdf" style="font-size: 24px; color: #dc3545;"></i>
+                                        <div>
+                                            <div id="politica_interna_nome_exibicao" style="font-weight: 500; color: #155724;"></div>
+                                            <span style="font-size: 12px; color: #155724;">✅ Documento anexado</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button type="button" class="btn-sm btn-download btn-baixar-politica" title="Baixar documento">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button type="button" class="btn-sm btn-substituir btn-substituir-politica" title="Substituir documento">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                        <button type="button" class="btn-sm btn-remove btn-remover-politica" title="Remover documento">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <small class="text-muted">Selecione os funcionários que executam esta etapa</small>
-                        <div id="executores-selecionados-info" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
+                        <small class="text-muted">Anexe o documento da política interna em PDF (máx. 10MB)</small>
                     </div>
                 </div>
             </div>
+
+            
 
             <!-- ============================================================ -->
             <!-- SEÇÃO 3: MANUAL DA ETAPA                                     -->
             <!-- ============================================================ -->
             <div class="collapsible-section">
-                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <div class="collapsible-header">
                     <h4><i class="fas fa-book"></i> Manual da Etapa</h4>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
@@ -166,24 +220,97 @@
             </div>
 
             <!-- ============================================================ -->
-            <!-- SEÇÃO 4: OBRIGAÇÕES REGULATÓRIAS (ESCONDIDA POR PADRÃO)     -->
+            <!-- SEÇÃO: POLÍTICAS E OBRIGAÇÕES REGULATÓRIAS                   -->
             <!-- ============================================================ -->
             <div class="collapsible-section collapsed">
-                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <h4><i class="fas fa-balance-scale"></i> Obrigações Regulatórias</h4>
+                <div class="collapsible-header">
+                    <h4><i class="fas fa-balance-scale"></i> Políticas e Obrigações Regulatórias</h4>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
                 <div class="collapsible-body">
                     <p class="text-muted" style="margin-bottom: 10px; font-size: 12px;">
-                        Cadastre as obrigações regulatórias aplicáveis a esta etapa.
+                        Cadastre as políticas (internas ou externas) e suas respectivas obrigações regulatórias.
                     </p>
-                    <div id="obrigacoes-container"></div>
-                    <template id="template-obrigacao">
-                        <div class="obrigacao-item" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
+                    
+                    <!-- Container das Políticas -->
+                    <div id="politicas-obrigacoes-container"></div>
+                    
+                    <!-- Template de Política -->
+                    <template id="template-politica">
+                        <div class="politica-item" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #e0e0e0;">
+                            <!-- Cabeçalho da Política -->
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <strong style="color: #184145;">Obrigação <span class="obrigacao-index">1</span></strong>
-                                <button type="button" class="btn-remover-obrigacao" 
+                                <strong style="color: #184145;">
+                                    <i class="fas fa-file-contract"></i> Política <span class="politica-index">1</span>
+                                </strong>
+                                <button type="button" class="btn-remover-politica" 
                                     style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;" 
+                                    title="Excluir política">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Dados da Política -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label><i class="fas fa-heading"></i> Política *</label>
+                                    <input type="text" class="politica-titulo form-control" placeholder="Ex: Lei Geral de Proteção de Dados">
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-tag"></i> Tipo</label>
+                                    <select class="politica-tipo form-control">
+                                        <option value="interna">Interna</option>
+                                        <option value="externa">Externa</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Upload do arquivo da Política -->
+                            <div class="form-group">
+                                <label><i class="fas fa-paperclip"></i> Documento da Política (PDF)</label>
+                                <div class="custom-file-upload">
+                                    <input type="file" class="politica-arquivo" accept=".pdf" style="display: none;">
+                                    <button type="button" class="btn-upload-politica btn-file-upload" 
+                                        style="background: #184145; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                                        <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
+                                    </button>
+                                    <div class="politica-arquivo-info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #e8f4f8; border-radius: 6px; border-left: 3px solid #28a745;">
+                                        <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
+                                        <span class="politica-arquivo-nome"></span>
+                                        <button type="button" class="btn-baixar-politica-arquivo" 
+                                            style="background: #0b5b99; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                            <i class="fas fa-download"></i> Baixar
+                                        </button>
+                                        <button type="button" class="btn-remover-politica-arquivo" 
+                                            style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;">
+                                            <i class="fas fa-times-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Anexe o documento da política em PDF (máx. 10MB)</small>
+                            </div>
+                            
+                            <!-- Obrigações da Política -->
+                            <div class="politica-obrigacoes" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                                <strong style="color: #184145; font-size: 13px;">
+                                    <i class="fas fa-list-check"></i> Obrigações desta Política:
+                                </strong>
+                                <div class="obrigacoes-lista" style="margin-top: 10px;"></div>
+                                <button type="button" class="btn-adicionar-obrigacao btn-secondary" 
+                                    style="margin-top: 10px; font-size: 12px;">
+                                    <i class="fas fa-plus"></i> Adicionar Obrigação
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- Template de Obrigação -->
+                    <template id="template-obrigacao-politica">
+                        <div class="obrigacao-item" style="background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid #d0d8e0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span style="font-size: 12px; color: #666; font-weight: 600;">Obrigação <span class="obrigacao-index">1</span></span>
+                                <button type="button" class="btn-remover-obrigacao" 
+                                    style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 14px;" 
                                     title="Excluir obrigação">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
@@ -191,22 +318,22 @@
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label><i class="fas fa-gavel"></i> Título da Obrigação *</label>
-                                    <input type="text" class="obrigacao-titulo form-control" placeholder="Ex: Lei Geral de Proteção de Dados">
+                                    <label>Título da Obrigação *</label>
+                                    <input type="text" class="obrigacao-titulo form-control" placeholder="Ex: Relatório de conformidade">
                                 </div>
                                 <div class="form-group">
-                                    <label><i class="fas fa-building"></i> Órgão Regulador</label>
+                                    <label>Órgão Regulador</label>
                                     <input type="text" class="obrigacao-orgao form-control" placeholder="Ex: ANPD">
                                 </div>
                             </div>
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label><i class="fas fa-calendar-alt"></i> Prazo</label>
+                                    <label>Prazo</label>
                                     <input type="date" class="obrigacao-prazo form-control">
                                 </div>
                                 <div class="form-group">
-                                    <label><i class="fas fa-check-circle"></i> Com obrigatoriedade de entrega?</label>
+                                    <label>Com obrigatoriedade de entrega?</label>
                                     <select class="obrigacao-obrigatorio form-control">
                                         <option value="false">NÃO</option>
                                         <option value="true">SIM</option>
@@ -215,36 +342,39 @@
                             </div>
                             
                             <div class="form-group">
-                                <label><i class="fas fa-file-alt"></i> Documento Necessário</label>
-                                <input type="text" class="obrigacao-documento form-control" placeholder="Ex: Relatório de conformidade">
+                                <label>Documento Necessário</label>
+                                <input type="text" class="obrigacao-documento form-control" placeholder="Ex: Relatório anual">
                             </div>
                             
-                            <div class="obrigacao-upload-area" style="display: block;">
-                                <div class="form-group">
-                                    <label><i class="fas fa-paperclip"></i> Documento Legal (PDF)</label>
-                                    <div class="custom-file-upload">
-                                        <input type="file" class="obrigacao-arquivo" accept=".pdf" style="display: none;">
-                                        <button type="button" class="btn-upload-obrigacao btn-file-upload" style="background: #184145; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                                            <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
+                            <!-- Upload da Obrigação -->
+                            <div class="form-group">
+                                <label><i class="fas fa-paperclip"></i> Documento Legal (PDF)</label>
+                                <div class="custom-file-upload">
+                                    <input type="file" class="obrigacao-arquivo" accept=".pdf" style="display: none;">
+                                    <button type="button" class="btn-upload-obrigacao btn-file-upload" 
+                                        style="background: #184145; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                        <i class="fas fa-cloud-upload-alt"></i> Selecionar PDF
+                                    </button>
+                                    <div class="obrigacao-arquivo-info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #e8f4f8; border-radius: 6px; border-left: 3px solid #28a745;">
+                                        <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
+                                        <span class="obrigacao-arquivo-nome"></span>
+                                        <button type="button" class="btn-baixar-obrigacao-arquivo" 
+                                            style="background: #0b5b99; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                            <i class="fas fa-download"></i> Baixar
                                         </button>
-                                        <div class="obrigacao-arquivo-info" style="display: none; margin-top: 8px; padding: 8px 12px; background: #e8f4f8; border-radius: 6px; border-left: 3px solid #28a745;">
-                                            <i class="fas fa-file-pdf" style="color: #dc3545;"></i>
-                                            <span class="obrigacao-arquivo-nome"></span>
-                                            <button type="button" class="btn-download-arquivo" style="background: #0b5b99; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                                                <i class="fas fa-download"></i> Baixar
-                                            </button>
-                                            <button type="button" class="btn-remover-arquivo-obrigacao" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;">
-                                                <i class="fas fa-times-circle"></i>
-                                            </button>
-                                        </div>
+                                        <button type="button" class="btn-remover-obrigacao-arquivo" 
+                                            style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;">
+                                            <i class="fas fa-times-circle"></i>
+                                        </button>
                                     </div>
-                                    <small class="text-muted">Anexe o documento legal em PDF (máx. 10MB)</small>
                                 </div>
                             </div>
                         </div>
                     </template>
-                    <button type="button" id="btn-adicionar-obrigacao" class="btn-secondary" style="margin-top: 10px;">
-                        <i class="fas fa-plus"></i> Adicionar Obrigação Regulatória
+                    
+                    <!-- Botão Adicionar Política -->
+                    <button type="button" id="btn-adicionar-politica" class="btn-secondary" style="margin-top: 10px;">
+                        <i class="fas fa-plus"></i> Adicionar Política
                     </button>
                 </div>
             </div>
@@ -253,7 +383,7 @@
             <!-- SEÇÃO 5: PONTOS DE AUDITORIA (ESCONDIDA POR PADRÃO)         -->
             <!-- ============================================================ -->
             <div class="collapsible-section collapsed">
-                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <div class="collapsible-header">
                     <h4><i class="fas fa-clipboard-check"></i> Análises do auditado</h4>
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>

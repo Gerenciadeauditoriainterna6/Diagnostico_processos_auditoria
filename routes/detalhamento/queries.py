@@ -47,6 +47,12 @@ def atualizar_etapa(etapa_id, params):
         params['necessidade_implantacao'] = ''
     if 'ganho_previsto' not in params or params['ganho_previsto'] is None:
         params['ganho_previsto'] = ''
+    
+    # ⭐ Garantir campos de política interna
+    if 'politica_interna_url' not in params or params['politica_interna_url'] is None:
+        params['politica_interna_url'] = ''
+    if 'politica_interna_nome' not in params or params['politica_interna_nome'] is None:
+        params['politica_interna_nome'] = ''
 
     base_fields = """
         nome_etapa = :nome_etapa,
@@ -56,6 +62,8 @@ def atualizar_etapa(etapa_id, params):
         status_etapa = :status_etapa,
         criticidade_etapa = :criticidade_etapa,
         politica_interna = :politica_interna,
+        politica_interna_url = :politica_interna_url,
+        politica_interna_nome = :politica_interna_nome,
         analise_critica = :analise_critica,
         sugestao_melhoria = :sugestao_melhoria,
         necessidade_implantacao = :necessidade_implantacao,
@@ -99,7 +107,6 @@ def atualizar_etapa(etapa_id, params):
         conn.execute(text(query_sql), params)
         conn.commit()
 
-
 def inserir_etapa(params):
     """Insere uma nova etapa e retorna o ID"""
 
@@ -111,6 +118,9 @@ def inserir_etapa(params):
         'necessidade_implantacao': '',
         'ganho_previsto': '',
         'politica_interna': '',
+        # ⭐ NOVO: Campos de política interna
+        'politica_interna_url': '',
+        'politica_interna_nome': '',
         'descricao_etapa': '',
         'como_e_feito': '',
         'objetivo_etapa': '',
@@ -135,7 +145,8 @@ def inserir_etapa(params):
             processo_id, auditoria_id, codigo_etapa, nome_etapa,
             descricao_etapa, como_e_feito, objetivo_etapa,
             status_etapa, criticidade_etapa,
-            politica_interna, analise_critica, sugestao_melhoria,
+            politica_interna, politica_interna_url, politica_interna_nome,
+            analise_critica, sugestao_melhoria,
             necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
             executores_etapa,
             diagrama_bpmn, diagrama_nome, diagrama_tipo,
@@ -146,7 +157,8 @@ def inserir_etapa(params):
             :processo_id, :auditoria_id, :codigo_etapa, :nome_etapa,
             :descricao_etapa, :como_e_feito, :objetivo_etapa,
             :status_etapa, :criticidade_etapa,
-            :politica_interna, :analise_critica, :sugestao_melhoria,
+            :politica_interna, :politica_interna_url, :politica_interna_nome,
+            :analise_critica, :sugestao_melhoria,
             :necessidade_implantacao, :ganho_previsto, :obrigacoes_regulatorias,
             :executores_etapa,
             :diagrama_bpmn, :diagrama_nome, :diagrama_tipo,
@@ -201,7 +213,8 @@ def buscar_etapa_por_id(etapa_id):
         result = conn.execute(text("""
             SELECT id, processo_id, codigo_etapa, nome_etapa, descricao_etapa,
                    como_e_feito, objetivo_etapa, status_etapa, criticidade_etapa,
-                   politica_interna, analise_critica, sugestao_melhoria,
+                   politica_interna, politica_interna_url, politica_interna_nome,
+                   analise_critica, sugestao_melhoria,
                    necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
                    executores_etapa,
                    diagrama_bpmn, diagrama_nome, diagrama_tipo,
@@ -209,24 +222,38 @@ def buscar_etapa_por_id(etapa_id):
                    arquivo_mapeamento, arquivo_mapeamento_nome, arquivo_mapeamento_tipo,
                    manual_em_andamento
             FROM etapas_processo WHERE id = :eid
-        """), {'eid': etapa_id}).fetchone()
+        """), {'eid': etapa_id}).mappings().fetchone()
         
         if not result:
             return None
         
+        # ⭐ Usar row mapping (acesso por nome, não por índice)
         return {
-            'id': result[0], 'processo_id': result[1], 'codigo_etapa': result[2] or '',
-            'nome_etapa': result[3] or '', 'descricao_etapa': result[4] or '',
-            'como_e_feito': result[5] or '', 'objetivo_etapa': result[6] or '',
-            'status_etapa': result[7] or 'Ativa', 'criticidade_etapa': result[8] or '',
-            'politica_interna': result[9] or '', 'analise_critica': result[10] or '',
-            'sugestao_melhoria': result[11] or '', 'necessidade_implantacao': result[12] or '',
-            'ganho_previsto': result[13] or '', 'obrigacoes_regulatorias': result[14] or '',
-            'executores_etapa': result[15] or '',
-            'diagrama_nome': result[17] or '', 'diagrama_tipo': result[18] or '',
-            'manual_nome': result[19] or '', 'manual_url': result[20] or '',
-            'arquivo_mapeamento_nome': result[22] or '', 'arquivo_mapeamento_tipo': result[23] or '',
-            'manual_em_andamento': bool(result[24]) if len(result) > 24 else False
+            'id': result['id'],
+            'processo_id': result['processo_id'],
+            'codigo_etapa': result['codigo_etapa'] or '',
+            'nome_etapa': result['nome_etapa'] or '',
+            'descricao_etapa': result['descricao_etapa'] or '',
+            'como_e_feito': result['como_e_feito'] or '',
+            'objetivo_etapa': result['objetivo_etapa'] or '',
+            'status_etapa': result['status_etapa'] or 'Ativa',
+            'criticidade_etapa': result['criticidade_etapa'] or '',
+            'politica_interna': result['politica_interna'] or '',
+            'politica_interna_url': result['politica_interna_url'] or '',
+            'politica_interna_nome': result['politica_interna_nome'] or '',
+            'analise_critica': result['analise_critica'] or '',
+            'sugestao_melhoria': result['sugestao_melhoria'] or '',
+            'necessidade_implantacao': result['necessidade_implantacao'] or '',
+            'ganho_previsto': result['ganho_previsto'] or '',
+            'obrigacoes_regulatorias': result['obrigacoes_regulatorias'] or '',
+            'executores_etapa': result['executores_etapa'] or '',
+            'diagrama_nome': result['diagrama_nome'] or '',
+            'diagrama_tipo': result['diagrama_tipo'] or '',
+            'manual_nome': result['manual_nome'] or '',
+            'manual_url': result['manual_url'] or '',
+            'arquivo_mapeamento_nome': result['arquivo_mapeamento_nome'] or '',
+            'arquivo_mapeamento_tipo': result['arquivo_mapeamento_tipo'] or '',
+            'manual_em_andamento': bool(result['manual_em_andamento']) if result['manual_em_andamento'] is not None else False
         }
 
 
