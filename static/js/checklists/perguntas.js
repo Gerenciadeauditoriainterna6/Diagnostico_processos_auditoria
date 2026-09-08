@@ -90,6 +90,12 @@ export const PERGUNTAS = {
             pergunta: "O Auditado validou por email se existe mapeamento de processos feito pela área escritório de processos?", 
             ordem: 13, 
             precisaEvidencia: true 
+        },
+        {
+            id: 14,
+            pergunta: "Existe Política Interna da Gestão de Riscos e Compliance (GRC)?",
+            ordem: 14,
+            precisaEvidencia: true
         }
     ],
     riscos: [

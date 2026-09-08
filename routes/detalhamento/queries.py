@@ -48,11 +48,6 @@ def atualizar_etapa(etapa_id, params):
     if 'ganho_previsto' not in params or params['ganho_previsto'] is None:
         params['ganho_previsto'] = ''
     
-    # ⭐ Garantir campos de política interna
-    if 'politica_interna_url' not in params or params['politica_interna_url'] is None:
-        params['politica_interna_url'] = ''
-    if 'politica_interna_nome' not in params or params['politica_interna_nome'] is None:
-        params['politica_interna_nome'] = ''
 
     base_fields = """
         nome_etapa = :nome_etapa,
@@ -62,8 +57,6 @@ def atualizar_etapa(etapa_id, params):
         status_etapa = :status_etapa,
         criticidade_etapa = :criticidade_etapa,
         politica_interna = :politica_interna,
-        politica_interna_url = :politica_interna_url,
-        politica_interna_nome = :politica_interna_nome,
         analise_critica = :analise_critica,
         sugestao_melhoria = :sugestao_melhoria,
         necessidade_implantacao = :necessidade_implantacao,
@@ -119,8 +112,6 @@ def inserir_etapa(params):
         'ganho_previsto': '',
         'politica_interna': '',
         # ⭐ NOVO: Campos de política interna
-        'politica_interna_url': '',
-        'politica_interna_nome': '',
         'descricao_etapa': '',
         'como_e_feito': '',
         'objetivo_etapa': '',
@@ -145,7 +136,7 @@ def inserir_etapa(params):
             processo_id, auditoria_id, codigo_etapa, nome_etapa,
             descricao_etapa, como_e_feito, objetivo_etapa,
             status_etapa, criticidade_etapa,
-            politica_interna, politica_interna_url, politica_interna_nome,
+            politica_interna,
             analise_critica, sugestao_melhoria,
             necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
             executores_etapa,
@@ -157,7 +148,7 @@ def inserir_etapa(params):
             :processo_id, :auditoria_id, :codigo_etapa, :nome_etapa,
             :descricao_etapa, :como_e_feito, :objetivo_etapa,
             :status_etapa, :criticidade_etapa,
-            :politica_interna, :politica_interna_url, :politica_interna_nome,
+            :politica_interna,
             :analise_critica, :sugestao_melhoria,
             :necessidade_implantacao, :ganho_previsto, :obrigacoes_regulatorias,
             :executores_etapa,
@@ -213,7 +204,7 @@ def buscar_etapa_por_id(etapa_id):
         result = conn.execute(text("""
             SELECT id, processo_id, codigo_etapa, nome_etapa, descricao_etapa,
                    como_e_feito, objetivo_etapa, status_etapa, criticidade_etapa,
-                   politica_interna, politica_interna_url, politica_interna_nome,
+                   politica_interna,
                    analise_critica, sugestao_melhoria,
                    necessidade_implantacao, ganho_previsto, obrigacoes_regulatorias,
                    executores_etapa,
@@ -239,8 +230,6 @@ def buscar_etapa_por_id(etapa_id):
             'status_etapa': result['status_etapa'] or 'Ativa',
             'criticidade_etapa': result['criticidade_etapa'] or '',
             'politica_interna': result['politica_interna'] or '',
-            'politica_interna_url': result['politica_interna_url'] or '',
-            'politica_interna_nome': result['politica_interna_nome'] or '',
             'analise_critica': result['analise_critica'] or '',
             'sugestao_melhoria': result['sugestao_melhoria'] or '',
             'necessidade_implantacao': result['necessidade_implantacao'] or '',
