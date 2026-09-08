@@ -57,10 +57,10 @@ const ModalEtapaModule = {
             AnalisesModule.renderizar();
             AnalisesModule.esconderForm();
             
-            // ⭐ Limpar Política Interna
-            if (typeof PoliticaInternaModule !== 'undefined') {
-                PoliticaInternaModule.limpar();
-            }
+            // // ⭐ Limpar Política Interna
+            // if (typeof PoliticaInternaModule !== 'undefined') {
+            //     PoliticaInternaModule.limpar();
+            // }
 
             ManualModule.resetarInterface();
             AutoSaveModule.carregarRascunho();
@@ -104,20 +104,20 @@ const ModalEtapaModule = {
                 document.getElementById('modal-como-feito').value = etapa.como_e_feito;
                 document.getElementById('modal-objetivo-etapa').value = etapa.objetivo_etapa;
                 document.getElementById('modal-status-etapa').value = etapa.status_etapa;
-                document.getElementById('modal-politica-interna').value = etapa.politica_interna || '';
+                
 
-                // ⭐ NOVO: Carregar arquivo da política interna
-                if (typeof PoliticaInternaModule !== 'undefined') {
-                    console.log('📎 Carregando política interna:', {
-                        url: etapa.politica_interna_url,
-                        nome: etapa.politica_interna_nome
-                    });
+                // // ⭐ NOVO: Carregar arquivo da política interna
+                // if (typeof PoliticaInternaModule !== 'undefined') {
+                //     console.log('📎 Carregando política interna:', {
+                //         url: etapa.politica_interna_url,
+                //         nome: etapa.politica_interna_nome
+                //     });
                     
-                    await PoliticaInternaModule.carregarPoliticaInterna(
-                        etapa.politica_interna_url || '',
-                        etapa.politica_interna_nome || ''
-                    );
-                }
+                //     await PoliticaInternaModule.carregarPoliticaInterna(
+                //         etapa.politica_interna_url || '',
+                //         etapa.politica_interna_nome || ''
+                //     );
+                // }
 
                 PoliticasObrigacoesModule.inicializar(etapa.obrigacoes_regulatorias);
                 await ExecutoresModule.carregar(TabelaEtapasModule.processoAtualId);
@@ -188,9 +188,9 @@ const ModalEtapaModule = {
             const etapaId = document.getElementById('modal-etapa-id').value || null;
             // ⭐ Processar upload da política interna
             let politicaInternaArquivo = null;
-            if (typeof PoliticaInternaModule !== 'undefined') {
-                politicaInternaArquivo = await PoliticaInternaModule.processarUpload(etapaId);
-            }
+            // if (typeof PoliticaInternaModule !== 'undefined') {
+            //     politicaInternaArquivo = await PoliticaInternaModule.processarUpload(etapaId);
+            // }
             const obrigacoes = await PoliticasObrigacoesModule.coletarDados();
             const politicasProcessadas = await PoliticasObrigacoesModule.processarUploads(obrigacoes, etapaId);
 
@@ -207,9 +207,7 @@ const ModalEtapaModule = {
                 politica_interna: document.getElementById('modal-politica-interna')?.value || '',
                 obrigacoes_regulatorias: JSON.stringify({ politicas: politicasProcessadas }),
                 executores_etapa: ExecutoresModule.getSelectedIds().join(','),
-                manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false,
-                politica_interna_url: politicaInternaArquivo?.url || '',
-                politica_interna_nome: politicaInternaArquivo?.nome || ''
+                manual_em_andamento: document.getElementById('manual_em_andamento')?.checked || false
             };
 
             const response = await window.fetchComAutenticacao('/api/etapa/salvar', {

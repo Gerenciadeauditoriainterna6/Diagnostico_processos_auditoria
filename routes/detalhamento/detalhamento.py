@@ -110,8 +110,6 @@ def api_salvar_etapa():
                 'status_etapa': data.get('status_etapa', 'ATIVA'),
                 'politica_interna': data.get('politica_interna', ''),
                 # ⭐ NOVO: Campos de arquivo da política interna
-                'politica_interna_url': data.get('politica_interna_url', ''),
-                'politica_interna_nome': data.get('politica_interna_nome', ''),
                 'obrigacoes_regulatorias': obrigacoes_str,
                 'executores_etapa': data.get('executores_etapa', ''),
                 'manual_em_andamento': data.get('manual_em_andamento', False),
@@ -155,8 +153,6 @@ def api_salvar_etapa():
                 'status_etapa': data.get('status_etapa', 'ATIVA'),
                 'politica_interna': data.get('politica_interna', ''),
                 # ⭐ NOVO: Campos de arquivo da política interna
-                'politica_interna_url': data.get('politica_interna_url', ''),
-                'politica_interna_nome': data.get('politica_interna_nome', ''),
                 'obrigacoes_regulatorias': obrigacoes_str,
                 'executores_etapa': data.get('executores_etapa', ''),
                 'diagrama_bpmn': diagrama_bytes,
@@ -297,8 +293,6 @@ def api_upload_detalhamento():
         # ⭐ Determinar pasta baseada no tipo
         if tipo == 'manual':
             pasta = 'manuais'
-        elif tipo == 'politica_interna':
-            pasta = 'politicas'
         else:
             pasta = 'obrigacoes'
         
