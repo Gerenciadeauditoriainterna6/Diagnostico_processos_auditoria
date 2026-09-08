@@ -208,18 +208,11 @@ export async function carregarChecklistModal(tipo) {
         
         const dados = await response.json();
         console.log('📦 Dados recebidos do checklist:', dados);
-
-        if (dados.success && dados.respostas) {
-            console.log('📊 Detalhes das respostas:');
-            dados.respostas.forEach((r, index) => {
-                console.log(`  ${index + 1}. ordem: ${r.ordem}, id: ${r.id}, resposta: ${r.resposta}`);
-            });
-        }
         
         const respostas = dados.success ? dados.respostas : [];
         setCurrentRespostaId(dados.success ? dados.id : null);
         
-        // ⭐ MONTAR MAPA DE RESPOSTAS POR ORDEM
+        // ⭐ NOVO: MONTAR MAPA DE RESPOSTAS POR ORDEM (simples)
         const respostasMap = {};
         if (dados.success && dados.respostas) {
             dados.respostas.forEach(r => {
@@ -228,7 +221,7 @@ export async function carregarChecklistModal(tipo) {
             });
         }
         
-        // ⭐⭐⭐ EXTRAIR IDs DAS RESPOSTAS ANTES DE CARREGAR EVIDÊNCIAS ⭐⭐⭐
+        // ⭐ EXTRAIR IDs DAS RESPOSTAS
         const novasIds = {};
         for (const [ordem, resposta] of Object.entries(respostasMap)) {
             if (resposta.id) {
@@ -238,25 +231,8 @@ export async function carregarChecklistModal(tipo) {
         setCurrentRespostaIds(novasIds);
         console.log('📊 IDs das respostas extraídas:', currentRespostaIds);
         
-        // ⭐ CARREGAR EVIDÊNCIAS PARA CADA RESPOSTA
-        const evidenciasMap = {};
-        for (const [ordem, resposta] of Object.entries(respostasMap)) {
-            if (resposta.id) {
-                try {
-                    const evResponse = await fetchComAutenticacao(`/api/checklist/evidencias/${resposta.id}`);
-                    const evData = await evResponse.json();
-                    if (evData.success) {
-                        evidenciasMap[ordem] = evData.evidencias || [];
-                    }
-                } catch (err) {
-                    console.error(`❌ Erro ao carregar evidências da ordem ${ordem}:`, err);
-                    evidenciasMap[ordem] = [];
-                }
-            }
-        }
-        
-        console.log(`📊 Total de respostas: ${respostas.length}`);
-        console.log('📊 IDs das respostas FINAL:', currentRespostaIds);
+        // ⭐ NÃO PRECISA MAIS CARREGAR EVIDÊNCIAS SEPARADAMENTE
+        // As evidências já vêm junto com as respostas!
         
         let html = `<div class="perguntas-container">`;
         
@@ -267,20 +243,15 @@ export async function carregarChecklistModal(tipo) {
             if (p.temSubitens && p.subitens && p.subitens.length > 0) {
                 // --- PERGUNTA COM SUBITENS ---
                 
-                // ⭐ BUSCAR AS RESPOSTAS INDIVIDUAIS
                 const pergunta1 = respostasMap['1'] || { id: null, resposta: '', comentario: '', evidencias: [] };
                 const pergunta1_1 = respostasMap['1.1'] || { id: null, resposta: '', comentario: '', evidencias: [] };
                 const pergunta1_2 = respostasMap['1.2'] || { id: null, resposta: '', comentario: '', evidencias: [] };
                 
-                // ⭐ COMENTÁRIO COMPARTILHADO (vem da pergunta 1)
                 const comentarioCompartilhado = pergunta1.comentario || '';
-                
-                // ⭐ EVIDÊNCIAS COMPARTILHADAS (vêm da pergunta 1)
                 const evidenciasCompartilhadas = pergunta1.evidencias || [];
                 
                 html += `
                     <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}" style="border: 2px solid #184145; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                        <!-- PERGUNTA PRINCIPAL (1) -->
                         <div class="pergunta-header">
                             <div class="pergunta-numero">${p.ordem}</div>
                             <div class="pergunta-texto">${escapeHtml(p.pergunta)}</div>
@@ -297,12 +268,10 @@ export async function carregarChecklistModal(tipo) {
                             </label>
                         </div>
                         
-                        <!-- SUBITENS (cada um com sua própria resposta) -->
                         <div class="subitens-container" style="padding-left: 40px; margin-top: 15px;">
                 `;
                 
                 p.subitens.forEach((sub, subIndex) => {
-                    // ⭐ PEGAR A RESPOSTA DO SUBITEM CORRETO
                     let subResposta;
                     if (sub.id === '1.1') {
                         subResposta = pergunta1_1;
@@ -339,7 +308,6 @@ export async function carregarChecklistModal(tipo) {
                 html += `
                         </div>
                         
-                        <!-- COMENTÁRIO COMPARTILHADO -->
                         <div class="pergunta-comentario" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e0e0e0;">
                             <label style="font-weight: 600; color: #184145; font-size: 13px;">
                                 <i class="fas fa-comment"></i> Comentário
@@ -348,7 +316,6 @@ export async function carregarChecklistModal(tipo) {
                         </div>
                 `;
                 
-                // EVIDÊNCIA COMPARTILHADA
                 if (p.precisaEvidencia) {
                     html += `
                         <div class="evidencias-container" style="margin-top: 10px;">
@@ -361,6 +328,7 @@ export async function carregarChecklistModal(tipo) {
                             <div class="evidencias-lista" id="evidencias-lista-${i}">
                     `;
                     
+                    // ⭐ Usar evidenciasCompartilhadas (já vêm da resposta)
                     if (evidenciasCompartilhadas && evidenciasCompartilhadas.length > 0) {
                         evidenciasCompartilhadas.forEach(ev => {
                             html += `
@@ -387,7 +355,7 @@ export async function carregarChecklistModal(tipo) {
                 
                 html += `</div>`;
             } else {
-                // --- PERGUNTA NORMAL (sem subitens) ---
+                // --- PERGUNTA NORMAL ---
                 const ordemPrincipal = String(p.ordem);
                 const r = respostasMap[ordemPrincipal] || { 
                     id: null,
@@ -395,7 +363,7 @@ export async function carregarChecklistModal(tipo) {
                     comentario: '', 
                     evidencias: [] 
                 };
-                const evidencias = evidenciasMap[ordemPrincipal] || [];
+                const evidencias = r.evidencias || [];
                 
                 html += `
                     <div class="pergunta-card" data-pergunta-index="${i}" data-pergunta-ordem="${p.ordem}">

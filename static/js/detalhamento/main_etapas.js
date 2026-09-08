@@ -50,11 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('   ✅ VisualizarModule inicializado');
     }
     
-    // ⭐ NOVO: PoliticaInternaModule
-    if (typeof PoliticaInternaModule !== 'undefined') {
-        PoliticaInternaModule.init();
-        console.log('   ✅ PoliticaInternaModule inicializado');
-    }
+    // // ⭐ NOVO: PoliticaInternaModule
+    // if (typeof PoliticaInternaModule !== 'undefined') {
+    //     PoliticaInternaModule.init();
+    //     console.log('   ✅ PoliticaInternaModule inicializado');
+    // }
 
     // ============================================================
     // 2. CARREGAR DADOS
