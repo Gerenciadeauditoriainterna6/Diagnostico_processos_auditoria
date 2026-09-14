@@ -169,7 +169,8 @@ def buscar_plano_acao(analise_id):
         with engine.connect() as conn:
             query = text("""
                 SELECT 
-                    id, analise_id, oque, por_que, onde, quando,
+                    id, analise_id, oque, por_que, onde, 
+                    quando_inicio, quando_fim,
                     quem, como, quanto_custa, comentario,
                     created_by, created_at, updated_at
                 FROM planos_acao
@@ -189,14 +190,15 @@ def buscar_plano_acao(analise_id):
                         'oque': result[2],
                         'por_que': result[3],
                         'onde': result[4],
-                        'quando': result[5].isoformat() if result[5] else None,
-                        'quem': result[6],
-                        'como': result[7],
-                        'quanto_custa': result[8],
-                        'comentario': result[9],
-                        'created_by': result[10],
-                        'created_at': result[11].isoformat() if result[11] else None,
-                        'updated_at': result[12].isoformat() if result[12] else None
+                        'quando_inicio': result[5].isoformat() if result[5] else None,
+                        'quando_fim': result[6].isoformat() if result[6] else None,
+                        'quem': result[7],
+                        'como': result[8],
+                        'quanto_custa': str(result[9]) if result[9] else None,
+                        'comentario': result[10],
+                        'created_by': result[11],
+                        'created_at': result[12].isoformat() if result[12] else None,
+                        'updated_at': result[13].isoformat() if result[13] else None
                     }
                 })
             else:
@@ -207,6 +209,8 @@ def buscar_plano_acao(analise_id):
                 
     except Exception as e:
         print(f"❌ Erro ao buscar plano de ação: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

@@ -141,8 +141,8 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     {
       // PONTO 4 - SEM IMAGENS (vazio)
-      images: [],
-      captions: [],
+      images: ["/static/images/equipe_auditoria_riscos_e_controles.jpg"],
+      captions: ["1ª equipe auditoria interna"],
     },
     {
       // PONTO 5 - TEM IMAGENS

@@ -660,10 +660,7 @@ export async function renderizarAnalisesAuditor() {
     let html = '';
     analisesComDados.forEach((analise, index) => {
         const temPlanoAcao = analise.sugestao_sera_implantada === true && analise.plano_acao;
-        const prazoExpirado = analise.sugestao_sera_implantada === true &&
-                            !analise.plano_de_acao_implantado && 
-                            analise.data_conclusao_prevista && 
-                            new Date(analise.data_conclusao_prevista) < new Date();
+        
         
         // ⭐⭐⭐ CORREÇÃO AQUI ⭐⭐⭐
         // Verificar tanto o array 'evidencias' quanto os campos individuais
@@ -758,7 +755,12 @@ export async function renderizarAnalisesAuditor() {
                         <div><strong>O que?</strong> ${escapeHtml(analise.plano.oque || '-')}</div>
                         <div><strong>Por que?</strong> ${escapeHtml(analise.plano.por_que || '-')}</div>
                         <div><strong>Onde?</strong> ${escapeHtml(analise.plano.onde || '-')}</div>
-                        <div><strong>Quando?</strong> ${analise.plano.data_prevista ? formatarData(analise.plano.data_prevista) : '-'}</div>
+                        <div style="grid-column: 1 / -1;">
+                            <strong>Quando?</strong>
+                            ${analise.plano.quando_inicio && analise.plano.quando_fim
+                                ? `${formatarData(analise.plano.quando_inicio)} até ${formatarData(analise.plano.quando_fim)}`
+                                : '-'}
+                        </div>
                         <div><strong>Quem?</strong> ${escapeHtml(analise.plano.quem || '-')}</div>
                         <div><strong>Como?</strong> ${escapeHtml(analise.plano.como || '-')}</div>
                     </div>
@@ -780,30 +782,6 @@ export async function renderizarAnalisesAuditor() {
                     <div class="analise-card-section"><h4 class="cor-ganho-previsto"><i class="fas fa-chart-line"></i> Ganho Previsto</h4><div class="analise-texto">${escapeHtml(analise.ganho_previsto) || '-'}</div></div>
                 </div>
                 ${analise.observacoes ? `<div class="analise-card-section"><h4><i class="fas fa-comment"></i> Recomendações GRC</h4><div class="analise-texto">${escapeHtml(analise.observacoes)}</div></div>` : ''}
-                
-                ${analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado ? `
-                <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99; border-radius: 12px;">
-                    <div style="padding: 15px;">
-                        <i class="fas fa-check-circle" style="color: #0b5b99; font-size: 24px;"></i>
-                        <p style="margin: 10px 0; color: #0b5b99; font-weight: 500;">Esta melhoria está aguardando confirmação de implantação</p>
-                        <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="background: #0b5b99; border-radius: 30px;">
-                            <i class="fas fa-check-circle"></i> Confirmar Implantação
-                        </button>
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${prazoExpirado ? `
-                <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 12px;">
-                    <div style="padding: 15px;">
-                        <i class="fas fa-clock" style="color: #856404; font-size: 24px;"></i>
-                        <p style="margin: 10px 0; color: #856404; font-weight: 500;">Prazo de implantação expirado em ${formatarData(analise.data_conclusao_prevista)}</p>
-                        <button class="btn-primary" onclick="abrirModalConfirmarImplantacao(${analise.id})" style="background: #856404; border-radius: 30px;">
-                            <i class="fas fa-check-circle"></i> Confirmar Situação
-                        </button>
-                    </div>
-                </div>
-                ` : ''}
                 
                 ${analise.plano_de_acao_implantado === true ? `
                 <div class="analise-card-section" style="margin-top: 20px;">
@@ -936,67 +914,6 @@ export async function baixarEvidenciaAnaliseAuditor(evidenciaId, nomeArquivo) {
     }
 }
 
-export function abrirModalConfirmarImplantacao(analiseId) {
-    document.getElementById('confirmar-analise-id').value = analiseId;
-    document.getElementById('confirmar-analise-id').setAttribute('data-tipo', 'auditor');
-    document.getElementById('confirmar-status').value = 'true';
-    document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
-    document.getElementById('confirmar-comentario').value = '';
-    document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
-}
-
-export function fecharModalConfirmarImplantacao() {
-    document.getElementById('modal-confirmar-implantacao').style.display = 'none';
-}
-
-export async function confirmarImplantacao() {
-    const analiseId = document.getElementById('confirmar-analise-id').value;
-    const tipoAnalise = document.getElementById('confirmar-analise-id').getAttribute('data-tipo') || 'auditor';
-    const foiImplantada = document.getElementById('confirmar-status').value === 'true';
-    const dataImplantacao = document.getElementById('confirmar-data').value;
-    const comentario = document.getElementById('confirmar-comentario').value;
-    
-    if (!dataImplantacao) {
-        mostrarToast('⚠️ Informe a data da implantação', 'warning');
-        return;
-    }
-    
-    const btnConfirmar = document.getElementById('btn-confirmar-implantacao');
-    const textoOriginal = btnConfirmar.innerHTML;
-    btnConfirmar.disabled = true;
-    btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando...';
-    
-    const url = tipoAnalise === 'auditado' ? `/api/analise-auditado/${analiseId}/confirmar-implantacao` : `/api/analise-auditor/${analiseId}/confirmar-implantacao`;
-    
-    try {
-        const response = await fetchComAutenticacao(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                plano_de_acao_implantado: foiImplantada, 
-                data_execucao_plano_acao: dataImplantacao, 
-                comentario_implantacao: comentario 
-            })
-        });
-        const data = await response.json();
-        if (data.success) {
-            mostrarToast(foiImplantada ? '✅ Implantação confirmada! Follow-ups liberados.' : '❌ Implantação não confirmada.', 'success');
-            fecharModalConfirmarImplantacao();
-            // ⭐ REMOVIDO: criarFollowUpsAutomaticos (backend já faz isso)
-            if (tipoAnalise === 'auditado') await carregarAnalisesAuditado();
-            else await carregarAnalisesAuditor();
-        } else {
-            mostrarToast('❌ Erro ao confirmar: ' + (data.error || 'Erro desconhecido'), 'error');
-        }
-    } catch (error) {
-        console.error('Erro:', error);
-        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
-    } finally {
-        btnConfirmar.disabled = false;
-        btnConfirmar.innerHTML = textoOriginal;
-        document.getElementById('confirmar-analise-id').removeAttribute('data-tipo');
-    }
-}
 
 export async function carregarAnalisesAuditor() {
     if (!processoIdAtual) return;
@@ -1006,8 +923,9 @@ export async function carregarAnalisesAuditor() {
         const response = await fetchComAutenticacao(`/api/analises-auditor/por-processo?processo_id=${processoIdAtual}`);
         const data = await response.json();
         if (data.success && data.analises && data.analises.length > 0) {
-            // ⭐ BUSCAR PLANO DE AÇÃO PARA CADA ANÁLISE
+            // ⭐ BUSCAR PLANO DE AÇÃO, EVIDÊNCIAS E FOLLOW-UPS PARA CADA ANÁLISE
             for (const analise of data.analises) {
+                // 1. Plano de ação
                 if (analise.sugestao_sera_implantada === true) {
                     try {
                         const planoResponse = await fetchComAutenticacao(`/api/planos-acao/${analise.id}`);
@@ -1020,7 +938,7 @@ export async function carregarAnalisesAuditor() {
                     }
                 }
                 
-                // ⭐⭐⭐ NOVO: CARREGAR EVIDÊNCIAS DA ANÁLISE ⭐⭐⭐
+                // 2. Evidências
                 try {
                     const evidenciaResponse = await fetchComAutenticacao(`/api/analise-auditor/${analise.id}/evidencias`);
                     const evidenciaData = await evidenciaResponse.json();
@@ -1033,6 +951,22 @@ export async function carregarAnalisesAuditor() {
                     console.warn(`⚠️ Erro ao carregar evidências da análise ${analise.id}:`, err);
                     analise.evidencias = [];
                 }
+                
+                // ⭐ 3. NOVO: Follow-ups
+              
+                let followUps = [];
+                if (analise.plano_de_acao_implantado === true) {
+                    try {
+                        const fuResponse = await fetchComAutenticacao(`/followups/api/por-analise/${analise.id}`);
+                        const fuData = await fuResponse.json();
+                        if (fuData.success && fuData.follow_ups) {
+                            followUps = fuData.follow_ups;
+                        }
+                    } catch (err) {
+                        console.warn(`⚠️ Erro ao carregar follow-ups da análise ${analise.id}:`, err);
+                    }
+                }
+                analise.followUps = followUps;
             }
             
             setAnalisesAuditorList(data.analises);
