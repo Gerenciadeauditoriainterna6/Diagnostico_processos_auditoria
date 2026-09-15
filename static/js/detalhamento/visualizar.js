@@ -283,7 +283,7 @@ const VisualizarModule = {
         return `
             <div class="analise-card">
                 <div class="analise-card-info">
-                    <strong>Ponto de Auditoria:</strong> ${escapeHtml(a.analise_critica || '-')}<br>
+                    <strong>Análise do Auditado:</strong> ${escapeHtml(a.analise_critica || '-')}<br>
                     <strong>Sugestão:</strong> ${escapeHtml(a.sugestao_melhoria || '-')}
                     ${temEvidencia ? `
                         <br><strong>Evidência:</strong> ${escapeHtml(a.evidencia_nome)}
