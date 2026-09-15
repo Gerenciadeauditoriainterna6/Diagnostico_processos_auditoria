@@ -983,7 +983,7 @@
     border-radius: 0 0 16px 16px;
     position: sticky;
     bottom: 0;
-    z-index: 10;
+    z-index: 0;
 }
 
 .checkbox-grid {
@@ -1073,7 +1073,7 @@
     border-style: solid;
     border-color: #333 transparent transparent transparent;
     margin-bottom: 2px;
-    z-index: 100001;
+    z-index: 10;
 }
 
 .help-icon-categorias {
@@ -1199,7 +1199,6 @@
 /* Help icon - versão simples */
 .help-icon {
     position: relative;
-    z-index: 9999;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1244,6 +1243,7 @@
     transform: translateX(-50%);
     border: 8px solid transparent;
     border-top-color: #184145;
+    z-index: 11;
 }
 
 /* Mostrar ao passar o mouse */
