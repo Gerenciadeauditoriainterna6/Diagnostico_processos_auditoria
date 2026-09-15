@@ -223,26 +223,6 @@ class AnaliseService:
                 'riscos_controles': result[19] if isinstance(result[19], list) else (json.loads(result[19]) if result[19] else [])
             }
     
-    @classmethod
-    def confirmar_implantacao(cls, id: int, plano_de_acao_implantado: bool, 
-                              data_execucao_plano_acao: str, comentario: str = None) -> bool:
-        """Confirma a implantação de uma análise"""
-        query = text("""
-            UPDATE analises_criticas 
-            SET plano_de_acao_implantado = :plano_de_acao_implantado,
-                data_execucao_plano_acao = :data_execucao_plano_acao,
-                updated_at = NOW()
-            WHERE id = :id
-        """)
-        
-        with engine.connect() as conn:
-            result = conn.execute(query, {
-                'id': id,
-                'plano_de_acao_implantado': plano_de_acao_implantado,
-                'data_execucao_plano_acao': data_execucao_plano_acao,
-            })
-            conn.commit()
-            return result.rowcount > 0
     
     @classmethod
     def deletar(cls, id: int) -> bool:

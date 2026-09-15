@@ -28,7 +28,6 @@ import {
     setupSemSugestaoCheckbox,
     setupFileUploadEvidenciaAuditado,
     editarAnaliseAuditado,
-    abrirModalConfirmarImplantacaoAuditado,
     baixarEvidenciaAuditadoChecklist,
     fecharModalAnaliseAuditado,
     removerEvidenciaAuditadoChecklist
@@ -40,11 +39,9 @@ import {
     abrirModalNovaAnaliseAuditor,
     setupSemSugestaoCheckboxAuditor,
     setupFileUploadEvidenciaAuditor,
-    confirmarImplantacao,
     editarAnaliseAuditor,
     excluirAnaliseAuditor,
     fecharModalAnaliseAuditor,
-    abrirModalConfirmarImplantacao,
     baixarEvidenciaAnaliseAuditor,
     removerEvidenciaAnaliseAuditor
 } from './analises-auditor.js';
@@ -114,8 +111,6 @@ window.abrirModalNovaAnaliseAuditor = abrirModalNovaAnaliseAuditor;
 window.fecharModalAnaliseAuditor = fecharModalAnaliseAuditor;
 window.editarAnaliseAuditor = editarAnaliseAuditor;
 window.excluirAnaliseAuditor = excluirAnaliseAuditor;
-window.abrirModalConfirmarImplantacao = abrirModalConfirmarImplantacao;
-window.abrirModalConfirmarImplantacaoAuditado = abrirModalConfirmarImplantacaoAuditado;
 window.baixarEvidenciaAuditadoChecklist = baixarEvidenciaAuditadoChecklist;
 window.abrirUploadEvidencia = abrirUploadEvidencia;
 window.removerEvidenciaTemp = removerEvidenciaTemp;
@@ -182,7 +177,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-salvar-analise-auditado')?.addEventListener('click', salvarAnaliseAuditado);
     document.getElementById('btn-salvar-historico')?.addEventListener('click', salvarHistoricoAndamento);
     document.getElementById('btn-salvar-followup')?.addEventListener('click', salvarFollowUp);
-    document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
+    
     
     setupSemSugestaoCheckbox();
 

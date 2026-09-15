@@ -184,14 +184,6 @@ export async function baixarEvidenciaAuditadoChecklist(analiseId, nomeArquivo) {
     }
 }
 
-export function abrirModalConfirmarImplantacaoAuditado(analiseId) {
-    document.getElementById('confirmar-analise-id').value = analiseId;
-    document.getElementById('confirmar-analise-id').setAttribute('data-tipo', 'auditado');
-    document.getElementById('confirmar-status').value = 'true';
-    document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
-    document.getElementById('confirmar-comentario').value = '';
-    document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
-}
 
 export function setupSemSugestaoCheckbox() {
     const checkbox = document.getElementById('sem_sugestao_melhoria');
@@ -289,8 +281,8 @@ export async function carregarAnalisesAuditado() {
                     const analise = etapa.analises[i];
                     
                     const historico = [];
-                    const followUps = [];
-                    
+                    let followUps = [];  // ⭐ MUDAR de const para let
+
                     let plano = null;
                     if (analise.sugestao_sera_implantada === true) {
                         try {
@@ -303,9 +295,22 @@ export async function carregarAnalisesAuditado() {
                             console.warn(`⚠️ Erro ao carregar plano da análise ${analise.id}:`, err);
                         }
                     }
-                    
+
+                    // ⭐ NOVO: Buscar follow-ups se o plano já foi implantado
+                    if (analise.plano_de_acao_implantado === true) {
+                        try {
+                            const fuResponse = await fetchComAutenticacao(`/followups/api/por-analise/${analise.id}`);
+                            const fuData = await fuResponse.json();
+                            if (fuData.success && fuData.follow_ups) {
+                                followUps = fuData.follow_ups;
+                            }
+                        } catch (err) {
+                            console.warn(`⚠️ Erro ao carregar follow-ups da análise ${analise.id}:`, err);
+                        }
+                    }
+
                     etapa.analises[i].historico = historico;
-                    etapa.analises[i].followUps = followUps;
+                    etapa.analises[i].followUps = followUps;  // ⭐ Agora preenchido
                     etapa.analises[i].plano = plano;
                 }
             }
@@ -447,7 +452,12 @@ export async function carregarAnalisesAuditado() {
                                         <div><strong>O que?</strong> ${escapeHtml(analise.plano.oque || '-')}</div>
                                         <div><strong>Por que?</strong> ${escapeHtml(analise.plano.por_que || '-')}</div>
                                         <div><strong>Onde?</strong> ${escapeHtml(analise.plano.onde || '-')}</div>
-                                        <div><strong>Quando?</strong> ${analise.plano.data_prevista ? formatarData(analise.plano.data_prevista) : '-'}</div>
+                                        <div style="grid-column: 1 / -1;">
+                                            <strong>Quando?</strong>
+                                            ${analise.plano.quando_inicio && analise.plano.quando_fim
+                                                ? `${formatarData(analise.plano.quando_inicio)} até ${formatarData(analise.plano.quando_fim)}`
+                                                : '-'}
+                                        </div>
                                         <div><strong>Quem?</strong> ${escapeHtml(analise.plano.quem || '-')}</div>
                                         <div><strong>Como?</strong> ${escapeHtml(analise.plano.como || '-')}</div>
                                     </div>
@@ -469,16 +479,6 @@ export async function carregarAnalisesAuditado() {
                                     <h4><i class="fas fa-search"></i> Follow-ups Agendados</h4>
                                     <div class="followups-container">
                                         ${renderizarListaFollowUps(analise.followUps)}
-                                    </div>
-                                </div>
-                                ` : (analise.sugestao_sera_implantada === true && !analise.plano_de_acao_implantado) ? `
-                                <div class="analise-card-section" style="margin-top: 20px; text-align: center; background: #e8f4f8; border-left: 4px solid #0b5b99;">
-                                    <div style="padding: 10px;">
-                                        <i class="fas fa-check-circle" style="color: #0b5b99;"></i>
-                                        <strong style="color: #0b5b99;">Aguardando confirmação de implantação</strong>
-                                        <button class="btn-primary" onclick="abrirModalConfirmarImplantacaoAuditado(${analise.id})" style="margin-top: 8px;">
-                                            <i class="fas fa-check-circle"></i> Confirmar Implantação
-                                        </button>
                                     </div>
                                 </div>
                                 ` : ''}

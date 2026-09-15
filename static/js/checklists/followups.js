@@ -222,7 +222,7 @@ function renderizarAnalises(analises) {
         let statusBadge = '';
         let statusClass = '';
         let acoes = '';
-        
+
         // ⭐ 1. SEM PLANO DE AÇÃO
         if (!temPlanoAcao) {
             statusBadge = '<span class="status-badge nao-iniciado">Aguardando plano</span>';
@@ -233,17 +233,7 @@ function renderizarAnalises(analises) {
                 </button>
             `;
         } 
-        // ⭐ 2. COM PLANO, MAS NÃO IMPLANTADO
-        else if (temPlanoAcao && !analise.plano_de_acao_implantado) {
-            statusBadge = '<span class="status-badge em-andamento">Aguardando execução do plano de ação</span>';
-            statusClass = 'em-andamento';
-            acoes = `
-                <button class="btn-confirmar-implantacao" onclick="window.abrirModalConfirmarImplantacao(${analise.id})" style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">
-                    <i class="fas fa-check-circle"></i> Iniciar execução do plano de ação
-                </button>
-            `;
-        }
-        // ⭐ 3. COM PLANO, IMPLANTADO E FOLLOW-UPS CONCLUÍDOS
+        // ⭐ 2. COM PLANO E FOLLOW-UPS CONCLUÍDOS
         else if (temFollowUps && todosConcluidos) {
             statusBadge = '<span class="status-badge concluido">Concluído</span>';
             statusClass = 'concluido';
@@ -253,7 +243,7 @@ function renderizarAnalises(analises) {
                 </span>
             `;
         }
-        // ⭐ 4. COM PLANO, IMPLANTADO E FOLLOW-UPS EM ANDAMENTO
+        // ⭐ 3. COM PLANO E FOLLOW-UPS EM ANDAMENTO
         else if (temFollowUps && !todosConcluidos) {
             statusBadge = '<span class="status-badge em-andamento">Em andamento</span>';
             statusClass = 'em-andamento';
@@ -263,14 +253,14 @@ function renderizarAnalises(analises) {
                 </button>
             `;
         }
-        // ⭐ 5. COM PLANO, IMPLANTADO E SEM FOLLOW-UPS AINDA
-        else if (temPlanoAcao && analise.plano_de_acao_implantado && !temFollowUps) {
-            statusBadge = '<span class="status-badge em-andamento">Pronto para iniciar</span>';
+        // ⭐ 4. COM PLANO MAS SEM FOLLOW-UPS (fallback)
+        else if (temPlanoAcao && !temFollowUps) {
+            statusBadge = '<span class="status-badge em-andamento">Em andamento</span>';
             statusClass = 'em-andamento';
             acoes = `
-                <button class="btn-iniciar-acompanhamento" onclick="window.iniciarAcompanhamento(${analise.id}, '${escapeHtml(analise.analise_critica)}')">
-                    <i class="fas fa-play"></i> Iniciar Acompanhamento
-                </button>
+                <span style="font-size: 13px; color: #666;">
+                    <i class="fas fa-info-circle"></i> Aguardando follow-ups
+                </span>
             `;
         }
         
@@ -284,7 +274,7 @@ function renderizarAnalises(analises) {
             if (analise.plano_de_acao_implantado && analise.data_execucao_plano_acao) {
                 dataImplantacaoHtml = `
                     <div style="font-size: 12px; margin-top: 4px; color: #2e7d32;">
-                        <strong><i class="fas fa-check-circle" style="color: #28a745;"></i> Plano de ação iniciado em:</strong> ${formatarData(analise.data_execucao_plano_acao)}
+                        <strong><i class="fas fa-check-circle" style="color: #28a745;"></i> Plano de ação com prazo para finalizar em:</strong> ${formatarData(analise.data_execucao_plano_acao)}
                     </div>
                 `;
             }
@@ -303,7 +293,12 @@ function renderizarAnalises(analises) {
                     <div><strong>O que?</strong> ${escapeHtml(plano.oque || '-')}</div>
                     <div><strong>Por que?</strong> ${escapeHtml(plano.por_que || '-')}</div>
                     <div><strong>Onde?</strong> ${escapeHtml(plano.onde || '-')}</div>
-                    <div><strong>Quando?</strong> ${plano.quando ? formatarData(plano.quando) : '-'}</div>
+                    <div style="grid-column: 1 / -1;">
+                        <strong>Quando?</strong>
+                        ${plano.quando_inicio && plano.quando_fim
+                            ? `${formatarData(plano.quando_inicio)} até ${formatarData(plano.quando_fim)}`
+                            : '-'}
+                    </div>
                     <div><strong>Quem?</strong> ${escapeHtml(plano.quem || '-')}</div>
                     <div><strong>Como?</strong> ${escapeHtml(plano.como || '-')}</div>
                 </div>
@@ -402,46 +397,7 @@ function renderizarAnalises(analises) {
 
 
 
-// ============================================================
-// INICIAR ACOMPANHAMENTO
-// ============================================================
 
-export async function iniciarAcompanhamento(analiseId, analiseTexto) {
-    if (!confirm(`Deseja iniciar o acompanhamento para:\n\n"${analiseTexto}"\n\nSerão criados follow-ups de 30, 60 e 90 dias.`)) {
-        return;
-    }
-    
-    const btn = document.querySelector(`.btn-iniciar-acompanhamento[onclick*="${analiseId}"]`);
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando...';
-    }
-    
-    try {
-        const response = await fetchComAutenticacao('/followups/api/iniciar-acompanhamento', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ analise_id: analiseId })
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            mostrarToast('✅ Acompanhamento iniciado! Follow-ups de 30, 60 e 90 dias criados.', 'success');
-            const processoId = document.getElementById('processo_select')?.value;
-            await carregarAnalises(processoId);
-        } else {
-            mostrarToast('❌ Erro ao iniciar acompanhamento: ' + (data.error || 'Erro desconhecido'), 'error');
-        }
-    } catch (error) {
-        console.error('Erro:', error);
-        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-play"></i> Iniciar Acompanhamento';
-        }
-    }
-}
 
 // ============================================================
 // MODAL - REGISTRAR FOLLOW-UP
@@ -721,7 +677,8 @@ export function abrirModalPlanoAcao(analiseId) {
                 document.getElementById('plano-acao-oque').value = p.oque || '';
                 document.getElementById('plano-acao-porque').value = p.por_que || '';
                 document.getElementById('plano-acao-onde').value = p.onde || '';
-                document.getElementById('plano-acao-quando').value = p.quando || '';
+                document.getElementById('plano-acao-quando-inicio').value = p.quando_inicio || '';
+                document.getElementById('plano-acao-quando-fim').value = p.quando_fim || '';
                 document.getElementById('plano-acao-quem').value = p.quem || '';
                 document.getElementById('plano-acao-como').value = p.como || '';
                 document.getElementById('plano-acao-quanto-custa').value = p.quanto_custa || '';
@@ -731,7 +688,8 @@ export function abrirModalPlanoAcao(analiseId) {
                 document.getElementById('plano-acao-oque').value = '';
                 document.getElementById('plano-acao-porque').value = '';
                 document.getElementById('plano-acao-onde').value = '';
-                document.getElementById('plano-acao-quando').value = '';
+                document.getElementById('plano-acao-quando-inicio').value = '';
+                document.getElementById('plano-acao-quando-fim').value = '';
                 document.getElementById('plano-acao-quem').value = '';
                 document.getElementById('plano-acao-como').value = '';
                 document.getElementById('plano-acao-quanto-custa').value = '';
@@ -744,7 +702,8 @@ export function abrirModalPlanoAcao(analiseId) {
             document.getElementById('plano-acao-oque').value = '';
             document.getElementById('plano-acao-porque').value = '';
             document.getElementById('plano-acao-onde').value = '';
-            document.getElementById('plano-acao-quando').value = '';
+            document.getElementById('plano-acao-quando-inicio').value = '';
+            document.getElementById('plano-acao-quando-fim').value = '';
             document.getElementById('plano-acao-quem').value = '';
             document.getElementById('plano-acao-como').value = '';
             document.getElementById('plano-acao-quanto-custa').value = '';
@@ -762,6 +721,8 @@ export async function salvarPlanoAcao() {
     const analiseId = document.getElementById('plano-acao-analise-id').value;
     const oque = document.getElementById('plano-acao-oque').value.trim();
     const quem = document.getElementById('plano-acao-quem').value.trim();
+    const quandoInicio = document.getElementById('plano-acao-quando-inicio').value || null;
+    const quandoFim = document.getElementById('plano-acao-quando-fim').value || null;
     
     if (!oque) {
         mostrarToast('⚠️ O campo "O que?" é obrigatório', 'warning');
@@ -780,13 +741,30 @@ export async function salvarPlanoAcao() {
         }, 3000);
         return;
     }
+
+    if (quandoInicio && !quandoFim) {
+        mostrarToast('⚠️ Informe a data de término do prazo', 'warning');
+        return;
+    }
+
+    if (quandoFim && !quandoInicio) {
+        mostrarToast('⚠️ Informe a data de início do prazo', 'warning');
+        return;
+    }
+
+    // ⭐ VALIDAÇÃO: fim não pode ser antes do início
+    if (quandoInicio && quandoFim && quandoFim < quandoInicio) {
+        mostrarToast('⚠️ A data de término não pode ser antes do início', 'warning');
+        return;
+    }
     
     const payload = {
         analise_id: parseInt(analiseId),
         oque: oque,
         por_que: document.getElementById('plano-acao-porque').value.trim(),
         onde: document.getElementById('plano-acao-onde').value.trim(),
-        quando: document.getElementById('plano-acao-quando').value || null,
+        quando_inicio: quandoInicio,
+        quando_fim: quandoFim,
         quem: quem,
         como: document.getElementById('plano-acao-como').value.trim(),
         quanto_custa: document.getElementById('plano-acao-quanto-custa').value || null,
@@ -831,74 +809,6 @@ export async function salvarPlanoAcao() {
     }
 }
 
-// ============================================================
-// MODAL - CONFIRMAR IMPLANTAÇÃO
-// ============================================================
-
-export function abrirModalConfirmarImplantacao(analiseId) {
-    document.getElementById('confirmar-analise-id').value = analiseId;
-    document.getElementById('confirmar-status').value = 'true';
-    document.getElementById('confirmar-data').value = new Date().toISOString().split('T')[0];
-    document.getElementById('confirmar-comentario').value = '';
-    document.getElementById('modal-confirmar-implantacao').style.display = 'flex';
-}
-
-export function fecharModalConfirmarImplantacao() {
-    document.getElementById('modal-confirmar-implantacao').style.display = 'none';
-}
-
-export async function confirmarImplantacao() {
-    const analiseId = document.getElementById('confirmar-analise-id').value;
-    const foiImplantada = document.getElementById('confirmar-status').value === 'true';
-    const dataImplantacao = document.getElementById('confirmar-data').value;
-    
-    if (!dataImplantacao) {
-        mostrarToast('⚠️ Informe a data da implantação', 'warning');
-        return;
-    }
-    
-    const btnConfirmar = document.getElementById('btn-confirmar-implantacao');
-    btnConfirmar.disabled = true;
-    btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando...';
-    
-    try {
-        const response = await fetchComAutenticacao(`/api/analise-auditor/${analiseId}/confirmar-implantacao`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                plano_de_acao_implantado: foiImplantada, 
-                data_execucao_plano_acao: dataImplantacao
-            })
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            mostrarToast('✅ Plano de ação confirmado! Follow-ups criados.', 'success');
-            fecharModalConfirmarImplantacao();
-            
-            // ⭐ FORÇAR RECARREGAMENTO DA LISTA
-            const processoId = document.getElementById('processo_select')?.value;
-            await carregarAnalises(processoId);
-            
-            // ⭐ FORÇAR RENDERIZAÇÃO NOVA
-            setTimeout(() => {
-                const container = document.getElementById('followups-container');
-                if (container && analisesData.length > 0) {
-                    renderizarAnalises(analisesData);
-                }
-            }, 200);
-            
-        } else {
-            mostrarToast('❌ Erro ao confirmar: ' + (data.error || 'Erro desconhecido'), 'error');
-        }
-    } catch (error) {
-        console.error('Erro:', error);
-        mostrarToast('❌ Erro ao conectar com o servidor', 'error');
-    } finally {
-        btnConfirmar.disabled = false;
-        btnConfirmar.innerHTML = '<i class="fas fa-save"></i> Confirmar';
-    }
-}
 
 // ============================================================
 // EXPORTA PARA O ESCOPO GLOBAL
@@ -909,7 +819,6 @@ window.fecharModalFollowupRegistro = fecharModalFollowupRegistro;
 window.abrirModalFollowupItem = abrirModalFollowupItem;
 window.fecharModalFollowupItem = fecharModalFollowupItem;
 window.salvarFollowupItem = salvarFollowupItem;
-window.iniciarAcompanhamento = iniciarAcompanhamento;
 window.aplicarFiltros = aplicarFiltros;
 window.carregarAnalises = carregarAnalises;
 window.abrirModalFollowupEditar = abrirModalFollowupEditar;
@@ -918,9 +827,6 @@ window.salvarFollowupEditar = salvarFollowupEditar;
 window.abrirModalPlanoAcao = abrirModalPlanoAcao;
 window.fecharModalPlanoAcao = fecharModalPlanoAcao;
 window.salvarPlanoAcao = salvarPlanoAcao;
-window.abrirModalConfirmarImplantacao = abrirModalConfirmarImplantacao;
-window.fecharModalConfirmarImplantacao = fecharModalConfirmarImplantacao;
-window.confirmarImplantacao = confirmarImplantacao;
 
 // ============================================================
 // INICIALIZAÇÃO
@@ -961,8 +867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('btn-salvar-followup-item')?.addEventListener('click', salvarFollowupItem);
 
-    // ⭐ ADICIONAR O EVENTO DO BOTÃO CONFIRMAR
-    document.getElementById('btn-confirmar-implantacao')?.addEventListener('click', confirmarImplantacao);
+    
     
     // ⭐ BOTÃO SALVAR PLANO DE AÇÃO
     document.getElementById('btn-salvar-plano-acao')?.addEventListener('click', salvarPlanoAcao);
