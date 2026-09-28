@@ -20,31 +20,10 @@ export async function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco
             const impacto = data.impacto || 'Não informado';
             const probabilidade = data.probabilidade || 'Não informado';
 
-            document.getElementById('info-risco-impacto').textContent = data.impacto || 'Não informado';
-            document.getElementById('info-risco-probabilidade').textContent = data.probabilidade || 'Não informado';
+            document.getElementById('info-risco-impacto').textContent = impacto;
+            document.getElementById('info-risco-probabilidade').textContent = probabilidade;
 
             calcularRiscoBruto(impacto, probabilidade);
-
-        }
-
-        function calcularRiscoBruto(impacto, probabilidade) {
-            const mapa = {
-                "MUITO ALTO,MUITO ALTO": 15, "ALTO,MUITO ALTO": 14,
-                "MÉDIO,MUITO ALTO": 13, "BAIXO,MUITO ALTO": 12,
-                "MUITO ALTO,ALTO": 11, "ALTO,ALTO": 10,
-                "MÉDIO,ALTO": 9, "BAIXO,ALTO": 8,
-                "MUITO ALTO,MÉDIO": 7, "ALTO,MÉDIO": 6,
-                "MÉDIO,MÉDIO": 5, "BAIXO,MÉDIO": 4,
-                "MUITO ALTO,BAIXO": 3, "ALTO,BAIXO": 2,
-                "MÉDIO,BAIXO": 1, "BAIXO,BAIXO": 0
-            };
-
-            const score = mapa[`${impacto},${probabilidade}`] || 0;
-            
-            const scoreElement = document.getElementById('info-risco-score-bruto');
-            if (scoreElement) {
-                scoreElement.innerHTML = `Risco Bruto: <strong>${score}</strong>`;
-            }
         }
     } catch (error) {
         console.error('❌ Erro ao buscar dados do risco:', error);
@@ -57,10 +36,9 @@ export async function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco
     
     limparFormularioControle();
 
-    // ⭐ HABILITAR TODOS OS CAMPOS
+    // ⭐ HABILITAR TODOS OS CAMPOS (Removido o 'controle_causa_motivo' daqui)
     const campos = [
         'controle_nome',
-        'controle_causa_motivo',
         'controle_como_executado',
         'controle_objetivo',
         'controle_periodicidade',
@@ -89,9 +67,14 @@ export async function abrirModalControle(riscoId, riscoNome, etapaId, fatorRisco
         btnSalvar.style.display = 'inline-flex';
     }
     
+    // ⭐ NOVO: Alimentar o texto na Info Box e no campo oculto
     if (fatorRisco) {
+        // Guarda o valor no input oculto para o salvarControle enviar à API
         document.getElementById('controle_causa_motivo').value = fatorRisco;
-        document.getElementById('controle_causa_motivo').disabled = true;
+        // Exibe o texto de forma bonita na caixa de informações
+        document.getElementById('info-risco-fator').textContent = fatorRisco;
+    } else {
+        document.getElementById('info-risco-fator').textContent = 'Não informado';
     }
     
     const modal = document.getElementById('modal-controle');
@@ -133,7 +116,10 @@ export async function editarControle(controleId, riscoId) {
         } catch (error) {
             console.error('❌ Erro ao buscar dados do risco:', error);
         }
-        
+        const causaMotivoTexto = controle.causa_motivo || '';
+        document.getElementById('controle_causa_motivo').value = causaMotivoTexto;
+        document.getElementById('info-risco-fator').textContent = causaMotivoTexto || 'Não informado';
+
         document.getElementById('controle_nome').value = controle.nome_controle || '';
         document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
         document.getElementById('controle_como_executado').value = controle.como_executado || '';
@@ -168,7 +154,6 @@ export async function editarControle(controleId, riscoId) {
         // ⭐ RE-HABILITAR TODOS OS CAMPOS
         const campos = [
             'controle_nome',
-            'controle_causa_motivo',
             'controle_como_executado',
             'controle_objetivo',
             'controle_periodicidade',
@@ -223,6 +208,11 @@ export function fecharModalControle() {
 }
 
 export function limparFormularioControle() {
+    document.getElementById('controle_causa_motivo').value = '';
+
+    const infoFator = document.getElementById('info-risco-fator');
+    if(infoFator) infoFator.textContent = '-';
+
     document.getElementById('controle_id').value = '';
     document.getElementById('controle_nome').value = '';
     document.getElementById('controle_como_executado').value = '';
@@ -231,13 +221,11 @@ export function limparFormularioControle() {
     document.getElementById('controle_local_evidencia').value = '';
     document.getElementById('controle_lgpd').value = '';
     document.getElementById('controle_responsaveis').value = '';
-    document.getElementById('controle_causa_motivo').value = '';
     document.getElementById('controle_periodicidade').value = '';
     document.getElementById('controle_natureza').value = '';
     document.getElementById('controle_forma_execucao').value = '';
     document.getElementById('controle_status').value = '';
     document.getElementById('controle_frequencia_evidencia').value = '';
-
     document.getElementById('controle_apetite_impacto').value = '';
     document.getElementById('controle_apetite_probabilidade').value = '';
     document.getElementById('controle_tratamento_risco').value = '';
@@ -420,6 +408,10 @@ export async function visualizarControle(controleId, riscoId) {
         }
 
         // Preencher campos
+        const causaMotivoTexto = controle.causa_motivo || '';
+        document.getElementById('controle_causa_motivo').value = causaMotivoTexto;
+        document.getElementById('info-risco-fator').textContent = causaMotivoTexto || 'Não informado';
+
         document.getElementById('controle_nome').value = controle.nome_controle || '';
         document.getElementById('controle_causa_motivo').value = controle.causa_motivo || '';
         document.getElementById('controle_como_executado').value = controle.como_executado || '';
@@ -451,7 +443,6 @@ export async function visualizarControle(controleId, riscoId) {
         // DESABILITAR TODOS OS CAMPOS
         const campos = [
             'controle_nome',
-            'controle_causa_motivo',
             'controle_como_executado',
             'controle_objetivo',
             'controle_periodicidade',
