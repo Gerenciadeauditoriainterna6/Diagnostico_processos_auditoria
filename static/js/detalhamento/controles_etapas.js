@@ -478,25 +478,37 @@ export function toggleRisco(riscoCard, event) {
 // ====== FUNÇÕES PARA ATUALIZAR BADGES ======
 export async function atualizarBadgeControles(riscoId) {
     try {
+        // 1. Vai buscar a nova contagem ao servidor
         const response = await fetchComAutenticacao(`/api/risco/${riscoId}/controles/count`);
         const data = await response.json();
         
         if (data.success) {
-            const riscoCard = document.querySelector(`.risco-card[data-risco-id="${riscoId}"]`);
-            if (riscoCard) {
-                const riscoInfo = riscoCard.querySelector('.risco-info');
-                const existingBadge = riscoInfo.querySelector('.risco-controles-badge');
+            // CORREÇÃO AQUI: Em vez de procurar '.risco-card', procuramos '.risco-linha'
+            // pois é assim que criaste o HTML na função carregarRiscosDaEtapa.
+            const riscoLinha = document.querySelector(`.risco-linha[data-risco-id="${riscoId}"]`);
+            
+            if (riscoLinha) {
+                // CORREÇÃO AQUI: Procurar pela classe '.badge-controles' que usaste no HTML original
+                const existingBadge = riscoLinha.querySelector('.badge-controles');
                 const total = data.total || 0;
                 
+                // 2. Criar o novo elemento badge atualizado
                 const newBadge = document.createElement('span');
-                newBadge.className = 'risco-controles-badge';
-                newBadge.title = `${total} controle(s) cadastrado(s)`;
+                newBadge.className = 'badge-controles'; // Mantemos a mesma classe do HTML
+                newBadge.title = `${total} controle(s)`;
                 newBadge.innerHTML = `<i class="fas fa-shield-alt"></i> ${total}`;
                 
+                // 3. Substituir o antigo pelo novo
                 if (existingBadge) {
                     existingBadge.replaceWith(newBadge);
                 } else {
-                    riscoInfo.appendChild(newBadge);
+                    // Se por algum motivo o badge não existir, colocamo-lo antes do botão de adicionar
+                    const btnAdd = riscoLinha.querySelector('.btn-add-controle');
+                    if (btnAdd) {
+                        riscoLinha.insertBefore(newBadge, btnAdd);
+                    } else {
+                        riscoLinha.appendChild(newBadge);
+                    }
                 }
             }
         }

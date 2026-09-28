@@ -72,25 +72,38 @@ const Etapa2Module = {
             const response = await window.fetchComAutenticacao(`/api/processo/${processoId}/dados`);
             const data = await response.json();
             
+            console.log('🔍 Dados completos:', data);
+            console.log('🔍 Executores[0]:', data.executores?.[0]);
+            
             if (data.success) {
                 this.entrevistadoInput.value = data.entrevistado || '';
                 
-                // ⭐ Preencher this.processos (array) para a renderização funcionar
+                // ⭐ Mapear executores aceitando diferentes nomes de campos
+                const executoresMapeados = (data.executores || []).map(exec => ({
+                    id: exec.id || exec.funcionario_id || exec.funcionarioId || exec.id_funcionario,
+                    nome: exec.nome || exec.nome_funcionario || exec.nomeFuncionario || exec.name
+                }));
+                
+                console.log('🔍 Executores mapeados:', executoresMapeados);
+                
                 this.processos = [{
                     nome: data.nome_processo || '',
                     codigo: data.codigo_processo || '',
                     tempId: Date.now(),
                     existente: true,
-                    funcionarios: data.executores.map(exec => ({
-                        id: exec.id || exec.funcionario_id,
-                        nome: exec.nome
-                    }))
+                    funcionarios: executoresMapeados
                 }];
                 
-                this.carregarFuncionarios();
+                // ⭐ IMPORTANTE: Carregar funcionários ANTES de renderizar
+                await this.carregarFuncionarios();
+                
+                // ⭐ Renderizar
+                this.renderizarTudo();
+                
+                console.log('✅ Processo carregado:', this.processos);
             }
         } catch (error) {
-            console.error('Erro ao carregar dados:', error);
+            console.error('❌ Erro ao carregar dados:', error);
         }
     },
     
@@ -99,6 +112,15 @@ const Etapa2Module = {
     // ============================================================
     async aoEntrar() {
         console.log('👋 Etapa 2 ativada');
+
+        // ⭐ Esconde/Mostrar botão "Adicionar Processo" conforme modo
+        if (this.btnAdicionarProcesso) {
+            if (WizardModule.isEdicao()) {
+                this.btnAdicionarProcesso.style.display = 'none';
+            } else {
+                this.btnAdicionarProcesso.style.display = 'inline-flex';
+            }
+        }
         
         // ⭐ Usar spinnerHTML do utils.js
         const loadingContainer = document.getElementById('etapa2-loading');
@@ -384,10 +406,12 @@ const Etapa2Module = {
                             readonly
                             style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#f0f0f0; font-weight:bold; text-align:center;">
                     </div>
-                    <button class="btn-remover-processo" data-temp-id="${proc.tempId}"
-                        style="background:none; border:none; color:#dc3545; cursor:pointer; font-size:18px; padding:8px;">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
+                    ${!WizardModule.isEdicao() ? `
+                        <button class="btn-remover-processo" data-temp-id="${proc.tempId}"
+                            style="background:none; border:none; color:#dc3545; cursor:pointer; font-size:18px; padding:8px;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    ` : ''}
                 </div>
                 
                 ${proc.existente ? '<small style="color:#856404;">⚠️ Editando o Processo</small>' : ''}

@@ -933,22 +933,45 @@ def buscar_controle_etapa_por_id(controle_id):
         }
 
 def buscar_risco_etapa_basico(risco_id):
-    """Busca impacto e probabilidade de um risco da etapa"""
+    """
+    Busca impacto e probabilidade de um risco.
+    Como a interface mistura riscos de etapa e de processo, 
+    esta função procura primeiro na tabela 'riscos_etapa'.
+    Se não encontrar, tenta na tabela geral de processos ('riscos').
+    """
     from database import engine
     from sqlalchemy import text
     
-    query = text("""
+    # 1. Primeira tentativa: Procurar na tabela de riscos da etapa
+    query_etapa = text("""
         SELECT impacto, probabilidade
         FROM riscos_etapa
         WHERE id = :risco_id
     """)
     
+    # 2. Segunda tentativa: Procurar na tabela de riscos do processo 
+    # (Agora com o nome correto: 'riscos')
+    query_processo = text("""
+        SELECT impacto, probabilidade
+        FROM riscos
+        WHERE id = :risco_id
+    """)
+    
     with engine.connect() as conn:
-        result = conn.execute(query, {'risco_id': risco_id}).fetchone()
+        # Executa a busca na etapa primeiro
+        result = conn.execute(query_etapa, {'risco_id': risco_id}).fetchone()
         
+        # Se NÃO encontrou na etapa, tenta buscar na tabela 'riscos'
         if not result:
+            print(f"🕵️ [DEBUG DB] Risco {risco_id} não está nas etapas. Procurando na tabela 'riscos'...")
+            result = conn.execute(query_processo, {'risco_id': risco_id}).fetchone()
+            
+        # Se depois de procurar nas duas tabelas continuar sem encontrar, devolve None
+        if not result:
+            print(f"❌ [DEBUG DB] Risco {risco_id} não encontrado em lado nenhum.")
             return None
         
+        # Se encontrou (seja em que tabela for), devolve os dados formatados
         return {
             'impacto': result[0] or '',
             'probabilidade': result[1] or ''
