@@ -41,11 +41,11 @@
             <button type="button" class="modal-close" id="btn-fechar-modal-controle">&times;</button>
         </div>
 
-        
-
         <div class="modal-body">
             <input type="hidden" id="controle_id">
             <input type="hidden" id="controle_risco_id">
+            <input type="hidden" id="controle_causa_motivo">
+
 
             <!-- ⭐ DADOS DO RISCO DA ETAPA -->
             <div class="risco-info-box">
@@ -59,6 +59,9 @@
                 <div class="risco-score-bruto" id="info-risco-score-bruto">
                     Risco Bruto: -
                 </div>
+                <div class="risco-info-fator">
+                    <span class="risco-info-fator-item">Fator de Risco da Etapa: <strong id="info-risco-fator">-</strong></span>
+                </div>
             </div>
 
             <!-- ⭐ APETITE AO RISCO (RISCO RESIDUAL) -->
@@ -67,7 +70,7 @@
                     <label>
                         <i class="fas fa-sack-dollar"></i> Apetite Impacto
                         <span class="btn-ver-matriz" id="btn-matriz-impacto" title="Clique para ver Matriz de Calor">
-                            <i class="fas fa-th"></i>
+                            <i class="fas fa-question-circle"></i>
                         </span>
                     </label>
                     
@@ -97,38 +100,48 @@
             </div>
 
             <!-- ⭐ TRATAMENTO DO RISCO -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label><i class="fas fa-handshake"></i> Categoria de Tratamento do Risco</label>
-                    <select id="controle_tratamento_risco" class="form-control">
-                        <option value="">Selecione...</option>
-                        <option value="ACEITAR">ACEITAR</option>
-                        <option value="MITIGAR">MITIGAR</option>
-                        <option value="COMPARTILHAR">COMPARTILHAR</option>
-                        <option value="EVITAR">EVITAR</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-calendar-alt"></i> Prazo para Implantação</label>
-                    <input type="text" id="controle_prazo_implantacao" class="form-control" placeholder="O que falta para implantar?...">
-                </div>
+           
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-handshake"></i> Categoria de Tratamento do Risco
+                    <span class="help-icon" data-tooltip="Clique para ver mais informações."
+                        data-ajuda="ACEITAR: Isso siginifica que a magnitude do risco já foi medida e ela está dentro do apetite ao risco, ou quando o custo para mitigar for maior que o custo para manter risco.
+                        MITIGAR: Significa dizer que deve ser incluído um controle interno para mitigar (reduzir) a probabilidade do evento acontecer, mesmo sabendo que o sistema de controle interno não é absoluto e que o evento ainda possui chances de ocorrer.
+                        COMPARTILHAR: É quando a responsabilidade para a mitigação do risco é terceirizada ou dividida com agentes terceiros, como por exemplo outra área ou seguradora.
+                        EVITAR: Deixar de fazer o processo.">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <select id="controle_tratamento_risco" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="ACEITAR">ACEITAR</option>
+                    <option value="MITIGAR">MITIGAR</option>
+                    <option value="COMPARTILHAR">COMPARTILHAR</option>
+                    <option value="EVITAR">EVITAR</option>
+                </select>
             </div>
+     
 
             <div class="form-group">
                 <label><i class="fas fa-file-alt"></i> Descrição do Tratamento</label>
                 <textarea id="controle_descricao_tratamento" class="form-control" rows="2" placeholder="Descreva como o tratamento será aplicado..."></textarea>
             </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-calendar-alt"></i> Prazo para Implantação</label>
+                <input type="text" id="controle_prazo_implantacao" class="form-control" placeholder="O que falta para implantar?...">
+            </div>
             
-            <!-- 3. Fator de Risco (Causa/Motivo) -->
+            <!-- 3. Fator de Risco (Causa/Motivo)
             <div class="form-group">
                 <label>
                     <i class="fas fa-exclamation-triangle"></i> Fator de Risco da Etapa
-                    <span class="help-icon" data-tooltip="repete a descrição da causa ou motivo (fator de risco), apenas para associar ao controle da etapa">
+                    <span class="help-icon" data-tooltip="Repete a descrição da causa ou motivo (fator de risco), apenas para associar ao controle da etapa">
                         <i class="fas fa-question-circle"></i>
                     </span>
                 </label>
                 <textarea id="controle_causa_motivo" class="form-control" rows="2" placeholder="Descreva o fator de risco..."></textarea>
-            </div>
+            </div> -->
 
             <!-- 4. Ação de Controle (Nome do Controle) -->
             <div class="form-group">
@@ -170,76 +183,88 @@
             <!-- 6. Qual o objetivo da ação de controle? -->
             <div class="form-group">
                 <label><i class="fas fa-bullseye"></i> Qual o objetivo da ação de controle?</label>
-                <textarea id="controle_objetivo" class="form-control" rows="2" placeholder="Qual o objetivo deste controle?"></textarea>
+                <textarea id="controle_objetivo" class="form-control" rows="2" placeholder="Garantir o que exatamente?"></textarea>
             </div>
 
             <!-- 7. Periodicidade e 14. Frequência (lado a lado) -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label><i class="fas fa-calendar-alt"></i> Qual a frequência da ação de controle?</label>
-                    <select id="controle_periodicidade" class="form-control">
-                        <option value="">Selecione...</option>
-                        <option value="DIÁRIO">DIÁRIO</option>
-                        <option value="SEMANAL">SEMANAL</option>
-                        <option value="MENSAL">MENSAL</option>
-                        <option value="BIMESTRAL">BIMESTRAL</option>
-                        <option value="TRIMESTRAL">TRIMESTRAL</option>
-                        <option value="SEMESTRAL">SEMESTRAL</option>
-                        <option value="POR EVENTO">POR EVENTO</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-calendar-check"></i> Frequência da evidência</label>
-                    <select id="controle_frequencia_evidencia" class="form-control">
-                        <option value="">Selecione...</option>
-                        <option value="DIÁRIO">DIÁRIO</option>
-                        <option value="SEMANAL">SEMANAL</option>
-                        <option value="MENSAL">MENSAL</option>
-                        <option value="BIMESTRAL">BIMESTRAL</option>
-                        <option value="TRIMESTRAL">TRIMESTRAL</option>
-                        <option value="SEMESTRAL">SEMESTRAL</option>
-                        <option value="POR EVENTO">POR EVENTO</option>
-                    </select>
-                </div>
+           
+            <div class="form-group">
+                <label><i class="fas fa-calendar-alt"></i> Qual a frequência da ação de controle?</label>
+                <select id="controle_periodicidade" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="DIÁRIO">DIÁRIO</option>
+                    <option value="SEMANAL">SEMANAL</option>
+                    <option value="MENSAL">MENSAL</option>
+                    <option value="BIMESTRAL">BIMESTRAL</option>
+                    <option value="TRIMESTRAL">TRIMESTRAL</option>
+                    <option value="SEMESTRAL">SEMESTRAL</option>
+                    <option value="POR EVENTO">POR EVENTO</option>
+                </select>
             </div>
 
-            <!-- 8. Prova material (evidência) e 9. Local da evidência -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label><i class="fas fa-file-alt"></i> Qual a prova material (evidência)?</label>
-                    <textarea id="controle_evidencia" class="form-control" rows="2" placeholder="Qual a evidência de que o controle foi executado?"></textarea>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-map-marker-alt"></i> Qual o local da evidência?</label>
-                    <input type="text" id="controle_local_evidencia" class="form-control" placeholder="Ex: Pasta X, Sistema Y, Site Z...">
-                </div>
+            <div class="form-group">
+                <label><i class="fas fa-file-alt"></i> Qual a prova material (evidência)?</label>
+                <textarea id="controle_evidencia" class="form-control" placeholder="Qual a evidência de que o controle foi executado?"></textarea>
             </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-calendar-check"></i> Frequência da evidência</label>
+                <select id="controle_frequencia_evidencia" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="DIÁRIO">DIÁRIO</option>
+                    <option value="SEMANAL">SEMANAL</option>
+                    <option value="MENSAL">MENSAL</option>
+                    <option value="BIMESTRAL">BIMESTRAL</option>
+                    <option value="TRIMESTRAL">TRIMESTRAL</option>
+                    <option value="SEMESTRAL">SEMESTRAL</option>
+                    <option value="POR EVENTO">POR EVENTO</option>
+                </select>
+            </div>
+
+       
+            <!-- 8. Prova material (evidência) e 9. Local da evidência -->
+            
+            <div class="form-group">
+                <label><i class="fas fa-map-marker-alt"></i> Qual o local da evidência?</label>
+                <input type="text" id="controle_local_evidencia" class="form-control" placeholder="Ex: Pasta X, Sistema Y, Site Z...">
+            </div>
+           
 
             <!-- 10. Forma de Execução e 11. Natureza (lado a lado) -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label><i class="fas fa-play-circle"></i> Forma de Execução</label>
-                    <select id="controle_forma_execucao" class="form-control">
-                        <option value="">Selecione...</option>
-                        <option value="MANUAL">MANUAL</option>
-                        <option value="AUTOMÁTICO">AUTOMÁTICO</option>
-                        <option value="SEMIAUTOMÁTICO">SEMIAUTOMÁTICO</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-chart-line"></i> Natureza do Controle</label>
-                    <select id="controle_natureza" class="form-control">
-                        <option value="">Selecione...</option>
-                        <option value="PREVENTIVO">PREVENTIVO</option>
-                        <option value="DETECTIVO">DETECTIVO</option>
-                        <option value="CORRETIVO">CORRETIVO</option>
-                    </select>
-                </div>
+            
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-play-circle"></i> Forma de Execução
+                </label>
+                <select id="controle_forma_execucao" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="MANUAL">MANUAL</option>
+                    <option value="AUTOMÁTICO">AUTOMÁTICO</option>
+                    <option value="SEMIAUTOMÁTICO">SEMIAUTOMÁTICO</option>
+                </select>
             </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-chart-line"></i> Natureza do Controle
+                    <span class="help-icon" data-tooltip="Clique para ver mais informações."
+                        data-ajuda="PREVENTIVO: Previnir que o risco se materialize, este provoca uma eficiência econômica ao processo, uma vez que é identifica algum problema antes mesmo de iniciar um evento.
+                        DETECTIVO: Detecta não conformidades do evento na quebra de consistência ou confidencialidade. Este, embora o evento já tenha inicializado mas ainda não terminado, ainda possui caráter de redução de custo buscando a eficiência econômica.
+                        CORRETIVO: Ocorre o retrabalho, de modo que o evento precisa ser tratado e ajustado antes de poder seguir em frente. Estes por último atuam para garantir que o produto entregue esteja de acordo com o padrão exigido.">
+                        <i class="fas fa-question-circle"></i>
+                    </span>
+                </label>
+                <select id="controle_natureza" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="PREVENTIVO">PREVENTIVO</option>
+                    <option value="DETECTIVO">DETECTIVO</option>
+                    <option value="CORRETIVO">CORRETIVO</option>
+                </select>
+            </div>
+
 
             <!-- 12. LGPD -->
             <div class="form-group">
-                <label><i class="fas fa-lock"></i> LGPD - Como estão protegidos os dados da pessoa física nas evidências do controle?</label>
+                <label><i class="fas fa-lock"></i> LGPD - Como estão protegidos os dados da pessoais e sensíveis da pessoa física nas evidências do controle?</label>
                 <textarea id="controle_lgpd" class="form-control" rows="2" placeholder="Descreva as medidas de proteção de dados sensíveis e pessoais da pessoa física..."></textarea>
             </div>
 
